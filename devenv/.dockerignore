@@ -1,0 +1,10 @@
+.git
+.env
+*.pyc
+__pycache__
+.venv
+node_modules
+*.db
+.DS_Store
+Justfile
+README.md

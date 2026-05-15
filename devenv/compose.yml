@@ -1,0 +1,49 @@
+services:
+  isms:
+    userns_mode: "keep-id"
+    build:
+      context: .
+      args:
+        CRONTAB_URL_DEPS: ${CRONTAB_URL_DEPS:-https://go.dev/dl}
+        GO_DL: ${GO_DL:-go1.25.3.linux-amd64.tar.gz}
+    container_name: isms-dev
+    hostname: isms-dev
+    stdin_open: true
+    tty: true
+    volumes:
+      # Project source (edit on host, run in container)
+      - ${ISMS_SRC_ROOT}/isms:/home/tower/workspace/isms
+      - ${ISMS_SRC_ROOT}/isms-templates:/home/tower/workspace/isms-templates
+      # Persistent data (survives container rebuilds)
+      - isms-data:/home/tower/workspace/isms-data
+      # Claude/AI config (optional, ignored if missing)
+      - ${HOME}/Projects/unidoc-isms-localhost:/home/tower/workspace/unidoc-isms-localhost
+      - ${HOME}/Projects/unidoc-isms-production:/home/tower/workspace/unidoc-isms-production
+      - ${HOME}/.claude:/home/tower/.claude
+      - ${HOME}/.claude.json:/home/tower/.claude.json
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - DATABASE_URL=postgres://isms:isms@postgres:5432/isms?sslmode=disable
+      - ISMS_SECRET=${ISMS_SECRET:-dev-secret-must-be-at-least-32-characters-long-change-me}
+      - ISMS_STORAGE_BACKEND=file
+      - ISMS_DATA_DIR=/home/tower/workspace/isms-data
+      - ISMS_TEMPLATE_PATH=/home/tower/workspace/isms-templates
+      - ISMS_USER_SIGNUP=1
+      - ISMS_SKIP_EMAIL_VERIFY=1
+      - ISMS_RATE_LIMIT=0
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    container_name: isms-postgres
+    environment:
+      POSTGRES_USER: isms
+      POSTGRES_PASSWORD: isms
+      POSTGRES_DB: isms
+    volumes:
+      - isms-pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  isms-pgdata:
+  isms-data:

@@ -1,0 +1,109 @@
+# =============================================================================
+# Tower Dev Environment
+# =============================================================================
+# just build       → Build the container
+# just up          → Start in background
+# just attach      → Attach to shell
+# just claude      → Start Claude Code
+# just down        → Stop
+# =============================================================================
+
+set dotenv-load
+
+container := "isms-dev"
+
+# ── Lifecycle ────────────────────────────────────────────────────────────────
+
+# Build Docker image
+build:
+    docker compose build
+
+# Build without cache (full rebuild)
+rebuild:
+    docker compose build --no-cache
+
+# Start container in background
+up:
+    PODMAN_USERNS=keep-id PUID=$(id -u) PGID=$(id -g) docker compose up -d
+
+# Build and start
+boot: build up
+    @echo "✓ isms-dev running — just attach to connect"
+
+# Stop container
+down:
+    docker compose down
+
+# Stop and remove volumes (clean slate)
+nuke:
+    docker compose down -v
+    @echo "✓ Volumes removed — next boot will rebuild venv and caches"
+
+# Restart
+restart:
+    docker compose restart
+
+# ── Connect ──────────────────────────────────────────────────────────────────
+
+# Attach to shell in container (primary workflow)
+attach:
+    docker compose exec -u tower isms bash
+
+attach-root:
+    docker compose exec isms bash
+
+# ── Run commands ─────────────────────────────────────────────────────────────
+
+# Flask dev server (streamed output)
+flask:
+    docker compose exec isms bash -lc "rundev"
+
+# Start Claude Code
+claude:
+    docker compose exec -u tower isms bash -lc "claude"
+
+# Continue last Claude session
+claude-continue:
+    docker compose exec -u tower isms bash -lc "claude --continue"
+
+# Pick a Claude session to resume
+claude-resume:
+    docker compose exec -u tower isms bash -lc "claude --resume"
+
+# Run an arbitrary command in the container
+run +CMD:
+    docker compose exec isms bash -lc "{{ CMD }}"
+
+# ── Git ──────────────────────────────────────────────────────────────────────
+
+# Git status
+gs:
+    docker compose exec isms bash -lc "git status"
+
+# Git log
+gl:
+    docker compose exec isms bash -lc "git log --oneline -20"
+
+# ── Go ───────────────────────────────────────────────────────────────────────
+
+# Go build
+go-build:
+    docker compose exec isms bash -lc "cd /home/tower/workspace/isms-web && go build ./..."
+
+# Go test
+go-test:
+    docker compose exec isms bash -lc "cd /home/tower/workspace/isms-web && go test ./..."
+
+# ── Info ─────────────────────────────────────────────────────────────────────
+
+# Show container status
+status:
+    @docker compose ps
+
+# Logs
+logs:
+    docker compose logs -f isms
+
+# Show all available commands
+help:
+    @just --list

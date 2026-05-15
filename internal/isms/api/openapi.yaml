@@ -1,0 +1,3704 @@
+openapi: '3.1.0'
+info:
+  title: isms.sh API
+  description: |
+    AI-powered Information Security Management System.
+    Git-native document management with ISO 27001, NIS2, and SOC 2 support.
+
+    ## Authentication
+
+    Three authentication methods (checked in order):
+
+    1. **API tokens** - `Authorization: Bearer isms_xxx` - for CLI and AI agents
+    2. **JWT session tokens** - `Authorization: Bearer <jwt>` - from login endpoint
+    3. **Cloudflare Zero Trust** - JWT verification via `Cf-Access-Jwt-Assertion` header
+
+    ## Multi-tenancy
+
+    Organization context is resolved from subdomain, custom domain, or headers:
+    - `X-Organization-UUID` header (preferred)
+    - `X-Organization` header (slug)
+    - `?org=` query parameter
+  version: '1.0.0'
+  contact:
+    name: isms.sh
+    url: https://isms.sh
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+security:
+  - bearerAuth: []
+  - apiKey: []
+
+tags:
+  - name: Auth
+    description: Login, logout, refresh, invite, password, OTP, passkeys, OIDC
+  - name: Users
+    description: Current user, user management, organizations
+  - name: Config
+    description: ISMS configuration from git repo
+  - name: Documents
+    description: List, search, get, edit, validate, needs-review, changed
+  - name: Risks
+    description: Risk register
+  - name: Assets
+    description: Information asset register
+  - name: Suppliers
+    description: Supplier register
+  - name: Systems
+    description: IT systems register with recovery objectives and access reviews
+  - name: Legal
+    description: Legal and regulatory requirements register
+  - name: Incidents
+    description: Security and operational incidents
+  - name: Corrective Actions
+    description: Nonconformities and corrective actions
+  - name: Audit
+    description: Audit programmes, audits, items, findings
+  - name: Objectives
+    description: Programs, objectives, check-ins, evidence
+  - name: Reviews & Comments
+    description: Document reviews, inline comments, approvals
+  - name: Tasks
+    description: Work items and task tracking
+  - name: Changes
+    description: Change management requests
+  - name: Implementation
+    description: Implementation status tracking
+  - name: Notifications
+    description: User notifications and inbox
+  - name: References
+    description: Cross-entity reference links
+  - name: Changelog
+    description: Entity-level audit trail
+  - name: Activity
+    description: Activity feed
+  - name: Versions & Diff
+    description: Document version history and diffs
+  - name: Inbox
+    description: Action items requiring attention
+  - name: Admin
+    description: Organization administration (admin role required)
+  - name: Git
+    description: Git smart HTTP protocol
+  - name: Health
+    description: Health check
+
+paths:
+  # ── Auth ────────────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                otp_code: { type: string, description: TOTP code if OTP is enabled }
+                org_slug: { type: string, description: Organization slug to log into }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: JWT session token }
+                  user: { $ref: '#/components/schemas/User' }
+                  organization: { $ref: '#/components/schemas/Organization' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify email with code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string }
+      responses:
+        '200':
+          description: Email verified
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh JWT session token
+      responses:
+        '200':
+          description: New token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and revoke current token
+      responses:
+        '200':
+          description: Logged out
+
+  /auth/switch-org:
+    post:
+      tags: [Auth]
+      summary: Switch to a different organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_slug]
+              properties:
+                org_slug: { type: string }
+      responses:
+        '200':
+          description: New token for switched organization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  organization: { $ref: '#/components/schemas/Organization' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/invite:
+    post:
+      tags: [Auth]
+      summary: Invite a user to the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string }
+                role: { type: string, enum: [admin, manager, contributor, reader] }
+      responses:
+        '200':
+          description: Invitation sent
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/password:
+    put:
+      tags: [Auth]
+      summary: Change own password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                current_password: { type: string }
+                new_password: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: Password changed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/profile:
+    put:
+      tags: [Auth]
+      summary: Update own profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200':
+          description: Profile updated
+
+  /auth/otp/setup:
+    post:
+      tags: [Auth]
+      summary: Start OTP setup (returns QR secret)
+      responses:
+        '200':
+          description: OTP setup data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string }
+                  url: { type: string, description: otpauth:// URI for QR code }
+
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP code to complete setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: OTP verified and enabled
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/otp:
+    delete:
+      tags: [Auth]
+      summary: Disable OTP
+      responses:
+        '200':
+          description: OTP disabled
+
+  /auth/api-keys:
+    get:
+      tags: [Auth]
+      summary: List own API keys
+      responses:
+        '200':
+          description: List of personal API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/APIKey' }
+    post:
+      tags: [Auth]
+      summary: Create a personal API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                permissions: { type: string, enum: [read, write, read-write], default: read-write }
+      responses:
+        '201':
+          description: API key created (token shown once)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  token: { type: string, description: "Full token (isms_...) - only shown once" }
+
+  /auth/api-keys/{id}:
+    delete:
+      tags: [Auth]
+      summary: Revoke own API key
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: API key revoked
+
+  /auth/passkey/login/begin:
+    post:
+      tags: [Auth]
+      summary: Begin passkey login ceremony
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: WebAuthn credential request options
+
+  /auth/passkey/login/complete:
+    post:
+      tags: [Auth]
+      summary: Complete passkey login ceremony
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: WebAuthn assertion response
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+
+  /auth/passkey/register/begin:
+    post:
+      tags: [Auth]
+      summary: Begin passkey registration ceremony
+      responses:
+        '200':
+          description: WebAuthn credential creation options
+
+  /auth/passkey/register/complete:
+    post:
+      tags: [Auth]
+      summary: Complete passkey registration ceremony
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: WebAuthn attestation response
+      responses:
+        '200':
+          description: Passkey registered
+
+  /auth/passkeys:
+    get:
+      tags: [Auth]
+      summary: List registered passkeys
+      responses:
+        '200':
+          description: List of passkeys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        created_at: { type: string, format: date-time }
+                        last_used: { type: string, format: date-time }
+
+  /auth/passkeys/{id}:
+    put:
+      tags: [Auth]
+      summary: Rename a passkey
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '200':
+          description: Passkey renamed
+    delete:
+      tags: [Auth]
+      summary: Delete a passkey
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Passkey deleted
+
+  /auth/oidc/providers:
+    get:
+      tags: [Auth]
+      summary: List available OIDC providers
+      security: []
+      responses:
+        '200':
+          description: List of configured OIDC providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        slug: { type: string }
+
+  /auth/oidc/authorize:
+    get:
+      tags: [Auth]
+      summary: Begin OIDC authorization flow
+      security: []
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirect to OIDC provider
+
+  /auth/oidc/callback:
+    get:
+      tags: [Auth]
+      summary: OIDC authorization callback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          schema: { type: string }
+        - name: state
+          in: query
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirect to app with session token
+
+  # ── Users ───────────────────────────────────────────────────────────────
+  /me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /me/organizations:
+    get:
+      tags: [Users]
+      summary: List organizations the current user belongs to
+      responses:
+        '200':
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Organization' }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users in the organization
+      responses:
+        '200':
+          description: List of users with roles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserWithRole' }
+    post:
+      tags: [Users]
+      summary: Create or update a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string }
+                role: { type: string, enum: [admin, manager, contributor, reader] }
+      responses:
+        '200':
+          description: User created or updated
+
+  /organizations:
+    post:
+      tags: [Users]
+      summary: Create a new organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name: { type: string }
+                slug: { type: string, pattern: '^[a-z0-9-]+$' }
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Organization' }
+
+  # ── Config ──────────────────────────────────────────────────────────────
+  /config:
+    get:
+      tags: [Config]
+      summary: Get ISMS configuration
+      description: Returns org configuration from PostgreSQL (branding, org name, platform settings).
+      responses:
+        '200':
+          description: Configuration object
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Org branding and platform settings
+
+
+
+
+
+  # ── Documents ───────────────────────────────────────────────────────────
+  /documents/all:
+    get:
+      tags: [Documents]
+      summary: List all documents
+      description: Scans the git repo dynamically for all documents across all folders.
+      responses:
+        '200':
+          description: List of all documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+
+  /documents/search:
+    get:
+      tags: [Documents]
+      summary: Search documents
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+          description: Search query (matches title, content, document ID)
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/SearchResult' }
+
+  /documents/needs-review:
+    get:
+      tags: [Documents]
+      summary: List documents needing review
+      responses:
+        '200':
+          description: Documents with pending reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+
+  /documents/changed:
+    get:
+      tags: [Documents]
+      summary: List recently changed documents
+      responses:
+        '200':
+          description: Recently changed documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+
+  /documents/validate:
+    get:
+      tags: [Documents]
+      summary: Validate all documents
+      description: Checks documents for schema issues, missing fields, and referential integrity.
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid: { type: boolean }
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        document_id: { type: string }
+                        message: { type: string }
+
+  /documents/file/{folder}/{id}:
+    get:
+      tags: [Documents]
+      summary: Get a document by folder and file ID
+      parameters:
+        - name: folder
+          in: path
+          required: true
+          schema: { type: string }
+          description: Document folder name
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Document with content
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /documents/{docId}/metadata:
+    put:
+      tags: [Documents]
+      summary: Update document metadata (frontmatter)
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                status: { type: string }
+                owner: { type: string }
+                version: { type: string }
+      responses:
+        '200':
+          description: Metadata updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /documents/{docId}/content:
+    put:
+      tags: [Documents]
+      summary: Update document content (markdown body)
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, description: Markdown content }
+                message: { type: string, description: Git commit message }
+      responses:
+        '200':
+          description: Content updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Versions & Diff ────────────────────────────────────────────────────
+  /documents/{docId}/versions:
+    get:
+      tags: [Versions & Diff]
+      summary: List document versions
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DocumentVersion' }
+
+  /documents/{docId}/diff:
+    get:
+      tags: [Versions & Diff]
+      summary: Get diff between document versions
+      parameters:
+        - $ref: '#/components/parameters/docId'
+        - name: from
+          in: query
+          schema: { type: string }
+          description: From version or commit hash
+        - name: to
+          in: query
+          schema: { type: string }
+          description: To version or commit hash
+      responses:
+        '200':
+          description: Unified diff
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  diff: { type: string }
+
+  # ── Assets ──────────────────────────────────────────────────────────────
+  /assets:
+    get:
+      tags: [Assets]
+      summary: List all assets
+      responses:
+        '200':
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Asset' }
+    post:
+      tags: [Assets]
+      summary: Create an asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Asset' }
+      responses:
+        '201':
+          description: Asset created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Asset' }
+
+  /assets/{id}:
+    put:
+      tags: [Assets]
+      summary: Update an asset
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Asset' }
+      responses:
+        '200':
+          description: Asset updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Asset' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Assets]
+      summary: Delete an asset
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Asset deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Systems ─────────────────────────────────────────────────────────────
+  /systems:
+    get:
+      tags: [Systems]
+      summary: List all systems
+      responses:
+        '200':
+          description: List of systems
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/System' }
+    post:
+      tags: [Systems]
+      summary: Create a system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/System' }
+      responses:
+        '201':
+          description: System created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/System' }
+
+  /systems/{id}:
+    put:
+      tags: [Systems]
+      summary: Update a system
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/System' }
+      responses:
+        '200':
+          description: System updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Systems]
+      summary: Delete a system
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: System deleted
+
+  /systems/{id}/access-reviews:
+    get:
+      tags: [Systems]
+      summary: List access reviews for a system
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of access reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AccessReview' }
+    post:
+      tags: [Systems]
+      summary: Create an access review for a system
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccessReview' }
+      responses:
+        '201':
+          description: Access review created
+
+  /access-reviews/{id}:
+    delete:
+      tags: [Systems]
+      summary: Delete an access review
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Access review deleted
+
+  # ── Risks ───────────────────────────────────────────────────────────────
+  /risks:
+    get:
+      tags: [Risks]
+      summary: List all risks
+      responses:
+        '200':
+          description: List of risks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Risk' }
+    post:
+      tags: [Risks]
+      summary: Create a risk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Risk' }
+      responses:
+        '201':
+          description: Risk created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Risk' }
+
+  /risks/{id}:
+    put:
+      tags: [Risks]
+      summary: Update a risk
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Risk' }
+      responses:
+        '200':
+          description: Risk updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Risks]
+      summary: Delete a risk
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Risk deleted
+
+  /risks/matrix:
+    get:
+      tags: [Risks]
+      summary: Get the risk matrix (heatmap data)
+      responses:
+        '200':
+          description: Risk matrix
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matrix:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          likelihood: { type: integer }
+                          impact: { type: integer }
+                          count: { type: integer }
+                          risks:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id: { type: integer }
+                                identifier: { type: string }
+                                title: { type: string }
+
+  # ── Suppliers ───────────────────────────────────────────────────────────
+  /suppliers:
+    get:
+      tags: [Suppliers]
+      summary: List all suppliers
+      responses:
+        '200':
+          description: List of suppliers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Supplier' }
+    post:
+      tags: [Suppliers]
+      summary: Create a supplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Supplier' }
+      responses:
+        '201':
+          description: Supplier created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Supplier' }
+
+  /suppliers/{id}:
+    put:
+      tags: [Suppliers]
+      summary: Update a supplier
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Supplier' }
+      responses:
+        '200':
+          description: Supplier updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Suppliers]
+      summary: Delete a supplier
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Supplier deleted
+
+  # ── Inbox ───────────────────────────────────────────────────────────────
+  /inbox:
+    get:
+      tags: [Inbox]
+      summary: Get action items for current user
+      responses:
+        '200':
+          description: Inbox items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, description: "review, comment, task, etc." }
+                        document_id: { type: string }
+                        title: { type: string }
+                        created_at: { type: string, format: date-time }
+
+  /inbox/dump:
+    get:
+      tags: [Inbox]
+      summary: Dump inbox as JSON (for Claude/AI processing)
+      responses:
+        '200':
+          description: Full inbox dump
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ── Reviews & Comments ──────────────────────────────────────────────────
+  /reviews:
+    get:
+      tags: [Reviews & Comments]
+      summary: List all reviews
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Review' }
+    post:
+      tags: [Reviews & Comments]
+      summary: Create a review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id]
+              properties:
+                document_id: { type: string }
+                document_type: { type: string }
+                title: { type: string }
+                assignees:
+                  type: array
+                  items: { type: string, format: email }
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+
+  /reviews/{id}:
+    get:
+      tags: [Reviews & Comments]
+      summary: Get a review by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Review details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{id}/assignments:
+    get:
+      tags: [Reviews & Comments]
+      summary: List review assignments
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        review_id: { type: integer }
+                        assignee: { type: string }
+                        status: { type: string }
+                        responded_at: { type: string, format: date-time }
+
+  /reviews/{id}/status:
+    put:
+      tags: [Reviews & Comments]
+      summary: Update review status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, in_review, approved, changes_requested, closed] }
+      responses:
+        '200':
+          description: Status updated
+
+  /reviews/{id}/forward:
+    post:
+      tags: [Reviews & Comments]
+      summary: Forward a review to additional reviewers
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignees]
+              properties:
+                assignees:
+                  type: array
+                  items: { type: string, format: email }
+      responses:
+        '200':
+          description: Review forwarded
+
+  /reviews/{docId}/send:
+    post:
+      tags: [Reviews & Comments]
+      summary: Send a document for review (bumps version, records commit)
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignees]
+              properties:
+                assignees:
+                  type: array
+                  items: { type: string, format: email }
+                message: { type: string }
+      responses:
+        '200':
+          description: Review created and sent
+
+  /comments/open:
+    get:
+      tags: [Reviews & Comments]
+      summary: List all open comments across documents
+      responses:
+        '200':
+          description: Open comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+
+  /documents/{docId}/comments:
+    get:
+      tags: [Reviews & Comments]
+      summary: List comments on a document
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+
+  /comments:
+    post:
+      tags: [Reviews & Comments]
+      summary: Add a comment to a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id, body]
+              properties:
+                document_id: { type: string }
+                review_id: { type: integer }
+                body: { type: string }
+                section: { type: string }
+                paragraph_index: { type: integer }
+                quote: { type: string }
+                parent_id: { type: integer, description: For threaded replies }
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+
+  /comments/{id}/resolve:
+    post:
+      tags: [Reviews & Comments]
+      summary: Resolve a comment
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Comment resolved
+
+  /documents/{docId}/approvals:
+    get:
+      tags: [Reviews & Comments]
+      summary: List approvals for a document
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      responses:
+        '200':
+          description: List of approvals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Approval' }
+
+  # ── Tasks ───────────────────────────────────────────────────────────────
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      parameters:
+        - name: assignee
+          in: query
+          schema: { type: string, format: email }
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, in_progress, done, cancelled] }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Task' }
+    post:
+      tags: [Tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Task' }
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get a task by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/status:
+    put:
+      tags: [Tasks]
+      summary: Update task status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, in_progress, done, cancelled] }
+      responses:
+        '200':
+          description: Status updated
+
+  # ── Changes ─────────────────────────────────────────────────────────────
+  /changes:
+    get:
+      tags: [Changes]
+      summary: List change requests
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [proposed, approved, rejected, in_progress, implemented, closed] }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of change requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChangeRequest' }
+    post:
+      tags: [Changes]
+      summary: Create a change request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeRequest' }
+      responses:
+        '201':
+          description: Change request created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangeRequest' }
+
+  /changes/{id}:
+    get:
+      tags: [Changes]
+      summary: Get a change request by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Change request details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangeRequest' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /changes/{id}/status:
+    put:
+      tags: [Changes]
+      summary: Update change request status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [proposed, approved, rejected, in_progress, implemented, closed] }
+      responses:
+        '200':
+          description: Status updated
+
+  # ── Implementation ──────────────────────────────────────────────────────
+  /implementation:
+    get:
+      tags: [Implementation]
+      summary: List implementation status for all items
+      responses:
+        '200':
+          description: List of implementation statuses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ImplementationStatus' }
+
+  /implementation/{itemId}:
+    put:
+      tags: [Implementation]
+      summary: Update implementation status for an item
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+          description: "Item ID (e.g. ISO27001-A.5.1, ISO27001-4.1)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImplementationStatus' }
+      responses:
+        '200':
+          description: Status updated
+
+  /implementation/progress:
+    get:
+      tags: [Implementation]
+      summary: Get implementation progress summary
+      responses:
+        '200':
+          description: Progress summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  implemented: { type: integer }
+                  in_progress: { type: integer }
+                  not_started: { type: integer }
+                  not_applicable: { type: integer }
+                  percentage: { type: number }
+
+  # ── Notifications ───────────────────────────────────────────────────────
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      parameters:
+        - name: unread
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Marked as read
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All marked as read
+
+  /notifications/count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+
+  # ── Audit ───────────────────────────────────────────────────────────────
+  /audit/programmes:
+    get:
+      tags: [Audit]
+      summary: List audit programmes
+      responses:
+        '200':
+          description: List of audit programmes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditProgramme' }
+    post:
+      tags: [Audit]
+      summary: Create an audit programme
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuditProgramme' }
+      responses:
+        '201':
+          description: Programme created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditProgramme' }
+
+  /audit/programmes/{id}:
+    get:
+      tags: [Audit]
+      summary: Get an audit programme by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Programme details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditProgramme' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Audit]
+      summary: Update an audit programme (partial)
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                notes: { type: string }
+                status: { type: string, enum: [draft, active, closed] }
+      responses:
+        '200':
+          description: Programme updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditProgramme' }
+    delete:
+      tags: [Audit]
+      summary: Delete an audit programme
+      description: Returns 409 if the programme has audits.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '204':
+          description: Programme deleted
+        '409':
+          description: Conflict — programme has audits
+
+  /audit/calendar:
+    get:
+      tags: [Audit]
+      summary: Get audit calendar (audits grouped by month)
+      parameters:
+        - name: year
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Calendar data
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /audit/findings:
+    get:
+      tags: [Audit]
+      summary: List audit findings (paginated, filterable)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: sort
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, closed] }
+        - name: type
+          in: query
+          schema: { type: string, enum: [major_nc, minor_nc, observation, opportunity] }
+        - name: audit_id
+          in: query
+          schema: { type: integer }
+        - name: programme_id
+          in: query
+          schema: { type: integer }
+        - name: owner
+          in: query
+          schema: { type: string }
+        - name: overdue
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Paginated audit findings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditFinding' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+
+  /audits:
+    get:
+      tags: [Audit]
+      summary: List audits
+      parameters:
+        - name: programme_id
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of audits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Audit' }
+    post:
+      tags: [Audit]
+      summary: Create an audit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Audit' }
+      responses:
+        '201':
+          description: Audit created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Audit' }
+
+  /audits/{id}:
+    get:
+      tags: [Audit]
+      summary: Get an audit by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Audit details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Audit' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Audit]
+      summary: Update an audit (partial)
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                scope: { type: string }
+                auditor: { type: string }
+                audit_type: { type: string, enum: [internal, external, surveillance, certification, recertification] }
+                summary: { type: string }
+                notes: { type: string }
+                planned_date: { type: string, format: date-time, nullable: true }
+                end_date: { type: string, format: date, nullable: true }
+      responses:
+        '200':
+          description: Audit updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Audit' }
+
+  /audits/{id}/status:
+    put:
+      tags: [Audit]
+      summary: Update audit status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [planned, in_progress, completed] }
+      responses:
+        '200':
+          description: Status updated
+
+  /audits/{id}/items:
+    get:
+      tags: [Audit]
+      summary: List audit items
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of audit items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditItem' }
+
+  /audit-items/{id}:
+    put:
+      tags: [Audit]
+      summary: Update an audit item (assess)
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                result: { type: string, enum: [not_assessed, conforming, minor_nc, major_nc, observation, opportunity] }
+                evidence: { type: string }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Audit item updated
+
+  /audits/{id}/findings:
+    get:
+      tags: [Audit]
+      summary: List audit findings
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of findings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditFinding' }
+
+  /audit-findings:
+    post:
+      tags: [Audit]
+      summary: Create an audit finding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuditFinding' }
+      responses:
+        '201':
+          description: Finding created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditFinding' }
+
+  /audit-findings/{id}:
+    get:
+      tags: [Audit]
+      summary: Get an audit finding by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Finding details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditFinding' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Audit]
+      summary: Update an audit finding (partial)
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                owner: { type: string }
+                due_date: { type: string, format: date-time, nullable: true }
+                status: { type: string, enum: [open, closed] }
+      responses:
+        '200':
+          description: Finding updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditFinding' }
+    delete:
+      tags: [Audit]
+      summary: Delete an audit finding
+      description: Returns 409 if the finding has linked corrective actions.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '204':
+          description: Finding deleted
+        '409':
+          description: Conflict — finding has linked corrective actions
+
+  /audit-findings/{id}/status:
+    put:
+      tags: [Audit]
+      summary: Update audit finding status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, closed] }
+      responses:
+        '200':
+          description: Status updated
+
+  # ── Legal ───────────────────────────────────────────────────────────────
+  /legal:
+    get:
+      tags: [Legal]
+      summary: List legal requirements
+      responses:
+        '200':
+          description: List of legal requirements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LegalRequirement' }
+    post:
+      tags: [Legal]
+      summary: Create a legal requirement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LegalRequirement' }
+      responses:
+        '201':
+          description: Legal requirement created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalRequirement' }
+
+  /legal/{id}:
+    get:
+      tags: [Legal]
+      summary: Get a legal requirement by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Legal requirement details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalRequirement' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Legal]
+      summary: Update a legal requirement
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LegalRequirement' }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Legal]
+      summary: Delete a legal requirement
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+
+  # ── Incidents ───────────────────────────────────────────────────────────
+  /incidents:
+    get:
+      tags: [Incidents]
+      summary: List incidents
+      responses:
+        '200':
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Incident' }
+    post:
+      tags: [Incidents]
+      summary: Create an incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Incident' }
+      responses:
+        '201':
+          description: Incident created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Incident' }
+
+  /incidents/stats:
+    get:
+      tags: [Incidents]
+      summary: Get incident statistics
+      responses:
+        '200':
+          description: Incident stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  by_status:
+                    type: object
+                    additionalProperties: { type: integer }
+                  by_severity:
+                    type: object
+                    additionalProperties: { type: integer }
+
+  /incidents/{id}:
+    get:
+      tags: [Incidents]
+      summary: Get an incident by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Incident details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Incident' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Incidents]
+      summary: Update an incident
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Incident' }
+      responses:
+        '200':
+          description: Incident updated
+
+  /incidents/{id}/status:
+    put:
+      tags: [Incidents]
+      summary: Update incident status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [draft, open, investigating, contained, resolved, closed] }
+      responses:
+        '200':
+          description: Status updated
+
+  # ── Corrective Actions ──────────────────────────────────────────────────
+  /corrective-actions:
+    get:
+      tags: [Corrective Actions]
+      summary: List corrective actions
+      responses:
+        '200':
+          description: List of corrective actions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/CorrectiveAction' }
+    post:
+      tags: [Corrective Actions]
+      summary: Create a corrective action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CorrectiveAction' }
+      responses:
+        '201':
+          description: Corrective action created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CorrectiveAction' }
+
+  /corrective-actions/stats:
+    get:
+      tags: [Corrective Actions]
+      summary: Get corrective action statistics
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  by_status:
+                    type: object
+                    additionalProperties: { type: integer }
+                  by_severity:
+                    type: object
+                    additionalProperties: { type: integer }
+
+  /corrective-actions/{id}:
+    get:
+      tags: [Corrective Actions]
+      summary: Get a corrective action by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Corrective action details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CorrectiveAction' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Corrective Actions]
+      summary: Update a corrective action
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CorrectiveAction' }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Corrective Actions]
+      summary: Delete a corrective action
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+
+  /corrective-actions/{id}/status:
+    put:
+      tags: [Corrective Actions]
+      summary: Update corrective action status
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [todo, assessment, awaiting_approval, implementation, monitoring, resolved] }
+      responses:
+        '200':
+          description: Status updated
+
+  # ── Programs ────────────────────────────────────────────────────────────
+  /programs:
+    get:
+      tags: [Objectives]
+      summary: List programs
+      responses:
+        '200':
+          description: List of programs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Program' }
+    post:
+      tags: [Objectives]
+      summary: Create a program
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Program' }
+      responses:
+        '201':
+          description: Program created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Program' }
+
+  /programs/{id}:
+    get:
+      tags: [Objectives]
+      summary: Get a program by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Program details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Program' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Objectives]
+      summary: Update a program
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Program' }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Objectives]
+      summary: Delete a program
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+
+  # ── Objectives ──────────────────────────────────────────────────────────
+  /objectives:
+    get:
+      tags: [Objectives]
+      summary: List objectives
+      parameters:
+        - name: program_id
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of objectives
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Objective' }
+    post:
+      tags: [Objectives]
+      summary: Create an objective
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Objective' }
+      responses:
+        '201':
+          description: Objective created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Objective' }
+
+  /objectives/{id}:
+    get:
+      tags: [Objectives]
+      summary: Get an objective by ID
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Objective details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Objective' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Objectives]
+      summary: Update an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Objective' }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Objectives]
+      summary: Delete an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+
+  /objectives/{id}/archive:
+    post:
+      tags: [Objectives]
+      summary: Archive an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Objective archived
+
+  /objectives/{id}/unarchive:
+    post:
+      tags: [Objectives]
+      summary: Unarchive an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Objective unarchived
+
+  # ── Checkins ────────────────────────────────────────────────────────────
+  /objectives/{id}/checkins:
+    get:
+      tags: [Objectives]
+      summary: List check-ins for an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of check-ins
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Checkin' }
+    post:
+      tags: [Objectives]
+      summary: Create a check-in for an objective
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Checkin' }
+      responses:
+        '201':
+          description: Check-in created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Checkin' }
+
+  /checkins/{id}:
+    put:
+      tags: [Objectives]
+      summary: Update a check-in
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Checkin' }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Objectives]
+      summary: Delete a check-in
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+
+  # ── Evidence ────────────────────────────────────────────────────────────
+  /checkins/{id}/evidence:
+    post:
+      tags: [Objectives]
+      summary: Upload evidence file to a check-in
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title: { type: string }
+      responses:
+        '201':
+          description: Evidence uploaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Evidence' }
+    get:
+      tags: [Objectives]
+      summary: List evidence files for a check-in
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: List of evidence files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Evidence' }
+
+  /evidence/{id}/download:
+    get:
+      tags: [Objectives]
+      summary: Download an evidence file
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: File download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /evidence/{id}:
+    delete:
+      tags: [Objectives]
+      summary: Delete an evidence file
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Evidence deleted
+
+  # ── References ──────────────────────────────────────────────────────────
+  /references:
+    get:
+      tags: [References]
+      summary: List entity references
+      parameters:
+        - name: source_type
+          in: query
+          schema: { type: string }
+        - name: source_id
+          in: query
+          schema: { type: string }
+        - name: target_type
+          in: query
+          schema: { type: string }
+        - name: target_id
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of references
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/EntityReference' }
+    post:
+      tags: [References]
+      summary: Create a cross-reference between entities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntityReference' }
+      responses:
+        '201':
+          description: Reference created
+
+  /references/{id}:
+    delete:
+      tags: [References]
+      summary: Delete a reference
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Reference deleted
+
+  # ── Entity Comments ─────────────────────────────────────────────────────
+  /entity-comments/{type}/{id}:
+    get:
+      tags: [References]
+      summary: List comments on an entity
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of entity comments
+
+  /entity-comments:
+    post:
+      tags: [References]
+      summary: Create a comment on an entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entity_type, entity_id, body]
+              properties:
+                entity_type:
+                  type: string
+                  enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+                entity_id: { type: string }
+                parent_id: { type: integer }
+                body: { type: string }
+      responses:
+        '201':
+          description: Comment created
+
+  /entity-comments/{id}/resolve:
+    post:
+      tags: [References]
+      summary: Resolve an entity comment
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Comment resolved
+
+  /entity-comments/{id}:
+    delete:
+      tags: [References]
+      summary: Delete an entity comment
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Comment deleted
+
+  # ── Reactions ───────────────────────────────────────────────────────────
+  /reactions:
+    post:
+      tags: [References]
+      summary: Toggle an emoji reaction on a target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_type, target_id, emoji]
+              properties:
+                target_type: { type: string }
+                target_id: { type: string }
+                emoji: { type: string }
+      responses:
+        '200':
+          description: Reaction toggled
+
+  /reactions/{targetType}/{targetId}:
+    get:
+      tags: [References]
+      summary: List reactions on a target
+      parameters:
+        - name: targetType
+          in: path
+          required: true
+          schema: { type: string }
+        - name: targetId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of reactions
+
+  # ── Changelog ───────────────────────────────────────────────────────────
+  /changelog:
+    get:
+      tags: [Changelog]
+      summary: List recent changelog entries
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of changelog entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChangelogEntry' }
+
+  /changelog/{type}/{id}:
+    get:
+      tags: [Changelog]
+      summary: Get changelog for a specific entity
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Entity changelog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChangelogEntry' }
+
+  # ── Activity ────────────────────────────────────────────────────────────
+  /activity:
+    get:
+      tags: [Activity]
+      summary: List recent activity
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        action: { type: string }
+                        entity_type: { type: string }
+                        entity_id: { type: string }
+                        user: { type: string }
+                        details: { type: string }
+                        created_at: { type: string, format: date-time }
+
+  /documents/{docId}/activity:
+    get:
+      tags: [Activity]
+      summary: Get activity for a specific document
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      responses:
+        '200':
+          description: Document activity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        action: { type: string }
+                        user: { type: string }
+                        details: { type: string }
+                        created_at: { type: string, format: date-time }
+
+  # ── Admin ───────────────────────────────────────────────────────────────
+  /admin/members:
+    get:
+      tags: [Admin]
+      summary: List organization members
+      description: Requires admin role.
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserWithRole' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/members/{userId}/role:
+    put:
+      tags: [Admin]
+      summary: Update a member's role
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [admin, manager, contributor, reader] }
+      responses:
+        '200':
+          description: Role updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/members/{userId}:
+    delete:
+      tags: [Admin]
+      summary: Remove a member from the organization
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Member removed
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/api-keys:
+    get:
+      tags: [Admin]
+      summary: List all API keys in the organization
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/APIKey' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/oidc:
+    get:
+      tags: [Admin]
+      summary: List OIDC providers
+      responses:
+        '200':
+          description: List of OIDC providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/OIDCProvider' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Admin]
+      summary: Create an OIDC provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OIDCProvider' }
+      responses:
+        '201':
+          description: OIDC provider created
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/oidc/{id}:
+    put:
+      tags: [Admin]
+      summary: Update an OIDC provider
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OIDCProvider' }
+      responses:
+        '200':
+          description: Updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Admin]
+      summary: Delete an OIDC provider
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/oidc/{id}/test:
+    post:
+      tags: [Admin]
+      summary: Test an OIDC provider configuration
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/settings:
+    get:
+      tags: [Admin]
+      summary: List organization settings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string }
+                        value: { type: string }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [Admin]
+      summary: Update a setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, value]
+              properties:
+                key: { type: string }
+                value: { type: string }
+      responses:
+        '200':
+          description: Setting updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ── Health ──────────────────────────────────────────────────────────────
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      servers:
+        - url: /
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  # ── Branding ────────────────────────────────────────────────────────────
+  /branding/logo:
+    get:
+      tags: [Health]
+      summary: Get organization logo
+      security: []
+      servers:
+        - url: /
+      responses:
+        '200':
+          description: Logo image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: No logo configured
+
+  # ── Git ─────────────────────────────────────────────────────────────────
+  /git/{uuid}/info/refs:
+    get:
+      tags: [Git]
+      summary: Git info/refs (smart HTTP)
+      servers:
+        - url: /
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: service
+          in: query
+          schema: { type: string, enum: [git-upload-pack, git-receive-pack] }
+      responses:
+        '200':
+          description: Git refs advertisement
+
+  /git/{uuid}/git-upload-pack:
+    post:
+      tags: [Git]
+      summary: Git upload-pack (clone/fetch)
+      servers:
+        - url: /
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Pack data
+
+  /git/{uuid}/git-receive-pack:
+    post:
+      tags: [Git]
+      summary: Git receive-pack (push)
+      servers:
+        - url: /
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Push result
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT session token from login
+    apiKey:
+      type: http
+      scheme: bearer
+      description: "Personal API key (isms_ prefix)"
+
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    docId:
+      name: docId
+      in: path
+      required: true
+      schema: { type: string }
+      description: "Document ID (e.g. ISO27001-4.1, ISO27001-POL-ISP, ISO27001-A.5.1)"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        name: { type: string }
+        otp_verified: { type: boolean }
+        email_verified: { type: boolean }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time }
+
+    UserWithRole:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            role: { type: string, enum: [admin, manager, contributor, reader] }
+
+    Organization:
+      type: object
+      properties:
+        uuid: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        domain: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    APIKey:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        user_email: { type: string }
+        permissions: { type: string, enum: [read, write, read-write] }
+        last_used_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    Document:
+      type: object
+      properties:
+        document_id: { type: string, example: "ISO27001-4.1" }
+        title: { type: string }
+        version: { type: string, example: "1.0" }
+        status: { type: string, enum: [draft, in_review, approved, published] }
+        author: { type: string }
+        owner: { type: string }
+        folder: { type: string }
+        path: { type: string }
+        content: { type: string, description: Markdown content (included on single-document endpoints) }
+
+    SearchResult:
+      type: object
+      properties:
+        document_id: { type: string }
+        title: { type: string }
+        folder: { type: string }
+        snippet: { type: string, description: Matching text excerpt }
+        score: { type: number }
+
+    DocumentVersion:
+      type: object
+      properties:
+        id: { type: integer }
+        document_id: { type: string }
+        version: { type: string }
+        commit_hash: { type: string }
+        file_path: { type: string }
+        content_hash: { type: string }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Risk:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "RISK-001" }
+        title: { type: string }
+        description: { type: string, description: "Markdown body. Includes ## Potential consequences (seeded on create when empty)." }
+        risk_type: { type: string, enum: [threat, opportunity] }
+        origin: { type: string, enum: [internal, external, "internal and external"] }
+        category: { type: string }
+        current_likelihood: { type: integer, minimum: 1, maximum: 5 }
+        current_impact: { type: integer, minimum: 1, maximum: 5 }
+        current_score: { type: integer }
+        current_level: { type: string }
+        confidentiality_impact: { type: integer, minimum: 0, maximum: 5 }
+        integrity_impact: { type: integer, minimum: 0, maximum: 5 }
+        availability_impact: { type: integer, minimum: 0, maximum: 5 }
+        inherent_likelihood: { type: integer }
+        inherent_impact: { type: integer }
+        inherent_score: { type: integer }
+        inherent_confidentiality_impact: { type: integer }
+        inherent_integrity_impact: { type: integer }
+        inherent_availability_impact: { type: integer }
+        target_likelihood: { type: integer }
+        target_impact: { type: integer }
+        target_score: { type: integer }
+        treatment: { type: string, enum: [mitigate, accept, transfer, avoid] }
+        treatment_plan: { type: string }
+        treatment_due_date: { type: string, format: date-time }
+        accepted_at: { type: string, format: date-time }
+        accepted_by_id: { type: integer }
+        assets: { type: array, items: { type: string } }
+        documents: { type: array, items: { type: string } }
+        interested_parties: { type: array, items: { type: string } }
+        owner: { type: string }
+        status: { type: string, enum: [draft, open, closed] }
+        last_review: { type: string, format: date }
+        next_review: { type: string, format: date, description: Auto-derived from current_level }
+        notes: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Asset:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "AST-001" }
+        name: { type: string }
+        description: { type: string }
+        asset_type: { type: string, enum: [infrastructure, processing_devices, software, financial_info, personal_data, ipr, sales_marketing, processing_facility, products_services, supply_chain, system, network, service, other] }
+        status: { type: string, enum: [draft, open, archived] }
+        owner: { type: string }
+        primary_location: { type: string, enum: [company_office, third_party_dc, on_person, everywhere, other] }
+        confidentiality: { type: integer, minimum: 0, maximum: 5 }
+        integrity: { type: integer, minimum: 0, maximum: 5 }
+        availability: { type: integer, minimum: 0, maximum: 5 }
+        last_review: { type: string, format: date }
+        next_review: { type: string, format: date }
+        notes: { type: string }
+        tags: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Supplier:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "SUPPLIER-001" }
+        name: { type: string }
+        supplier_type: { type: string, enum: [cloud, saas, consulting, hosting, infrastructure, software, other] }
+        criticality: { type: string, enum: [low, medium, high, critical] }
+        data_access: { type: boolean }
+        contact: { type: string }
+        contract_ref: { type: string }
+        status: { type: string, enum: [active, under_review, suspended, terminated] }
+        owner: { type: string, description: Owner email }
+        contract_expiry: { type: string, format: date }
+        confidentiality: { type: integer, minimum: 0, maximum: 5 }
+        integrity: { type: integer, minimum: 0, maximum: 5 }
+        availability: { type: integer, minimum: 0, maximum: 5 }
+        last_review: { type: string, format: date }
+        next_review: { type: string, format: date, description: Auto-derived from criticality }
+        notes: { type: string, description: "Markdown body. Includes ## Services (seeded on create when empty). Assessment status is derivable from last_review/next_review and supplier_reviews." }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    System:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "SYS-001" }
+        name: { type: string }
+        description: { type: string, description: "Markdown body. Includes ## Purpose (seeded on create when empty)." }
+        supplier_id: { type: integer }
+        department: { type: string }
+        classification: { type: string, enum: [public, internal, confidential, restricted] }
+        criticality: { type: string, enum: [low, medium, high, critical] }
+        status: { type: string, enum: [active, under_review, decommissioned] }
+        rpo_hours: { type: integer, description: Recovery Point Objective in hours }
+        rto_hours: { type: integer, description: Recovery Time Objective in hours }
+        confidentiality: { type: integer, minimum: 0, maximum: 5 }
+        integrity: { type: integer, minimum: 0, maximum: 5 }
+        availability: { type: integer, minimum: 0, maximum: 5 }
+        last_review: { type: string, format: date }
+        next_review: { type: string, format: date, description: Auto-derived from criticality }
+        owner: { type: string }
+        assets: { type: array, items: { type: string } }
+        notes: { type: string, description: "Markdown body. Includes ## Access control (seeded on create when empty)." }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    AccessReview:
+      type: object
+      properties:
+        id: { type: integer }
+        system_id: { type: integer }
+        reviewed_at: { type: string, format: date-time }
+        reviewed_by: { type: string }
+        users_added: { type: integer }
+        users_removed: { type: integer }
+        notes: { type: string }
+        created_at: { type: string, format: date-time }
+
+    LegalRequirement:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "LEG-001" }
+        title: { type: string }
+        description: { type: string }
+        jurisdiction: { type: string }
+        category: { type: string }
+        reference: { type: string }
+        url: { type: string, format: uri }
+        status: { type: string, enum: [draft, open, closed] }
+        owner: { type: string }
+        documents: { type: array, items: { type: string } }
+        last_review: { type: string, format: date }
+        next_review: { type: string, format: date }
+        notes: { type: string }
+        current_likelihood: { type: integer, minimum: 1, maximum: 5 }
+        current_impact: { type: integer, minimum: 1, maximum: 5 }
+        current_score: { type: integer }
+        current_level: { type: string }
+        treatment: { type: string, enum: [mitigate, accept, transfer, avoid] }
+        treatment_plan: { type: string }
+        target_likelihood: { type: integer }
+        target_impact: { type: integer }
+        completion: { type: integer, minimum: 0, maximum: 100 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Incident:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        status: { type: string, enum: [draft, open, investigating, contained, resolved, closed] }
+        affects_c: { type: boolean }
+        affects_i: { type: boolean }
+        affects_a: { type: boolean }
+        incident_type: { type: string, enum: [incident, event, weakness] }
+        source: { type: string, enum: [internal, external, "internal and external"] }
+        confidentiality: { type: integer }
+        integrity: { type: integer }
+        availability: { type: integer }
+        linked_risks: { type: array, items: { type: string } }
+        affected_assets: { type: array, items: { type: string } }
+        affected_systems: { type: array, items: { type: string } }
+        reporter: { type: string }
+        assignee: { type: string }
+        detected_at: { type: string, format: date-time }
+        contained_at: { type: string, format: date-time }
+        resolved_at: { type: string, format: date-time }
+        closed_at: { type: string, format: date-time }
+        root_cause: { type: string }
+        lessons_learned: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CorrectiveAction:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        source: { type: string, enum: [internal_audit, external_audit, risk_assessment, security_incident, objective, feedback, other] }
+        severity: { type: string, enum: [major_nc, minor_nc, observation, opportunity] }
+        status: { type: string, enum: [todo, assessment, awaiting_approval, implementation, monitoring, resolved] }
+        assignee: { type: string }
+        created_by: { type: string }
+        due_date: { type: string, format: date }
+        root_cause: { type: string }
+        notes: { type: string }
+        # Cross-entity links live in entity_references (POST /references)
+        resolved_at: { type: string, format: date-time }
+        resolved_by: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Review:
+      type: object
+      properties:
+        id: { type: integer }
+        document_id: { type: string }
+        document_type: { type: string }
+        title: { type: string }
+        version: { type: string }
+        commit_hash: { type: string }
+        requested_by: { type: string }
+        status: { type: string, enum: [open, in_review, approved, changes_requested, closed] }
+        comment_count: { type: integer }
+        open_comments: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Comment:
+      type: object
+      properties:
+        id: { type: integer }
+        review_id: { type: integer }
+        document_id: { type: string }
+        author: { type: string }
+        body: { type: string }
+        section: { type: string }
+        paragraph_index: { type: integer }
+        quote: { type: string }
+        parent_id: { type: integer }
+        status: { type: string, enum: [open, resolved] }
+        resolved_by: { type: string }
+        resolved_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    Approval:
+      type: object
+      properties:
+        id: { type: integer }
+        review_id: { type: integer }
+        document_id: { type: string }
+        version: { type: string }
+        decision: { type: string, enum: [approved, changes_requested] }
+        approved_by: { type: string }
+        comment: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Task:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        task_type: { type: string }
+        # Cross-entity links (incident, document, control, etc.) live in entity_references
+        assignee: { type: string, format: email }
+        created_by: { type: string }
+        status: { type: string, enum: [open, in_progress, done, cancelled] }
+        priority: { type: string, enum: [low, medium, high, critical] }
+        due_date: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        recurrence_days: { type: integer, description: Recurrence interval in days }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ChangeRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        justification: { type: string }
+        requested_by: { type: string }
+        assigned_to: { type: string }
+        status: { type: string, enum: [proposed, approved, rejected, in_progress, implemented, closed] }
+        approved_by: { type: string }
+        approved_at: { type: string, format: date-time }
+        planned_at: { type: string, format: date-time }
+        implemented_at: { type: string, format: date-time }
+        document_ids: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ImplementationStatus:
+      type: object
+      properties:
+        id: { type: integer }
+        item_id: { type: string, description: "Item ID (e.g. ISO27001-A.5.1, ISO27001-4.1)" }
+        item_type: { type: string }
+        status: { type: string, enum: [not_started, in_progress, implemented, not_applicable] }
+        owner: { type: string }
+        target_date: { type: string, format: date-time }
+        notes: { type: string }
+        updated_at: { type: string, format: date-time }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: integer }
+        recipient: { type: string }
+        title: { type: string }
+        body: { type: string }
+        link: { type: string }
+        read: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    AuditProgramme:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        year: { type: integer }
+        description: { type: string }
+        notes: { type: string }
+        status: { type: string, enum: [draft, active, closed] }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Audit:
+      type: object
+      properties:
+        id: { type: integer }
+        programme_id: { type: integer }
+        title: { type: string }
+        scope: { type: string, description: "Comma-separated scope patterns (e.g. ISO27001-*,SOC2-*)" }
+        auditor: { type: string }
+        audit_type: { type: string, enum: [internal, external, surveillance, certification, recertification] }
+        status: { type: string, enum: [planned, in_progress, completed] }
+        planned_date: { type: string, format: date-time }
+        end_date: { type: string, format: date }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        summary: { type: string }
+        item_count: { type: integer }
+        finding_count: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    AuditItem:
+      type: object
+      properties:
+        id: { type: integer }
+        audit_id: { type: integer }
+        item_id: { type: string }
+        item_type: { type: string }
+        title: { type: string }
+        result: { type: string, enum: [not_assessed, conforming, minor_nc, major_nc, observation, opportunity] }
+        evidence: { type: string }
+        notes: { type: string }
+        assessed_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    AuditFinding:
+      type: object
+      properties:
+        id: { type: integer }
+        audit_id: { type: integer }
+        audit_item_id: { type: integer, description: "FK to audit_items (replaces denormalized item_id text)" }
+        finding_type: { type: string, enum: [major_nc, minor_nc, observation, opportunity] }
+        title: { type: string }
+        description: { type: string, description: "Markdown body. Includes ## Corrective Action (seeded on create when empty)." }
+        owner: { type: string }
+        # Cross-entity links (e.g. implementation task) live in entity_references
+        status: { type: string, enum: [open, closed] }
+        due_date: { type: string, format: date-time }
+        closed_at: { type: string, format: date-time }
+        closed_by: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Program:
+      type: object
+      properties:
+        id: { type: integer }
+        identifier: { type: string, example: "PRG-001" }
+        key: { type: string, description: "Short key used for objective display IDs" }
+        title: { type: string }
+        description: { type: string }
+        owner: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Objective:
+      type: object
+      properties:
+        id: { type: integer }
+        program_id: { type: integer }
+        display_id: { type: string, example: "ISMS-1" }
+        title: { type: string }
+        description: { type: string }
+        owner: { type: string }
+        source: { type: string }
+        measurement_method: { type: string }
+        target_value: { type: number }
+        target_operator: { type: string, enum: [gte, lte, eq, gt, lt] }
+        unit: { type: string }
+        window_seconds: { type: integer }
+        grace_seconds: { type: integer }
+        status: { type: string, enum: [draft, active, at_risk, paused, complete] }
+        started_at: { type: string, format: date-time }
+        archived_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Checkin:
+      type: object
+      properties:
+        id: { type: integer }
+        objective_id: { type: integer }
+        occurred_at: { type: string, format: date-time }
+        recorded_at: { type: string, format: date-time }
+        created_by: { type: string }
+        success: { type: boolean }
+        value_numeric: { type: number }
+        message: { type: string }
+        public_note: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Evidence:
+      type: object
+      properties:
+        id: { type: integer }
+        checkin_id: { type: integer }
+        title: { type: string }
+        content_type: { type: string }
+        size_bytes: { type: integer }
+        sha256: { type: string }
+        created_at: { type: string, format: date-time }
+
+    EntityReference:
+      type: object
+      properties:
+        id: { type: integer }
+        source_type:
+          type: string
+          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
+        source_id: { type: string }
+        target_type:
+          type: string
+          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
+        target_id: { type: string }
+        title: { type: string, description: Resolved display name }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ChangelogEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        entity_type: { type: string }
+        entity_id: { type: integer }
+        action: { type: string, enum: [create, update, delete] }
+        field: { type: string }
+        old_value: { type: string }
+        new_value: { type: string }
+        changed_by: { type: string }
+        reason: { type: string }
+        created_at: { type: string, format: date-time }
+
+    OIDCProvider:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        issuer_url: { type: string, format: uri }
+        client_id: { type: string }
+        client_secret: { type: string }
+        scopes: { type: array, items: { type: string } }
+        auto_register: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }

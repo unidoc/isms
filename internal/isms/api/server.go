@@ -54,7 +54,9 @@ type Server struct {
 	// Platform-level legal docs (markdown files on disk, rendered and served)
 	termsFile      string // ISMS_TERMS_FILE
 	privacyFile    string // ISMS_PRIVACY_FILE
-	hidePoweredBy  bool   // ISMS_HIDE_POWERED_BY=1
+	hidePoweredBy    bool   // ISMS_HIDE_POWERED_BY=1
+	subdomainRouting bool   // ISMS_SUBDOMAIN_ROUTING=1 enables (default off)
+	apexHost         string // derived from ISMS_BASE_URL — the deployment's canonical apex
 
 	// In-memory search index per org — avoids 10+ DB queries per keystroke.
 	searchIndex *SearchIndex
@@ -123,6 +125,11 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	srv.termsFile = os.Getenv("ISMS_TERMS_FILE")
 	srv.privacyFile = os.Getenv("ISMS_PRIVACY_FILE")
 	srv.hidePoweredBy = os.Getenv("ISMS_HIDE_POWERED_BY") == "1"
+	// Default OFF — subdomain routing requires wildcard DNS + wildcard TLS,
+	// which is a production-only setup. Self-hosted, dev, and demo
+	// deployments use path-based routing. Set ISMS_SUBDOMAIN_ROUTING=1 on
+	// the public prod deployment that has `*.isms.sh` wildcards.
+	srv.subdomainRouting = os.Getenv("ISMS_SUBDOMAIN_ROUTING") == "1"
 
 	// SMTP mailer from env vars
 	srv.mailer = mail.New(mail.Config{
@@ -138,47 +145,17 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 		BaseURL: os.Getenv("ISMS_BASE_URL"),
 	})
 
-	// Data directory for local file storage — required, no default.
-	dataDir := os.Getenv("ISMS_DATA_DIR")
-	if dataDir == "" {
-		log.Fatal("ISMS_DATA_DIR is required")
+	// Storage backend for org assets (logos, favicons, evidence, etc.).
+	// blob.NewFromEnv reads ISMS_DATA_DIR + ISMS_STORAGE_BACKEND + ISMS_S3_*
+	// — the same env vars the demo seeder and any other code path use, so
+	// configuration lives in exactly one place (internal/isms/blob/blob.go).
+	store, err := blob.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
 	}
-	// Always resolve to absolute so repo paths stored in DB are location-independent.
-	if !filepath.IsAbs(dataDir) {
-		abs, err := filepath.Abs(dataDir)
-		if err != nil {
-			log.Fatalf("resolving ISMS_DATA_DIR=%q: %v", dataDir, err)
-		}
-		dataDir = abs
-	}
-
-	// Storage backend for org assets (logos, favicons, etc.)
-	// ISMS_STORAGE_BACKEND=file (default) or s3
-	// If s3: ISMS_STORAGE_BUCKET is required.
-	switch backend := os.Getenv("ISMS_STORAGE_BACKEND"); backend {
-	case "s3":
-		bucket := os.Getenv("ISMS_S3_BUCKET")
-		if bucket == "" {
-			log.Fatal("ISMS_STORAGE_BACKEND=s3 requires ISMS_S3_BUCKET")
-		}
-		s3Blobs, err := blob.NewS3(blob.S3Config{
-			Bucket:    bucket,
-			Region:    os.Getenv("ISMS_S3_REGION"),
-			Endpoint:  os.Getenv("ISMS_S3_ENDPOINT"),
-			AccessKey: os.Getenv("ISMS_S3_ACCESS_KEY"),
-			SecretKey: os.Getenv("ISMS_S3_SECRET_KEY"),
-		})
-		if err != nil {
-			log.Fatalf("ISMS_STORAGE_BACKEND=s3: failed to initialize: %v", err)
-		}
-		srv.blobs = s3Blobs
-		log.Println("Storage backend: S3 (bucket: " + bucket + ")")
-	case "file":
-		srv.blobs = blob.NewLocal(dataDir)
-	case "":
-		log.Fatal("ISMS_STORAGE_BACKEND is required (set to \"file\" or \"s3\")")
-	default:
-		log.Fatalf("ISMS_STORAGE_BACKEND=%q is not valid (use \"file\" or \"s3\")", backend)
+	srv.blobs = store
+	if os.Getenv("ISMS_STORAGE_BACKEND") == "s3" {
+		log.Println("Storage backend: S3 (bucket: " + os.Getenv("ISMS_S3_BUCKET") + ")")
 	}
 
 	// WebAuthn / passkey configuration
@@ -271,11 +248,22 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	// in-process would either share one bucket across all users (when behind
 	// a proxy) or duplicate edge limits and make 429s harder to attribute.
 
-	// Org resolution from subdomain / custom domain / path prefix
+	// Org resolution from subdomain / custom domain / path prefix.
 	// Must run BEFORE auth so org_id is available for token verification.
-	baseDomain := os.Getenv("ISMS_DOMAIN") // e.g. "isms.sh"
+	//
+	// The base domain (host part of ISMS_BASE_URL) is the apex for this
+	// deployment. Subdomains of it (e.g. <slug>.isms.sh) are treated as
+	// tenant subdomains; the apex itself is path-based. ISMS_DOMAIN is an
+	// explicit override for unusual setups.
+	baseDomain := os.Getenv("ISMS_DOMAIN")
+	if baseDomain == "" {
+		if baseURL := os.Getenv("ISMS_BASE_URL"); baseURL != "" {
+			baseDomain = extractHostname(baseURL)
+		}
+	}
+	srv.apexHost = baseDomain
 	if baseDomain != "" {
-		srv.echo.Use(OrgResolverMiddleware(database, baseDomain))
+		srv.echo.Use(OrgResolverMiddleware(database, baseDomain, srv.subdomainRouting))
 	}
 
 	// Authentication + role enforcement
@@ -773,8 +761,17 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 		ShowPoweredBy  bool   `json:"show_powered_by"`
 		TermsURL       string `json:"terms_url,omitempty"`
 		PrivacyURL     string `json:"privacy_url,omitempty"`
+
+		// Routing: does this deployment serve tenant orgs on wildcard
+		// subdomains (<slug>.<apex>), or only path-based (<apex>/<slug>)?
+		// Controlled by ISMS_SUBDOMAIN_ROUTING — default true for prod, false
+		// for demo / dev where wildcard DNS + TLS isn't set up.
+		SubdomainRouting bool   `json:"subdomain_routing"`
+		ApexHost         string `json:"apex_host,omitempty"`
 	}
 	resp := configResponse{}
+	resp.SubdomainRouting = s.subdomainRouting
+	resp.ApexHost = s.apexHost
 
 	// Branding from org settings (Postgres)
 	branding := map[string]string{}

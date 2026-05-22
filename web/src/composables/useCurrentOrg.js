@@ -14,12 +14,18 @@ export function registerRouter(router) {
   _routerRef = router
 }
 
-// Hosts that should NOT be treated as subdomain-based even when there are
-// 3+ dot-separated parts. These are the canonical apex domains we publish to.
-const APEX_DOMAINS = new Set([
+// Apex hosts — hostnames that are themselves an apex (not a tenant subdomain).
+// The server reports its own apex via /api/v1/config (`apex_host`); the
+// frontend extends this set at runtime via setApexHost(). The seeds below
+// cover the public deployments and are useful before /config has loaded.
+const _apexHosts = new Set([
   'isms.sh',
   'www.isms.sh',
 ])
+
+export function setApexHost(host) {
+  if (host) _apexHosts.add(host.toLowerCase())
+}
 
 // Hostname patterns that are always path-based (dev / local / container).
 const LOCAL_HOSTS = new Set([
@@ -40,11 +46,11 @@ export function isSubdomainHost(hostname) {
   const host = (hostname || '').toLowerCase()
   if (!host) return false
   if (LOCAL_HOSTS.has(host)) return false
-  if (APEX_DOMAINS.has(host)) return false
+  if (_apexHosts.has(host)) return false
   // Strip an optional port, just in case.
   const hostNoPort = host.split(':')[0]
   if (LOCAL_HOSTS.has(hostNoPort)) return false
-  if (APEX_DOMAINS.has(hostNoPort)) return false
+  if (_apexHosts.has(hostNoPort)) return false
 
   const parts = hostNoPort.split('.')
   if (parts.length < 3) return false
@@ -91,7 +97,7 @@ export function canHostSubdomain(hostname) {
   const host = ((hostname || '').toLowerCase()).split(':')[0]
   if (!host) return false
   if (LOCAL_HOSTS.has(host)) return false
-  if (APEX_DOMAINS.has(host)) return true
+  if (_apexHosts.has(host)) return true
   if (isSubdomainHost(host)) return true
   return false
 }
@@ -116,21 +122,58 @@ export function apexDomainFromHost(hostname) {
 }
 
 /**
- * Build the canonical URL for navigating into an org. Prefers subdomain hop
- * when the host can serve it; otherwise stays on path-based routing.
+ * Server-reported flag (from /api/v1/config) — whether this deployment
+ * serves tenant orgs on wildcard subdomains. Set by setSubdomainRouting().
+ * Default null (unknown) — callers that need a deterministic value should
+ * await ensureConfigLoaded() before navigating, otherwise orgEntryURL
+ * conservatively falls back to path-based.
+ */
+let _subdomainRoutingEnabled = null
+
+let _configPromise = null
+
+/**
+ * Block until /api/v1/config has resolved (or rejected). Safe to call many
+ * times — the underlying fetch only happens once per page load. Use this
+ * before any code path that calls orgEntryURL on a fresh navigation
+ * (org picker, switchOrg, deep-link entry).
+ */
+export function ensureConfigLoaded(loader) {
+  if (_configPromise) return _configPromise
+  _configPromise = Promise.resolve().then(() => loader && loader()).catch(() => null)
+  return _configPromise
+}
+
+export function setSubdomainRouting(enabled) {
+  _subdomainRoutingEnabled = !!enabled
+}
+
+/**
+ * Build the canonical URL for navigating into an org.
  *
- *   orgEntryURL('unidoc', '/overview')   // on isms.sh   → 'https://unidoc.isms.sh/overview'
- *   orgEntryURL('unidoc', '/overview')   // on localhost → '/unidoc/overview'
+ * Rules:
+ *   - If subdomain routing is disabled for this deployment (demo / dev)
+ *     → always path-based: `/<slug>/<path>`.
+ *   - If user is already on a tenant subdomain → hop to `<slug>.<apex>/<path>`.
+ *   - If user is on the apex (path mode) → stay on apex, path-based.
+ *
+ * The point of the last rule is that a session's routing mode is determined
+ * by how the user entered — landing on `isms.sh` stays on `isms.sh/<slug>`,
+ * landing on `<existing>.isms.sh` stays on subdomain. Predictable for users.
  */
 export function orgEntryURL(slug, suffix) {
   const path = suffix ? (suffix.startsWith('/') ? suffix : '/' + suffix) : '/overview'
   if (typeof window === 'undefined') return '/' + slug + path
+  // Safe-fallback: if config hasn't resolved yet, assume path-based. Demo /
+  // dev deployments break with the wrong default; production stays on path
+  // until config arrives, then switches behaviour for subsequent navigations.
+  if (_subdomainRoutingEnabled !== true) return '/' + slug + path
   const host = window.location.hostname
   const apex = apexDomainFromHost(host)
-  if (!apex) {
-    // localhost / IP / single-label — path-based
-    return '/' + slug + path
-  }
+  if (!apex) return '/' + slug + path // localhost / IP / single-label
+  // On apex (not yet on a subdomain) — stay path-based.
+  if (!isSubdomainHost(host)) return '/' + slug + path
+  // Already on a tenant subdomain — hop to the new org's subdomain.
   const port = window.location.port ? ':' + window.location.port : ''
   return window.location.protocol + '//' + slug + '.' + apex + port + path
 }

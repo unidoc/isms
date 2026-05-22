@@ -51,6 +51,51 @@ func NewLocal(dataDir string) *LocalStore {
 	return &LocalStore{root: filepath.Join(dataDir, "orgs")}
 }
 
+// NewFromEnv constructs a Store using the same environment variables the API
+// server reads at startup:
+//   - ISMS_DATA_DIR — required, base directory (resolved to absolute)
+//   - ISMS_STORAGE_BACKEND — required, "file" or "s3"
+//   - ISMS_S3_BUCKET, ISMS_S3_REGION, ISMS_S3_ENDPOINT, ISMS_S3_ACCESS_KEY,
+//     ISMS_S3_SECRET_KEY — required when backend is s3
+//
+// Use this from any code path that needs to write to the same store the
+// running API uses (e.g. demo seeders, migration tools), so the
+// configuration logic exists in exactly one place.
+func NewFromEnv() (Store, error) {
+	dataDir := os.Getenv("ISMS_DATA_DIR")
+	if dataDir == "" {
+		return nil, fmt.Errorf("ISMS_DATA_DIR is required")
+	}
+	if !filepath.IsAbs(dataDir) {
+		abs, err := filepath.Abs(dataDir)
+		if err != nil {
+			return nil, fmt.Errorf("resolving ISMS_DATA_DIR=%q: %w", dataDir, err)
+		}
+		dataDir = abs
+	}
+
+	switch backend := os.Getenv("ISMS_STORAGE_BACKEND"); backend {
+	case "s3":
+		bucket := os.Getenv("ISMS_S3_BUCKET")
+		if bucket == "" {
+			return nil, fmt.Errorf("ISMS_STORAGE_BACKEND=s3 requires ISMS_S3_BUCKET")
+		}
+		return NewS3(S3Config{
+			Bucket:    bucket,
+			Region:    os.Getenv("ISMS_S3_REGION"),
+			Endpoint:  os.Getenv("ISMS_S3_ENDPOINT"),
+			AccessKey: os.Getenv("ISMS_S3_ACCESS_KEY"),
+			SecretKey: os.Getenv("ISMS_S3_SECRET_KEY"),
+		})
+	case "file":
+		return NewLocal(dataDir), nil
+	case "":
+		return nil, fmt.Errorf("ISMS_STORAGE_BACKEND is required (set to \"file\" or \"s3\")")
+	default:
+		return nil, fmt.Errorf("ISMS_STORAGE_BACKEND=%q is not valid (use \"file\" or \"s3\")", backend)
+	}
+}
+
 func (l *LocalStore) filePath(orgUUID, p string) string {
 	return filepath.Join(l.root, orgUUID, filepath.FromSlash(p))
 }

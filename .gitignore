@@ -1,0 +1,16 @@
+bin/
+temp/
+*.pptx
+/isms
+/isms-test-binary
+/dist/
+web/node_modules/
+web/dist/
+web/.vite/
+cmd/isms/web/dist/
+cmd/isms/migrations/
+*.local
+.vscode/
+.idea/
+*.env
+__pycache__

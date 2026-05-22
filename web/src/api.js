@@ -224,7 +224,9 @@ export const api = {
 
   // Reviews
   getReviews: (status) => fetchJSON(`${API}/reviews${status ? '?status=' + status : ''}`),
-  getReviewsPaginated: (params) => fetchJSON(`${API}/reviews?${new URLSearchParams(params || {})}`),
+  // Paginated endpoint — use fetchRaw to keep the full {data, total, page, page_size}
+  // shape. fetchJSON unwraps `data` into a bare array, which loses pagination metadata.
+  getReviewsPaginated: (params) => fetchRaw(`${API}/reviews?${new URLSearchParams(params || {})}`),
   getReviewStats: () => fetchJSON(`${API}/reviews/stats`),
   createReview: (review) => postJSON(`${API}/reviews`, review),
   getReview: (id) => fetchJSON(`${API}/reviews/${id}`),

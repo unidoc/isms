@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { api, getCurrentUser, clearApiToken, setApiToken } from '../api'
-import { orgFromSubdomain, isSubdomainMode, orgEntryURL } from './useCurrentOrg'
+import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
 const user = ref(getCurrentUser())
 const currentUserData = ref(null)
@@ -55,7 +55,25 @@ export function useSession() {
 
   async function loadUserData(route, router) {
     try {
-      const me = await api.getMe()
+      let me = await api.getMe()
+      // Path-based deep-link: when the user lands on `/<slug>/...` but the JWT
+      // is scoped to a different org, swap the token to the path's slug before
+      // loading anything else. Subdomain mode doesn't need this because the
+      // org is bound to the host. Without this, prospects who paste a direct
+      // URL into the address bar see the wrong org's data.
+      const pathSlug = route.params.org
+      if (pathSlug && me?.organization_slug && pathSlug !== me.organization_slug) {
+        try {
+          const switched = await api.postJSON('/api/v1/auth/switch-org', { slug: pathSlug })
+          if (switched?.token) {
+            setApiToken(switched.token)
+            me = await api.getMe()
+          }
+        } catch {
+          // If switch-org fails (e.g. user isn't a member of pathSlug), fall
+          // through to the org-picker redirect below.
+        }
+      }
       currentUserData.value = me
       if (currentUserData.value?.email) {
         user.value = currentUserData.value.email
@@ -69,6 +87,12 @@ export function useSession() {
       // Org context can come from either the :org path param OR the host subdomain.
       const onOrgScopedRoute = !!route.params.org || !!orgFromSubdomain()
       if (onOrgScopedRoute && (!currentUserData.value?.organization_id || currentUserData.value.organization_id === 0)) {
+        router.push('/organizations')
+        return false
+      }
+      // If we're on `/<slug>/...` but the resolved org slug doesn't match
+      // (e.g. user is not a member of the path's org), bounce to the picker.
+      if (pathSlug && currentUserData.value?.organization_slug && pathSlug !== currentUserData.value.organization_slug) {
         router.push('/organizations')
         return false
       }
@@ -128,6 +152,11 @@ export function useSession() {
       if (cfg.privacy_url) privacyUrl.value = cfg.privacy_url
       else if (cfg.has_privacy) privacyUrl.value = '/privacy'
       showPoweredBy.value = cfg.show_powered_by !== false
+      // Routing config — server tells us the deployment's apex hostname and
+      // whether wildcard subdomain routing is enabled. Both are needed for
+      // orgEntryURL() to build the right URL when switching org.
+      if (cfg.apex_host) setApexHost(cfg.apex_host)
+      setSubdomainRouting(cfg.subdomain_routing !== false)
     } catch (e) {
       // Fallback: use org name from /me response
     }
@@ -151,6 +180,10 @@ export function useSession() {
 
   async function switchOrg(org) {
     try {
+      // Make sure the routing config is loaded before building the entry URL.
+      // Otherwise a fresh page that hasn't called /config yet would default
+      // to subdomain routing and break on demo / dev deployments.
+      await ensureConfigLoaded(loadBranding)
       const result = await api.postJSON('/api/v1/auth/switch-org', { slug: org.slug })
       if (result.token) {
         setApiToken(result.token)

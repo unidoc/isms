@@ -47,6 +47,7 @@ func main() {
 	// Client commands (default namespace) — uses ISMS_ENV
 	root.AddCommand(
 		cloneCmd(),
+		gitCmd(),
 		documentCmd(),
 		assetCmd(),
 		riskCmd(),

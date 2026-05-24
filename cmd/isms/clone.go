@@ -78,14 +78,11 @@ Directory defaults to {org-slug}-isms. All config comes from your env file:
 				return fmt.Errorf("git clone failed: %w", err)
 			}
 
-			// Store credential config for future operations
-			cfg, err := repo.Config()
-			if err == nil {
-				if cfg.Raw.Section("credential").Subsection(remoteURL) == nil {
-					cfg.Raw.Section("credential").Subsection(remoteURL).SetOption("helper",
-						fmt.Sprintf("!f() { echo username=x-token-auth; echo password=%s; }; f", token))
-				}
-				repo.SetConfig(cfg)
+			// Set up the credential helper so future `git` invocations
+			// (whether via `isms git`, `isms sync` auto-rebase, or direct git
+			// CLI) authenticate against the ISMS server without prompting.
+			if err := ensureCredentialHelper(repo, remoteURL, token); err != nil {
+				return fmt.Errorf("credential helper setup: %w", err)
 			}
 
 			// Ensure remote URL is clean (no embedded credentials)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -139,12 +140,9 @@ func setupRemote(repo *git.Repository, baseURL, token, orgSlug string) error {
 		return fmt.Errorf("git remote add failed: %w", err)
 	}
 
-	// Store credential config for future operations
-	cfg, gerr := repo.Config()
-	if gerr == nil {
-		credHelper := fmt.Sprintf("!f() { echo username=x-token-auth; echo password=%s; }; f", token)
-		cfg.Raw.Section("credential").Subsection(remoteURL).SetOption("helper", credHelper)
-		_ = repo.SetConfig(cfg)
+	// Set up credential helper so subsequent git CLI ops authenticate.
+	if err := ensureCredentialHelper(repo, remoteURL, token); err != nil {
+		return fmt.Errorf("credential helper setup: %w", err)
 	}
 
 	fmt.Printf("Remote configured: %s → %s (%s)\n\n", gitRemoteName, info.OrganizationName, info.OrganizationSlug)
@@ -240,13 +238,18 @@ func syncRun(repo *git.Repository, root, token string) error {
 				// Check if remote is ancestor of local (we're ahead — push will handle it)
 				isRemoteAncestor, _ := remoteCommit.IsAncestor(localCommit)
 				if !isRemoteAncestor {
-					// Diverged — cannot auto-resolve
-					fmt.Fprintf(os.Stderr, "\nSync conflict: local and remote have diverged.\n")
-					fmt.Fprintf(os.Stderr, "Resolve manually:\n")
-					fmt.Fprintf(os.Stderr, "  git fetch origin\n")
-					fmt.Fprintf(os.Stderr, "  git rebase origin/%s\n", branch)
-					fmt.Fprintf(os.Stderr, "  isms sync\n")
-					return fmt.Errorf("sync conflict — local and remote have diverged")
+					// Diverged: attempt an automatic rebase of local commits on top
+					// of remote. The user shouldn't have to know git internals.
+					fmt.Printf("Local and remote diverged — rebasing local commits onto %s/%s...\n", gitRemoteName, branch)
+					if err := autoRebase(root, gitRemoteName, branch); err != nil {
+						return err
+					}
+					// Re-read head after rebase
+					headRef, err = repo.Head()
+					if err != nil {
+						return fmt.Errorf("could not re-read HEAD after rebase: %w", err)
+					}
+					fmt.Println("Auto-rebase complete.")
 				}
 				// else: local is ahead of remote, push will handle it
 			}
@@ -274,6 +277,44 @@ func syncRun(repo *git.Repository, root, token string) error {
 
 	fmt.Println("Sync complete.")
 	return nil
+}
+
+// autoRebase replays the user's local commits on top of the remote tip so a
+// diverged history is reconciled without the user having to know about git.
+// Uses the system `git` CLI because go-git doesn't ship a rebase implementation;
+// the credential helper that setupRemote() configured for this remote handles
+// auth, so the user doesn't need a personal git token.
+//
+// If the rebase fails (conflicting edits to the same file), the rebase is
+// aborted to leave the working tree clean and an actionable error is returned.
+func autoRebase(root, remoteName, branch string) error {
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git CLI not found on PATH — install it to enable auto-rebase, or resolve the diverged history manually")
+	}
+	target := remoteName + "/" + branch
+	cmd := exec.Command("git", "-C", root, "rebase", target)
+	out, runErr := cmd.CombinedOutput()
+	if runErr == nil {
+		return nil
+	}
+	// Conflict (or other failure) — abort the rebase so the working tree is clean.
+	_ = exec.Command("git", "-C", root, "rebase", "--abort").Run()
+
+	// Try to surface what conflicted from the rebase output.
+	lines := strings.Split(string(out), "\n")
+	var conflicts []string
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "CONFLICT") {
+			conflicts = append(conflicts, l)
+		}
+	}
+	msg := "auto-rebase aborted — local commits conflict with remote changes on the same file(s)"
+	if len(conflicts) > 0 {
+		msg += ":\n  " + strings.Join(conflicts, "\n  ")
+	}
+	msg += "\n\nResolve by editing the conflicting file(s) on the server side (web UI) or locally, then run `isms sync` again."
+	return fmt.Errorf("%s", msg)
 }
 
 // attachToMain recovers a detached HEAD by creating (or updating) the local

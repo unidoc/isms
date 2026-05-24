@@ -93,7 +93,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setApiToken } from '../api'
-import { orgEntryURL } from '../composables/useCurrentOrg'
+import { orgEntryURL, ensureConfigLoaded } from '../composables/useCurrentOrg'
+import { useSession } from '../composables/useSession'
 
 const router = useRouter()
 
@@ -117,8 +118,14 @@ function onSlugInput() {
   newOrg.value.slug = newOrg.value.slug.toLowerCase().replace(/[^a-z0-9-]/g, '')
 }
 
+const { loadBranding } = useSession()
+
 async function enterOrg(org) {
   try {
+    // Make sure routing config is loaded before building the entry URL —
+    // the Organizations route is public and doesn't go through loadAppData,
+    // so /config may not have resolved yet.
+    await ensureConfigLoaded(loadBranding)
     const result = await api.postJSON('/api/v1/auth/switch-org', { slug: org.slug })
     if (result.token) {
       setApiToken(result.token)

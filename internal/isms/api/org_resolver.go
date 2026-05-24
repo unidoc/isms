@@ -12,11 +12,11 @@ import (
 //
 // Resolution order:
 //  1. Skip /git/ paths (UUID-based, handled by git handler)
-//  2. Subdomain: acme.isms.sh → slug "acme"
+//  2. Subdomain: acme.isms.sh → slug "acme" (only when subdomainRouting is enabled)
 //  3. Custom domain: isms.unidoc.io → lookup by domain column
 //  4. Path-based: /acme/dashboard → slug "acme", rewrite to /dashboard
 //  5. No org → set "landing" flag (root domain / landing page)
-func OrgResolverMiddleware(database *db.DB, baseDomain string) echo.MiddlewareFunc {
+func OrgResolverMiddleware(database *db.DB, baseDomain string, subdomainRouting bool) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			host := c.Request().Host
@@ -33,8 +33,11 @@ func OrgResolverMiddleware(database *db.DB, baseDomain string) echo.MiddlewareFu
 				return next(c)
 			}
 
-			// 2. Check subdomain: acme.isms.sh → slug = "acme"
-			if baseDomain != "" && strings.HasSuffix(hostname, "."+baseDomain) {
+			// 2. Check subdomain: acme.isms.sh → slug = "acme".
+			// Only when this deployment serves tenant orgs on wildcard subdomains.
+			// Disabling subdomainRouting (demo / dev) means subdomain hosts are
+			// not recognised as org carriers — path-based resolution only.
+			if subdomainRouting && baseDomain != "" && strings.HasSuffix(hostname, "."+baseDomain) {
 				slug := strings.TrimSuffix(hostname, "."+baseDomain)
 				if slug != "" && !strings.Contains(slug, ".") {
 					org, err := database.GetOrganizationBySlug(c.Request().Context(), slug)

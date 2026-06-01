@@ -51,16 +51,17 @@ func NewLocal(dataDir string) *LocalStore {
 	return &LocalStore{root: filepath.Join(dataDir, "orgs")}
 }
 
-// NewFromEnv constructs a Store using the same environment variables the API
-// server reads at startup:
-//   - ISMS_DATA_DIR — required, base directory (resolved to absolute)
+// NewFromEnv constructs a Store using the same environment variables the
+// API server reads at startup:
+//
+//   - ISMS_DATA_DIR        — required, base directory (resolved to absolute)
 //   - ISMS_STORAGE_BACKEND — required, "file" or "s3"
-//   - ISMS_S3_BUCKET, ISMS_S3_REGION, ISMS_S3_ENDPOINT, ISMS_S3_ACCESS_KEY,
-//     ISMS_S3_SECRET_KEY — required when backend is s3
+//   - ISMS_S3_BUCKET, ISMS_S3_REGION, ISMS_S3_ENDPOINT,
+//     ISMS_S3_ACCESS_KEY, ISMS_S3_SECRET_KEY — required when backend is s3
 //
 // Use this from any code path that needs to write to the same store the
 // running API uses (e.g. demo seeders, migration tools), so the
-// configuration logic exists in exactly one place.
+// configuration logic lives in exactly one place.
 func NewFromEnv() (Store, error) {
 	dataDir := os.Getenv("ISMS_DATA_DIR")
 	if dataDir == "" {

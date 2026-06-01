@@ -14,6 +14,7 @@ services:
       # Project source (edit on host, run in container)
       - ${ISMS_SRC_ROOT}/isms:/home/tower/workspace/isms
       - ${ISMS_SRC_ROOT}/isms-templates:/home/tower/workspace/isms-templates
+      - ${ISMS_SRC_ROOT}/isms-demo:/home/tower/workspace/isms-demo
       # Persistent data (survives container rebuilds)
       - isms-data:/home/tower/workspace/isms-data
       # Claude/AI config (optional, ignored if missing)

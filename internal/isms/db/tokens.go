@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 	"time"
 )
 
@@ -190,7 +192,17 @@ func (d *DB) CleanExpiredBlockedJWTs(ctx context.Context) error {
 // --- Login Attempts (DB-backed brute-force protection) ---
 
 // RecordLoginAttempt records a failed login attempt and returns the count in the last 15 minutes.
+//
+// ipAddress is normalized to a bare IP before insert: IPv6 loopback arrives
+// from echo's RealIP as "[::1]" (bracketed), which the inet column rejects —
+// and since callers ignore this error, a failing insert silently disables
+// brute-force protection for IPv6 clients. Unparseable values become NULL.
 func (d *DB) RecordLoginAttempt(ctx context.Context, email, ipAddress string) (int, error) {
+	if ip := net.ParseIP(strings.Trim(ipAddress, "[]")); ip != nil {
+		ipAddress = ip.String()
+	} else {
+		ipAddress = ""
+	}
 	_, err := d.pool.Exec(ctx, `INSERT INTO login_attempts (email, ip_address) VALUES ($1, $2)`, email, nilIfEmpty(ipAddress))
 	if err != nil {
 		return 0, err
@@ -218,6 +230,13 @@ func (d *DB) CountRecentLoginAttempts(ctx context.Context, email string) (int, e
 // auth endpoints — complements the per-email check by catching one attacker
 // trying many accounts from one source.
 func (d *DB) CountRecentLoginAttemptsByIP(ctx context.Context, ip string) (int, error) {
+	// Same normalization as RecordLoginAttempt — "[::1]" would fail the
+	// ::inet cast and error out the rate-limit check entirely.
+	if parsed := net.ParseIP(strings.Trim(ip, "[]")); parsed != nil {
+		ip = parsed.String()
+	} else {
+		ip = ""
+	}
 	if ip == "" {
 		return 0, nil
 	}

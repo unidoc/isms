@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -193,9 +194,11 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 			return strings.TrimSpace(xff)
 		}
 		if req.RemoteAddr != "" {
-			// Strip port.
-			if i := strings.LastIndexByte(req.RemoteAddr, ':'); i >= 0 {
-				return req.RemoteAddr[:i]
+			// Strip port. net.SplitHostPort handles bracketed IPv6
+			// ("[::1]:54321" → "::1") — a naive LastIndex(':') cut would
+			// return "[::1]", which downstream inet casts reject.
+			if host, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+				return host
 			}
 			return req.RemoteAddr
 		}

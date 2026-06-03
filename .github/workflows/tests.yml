@@ -33,6 +33,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Placeholder web dist
+        # cmd/isms embeds web/dist (go:embed fails on an empty pattern); the
+        # unit job doesn't exercise the SPA, so a placeholder satisfies it
+        # without paying for a frontend build here.
+        run: mkdir -p cmd/isms/web/dist && touch cmd/isms/web/dist/index.html
       - name: Build
         run: CGO_ENABLED=0 go build ./...
       - name: Unit tests

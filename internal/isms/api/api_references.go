@@ -180,79 +180,55 @@ func (s *Server) resolveDocumentSubtype(ctx context.Context, orgID int, docID st
 
 // resolveEntityTitle looks up the display name for an entity by type and ID.
 func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, entityID string) string {
+	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
+	// the UI and createReferencesForEntity write that format. Resolve by
+	// identifier, never by numeric row id: the numeric part of an identifier
+	// and the row id are different sequences and diverge in multi-org DBs.
 	switch entityType {
 	case "risk":
-		id, err := parseEntityNumericID(entityID, "RISK-")
-		if err != nil {
-			return entityID
-		}
-		r, err := s.db.GetRisk(ctx, orgID, id)
+		r, err := s.db.GetRiskByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return r.Title
 
 	case "legal_requirement":
-		id, err := parseEntityNumericID(entityID, "LEGAL-")
-		if err != nil {
-			return entityID
-		}
-		l, err := s.db.GetLegalRequirement(ctx, orgID, int(id))
+		l, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return l.Title
 
 	case "asset":
-		id, err := parseEntityNumericID(entityID, "ASSET-")
-		if err != nil {
-			return entityID
-		}
-		a, err := s.db.GetAsset(ctx, orgID, id)
+		a, err := s.db.GetAssetByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return a.Name
 
 	case "supplier":
-		id, err := parseEntityNumericID(entityID, "SUPPLIER-")
-		if err != nil {
-			return entityID
-		}
-		sup, err := s.db.GetSupplier(ctx, orgID, id)
+		sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return sup.Name
 
 	case "system":
-		id, err := parseEntityNumericID(entityID, "SYSTEM-")
-		if err != nil {
-			return entityID
-		}
-		sys, err := s.db.GetSystem(ctx, orgID, id)
+		sys, err := s.db.GetSystemByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return sys.Name
 
 	case "incident":
-		id, err := strconv.Atoi(stripPrefix(entityID, "INC-"))
-		if err != nil {
-			return entityID
-		}
-		inc, err := s.db.GetIncident(ctx, orgID, id)
+		inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
 		return inc.Title
 
 	case "corrective_action":
-		id, err := strconv.Atoi(stripPrefix(entityID, "CA-"))
-		if err != nil {
-			return entityID
-		}
-		ca, err := s.db.GetCorrectiveAction(ctx, orgID, id)
+		ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}

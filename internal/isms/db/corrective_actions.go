@@ -105,6 +105,18 @@ func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int) (*Corre
 	return &ca, nil
 }
 
+// GetCorrectiveActionByIdentifier resolves a CA by its per-org identifier
+// (e.g. "CA-7") — the canonical ID format used in entity_references.
+func (d *DB) GetCorrectiveActionByIdentifier(ctx context.Context, orgID int, identifier string) (*CorrectiveAction, error) {
+	var id int
+	if err := d.pool.QueryRow(ctx,
+		`SELECT id FROM corrective_actions WHERE identifier = $1 AND organization_id = $2 AND deleted_at IS NULL`,
+		identifier, orgID).Scan(&id); err != nil {
+		return nil, err
+	}
+	return d.GetCorrectiveAction(ctx, orgID, id)
+}
+
 func (d *DB) ListCorrectiveActions(ctx context.Context, orgID int, status, severity, assignee string, limit int) ([]CorrectiveAction, error) {
 	query := `SELECT ` + correctiveActionSelectCols + `
 		FROM corrective_actions WHERE organization_id = $1 AND deleted_at IS NULL`
@@ -184,10 +196,13 @@ func (d *DB) UpdateCorrectiveActionStatus(ctx context.Context, orgID int, id int
 
 // CountOpenCAsByIncident returns the number of corrective actions linked to an incident
 // (via entity_references) that are not yet resolved.
-func (d *DB) CountOpenCAsByIncident(ctx context.Context, orgID int, incidentID int) (int, error) {
+// CountOpenCAsByIncident counts unresolved corrective actions linked to the
+// incident via entity_references. incidentIdentifier is the per-org
+// identifier (e.g. "INC-12") — the canonical format references are stored in.
+func (d *DB) CountOpenCAsByIncident(ctx context.Context, orgID int, incidentIdentifier string) (int, error) {
 	var n int
 	err := d.pool.QueryRow(ctx, `
-		SELECT count(*) FROM corrective_actions ca
+		SELECT count(DISTINCT ca.id) FROM corrective_actions ca
 		JOIN entity_references r ON r.organization_id = ca.organization_id
 		WHERE ca.organization_id = $1
 		  AND ca.status != 'resolved'
@@ -199,7 +214,7 @@ func (d *DB) CountOpenCAsByIncident(ctx context.Context, orgID int, incidentID i
 		    (r.target_type = 'corrective_action' AND r.target_id = ca.identifier
 		      AND r.source_type = 'incident' AND r.source_id = $2)
 		  )
-	`, orgID, fmt.Sprintf("INC-%d", incidentID)).Scan(&n)
+	`, orgID, incidentIdentifier).Scan(&n)
 	return n, err
 }
 

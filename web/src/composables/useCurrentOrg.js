@@ -53,6 +53,11 @@ export function isSubdomainHost(hostname) {
   if (_apexHosts.has(hostNoPort)) return false
 
   const parts = hostNoPort.split('.')
+  // Dev convention: a direct child of .localhost (acme.localhost) is a tenant
+  // subdomain — mirrors the backend, which resolves subdomains against
+  // ISMS_DOMAIN=localhost in dev/test. Bare `localhost` stays path-based via
+  // LOCAL_HOSTS above.
+  if (parts.length === 2 && parts[1] === 'localhost') return parts[0] !== 'www'
   if (parts.length < 3) return false
   if (parts[0] === 'www') return false
   // Last two labels must look like a public domain (e.g. "isms.sh"). We accept

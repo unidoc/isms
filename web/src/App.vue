@@ -396,7 +396,7 @@
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="org.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-500/20 text-slate-400'">{{ org.role }}</span>
                   </button>
                 </div>
-                <div class="border-t border-slate-800 py-1">
+                <div v-if="!subdomainBound" class="border-t border-slate-800 py-1">
                   <router-link to="/organizations" @click="showOrgMenu = false" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
                     Switch organization
@@ -503,7 +503,7 @@ const confirmDialog = useConfirm()
 import GlobalSearch from './components/GlobalSearch.vue'
 import { useSession } from './composables/useSession'
 import { useNotifications } from './composables/useNotifications'
-import { useCurrentOrg, currentOrgPath, registerRouter } from './composables/useCurrentOrg'
+import { useCurrentOrg, currentOrgPath, registerRouter, isSubdomainMode } from './composables/useCurrentOrg'
 
 const { toasts, dismiss: dismissToast } = useToast()
 
@@ -527,6 +527,10 @@ const {
   loadNotifications, loadUnreadCount, markRead: notifMarkRead, markAllRead: notifMarkAllRead,
   formatNotifDate,
 } = useNotifications()
+
+// On a tenant subdomain the org is bound — no switcher, no picker, no
+// "create new org" link. Used to hide multi-org UI surfaces below.
+const subdomainBound = isSubdomainMode()
 
 // Local UI state (not worth extracting — template-only concerns)
 const globalSearchRef = ref(null)
@@ -685,8 +689,16 @@ onMounted(() => {
     // Only SPA-internal absolute paths. Skip external, protocol-relative,
     // hash anchors, mailto:, tel:, etc.
     if (!href.startsWith('/') || href.startsWith('//')) return
+    // Only intercept if Vue Router actually has a route for this path.
+    // Server-served paths (e.g. /docs Scalar UI, /api/openapi.yaml,
+    // /healthz, /branding/...) must navigate natively — otherwise the SPA
+    // captures the click, no route matches, and the auth guard kicks the
+    // user to /login.
+    const candidate = currentOrgPath(href)
+    const resolved = router.resolve(candidate)
+    if (!resolved.matched.length) return
     e.preventDefault()
-    router.push(currentOrgPath(href))
+    router.push(resolved.fullPath)
   })
   // Handle 401 from any API call — redirect to login. Skip when the user is
   // already on a public auth page (signup / forgot-password / verify-email /

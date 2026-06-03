@@ -233,6 +233,13 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	// Route status changes through the dedicated transition function so that
 	// resolved_at / resolved_by_id closure metadata is set correctly.
 	if req.Status != nil && *req.Status != existing.Status {
+		// Same rule as the dedicated status endpoint: cannot resolve a CA
+		// with open implementation tasks still linked.
+		if *req.Status == "resolved" && existing.Identifier != "" {
+			if n, err := s.db.CountOpenTasksByCA(ctx, orgID, existing.Identifier); err == nil && n > 0 {
+				return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot resolve %s: %d open implementation task(s) still linked", existing.Identifier, n))
+			}
+		}
 		if err := s.db.UpdateCorrectiveActionStatus(ctx, orgID, id, *req.Status, getUserEmail(c)); err != nil {
 			return pgxHTTPError(err)
 		}

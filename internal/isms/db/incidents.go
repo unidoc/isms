@@ -142,6 +142,18 @@ func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, err
 	return &inc, nil
 }
 
+// GetIncidentByIdentifier resolves an incident by its per-org identifier
+// (e.g. "INC-12") — the canonical ID format used in entity_references.
+func (d *DB) GetIncidentByIdentifier(ctx context.Context, orgID int, identifier string) (*Incident, error) {
+	var id int
+	if err := d.pool.QueryRow(ctx,
+		`SELECT id FROM incidents WHERE identifier = $1 AND organization_id = $2 AND deleted_at IS NULL`,
+		identifier, orgID).Scan(&id); err != nil {
+		return nil, err
+	}
+	return d.GetIncident(ctx, orgID, id)
+}
+
 func (d *DB) ListIncidents(ctx context.Context, orgID int, status, severity string, limit int) ([]Incident, error) {
 	query := `SELECT ` + incidentSelectCols + `
 		FROM incidents WHERE organization_id = $1 AND deleted_at IS NULL`

@@ -83,11 +83,14 @@ export function useSession() {
         orgName.value = currentUserData.value.organization_name
       }
 
-      // If on an org-scoped route but no org_id from server, redirect to org picker.
-      // Org context can come from either the :org path param OR the host subdomain.
-      const onOrgScopedRoute = !!route.params.org || !!orgFromSubdomain()
+      // If on an org-scoped route but no org_id from server, redirect.
+      // Subdomain hosts go to /login (subdomain IS the org — never expose
+      // the picker which would leak other org memberships). Path-based
+      // hosts go to /organizations where the user picks one.
+      const onSubdomain = !!orgFromSubdomain()
+      const onOrgScopedRoute = !!route.params.org || onSubdomain
       if (onOrgScopedRoute && (!currentUserData.value?.organization_id || currentUserData.value.organization_id === 0)) {
-        router.push('/organizations')
+        router.push(onSubdomain ? '/login' : '/organizations')
         return false
       }
       // If we're on `/<slug>/...` but the resolved org slug doesn't match
@@ -97,11 +100,17 @@ export function useSession() {
         return false
       }
 
-      // Load all user orgs for switcher
-      try {
-        const orgs = await api.getMyOrgs()
-        userOrgs.value = Array.isArray(orgs) ? orgs : []
-      } catch { /* ignore */ }
+      // Load all user orgs for the switcher — skipped on tenant subdomain
+      // where switching is not allowed. Loading would leak other org
+      // memberships into the tenant UI even if no link surfaced them.
+      if (!orgFromSubdomain()) {
+        try {
+          const orgs = await api.getMyOrgs()
+          userOrgs.value = Array.isArray(orgs) ? orgs : []
+        } catch { /* ignore */ }
+      } else {
+        userOrgs.value = []
+      }
 
       return true
     } catch (e) {

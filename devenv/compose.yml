@@ -1,50 +1,81 @@
+# Two stacks sharing one image, isolated on a private compose network:
+#   isms-dev  + postgres        — manual dev server (port 9090), persistent data
+#   isms-test + postgres-test   — isolated test server (port 9091), ephemeral DB
+#
+# Postgres is reachable ONLY on the compose network (no host port published) —
+# host-side Postgres instances on :5432 are untouched. ISMS server ports are
+# bound to 127.0.0.1 only, not 0.0.0.0, so they aren't exposed to the LAN.
+#
+# The test server auto-starts on container boot. Reset its state any time with
+#   just test-reset
+# without touching the dev DB.
+
+# Explicit project name — the default is the directory name ("devenv"), which
+# collides with other projects that also keep their compose file in a devenv/
+# dir. Without this, their containers show up as "orphans" of this project and
+# a stray --remove-orphans would delete them.
+name: isms-devenv
+
+x-isms-base: &isms-base
+  build:
+    context: .
+  image: isms-dev:latest
+  userns_mode: "keep-id"
+  stdin_open: true
+  tty: true
+  networks: [isms-net]
+
 services:
+  # ── Dev stack ──────────────────────────────────────────────────────────────
   isms:
-    userns_mode: "keep-id"
-    build:
-      context: .
-      args:
-        CRONTAB_URL_DEPS: ${CRONTAB_URL_DEPS:-https://go.dev/dl}
-        GO_DL: ${GO_DL:-go1.25.3.linux-amd64.tar.gz}
+    <<: *isms-base
     container_name: isms-dev
     hostname: isms-dev
-    stdin_open: true
-    tty: true
+    depends_on: [postgres]
+    ports:
+      - "127.0.0.1:9090:9090"
     volumes:
-      # Project source (edit on host, run in container)
-      - ${ISMS_SRC_ROOT}/isms:/home/tower/workspace/isms
-      - ${ISMS_SRC_ROOT}/isms-templates:/home/tower/workspace/isms-templates
-      # Optional: only mounted if the demo content repo is cloned alongside.
-      # Contributors who don't work on demo content can skip it; required:false
-      # tells Compose not to fail when the source path is missing.
-      - type: bind
-        source: ${ISMS_SRC_ROOT}/isms-demo
-        target: /home/tower/workspace/isms-demo
-        bind:
-          create_host_path: false
-        required: false
-      # Persistent data (survives container rebuilds)
-      - isms-data:/home/tower/workspace/isms-data
-      # Claude/AI config (optional, ignored if missing)
-      - ${HOME}/Projects/unidoc-isms-localhost:/home/tower/workspace/unidoc-isms-localhost
-      - ${HOME}/Projects/unidoc-isms-production:/home/tower/workspace/unidoc-isms-production
-      - ${HOME}/.claude:/home/tower/.claude
-      - ${HOME}/.claude.json:/home/tower/.claude.json
+      - ${ISMS_SRC_ROOT}/isms:/home/isms/workspace/isms
+      - ${ISMS_SRC_ROOT}/isms-templates:/home/isms/workspace/isms-templates
+      # isms-demo is private prospect content. Contributors without it cloned
+      # get an empty directory (created by `just up`/`just build`) so the mount
+      # resolves and the container can still boot.
+      - ${ISMS_SRC_ROOT}/isms-demo:/home/isms/workspace/isms-demo
+      - isms-data:/home/isms/workspace/isms-data
+      - ${HOME}/Projects/unidoc-isms-localhost:/home/isms/workspace/unidoc-isms-localhost
+      - ${HOME}/Projects/unidoc-isms-production:/home/isms/workspace/unidoc-isms-production
+      - ${HOME}/.claude:/home/isms/.claude
+      - ${HOME}/.claude.json:/home/isms/.claude.json
+      # Shared Go caches (with isms-test) — survive container removal so
+      # rebuilds stay incremental.
+      - go-build-cache:/home/isms/.cache/go-build
+      - go-mod-cache:/home/isms/.gopath/pkg/mod
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - DATABASE_URL=postgres://isms:isms@postgres:5432/isms?sslmode=disable
       - ISMS_SECRET=${ISMS_SECRET:-dev-secret-must-be-at-least-32-characters-long-change-me}
       - ISMS_STORAGE_BACKEND=file
-      - ISMS_DATA_DIR=/home/tower/workspace/isms-data
-      - ISMS_TEMPLATE_PATH=/home/tower/workspace/isms-templates
+      - ISMS_DATA_DIR=/home/isms/workspace/isms-data
+      - ISMS_TEMPLATE_PATH=/home/isms/workspace/isms-templates
       - ISMS_USER_SIGNUP=1
       - ISMS_SKIP_EMAIL_VERIFY=1
       - ISMS_RATE_LIMIT=0
+      - ISMS_DOMAIN=localhost
+      - ISMS_SUBDOMAIN_ROUTING=1
+      # Dev opt-in: without it the server refuses to start when no
+      # ISMS_BASE_URL/ISMS_CORS_ORIGIN is set (production CORS guard).
+      - ISMS_DEV_MODE=1
+    # NOTE: no extra_hosts for acme-logistics.localhost here — /etc/hosts wins
+    # over DNS, and the e2e routing tests need the name to resolve to the
+    # isms-test container (network alias above), not to 127.0.0.1.
     restart: unless-stopped
 
   postgres:
     image: postgres:17
     container_name: isms-postgres
+    networks: [isms-net]
+    # No `ports:` on purpose — postgres is reachable only on the isms-net
+    # bridge as `postgres:5432`. Keeps host's own :5432 untouched.
     environment:
       POSTGRES_USER: isms
       POSTGRES_PASSWORD: isms
@@ -53,6 +84,77 @@ services:
       - isms-pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # ── Test stack — isolated, ephemeral ───────────────────────────────────────
+  # Auto-starts the ISMS server on boot so the test suite always has a target.
+  # State is wiped on container removal (`just test-reset`) — no manual DB
+  # flushing required.
+  isms-test:
+    <<: *isms-base
+    container_name: isms-test
+    hostname: isms-test
+    # Network alias so the e2e routing tests (running in isms-dev) can reach
+    # this server at the tenant subdomain host — the server routes the org
+    # from the Host header (ISMS_SUBDOMAIN_ROUTING).
+    networks:
+      isms-net:
+        aliases: [acme-logistics.localhost]
+    depends_on: [postgres-test]
+    ports:
+      - "127.0.0.1:9091:9090"
+    volumes:
+      - ${ISMS_SRC_ROOT}/isms:/home/isms/workspace/isms
+      - ${ISMS_SRC_ROOT}/isms-templates:/home/isms/workspace/isms-templates
+      # Shared Go caches (with isms-dev) — `just test-reset` removes this
+      # container; without these volumes every reset is a cold recompile.
+      - go-build-cache:/home/isms/.cache/go-build
+      - go-mod-cache:/home/isms/.gopath/pkg/mod
+    environment:
+      - DATABASE_URL=postgres://isms:isms@postgres-test:5432/isms_test?sslmode=disable
+      - ISMS_SECRET=test-secret-must-be-at-least-32-characters-long-tests-only
+      - ISMS_STORAGE_BACKEND=file
+      - ISMS_DATA_DIR=/tmp/isms-test-data
+      - ISMS_TEMPLATE_PATH=/home/isms/workspace/isms-templates
+      - ISMS_USER_SIGNUP=1
+      - ISMS_SKIP_EMAIL_VERIFY=1
+      - ISMS_RATE_LIMIT=0
+      - ISMS_DOMAIN=localhost
+      - ISMS_SUBDOMAIN_ROUTING=1
+      # Dev opt-in: without it the server refuses to start when no
+      # ISMS_BASE_URL/ISMS_CORS_ORIGIN is set (production CORS guard).
+      - ISMS_DEV_MODE=1
+    extra_hosts:
+      - "acme-logistics.localhost:127.0.0.1"
+    # Run migrations then serve. `go run` rebuilds from the mounted source
+    # on each container start, so a fresh `just test-reset` always reflects
+    # the current code.
+    command:
+      - bash
+      - -lc
+      - |
+        cd /home/isms/workspace/isms && \
+        go run ./cmd/isms server migrate && \
+        exec go run ./cmd/isms server serve --addr :9090
+    restart: unless-stopped
+
+  postgres-test:
+    image: postgres:17
+    container_name: isms-postgres-test
+    networks: [isms-net]
+    # No `ports:` — same isolation as the dev postgres.
+    environment:
+      POSTGRES_USER: isms
+      POSTGRES_PASSWORD: isms
+      POSTGRES_DB: isms_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    restart: unless-stopped
+
+networks:
+  isms-net:
+    driver: bridge
+
 volumes:
   isms-pgdata:
   isms-data:
+  go-build-cache:
+  go-mod-cache:

@@ -2453,6 +2453,12 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 		Detail: fmt.Sprintf("%s updated", updated.Identifier),
 	})
 
+	// Same side effect as the dedicated status endpoint — approving via the
+	// edit form must also create the implementation task.
+	if req.Status != nil && *req.Status == "approved" && old.Status != "approved" {
+		s.createChangeFollowupTask(ctx, orgID, updated, actor)
+	}
+
 	return c.JSON(http.StatusOK, updated)
 }
 
@@ -2515,42 +2521,50 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 
 	// Auto-create implementation task on approval, assigned to the change requester
 	if req.Status == "approved" && oldStatus != "approved" {
-		assignee := updated.AssignedTo
-		if assignee == "" {
-			assignee = updated.RequestedBy
-		}
-		due := db.NewEpoch(time.Now().AddDate(0, 0, 14))
-		t := &db.Task{
-			Title:       fmt.Sprintf("Implement %s: %s", updated.Identifier, updated.Title),
-			Description: fmt.Sprintf("Auto-created from approved change %s. Verify implementation and mark this task done.", updated.Identifier),
-			TaskType:    "change_followup",
-			Assignee:    assignee,
-			CreatedBy:   actor,
-			Status:      "open",
-			Priority:    "medium",
-			DueDate:     &due,
-		}
-		if err := s.db.CreateTask(ctx, orgID, t); err == nil {
-			_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
-				EntityType: "task",
-				EntityID:   int64(t.ID),
-				Action:     "create",
-				ChangedBy:  actor,
-			})
-			s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
-			s.logAndNotify(ctx, orgID, &db.Activity{
-				Actor:  actor,
-				Action: "task_created",
-				Detail: fmt.Sprintf("Auto-task %s for approved change %s", t.Identifier, updated.Identifier),
-			})
-			if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
-				baseURL := os.Getenv("ISMS_BASE_URL")
-				_ = s.mailer.SendTaskAssigned(assignee, assignee, actor, t.Title, t.Priority, baseURL)
-			}
-		}
+		s.createChangeFollowupTask(ctx, orgID, updated, actor)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// createChangeFollowupTask auto-creates the "Implement <CR>" task when a
+// change transitions into approved, assigned to the change requester. Shared
+// by handleUpdateChange (edit-form saves) and handleUpdateChangeStatus so
+// both status-change paths behave identically.
+func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, updated *db.ChangeRequest, actor string) {
+	assignee := updated.AssignedTo
+	if assignee == "" {
+		assignee = updated.RequestedBy
+	}
+	due := db.NewEpoch(time.Now().AddDate(0, 0, 14))
+	t := &db.Task{
+		Title:       fmt.Sprintf("Implement %s: %s", updated.Identifier, updated.Title),
+		Description: fmt.Sprintf("Auto-created from approved change %s. Verify implementation and mark this task done.", updated.Identifier),
+		TaskType:    "change_followup",
+		Assignee:    assignee,
+		CreatedBy:   actor,
+		Status:      "open",
+		Priority:    "medium",
+		DueDate:     &due,
+	}
+	if err := s.db.CreateTask(ctx, orgID, t); err == nil {
+		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+			EntityType: "task",
+			EntityID:   int64(t.ID),
+			Action:     "create",
+			ChangedBy:  actor,
+		})
+		s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "task_created",
+			Detail: fmt.Sprintf("Auto-task %s for approved change %s", t.Identifier, updated.Identifier),
+		})
+		if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
+			baseURL := os.Getenv("ISMS_BASE_URL")
+			_ = s.mailer.SendTaskAssigned(assignee, assignee, actor, t.Title, t.Priority, baseURL)
+		}
+	}
 }
 
 func (s *Server) handleDeleteChange(c echo.Context) error {

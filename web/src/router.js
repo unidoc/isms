@@ -104,6 +104,13 @@ const router = createRouter({
 let sessionValidated = false
 
 router.beforeEach(async (to, from) => {
+  // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
+  // the org picker should never be reachable from there. Stale-token refreshes
+  // would otherwise leak the user's other org memberships into the verkis UI.
+  if (to.path === '/organizations' && orgFromSubdomain()) {
+    return getApiToken() ? { path: '/overview' } : { path: '/login' }
+  }
+
   if (to.meta.public) {
     if (to.path === '/' && getApiToken()) {
       // Already logged in landing on the root — go straight into the org

@@ -2070,9 +2070,9 @@ func (s *Server) handleRiskAdvisories(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
 	}
 
-	// Find linked assets via entity_references (both directions).
-	riskRef := fmt.Sprintf("%d", risk.ID)
-	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, "risk", riskRef)
+	// Find linked assets via entity_references (both directions). References
+	// store per-org identifiers ("RISK-12"), not numeric row ids.
+	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, "risk", risk.Identifier)
 	if err != nil {
 		refs = nil
 	}
@@ -2096,12 +2096,7 @@ func (s *Server) handleRiskAdvisories(c echo.Context) error {
 			continue
 		}
 
-		assetID, err := strconv.ParseInt(assetIDStr, 10, 64)
-		if err != nil {
-			continue
-		}
-
-		asset, err := s.db.GetAsset(ctx, orgID, assetID)
+		asset, err := s.db.GetAssetByIdentifier(ctx, orgID, assetIDStr)
 		if err != nil {
 			continue
 		}

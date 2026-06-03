@@ -14,6 +14,15 @@ services:
       # Project source (edit on host, run in container)
       - ${ISMS_SRC_ROOT}/isms:/home/tower/workspace/isms
       - ${ISMS_SRC_ROOT}/isms-templates:/home/tower/workspace/isms-templates
+      # Optional: only mounted if the demo content repo is cloned alongside.
+      # Contributors who don't work on demo content can skip it; required:false
+      # tells Compose not to fail when the source path is missing.
+      - type: bind
+        source: ${ISMS_SRC_ROOT}/isms-demo
+        target: /home/tower/workspace/isms-demo
+        bind:
+          create_host_path: false
+        required: false
       # Persistent data (survives container rebuilds)
       - isms-data:/home/tower/workspace/isms-data
       # Claude/AI config (optional, ignored if missing)

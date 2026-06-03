@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -866,6 +867,17 @@ func (d *DB) LogActivity(ctx context.Context, orgID int, a *Activity) error {
 		INSERT INTO activity (organization_id, document_id, review_id, actor, actor_user_id, action, detail)
 		VALUES ($1, $2, $3, $4, (SELECT id FROM users WHERE email = $4), $5, $6)
 	`, orgID, a.DocumentID, a.ReviewID, a.Actor, a.Action, a.Detail)
+	return err
+}
+
+// LogActivityAt is LogActivity with an explicit timestamp — used by the
+// demo seeder to backdate historical events for a believable activity feed.
+func (d *DB) LogActivityAt(ctx context.Context, orgID int, a *Activity, at time.Time) error {
+	a.OrganizationID = orgID
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO activity (organization_id, document_id, review_id, actor, actor_user_id, action, detail, created_at)
+		VALUES ($1, $2, $3, $4, (SELECT id FROM users WHERE email = $4), $5, $6, $7)
+	`, orgID, a.DocumentID, a.ReviewID, a.Actor, a.Action, a.Detail, at)
 	return err
 }
 

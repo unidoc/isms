@@ -32,8 +32,8 @@
           </button>
         </form>
         <div class="text-sm text-slate-500 mt-6">
-          Don't have an organization yet?
-          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Create one</router-link>
+          Don't have an account?
+          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Get started</router-link>
         </div>
       </div>
 

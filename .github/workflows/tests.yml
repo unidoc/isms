@@ -1,0 +1,115 @@
+# CI test suite — Go unit tests + full API/E2E integration suite.
+#
+# Security model (public repo, fork PRs welcome):
+#   - `pull_request` trigger only — NEVER `pull_request_target`. Fork PRs run
+#     in an isolated ephemeral VM with a read-only GITHUB_TOKEN and no access
+#     to repository secrets.
+#   - This workflow uses no secrets at all; there is nothing to exfiltrate.
+#   - `permissions: contents: read` pins the token to read-only even on push.
+#   - Repo setting "Require approval for all outside collaborators"
+#     (Settings → Actions → General) gates fork-PR runs behind a maintainer
+#     click as defense-in-depth.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build
+        run: CGO_ENABLED=0 go build ./...
+      - name: Unit tests
+        run: CGO_ENABLED=0 go test ./internal/... -count=1 -timeout 120s
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: isms
+          POSTGRES_PASSWORD: isms
+          POSTGRES_DB: isms_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U isms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://isms:isms@localhost:5432/isms_test?sslmode=disable
+      ISMS_SECRET: ci-secret-must-be-at-least-32-characters-long-tests-only
+      ISMS_STORAGE_BACKEND: file
+      ISMS_DATA_DIR: /tmp/isms-ci-data
+      ISMS_TEMPLATE_PATH: ${{ github.workspace }}/isms-templates
+      ISMS_USER_SIGNUP: "1"
+      ISMS_SKIP_EMAIL_VERIFY: "1"
+      ISMS_RATE_LIMIT: "0"
+      ISMS_DOMAIN: localhost
+      ISMS_SUBDOMAIN_ROUTING: "1"
+      ISMS_DEV_MODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Templates are a separate repo — the suite scaffolds orgs from them.
+      - name: Checkout templates
+        uses: actions/checkout@v4
+        with:
+          repository: unidoc/isms-templates
+          path: isms-templates
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd web && npm ci && npm run build
+          cd .. && mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/
+
+      - name: Install test dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet pytest requests playwright
+          .venv/bin/playwright install --with-deps chromium
+
+      - name: Start server
+        run: |
+          go run ./cmd/isms server migrate
+          nohup go run ./cmd/isms server serve --addr :9090 > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:9090/healthz && break
+            sleep 2
+          done
+          curl -sf http://localhost:9090/healthz || { cat server.log; exit 1; }
+
+      - name: Run test suite
+        run: ISMS_TEST_URL=http://localhost:9090 .venv/bin/pytest tests/ --tb=short
+
+      - name: Server log on failure
+        if: failure()
+        run: cat server.log

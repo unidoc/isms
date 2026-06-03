@@ -26,16 +26,20 @@ class TestSearchIndex:
             "asset_type": "software", "status": "open",
         })
 
-    def test_02_search_empty_returns_all(self, api_url, admin_headers):
-        """Empty query returns a variety of entities (up to 50)."""
+    def test_02_search_empty_returns_results(self, api_url, admin_headers):
+        """Empty query returns indexed entries, capped at 50.
+
+        No assertion on type variety: the endpoint returns the first 50
+        entries in index-build order (goroutine completion order), so once
+        any single type accumulates 50+ contiguous entries the first page is
+        homogeneous. Type reachability is covered by the targeted-query tests
+        below (title, identifier, documents).
+        """
         r = requests.get(f"{api_url}/search?q=", headers=admin_headers)
         assert r.status_code == 200
         data = r.json().get("data") or []
         assert len(data) > 0, "Expected at least some results"
-        # Should return multiple entity types — exact selection is non-deterministic
-        # (depends on goroutine completion order during index build)
-        types = set(d["type"] for d in data)
-        assert len(types) >= 2, f"Expected multiple entity types, got: {types}"
+        assert len(data) <= 50, f"Expected the 50-entry cap, got {len(data)}"
 
     def test_03_search_by_title(self, api_url, admin_headers):
         """Search by entity title."""

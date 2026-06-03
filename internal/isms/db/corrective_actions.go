@@ -108,13 +108,21 @@ func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int) (*Corre
 // GetCorrectiveActionByIdentifier resolves a CA by its per-org identifier
 // (e.g. "CA-7") — the canonical ID format used in entity_references.
 func (d *DB) GetCorrectiveActionByIdentifier(ctx context.Context, orgID int, identifier string) (*CorrectiveAction, error) {
-	var id int
-	if err := d.pool.QueryRow(ctx,
-		`SELECT id FROM corrective_actions WHERE identifier = $1 AND organization_id = $2 AND deleted_at IS NULL`,
-		identifier, orgID).Scan(&id); err != nil {
+	var ca CorrectiveAction
+	err := d.pool.QueryRow(ctx, `
+		SELECT `+correctiveActionSelectCols+`
+		FROM corrective_actions WHERE identifier = $1 AND organization_id = $2 AND deleted_at IS NULL
+	`, identifier, orgID).Scan(&ca.ID, &ca.OrganizationID, &ca.Identifier, &ca.Title, &ca.Description,
+		&ca.Source, &ca.Severity, &ca.Status,
+		&ca.Assignee, &ca.CreatedBy, &ca.DueDate,
+		&ca.RootCause,
+		&ca.Notes,
+		&ca.ResolvedAt, &ca.ResolvedBy,
+		&ca.CreatedAt, &ca.UpdatedAt)
+	if err != nil {
 		return nil, err
 	}
-	return d.GetCorrectiveAction(ctx, orgID, id)
+	return &ca, nil
 }
 
 func (d *DB) ListCorrectiveActions(ctx context.Context, orgID int, status, severity, assignee string, limit int) ([]CorrectiveAction, error) {

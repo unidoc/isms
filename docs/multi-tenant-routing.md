@@ -99,8 +99,10 @@ header binds it); on path/apex the user first enters their org slug.
 
 ### Verification — `/verify-email?token=...`
 
-Sets password from the email link, returns a JWT, and redirects to
-`/organizations` (picker) so a brand-new user can create their first org.
+Sets password from the email link and returns a JWT. If the user has no org
+yet, redirects to `/organizations` (picker) to create their first org; users
+joining via an invite already belong to an org — the response carries their
+`organization_slug` and they land on `/overview` directly.
 
 ## Server-served paths and the global anchor interceptor
 

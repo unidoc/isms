@@ -2561,8 +2561,12 @@ func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, update
 			Detail: fmt.Sprintf("Auto-task %s for approved change %s", t.Identifier, updated.Identifier),
 		})
 		if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
+			displayName := assignee
+			if u, err := s.db.GetUserByEmail(ctx, assignee); err == nil && u != nil && u.Name != "" {
+				displayName = u.Name
+			}
 			baseURL := os.Getenv("ISMS_BASE_URL")
-			_ = s.mailer.SendTaskAssigned(assignee, assignee, actor, t.Title, t.Priority, baseURL)
+			_ = s.mailer.SendTaskAssigned(assignee, displayName, actor, t.Title, t.Priority, baseURL)
 		}
 	}
 }

@@ -428,7 +428,9 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 }
 
 // statusVerb maps a target status to the verb for "cannot <verb> …" error
-// messages ("resolved" → "resolve").
+// messages. Intentionally scoped to the terminal statuses guarded by the
+// open-CA rule ("resolved", "closed") — extend the switch before adding
+// callers with other statuses.
 func statusVerb(status string) string {
 	switch status {
 	case "resolved":
@@ -436,7 +438,7 @@ func statusVerb(status string) string {
 	case "closed":
 		return "close"
 	default:
-		return "set " + status + " on"
+		return status
 	}
 }
 

@@ -11,12 +11,14 @@ package demo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
@@ -88,7 +90,11 @@ func Run(ctx context.Context, database *DB, opts Options, content Content) error
 	if content == nil {
 		return fmt.Errorf("demo.Run: content is nil")
 	}
-	if existing, _ := database.GetOrganizationBySlug(ctx, opts.Slug); existing != nil {
+	existing, err := database.GetOrganizationBySlug(ctx, opts.Slug)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("checking for existing org: %w", err)
+	}
+	if existing != nil {
 		return fmt.Errorf("organization %q already exists — delete it first to reseed", opts.Slug)
 	}
 
@@ -96,16 +102,23 @@ func Run(ctx context.Context, database *DB, opts Options, content Content) error
 	if err := s.CreateOrg(opts.Name, opts.Slug, opts.Domain); err != nil {
 		return err
 	}
-	return content.Apply(s)
+	if err := content.Apply(s); err != nil {
+		// Best-effort cleanup so a subsequent reseed isn't blocked by a
+		// half-populated org row left over from a failed Apply.
+		_ = database.DeleteOrganization(ctx, s.org.ID)
+		return fmt.Errorf("seeding content: %w", err)
+	}
+	return nil
 }
 
 // Seeder is the SDK handle content packages use to populate a demo org.
 // Instantiated by Run; never directly by content.
 type Seeder struct {
-	db    *db.DB
-	ctx   context.Context
-	org   *db.Organization
-	users map[string]*db.User
+	db     *db.DB
+	ctx    context.Context
+	org    *db.Organization
+	users  map[string]*db.User
+	admins []*db.User // tracked in addition to users so git authorship can prefer admins
 }
 
 func (s *Seeder) Org() *db.Organization    { return s.org }
@@ -181,6 +194,9 @@ func (s *Seeder) AddUser(email, name, role, tag string, isAgent bool) (*db.User,
 	if tag != "" {
 		s.users[tag] = usr
 	}
+	if role == "admin" {
+		s.admins = append(s.admins, usr)
+	}
 	return usr, nil
 }
 
@@ -245,13 +261,12 @@ func (s *Seeder) AddSuggestion(sg *db.Suggestion) error {
 // AddActivity inserts an activity-feed entry at an explicit timestamp —
 // used to backdate historical events when seeding a believable timeline.
 func (s *Seeder) AddActivity(actor, action, detail, documentID string, at time.Time) error {
-	_, err := s.db.Pool().Exec(s.ctx, `
-		INSERT INTO activity (organization_id, document_id, actor, actor_user_id, action, detail, created_at)
-		VALUES ($1, NULLIF($2, ''), $3,
-			(SELECT id FROM users WHERE email = $3),
-			$4, $5, $6)
-	`, s.org.ID, documentID, actor, action, detail, at)
-	return err
+	return s.db.LogActivityAt(s.ctx, s.org.ID, &db.Activity{
+		Actor:      actor,
+		Action:     action,
+		Detail:     detail,
+		DocumentID: documentID,
+	}, at)
 }
 
 type DocFile struct {
@@ -325,6 +340,10 @@ func (s *Seeder) SetBranding(b Branding) error {
 type identity struct{ name, email string }
 
 func (s *Seeder) firstAdminOrFallback() identity {
+	if len(s.admins) > 0 {
+		u := s.admins[0]
+		return identity{name: u.Name, email: u.Email}
+	}
 	for _, u := range s.users {
 		if u != nil {
 			return identity{name: u.Name, email: u.Email}

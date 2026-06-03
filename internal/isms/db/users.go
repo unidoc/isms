@@ -342,6 +342,15 @@ func (d *DB) CreateOrganization(ctx context.Context, org *Organization) error {
 	`, org.Name, org.Slug, org.RepoPath, org.Domain).Scan(&org.ID, &org.UUID, &org.CreatedAt, &org.UpdatedAt)
 }
 
+// DeleteOrganization soft-deletes an org. The slug/domain unique indexes
+// filter on `deleted_at IS NULL`, so the slug becomes available again for a
+// new org row — which is what the demo seeder relies on when cleaning up
+// after a failed Apply so the next reseed isn't blocked.
+func (d *DB) DeleteOrganization(ctx context.Context, orgID int) error {
+	_, err := d.pool.Exec(ctx, `UPDATE organizations SET deleted_at = now() WHERE id = $1`, orgID)
+	return err
+}
+
 // GetOrganization returns an organization by ID.
 func (d *DB) GetOrganization(ctx context.Context, id int) (*Organization, error) {
 	var o Organization

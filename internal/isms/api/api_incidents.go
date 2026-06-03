@@ -324,6 +324,13 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	// Route status changes through the dedicated transition function so that
 	// contained_at / resolved_at / closed_at are cleared correctly on reverse transitions.
 	if req.Status != nil && *req.Status != existing.Status {
+		// Same rule as the dedicated status endpoint: cannot resolve/close an
+		// incident with open corrective actions still linked.
+		if *req.Status == "closed" || *req.Status == "resolved" {
+			if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, existing.Identifier); err == nil && n > 0 {
+				return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", statusVerb(*req.Status), n))
+			}
+		}
 		if err := s.db.UpdateIncidentStatus(ctx, orgID, id, *req.Status); err != nil {
 			return pgxHTTPError(err)
 		}
@@ -420,6 +427,21 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	return c.JSON(http.StatusOK, existing)
 }
 
+// statusVerb maps a target status to the verb for "cannot <verb> …" error
+// messages. Intentionally scoped to the terminal statuses guarded by the
+// open-CA rule ("resolved", "closed") — extend the switch before adding
+// callers with other statuses.
+func statusVerb(status string) string {
+	switch status {
+	case "resolved":
+		return "resolve"
+	case "closed":
+		return "close"
+	default:
+		return status
+	}
+}
+
 func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -447,8 +469,12 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 
 	// Block closing/resolving if there are still-open corrective actions linked to this incident.
 	if req.Status == "closed" || req.Status == "resolved" {
-		if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, id); err == nil && n > 0 {
-			return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", req.Status, n))
+		existing, err := s.db.GetIncident(ctx, orgID, id)
+		if err != nil || existing == nil {
+			return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		}
+		if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, existing.Identifier); err == nil && n > 0 {
+			return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", statusVerb(req.Status), n))
 		}
 	}
 

@@ -26,6 +26,7 @@ class TestIncidentOrphanValidation:
         })
         assert r.status_code in [200, 201], f"Create failed: {r.text}"
         TestIncidentOrphanValidation.incident_id = r.json()["id"]
+        TestIncidentOrphanValidation.incident_identifier = r.json()["identifier"]
 
     def test_02_link_ca_to_incident(self, api_url, admin_headers):
         r = requests.post(f"{api_url}/corrective-actions", headers=admin_headers, json={
@@ -37,12 +38,13 @@ class TestIncidentOrphanValidation:
         assert r.status_code in [200, 201], f"Create CA failed: {r.text}"
         ca = r.json()
         TestIncidentOrphanValidation.ca_id = ca["id"]
-        # Register the CA → Incident link via entity_references
+        # Register the CA → Incident link via entity_references — references
+        # use per-org identifiers (INC-N), not numeric row ids.
         ref = requests.post(f"{api_url}/references", headers=admin_headers, json={
             "source_type": "corrective_action",
             "source_id": ca["identifier"],
             "target_type": "incident",
-            "target_id": f"INC-{TestIncidentOrphanValidation.incident_id}",
+            "target_id": TestIncidentOrphanValidation.incident_identifier,
         })
         assert ref.status_code in [200, 201], f"Create reference failed: {ref.text}"
 

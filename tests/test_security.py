@@ -1,4 +1,6 @@
 """Security-specific tests."""
+import uuid
+
 import requests
 
 
@@ -58,16 +60,20 @@ def test_path_traversal_in_document(api_url, admin_headers):
 
 def test_xss_in_risk_title(api_url, admin_headers):
     """XSS in risk title should be stored safely (not executed)."""
+    # Unique marker so the search can't collide with other records — "script"
+    # is a substring of "Description", which appears in every risk created
+    # from the markdown scaffold, so q=script overflows the page size.
+    marker = uuid.uuid4().hex[:12]
     r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
-        "title": '<script>alert("xss")</script>',
+        "title": f'<script>alert("{marker}")</script>',
         "current_likelihood": 1, "current_impact": 1,
         "risk_type": "threat", "origin": "internal", "status": "open",
     })
     if r.status_code in [200, 201]:
-        # Verify it's stored as text, not rendered. Search by query to bypass pagination.
-        risks = requests.get(f"{api_url}/risks?q=script", headers=admin_headers).json()["data"]
-        found = [r for r in risks if "script" in (r.get("title") or "")]
-        assert len(found) > 0  # stored safely
+        # Verify it's stored as text, not rendered.
+        risks = requests.get(f"{api_url}/risks?q={marker}", headers=admin_headers).json()["data"]
+        found = [r for r in risks if marker in (r.get("title") or "") and "<script>" in (r.get("title") or "")]
+        assert len(found) > 0  # stored safely, tags intact as text
 
 
 def test_brute_force_protection(api_url):

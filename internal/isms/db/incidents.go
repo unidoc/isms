@@ -110,7 +110,10 @@ func (d *DB) CreateIncident(ctx context.Context, orgID int, inc *Incident) error
 	).Scan(&inc.ID, &inc.CreatedAt, &inc.UpdatedAt)
 }
 
-func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, error) {
+// getIncidentWhere runs the canonical single-incident query with the given
+// match column ("id" or "identifier") — shared by GetIncident and
+// GetIncidentByIdentifier so the column/scan lists live in one place.
+func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, matchVal any) (*Incident, error) {
 	var inc Incident
 	err := d.pool.QueryRow(ctx, `
 		SELECT id, organization_id, identifier, title, description, severity, status,
@@ -124,8 +127,8 @@ func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, err
 			detected_at, contained_at, resolved_at, closed_at,
 			COALESCE(root_cause, ''), COALESCE(lessons_learned, ''),
 			created_at, updated_at
-		FROM incidents WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
-	`, id, orgID).Scan(&inc.ID, &inc.OrganizationID, &inc.Identifier, &inc.Title, &inc.Description,
+		FROM incidents WHERE `+matchCol+` = $1 AND organization_id = $2 AND deleted_at IS NULL
+	`, matchVal, orgID).Scan(&inc.ID, &inc.OrganizationID, &inc.Identifier, &inc.Title, &inc.Description,
 		&inc.Severity, &inc.Status,
 		&inc.AffectsC, &inc.AffectsI, &inc.AffectsA,
 		&inc.IncidentType, &inc.Source,
@@ -140,6 +143,16 @@ func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, err
 		return nil, err
 	}
 	return &inc, nil
+}
+
+func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, error) {
+	return d.getIncidentWhere(ctx, orgID, "id", id)
+}
+
+// GetIncidentByIdentifier resolves an incident by its per-org identifier
+// (e.g. "INC-12") — the canonical ID format used in entity_references.
+func (d *DB) GetIncidentByIdentifier(ctx context.Context, orgID int, identifier string) (*Incident, error) {
+	return d.getIncidentWhere(ctx, orgID, "identifier", identifier)
 }
 
 func (d *DB) ListIncidents(ctx context.Context, orgID int, status, severity string, limit int) ([]Incident, error) {

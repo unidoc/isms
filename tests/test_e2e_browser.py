@@ -4,6 +4,7 @@ Requires: pip install playwright && playwright install chromium
 Run:      pytest tests/test_e2e_browser.py -v
 """
 import os, pytest, importlib
+import uuid
 import requests
 
 # Fail loudly if Playwright is missing — never silently skip 41 tests.
@@ -783,20 +784,18 @@ class TestQuickActionRiskToTask:
 
 
 class TestOrphanValidationIncidentInUI:
-    """P3: Cannot close incident with open CA — UI shows server's 409 error.
-
-    NOTE: skipped pending rewrite. The incident detail UI now drives state
-    transitions through an edit-mode `<select>` instead of dedicated
-    `Investigate/Contain/Resolve` buttons; the validation behaviour (server
-    returning 409) is still covered by the API integration tests in
-    `test_workflow_integration.py`.
+    """P3: Cannot resolve/close incident with open CA — the edit-form save
+    surfaces the server's 409 as an error toast and the status does not
+    advance. The server rule itself is also covered by the API integration
+    tests in `test_workflow_integration.py`; this verifies the UI feedback.
     """
 
-    @pytest.mark.skip(reason="UI redesigned to edit-mode status select; needs rewrite to test through edit form")
     def test_close_with_open_ca_blocked(self, pw_browser, tokens):
         t = tokens["admin"]
+        marker = uuid.uuid4().hex[:6]
+        title = f"E2E Orphan incident {marker}"
         r = api("post", "/incidents", t, json={
-            "title": "E2E Orphan incident",
+            "title": title,
             "description": "for orphan UI test",
             "severity": "medium",
             "affects_a": True,
@@ -805,55 +804,64 @@ class TestOrphanValidationIncidentInUI:
             "reporter": ADMIN[0],
         }, expect_status=[200, 201])
         inc_id = r.json()["id"]
-        api("post", "/corrective-actions", t, json={
-            "title": "E2E Orphan CA",
+        inc_identifier = r.json()["identifier"]
+        ca = api("post", "/corrective-actions", t, json={
+            "title": f"E2E Orphan CA {marker}",
             "description": "linked",
             "source": "security_incident",
             "severity": "observation",
-            "incident_id": inc_id,
+        }, expect_status=[200, 201]).json()
+        # Link CA → incident via entity_references — there is no incident_id
+        # field on the CA itself; the orphan check counts these references.
+        # References use per-org identifiers (INC-N), not numeric row ids.
+        api("post", "/references", t, json={
+            "source_type": "corrective_action",
+            "source_id": ca["identifier"],
+            "target_type": "incident",
+            "target_id": inc_identifier,
         }, expect_status=[200, 201])
 
-        # Direct API check — we already verified 409 in test_workflow_integration.
-        # Browser-level: load incident detail and observe the close button is the way to trigger this.
-        # Server validation will return 409; we verify the button click does not advance to "closed".
         ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
         page = ctx.new_page()
         try:
-            do_login(page, ADMIN[0], ADMIN[1], then_goto=f"incidents/{inc_id}")
-            wait_for(page, "E2E Orphan incident", timeout=8000)
-            # Walk through valid transitions: open → investigating → contained
-            page.locator('button:has-text("Investigate")').first.click()
-            page.wait_for_load_state("networkidle")
-            page.locator('button:has-text("Contain")').first.click()
-            page.wait_for_load_state("networkidle")
-            # Now Resolve should be blocked by server with a visible error toast
-            resolve_btn = page.locator('button:has-text("Resolve")').first
-            assert resolve_btn.is_visible(timeout=2000)
-            resolve_btn.click()
-            # User should see an error toast explaining the block
-            page.locator('text=/open corrective action/i').first.wait_for(state="visible", timeout=4000)
-            # API state should still be "contained" — not advanced to resolved
+            do_login(page, ADMIN[0], ADMIN[1])
+            click_sidebar(page, "Incidents")
+            wait_for(page, title, timeout=8000)
+            page.locator(f'text={title}').first.click()
+            # Detail modal → edit the overview section
+            page.locator('button:has-text("Edit")').first.click()
+            # The edit-form status select sits right after a "Status" label —
+            # the list-filter select has the same options but no label, so
+            # this is the only locator that can't grab the wrong one.
+            status_select = page.locator(
+                'xpath=//label[normalize-space()="Status"]/following-sibling::select'
+            ).first
+            status_select.wait_for(state="visible", timeout=5000)
+            status_select.select_option("resolved")
+            page.locator('button:has-text("Save")').first.click()
+            # Server rejects with 409 — UI must surface it as an error toast
+            page.locator('text=/open corrective action/i').first.wait_for(state="visible", timeout=5000)
+            # And the incident must not have advanced
             inc_after = api("get", f"/incidents/{inc_id}", t).json()
-            assert inc_after["status"] == "contained", \
-                f"Expected status=contained after blocked resolve, got {inc_after['status']}"
+            assert inc_after["status"] != "resolved", \
+                f"Status advanced to resolved despite open CA"
         finally:
             ctx.close()
 
 
 class TestAutoTaskOnChangeApprovalUI:
-    """P2: Approving a change auto-creates an implementation task — visible in Tasks list.
-
-    NOTE: skipped pending rewrite. The change detail UI no longer has a
-    dedicated `Approve` action button; approvals go through the edit-mode
-    status select. The auto-task behaviour itself is exercised by the API
-    integration tests; the E2E version needs reworking to drive the new UI.
+    """P2: Approving a change via the edit-form status select auto-creates an
+    implementation task, visible in the Tasks list. Guards the edit-form path
+    specifically — it goes through PUT /changes/:id, not the dedicated status
+    endpoint, and both must produce the follow-up task.
     """
 
-    @pytest.mark.skip(reason="UI redesigned to edit-mode status select; needs rewrite to test through edit form")
     def test_approval_creates_task_visible(self, pw_browser, tokens):
         t = tokens["admin"]
+        marker = uuid.uuid4().hex[:6]
+        title = f"E2E AutoTask change {marker}"
         r = api("post", "/changes", t, json={
-            "title": "E2E AutoTask change",
+            "title": title,
             "description": "for auto-task test",
             "priority": "medium",
             "category": "process",
@@ -865,22 +873,28 @@ class TestAutoTaskOnChangeApprovalUI:
         ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
         page = ctx.new_page()
         try:
-            do_login(page, ADMIN[0], ADMIN[1], then_goto=f"changes/{cr['id']}")
-            page.locator('nav button:has-text("Overview")').first.wait_for(state="visible", timeout=8000)
-            # Click Approve in header
-            page.locator('button:has-text("Approve")').first.click()
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(500)
-            # Close the modal first so sidebar is clickable
+            do_login(page, ADMIN[0], ADMIN[1])
+            click_sidebar(page, "Change Management")
+            wait_for(page, title, timeout=8000)
+            page.locator(f'text={title}').first.click()
+            # Detail → edit the overview section, approve via status select
+            # (label-scoped for the same reason as the incident test).
+            page.locator('button:has-text("Edit")').first.click()
+            status_select = page.locator(
+                'xpath=//label[normalize-space()="Status"]/following-sibling::select'
+            ).first
+            status_select.wait_for(state="visible", timeout=5000)
+            status_select.select_option("approved")
+            page.locator('button:has-text("Save")').first.click()
+            wait_for(page, "Saved", timeout=5000)
+            # Auto-task must exist and be visible in the Tasks list
             page.keyboard.press("Escape")
             page.wait_for_timeout(300)
-            # Navigate to Tasks via SPA router (avoids modal-overlay click issue)
-            page.evaluate(f"() => document.querySelector('#app').__vue_app__.config.globalProperties.$router.push('/{ORG}/tasks')")
-            page.wait_for_load_state("networkidle")
-            # Search for the change identifier
-            page.locator('input[placeholder="Search..."]').first.fill(change_ident)
+            click_sidebar(page, "Tasks")
+            search = page.locator('input[placeholder="Search..."]').first
+            search.wait_for(state="visible", timeout=5000)
+            search.fill(change_ident)
             page.wait_for_timeout(400)  # debounce
-            # Title should contain "Implement <CR-N>"
             wait_for(page, f"Implement {change_ident}", timeout=5000)
         finally:
             ctx.close()

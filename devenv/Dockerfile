@@ -6,9 +6,8 @@
 FROM debian:trixie-slim
 
 # ── Build args ───────────────────────────────────────────────────────────────
-ARG CRONTAB_URL_DEPS
-ARG GO_DL=go1.25.3.linux-amd64.tar.gz
-ARG USER_NAME=tower
+ARG GO_VERSION=1.25.3
+ARG USER_NAME=isms
 ARG USER_UID=1000
 ARG USER_GID=1000
 
@@ -17,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV LOCAL_INSTALL=/usr/local
 ENV GOROOT=${LOCAL_INSTALL}/go
 ENV GOPATH=/home/${USER_NAME}/.gopath
-ENV PATH=${GOROOT}/bin:${GOPATH}/bin:${PATH}
+ENV PATH=${GOROOT}/bin:${GOPATH}/bin:/home/${USER_NAME}/.local/bin:${PATH}
 ENV COLORTERM=truecolor
 ENV TERM=xterm-256color
 ENV LANG=C.UTF-8
@@ -62,19 +61,27 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
 RUN npm i -g @openai/codex
 RUN npm i -g @google/gemini-cli
 RUN npm i -g @playwright/test
-RUN npx playwright install --with-deps chromium
+# Fixed, world-readable browser path. This RUN executes as root, so the
+# default ($HOME/.cache/ms-playwright) would land in /root — invisible to
+# the isms user and to the Python playwright in the test venv. The ENV makes
+# every playwright (npm and pip, any user) resolve the same location.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN npx playwright install --with-deps chromium \
+    && chmod -R a+rX ${PLAYWRIGHT_BROWSERS_PATH}
 
 # ── Go ───────────────────────────────────────────────────────────────────────
-RUN mkdir -p ${LOCAL_INSTALL} && cd ${LOCAL_INSTALL} \
-    && wget -q ${CRONTAB_URL_DEPS}/${GO_DL} \
-    && tar -zxf ${GO_DL} \
-    && rm -f ${GO_DL}
+RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
+    | tar -C ${LOCAL_INSTALL} -xz
 
-# ── Create non-root user (tower:tower 1000:1000) ────────────────────────
+# Debian's /etc/profile hard-resets PATH in login shells (bash -l), dropping
+# the ENV PATH above. profile.d is sourced after that reset, so this wins —
+# keeps `go` resolvable in compose commands, Justfile recipes, and attach.
+RUN printf 'export PATH=%s/bin:%s/bin:$HOME/.local/bin:$PATH\n' "${GOROOT}" "${GOPATH}" \
+    > /etc/profile.d/golang.sh
+
+# ── Create non-root user (isms:isms 1000:1000) ───────────────────────────────
 RUN groupadd -g ${USER_GID} ${USER_NAME} \
     && useradd -m -u ${USER_UID} -g ${USER_GID} -s /bin/bash ${USER_NAME}
-
-ENV PATH=/home/tower/.local/bin:${PATH}
 
 # ── Project directory ────────────────────────────────────────────────────────
 RUN mkdir -p ${WORKSPACE_HOME} \
@@ -85,11 +92,10 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # ── Claude Code ──────────────────────────────────────────────────────────────
-USER tower 
+USER ${USER_NAME}
 RUN curl -fsSL https://claude.ai/install.sh | bash
 USER root
 
 WORKDIR ${WORKSPACE_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/bin/bash"]
-

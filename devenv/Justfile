@@ -1,108 +1,152 @@
 # =============================================================================
-# Tower Dev Environment
+# ISMS Dev Environment
 # =============================================================================
-# just build       → Build the container
-# just up          → Start in background
-# just attach      → Attach to shell
-# just claude      → Start Claude Code
-# just down        → Stop
+# Dev server (manual, persistent):  port 9090, container isms-dev
+# Test server (auto, ephemeral):    port 9091, container isms-test
+#
+# just build         → Build the shared image
+# just up            → Start dev + test stacks
+# just attach        → Shell into dev container
+# just claude        → Start Claude Code in dev container
+# just test          → Run pytest against the test server
+# just test-restart  → Reload test server with current code (keeps DB)
+# just test-reset    → Wipe test DB + data and rebuild test server
+# just down          → Stop everything
+#
+# Container engine defaults to `docker compose`. Override with COMPOSE_CMD
+# in devenv/.env, e.g.  COMPOSE_CMD=podman compose  or  podman-compose.
 # =============================================================================
 
 set dotenv-load
 
-container := "isms-dev"
+compose := env_var_or_default('COMPOSE_CMD', 'docker compose')
 
 # ── Lifecycle ────────────────────────────────────────────────────────────────
 
-# Build Docker image
-build:
-    docker compose build
+# Ensure optional bind-mount sources exist (compose errors if they don't).
+# isms-demo is private prospect content — contributors without it get an
+# empty dir so the mount resolves and the container can still boot.
+_ensure-paths:
+    @mkdir -p "$ISMS_SRC_ROOT/isms-demo"
+
+# Build the shared image
+build: _ensure-paths
+    {{compose}} build
 
 # Build without cache (full rebuild)
-rebuild:
-    docker compose build --no-cache
+rebuild: _ensure-paths
+    {{compose}} build --no-cache
 
-# Start container in background
-up:
-    PODMAN_USERNS=keep-id PUID=$(id -u) PGID=$(id -g) docker compose up -d
+# Start dev + test stacks in background
+up: _ensure-paths
+    PODMAN_USERNS=keep-id PUID=$(id -u) PGID=$(id -g) {{compose}} up -d
 
 # Build and start
 boot: build up
-    @echo "✓ isms-dev running — just attach to connect"
+    @echo "✓ isms-dev (manual) on :9090 — just attach to connect"
+    @echo "✓ isms-test (auto)   on :9091 — just test to run pytest"
 
-# Stop container
+# Stop everything
 down:
-    docker compose down
+    {{compose}} down
 
-# Stop and remove volumes (clean slate)
+# Stop and remove all volumes (clean slate, including dev DB)
 nuke:
-    docker compose down -v
-    @echo "✓ Volumes removed — next boot will rebuild venv and caches"
+    {{compose}} down -v
+    @echo "✓ All volumes removed — next boot rebuilds from scratch"
 
-# Restart
+# Restart everything
 restart:
-    docker compose restart
+    {{compose}} restart
 
 # ── Connect ──────────────────────────────────────────────────────────────────
 
-# Attach to shell in container (primary workflow)
+# Attach to the dev container as user `isms` (primary workflow)
 attach:
-    docker compose exec -u tower isms bash
+    {{compose}} exec -u isms isms bash
 
 attach-root:
-    docker compose exec isms bash
+    {{compose}} exec isms bash
 
 # ── Run commands ─────────────────────────────────────────────────────────────
 
-# Flask dev server (streamed output)
-flask:
-    docker compose exec isms bash -lc "rundev"
+# Dev server (foreground, streamed output)
+serve:
+    {{compose}} exec -u isms isms bash -lc "cd /home/isms/workspace/isms && go run ./cmd/isms server serve --addr :9090"
 
 # Start Claude Code
 claude:
-    docker compose exec -u tower isms bash -lc "claude"
+    {{compose}} exec -u isms isms bash -lc "claude"
 
 # Continue last Claude session
 claude-continue:
-    docker compose exec -u tower isms bash -lc "claude --continue"
+    {{compose}} exec -u isms isms bash -lc "claude --continue"
 
 # Pick a Claude session to resume
 claude-resume:
-    docker compose exec -u tower isms bash -lc "claude --resume"
+    {{compose}} exec -u isms isms bash -lc "claude --resume"
 
-# Run an arbitrary command in the container
+# Run an arbitrary command in the dev container
 run +CMD:
-    docker compose exec isms bash -lc "{{ CMD }}"
+    {{compose}} exec isms bash -lc "{{ CMD }}"
+
+# ── Test environment ─────────────────────────────────────────────────────────
+
+# Run pytest from inside the dev container against the test server
+test +ARGS="tests/":
+    {{compose}} exec -u isms isms bash -lc \
+        "cd /home/isms/workspace/isms && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }}"
+
+# Run the Playwright e2e suite against the test server
+test-e2e +ARGS="tests/test_e2e_browser.py tests/test_e2e_routing.py":
+    {{compose}} exec -u isms isms bash -lc \
+        "cd /home/isms/workspace/isms && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }} -v"
+
+# Restart the test server only — reloads current code, keeps the test DB.
+# Incremental `go run` rebuild, so this is the fast path after code changes.
+test-restart:
+    {{compose}} restart isms-test
+    @echo "✓ Test server restarting with current code on :9091 (~2s)"
+
+# Reset the test stack — wipe DB + data dir, restart the server fresh
+test-reset:
+    {{compose}} rm -fsv isms-test postgres-test
+    PODMAN_USERNS=keep-id PUID=$(id -u) PGID=$(id -g) {{compose}} up -d isms-test postgres-test
+    @echo "✓ Test stack reset; server starting on :9091 (give it ~10s to boot)"
+
+# Tail test server logs (useful while debugging boot failures)
+test-logs:
+    {{compose}} logs -f isms-test
 
 # ── Git ──────────────────────────────────────────────────────────────────────
 
-# Git status
+# Git status inside the dev container
 gs:
-    docker compose exec isms bash -lc "git status"
+    {{compose}} exec isms bash -lc "git status"
 
-# Git log
+# Git log inside the dev container
 gl:
-    docker compose exec isms bash -lc "git log --oneline -20"
+    {{compose}} exec isms bash -lc "git log --oneline -20"
 
 # ── Go ───────────────────────────────────────────────────────────────────────
 
-# Go build
+# Go build of the ISMS binary
 go-build:
-    docker compose exec isms bash -lc "cd /home/tower/workspace/isms-web && go build ./..."
+    {{compose}} exec isms bash -lc "cd /home/isms/workspace/isms && go build ./..."
 
-# Go test
+# Go test (unit tests in internal/)
 go-test:
-    docker compose exec isms bash -lc "cd /home/tower/workspace/isms-web && go test ./..."
+    {{compose}} exec isms bash -lc "cd /home/isms/workspace/isms && go test ./internal/..."
 
 # ── Info ─────────────────────────────────────────────────────────────────────
 
 # Show container status
 status:
-    @docker compose ps
+    @{{compose}} ps
 
-# Logs
+# Tail dev server logs
 logs:
-    docker compose logs -f isms
+    {{compose}} logs -f isms
 
 # Show all available commands
 help:

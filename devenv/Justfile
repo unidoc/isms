@@ -118,6 +118,13 @@ test-reset:
 test-logs:
     {{compose}} logs -f isms-test
 
+# ── Release ──────────────────────────────────────────────────────────────────
+
+# Local snapshot build of the release pipeline (goreleaser lives in the image).
+# Artifacts land in dist/ in the repo — visible on the host via the bind mount.
+snapshot:
+    {{compose}} exec -u isms isms bash -lc "cd /home/isms/workspace/isms && just build-web && just snapshot"
+
 # ── Git ──────────────────────────────────────────────────────────────────────
 
 # Git status inside the dev container

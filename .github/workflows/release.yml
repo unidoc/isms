@@ -1,0 +1,50 @@
+# Release on tag push (v*) — builds the frontend, embeds it + migrations,
+# then goreleaser publishes binaries, checksums and changelog to a GitHub
+# Release.
+#
+# Security: triggers only on tags, which only maintainers can push. No
+# secrets beyond the auto-provided GITHUB_TOKEN (scoped to contents:write
+# for creating the release).
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history: changelog + commit count
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend and sync embeds
+        run: |
+          cd web && npm ci && npm run build
+          cd ..
+          mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/
+          cp -f migrations/*.sql cmd/isms/migrations/
+
+      - name: Commit count for version string
+        run: echo "COMMIT_COUNT=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

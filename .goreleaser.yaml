@@ -1,0 +1,51 @@
+# goreleaser config — runs in CI on tag push (see .github/workflows/release.yml).
+# The Vue frontend and migrations must be synced into cmd/isms/ BEFORE this
+# runs (go:embed) — the release workflow does that; the hook below just fails
+# fast if it didn't happen.
+version: 2
+
+before:
+  hooks:
+    - test -f cmd/isms/web/dist/index.html
+    - test -n "$(ls cmd/isms/migrations/*.sql)"
+
+builds:
+  - id: isms
+    main: ./cmd/isms
+    binary: isms
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - openbsd
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commitHash={{ .ShortCommit }}
+      - -X main.commitCount={{ .Env.COMMIT_COUNT }}
+
+# macOS: single universal binary (amd64+arm64 lipo-merged) instead of two
+# per-arch downloads. replace: true drops the per-arch darwin artifacts.
+universal_binaries:
+  - replace: true
+
+archives:
+  - formats: [tar.gz]
+    name_template: "isms_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  filters:
+    exclude:
+      - "^Merge "
+
+release:
+  draft: false
+  prerelease: auto

@@ -81,6 +81,54 @@ serve:
 migrate:
     go run ./cmd/isms/ migrate --dir migrations
 
+# ── Release ──────────────────────────────────────────────────────────────────
+#
+# Two-step, PR-based release flow:
+#   1. just release-pr 0.6.0   → branch + version.txt bump + PR (review, CI)
+#   2. merge the PR
+#   3. just release 0.6.0      → verifies master carries 0.6.0, signs the tag,
+#                                pushes — CI (goreleaser) publishes binaries,
+#                                checksums and changelog to a GitHub Release.
+
+# Step 1: open the version-bump PR.
+release-pr VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -z "$(git status --porcelain)" ] || { echo "✗ working tree not clean"; exit 1; }
+    git fetch origin
+    git checkout -b "release/v{{VERSION}}" origin/master
+    echo "{{VERSION}}" > version.txt
+    git add version.txt
+    git commit -m "Release v{{VERSION}}"
+    git push -u origin "release/v{{VERSION}}"
+    gh pr create --title "Release v{{VERSION}}" \
+        --body "Bumps version.txt to {{VERSION}}. After merge: \`just release {{VERSION}}\` tags master and CI publishes the release."
+    echo "✓ release PR opened — merge it, then run: just release {{VERSION}}"
+
+# Local test-build of the release pipeline — same artifacts as a real release
+# (dist/), nothing published. Requires built frontend (just build-web) first.
+snapshot:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/ 2>/dev/null || true
+    cp -f migrations/*.sql cmd/isms/migrations/
+    COMMIT_COUNT=$(git rev-list --count HEAD) goreleaser release --snapshot --clean --skip=validate
+    echo "✓ snapshot in dist/ — try: tar -xzf dist/*linux_amd64.tar.gz -C /tmp isms && /tmp/isms version"
+
+# Step 2 (after the PR is merged): tag master and push the tag.
+release VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -z "$(git status --porcelain)" ] || { echo "✗ working tree not clean"; exit 1; }
+    git checkout master
+    git pull --ff-only
+    [ "$(tr -d '[:space:]' < version.txt)" = "{{VERSION}}" ] || \
+        { echo "✗ version.txt is '$(cat version.txt)' — merge the release PR first"; exit 1; }
+    git rev-parse "v{{VERSION}}" >/dev/null 2>&1 && { echo "✗ tag v{{VERSION}} already exists"; exit 1; }
+    git tag -s "v{{VERSION}}" -m "v{{VERSION}}"
+    git push origin "v{{VERSION}}"
+    echo "✓ v{{VERSION}} tagged — CI builds the release: gh run watch"
+
 # ── Maintenance ──────────────────────────────────────────────────────────────
 
 # Run go mod tidy

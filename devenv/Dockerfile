@@ -79,6 +79,11 @@ RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
 RUN printf 'export PATH=%s/bin:%s/bin:$HOME/.local/bin:$PATH\n' "${GOROOT}" "${GOPATH}" \
     > /etc/profile.d/golang.sh
 
+# goreleaser — local snapshot builds (`goreleaser release --snapshot`) for
+# testing the release pipeline without tagging.
+RUN GOBIN=${LOCAL_INSTALL}/bin GOPATH=/tmp/gobuild ${GOROOT}/bin/go install github.com/goreleaser/goreleaser/v2@latest \
+    && rm -rf /tmp/gobuild
+
 # ── Create non-root user (isms:isms 1000:1000) ───────────────────────────────
 RUN groupadd -g ${USER_GID} ${USER_NAME} \
     && useradd -m -u ${USER_UID} -g ${USER_GID} -s /bin/bash ${USER_NAME}

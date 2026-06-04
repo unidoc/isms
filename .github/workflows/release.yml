@@ -1,0 +1,59 @@
+# Release on tag push (v*) — builds the frontend, embeds it + migrations,
+# then goreleaser publishes binaries, checksums and changelog to a GitHub
+# Release.
+#
+# Security: triggers only on tags, which only maintainers can push. No
+# secrets beyond the auto-provided GITHUB_TOKEN (scoped to contents:write
+# for creating the release).
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Only one release run per tag; never cancel an in-flight publish.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Actions are SHA-pinned (not tag-pinned): this job has contents: write,
+      # so a compromised/retagged action could publish arbitrary releases.
+      # Trailing comment is the human-readable version for each SHA.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0 # full history: changelog + commit count
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend and sync embeds
+        run: |
+          cd web && npm ci && npm run build
+          cd ..
+          mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/
+          cp -f migrations/*.sql cmd/isms/migrations/
+
+      - name: Commit count for version string
+        run: echo "COMMIT_COUNT=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+
+      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          version: "~> v2" # pin the goreleaser binary to the v2 line
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

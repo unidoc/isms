@@ -94,6 +94,8 @@ migrate:
 release-pr VERSION:
     #!/usr/bin/env bash
     set -euo pipefail
+    # Bare X.Y.Z only — the recipe adds the `v`. Rejects "v0.6.0" (→ vv0.6.0).
+    [[ "{{VERSION}}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "✗ version must be X.Y.Z (no leading v), got '{{VERSION}}'"; exit 1; }
     [ -z "$(git status --porcelain)" ] || { echo "✗ working tree not clean"; exit 1; }
     git fetch origin
     git checkout -b "release/v{{VERSION}}" origin/master
@@ -119,9 +121,11 @@ snapshot:
 release VERSION:
     #!/usr/bin/env bash
     set -euo pipefail
+    [[ "{{VERSION}}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "✗ version must be X.Y.Z (no leading v), got '{{VERSION}}'"; exit 1; }
     [ -z "$(git status --porcelain)" ] || { echo "✗ working tree not clean"; exit 1; }
     git checkout master
     git pull --ff-only
+    git fetch --tags origin  # catch remote-only tags the local repo hasn't seen
     [ "$(tr -d '[:space:]' < version.txt)" = "{{VERSION}}" ] || \
         { echo "✗ version.txt is '$(cat version.txt)' — merge the release PR first"; exit 1; }
     git rev-parse "v{{VERSION}}" >/dev/null 2>&1 && { echo "✗ tag v{{VERSION}} already exists"; exit 1; }

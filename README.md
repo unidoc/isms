@@ -242,10 +242,20 @@ Five authentication methods:
 
 ### Roles
 
-- **Admin** — full access, user management, SSO/settings
-- **Manager** — operates the ISMS: risks, documents, audits, reviews, templates
-- **Contributor** — operational input: incidents, change requests, tasks, comments
-- **Reader** — read-only access. Any role can review documents when assigned.
+- **Admin** — full control: organization settings, members, SSO, the AI kill
+  switch, plus everything a manager can do.
+- **Manager** — operates the management system: creates and edits all entities
+  and documents, runs governance (send for review, approve/reject, merge), and
+  applies or rejects suggestions.
+- **Contributor** — proposes and reports. Creates suggestions for a manager to
+  act on, and comments. Does not directly create, edit, or apply — a
+  contributor's input flows through the suggestion/review pipeline, the same way
+  an AI agent's does.
+- **Reader** — read-only.
+
+When assigned to a review, any role (including reader and contributor) may
+comment and approve on that review — an explicit per-assignment grant, separate
+from the base role.
 
 ## Environment Variables
 

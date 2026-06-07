@@ -166,6 +166,41 @@ isms server api-key create --email ai@company.com --name "mcp"
 }
 ```
 
+## Scope — what ISMS is, and isn't
+
+ISMS is a generic, versioned engine for management systems. The core is
+deliberately small: it does a few things well and pushes everything else to its
+edges. That smallness is the point — it keeps the engine clean, and the value of
+a managed deployment lives at the edges.
+
+**Core** (in the binary) — generic primitives every deployment needs: git-backed
+documents (markdown + frontmatter), the review/approval workflow, and structured
+registers (risks, assets, suppliers, systems, incidents, legal requirements,
+corrective actions, audits, objectives). Multi-tenant, white-label,
+authentication. The core knows nothing about any specific standard.
+
+**Templates** — standard-specific content is documents, not core. ISO 27001
+clauses, controls, a Statement of Applicability, management-review minutes,
+competence records are markdown documents scaffolded from
+[isms-templates](https://github.com/unidoc/isms-templates) and owned per
+organization. Templates get you started fast and make the core/content
+separation concrete. Once scaffolded, documents and operational entities (risks,
+incidents, …) cross-link freely.
+
+**Integrations** — external tools are sources; ISMS is the system of record.
+Evidence and objectives flow in through the integration layer, with objective
+check-ins capturing evidence against the objectives they support. The direction
+is first-party connectors for major systems alongside private, customer-specific
+integrations.
+
+**Hosting** — AI/agent wiring, deployment, and operations are hosting concerns,
+not the engine. A managed, hosted ISMS is operated by UniDoc at
+[isms.sh](https://isms.sh); self-hosting is fully supported.
+
+The test for any new capability: *does every deployment need it, generically?* →
+core. Standard-specific → template. External system → integration. Deployment or
+AI wiring → hosting.
+
 ## Architecture
 
 ```

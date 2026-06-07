@@ -8,6 +8,21 @@ The core is a **generic versioned document engine** — it knows nothing about s
 
 ![Overview](docs/screenshots/overview.png)
 
+## Try the live demo
+
+A hosted demo runs at **[demo.isms.sh](https://demo.isms.sh)** with a sample
+organization — **ACME Logistics** — pre-populated so you can explore every role.
+Every demo account uses the password `demo`:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `sarah.chen@acme-logistics.demo` | `demo` |
+| Manager | `maria.rodriguez@acme-logistics.demo` | `demo` |
+| Contributor | `david.walsh@acme-logistics.demo` | `demo` |
+
+> The demo is a sandbox: data resets periodically and holds nothing real.
+> Please don't store anything sensitive there.
+
 ## Round-Based Document Review
 
 ![Review workflow](docs/screenshots/review.png)
@@ -151,6 +166,41 @@ isms server api-key create --email ai@company.com --name "mcp"
 }
 ```
 
+## Scope — what ISMS is, and isn't
+
+ISMS is a generic, versioned engine for management systems. The core is
+deliberately small: it does a few things well and pushes everything else to its
+edges. That smallness is the point — it keeps the engine clean, and the value of
+a managed deployment lives at the edges.
+
+**Core** (in the binary) — generic primitives every deployment needs: git-backed
+documents (markdown + frontmatter), the review/approval workflow, and structured
+registers (risks, assets, suppliers, systems, incidents, legal requirements,
+corrective actions, audits, objectives). Multi-tenant, white-label,
+authentication. The core knows nothing about any specific standard.
+
+**Templates** — standard-specific content is documents, not core. ISO 27001
+clauses, controls, a Statement of Applicability, management-review minutes,
+competence records are markdown documents scaffolded from
+[isms-templates](https://github.com/unidoc/isms-templates) and owned per
+organization. Templates get you started fast and make the core/content
+separation concrete. Once scaffolded, documents and operational entities (risks,
+incidents, …) cross-link freely.
+
+**Integrations** — external tools are sources; ISMS is the system of record.
+Evidence and objectives flow in through the integration layer, with objective
+check-ins capturing evidence against the objectives they support. The direction
+is first-party connectors for major systems alongside private, customer-specific
+integrations.
+
+**Hosting** — AI/agent wiring, deployment, and operations are hosting concerns,
+not the engine. A managed, hosted ISMS is operated by UniDoc at
+[isms.sh](https://isms.sh); self-hosting is fully supported.
+
+The test for any new capability: *does every deployment need it, generically?* →
+core. Standard-specific → template. External system → integration. Deployment or
+AI wiring → hosting.
+
 ## Architecture
 
 ```
@@ -281,10 +331,16 @@ Slack and Matrix notifications are configured per-organization in **Admin → Se
 - [AI-First Strategy](docs/ai-first.md) — AI architecture, MCP tools, agent identity
 - [Suggestions](docs/suggestions.md) — Entity suggestion system specification
 - [AI Review Loop](docs/ai-review-loop.md) — Multi-agent document review design
+- [Releasing](docs/releasing.md) — Cadence, versioning discipline, and house style
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Please open an issue first to discuss what you'd like to change.
+
+How we ship — a weekly release train, honest semver, and a deliberate release
+discipline — is documented in [docs/releasing.md](docs/releasing.md). The short
+version: rigor lives in the process (CI, signed gates), so the people can stay
+welcoming.
 
 ## License
 

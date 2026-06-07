@@ -8,6 +8,21 @@ The core is a **generic versioned document engine** — it knows nothing about s
 
 ![Overview](docs/screenshots/overview.png)
 
+## Try the live demo
+
+A hosted demo runs at **[demo.isms.sh](https://demo.isms.sh)** with a sample
+organization — **ACME Logistics** — pre-populated so you can explore every role.
+Every demo account uses the password `demo`:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `sarah.chen@acme-logistics.demo` | `demo` |
+| Manager | `maria.rodriguez@acme-logistics.demo` | `demo` |
+| Contributor | `david.walsh@acme-logistics.demo` | `demo` |
+
+> The demo is a sandbox: data resets periodically and holds nothing real.
+> Please don't store anything sensitive there.
+
 ## Round-Based Document Review
 
 ![Review workflow](docs/screenshots/review.png)
@@ -281,10 +296,16 @@ Slack and Matrix notifications are configured per-organization in **Admin → Se
 - [AI-First Strategy](docs/ai-first.md) — AI architecture, MCP tools, agent identity
 - [Suggestions](docs/suggestions.md) — Entity suggestion system specification
 - [AI Review Loop](docs/ai-review-loop.md) — Multi-agent document review design
+- [Releasing](docs/releasing.md) — Cadence, versioning discipline, and house style
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Please open an issue first to discuss what you'd like to change.
+
+How we ship — a weekly release train, honest semver, and a deliberate release
+discipline — is documented in [docs/releasing.md](docs/releasing.md). The short
+version: rigor lives in the process (CI, signed gates), so the people can stay
+welcoming.
 
 ## License
 

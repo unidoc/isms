@@ -201,6 +201,14 @@ The test for any new capability: *does every deployment need it, generically?* �
 core. Standard-specific → template. External system → integration. Deployment or
 AI wiring → hosting.
 
+**Meeting a standard's requirements** is done through these generic primitives,
+not through per-clause features. For example, corrective-action *effectiveness*
+is expressed as an objective with a measurable target — incidents of a type
+trending down, as part of risk treatment — not a bespoke "verified" field.
+Built-in layers that *are* core, like the incident data-breach fields (breach
+flag, GDPR role, authority/subject notifications), are deliberate first-class
+capabilities, not standard-specific leakage.
+
 ## Architecture
 
 ```

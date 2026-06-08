@@ -39,20 +39,20 @@ Rule of thumb: **fix → patch, feature → minor.** You never have to ask
 "patch or minor" — the work decides. `1.0` is reached on substance (the core
 is feature-complete and stable), not as a marketing number.
 
+**Schema changes ship in feature releases.** Anything that needs a database
+migration goes in a **minor**, never a patch. Patches stay migration-free —
+trivially safe to ship and to roll back.
+
+The one exception: a **serious security issue** (or active data loss) whose fix
+requires a migration may ship in a patch — security comes first. Any such
+exception must be called out explicitly in that release.
+
 ## Release focus (themes)
 
-Every **minor** has a single headline focus, decided ahead of time, so
-contributors and users know what's coming. Patches don't need a theme — they
-are whatever fixes are ready that week.
-
-Current plan (adjustable as the backlog is triaged):
-
-| Release | Focus |
-|---------|-------|
-| 0.7.0 | Mobile & review polish |
-| 0.8.0 | Register lifecycle & integrity — suggestion-apply parity, supplier/evidence/contract review cycles, CA effectiveness |
-| 0.9.0 | White-label & core boundaries — per-org branding, standard/vendor logic out of core |
-| 1.0.0 | Trust center (cornerstone) + stabilization |
+Each minor has a single headline focus, decided ahead of time. The focus and
+the tickets behind it live in the **GitHub milestone description** — that is the
+single source of truth, not this document. Patches don't need a theme; they are
+whatever fixes are ready that week.
 
 ## Scope per release
 

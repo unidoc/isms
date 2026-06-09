@@ -2,11 +2,11 @@
 
 ## Why yet another management system?
 
-Because the ones we have are complex, heavy, and treated as a box-ticking chore — and most of them rot, out of date the moment the audit is over. Meanwhile the stakes keep climbing: in a time when AI and information chaos run wild, getting a real grip on your security matters more than ever.
+Because the ones we have are complex, opaque, and treated as a compliance exercise — relevant for the audit, irrelevant the day after. Meanwhile the stakes keep rising: in a world of accelerating AI adoption and expanding threat surfaces, a management system that doesn't stay alive is worse than useless.
 
-We don't believe it has to be that way. Security done right starts at the root — understanding and working your risks, not papering over them. Built from the ground up with an AI-first workflow and genuine discipline in how it's designed and used, a management system can stay alive without weighing you down.
+We believe it doesn't have to work that way. Security done right starts at the root — genuinely understanding and managing your risks, not papering over them. Built from the ground up with an AI-first workflow and real discipline in design and use, a management system should be a living part of how you operate, not a burden on top of it.
 
-That's why it's open source: built for companies of all sizes — and finally a real option for the smaller ones, who've never had a management system that's simple, stays current, and doesn't weigh them down. We believe we can help you and your company — and we hope you'll come to believe it too.
+That's why it's open source: built to work for organizations of all sizes — and finally a credible option for smaller ones, who've never had a management system that's simple, stays current, and doesn't fight them. We built this to change that.
 
 ## What it is
 

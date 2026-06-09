@@ -1,5 +1,15 @@
 # isms.sh — The Intelligent Management System
 
+## Why yet another management system?
+
+Because the ones we have are complex, opaque, and treated as a compliance exercise — relevant for the audit, irrelevant the day after. Meanwhile the stakes keep rising: in a world of accelerating AI adoption and expanding threat surfaces, a management system that doesn't stay alive is worse than useless.
+
+We believe it doesn't have to work that way. Security done right starts at the root — genuinely understanding and managing your risks, not papering over them. Built from the ground up with an AI-first workflow and real discipline in design and use, a management system should be a living part of how you operate, not a burden on top of it.
+
+That's why it's open source: built to work for organizations of all sizes — and finally a credible option for smaller ones, who've never had a management system that's simple, stays current, and doesn't fight them. We built this to change that.
+
+## What it is
+
 An open-source management system platform. Documents live in git, collaboration lives in PostgreSQL, AI operates through suggestions and review — and everything ships as a single binary.
 
 The core is a **generic versioned document engine** — it knows nothing about specific standards. All standard-specific content is provided through **templates**: collections of markdown files that get scaffolded into your organization's git repository. Templates exist for ISO 27001, ISO 9001, ISO 14001, ISO 42001, SOC 2, NIS2, PCI DSS, HIPAA, NIST CSF, NIST 800-53, and DORA — and creating your own is as simple as writing markdown files in a folder.

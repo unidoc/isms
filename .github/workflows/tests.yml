@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - name: Placeholder web dist
@@ -73,19 +73,19 @@ jobs:
       ISMS_SUBDOMAIN_ROUTING: "1"
       ISMS_DEV_MODE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Templates are a separate repo — the suite scaffolds orgs from them.
       - name: Checkout templates
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: unidoc/isms-templates
           path: isms-templates
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: npm

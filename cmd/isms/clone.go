@@ -7,6 +7,7 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/spf13/cobra"
 )
@@ -66,13 +67,9 @@ Directory defaults to {org-slug}-isms. All config comes from your env file:
 			remoteURL := baseURL + "/git/" + info.OrganizationUUID
 
 			fmt.Printf("Cloning %s (%s) into %s...\n", info.OrganizationName, info.OrganizationSlug, target)
-			repo, err := git.PlainClone(target, false, &git.CloneOptions{
-				URL: remoteURL,
-				Auth: &githttp.BasicAuth{
-					Username: "x-token-auth",
-					Password: token,
-				},
-				Progress: os.Stdout,
+			repo, err := clonePinnedToMain(target, remoteURL, &githttp.BasicAuth{
+				Username: "x-token-auth",
+				Password: token,
 			})
 			if err != nil {
 				return fmt.Errorf("git clone failed: %w", err)
@@ -109,4 +106,16 @@ Directory defaults to {org-slug}-isms. All config comes from your env file:
 
 	cmd.Flags().StringVar(&dir, "dir", "", "Target directory (default: {slug}-isms)")
 	return cmd
+}
+
+// clonePinnedToMain clones remoteURL into target, pinning the checkout to the
+// main branch so HEAD is never left detached — belt-and-suspenders independent
+// of the server's HEAD advertisement. ISMS has exactly one branch (main).
+func clonePinnedToMain(target, remoteURL string, auth *githttp.BasicAuth) (*git.Repository, error) {
+	return git.PlainClone(target, false, &git.CloneOptions{
+		URL:           remoteURL,
+		ReferenceName: plumbing.NewBranchReferenceName("main"),
+		Auth:          auth,
+		Progress:      os.Stdout,
+	})
 }

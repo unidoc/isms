@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,6 +19,7 @@ import (
 const gitRemoteName = "origin"
 
 func syncCmd() *cobra.Command {
+	var force bool
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Sync local ISMS repository with the server",
@@ -29,7 +31,10 @@ All configuration comes from your env file:
   ISMS_ORGANIZATION   — organization UUID
 
 On first run, sync auto-configures the git remote.
-After that, sync does fetch + fast-forward then push.`,
+After that, sync does fetch + fast-forward then push.
+
+Sync must be run on the main branch. Use --force to discard local state
+and reset to main.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			baseURL, token, orgSlug, err := syncEnv()
 			if err != nil {
@@ -55,10 +60,11 @@ After that, sync does fetch + fast-forward then push.`,
 				}
 			}
 
-			return syncRun(repo, root, token)
+			return syncRun(repo, root, token, force)
 		},
 	}
 
+	cmd.Flags().BoolVar(&force, "force", false, "Discard local state and reset to main if HEAD is not on main")
 	return cmd
 }
 
@@ -150,7 +156,7 @@ func setupRemote(repo *git.Repository, baseURL, token, orgSlug string) error {
 }
 
 // syncRun does the actual sync: fetch, fast-forward, push.
-func syncRun(repo *git.Repository, root, token string) error {
+func syncRun(repo *git.Repository, root, token string, force bool) error {
 	auth := &githttp.BasicAuth{
 		Username: "x-token-auth",
 		Password: token,
@@ -167,22 +173,24 @@ func syncRun(repo *git.Repository, root, token string) error {
 		return fmt.Errorf("git fetch failed: %w", err)
 	}
 
-	// Determine current branch. If HEAD is detached, attach to the remote's
-	// default branch — otherwise fast-forward and push both silently no-op on
-	// the "HEAD" pseudo-ref and the user sees no working-tree update.
 	headRef, err := repo.Head()
 	if err != nil {
 		return fmt.Errorf("could not determine current branch — do you have any commits?")
 	}
 
-	// ISMS workflow is always on main. If HEAD is detached, or on any other
-	// branch, snap back to main from the remote tip.
+	// ISMS workflow is always on main. You must be on main to sync — we do NOT
+	// silently rescue a detached HEAD or another branch, since that would risk
+	// discarding local work. Refuse and let the user sort out their own state,
+	// unless --force is given (discard local state and reset to main).
+	if err := requireMain(headRef.Name(), force); err != nil {
+		return err
+	}
 	if headRef.Name() != plumbing.NewBranchReferenceName("main") {
 		attached, attachErr := attachToMain(repo)
 		if attachErr != nil {
-			return fmt.Errorf("could not attach local HEAD to main: %w", attachErr)
+			return fmt.Errorf("could not reset to main: %w", attachErr)
 		}
-		fmt.Println("Attached local HEAD to main.")
+		fmt.Println("--force: discarded local state, reset to main.")
 		headRef = attached
 	}
 
@@ -216,22 +224,10 @@ func syncRun(repo *git.Repository, root, token string) error {
 			}
 
 			if isAncestor {
-				// Fast-forward: update worktree to remote HEAD
-				wt, err := repo.Worktree()
-				if err != nil {
-					return fmt.Errorf("could not get worktree: %w", err)
-				}
-				err = wt.Checkout(&git.CheckoutOptions{
-					Hash: remoteHash,
-				})
-				if err != nil {
-					return fmt.Errorf("fast-forward failed: %w", err)
-				}
-				// Update branch ref to point to new hash
-				ref := plumbing.NewHashReference(headRef.Name(), remoteHash)
-				err = repo.Storer.SetReference(ref)
-				if err != nil {
-					return fmt.Errorf("could not update branch ref: %w", err)
+				// Fast-forward to the remote tip, keeping HEAD attached to the
+				// branch (checking out the bare hash would detach HEAD).
+				if err := fastForwardToRemote(repo, remoteHash); err != nil {
+					return err
 				}
 				fmt.Println("Fast-forwarded to remote.")
 			} else {
@@ -348,6 +344,43 @@ func attachToMain(repo *git.Repository) (*plumbing.Reference, error) {
 		return nil, fmt.Errorf("could not re-read HEAD after attach: %w", err)
 	}
 	return newHead, nil
+}
+
+// requireMain enforces that sync runs on the main branch. ISMS has exactly one
+// branch (main); a detached HEAD or any other branch is refused so we never
+// silently discard local work. --force overrides (the caller then resets to
+// main, discarding local state).
+func requireMain(headName plumbing.ReferenceName, force bool) error {
+	if headName == plumbing.NewBranchReferenceName("main") || force {
+		return nil
+	}
+	current := headName.Short()
+	if headName == plumbing.HEAD {
+		current = "a detached HEAD"
+	}
+	return fmt.Errorf("HEAD is on %s, not main — ISMS sync only runs on main.\n"+
+		"Switch with 'git switch main', or re-run with --force to discard local state and reset to main.", current)
+}
+
+// fastForwardToRemote advances the local branch to remoteHash and updates the
+// working tree, keeping HEAD attached to the branch. It uses a MergeReset (not
+// Checkout{Force:true}, which is a HardReset): MergeReset advances the branch ref
+// via HEAD, updates the working tree, and keeps HEAD symbolic — but refuses with
+// ErrUnstagedChanges on a dirty tree instead of silently wiping uncommitted
+// local edits. The branch-ref advance is atomic with the working-tree update, so
+// a partial failure can't leave the ref and tree out of sync.
+func fastForwardToRemote(repo *git.Repository, remoteHash plumbing.Hash) error {
+	wt, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("could not get worktree: %w", err)
+	}
+	if err := wt.Reset(&git.ResetOptions{Commit: remoteHash, Mode: git.MergeReset}); err != nil {
+		if errors.Is(err, git.ErrUnstagedChanges) {
+			return fmt.Errorf("uncommitted local changes — commit or stash before syncing")
+		}
+		return fmt.Errorf("fast-forward failed: %w", err)
+	}
+	return nil
 }
 
 // validateLocalDocIDs scans all .md files in the local repo for duplicate document_ids.

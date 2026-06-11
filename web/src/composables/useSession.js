@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { api, getCurrentUser, clearApiToken, setApiToken } from '../api'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
@@ -6,6 +6,14 @@ const user = ref(getCurrentUser())
 const currentUserData = ref(null)
 const userOrgs = ref([])
 const orgName = ref('')
+
+// Keep the browser tab title in sync with the org display name, falling back to
+// "ISMS" before an org is loaded (index.html ships that static fallback). Updates
+// automatically when branding loads or the user switches orgs.
+watch(orgName, (name) => {
+  document.title = name || 'ISMS'
+}, { immediate: true })
+
 const logoUrl = ref(null)
 const logoError = ref(false)
 const termsUrl = ref('')

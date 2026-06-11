@@ -2,8 +2,11 @@ package notify
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -28,11 +31,38 @@ type Notifier struct {
 	client *http.Client
 }
 
+// safeHTTPClient returns an HTTP client configured to prevent SSRF attacks
+// by blocking requests to private, loopback, and link-local IP addresses.
+func safeHTTPClient() *http.Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			ips, err := net.LookupIP(host)
+			if err != nil {
+				return nil, err
+			}
+			for _, ip := range ips {
+				if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+					return nil, errors.New("requests to private/internal IP addresses are not allowed")
+				}
+			}
+			return net.Dial(network, net.JoinHostPort(ips[0].String(), port))
+		},
+	}
+	return &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+	}
+}
+
 // New creates a new Notifier.
 func New(cfg Config) *Notifier {
 	return &Notifier{
 		config: cfg,
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: safeHTTPClient(),
 	}
 }
 

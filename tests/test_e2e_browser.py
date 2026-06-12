@@ -997,3 +997,38 @@ class TestCommentCounter:
             ctx.close()
             # teardown: resolve the remaining open comment
             api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])
+
+
+# ── Table inline-code CSS (regression for #14: code chips wrapped mid-token) ──
+
+class TestTableInlineCodeCss:
+    DOC = "e2e-table-code"
+
+    def test_table_cell_code_is_nowrap(self, pw_browser, tokens):
+        t = tokens["admin"]
+        content = (
+            "# Table\n\n"
+            "| Type | Example |\n"
+            "|------|---------|\n"
+            "| Employee | `sts-john` / `john@example.com` |\n"
+            "| Contractor | `sts-USERNAME@contractor.com` |\n"
+        )
+        api("post", "/documents", t, json={
+            "folder": "iso27001",
+            "filename": "e2e-table-code.md",
+            "document_id": self.DOC,
+            "title": "E2E Table Code",
+            "content": content,
+        }, expect_status=[200, 201, 409])
+
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            code = page.locator(".doc-prose .tbl-cell code").first
+            code.wait_for(state="visible", timeout=10000)
+            ws = code.evaluate("el => getComputedStyle(el).whiteSpace")
+            assert ws == "nowrap", f"expected white-space:nowrap on table-cell code, got {ws!r}"
+        finally:
+            ctx.close()

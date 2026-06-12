@@ -85,6 +85,13 @@
   border-radius: 0.25rem;
   font-size: 0.875em;
 }
+/* Inline code in table cells must not break mid-token — otherwise code chips
+   wrap and stack, rows go uneven, and columns stop lining up (#14). Cells still
+   wrap between separate code spans. */
+.doc-prose td code,
+.doc-prose th code {
+  white-space: nowrap;
+}
 .doc-prose pre {
   background: rgb(15 23 42);
   border: 1px solid rgb(30 41 59);

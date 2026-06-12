@@ -2930,6 +2930,12 @@ onBeforeUnmount(() => {
 .doc-prose :deep(.tbl-cell:last-child) {
   border-right: none;
 }
+/* Keep inline code chips whole inside grid cells (#14) — no mid-token wrap,
+   so rows line up. Cells still wrap between separate code spans. */
+.doc-prose :deep(.tbl-cell) code,
+.doc-prose :deep(.tbl-hdr-cell) code {
+  white-space: nowrap;
+}
 .doc-prose :deep(.tbl-cell strong) {
   color: rgb(241 245 249);
   font-weight: 600;

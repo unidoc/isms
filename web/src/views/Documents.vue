@@ -987,7 +987,7 @@
             </div>
           </div>
 
-          <template v-else-if="comments.length > 0">
+          <template v-else-if="openComments.length > 0 || resolvedComments.length > 0">
             <!-- Open comments -->
             <div
               v-for="comment in openComments"

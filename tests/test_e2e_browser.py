@@ -997,3 +997,33 @@ class TestCommentCounter:
             ctx.close()
             # teardown: resolve the remaining open comment
             api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])
+
+
+# ── Editor data-loss guard (regression for #61: editing drops embedded HTML/SVG) ──
+
+class TestEditorHtmlGuard:
+    DOC = "e2e-svg-doc"
+
+    def test_edit_guard_warns_on_embedded_svg(self, pw_browser, tokens):
+        t = tokens["admin"]
+        # A document with embedded raw SVG (the WYSIWYG editor can't preserve it).
+        api("post", "/documents", t, json={
+            "folder": "iso27001",
+            "filename": "e2e-svg-doc.md",
+            "document_id": self.DOC,
+            "title": "E2E SVG Doc",
+            "content": "# Heading\n\nBody text here.\n\n<svg width='12' height='12'><rect width='12' height='12'/></svg>\n",
+        }, expect_status=[200, 201, 409])
+
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            # Wait for the body to render (rawContent loaded) before triggering the guard.
+            expect(page.locator("text=Body text here.")).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            # Guard: editing a doc with embedded SVG must warn first, not silently enter edit.
+            expect(page.locator("text=editing here will drop it")).to_be_visible(timeout=8000)
+        finally:
+            ctx.close()

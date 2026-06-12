@@ -192,6 +192,7 @@ export function useSession() {
       await api.postJSON('/api/v1/auth/logout', {})
     } catch { /* ignore — still clear locally */ }
     clearApiToken()
+    orgName.value = '' // reset so the tab title falls back to "ISMS" on /login
     return router.push('/login')
   }
 

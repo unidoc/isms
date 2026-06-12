@@ -997,3 +997,25 @@ class TestCommentCounter:
             ctx.close()
             # teardown: resolve the remaining open comment
             api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])
+
+
+# ── Inbox deep-links (regression for #33: tab deep-links fell back to Comments) ──
+
+class TestInboxDeepLinks:
+    @pytest.mark.parametrize("tab,label", [
+        ("incidents", "Incidents"),
+        ("corrective_actions", "CAs"),
+    ])
+    def test_deeplink_activates_tab(self, pw_browser, tokens, tab, label):
+        # Deep-linking to /inbox/<tab> must activate that tab, not fall back to
+        # Comments (validTabs was missing incidents/corrective_actions).
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/inbox/{tab}")
+            # The active tab button carries 'text-white'; assert it's the deep-linked one.
+            active = page.locator('div.flex.gap-1.bg-slate-900 button.text-white').first
+            expect(active).to_contain_text(label, timeout=8000)
+        finally:
+            ctx.close()

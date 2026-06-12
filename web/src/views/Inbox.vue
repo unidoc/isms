@@ -732,7 +732,7 @@ const reviews = ref([])
 const tasks = ref([])
 const changes = ref([])
 
-const validTabs = ['comments', 'reviews', 'tasks', 'changes', 'suggestions']
+const validTabs = ['comments', 'reviews', 'tasks', 'changes', 'suggestions', 'incidents', 'corrective_actions']
 const initialTab = validTabs.includes(route.params.tab) ? route.params.tab : 'comments'
 const activeTab = ref(initialTab)
 const highlightSuggestionId = ref(route.query.id ? parseInt(route.query.id) : null)

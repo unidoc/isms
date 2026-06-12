@@ -126,6 +126,20 @@ class TestSmoke:
         finally:
             ctx.close()
 
+# ── Tab title reflects org (regression for hardcoded "ISMS") ──
+
+class TestTabTitle:
+    def test_title_reflects_org_name(self, pw_browser, tokens):
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            # The browser tab title must reflect the org, not the hardcoded "ISMS".
+            page.wait_for_function("document.title === 'E2E Org'", timeout=8000)
+            assert page.title() == "E2E Org", f"expected 'E2E Org', got {page.title()!r}"
+        finally:
+            ctx.close()
+
 # ── Documents (shared page, sequential) ──
 
 class TestDocuments:

@@ -962,3 +962,38 @@ class TestMobile:
             assert "login" not in page.url
         finally:
             ctx.close()
+
+
+# ── Comment counter (regression for #30: top badge counts OPEN only) ──
+
+class TestCommentCounter:
+    DOC = "iso27001-4-1"
+
+    def test_badge_counts_open_only(self, pw_browser, tokens):
+        t = tokens["admin"]
+
+        def _open_comments():
+            r = api("get", f"/documents/{self.DOC}/comments", t, expect_status=200).json()
+            items = r.get("data") if isinstance(r, dict) else r
+            return [c for c in (items or []) if c.get("status") != "resolved" and not c.get("parent_id")]
+
+        # Clean slate: resolve any currently-open top-level comments on the doc.
+        for c in _open_comments():
+            api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
+
+        # Two open comments, resolve one → exactly 1 open.
+        c1 = api("post", "/comments", t, json={"document_id": self.DOC, "body": "open one", "paragraph_index": 0}, expect_status=[200, 201]).json()
+        c2 = api("post", "/comments", t, json={"document_id": self.DOC, "body": "to resolve", "paragraph_index": 0}, expect_status=[200, 201]).json()
+        api("post", f"/comments/{c2['id']}/resolve", t, expect_status=[200, 204])
+
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            # Badge on the Comments toolbar button must show OPEN count (1), not total (2).
+            expect(page.locator('button[title="Comments"] span')).to_have_text("1", timeout=8000)
+        finally:
+            ctx.close()
+            # teardown: resolve the remaining open comment
+            api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])

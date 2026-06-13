@@ -1732,6 +1732,9 @@ function resolveUserName(email) {
 // silently dropped on save. Tables are excluded (they round-trip as HTML).
 function hasEditorUnsafeHtml(md) {
   if (!md) return false
+  // <div> is intentionally excluded: ProseMirror extracts its text content, so
+  // only the wrapper is lost (structural) — not the complete data loss of
+  // svg/canvas/iframe etc., which have no node type and vanish entirely.
   return /<\s*(svg|iframe|object|embed|canvas|video|audio|form|style|script|figure|details|section|article|aside|nav)\b/i.test(md)
 }
 

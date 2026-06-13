@@ -32,6 +32,7 @@
           v-for="tab in tabs"
           :key="tab.key"
           @click="activeTab = tab.key"
+          :data-testid="activeTab === tab.key ? 'active-tab' : undefined"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors"
           :class="activeTab === tab.key
             ? 'bg-slate-800 text-white'
@@ -732,7 +733,7 @@ const reviews = ref([])
 const tasks = ref([])
 const changes = ref([])
 
-const validTabs = ['comments', 'reviews', 'tasks', 'changes', 'suggestions']
+const validTabs = ['comments', 'reviews', 'tasks', 'changes', 'suggestions', 'incidents', 'corrective_actions']
 const initialTab = validTabs.includes(route.params.tab) ? route.params.tab : 'comments'
 const activeTab = ref(initialTab)
 const highlightSuggestionId = ref(route.query.id ? parseInt(route.query.id) : null)

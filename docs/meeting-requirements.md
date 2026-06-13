@@ -21,7 +21,8 @@ not by shipping a new feature for every standard.
 
 3. **Built-in features** — configured, not built. SSO/OIDC (Microsoft 365,
    Google, Okta, any OIDC provider), password+TOTP, passkeys (WebAuthn), API
-   tokens, Cloudflare Zero Trust; multi-tenant orgs; review/approval workflow;
+   tokens, Cloudflare Zero Trust (network layer, configured outside ISMS);
+   multi-tenant orgs; review/approval workflow;
    white-label branding; Slack/Matrix notifications; the AI/MCP layer.
 
 4. **Integrations** — the API. When you need to pull data in from, or push out
@@ -53,4 +54,4 @@ changed what.
 One generic engine — documents + registers + a few primitives — means the same
 system serves ISO 27001, GDPR, SOC 2, NIS2, internal governance, and custom
 frameworks without a bespoke module per standard. See also
-[architecture.md](architecture.md) and the Scope section of the README.
+[architecture.md](architecture.md) and the [Scope section of the README](../README.md#scope--what-isms-is-and-isnt).

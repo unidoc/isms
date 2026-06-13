@@ -392,7 +392,7 @@
             </nav>
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <!-- Edit (primary CTA with label) -->
-              <button v-if="canEditMetadata && !editMode" @click="startEdit"
+              <button v-if="canEditMetadata && !editMode" @click="startEditGuarded"
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-slate-200 hover:bg-slate-800">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -1726,6 +1726,31 @@ function resolveUserName(email) {
   if (!email) return null
   const user = allUsers.value.find(u => u.email === email)
   return user?.name || email
+}
+
+// Block-level raw HTML / SVG the WYSIWYG editor can't represent — it would be
+// silently dropped on save. Tables are excluded (they round-trip as HTML).
+function hasEditorUnsafeHtml(md) {
+  if (!md) return false
+  // <div> is intentionally excluded: ProseMirror extracts its text content, so
+  // only the wrapper is lost (structural) — not the complete data loss of
+  // svg/canvas/iframe etc., which have no node type and vanish entirely.
+  return /<\s*(svg|iframe|object|embed|canvas|video|audio|form|style|script|figure|details|section|article|aside|nav)\b/i.test(md)
+}
+
+// Guard the editor against silent data loss: if the document has embedded
+// HTML/SVG the WYSIWYG editor can't preserve, confirm before entering edit mode
+// (one save would drop it). The user must explicitly opt in — never silent.
+async function startEditGuarded() {
+  if (hasEditorUnsafeHtml(rawContent.value)) {
+    const { ask } = useConfirm()
+    const ok = await ask(
+      "This document contains embedded HTML/SVG the editor can't preserve — editing here will drop it on save. Edit the source via the CLI to keep it. Edit anyway?",
+      'Embedded HTML will be lost',
+    )
+    if (!ok) return
+  }
+  startEdit()
 }
 
 // View approved version — show diff between current and approved commit

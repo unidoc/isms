@@ -997,3 +997,77 @@ class TestCommentCounter:
             ctx.close()
             # teardown: resolve the remaining open comment
             api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])
+
+
+# ── Editor data-loss guard (regression for #61: editing drops embedded HTML/SVG) ──
+
+class TestEditorHtmlGuard:
+    DOC = "e2e-svg-doc"
+    SVG_CONTENT = "# Heading\n\nBody text here.\n\n<svg width='12' height='12'><rect width='12' height='12'/></svg>\n"
+
+    def setup_svg_doc(self, t):
+        """Ensure the SVG doc exists WITH its embedded SVG, regardless of prior runs."""
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": "e2e-svg-doc.md",
+            "document_id": self.DOC, "title": "E2E SVG Doc",
+            "content": self.SVG_CONTENT,
+        }, expect_status=[200, 201, 409])
+        # Unconditionally overwrite — a 409 above could leave a stale, SVG-free doc
+        # (e.g. a prior run confirmed the warning and saved via the web editor).
+        api("put", f"/documents/{self.DOC}/content", t, json={"content": self.SVG_CONTENT}, expect_status=200)
+
+    def test_edit_guard_warns_on_embedded_svg(self, pw_browser, tokens):
+        t = tokens["admin"]
+        self.setup_svg_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            expect(page.locator("text=Body text here.")).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            # Guard: editing a doc with embedded SVG must warn first, not silently enter edit.
+            expect(page.locator("text=editing here will drop it")).to_be_visible(timeout=8000)
+        finally:
+            ctx.close()
+
+    def test_edit_guard_cancel_stays_readonly(self, pw_browser, tokens):
+        """Cancelling the warning must NOT enter edit mode."""
+        t = tokens["admin"]
+        self.setup_svg_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            expect(page.locator("text=Body text here.")).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            expect(page.locator("text=editing here will drop it")).to_be_visible(timeout=8000)
+            page.get_by_role("button", name="Cancel").click()
+            # Editor must NOT open — no Save button in read-only mode.
+            expect(page.get_by_role("button", name="Save")).not_to_be_visible(timeout=3000)
+        finally:
+            ctx.close()
+
+    def test_edit_guard_clean_doc_no_warning(self, pw_browser, tokens):
+        """A document with no embedded HTML must open the editor without a warning."""
+        t = tokens["admin"]
+        clean = self.DOC + "-clean"
+        content = "# Heading\n\nJust plain markdown. No HTML here.\n"
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": clean + ".md",
+            "document_id": clean, "title": "E2E Clean Doc", "content": content,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{clean}/content", t, json={"content": content}, expect_status=200)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{clean}")
+            expect(page.locator("text=Just plain markdown.")).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            # No guard — editor opens directly.
+            expect(page.locator("text=editing here will drop it")).not_to_be_visible(timeout=2000)
+            expect(page.get_by_role("button", name="Save")).to_be_visible(timeout=5000)
+        finally:
+            ctx.close()

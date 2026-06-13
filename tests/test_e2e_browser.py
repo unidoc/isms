@@ -1014,8 +1014,8 @@ class TestInboxDeepLinks:
         try:
             do_login(page, ADMIN[0], ADMIN[1])
             page.goto(f"{BASE}/{ORG}/inbox/{tab}")
-            # The active tab button carries 'text-white'; assert it's the deep-linked one.
-            active = page.locator('div.flex.gap-1.bg-slate-900 button.text-white').first
+            # The active tab carries data-testid="active-tab" (stable across styling).
+            active = page.locator('[data-testid="active-tab"]')
             expect(active).to_contain_text(label, timeout=8000)
         finally:
             ctx.close()

@@ -32,6 +32,7 @@
           v-for="tab in tabs"
           :key="tab.key"
           @click="activeTab = tab.key"
+          :data-testid="activeTab === tab.key ? 'active-tab' : undefined"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors"
           :class="activeTab === tab.key
             ? 'bg-slate-800 text-white'

@@ -2926,9 +2926,22 @@ onBeforeUnmount(() => {
   line-height: 1.6;
   font-size: 0.875rem;
   border-right: 1px solid rgba(51 65 85 / 0.3);
+  min-width: 0; /* allow 1fr grid tracks to shrink below content width (#14) */
 }
 .doc-prose :deep(.tbl-cell:last-child) {
   border-right: none;
+}
+/* Inline code chips stay whole (#14) — no mid-token wrap — and clip with an
+   ellipsis if longer than the cell, so a long token degrades gracefully instead
+   of overflowing into the next grid column. */
+.doc-prose :deep(.tbl-cell) code,
+.doc-prose :deep(.tbl-hdr-cell) code {
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 .doc-prose :deep(.tbl-cell strong) {
   color: rgb(241 245 249);

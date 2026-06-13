@@ -997,3 +997,59 @@ class TestCommentCounter:
             ctx.close()
             # teardown: resolve the remaining open comment
             api("post", f"/comments/{c1['id']}/resolve", t, expect_status=[200, 204])
+
+
+# ── Table inline-code CSS (regression for #14: code chips wrapped mid-token) ──
+
+class TestTableInlineCodeCss:
+    DOC = "e2e-table-code"
+    # A genuinely long token (55+ chars) so the overflow case is exercised.
+    LONG = "sts-USERNAME@a-very-long-contractor-domain-name.example.com"
+    CONTENT = (
+        "# Table\n\n"
+        "| Type | Example |\n"
+        "|------|---------|\n"
+        "| Employee | `sts-john` / `john@example.com` |\n"
+        f"| Long | `{LONG}` |\n"
+    )
+
+    def setup_doc(self, t):
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": "e2e-table-code.md",
+            "document_id": self.DOC, "title": "E2E Table Code", "content": self.CONTENT,
+        }, expect_status=[200, 201, 409])
+        # Unconditionally overwrite so the table (incl. the long token) is always present.
+        api("put", f"/documents/{self.DOC}/content", t, json={"content": self.CONTENT}, expect_status=200)
+
+    def test_table_cell_code_is_nowrap(self, pw_browser, tokens):
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            code = page.locator(".doc-prose .tbl-cell code").first
+            code.wait_for(state="visible", timeout=10000)
+            ws = code.evaluate("el => getComputedStyle(el).whiteSpace")
+            assert ws == "nowrap", f"expected white-space:nowrap on table-cell code, got {ws!r}"
+        finally:
+            ctx.close()
+
+    def test_long_code_does_not_break_grid(self, pw_browser, tokens):
+        """A long code token at a narrow viewport must clip inside its cell, not
+        overflow the grid into the adjacent column (#14 AC: degrade gracefully)."""
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 760, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            # The grid row holding the long token must not overflow horizontally.
+            row = page.locator(f'.doc-prose .tbl-grid:has(code:has-text("{self.LONG}"))').first
+            row.wait_for(state="visible", timeout=10000)
+            overflow = row.evaluate("el => el.scrollWidth - el.clientWidth")
+            assert overflow <= 1, f"grid row overflows by {overflow}px — long code broke the grid"
+        finally:
+            ctx.close()

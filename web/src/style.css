@@ -85,6 +85,18 @@
   border-radius: 0.25rem;
   font-size: 0.875em;
 }
+/* Inline code in real <table> cells (TrackChanges path) stays whole — no
+   mid-token wrap — and clips with an ellipsis if longer than the cell, so one
+   long token can't distort the table-layout:auto column proportions (#14). */
+.doc-prose td code,
+.doc-prose th code {
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
 .doc-prose pre {
   background: rgb(15 23 42);
   border: 1px solid rgb(30 41 59);

@@ -1071,3 +1071,25 @@ class TestEditorHtmlGuard:
             expect(page.get_by_role("button", name="Save")).to_be_visible(timeout=5000)
         finally:
             ctx.close()
+
+
+# ── Inbox deep-links (regression for #33: tab deep-links fell back to Comments) ──
+
+class TestInboxDeepLinks:
+    @pytest.mark.parametrize("tab,label", [
+        ("incidents", "Incidents"),
+        ("corrective_actions", "CAs"),
+    ])
+    def test_deeplink_activates_tab(self, pw_browser, tokens, tab, label):
+        # Deep-linking to /inbox/<tab> must activate that tab, not fall back to
+        # Comments (validTabs was missing incidents/corrective_actions).
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/inbox/{tab}")
+            # The active tab carries data-testid="active-tab" (stable across styling).
+            active = page.locator('[data-testid="active-tab"]')
+            expect(active).to_contain_text(label, timeout=8000)
+        finally:
+            ctx.close()

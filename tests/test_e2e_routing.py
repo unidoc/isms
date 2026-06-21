@@ -173,7 +173,10 @@ class TestDocsLinkServedNatively:
                 "Expected Scalar API reference HTML at /docs; the SPA shell "
                 "appears to have intercepted the click (regression)."
             )
-            # And the URL stays on /docs — not bounced to /login.
-            assert page.url.rstrip("/").endswith("/docs"), f"unexpected URL: {page.url}"
+            # And the URL stays on /docs — not bounced to /login. Strip any hash
+            # fragment first: Scalar adds one (e.g. #description/authentication)
+            # once its JS runs, and whether it's present by now is timing-dependent.
+            path = page.url.split("#")[0].split("?")[0].rstrip("/")
+            assert path.endswith("/docs"), f"unexpected URL: {page.url}"
         finally:
             ctx.close()

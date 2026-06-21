@@ -1,6 +1,7 @@
 import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/common'
+import { escapeHtml } from '../utils/html'
 
 /**
  * Canonical markdown renderer for entity descriptions, treatment plans,
@@ -18,13 +19,6 @@ import hljs from 'highlight.js/lib/common'
  * absolute paths like `/documents/foo`. The same delegate wires the
  * copy-to-clipboard buttons on code blocks (see below).
  */
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
 
 const display = new Marked({ breaks: true })
 

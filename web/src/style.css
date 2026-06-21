@@ -296,10 +296,21 @@
   background: transparent;
   padding: 0;
 }
-.code-lang-select {
+/* Editor code-block controls: language picker + wrap toggle in a flex row, so
+   they never overlap regardless of how wide the native select renders (the old
+   hardcoded `left: 8.5rem` on the wrap button broke on Firefox/Linux where the
+   select chrome is wider). */
+.code-block-controls {
   position: absolute;
   top: 0.4rem;
   left: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  z-index: 1;
+}
+.code-lang-select {
+  position: static;
   font-size: 0.7rem;
   font-weight: 500;
   color: rgb(148 163 184);
@@ -321,9 +332,7 @@
 }
 /* Word-wrap toggle (editor) */
 .code-wrap-btn {
-  position: absolute;
-  top: 0.4rem;
-  left: 8.5rem;
+  position: static;
   font-size: 0.7rem;
   font-weight: 500;
   color: rgb(148 163 184);
@@ -365,11 +374,13 @@
 .editor-code-block pre code {
   flex: 1 1 auto;
 }
-/* Same metrics on gutter and code so the editor gutter can't drift either. */
+/* Same metrics on gutter and code so the editor gutter can't drift — and the
+   SAME values as the read view (.code-block: 0.85rem / 1.6) so a code block is
+   the same proportions whether you're editing or reading it. */
 .editor-code-block pre .code-gutter,
 .editor-code-block pre code {
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.6;
   font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace;
 }
 .editor-code-block.wrapped pre .code-gutter {

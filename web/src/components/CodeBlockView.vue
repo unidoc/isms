@@ -1,22 +1,22 @@
 <template>
   <node-view-wrapper class="editor-code-block" :class="{ wrapped: node.attrs.wrapped }">
-    <select
-      class="code-lang-select"
-      contenteditable="false"
-      :value="displayLang"
-      @change="onChange"
-    >
-      <option value="plaintext">Plain text</option>
-      <option v-for="l in languages" :key="l.id" :value="l.id">{{ l.label }}</option>
-    </select>
-    <button
-      class="code-wrap-btn"
-      contenteditable="false"
-      type="button"
-      :class="{ active: node.attrs.wrapped }"
-      :title="node.attrs.wrapped ? 'Disable word wrap' : 'Enable word wrap'"
-      @click="toggleWrap"
-    >Wrap</button>
+    <div class="code-block-controls" contenteditable="false">
+      <select
+        class="code-lang-select"
+        :value="displayLang"
+        @change="onChange"
+      >
+        <option value="plaintext">Plain text</option>
+        <option v-for="l in languages" :key="l.id" :value="l.id">{{ l.label }}</option>
+      </select>
+      <button
+        class="code-wrap-btn"
+        type="button"
+        :class="{ active: node.attrs.wrapped }"
+        :title="node.attrs.wrapped ? 'Disable word wrap' : 'Enable word wrap'"
+        @click="toggleWrap"
+      >Wrap</button>
+    </div>
     <pre><span class="code-gutter" contenteditable="false" aria-hidden="true">{{ lineNumbers }}</span><node-view-content as="code" /></pre>
   </node-view-wrapper>
 </template>

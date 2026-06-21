@@ -833,7 +833,9 @@ onBeforeUnmount(() => {
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
   overflow-x: auto;
-  font-size: 0.875rem;
+  /* No font-size here: code blocks are all CodeBlockLowlight NodeViews now, and
+     their metrics live in style.css (.editor-code-block) to match the read
+     view. A font-size here (specificity 0,2,1) would silently override it. */
 }
 .editor-content .tiptap code {
   background-color: #1e293b;
@@ -845,6 +847,11 @@ onBeforeUnmount(() => {
 .editor-content .tiptap pre code {
   background-color: transparent;
   padding: 0;
+  /* Match the read view (0.85rem / 1.6). This selector (0,2,2) must out-specify
+     `.editor-content .tiptap code` (0,2,1) above, which would otherwise force
+     inline-code's 0.875rem onto the code block and mismatch the gutter. */
+  font-size: 0.85rem;
+  line-height: 1.6;
   color: #cbd5e1;
 }
 .editor-content .tiptap hr {

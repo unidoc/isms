@@ -14,10 +14,7 @@
 import { Marked } from 'marked'
 import TurndownService from 'turndown'
 import { gfm } from 'turndown-plugin-gfm'
-
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+import { escapeHtml } from '../utils/html'
 
 // Dedicated parser so the custom code renderer (which carries the per-block
 // `wrap` flag through to a data-wrapped attribute) doesn't leak globally.

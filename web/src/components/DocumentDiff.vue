@@ -4,8 +4,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { parseMd } from '../composables/useRenderMd'
 
 const props = defineProps({
   diff: { type: String, default: '' },
@@ -69,7 +69,7 @@ const renderedDiff = computed(() => {
   }
 
   const md = mdParts.join('\n')
-  const html = marked.parse(md, { breaks: true })
+  const html = parseMd(md)
   return DOMPurify.sanitize(html, { ADD_TAGS: ['div', 'span'], ADD_ATTR: ['class'] })
 })
 </script>

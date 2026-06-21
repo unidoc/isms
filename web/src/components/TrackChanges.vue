@@ -120,8 +120,8 @@
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { parseMd } from '../composables/useRenderMd'
 import DiffView from './DiffView.vue'
 import api from '../api'
 
@@ -371,12 +371,12 @@ const rawDiff = computed(() => {
   return lines.join('\n')
 })
 
-function renderMd(text) { return text ? DOMPurify.sanitize(marked.parse(text, { breaks: true })) : '' }
+function renderMd(text) { return text ? DOMPurify.sanitize(parseMd(text)) : '' }
 
 function wordDiffHtml(oldText, newText) {
   const ops = diffTokens(tokenize(oldText), tokenize(newText))
   const parts = ops.map(op => op.type === 'equal' ? op.text : op.type === 'remove' ? `<del class="tc-word-del">${esc(op.text)}</del>` : `<ins class="tc-word-ins">${esc(op.text)}</ins>`)
-  return DOMPurify.sanitize(marked.parse(parts.join(''), { breaks: true }), { ADD_TAGS: ['del', 'ins'], ADD_ATTR: ['class'] })
+  return DOMPurify.sanitize(parseMd(parts.join('')), { ADD_TAGS: ['del', 'ins'], ADD_ATTR: ['class'] })
 }
 
 function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }

@@ -700,6 +700,41 @@ onMounted(() => {
     e.preventDefault()
     router.push(resolved.fullPath)
   })
+  // Global click delegate for the copy buttons on rendered code blocks
+  // (emitted by the shared markdown renderer in useRenderMd). Copies the raw
+  // <code> textContent so the clipboard gets clean source, not span markup.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('.copy-code-btn')
+    if (!btn) return
+    e.preventDefault()
+    const code = btn.parentElement && btn.parentElement.querySelector('code')
+    if (!code) return
+    const text = code.textContent || ''
+    const confirm = () => {
+      btn.classList.add('copied')
+      btn.textContent = 'Copied'
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy' }, 1500)
+    }
+    // Clipboard API needs a secure context (https / localhost). Self-hosted
+    // deployments on plain http (e.g. a LAN box) don't have it, so fall back
+    // to the legacy execCommand path — the copy button must work everywhere.
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(confirm).catch(() => {})
+      return
+    }
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.top = '-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      if (ok) confirm()
+    } catch (_) { /* clipboard unavailable — silently no-op */ }
+  })
   // Handle 401 from any API call — redirect to login. Skip when the user is
   // already on a public auth page (signup / forgot-password / verify-email /
   // login itself) so that a stale token doesn't kick them away from a flow

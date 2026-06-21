@@ -42,76 +42,49 @@ export function useDocumentTree(api) {
 
   // Build nested tree from flat folder data
   const fileTree = computed(() => {
-    const tree = []
-    // Build folder title lookup from API subfolders (recursive)
-    const folderTitles = {}
-    function collectTitles(f, pathPrefix) {
-      const p = pathPrefix ? pathPrefix + '/' + f.name : f.name
-      if (f.title) folderTitles[p] = f.title
-      for (const sub of (f.subfolders || [])) collectTitles(sub, p)
-    }
-    for (const folder of folders.value) {
-      collectTitles(folder, '')
-    }
-
-    for (const folder of folders.value) {
-      const folderNode = { name: folder.name, title: folder.title || '', type: 'folder', path: folder.name, depth: 0, children: [], fileCount: 0 }
-
-      // Collect files from nested subfolders too
-      const allFiles = [...(folder.files || [])]
-      function collectFiles(f) {
-        for (const sub of (f.subfolders || [])) {
-          allFiles.push(...(sub.files || []))
-          collectFiles(sub)
-        }
+    // Build the tree directly from the API folder hierarchy (folders +
+    // subfolders + files). Deriving folders from file paths alone would drop
+    // empty folders — including freshly-created nested ones that have a .title
+    // but no documents yet — so they'd never render. The API already returns
+    // the full hierarchy, including empty folders, so mirror it.
+    function buildNode(apiFolder, parentPath, depth, topFolder) {
+      const path = parentPath ? parentPath + '/' + apiFolder.name : apiFolder.name
+      const node = { name: apiFolder.name, title: apiFolder.title || '', type: 'folder', path, depth, children: [], fileCount: 0 }
+      for (const sub of (apiFolder.subfolders || [])) {
+        node.children.push(buildNode(sub, path, depth + 1, topFolder))
       }
-      collectFiles(folder)
-
-      for (const file of allFiles) {
-        const parts = file.path.split('/')
-        let current = folderNode
-        for (let i = 1; i < parts.length - 1; i++) {
-          const segName = parts[i]
-          const segPath = parts.slice(0, i + 1).join('/')
-          let existing = current.children.find(c => c.type === 'folder' && c.name === segName)
-          if (!existing) {
-            existing = { name: segName, title: folderTitles[segPath] || '', type: 'folder', path: segPath, depth: i, children: [], fileCount: 0 }
-            current.children.push(existing)
-          }
-          current = existing
-        }
-        // Add file node
-        current.children.push({
+      for (const file of (apiFolder.files || [])) {
+        node.children.push({
           name: formatFileTitle(file),
           type: 'file',
           file: file,
-          folder: folder.name,
-          depth: parts.length - 1,
+          folder: file.folder || topFolder,
+          depth: depth + 1,
           path: file.path,
         })
       }
-
-      // Sort children recursively and compute file counts
-      function sortAndCount(node) {
-        if (node.type !== 'folder') return 0
-        let count = 0
-        for (const child of node.children) {
-          if (child.type === 'folder') {
-            count += sortAndCount(child)
-          } else {
-            count++
-          }
-        }
-        node.fileCount = count
-        // Sort: folders first (sorted naturally), then files (sorted naturally)
-        const folderChildren = node.children.filter(c => c.type === 'folder').sort((a, b) => naturalCompare(a.name, b.name))
-        const fileChildren = node.children.filter(c => c.type === 'file').sort((a, b) => naturalCompare(a.file.document_id || a.file.path, b.file.document_id || b.file.path))
-        node.children = [...folderChildren, ...fileChildren]
-        return count
-      }
-      sortAndCount(folderNode)
-      tree.push(folderNode)
+      return node
     }
+
+    // Sort children recursively and compute file counts (folders first).
+    function sortAndCount(node) {
+      if (node.type !== 'folder') return 0
+      let count = 0
+      for (const child of node.children) {
+        count += child.type === 'folder' ? sortAndCount(child) : 1
+      }
+      node.fileCount = count
+      const folderChildren = node.children.filter(c => c.type === 'folder').sort((a, b) => naturalCompare(a.name, b.name))
+      const fileChildren = node.children.filter(c => c.type === 'file').sort((a, b) => naturalCompare(a.file.document_id || a.file.path, b.file.document_id || b.file.path))
+      node.children = [...folderChildren, ...fileChildren]
+      return count
+    }
+
+    const tree = folders.value.map(folder => {
+      const node = buildNode(folder, '', 0, folder.name)
+      sortAndCount(node)
+      return node
+    })
     return tree.sort((a, b) => naturalCompare(a.name, b.name))
   })
 

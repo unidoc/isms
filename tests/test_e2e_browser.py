@@ -1359,12 +1359,18 @@ class TestNestedFolderCreation:
         try:
             do_login(page, ADMIN[0], ADMIN[1])
             click_sidebar(page, "Documents")
-            # Expand the parent folder, then the empty sub-folder must be visible.
             page.locator('aside, nav').first.wait_for(state="visible", timeout=8000)
-            parent = page.locator('text=E2E Handbook').first
+            parent = page.get_by_role("button", name="E2E Handbook").first
             parent.wait_for(state="visible", timeout=10000)
-            parent.click()
-            expect(page.locator('text=E2E Alpine').first).to_be_visible(timeout=8000)
+            child = page.locator('text=E2E Alpine').first
+            # Ensure the parent is expanded (a freshly-created folder may already
+            # be auto-expanded — clicking blindly would collapse it). Only toggle
+            # if the child isn't already showing.
+            if not child.is_visible():
+                parent.click()
+            # The empty sub-folder must render — it has a .title but no documents,
+            # which is exactly the case that used to be dropped from the tree.
+            expect(child).to_be_visible(timeout=8000)
         finally:
             ctx.close()
 

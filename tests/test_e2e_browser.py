@@ -1149,3 +1149,194 @@ class TestInboxDeepLinks:
             expect(active).to_contain_text(label, timeout=8000)
         finally:
             ctx.close()
+
+
+# ── Code-block syntax highlighting + copy button (regression for #56) ──
+
+class TestCodeHighlighting:
+    DOC = "e2e-code-hl"
+    CODE = "const answer = 42\nfunction greet(name) {\n  return `hi ${name}`\n}"
+    CONTENT = "# Code\n\n```js\n" + CODE + "\n```\n"
+
+    def setup_doc(self, t):
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": "e2e-code-hl.md",
+            "document_id": self.DOC, "title": "E2E Code Highlight", "content": self.CONTENT,
+        }, expect_status=[200, 201, 409])
+        # Unconditionally overwrite so the fenced code block is always present.
+        api("put", f"/documents/{self.DOC}/content", t, json={"content": self.CONTENT}, expect_status=200)
+
+    def test_code_is_highlighted(self, pw_browser, tokens):
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            code = page.locator(".doc-prose .code-block code.hljs").first
+            code.wait_for(state="visible", timeout=10000)
+            # highlight.js wraps tokens in spans — a keyword token must be present.
+            expect(page.locator(".doc-prose .code-block .hljs-keyword").first).to_be_visible(timeout=5000)
+            # The language badge reflects the fenced language.
+            expect(page.locator(".doc-prose .code-block .code-lang").first).to_have_text("js", timeout=5000)
+            # Line-number gutter is present and numbers the lines.
+            gutter = page.locator(".doc-prose .code-block .code-gutter").first
+            expect(gutter).to_be_visible(timeout=5000)
+            assert gutter.text_content().split("\n")[:3] == ["1", "2", "3"], \
+                f"gutter not numbering lines: {gutter.text_content()!r}"
+        finally:
+            ctx.close()
+
+    def test_trailing_blank_lines_are_trimmed(self, pw_browser, tokens):
+        """Trailing blank lines inside a fence must NOT render as empty numbered
+        lines at the end of the block (regression: ~5 dangling lines in read view)."""
+        t = tokens["admin"]
+        doc = "e2e-code-trailws"
+        # 4 real lines, then 5 trailing blank lines before the closing fence.
+        content = "# T\n\n```js\nconst a = 1\nconst b = 2\nconst c = 3\nconst d = 4\n\n\n\n\n\n```\n"
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "Trailing WS", "content": content,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{doc}/content", t, json={"content": content}, expect_status=200)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{doc}")
+            block = page.locator(".doc-prose .code-block").first
+            block.wait_for(state="visible", timeout=10000)
+            # Gutter numbers exactly the 4 content lines — no dangling blank lines.
+            nums = [n for n in block.locator(".code-gutter").first.text_content().split("\n") if n != ""]
+            assert nums == ["1", "2", "3", "4"], f"trailing blanks not trimmed, gutter={nums}"
+            # And the code text doesn't end with blank lines.
+            code_text = block.locator("code").first.text_content()
+            assert code_text.rstrip("\n").endswith("const d = 4"), f"code has trailing blanks: {code_text!r}"
+        finally:
+            ctx.close()
+
+    def test_copy_button_copies_clean_source(self, pw_browser, tokens):
+        """The copy payload must be the RAW source — no highlight span markup —
+        so it pastes cleanly, and the button must confirm the copy (#56 AC).
+
+        We assert on the copy payload (the <code> textContent, which is exactly
+        what the handler writes) plus the success feedback, rather than reading
+        the OS clipboard: the test stack runs over http, where the Clipboard
+        API is unavailable and the button uses the execCommand fallback."""
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            block = page.locator(".doc-prose .code-block").first
+            block.wait_for(state="visible", timeout=10000)
+            # The copy payload is the <code> textContent — clean source, no markup,
+            # and crucially NOT the line-number gutter (which lives outside <code>).
+            code_text = block.locator("code").first.text_content()
+            assert "const answer = 42" in code_text, f"missing source: {code_text!r}"
+            assert "function greet(name)" in code_text, f"missing source: {code_text!r}"
+            assert "<span" not in code_text, f"payload leaked markup: {code_text!r}"
+            assert not code_text.lstrip().startswith("1"), f"copy payload leaked line numbers: {code_text!r}"
+            # Clicking runs the copy path (execCommand fallback over http) and
+            # confirms with "Copied".
+            block.hover()
+            btn = block.locator(".copy-code-btn")
+            btn.click()
+            expect(btn).to_have_text("Copied", timeout=3000)
+        finally:
+            ctx.close()
+
+
+# ── Editor code block: language picker + live highlighting (regression for the
+#    editor side of code-block rendering — CodeBlockLowlight NodeView) ──
+
+class TestEditorCodeLanguagePicker:
+    DOC = "e2e-editor-code"
+    CONTENT = "# Edit me\n\n```python\nprint('hi')\nx = 1 + 2\n```\n"
+
+    def setup_doc(self, t):
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": "e2e-editor-code.md",
+            "document_id": self.DOC, "title": "E2E Editor Code", "content": self.CONTENT,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{self.DOC}/content", t, json={"content": self.CONTENT}, expect_status=200)
+
+    def test_language_picker_reflects_fence_and_highlights(self, pw_browser, tokens):
+        """Opening a doc with a ```python fence in the editor shows a language
+        dropdown set to Python and highlights the code live."""
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            expect(page.locator("text=Edit me")).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            # Editor opens (clean doc — no HTML guard).
+            sel = page.locator(".editor-code-block select.code-lang-select").first
+            sel.wait_for(state="visible", timeout=8000)
+            # Dropdown reflects the fenced language.
+            assert sel.input_value() == "python", f"expected python, got {sel.input_value()!r}"
+            # Code is highlighted live in the editor (lowlight emits hljs tokens).
+            expect(page.locator(".editor-code-block .hljs-keyword, .editor-code-block .hljs-string").first).to_be_visible(timeout=5000)
+            # The editor shows a line-number gutter too — consistent with the read view.
+            egutter = page.locator(".editor-code-block .code-gutter").first
+            expect(egutter).to_be_visible(timeout=5000)
+            assert egutter.text_content().split("\n")[:2] == ["1", "2"], \
+                f"editor gutter not numbering lines: {egutter.text_content()!r}"
+        finally:
+            ctx.close()
+
+
+# ── Per-block word-wrap toggle (Nuclino-parity): round-trips via ```lang wrap ──
+
+class TestCodeWrap:
+    DOC = "e2e-code-wrap"
+    # A ```js wrap fence — the read view must render it wrapped (no gutter), and
+    # the editor must show the wrap toggle as active.
+    CONTENT = "# Wrap\n\n```js wrap\nconst x = 'a very long line that would otherwise scroll horizontally in the block'\n```\n"
+
+    def setup_doc(self, t):
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": "e2e-code-wrap.md",
+            "document_id": self.DOC, "title": "E2E Code Wrap", "content": self.CONTENT,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{self.DOC}/content", t, json={"content": self.CONTENT}, expect_status=200)
+
+    def test_read_view_renders_wrapped(self, pw_browser, tokens):
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            block = page.locator(".doc-prose .code-block.wrapped").first
+            block.wait_for(state="visible", timeout=10000)
+            ws = block.locator("code").first.evaluate("el => getComputedStyle(el).whiteSpace")
+            assert ws == "pre-wrap", f"expected pre-wrap on wrapped code, got {ws!r}"
+            # Line numbers are hidden when wrapped (they'd misalign).
+            expect(block.locator(".code-gutter")).to_be_hidden()
+        finally:
+            ctx.close()
+
+    def test_editor_wrap_toggle_reflects_fence(self, pw_browser, tokens):
+        t = tokens["admin"]
+        self.setup_doc(t)
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
+            expect(page.locator("text=Wrap").first).to_be_visible(timeout=10000)
+            page.get_by_role("button", name="Edit", exact=True).first.click()
+            # The wrapped fence opens with the wrap toggle already active.
+            block = page.locator(".editor-code-block.wrapped").first
+            block.wait_for(state="visible", timeout=8000)
+            expect(block.locator(".code-wrap-btn.active")).to_be_visible(timeout=5000)
+        finally:
+            ctx.close()

@@ -244,8 +244,11 @@
 
 <script setup>
 import { ref, reactive, watch, onBeforeUnmount, onMounted, computed, nextTick } from 'vue'
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { createLowlight, common } from 'lowlight'
+import CodeBlockView from './CodeBlockView.vue'
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -374,13 +377,30 @@ const CustomTableHeader = TableHeader.extend({
 })
 
 // --- Editor setup ---
+const lowlight = createLowlight(common)
 const editor = useEditor({
   content: markdownToHtml(props.modelValue),
   editable: props.editable,
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4] },
+      codeBlock: false, // replaced by CodeBlockLowlight (highlighting + language picker)
     }),
+    CodeBlockLowlight.extend({
+      addAttributes() {
+        return {
+          ...this.parent?.(),
+          // Per-block word-wrap, round-tripped via a `wrap` token in the fence
+          // info string (see useMarkdownConvert).
+          wrapped: {
+            default: false,
+            parseHTML: el => el.getAttribute('data-wrapped') === 'true',
+            renderHTML: attrs => (attrs.wrapped ? { 'data-wrapped': 'true' } : {}),
+          },
+        }
+      },
+      addNodeView() { return VueNodeViewRenderer(CodeBlockView) },
+    }).configure({ lowlight, defaultLanguage: 'plaintext' }),
     Table.configure({ resizable: true }),
     TableRow,
     CustomTableCell,
@@ -809,6 +829,7 @@ onBeforeUnmount(() => {
   background-color: #0f172a;
   border-radius: 0.5rem;
   padding: 1rem;
+  padding-top: 2.25rem; /* room for the code-block language picker (NodeView) */
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
   overflow-x: auto;

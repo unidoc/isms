@@ -230,15 +230,13 @@
 
 <script setup>
 import { ref, computed, reactive, watch, nextTick, onMounted } from 'vue'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
+import { parseMd } from '../composables/useRenderMd'
 
 const { members } = useMembers()
-
-marked.setOptions({ breaks: true })
 
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style'] })
 
@@ -257,7 +255,7 @@ const emit = defineEmits(['comment', 'resolve', 'suggestion-accepted'])
 // --- Paragraph-level content blocks ---
 const contentBlocks = computed(() => {
   if (!props.content) return []
-  const html = marked.parse(props.content)
+  const html = parseMd(props.content)
   const div = document.createElement('div')
   div.innerHTML = html
   const blocks = []

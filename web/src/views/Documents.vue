@@ -1349,8 +1349,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { marked } from 'marked'
-marked.setOptions({ breaks: true })
+import { parseMd } from '../composables/useRenderMd'
 import DOMPurify from 'dompurify'
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style', 'data-ref-type', 'data-ref-id'] })
 
@@ -2213,7 +2212,7 @@ async function removeTemplate(id) {
 // --- Paragraph-level content blocks ---
 const contentBlocks = computed(() => {
   if (!rawContent.value) return []
-  const html = marked.parse(rawContent.value)
+  const html = parseMd(rawContent.value)
   const div = document.createElement('div')
   div.innerHTML = html
   const blocks = []

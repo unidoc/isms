@@ -135,9 +135,9 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import DiffView from './DiffView.vue'
+import { parseMd } from '../composables/useRenderMd'
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -186,7 +186,7 @@ function submitComment(index, quote) {
 
 function renderMd(text) {
   if (!text) return ''
-  return DOMPurify.sanitize(marked.parse(text, { breaks: true }))
+  return DOMPurify.sanitize(parseMd(text))
 }
 
 // Split into paragraphs (markdown blocks separated by blank lines)

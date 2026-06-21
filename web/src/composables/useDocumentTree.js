@@ -47,18 +47,18 @@ export function useDocumentTree(api) {
     // empty folders — including freshly-created nested ones that have a .title
     // but no documents yet — so they'd never render. The API already returns
     // the full hierarchy, including empty folders, so mirror it.
-    function buildNode(apiFolder, parentPath, depth, topFolder) {
+    function buildNode(apiFolder, parentPath, depth) {
       const path = parentPath ? parentPath + '/' + apiFolder.name : apiFolder.name
       const node = { name: apiFolder.name, title: apiFolder.title || '', type: 'folder', path, depth, children: [], fileCount: 0 }
       for (const sub of (apiFolder.subfolders || [])) {
-        node.children.push(buildNode(sub, path, depth + 1, topFolder))
+        node.children.push(buildNode(sub, path, depth + 1))
       }
       for (const file of (apiFolder.files || [])) {
         node.children.push({
           name: formatFileTitle(file),
           type: 'file',
           file: file,
-          folder: file.folder || topFolder,
+          folder: file.folder, // always set by the backend (DocFile.Folder)
           depth: depth + 1,
           path: file.path,
         })
@@ -81,7 +81,7 @@ export function useDocumentTree(api) {
     }
 
     const tree = folders.value.map(folder => {
-      const node = buildNode(folder, '', 0, folder.name)
+      const node = buildNode(folder, '', 0)
       sortAndCount(node)
       return node
     })

@@ -160,6 +160,11 @@ class TestDocsLinkServedNatively:
             with page.expect_navigation(timeout=8000) as nav_info:
                 page.locator("a[href='/docs']").first.click()
             response = nav_info.value
+            # Wait for the document to finish loading before reading content —
+            # expect_navigation returns as soon as navigation commits, but Scalar
+            # keeps mutating the DOM (loads its bundle), so page.content() can
+            # race with an in-flight navigation ("page is navigating" error).
+            page.wait_for_load_state("load")
             # Scalar UI loads its bundle from CDN. The response body must
             # include "scalar" — otherwise the SPA shell came through and the
             # interceptor bug is back.

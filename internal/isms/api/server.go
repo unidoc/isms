@@ -65,6 +65,84 @@ type Server struct {
 
 // storeForOrg returns (or creates and caches) a store for the given organization.
 // Uses LoadOrStore to prevent duplicate Store creation under concurrent requests.
+// orgMailCtx carries everything an email needs to address a tenant correctly:
+// the brand (sender name + color) and the org's own base URLs for links.
+type orgMailCtx struct {
+	Branding mail.Branding
+	// AppURL is the base for in-app, org-scoped pages (e.g. /reviews/123): a
+	// tenant subdomain/custom domain, or <base>/<slug> on path-based hosts.
+	AppURL string
+	// PublicURL is the base for public pages (e.g. /verify-email), which are
+	// never mounted under /:org: a tenant subdomain/custom domain, or the bare
+	// <base> on path-based hosts.
+	PublicURL string
+}
+
+// orgMail resolves the per-org email context (brand + link bases). It falls back
+// to neutral defaults — the bare ISMS_BASE_URL and an "ISMS" brand — so a
+// tenant's mail never carries another org's identity, the operator's SMTP_FROM
+// display name (#16 sender leak), or a link into the wrong org.
+func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
+	raw := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
+	m := orgMailCtx{AppURL: raw, PublicURL: raw}
+	org, err := s.db.GetOrganization(ctx, orgID)
+	if err != nil || org == nil {
+		return m
+	}
+	m.Branding.Name = org.Name
+	if color, err := s.db.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
+		m.Branding.Color = color
+	}
+	m.AppURL, m.PublicURL = orgURLs(raw, org)
+	return m
+}
+
+// orgURLs returns the per-org base URLs for in-app (org-scoped) pages and for
+// public pages, mirroring the SPA router's mounting rules:
+//   - custom domain:  https://<domain> for both
+//   - subdomain host: https://<slug>.<apex> for both (the org IS the host)
+//   - path-based:     <base>/<slug> for app pages, <base> for public pages
+//
+// The subdomain-vs-path decision uses the same heuristic as the post-OIDC
+// redirect (orgTokenRedirectURL): a dotted, non-localhost, non-IP host can serve
+// per-org subdomains.
+func orgURLs(baseURL string, org *db.Organization) (app, public string) {
+	if org.Domain != nil && *org.Domain != "" {
+		d := *org.Domain
+		if !strings.Contains(d, "://") {
+			scheme := "https"
+			if strings.HasPrefix(baseURL, "http://") {
+				scheme = "http"
+			}
+			d = scheme + "://" + d
+		}
+		d = strings.TrimRight(d, "/")
+		return d, d
+	}
+	const sep = "://"
+	i := strings.Index(baseURL, sep)
+	if i < 0 {
+		return baseURL, baseURL
+	}
+	scheme := baseURL[:i]
+	hostAndPort := baseURL[i+len(sep):]
+	host := hostAndPort
+	port := ""
+	if c := strings.LastIndex(hostAndPort, ":"); c > 0 {
+		host = hostAndPort[:c]
+		port = hostAndPort[c:] // includes ':'
+	}
+	canSubdomain := strings.Contains(host, ".") &&
+		!strings.HasPrefix(host, "localhost") &&
+		!isIPLiteral(host)
+	if canSubdomain {
+		apex := strings.TrimPrefix(host, "www.")
+		sub := fmt.Sprintf("%s://%s.%s%s", scheme, org.Slug, apex, port)
+		return sub, sub
+	}
+	return baseURL + "/" + org.Slug, baseURL
+}
+
 func (s *Server) storeForOrg(ctx context.Context, orgID int) (*store.Store, error) {
 	if v, ok := s.stores.Load(orgID); ok {
 		return v.(*store.Store), nil

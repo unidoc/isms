@@ -166,9 +166,9 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 			fmt.Sprintf("Corrective action assigned: %s", ca.Title),
 			ca.Description, "/corrective-actions")
 		if s.mailer.Enabled() {
-			s.mailer.Send(ca.Assignee,
-				fmt.Sprintf("ISMS Corrective Action: %s", ca.Title),
-				ca.Description)
+			s.mailer.SendBranded(ca.Assignee,
+				fmt.Sprintf("Corrective Action: %s", ca.Title),
+				ca.Description, s.orgMail(ctx, orgID).Branding)
 		}
 	}
 

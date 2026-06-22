@@ -666,8 +666,8 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "email not configured (SMTP_HOST)")
 	}
 
-	baseURL := os.Getenv("ISMS_BASE_URL")
-	if err := s.mailer.SendVerification(req.Email, req.Name, baseURL, token); err != nil {
+	m := s.orgMail(ctx, orgID)
+	if err := s.mailer.SendVerificationBranded(req.Email, req.Name, m.PublicURL, token, m.Branding); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "sending email: "+err.Error())
 	}
 

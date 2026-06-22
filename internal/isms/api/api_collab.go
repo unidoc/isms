@@ -3543,6 +3543,10 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			}
 			// Notify all assigned reviewers about the resubmission.
 			allAssignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, existingReview.ID)
+			var m orgMailCtx
+			if s.mailer != nil && s.mailer.Enabled() {
+				m = s.orgMail(ctx, orgID)
+			}
 			for _, a := range allAssignments {
 				notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
 				if req.Message != "" {
@@ -3552,8 +3556,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 					fmt.Sprintf("Review resubmitted: %s", title),
 					notifBody, fmt.Sprintf("/reviews/%d", existingReview.ID))
 				if s.mailer != nil && s.mailer.Enabled() {
-				m := s.orgMail(ctx, orgID)
-				_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
+					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 				}
 			}
 			s.logAndNotify(ctx, orgID, &db.Activity{

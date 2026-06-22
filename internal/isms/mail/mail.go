@@ -242,8 +242,10 @@ func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, pri
 	return m.sendAs(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body, b.name())
 }
 
-// SendOTPCode sends a one-time login code via email (magic link alternative).
-func (m *Mailer) SendOTPCode(to, name, code string) error {
+// SendOTPCode sends a one-time login code via email (magic link alternative),
+// branded with the org so the From display name is the tenant's, not the
+// operator's SMTP_FROM identity — consistent with every other Send* here.
+func (m *Mailer) SendOTPCode(to, name, code string, b Branding) error {
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
 <h2>Login Code</h2>
 <p>Hi %s,</p>
@@ -252,5 +254,5 @@ func (m *Mailer) SendOTPCode(to, name, code string) error {
 <p style="color: #666; font-size: 12px;">This code expires in 10 minutes.</p>
 </div>`, name, code)
 
-	return m.Send(to, "Login code", body)
+	return m.sendAs(to, fmt.Sprintf("%s — Login code", b.name()), body, b.name())
 }

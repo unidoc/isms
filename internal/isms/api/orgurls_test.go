@@ -13,11 +13,11 @@ func ptr(s string) *string { return &s }
 // public pages (verify-email, login) are never mounted under /:org.
 func TestOrgURLs(t *testing.T) {
 	cases := []struct {
-		name           string
-		base           string
-		org            *db.Organization
-		wantApp        string
-		wantPublic     string
+		name       string
+		base       string
+		org        *db.Organization
+		wantApp    string
+		wantPublic string
 	}{
 		{
 			name:       "subdomain host: org becomes the subdomain for both",

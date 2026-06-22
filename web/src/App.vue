@@ -347,7 +347,7 @@
       />
 
       <!-- Right side: header + content -->
-      <div class="flex-1 min-h-screen flex flex-col transition-all duration-200" :class="isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-14' : 'ml-60')">
+      <div class="flex-1 min-w-0 min-h-screen flex flex-col transition-all duration-200" :class="isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-14' : 'ml-60')">
         <!-- Top header bar -->
         <header class="h-14 bg-slate-900/50 border-b border-slate-800 flex items-center px-4 sm:px-6 sticky top-0 z-40 backdrop-blur-sm">
           <!-- Mobile menu button -->

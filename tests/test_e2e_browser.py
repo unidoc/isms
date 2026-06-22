@@ -1346,6 +1346,65 @@ class TestCodeWrap:
             ctx.close()
 
 
+# ── Nested empty folder renders in the tree (regression for the folder bug) ──
+
+class TestNestedFolderCreation:
+    def test_empty_nested_folder_renders(self, pw_browser, tokens):
+        t = tokens["admin"]
+        # Create a root folder and an EMPTY sub-folder (no documents) via the API.
+        api("post", "/documents/folders", t, json={"path": "e2e-handbook", "title": "E2E Handbook"}, expect_status=[200, 201])
+        api("post", "/documents/folders", t, json={"path": "e2e-handbook/alpine", "title": "E2E Alpine"}, expect_status=[200, 201])
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            click_sidebar(page, "Documents")
+            page.locator('aside, nav').first.wait_for(state="visible", timeout=8000)
+            parent = page.get_by_role("button", name="E2E Handbook").first
+            parent.wait_for(state="visible", timeout=10000)
+            child = page.locator('text=E2E Alpine').first
+            # Ensure the parent is expanded (a freshly-created folder may already
+            # be auto-expanded — clicking blindly would collapse it). Only toggle
+            # if the child isn't already showing.
+            if not child.is_visible():
+                parent.click()
+            # The empty sub-folder must render — it has a .title but no documents,
+            # which is exactly the case that used to be dropped from the tree.
+            expect(child).to_be_visible(timeout=8000)
+        finally:
+            ctx.close()
+
+
+# ── No horizontal page scroll on wide content (regression for the header glitch) ──
+
+class TestNoHorizontalPageScroll:
+    def test_long_code_line_does_not_scroll_page(self, pw_browser, tokens):
+        t = tokens["admin"]
+        doc = "e2e-wide-code"
+        longline = "x = '" + ("a" * 400) + "'"
+        content = "# Wide\n\n```python\n" + longline + "\n```\n"
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "E2E Wide", "content": content,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{doc}/content", t, json={"content": content}, expect_status=200)
+        ctx = pw_browser.new_context(viewport={"width": 1280, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{doc}")
+            page.locator(".doc-prose .code-block").first.wait_for(state="visible", timeout=10000)
+            page.wait_for_timeout(400)
+            # The page itself must not scroll horizontally — the wide code block
+            # scrolls inside its own container instead.
+            overflow = page.evaluate(
+                "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+            )
+            assert overflow <= 1, f"page scrolls horizontally by {overflow}px (sticky header would glitch)"
+        finally:
+            ctx.close()
+
+
 # ── Print: the whole document prints, not just the first page (regression #5) ──
 
 class TestPrintPagination:
@@ -1372,9 +1431,12 @@ class TestPrintPagination:
             page.goto(f"{BASE}/{ORG}/documents/{doc}")
             page.locator(".doc-prose").first.wait_for(state="visible", timeout=10000)
             page.wait_for_timeout(400)
-            page.emulate_media(media="print")
+            # page.pdf() drives CDP Page.printToPDF, which renders in print layout
+            # natively — @media print applies without an emulate_media() call.
             pdf = page.pdf(format="A4")
-            # Count page objects (exclude the /Pages tree node).
+            # /Type /Page is a byte-prefix of /Type /Pages, so count("/Type /Page")
+            # also catches the page-tree node; subtract count("/Type /Pages") for the
+            # true page count. Works because Playwright streams uncompressed PDF headers.
             pages = pdf.count(b"/Type /Page") - pdf.count(b"/Type /Pages")
             assert pages > 1, f"long document printed only {pages} page(s) — content clipped to one viewport (#5)"
         finally:

@@ -1441,3 +1441,59 @@ class TestPrintPagination:
             assert pages > 1, f"long document printed only {pages} page(s) — content clipped to one viewport (#5)"
         finally:
             ctx.close()
+
+
+# ── Needs Review cards are clickable (regression #18) ──
+
+class TestNeedsReviewCardClickable:
+    def test_card_body_opens_the_document(self, pw_browser, tokens):
+        """In Documents → Needs Review, clicking the card body (not just the
+        small Review button) must open the document — matching the Inbox, where
+        the whole card is clickable. The card body used to have no click handler
+        despite a hover affordance (#18)."""
+        t = tokens["admin"]
+        doc = "e2e-nrcard"
+        content = "# Card click\n\nA never-approved doc to populate the Needs Review list.\n"
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "E2E NR Card", "content": content,
+        }, expect_status=[200, 201, 409])
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            click_sidebar(page, "Documents")
+            # Needs Review is the default tab; surface never-approved docs so our
+            # freshly created (unapproved) doc shows.
+            page.get_by_text("Include never approved").click()
+            # The card body is a role=button region containing the document id.
+            card = page.locator('[role="button"]').filter(has_text=doc).first
+            card.wait_for(state="visible", timeout=8000)
+            card.click()
+            # openNeedsReviewDoc selects the doc and opens the review modal.
+            expect(page.get_by_role("heading", name="Send for review")).to_be_visible(timeout=8000)
+        finally:
+            ctx.close()
+
+    def test_card_body_is_keyboard_accessible(self, pw_browser, tokens):
+        """The card body opens on Enter too (role=button + tabindex)."""
+        t = tokens["admin"]
+        doc = "e2e-nrcard"
+        # Self-contained: don't depend on the click test having created the doc.
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "E2E NR Card", "content": "# Card click\n\nKeyboard-accessible card test.\n",
+        }, expect_status=[200, 201, 409])
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            click_sidebar(page, "Documents")
+            page.get_by_text("Include never approved").click()
+            card = page.locator('[role="button"]').filter(has_text=doc).first
+            card.wait_for(state="visible", timeout=8000)
+            card.focus()
+            card.press("Enter")
+            expect(page.get_by_role("heading", name="Send for review")).to_be_visible(timeout=8000)
+        finally:
+            ctx.close()

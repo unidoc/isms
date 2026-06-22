@@ -553,6 +553,22 @@
     max-width: 100% !important;
   }
 
+  /* Un-clip the document so the WHOLE thing prints, not just the first page.
+     The doc view lives in a fixed-height (100vh) overflow-hidden flex wrapper
+     with an overflow-y-auto <main>; without resetting these, the browser prints
+     only the one viewport that fits. Reset height/overflow everywhere so the
+     content flows naturally across pages. */
+  html,
+  body,
+  main,
+  [class*="h-["],
+  [class*="overflow-"],
+  [class*="max-h-"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   /* Print header: show document info */
   .print-header {
     display: block !important;

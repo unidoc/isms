@@ -201,9 +201,11 @@
             </div>
             <div v-else class="space-y-2">
               <div v-for="doc in needsReviewDocs" :key="doc.document_id"
-                class="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-colors">
+                class="bg-slate-900 border border-slate-800 rounded-lg p-4">
                 <div class="flex items-start gap-3">
-                  <div class="flex-1 min-w-0 cursor-pointer rounded focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                  <!-- Hover affordance lives on the clickable content region (not the
+                       whole card) so it tracks the actual click target — no dead zone. -->
+                  <div class="flex-1 min-w-0 cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-slate-800/40 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
                     role="button" tabindex="0"
                     @click="openNeedsReviewDoc(doc)"
                     @keydown.enter="openNeedsReviewDoc(doc)"
@@ -2089,9 +2091,7 @@ async function loadNeedsReview() {
 }
 
 function openNeedsReviewDoc(doc) {
-  // (No showNeedsReview flag — selecting the doc switches the view via activeId.
-  // The orphaned `showNeedsReview` reference here used to throw a ReferenceError,
-  // silently breaking both this card click and the Review button — #18.)
+  // showNeedsReview was removed; selecting the doc switches the view via activeId.
   if (doc.folder && doc.document_id) {
     const file = findFileInFolder(doc.folder, doc.document_id)
     if (file) {

@@ -1479,6 +1479,11 @@ class TestNeedsReviewCardClickable:
         """The card body opens on Enter too (role=button + tabindex)."""
         t = tokens["admin"]
         doc = "e2e-nrcard"
+        # Self-contained: don't depend on the click test having created the doc.
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "E2E NR Card", "content": "# Card click\n\nKeyboard-accessible card test.\n",
+        }, expect_status=[200, 201, 409])
         ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
         page = ctx.new_page()
         try:

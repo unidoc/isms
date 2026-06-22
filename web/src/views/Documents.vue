@@ -203,7 +203,11 @@
               <div v-for="doc in needsReviewDocs" :key="doc.document_id"
                 class="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-colors">
                 <div class="flex items-start gap-3">
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 cursor-pointer rounded focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                    role="button" tabindex="0"
+                    @click="openNeedsReviewDoc(doc)"
+                    @keydown.enter="openNeedsReviewDoc(doc)"
+                    @keydown.space.prevent="openNeedsReviewDoc(doc)">
                     <div class="flex items-center gap-2 mb-1">
                       <span class="text-sm font-medium text-blue-400">{{ doc.document_id }}</span>
                       <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{{ doc.folder }}</span>
@@ -2085,7 +2089,9 @@ async function loadNeedsReview() {
 }
 
 function openNeedsReviewDoc(doc) {
-  showNeedsReview.value = false
+  // (No showNeedsReview flag — selecting the doc switches the view via activeId.
+  // The orphaned `showNeedsReview` reference here used to throw a ReferenceError,
+  // silently breaking both this card click and the Review button — #18.)
   if (doc.folder && doc.document_id) {
     const file = findFileInFolder(doc.folder, doc.document_id)
     if (file) {

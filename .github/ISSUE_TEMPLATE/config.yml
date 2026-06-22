@@ -2,8 +2,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/unidoc/isms/blob/master/SECURITY.md
-    about: Do NOT open a public issue for security problems. Email security@isms.sh — see SECURITY.md for coordinated disclosure.
+    url: mailto:security@isms.sh
+    about: Do NOT open a public issue for security problems. Emails security@isms.sh directly — see SECURITY.md for what to include and our coordinated-disclosure policy.
   - name: Question or support
     url: https://github.com/unidoc/isms/discussions
     about: Ask questions and get help in GitHub Discussions.

@@ -1,5 +1,6 @@
 name: Documentation
 description: Report a gap or inaccuracy in the documentation
+title: "[Docs]: "
 labels: ["documentation"]
 body:
   - type: input

@@ -1497,3 +1497,55 @@ class TestNeedsReviewCardClickable:
             expect(page.get_by_role("heading", name="Send for review")).to_be_visible(timeout=8000)
         finally:
             ctx.close()
+
+
+class TestTaskEditStatusPersists:
+    """Editing a task's status in the detail form and saving must persist it.
+
+    Regression for the combined tasks-fix: the edit-form Save payload omitted
+    `status`, so changing it to Done and saving silently kept the task open. The
+    discriminating check is API-side — assert the server actually stored Done
+    after the UI save, not just that the local view updated. Also covers the
+    Active default view (#2): a done task must drop out of the default list.
+    """
+
+    def test_edit_status_to_done_persists_and_leaves_active_view(self, pw_browser, tokens):
+        t = tokens["admin"]
+        r = api("post", "/tasks", t, json={
+            "title": "E2E status-save task",
+            "task_type": "review",
+            "priority": "medium",
+            "assignee": ADMIN[0],
+        }, expect_status=[200, 201])
+        task_id = r.json()["id"]
+        assert r.json()["status"] == "open"
+
+        ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1], then_goto=f"tasks/{task_id}")
+            # Detail view starts on the open task.
+            expect(page.get_by_text("E2E status-save task").first).to_be_visible(timeout=8000)
+            # Open the overview editor, flip status to Done, save.
+            page.get_by_role("button", name="Edit").first.click()
+            status_select = page.locator('label:has-text("Status") + select').first
+            status_select.wait_for(state="visible", timeout=5000)
+            status_select.select_option("done")
+            page.get_by_role("button", name="Save", exact=True).click()
+            # Save closes the editor (footer is v-if="editingSection").
+            expect(page.get_by_role("button", name="Save", exact=True)).to_have_count(0, timeout=8000)
+
+            # Discriminating check: the server stored Done (catches the omitted-status payload).
+            after = api("get", f"/tasks/{task_id}", t, expect_status=200).json()
+            assert after["status"] == "done", \
+                f"status did not persist through the edit-form save: {after['status']!r}"
+
+            # #2: a done task must not appear in the default (Active) list.
+            page.evaluate(
+                "() => document.querySelector('#app').__vue_app__.config.globalProperties"
+                f".$router.push('/{ORG}/tasks')"
+            )
+            page.wait_for_load_state("networkidle")
+            expect(page.get_by_text("E2E status-save task")).to_have_count(0, timeout=8000)
+        finally:
+            ctx.close()

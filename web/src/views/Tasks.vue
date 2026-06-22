@@ -427,7 +427,13 @@ const renderMd = renderMarkdown
 
 const loading = ref(true)
 const tasks = ref([])
-const filterStatus = ref('')
+// Default to "active" (open + in_progress) so completed/cancelled tasks don't
+// clutter the working list; remember the user's choice across visits.
+const TASKS_FILTER_KEY = 'isms.tasks.filterStatus'
+const filterStatus = ref(localStorage.getItem(TASKS_FILTER_KEY) ?? 'active')
+watch(filterStatus, (v) => {
+  try { localStorage.setItem(TASKS_FILTER_KEY, v ?? '') } catch { /* storage unavailable */ }
+})
 const filterPriority = ref('')
 const filterTaskType = ref('')
 const filterAssignee = ref('')
@@ -482,6 +488,7 @@ const form = ref(defaultForm())
 
 const statusStats = computed(() => {
   return [
+    { key: 'active', label: 'Active', count: (stats.value.open || 0) + (stats.value.in_progress || 0), color: 'text-blue-300' },
     { key: '', label: 'Total', count: stats.value.total || 0, color: 'text-slate-100' },
     { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-blue-400' },
     { key: 'in_progress', label: 'In Progress', count: stats.value.in_progress || 0, color: 'text-amber-400' },
@@ -743,6 +750,7 @@ async function saveSection() {
       description: editForm.value.description,
       assignee: editForm.value.assignee,
       priority: editForm.value.priority,
+      status: editForm.value.status,
       task_type: editForm.value.task_type,
       notes: editForm.value.notes,
     }

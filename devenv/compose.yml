@@ -3,8 +3,9 @@
 #   isms-test + postgres-test   — isolated test server (port 9091), ephemeral DB
 #
 # Postgres is reachable ONLY on the compose network (no host port published) —
-# host-side Postgres instances on :5432 are untouched. ISMS server ports are
-# bound to 127.0.0.1 only, not 0.0.0.0, so they aren't exposed to the LAN.
+# host-side Postgres instances on :5432 are untouched. ISMS server ports default
+# to 127.0.0.1 (loopback only); override ISMS_BIND_ADDRESS in devenv/.env to
+# expose them on a network (e.g. 0.0.0.0, or a WireGuard interface IP).
 #
 # The test server auto-starts on container boot. Reset its state any time with
 #   just test-reset
@@ -33,7 +34,9 @@ services:
     hostname: isms-dev
     depends_on: [postgres]
     ports:
-      - "127.0.0.1:9090:9090"
+      # Loopback-only by default; override ISMS_BIND_ADDRESS in devenv/.env to
+      # expose on a network (e.g. 0.0.0.0, or a WireGuard interface IP).
+      - "${ISMS_BIND_ADDRESS:-127.0.0.1}:9090:9090"
     volumes:
       - ${ISMS_SRC_ROOT}/isms:/home/isms/workspace/isms
       - ${ISMS_SRC_ROOT}/isms-templates:/home/isms/workspace/isms-templates
@@ -100,7 +103,7 @@ services:
         aliases: [acme-logistics.localhost]
     depends_on: [postgres-test]
     ports:
-      - "127.0.0.1:9091:9090"
+      - "${ISMS_BIND_ADDRESS:-127.0.0.1}:9091:9090"
     volumes:
       - ${ISMS_SRC_ROOT}/isms:/home/isms/workspace/isms
       - ${ISMS_SRC_ROOT}/isms-templates:/home/isms/workspace/isms-templates

@@ -488,7 +488,7 @@ const form = ref(defaultForm())
 
 const statusStats = computed(() => {
   return [
-    { key: 'active', label: 'Active', count: (stats.value.open || 0) + (stats.value.in_progress || 0), color: 'text-blue-300' },
+    { key: 'active', label: 'Active', count: (stats.value.open || 0) + (stats.value.in_progress || 0), color: 'text-indigo-400' },
     { key: '', label: 'Total', count: stats.value.total || 0, color: 'text-slate-100' },
     { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-blue-400' },
     { key: 'in_progress', label: 'In Progress', count: stats.value.in_progress || 0, color: 'text-amber-400' },

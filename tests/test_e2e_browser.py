@@ -1541,10 +1541,7 @@ class TestTaskEditStatusPersists:
                 f"status did not persist through the edit-form save: {after['status']!r}"
 
             # #2: a done task must not appear in the default (Active) list.
-            page.evaluate(
-                "() => document.querySelector('#app').__vue_app__.config.globalProperties"
-                f".$router.push('/{ORG}/tasks')"
-            )
+            page.goto(f"{BASE}/{ORG}/tasks")
             page.wait_for_load_state("networkidle")
             expect(page.get_by_text("E2E status-save task")).to_have_count(0, timeout=8000)
         finally:

@@ -141,3 +141,17 @@ func parseFrontmatter(content string) (string, string, error) {
 
 	return fm, body, nil
 }
+
+// DocumentBodyAtRef returns the markdown body (frontmatter stripped) of the
+// document at gitPath as it existed at the given git ref.
+// Used to detect whether the reviewed content actually changed between two
+// commits; a frontmatter-only edit (any field that is not the markdown body)
+// still produces a new commit but must not trigger a re-review prompt.
+func (s *Store) DocumentBodyAtRef(ref, gitPath string) (string, error) {
+	raw, err := s.ReadFileAtRef(ref, gitPath)
+	if err != nil {
+		return "", err
+	}
+	_, body, err := parseFrontmatter(string(raw))
+	return body, err
+}

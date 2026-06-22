@@ -1590,13 +1590,17 @@ func (s *Server) handleNeedsReview(c echo.Context) error {
 					return nil // no changes since approval
 				}
 				// The commit advanced, but only flag a re-review if the reviewed
-				// content (the body) actually changed. Metadata-only edits — owner,
-				// author, version, classification, review_cycle — write a new commit
+				// content (the body) actually changed. A frontmatter-only edit
+				// (any metadata field — not the markdown body) writes a new commit
 				// without changing what's reviewed, and must not trigger "changed
 				// since last approval" (#3).
 				if approvedRef != "" {
-					if approvedBody, bodyErr := st.DocumentBodyAtRef(approvedRef, gitPath); bodyErr == nil &&
-						strings.TrimSpace(approvedBody) == strings.TrimSpace(pf.Body) {
+					approvedBody, bodyErr := st.DocumentBodyAtRef(approvedRef, gitPath)
+					if bodyErr != nil {
+						// Safe fallback: flag for review. Log it so intermittent
+						// git-read failures don't silently cause false positives.
+						c.Logger().Warnf("needs-review: body-at-ref failed, flagging %s: ref=%s err=%v", gitPath, approvedRef, bodyErr)
+					} else if strings.TrimSpace(approvedBody) == strings.TrimSpace(pf.Body) {
 						return nil // only frontmatter metadata changed since approval
 					}
 				}

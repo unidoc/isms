@@ -59,25 +59,51 @@ func (b Branding) name() string {
 	return "ISMS"
 }
 
-// Send sends an email.
+// resolveFrom builds the From header and the SMTP envelope sender.
+//
+// SMTP_FROM may be a bare email (`noreply@host`) or `"Display Name" <addr@host>`.
+// The envelope sender (MAIL FROM) must always be the bare address — Postmark and
+// most SMTP servers reject envelope senders with display-name syntax.
+//
+// When fromName is set it overrides the SMTP_FROM display name with the per-org
+// brand while keeping the configured envelope address, so a tenant's mail shows
+// the tenant's own name in the inbox — never the operator's SMTP_FROM display
+// name (the multi-tenant sender leak this guards against). The envelope address
+// is unchanged, so SPF/DKIM alignment is preserved.
+func resolveFrom(configFrom, fromName string) (header, envelope string) {
+	envelope = configFrom
+	if strings.Contains(configFrom, "<") {
+		if parsed, err := netmail.ParseAddress(configFrom); err == nil {
+			envelope = parsed.Address
+		}
+	}
+	if fromName == "" {
+		return configFrom, envelope
+	}
+	// Address.String() quotes the display name and RFC 2047-encodes it when it
+	// contains non-ASCII (org names like "Þórð ehf"), so the header stays valid.
+	return (&netmail.Address{Name: fromName, Address: envelope}).String(), envelope
+}
+
+// Send sends an email using the configured SMTP_FROM as-is.
 func (m *Mailer) Send(to, subject, body string) error {
+	return m.sendAs(to, subject, body, "")
+}
+
+// SendBranded sends an email with the org brand as the From display name, so the
+// recipient sees the tenant's name rather than the operator's SMTP_FROM identity.
+func (m *Mailer) SendBranded(to, subject, body string, b Branding) error {
+	return m.sendAs(to, subject, body, b.name())
+}
+
+// sendAs sends an email, overriding the From display name with fromName when set.
+func (m *Mailer) sendAs(to, subject, body, fromName string) error {
 	if m == nil {
 		return fmt.Errorf("mailer not configured")
 	}
 
 	addr := net.JoinHostPort(m.config.Host, m.config.Port)
-
-	// SMTP_FROM may be either a bare email or `"Display Name" <addr@host>`.
-	// The header takes the full string; the SMTP envelope sender (MAIL FROM)
-	// must be the bare address only — Postmark and most SMTP servers reject
-	// envelope senders with display-name syntax.
-	fromHeader := m.config.From
-	envelopeFrom := m.config.From
-	if strings.Contains(m.config.From, "<") {
-		if parsed, err := netmail.ParseAddress(m.config.From); err == nil {
-			envelopeFrom = parsed.Address
-		}
-	}
+	fromHeader, envelopeFrom := resolveFrom(m.config.From, fromName)
 
 	msg := strings.Join([]string{
 		"From: " + fromHeader,
@@ -115,7 +141,7 @@ func (m *Mailer) SendVerificationBranded(to, name, baseURL, token string, b Bran
 <p style="color: #666; font-size: 12px;">This link expires in 72 hours.</p>
 </div>`, b.name(), name, link, b.color(), link)
 
-	return m.Send(to, fmt.Sprintf("%s — Verify your email", b.name()), body)
+	return m.sendAs(to, fmt.Sprintf("%s — Verify your email", b.name()), body, b.name())
 }
 
 // SendPasswordReset sends a password reset link. The same flow also activates
@@ -138,7 +164,7 @@ func (m *Mailer) SendPasswordResetBranded(to, name, baseURL, token string, b Bra
 <p style="color: #666; font-size: 12px;">If you didn't request a password reset, you can safely ignore this email.</p>
 </div>`, b.name(), name, link, b.color(), link)
 
-	return m.Send(to, fmt.Sprintf("%s — Reset your password", b.name()), body)
+	return m.sendAs(to, fmt.Sprintf("%s — Reset your password", b.name()), body, b.name())
 }
 
 // SendReviewRequest notifies a reviewer that their review has been requested.
@@ -165,7 +191,7 @@ func (m *Mailer) SendReviewRequestBranded(to, reviewerName, actor, docID, title,
 <p>Or copy this link: %s</p>
 </div>`, reviewerName, actor, docID, title, version, note, link, b.color(), link)
 
-	return m.Send(to, fmt.Sprintf("%s — Review requested: %s v%s", b.name(), docID, version), body)
+	return m.sendAs(to, fmt.Sprintf("%s — Review requested: %s v%s", b.name(), docID, version), body, b.name())
 }
 
 // SendReviewDecision notifies the document author that a review was approved or rejected.
@@ -192,7 +218,7 @@ func (m *Mailer) SendReviewDecisionBranded(to, authorName, reviewer, docID, titl
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">View Document</a></p>
 </div>`, color, icon, authorName, reviewer, color, icon, docID, title, version, link, b.color())
 
-	return m.Send(to, fmt.Sprintf("%s — Review %s: %s v%s", b.name(), icon, docID, version), body)
+	return m.sendAs(to, fmt.Sprintf("%s — Review %s: %s v%s", b.name(), icon, docID, version), body, b.name())
 }
 
 // SendTaskAssigned notifies an assignee about a new task.
@@ -213,11 +239,13 @@ func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, pri
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">View Tasks</a></p>
 </div>`, assigneeName, actor, taskTitle, priority, link, b.color())
 
-	return m.Send(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body)
+	return m.sendAs(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body, b.name())
 }
 
-// SendOTPCode sends a one-time login code via email (magic link alternative).
-func (m *Mailer) SendOTPCode(to, name, code string) error {
+// SendOTPCode sends a one-time login code via email (magic link alternative),
+// branded with the org so the From display name is the tenant's, not the
+// operator's SMTP_FROM identity — consistent with every other Send* here.
+func (m *Mailer) SendOTPCode(to, name, code string, b Branding) error {
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
 <h2>Login Code</h2>
 <p>Hi %s,</p>
@@ -226,5 +254,5 @@ func (m *Mailer) SendOTPCode(to, name, code string) error {
 <p style="color: #666; font-size: 12px;">This code expires in 10 minutes.</p>
 </div>`, name, code)
 
-	return m.Send(to, "Login code", body)
+	return m.sendAs(to, fmt.Sprintf("%s — Login code", b.name()), body, b.name())
 }

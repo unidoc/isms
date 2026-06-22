@@ -363,8 +363,8 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
-			baseURL := os.Getenv("ISMS_BASE_URL")
-			_ = s.mailer.SendReviewRequest(reviewer, reviewer, actor, review.DocumentID, review.Title, review.Version, baseURL, id, req.Message)
+			m := s.orgMail(ctx, orgID)
+			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, review.DocumentID, review.Title, review.Version, m.AppURL, id, req.Message, m.Branding)
 		}
 	}
 
@@ -970,8 +970,8 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 	} else {
 		// Normal flow: email the review author (human or mixed)
 		if s.mailer != nil && s.mailer.Enabled() {
-			baseURL := os.Getenv("ISMS_BASE_URL")
-			_ = s.mailer.SendReviewDecision(review.RequestedBy, review.RequestedBy, actor, review.DocumentID, review.Title, review.Version, req.Decision, baseURL)
+			m := s.orgMail(ctx, orgID)
+			_ = s.mailer.SendReviewDecisionBranded(review.RequestedBy, review.RequestedBy, actor, review.DocumentID, review.Title, review.Version, req.Decision, m.AppURL, m.Branding)
 		}
 	}
 
@@ -1959,8 +1959,8 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 
 	// Email assignee if set
 	if t.Assignee != "" && s.mailer != nil && s.mailer.Enabled() {
-		baseURL := os.Getenv("ISMS_BASE_URL")
-		_ = s.mailer.SendTaskAssigned(t.Assignee, t.Assignee, t.CreatedBy, t.Title, t.Priority, baseURL)
+		m := s.orgMail(ctx, orgID)
+		_ = s.mailer.SendTaskAssignedBranded(t.Assignee, t.Assignee, t.CreatedBy, t.Title, t.Priority, m.AppURL, m.Branding)
 	}
 
 	return c.JSON(http.StatusCreated, t)
@@ -2565,8 +2565,8 @@ func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, update
 			if u, err := s.db.GetUserByEmail(ctx, assignee); err == nil && u != nil && u.Name != "" {
 				displayName = u.Name
 			}
-			baseURL := os.Getenv("ISMS_BASE_URL")
-			_ = s.mailer.SendTaskAssigned(assignee, displayName, actor, t.Title, t.Priority, baseURL)
+			m := s.orgMail(ctx, orgID)
+			_ = s.mailer.SendTaskAssignedBranded(assignee, displayName, actor, t.Title, t.Priority, m.AppURL, m.Branding)
 		}
 	}
 }
@@ -3543,6 +3543,10 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			}
 			// Notify all assigned reviewers about the resubmission.
 			allAssignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, existingReview.ID)
+			var m orgMailCtx
+			if s.mailer != nil && s.mailer.Enabled() {
+				m = s.orgMail(ctx, orgID)
+			}
 			for _, a := range allAssignments {
 				notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
 				if req.Message != "" {
@@ -3552,8 +3556,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 					fmt.Sprintf("Review resubmitted: %s", title),
 					notifBody, fmt.Sprintf("/reviews/%d", existingReview.ID))
 				if s.mailer != nil && s.mailer.Enabled() {
-					baseURL := os.Getenv("ISMS_BASE_URL")
-					_ = s.mailer.SendReviewRequest(a.Reviewer, a.Reviewer, actor, docID, title, version, baseURL, existingReview.ID, req.Message)
+					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 				}
 			}
 			s.logAndNotify(ctx, orgID, &db.Activity{
@@ -3593,8 +3596,8 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 				fmt.Sprintf("Review: %s v%s", title, version),
 				notifBody, fmt.Sprintf("/reviews/%d", existingReview.ID))
 			if s.mailer != nil && s.mailer.Enabled() {
-				baseURL := os.Getenv("ISMS_BASE_URL")
-				_ = s.mailer.SendReviewRequest(reviewer, reviewer, actor, docID, title, version, baseURL, existingReview.ID, req.Message)
+				m := s.orgMail(ctx, orgID)
+				_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 			}
 		}
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -3659,8 +3662,8 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
-			baseURL := os.Getenv("ISMS_BASE_URL")
-			_ = s.mailer.SendReviewRequest(reviewer, reviewer, actor, docID, title, version, baseURL, review.ID, req.Message)
+			m := s.orgMail(ctx, orgID)
+			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, review.ID, req.Message, m.Branding)
 		}
 	}
 

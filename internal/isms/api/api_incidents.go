@@ -237,9 +237,9 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 
 	// Email assignee if set
 	if inc.Assignee != "" && s.mailer.Enabled() {
-		s.mailer.Send(inc.Assignee,
-			fmt.Sprintf("ISMS Incident [%s]: %s", strings.ToUpper(inc.Severity), inc.Title),
-			inc.Description)
+		s.mailer.SendBranded(inc.Assignee,
+			fmt.Sprintf("Incident [%s]: %s", strings.ToUpper(inc.Severity), inc.Title),
+			inc.Description, s.orgMail(ctx, orgID).Branding)
 	}
 
 	return c.JSON(http.StatusCreated, inc)

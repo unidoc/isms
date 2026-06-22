@@ -1344,3 +1344,38 @@ class TestCodeWrap:
             expect(block.locator(".code-wrap-btn.active")).to_be_visible(timeout=5000)
         finally:
             ctx.close()
+
+
+# ── Print: the whole document prints, not just the first page (regression #5) ──
+
+class TestPrintPagination:
+    def test_long_document_prints_all_pages(self, pw_browser, tokens):
+        """A long document must paginate across multiple printed pages. The doc
+        view lives in a fixed-height (100vh) overflow-hidden wrapper with an
+        overflow-y-auto <main>; without a print reset the browser clipped output
+        to the one viewport that fit → a single page (#5)."""
+        t = tokens["admin"]
+        doc = "e2e-print-long"
+        body = "# Long document\n\n" + "\n\n".join(
+            f"## Section {i}\n\nParagraph {i}: " + ("lorem ipsum dolor sit amet " * 12)
+            for i in range(1, 60)
+        )
+        api("post", "/documents", t, json={
+            "folder": "iso27001", "filename": doc + ".md",
+            "document_id": doc, "title": "E2E Print Long", "content": body,
+        }, expect_status=[200, 201, 409])
+        api("put", f"/documents/{doc}/content", t, json={"content": body}, expect_status=200)
+        ctx = pw_browser.new_context(viewport={"width": 1280, "height": 900})
+        page = ctx.new_page()
+        try:
+            do_login(page, ADMIN[0], ADMIN[1])
+            page.goto(f"{BASE}/{ORG}/documents/{doc}")
+            page.locator(".doc-prose").first.wait_for(state="visible", timeout=10000)
+            page.wait_for_timeout(400)
+            page.emulate_media(media="print")
+            pdf = page.pdf(format="A4")
+            # Count page objects (exclude the /Pages tree node).
+            pages = pdf.count(b"/Type /Page") - pdf.count(b"/Type /Pages")
+            assert pages > 1, f"long document printed only {pages} page(s) — content clipped to one viewport (#5)"
+        finally:
+            ctx.close()

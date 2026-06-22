@@ -1589,6 +1589,17 @@ func (s *Server) handleNeedsReview(c echo.Context) error {
 				if approvedRef == commitHash {
 					return nil // no changes since approval
 				}
+				// The commit advanced, but only flag a re-review if the reviewed
+				// content (the body) actually changed. Metadata-only edits — owner,
+				// author, version, classification, review_cycle — write a new commit
+				// without changing what's reviewed, and must not trigger "changed
+				// since last approval" (#3).
+				if approvedRef != "" {
+					if approvedBody, bodyErr := st.DocumentBodyAtRef(approvedRef, gitPath); bodyErr == nil &&
+						strings.TrimSpace(approvedBody) == strings.TrimSpace(pf.Body) {
+						return nil // only frontmatter metadata changed since approval
+					}
+				}
 				// Changed since approval
 				var changeSummary []string
 				if approvedRef != "" {

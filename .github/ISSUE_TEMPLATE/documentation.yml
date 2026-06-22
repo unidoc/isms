@@ -1,0 +1,27 @@
+name: Documentation
+description: Report a gap or inaccuracy in the documentation
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Where?
+      description: Which doc, page, or file — a link or path.
+      placeholder: README.md / docs/releasing.md / docs page URL
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: What's missing or wrong?
+      description: The gap, inaccuracy, or point of confusion.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional — how you'd improve it.
+    validations:
+      required: false

@@ -1,0 +1,68 @@
+name: Bug report
+description: Report something that isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. The fields below are what we'd otherwise have to
+        ask for — filling them in gets your issue triaged and fixed faster.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug — what you observed.
+      placeholder: When I …, the app …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps so we can see it too.
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual
+      description: What you expected to happen, and what actually happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component / surface
+      description: Which part of ISMS is affected?
+      options:
+        - CLI
+        - Web UI
+        - TUI
+        - REST API
+        - MCP server
+        - Document engine / git store
+        - "Registers (risks, assets, suppliers, …)"
+        - "Auth (OIDC, TOTP, passkeys)"
+        - "Notifications (Slack, Matrix, email)"
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: ISMS version or commit — the release tag (e.g. 0.6.1) or `isms version`.
+      placeholder: 0.6.x
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Logs, screenshots, and deployment details (self-hosted? which storage backend?) all help.
+    validations:
+      required: false

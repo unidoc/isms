@@ -281,7 +281,11 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, p TaskListParams) ([
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
-	if p.Status != "" {
+	if p.Status == "active" {
+		// "active" is a filter pseudo-status: open + in_progress (the work that
+		// still needs attention), so done/cancelled don't clutter the default view.
+		where += ` AND t.status IN ('open','in_progress')`
+	} else if p.Status != "" {
 		where += fmt.Sprintf(` AND t.status = $%d`, idx)
 		args = append(args, p.Status)
 		idx++

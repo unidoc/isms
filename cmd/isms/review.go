@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"isms.sh/internal/isms/client"
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
 )
 
@@ -137,15 +136,12 @@ func reviewApproveCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			approval := &db.Approval{
-				ReviewID: &id,
-				Decision: "approved",
-				Comment:  comment,
-			}
-			if err := c.AddApproval(approval); err != nil {
-				return err
-			}
-			if err := c.UpdateReviewStatus(id, "approved"); err != nil {
+			// Go through the dedicated approval handler so the decision log,
+			// content hash and status transition happen atomically. The old code
+			// hit PUT /reviews/:id/status with "approved", which the server
+			// rejects (status endpoint only allows "closed"), and side-stepped the
+			// approval governance (#51).
+			if err := c.ApproveReview(id, "approved", comment); err != nil {
 				return err
 			}
 			fmt.Printf("Review #%d approved.\n", id)

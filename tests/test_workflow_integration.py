@@ -321,6 +321,7 @@ class TestCrossEntityLinkage:
         })
         assert r.status_code in [200, 201]
         TestCrossEntityLinkage.incident_id = r.json()["id"]
+        TestCrossEntityLinkage.incident_identifier = r.json()["identifier"]
 
         r = requests.post(f"{api_url}/corrective-actions", headers=admin_headers, json={
             "title": "Linkage test CA",
@@ -337,7 +338,7 @@ class TestCrossEntityLinkage:
             "source_type": "corrective_action",
             "source_id": ca["identifier"],
             "target_type": "incident",
-            "target_id": f"INC-{TestCrossEntityLinkage.incident_id}",
+            "target_id": TestCrossEntityLinkage.incident_identifier,
         })
         assert ref.status_code in [200, 201], f"Create reference failed: {ref.text}"
 

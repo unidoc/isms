@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"isms.sh/internal/isms/client"
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
 )
 
@@ -137,15 +136,9 @@ func reviewApproveCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			approval := &db.Approval{
-				ReviewID: &id,
-				Decision: "approved",
-				Comment:  comment,
-			}
-			if err := c.AddApproval(approval); err != nil {
-				return err
-			}
-			if err := c.UpdateReviewStatus(id, "approved"); err != nil {
+			// The status endpoint only accepts "closed"; other transitions go
+			// through dedicated handlers — approve via the real approval handler (#51).
+			if err := c.ApproveReview(id, "approved", comment); err != nil {
 				return err
 			}
 			fmt.Printf("Review #%d approved.\n", id)

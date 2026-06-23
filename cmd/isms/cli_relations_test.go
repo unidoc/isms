@@ -142,3 +142,29 @@ func TestLegalAddSendsRelations(t *testing.T) {
 		t.Errorf("document refs = %v (full=%v)", refs["document"], refs)
 	}
 }
+
+// #51: `review approve` must go through the dedicated approval handler
+// (POST /reviews/:id/approve), not PUT /reviews/:id/status (which the server
+// rejects for anything but "closed") — and must not side-step it via /approvals.
+func TestReviewApproveUsesApprovalEndpoint(t *testing.T) {
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := reviewCmd()
+	cmd.SetArgs([]string{"approve", "7", "--comment", "LGTM"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if len(*got) != 1 {
+		t.Fatalf("expected exactly one request, got %d: %+v", len(*got), *got)
+	}
+	r := (*got)[0]
+	if r.method != "POST" || r.path != "/v1/reviews/7/approve" {
+		t.Errorf("approve hit %s %s, want POST /v1/reviews/7/approve", r.method, r.path)
+	}
+	if r.body["decision"] != "approved" {
+		t.Errorf("decision not sent as 'approved': body=%v", r.body)
+	}
+	if r.body["comment"] != "LGTM" {
+		t.Errorf("comment not forwarded: body=%v", r.body)
+	}
+}

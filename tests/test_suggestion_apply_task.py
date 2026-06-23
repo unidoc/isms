@@ -39,7 +39,8 @@ def test_apply_task_suggestion_without_assignee_defaults_to_applier(api_url, adm
     assert r.json().get("status") == "applied", r.text
 
     # The created task is assigned to the applier (admin), who can reassign later.
-    r = requests.get(f"{api_url}/tasks", headers=admin_headers, params={"limit": 2000})
+    # Search by the unique title rather than scanning the whole list.
+    r = requests.get(f"{api_url}/tasks", headers=admin_headers, params={"q": title, "limit": 5})
     assert r.status_code == 200, r.text
     rows = r.json().get("data", r.json())
     match = [t for t in rows if t.get("title") == title]

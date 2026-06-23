@@ -56,7 +56,11 @@ func incidentAddCmd() *cobra.Command {
 				Assignee:     assignee,
 			}
 
-			result, err := c.CreateIncident(inc)
+			result, err := c.CreateIncident(inc, buildRefs(
+				refSpec{"risk", risks},
+				refSpec{"asset", assets},
+				refSpec{"system", systems},
+			))
 			if err != nil {
 				return err
 			}

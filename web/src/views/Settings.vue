@@ -70,6 +70,7 @@
         <p class="text-xs text-slate-500">Enter a current code from your authenticator to turn it off.</p>
         <div class="flex items-center gap-2">
           <input v-model="disableCode" type="text" maxlength="6" inputmode="numeric" placeholder="000000"
+            @input="disableCode = disableCode.replace(/\D/g, '').slice(0, 6)"
             class="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white tracking-widest text-center focus:outline-none focus:border-red-500" />
           <button @click="disableOTP" :disabled="disablingOTP || disableCode.length !== 6"
             class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg border border-red-600/30 transition-colors disabled:opacity-50">

@@ -41,7 +41,6 @@ func riskAddCmd() *cobra.Command {
 		treatment                    string
 		treatmentPlan                string
 		linkedDocs []string
-		interestedParties            []string
 		owner                        string
 		status                       string
 		reviewDate                   string
@@ -122,7 +121,6 @@ func riskAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&treatment, "treatment", "mitigate", "Treatment: accept, mitigate, transfer, avoid")
 	cmd.Flags().StringVar(&treatmentPlan, "plan", "", "Treatment plan")
 	cmd.Flags().StringSliceVar(&linkedDocs, "documents", nil, "Linked document IDs (comma-separated)")
-	cmd.Flags().StringSliceVar(&interestedParties, "interested-parties", nil, "Interested parties (comma-separated)")
 	cmd.Flags().StringVar(&owner, "owner", "", "Risk owner")
 	cmd.Flags().StringVar(&status, "status", "open", "Status: draft, open, closed")
 	cmd.Flags().StringVar(&reviewDate, "review-date", "", "Next review date (YYYY-MM-DD)")

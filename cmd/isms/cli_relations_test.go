@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"isms.sh/internal/isms/client"
 )
 
 // recordedReq captures one outbound CLI API call.
@@ -57,34 +59,18 @@ func TestBuildRefs(t *testing.T) {
 		refSpec{"asset", []string{"A-1"}},
 		refSpec{"system", nil},
 	)
-	want := []client_Reference{
-		{"risk", "RISK-1"}, {"risk", "RISK-2"}, {"asset", "A-1"},
+	want := []client.Reference{
+		{Type: "risk", ID: "RISK-1"}, {Type: "risk", ID: "RISK-2"}, {Type: "asset", ID: "A-1"},
 	}
-	if !reflect.DeepEqual(toPlain(got), want) {
-		t.Errorf("buildRefs = %+v, want %+v", toPlain(got), want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("buildRefs = %+v, want %+v", got, want)
 	}
-}
-
-// client_Reference / toPlain decouple the assertion from the client package's
-// import path while still comparing type+id.
-type client_Reference struct{ Type, ID string }
-
-func toPlain(refs interface{}) []client_Reference {
-	v := reflect.ValueOf(refs)
-	out := make([]client_Reference, 0, v.Len())
-	for i := 0; i < v.Len(); i++ {
-		e := v.Index(i)
-		out = append(out, client_Reference{
-			Type: e.FieldByName("Type").String(),
-			ID:   e.FieldByName("ID").String(),
-		})
-	}
-	return out
 }
 
 // #49: `audit complete` must send the (required) --summary, not silently drop it.
 func TestAuditCompleteSendsSummary(t *testing.T) {
-	_, got := cliServer(t)
+	srv, got := cliServer(t)
+	defer srv.Close()
 	cmd := auditCmd()
 	cmd.SetArgs([]string{"complete", "5", "--summary", "Quarterly audit closed"})
 	if err := cmd.Execute(); err != nil {
@@ -104,7 +90,8 @@ func TestAuditCompleteSendsSummary(t *testing.T) {
 
 // #52: `incident add` must send its declared relation flags as references.
 func TestIncidentAddSendsRelations(t *testing.T) {
-	_, got := cliServer(t)
+	srv, got := cliServer(t)
+	defer srv.Close()
 	cmd := incidentCmd()
 	cmd.SetArgs([]string{"add", "--title", "Phish", "--description", "phishing wave",
 		"--severity", "high",
@@ -123,7 +110,8 @@ func TestIncidentAddSendsRelations(t *testing.T) {
 
 // #52: `risk add` must send --assets and --documents as references.
 func TestRiskAddSendsRelations(t *testing.T) {
-	_, got := cliServer(t)
+	srv, got := cliServer(t)
+	defer srv.Close()
 	cmd := riskCmd()
 	cmd.SetArgs([]string{"add", "--title", "R", "--owner", "o@x.io",
 		"--likelihood", "3", "--impact", "4",
@@ -142,7 +130,8 @@ func TestRiskAddSendsRelations(t *testing.T) {
 
 // #52: `legal add` must send --documents as references.
 func TestLegalAddSendsRelations(t *testing.T) {
-	_, got := cliServer(t)
+	srv, got := cliServer(t)
+	defer srv.Close()
 	cmd := legalCmd()
 	cmd.SetArgs([]string{"add", "--title", "GDPR", "--documents", "iso27001-18-1,iso27001-18-2"})
 	if err := cmd.Execute(); err != nil {

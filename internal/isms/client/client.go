@@ -518,8 +518,14 @@ func (c *Client) ResolveComment(id int) error {
 
 // --- Approvals ---
 
-func (c *Client) AddApproval(approval *db.Approval) error {
-	_, err := c.post("/v1/approvals", approval)
+// ApproveReview runs a review through the dedicated approval handler
+// (POST /reviews/:id/approve), which records the decision log, content hash and
+// status transition atomically. decision is "approved" or "changes_requested".
+func (c *Client) ApproveReview(id int, decision, comment string) error {
+	_, err := c.post(fmt.Sprintf("/v1/reviews/%d/approve", id), map[string]string{
+		"decision": decision,
+		"comment":  comment,
+	})
 	return err
 }
 

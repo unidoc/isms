@@ -1141,6 +1141,10 @@ func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	}
 	if t.Priority == "" { t.Priority = "medium" }
 	if t.TaskType == "" { t.TaskType = "general" }
+	// tasks.assignee_id is NOT NULL; default to the applier when the suggestion carries none.
+	if t.Assignee == "" {
+		t.Assignee = actor
+	}
 	if err := db.CreateTaskTx(ctx, tx, orgID, &t); err != nil {
 		return "", err
 	}

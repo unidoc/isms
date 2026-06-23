@@ -153,6 +153,23 @@ isms document list
 isms risk list
 ```
 
+### Shell completion
+
+The CLI ships completion for bash, zsh, fish, and PowerShell:
+
+```bash
+isms completion bash        # print the script
+source <(isms completion bash)   # load it for the current shell
+
+# install permanently (bash, Linux):
+isms completion bash | sudo tee /etc/bash_completion.d/isms >/dev/null
+
+# zsh:
+isms completion zsh > "${fpath[1]}/_isms"
+```
+
+Run `isms completion --help` for per-shell install instructions.
+
 ### Setup AI Agent
 
 ```bash

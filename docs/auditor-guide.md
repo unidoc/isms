@@ -240,8 +240,8 @@ The platform has four roles, in descending order of privilege:
 |------|-----------|---------|-----------|-------------|-------|
 | **Admin** | Read, write | Send, approve, merge | Full CRUD | Apply, reject | Full org management |
 | **Manager** | Read, write | Send, approve, merge | Full CRUD | Apply, reject | -- |
-| **Contributor** | Read, write | Send, comment | Full CRUD | Create, edit own | -- |
-| **Reader** | Read only | Comment (when assigned) | Read only | Create | -- |
+| **Contributor** | Read | Comment (when assigned) | Read — propose via suggestions | Create, edit own | -- |
+| **Reader** | Read only | Comment (when assigned) | Read only | -- | -- |
 
 Important details:
 

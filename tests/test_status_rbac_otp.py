@@ -48,12 +48,14 @@ class TestStatusChangeRBAC:
                          json={"status": "investigating"})
         assert r.status_code == 403, f"contributor changed incident status (#24): {r.status_code} {r.text}"
 
-    def test_contributor_can_still_edit_nonstatus_incident_fields(
+    def test_contributor_cannot_edit_incident_at_all(
             self, api_url, admin_headers, contributor_headers):
+        # Since #23, contributors are suggest-only — they cannot edit an incident
+        # directly at all (not just its status); they propose via suggestions.
         iid = _make_incident(api_url, admin_headers)
         r = requests.put(f"{api_url}/incidents/{iid}", headers=contributor_headers,
                          json={"description": "contributor edited the description"})
-        assert r.status_code == 200, f"non-status edit must still work: {r.status_code} {r.text}"
+        assert r.status_code == 403, f"contributor must not edit incidents directly (#23): {r.status_code} {r.text}"
 
     def test_manager_can_change_incident_status_via_general_edit(
             self, api_url, admin_headers):

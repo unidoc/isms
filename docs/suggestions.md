@@ -10,11 +10,12 @@ They are the generic mechanism for proposing change without directly mutating th
 
 That means suggestions can be created by:
 
-- readers
 - contributors
 - managers
 - admins
 - agent users / AI accounts
+
+(Readers are read-only and cannot create suggestions.)
 
 The goal is simple:
 
@@ -340,15 +341,16 @@ The reviewer should be able to answer:
 
 ### Reader
 
-- Create suggestions
+- Read-only — readers cannot create suggestions.
 - View suggestions visible to them
-- Withdraw their own open suggestions
-- Delete their own open suggestions
 
 ### Contributor
 
-- Everything reader can do
+- Create suggestions
+- View suggestions visible to them
 - Edit their own open suggestions (`payload`, `rationale`, `source_refs`)
+- Withdraw their own open suggestions
+- Delete their own open suggestions
 
 ### Manager / Admin
 

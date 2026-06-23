@@ -1,14 +1,16 @@
-"""Contributor role tests.
+"""Contributor and reader role enforcement (#23).
 
-Contributors can: create incidents, change requests, tasks, add comments.
-Contributors cannot: approve reviews, create/edit risks, manage templates, admin actions.
+The decided model: a contributor proposes and reports *through suggestions* and
+comments — it does NOT directly create or edit entities (same path as an AI
+agent). A reader is read-only and cannot even suggest. Managers/admins mutate
+directly and apply/reject suggestions.
 """
 import requests
-from conftest import CONTRIBUTOR_EMAIL
+from conftest import CONTRIBUTOR_EMAIL, READER_EMAIL
 
 
 class TestContributorCanDo:
-    """Things a contributor is allowed to do."""
+    """Things a contributor is allowed to do: read everything, propose via suggestions."""
 
     def test_can_read_risks(self, api_url, contributor_headers):
         r = requests.get(f"{api_url}/risks", headers=contributor_headers)
@@ -18,45 +20,63 @@ class TestContributorCanDo:
         r = requests.get(f"{api_url}/documents/all", headers=contributor_headers)
         assert r.status_code == 200
 
-    def test_can_read_suppliers(self, api_url, contributor_headers):
-        r = requests.get(f"{api_url}/suppliers", headers=contributor_headers)
-        assert r.status_code == 200
-
     def test_can_read_incidents(self, api_url, contributor_headers):
         r = requests.get(f"{api_url}/incidents", headers=contributor_headers)
         assert r.status_code == 200
 
-    def test_can_create_incident(self, api_url, contributor_headers):
-        r = requests.post(f"{api_url}/incidents", headers=contributor_headers, json={
-            "title": "Contributor reported incident",
-            "description": "Found an issue during maintenance",
-            "severity": "medium",
-            "affects_a": True,
-            "incident_type": "event",
-            "source": "internal",
-            "reporter": CONTRIBUTOR_EMAIL,
-        })
-        assert r.status_code in [200, 201], f"Failed: {r.text}"
+    def test_can_read_suppliers(self, api_url, contributor_headers):
+        r = requests.get(f"{api_url}/suppliers", headers=contributor_headers)
+        assert r.status_code == 200
 
-    def test_can_create_change_request(self, api_url, contributor_headers):
-        r = requests.post(f"{api_url}/changes", headers=contributor_headers, json={
-            "title": "Update firewall rules for new office",
-            "description": "Need to allow traffic from new office IP range",
-            "status": "proposed",
-        })
-        assert r.status_code in [200, 201], f"Failed: {r.text}"
-
-    def test_can_create_task(self, api_url, contributor_headers):
-        r = requests.post(f"{api_url}/tasks", headers=contributor_headers, json={
-            "title": "Patch server CVE-2026-1234",
-            "task_type": "incident_followup",
+    def test_can_update_status_of_own_assigned_task(self, api_url, admin_headers, contributor_headers):
+        """Ownership exception (#23): a contributor may advance their own task's status."""
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Ownership test task", "task_type": "general",
             "assignee": CONTRIBUTOR_EMAIL,
         })
-        assert r.status_code in [200, 201], f"Failed: {r.text}"
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 200, f"contributor must update own task status: {r.text}"
+
+    def test_can_create_suggestion(self, api_url, contributor_headers):
+        """A contributor's input flows through suggestions, not direct creation."""
+        r = requests.post(f"{api_url}/suggestions", headers=contributor_headers, json={
+            "entity_type": "risk",
+            "suggestion_type": "create",
+            "title": "Contributor-proposed risk",
+            "rationale": "Spotted during operations",
+            "payload": {
+                "title": "Contributor-proposed risk",
+                "description": "Proposed by a contributor for manager review",
+                "category": "technology", "risk_type": "threat", "origin": "internal",
+            },
+        })
+        assert r.status_code in [200, 201], f"contributor must be able to suggest: {r.text}"
 
 
 class TestContributorCannotDo:
-    """Things a contributor is NOT allowed to do."""
+    """A contributor cannot directly create or edit entities — it must suggest."""
+
+    def test_cannot_create_incident(self, api_url, contributor_headers):
+        r = requests.post(f"{api_url}/incidents", headers=contributor_headers, json={
+            "title": "Should be a suggestion", "description": "d", "severity": "medium",
+            "incident_type": "event", "source": "internal", "reporter": CONTRIBUTOR_EMAIL,
+        })
+        assert r.status_code == 403, f"contributor must not create incidents directly (#23): {r.text}"
+
+    def test_cannot_create_change_request(self, api_url, contributor_headers):
+        r = requests.post(f"{api_url}/changes", headers=contributor_headers, json={
+            "title": "Should be a suggestion", "description": "d", "status": "proposed",
+        })
+        assert r.status_code == 403, f"contributor must not create change requests directly (#23): {r.text}"
+
+    def test_cannot_create_task(self, api_url, contributor_headers):
+        r = requests.post(f"{api_url}/tasks", headers=contributor_headers, json={
+            "title": "Should be a suggestion", "task_type": "general",
+            "assignee": CONTRIBUTOR_EMAIL,
+        })
+        assert r.status_code == 403, f"contributor must not create tasks directly (#23): {r.text}"
 
     def test_cannot_create_risk(self, api_url, contributor_headers):
         r = requests.post(f"{api_url}/risks", headers=contributor_headers, json={
@@ -120,3 +140,38 @@ class TestContributorCannotDo:
 
         d = requests.delete(f"{api_url}/risks/{risk_id}", headers=contributor_headers)
         assert d.status_code == 403
+
+    def test_cannot_update_status_of_unassigned_task(self, api_url, admin_headers, contributor_headers):
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Unassigned task", "task_type": "general",
+        })
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 403, f"contributor must not update an unassigned task (#23): {r.text}"
+
+    def test_cannot_update_status_of_other_persons_task(self, api_url, admin_headers, contributor_headers):
+        # Assign to a real org member who isn't the contributor (task create
+        # validates org membership, so the assignee must exist).
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Other person task", "task_type": "general",
+            "assignee": READER_EMAIL,
+        })
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 403, f"contributor must not update another person's task (#23): {r.text}"
+
+
+class TestReaderIsReadOnly:
+    """A reader cannot suggest — suggestions are the contributor entry point, not reader."""
+
+    def test_reader_cannot_create_suggestion(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/suggestions", headers=reader_headers, json={
+            "entity_type": "risk",
+            "suggestion_type": "create",
+            "title": "Reader should not be able to suggest",
+            "rationale": "read-only",
+            "payload": {"title": "x", "category": "technology", "risk_type": "threat", "origin": "internal"},
+        })
+        assert r.status_code == 403, f"reader is read-only and must not create suggestions (#23): {r.text}"

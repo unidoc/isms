@@ -6,7 +6,7 @@ agent). A reader is read-only and cannot even suggest. Managers/admins mutate
 directly and apply/reject suggestions.
 """
 import requests
-from conftest import CONTRIBUTOR_EMAIL
+from conftest import CONTRIBUTOR_EMAIL, READER_EMAIL
 
 
 class TestContributorCanDo:
@@ -23,6 +23,21 @@ class TestContributorCanDo:
     def test_can_read_incidents(self, api_url, contributor_headers):
         r = requests.get(f"{api_url}/incidents", headers=contributor_headers)
         assert r.status_code == 200
+
+    def test_can_read_suppliers(self, api_url, contributor_headers):
+        r = requests.get(f"{api_url}/suppliers", headers=contributor_headers)
+        assert r.status_code == 200
+
+    def test_can_update_status_of_own_assigned_task(self, api_url, admin_headers, contributor_headers):
+        """Ownership exception (#23): a contributor may advance their own task's status."""
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Ownership test task", "task_type": "general",
+            "assignee": CONTRIBUTOR_EMAIL,
+        })
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 200, f"contributor must update own task status: {r.text}"
 
     def test_can_create_suggestion(self, api_url, contributor_headers):
         """A contributor's input flows through suggestions, not direct creation."""
@@ -125,6 +140,27 @@ class TestContributorCannotDo:
 
         d = requests.delete(f"{api_url}/risks/{risk_id}", headers=contributor_headers)
         assert d.status_code == 403
+
+    def test_cannot_update_status_of_unassigned_task(self, api_url, admin_headers, contributor_headers):
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Unassigned task", "task_type": "general",
+        })
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 403, f"contributor must not update an unassigned task (#23): {r.text}"
+
+    def test_cannot_update_status_of_other_persons_task(self, api_url, admin_headers, contributor_headers):
+        # Assign to a real org member who isn't the contributor (task create
+        # validates org membership, so the assignee must exist).
+        t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+            "title": "Other person task", "task_type": "general",
+            "assignee": READER_EMAIL,
+        })
+        assert t.status_code in [200, 201], t.text
+        r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 403, f"contributor must not update another person's task (#23): {r.text}"
 
 
 class TestReaderIsReadOnly:

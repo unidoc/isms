@@ -13,9 +13,9 @@ That means suggestions can be created by:
 - contributors
 - managers
 - admins
+- agent users / AI accounts
 
 (Readers are read-only and cannot create suggestions.)
-- agent users / AI accounts
 
 The goal is simple:
 

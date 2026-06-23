@@ -100,7 +100,11 @@ func init() {
 
 func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 	// Contributors and managers create suggestions; readers are read-only (#23).
-	// The middleware already blocks readers from this write path.
+	// Explicit guard (not just the role middleware) so this can't silently open
+	// if the middleware's reader-exception list ever changes.
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)

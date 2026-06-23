@@ -1136,6 +1136,12 @@ func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	}
 	if t.Priority == "" { t.Priority = "medium" }
 	if t.TaskType == "" { t.TaskType = "general" }
+	// Tasks require an assignee (tasks.assignee_id is NOT NULL). A suggested task
+	// often has none, which previously surfaced as a raw SQL constraint error on
+	// apply. Default to the manager applying it — they can reassign in edit.
+	if t.Assignee == "" {
+		t.Assignee = actor
+	}
 	if err := db.CreateTaskTx(ctx, tx, orgID, &t); err != nil {
 		return "", err
 	}

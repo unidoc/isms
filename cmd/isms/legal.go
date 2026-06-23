@@ -53,7 +53,9 @@ func legalAddCmd() *cobra.Command {
 				Completion:        completion,
 			}
 
-			result, err := c.CreateLegal(lr)
+			result, err := c.CreateLegal(lr, buildRefs(
+				refSpec{"document", linkedDocs},
+			))
 			if err != nil {
 				return err
 			}

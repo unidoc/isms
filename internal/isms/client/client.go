@@ -299,8 +299,20 @@ func (c *Client) ListRisks() ([]db.Risk, error) {
 	return result, unwrapList(data, &result)
 }
 
-func (c *Client) AddRisk(risk *db.Risk) (*db.Risk, error) {
-	data, err := c.post("/v1/risks", risk)
+// Reference is an entity relation to create alongside a new entity. It mirrors
+// the API's "references" field ({type, id}); the create handlers turn each into
+// a bidirectional entity reference.
+type Reference struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+}
+
+func (c *Client) AddRisk(risk *db.Risk, refs []Reference) (*db.Risk, error) {
+	body := struct {
+		*db.Risk
+		References []Reference `json:"references,omitempty"`
+	}{risk, refs}
+	data, err := c.post("/v1/risks", body)
 	if err != nil {
 		return nil, err
 	}
@@ -819,8 +831,12 @@ func (c *Client) ListLegal(status string) ([]db.LegalRequirement, error) {
 	return result, unwrapList(data, &result)
 }
 
-func (c *Client) CreateLegal(lr *db.LegalRequirement) (*db.LegalRequirement, error) {
-	data, err := c.post("/v1/legal", lr)
+func (c *Client) CreateLegal(lr *db.LegalRequirement, refs []Reference) (*db.LegalRequirement, error) {
+	body := struct {
+		*db.LegalRequirement
+		References []Reference `json:"references,omitempty"`
+	}{lr, refs}
+	data, err := c.post("/v1/legal", body)
 	if err != nil {
 		return nil, err
 	}
@@ -869,8 +885,12 @@ func (c *Client) ListIncidents(status, severity string) ([]db.Incident, error) {
 	return result, unwrapList(data, &result)
 }
 
-func (c *Client) CreateIncident(inc *db.Incident) (*db.Incident, error) {
-	data, err := c.post("/v1/incidents", inc)
+func (c *Client) CreateIncident(inc *db.Incident, refs []Reference) (*db.Incident, error) {
+	body := struct {
+		*db.Incident
+		References []Reference `json:"references,omitempty"`
+	}{inc, refs}
+	data, err := c.post("/v1/incidents", body)
 	if err != nil {
 		return nil, err
 	}

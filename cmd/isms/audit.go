@@ -404,7 +404,11 @@ func auditCompleteCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			if err := c.UpdateAuditStatus(id, "completed"); err != nil {
+			// summary was silently dropped before #49; send it atomically with status.
+			if _, err := c.UpdateAudit(id, map[string]interface{}{
+				"status":  "completed",
+				"summary": summary,
+			}); err != nil {
 				return err
 			}
 			fmt.Printf("Audit #%d completed.\n", id)

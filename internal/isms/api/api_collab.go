@@ -1891,7 +1891,7 @@ func (s *Server) handleTaskStats(c echo.Context) error {
 }
 
 func (s *Server) handleCreateTask(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -1988,6 +1988,12 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	before, err := s.db.GetTask(ctx, orgID, id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+	}
+	// Ownership: a contributor may advance the status of a task assigned to them
+	// (doing their own work), but not other people's tasks. Managers/admins may
+	// change any task's status (#23).
+	if role, _ := c.Get("user_role").(string); role == "contributor" && before.Assignee != getUserEmail(c) {
+		return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of tasks assigned to them")
 	}
 	if err := s.db.UpdateTaskStatus(ctx, orgID, id, req.Status); err != nil {
 		return pgxHTTPError(err)
@@ -2271,7 +2277,7 @@ func (s *Server) handleGetChange(c echo.Context) error {
 }
 
 func (s *Server) handleCreateChange(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -2348,7 +2354,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 }
 
 func (s *Server) handleUpdateChange(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div v-if="canSuggest" class="relative">
     <button @click="showForm = !showForm"
       class="px-3 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 text-sm font-medium rounded-lg transition-colors">
       Suggest
@@ -53,6 +53,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { api } from '../api'
+import { useSession } from '../composables/useSession'
+
+// Suggestions are the contributor entry point; readers are read-only (#23), so
+// hide the control entirely for them rather than letting it 403 on submit.
+const { currentUserData } = useSession()
+const canSuggest = computed(() => (currentUserData.value?.role || '') !== 'reader')
 
 const props = defineProps({
   entityType: { type: String, required: true },

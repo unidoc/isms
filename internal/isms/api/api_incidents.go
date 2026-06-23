@@ -98,7 +98,7 @@ func (s *Server) handleListIncidents(c echo.Context) error {
 }
 
 func (s *Server) handleCreateIncident(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -259,7 +259,7 @@ func (s *Server) handleGetIncident(c echo.Context) error {
 }
 
 func (s *Server) handleUpdateIncident(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)

@@ -99,7 +99,8 @@ func init() {
 // ═══════════════════════════════════════════════════════════════════════
 
 func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
-	// Any authenticated user can create suggestions (reader+)
+	// Contributors and managers create suggestions; readers are read-only (#23).
+	// The middleware already blocks readers from this write path.
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)

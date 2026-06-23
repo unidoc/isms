@@ -404,7 +404,14 @@ func auditCompleteCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			if err := c.UpdateAuditStatus(id, "completed"); err != nil {
+			// Send the auditor summary alongside the status transition. The
+			// update endpoint routes the status change through UpdateAuditStatus
+			// and persists the summary in the same call — previously the
+			// (required) --summary flag was collected and silently dropped (#49).
+			if _, err := c.UpdateAudit(id, map[string]interface{}{
+				"status":  "completed",
+				"summary": summary,
+			}); err != nil {
 				return err
 			}
 			fmt.Printf("Audit #%d completed.\n", id)

@@ -89,7 +89,10 @@ func riskAddCmd() *cobra.Command {
 				NextReview:                     rd,
 				Notes:                          notes,
 			}
-			result, err := c.AddRisk(r)
+			result, err := c.AddRisk(r, buildRefs(
+				refSpec{"asset", assets},
+				refSpec{"document", linkedDocs},
+			))
 			if err != nil {
 				return err
 			}

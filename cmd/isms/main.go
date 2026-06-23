@@ -225,6 +225,28 @@ func requireAPI() *client.Client {
 	return c
 }
 
+// refSpec pairs a reference type with the target IDs from a CLI relation flag
+// (e.g. --risks RISK-001,RISK-002 → {typ: "risk", ids: [...]}).
+type refSpec struct {
+	typ string
+	ids []string
+}
+
+// buildRefs flattens relation-flag values into client references, skipping
+// blanks. Used by `add` commands so their declared relation flags are sent
+// rather than silently dropped (#52).
+func buildRefs(specs ...refSpec) []client.Reference {
+	var refs []client.Reference
+	for _, s := range specs {
+		for _, id := range s.ids {
+			if id = strings.TrimSpace(id); id != "" {
+				refs = append(refs, client.Reference{Type: s.typ, ID: id})
+			}
+		}
+	}
+	return refs
+}
+
 // intVal safely dereferences an *int, returning 0 for nil.
 func intVal(p *int) int {
 	if p == nil {

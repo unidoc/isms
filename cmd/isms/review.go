@@ -136,11 +136,8 @@ func reviewApproveCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			// Go through the dedicated approval handler so the decision log,
-			// content hash and status transition happen atomically. The old code
-			// hit PUT /reviews/:id/status with "approved", which the server
-			// rejects (status endpoint only allows "closed"), and side-stepped the
-			// approval governance (#51).
+			// The status endpoint only accepts "closed"; other transitions go
+			// through dedicated handlers — approve via the real approval handler (#51).
 			if err := c.ApproveReview(id, "approved", comment); err != nil {
 				return err
 			}

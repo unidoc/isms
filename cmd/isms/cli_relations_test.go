@@ -164,4 +164,7 @@ func TestReviewApproveUsesApprovalEndpoint(t *testing.T) {
 	if r.body["decision"] != "approved" {
 		t.Errorf("decision not sent as 'approved': body=%v", r.body)
 	}
+	if r.body["comment"] != "LGTM" {
+		t.Errorf("comment not forwarded: body=%v", r.body)
+	}
 }

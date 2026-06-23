@@ -113,8 +113,10 @@ async function putJSON(url, data) {
   return res.json()
 }
 
-async function deleteJSON(url) {
-  const res = await safeFetch(url, { method: 'DELETE', headers: getHeaders() })
+async function deleteJSON(url, data) {
+  const opts = { method: 'DELETE', headers: getHeaders() }
+  if (data !== undefined) opts.body = JSON.stringify(data)
+  const res = await safeFetch(url, opts)
   checkAuth(res)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

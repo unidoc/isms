@@ -2396,6 +2396,11 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	// Route status changes through the dedicated transition function so that
 	// approved_at / implemented_at are cleared correctly on reverse transitions.
 	if req.Status != nil && *req.Status != old.Status {
+		// Changing status is a manager/admin action — match the dedicated status
+		// endpoint so the general edit endpoint can't be used as an RBAC bypass (#24).
+		if err := requireRole(c, "admin", "manager"); err != nil {
+			return err
+		}
 		if err := s.db.UpdateChangeRequestStatus(ctx, orgID, id, *req.Status, getUserEmail(c)); err != nil {
 			return pgxHTTPError(err)
 		}

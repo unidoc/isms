@@ -214,7 +214,7 @@
                           <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
                         </select>
                       </div>
-                      <div>
+                      <div v-if="canWrite">
                         <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <option value="proposed">Proposed</option>
@@ -462,6 +462,9 @@ useModalEscape(showCreate)
 useModalEscape(computed(() => !!selectedChange.value), () => closeDetail())
 
 const canCreate = computed(() => ['admin', 'manager', 'contributor'].includes(userRole.value))
+// Status transitions are manager/admin-only (the API rejects others with 403),
+// so only managers/admins see the status control (#24).
+const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 const pendingRefs = ref([])
 
 const form = ref({ title: '', priority: 'medium', category: 'process' })

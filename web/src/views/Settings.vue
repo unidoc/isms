@@ -67,10 +67,16 @@
           <span class="text-sm text-emerald-400">OTP is enabled</span>
         </div>
         <p class="text-xs text-slate-500">Your account is protected with a time-based one-time password.</p>
-        <button @click="disableOTP" :disabled="disablingOTP"
-          class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg border border-red-600/30 transition-colors disabled:opacity-50">
-          {{ disablingOTP ? 'Disabling...' : 'Disable OTP' }}
-        </button>
+        <p class="text-xs text-slate-500">Enter a current code from your authenticator to turn it off.</p>
+        <div class="flex items-center gap-2">
+          <input v-model="disableCode" type="text" maxlength="6" inputmode="numeric" placeholder="000000"
+            @input="disableCode = disableCode.replace(/\D/g, '').slice(0, 6)"
+            class="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white tracking-widest text-center focus:outline-none focus:border-red-500" />
+          <button @click="disableOTP" :disabled="disablingOTP || disableCode.length !== 6"
+            class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg border border-red-600/30 transition-colors disabled:opacity-50">
+            {{ disablingOTP ? 'Disabling...' : 'Disable OTP' }}
+          </button>
+        </div>
       </div>
 
       <!-- OTP setup flow -->
@@ -290,6 +296,7 @@ const otpEnabled = ref(false)
 const otpSecret = ref('')
 const otpURI = ref('')
 const otpCode = ref('')
+const disableCode = ref('')
 const settingUpOTP = ref(false)
 const verifyingOTP = ref(false)
 const disablingOTP = ref(false)
@@ -384,8 +391,9 @@ async function disableOTP() {
   disablingOTP.value = true
   otpMsg.value = ''
   try {
-    await api.deleteJSON('/api/v1/auth/otp')
+    await api.deleteJSON('/api/v1/auth/otp', { code: disableCode.value })
     otpEnabled.value = false
+    disableCode.value = ''
     otpMsg.value = 'OTP disabled'
     otpError.value = false
   } catch (e) {

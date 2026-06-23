@@ -324,6 +324,12 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	// Route status changes through the dedicated transition function so that
 	// contained_at / resolved_at / closed_at are cleared correctly on reverse transitions.
 	if req.Status != nil && *req.Status != existing.Status {
+		// Changing status is a manager/admin action. The dedicated status
+		// endpoint already enforces this; the general edit endpoint must apply
+		// the same rule so it can't be used as an RBAC bypass (#24).
+		if err := requireRole(c, "admin", "manager"); err != nil {
+			return err
+		}
 		// Same rule as the dedicated status endpoint: cannot resolve/close an
 		// incident with open corrective actions still linked.
 		if *req.Status == "closed" || *req.Status == "resolved" {

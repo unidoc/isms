@@ -583,11 +583,28 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 // --- Self-service: OTP disable ---
 
 func (s *Server) handleOTPDisable(c echo.Context) error {
+	var req otpVerifyRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+	}
+
+	// Re-authenticate with the current OTP code before removing the second
+	// factor — otherwise a hijacked session could silently disable 2FA (#27).
+	if user.OTPSecret == nil || *user.OTPSecret == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "OTP is not enabled")
+	}
+	if req.Code == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "current OTP code is required to disable OTP")
+	}
+	if !verifyTOTP(*user.OTPSecret, req.Code) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid OTP code")
 	}
 
 	if err := s.db.ClearOTP(ctx, user.ID); err != nil {

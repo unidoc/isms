@@ -263,11 +263,14 @@
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
               <select v-model="newTask.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="review">Review</option>
-                <option value="implementation">Implementation</option>
-                <option value="corrective_action">Corrective Action</option>
-                <option value="change_request">Change Request</option>
+                <!-- Manual task types only. The *_followup types are created
+                     automatically by the system, not chosen here (#32). -->
                 <option value="general">General</option>
+                <option value="review">Review</option>
+                <option value="onboarding">Onboarding</option>
+                <option value="offboarding">Offboarding</option>
+                <option value="training">Training</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>

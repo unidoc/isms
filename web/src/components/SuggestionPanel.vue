@@ -4,10 +4,12 @@
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
     <div v-else-if="suggestions.length === 0 && !showCreate" class="text-sm text-slate-600 italic py-2">No suggestions yet.</div>
     <div v-else class="space-y-2">
-      <!-- Make the nature of suggestions unmistakable: they're proposals under
-           review, not changes that have happened yet (#88). -->
+      <!-- Make the nature of suggestions unmistakable: they're proposals
+           pending a decision, not changes that have happened yet (#88).
+           openCount covers both 'open' and 'in_review', so the wording must
+           fit both — not just the 'Under review' state. -->
       <p v-if="openCount > 0" class="text-[11px] text-amber-400/90 bg-amber-500/5 border border-amber-500/15 rounded-md px-2.5 py-1.5">
-        Under review — proposed changes that take effect only once a manager applies them.
+        Proposals pending — these changes take effect only once a manager applies them.
       </p>
       <div v-for="sg in suggestions" :key="sg.id"
         class="bg-slate-800/40 border border-slate-700/40 rounded-lg px-4 py-3 space-y-2">

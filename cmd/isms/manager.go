@@ -96,9 +96,13 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	if err == nil {
 		for _, s := range suppliers {
 			if s.NextReview == nil || s.NextReview.IsZero() {
+				before := s.ToChangeMap()
 				s.CalculateNextReview()
 				if err := d.UpdateSupplier(ctx, orgID, &s); err == nil {
 					backfilled++
+					if changes := db.DiffFields("supplier", int64(s.ID), "system", "automated next_review backfill", before, s.ToChangeMap()); len(changes) > 0 {
+						_ = d.LogChanges(ctx, orgID, changes)
+					}
 				}
 			}
 		}
@@ -109,9 +113,13 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	if err == nil {
 		for _, sys := range systems {
 			if sys.NextReview == nil || sys.NextReview.IsZero() {
+				before := sys.ToChangeMap()
 				sys.CalculateNextReview()
 				if err := d.UpdateSystem(ctx, orgID, &sys); err == nil {
 					backfilled++
+					if changes := db.DiffFields("system", int64(sys.ID), "system", "automated next_review backfill", before, sys.ToChangeMap()); len(changes) > 0 {
+						_ = d.LogChanges(ctx, orgID, changes)
+					}
 				}
 			}
 		}

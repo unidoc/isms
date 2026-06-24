@@ -438,7 +438,27 @@ export const api = {
     return res.json()
   },
   getEvidence: (checkinId) => fetchJSON(`${API}/checkins/${checkinId}/evidence`),
-  downloadEvidence: (id) => fetchJSON(`${API}/evidence/${id}/download`),
+  // Evidence download has two backends: S3 returns JSON {url} to redirect to;
+  // the local (file) backend streams the file directly. Branch on Content-Type
+  // so the local backend works instead of failing to parse bytes as JSON (#31).
+  downloadEvidence: async (id) => {
+    const res = await fetch(`${API}/evidence/${id}/download`, { headers: getHeaders() })
+    if (res.status === 401) {
+      clearApiToken()
+      window.dispatchEvent(new Event('isms:unauthorized'))
+      const e = new Error('Authentication required'); e.status = 401; throw e
+    }
+    if (!res.ok) {
+      const e = new Error(`${res.status} ${res.statusText}`); e.status = res.status; throw e
+    }
+    if ((res.headers.get('content-type') || '').includes('application/json')) {
+      return await res.json() // S3 backend: { url, title, content_type }
+    }
+    // Local backend: the file itself — hand back a blob + filename to save.
+    const cd = res.headers.get('content-disposition') || ''
+    const m = /filename="?([^"]+)"?/.exec(cd)
+    return { blob: await res.blob(), filename: m ? m[1] : `evidence-${id}` }
+  },
   deleteEvidence: (id) => deleteJSON(`${API}/evidence/${id}`),
 
   // Overdue

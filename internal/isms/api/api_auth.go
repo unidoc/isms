@@ -738,18 +738,27 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "email not configured (SMTP_HOST)")
 	}
 
+	// Invalidate any still-live invite tokens before issuing a new one, so a
+	// leaked/intercepted earlier link can't be used in parallel with this one.
+	if err := s.db.InvalidateEmailVerifications(ctx, user.ID, "verify"); err != nil {
+		log.Printf("resend-invite: invalidating old tokens for %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
+	}
+
 	// Fresh verification token (72h), same as the original invite.
 	raw := make([]byte, 32)
 	rand.Read(raw)
 	token := hex.EncodeToString(raw)
 	hash := sha256.Sum256([]byte(token))
 	if err := s.db.CreateEmailVerification(ctx, user.ID, hex.EncodeToString(hash[:])); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification: "+err.Error())
+		log.Printf("resend-invite: creating verification for %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
 	}
 
 	m := s.orgMail(ctx, orgID)
 	if err := s.mailer.SendVerificationBranded(user.Email, user.Name, m.PublicURL, token, m.Branding); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "sending email: "+err.Error())
+		log.Printf("resend-invite: sending email to %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to send invite email")
 	}
 
 	s.logAndNotify(ctx, orgID, &db.Activity{

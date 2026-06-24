@@ -905,6 +905,7 @@ async function sendInvite() {
 
 async function resendInvite(member) {
   membersMsg.value = ''
+  membersError.value = false
   try {
     await api.postJSON('/api/v1/auth/resend-invite', { email: member.email })
     membersMsg.value = `Invite resent to ${member.email}`

@@ -16,10 +16,10 @@ type Setting struct {
 
 // OrgSetting is a per-org setting value.
 type OrgSetting struct {
-	Key         string  `json:"key"`
-	Value       string  `json:"value"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
 }
 
 // ListSettings returns all known settings.

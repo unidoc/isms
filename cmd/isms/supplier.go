@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/db"
 )
 
 func supplierCmd() *cobra.Command {

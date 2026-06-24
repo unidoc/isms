@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"text/tabwriter"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/db"
 )
 
 // connectDB connects to Postgres using DATABASE_URL.

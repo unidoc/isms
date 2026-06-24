@@ -819,8 +819,8 @@ func handleRequest(client *apiClient, req *jsonRPCRequest) *jsonRPCResponse {
 			ID:      req.ID,
 			Result: map[string]interface{}{
 				"protocolVersion": "2024-11-05",
-				"capabilities":   map[string]interface{}{"tools": map[string]interface{}{}},
-				"serverInfo":     map[string]interface{}{"name": "isms-mcp", "version": "1.0.0"},
+				"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
+				"serverInfo":      map[string]interface{}{"name": "isms-mcp", "version": "1.0.0"},
 			},
 		}
 	case "notifications/initialized":

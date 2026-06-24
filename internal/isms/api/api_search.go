@@ -21,10 +21,10 @@ type SearchEntry struct {
 
 // SearchIndex is a per-org in-memory search index that avoids 10+ DB queries per keystroke.
 type SearchIndex struct {
-	mu      sync.RWMutex
-	entries map[int][]SearchEntry // orgID -> entries
-	built   map[int]time.Time    // orgID -> last build time
-	building sync.Map            // orgID -> struct{} — prevents concurrent builds for same org
+	mu       sync.RWMutex
+	entries  map[int][]SearchEntry // orgID -> entries
+	built    map[int]time.Time     // orgID -> last build time
+	building sync.Map              // orgID -> struct{} — prevents concurrent builds for same org
 }
 
 const searchIndexTTL = 5 * time.Minute
@@ -150,9 +150,9 @@ func (s *Server) buildSearchIndex(orgID int) {
 	defer cancel()
 
 	var (
-		mu      sync.Mutex
-		wg      sync.WaitGroup
-		all     []SearchEntry
+		mu  sync.Mutex
+		wg  sync.WaitGroup
+		all []SearchEntry
 	)
 
 	collect := func(fn func() []SearchEntry) {

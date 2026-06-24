@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/api"
 	"isms.sh/internal/isms/db"
-	"github.com/spf13/cobra"
 )
 
 func serveCmd() *cobra.Command {

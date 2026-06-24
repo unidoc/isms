@@ -264,21 +264,21 @@ func (d *DB) MigrateFS(ctx context.Context, fsys fs.FS, dir string) error {
 // --- Reviews ---
 
 type Review struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	DocumentID     string    `json:"document_id"`
-	DocumentType   string    `json:"document_type"`
-	Title          string    `json:"title"`
-	Version        string    `json:"version"`
-	CommitHash     string    `json:"commit_hash,omitempty"`
-	SentHead       string    `json:"sent_head,omitempty"`
-	MergeCommit    string    `json:"merge_commit,omitempty"`
-	Round          int       `json:"round"`
-	RequestedBy    string    `json:"requested_by"`
-	Message        string    `json:"message"`
-	Status         string    `json:"status"`
-	CreatedAt      Epoch `json:"created_at"`
-	UpdatedAt      Epoch `json:"updated_at"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	DocumentID     string `json:"document_id"`
+	DocumentType   string `json:"document_type"`
+	Title          string `json:"title"`
+	Version        string `json:"version"`
+	CommitHash     string `json:"commit_hash,omitempty"`
+	SentHead       string `json:"sent_head,omitempty"`
+	MergeCommit    string `json:"merge_commit,omitempty"`
+	Round          int    `json:"round"`
+	RequestedBy    string `json:"requested_by"`
+	Message        string `json:"message"`
+	Status         string `json:"status"`
+	CreatedAt      Epoch  `json:"created_at"`
+	UpdatedAt      Epoch  `json:"updated_at"`
 	// Computed fields for API
 	CommentCount int `json:"comment_count,omitempty"`
 	OpenComments int `json:"open_comments,omitempty"`
@@ -349,8 +349,10 @@ func (d *DB) ListReviews(ctx context.Context, orgID int, status string, limit in
 
 // ReviewListParams specifies filtering, sorting, and pagination for reviews.
 // Phase is a meta-filter that maps to a set of statuses:
-//   "open"   → open / changes_requested / approved
-//   "closed" → merged / closed
+//
+//	"open"   → open / changes_requested / approved
+//	"closed" → merged / closed
+//
 // Use Status for an exact single-status match instead.
 type ReviewListParams struct {
 	Page   int
@@ -621,18 +623,18 @@ func (d *DB) GetOpenReviewForDocument(ctx context.Context, orgID int, documentID
 // --- Comments ---
 
 type Comment struct {
-	ID             int        `json:"id"`
-	OrganizationID int        `json:"organization_id"`
-	ReviewID       *int       `json:"review_id,omitempty"`
-	DocumentID     string     `json:"document_id"`
-	Author         string     `json:"author"`
-	Body           string     `json:"body"`
-	Section        string     `json:"section,omitempty"`
-	ParagraphIndex *int       `json:"paragraph_index,omitempty"`
-	ParagraphHash  string     `json:"paragraph_hash,omitempty"`
-	Quote          string     `json:"quote,omitempty"`
-	ParentID       *int       `json:"parent_id,omitempty"`
-	Status         string     `json:"status"`
+	ID                   int     `json:"id"`
+	OrganizationID       int     `json:"organization_id"`
+	ReviewID             *int    `json:"review_id,omitempty"`
+	DocumentID           string  `json:"document_id"`
+	Author               string  `json:"author"`
+	Body                 string  `json:"body"`
+	Section              string  `json:"section,omitempty"`
+	ParagraphIndex       *int    `json:"paragraph_index,omitempty"`
+	ParagraphHash        string  `json:"paragraph_hash,omitempty"`
+	Quote                string  `json:"quote,omitempty"`
+	ParentID             *int    `json:"parent_id,omitempty"`
+	Status               string  `json:"status"`
 	ResolvedBy           string  `json:"resolved_by,omitempty"`
 	ResolvedAt           *Epoch  `json:"resolved_at,omitempty"`
 	SuggestionBody       *string `json:"suggestion_body,omitempty"`
@@ -804,14 +806,14 @@ func (d *DB) AllOpenComments(ctx context.Context, orgID int) ([]Comment, error) 
 // --- Approvals ---
 
 type Approval struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	ReviewID       *int      `json:"review_id,omitempty"`
-	DocumentID     string    `json:"document_id"`
-	Version        string    `json:"version"`
-	Round          int       `json:"round"`
-	Decision       string    `json:"decision"` // approved, changes_requested
-	ApprovedBy     string    `json:"approved_by"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	ReviewID       *int   `json:"review_id,omitempty"`
+	DocumentID     string `json:"document_id"`
+	Version        string `json:"version"`
+	Round          int    `json:"round"`
+	Decision       string `json:"decision"` // approved, changes_requested
+	ApprovedBy     string `json:"approved_by"`
 	Comment        string `json:"comment,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 }
@@ -851,12 +853,12 @@ func (d *DB) ApprovalsForDocument(ctx context.Context, orgID int, documentID str
 // --- Activity ---
 
 type Activity struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	DocumentID     string    `json:"document_id,omitempty"`
-	ReviewID       *int      `json:"review_id,omitempty"`
-	Actor          string    `json:"actor"`
-	Action         string    `json:"action"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	DocumentID     string `json:"document_id,omitempty"`
+	ReviewID       *int   `json:"review_id,omitempty"`
+	Actor          string `json:"actor"`
+	Action         string `json:"action"`
 	Detail         string `json:"detail,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 }

@@ -102,10 +102,10 @@ func TestPolicyMatches(t *testing.T) {
 // EvaluatePolicy is extracted pure logic for testing CheckReviewPolicy decisions
 // without a database. It mirrors the logic in CheckReviewPolicy after the DB calls.
 type policyInput struct {
-	policy      ApprovalPolicy
-	approvedBy  map[string]bool // unique approvers
-	humanFlags  map[string]bool // email → is human (true) or agent (false)
-	userRoles   map[string]string // email → org role
+	policy     ApprovalPolicy
+	approvedBy map[string]bool   // unique approvers
+	humanFlags map[string]bool   // email → is human (true) or agent (false)
+	userRoles  map[string]string // email → org role
 }
 
 func evaluatePolicy(in policyInput) *PolicyStatus {
@@ -444,27 +444,27 @@ func TestEvaluatePolicy_RequiredUsers(t *testing.T) {
 
 func TestEvaluatePolicy_AutoMerge(t *testing.T) {
 	tests := []struct {
-		name         string
-		autoMerge    bool
-		met          bool
+		name          string
+		autoMerge     bool
+		met           bool
 		wantAutoMerge bool
 	}{
 		{
-			name:         "auto merge enabled and met",
-			autoMerge:    true,
-			met:          true,
+			name:          "auto merge enabled and met",
+			autoMerge:     true,
+			met:           true,
 			wantAutoMerge: true,
 		},
 		{
-			name:         "auto merge enabled but not met",
-			autoMerge:    true,
-			met:          false,
+			name:          "auto merge enabled but not met",
+			autoMerge:     true,
+			met:           false,
 			wantAutoMerge: false,
 		},
 		{
-			name:         "auto merge disabled even if met",
-			autoMerge:    false,
-			met:          true,
+			name:          "auto merge disabled even if met",
+			autoMerge:     false,
+			met:           true,
 			wantAutoMerge: false,
 		},
 	}

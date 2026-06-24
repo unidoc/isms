@@ -46,9 +46,9 @@ type Event struct {
 	Actor    string
 	Action   string
 	Detail   string
-	Body     string // comment/task body (truncated)
-	Link     string // relative URL path, e.g. /documents/ISO27001-4.1
-	BaseURL  string // e.g. https://isms.unidoc.io
+	Body     string      // comment/task body (truncated)
+	Link     string      // relative URL path, e.g. /documents/ISO27001-4.1
+	BaseURL  string      // e.g. https://isms.unidoc.io
 	Channels OrgChannels // per-org credentials
 }
 

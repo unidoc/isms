@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
 	riskpkg "isms.sh/internal/isms/risk"
-	"github.com/spf13/cobra"
 )
 
 func riskCmd() *cobra.Command {
@@ -20,31 +20,31 @@ func riskCmd() *cobra.Command {
 
 func riskAddCmd() *cobra.Command {
 	var (
-		title                        string
-		description                  string
-		riskType                     string
-		origin                       string
-		category                     string
-		assets                       []string
-		currentLikelihood            int
-		currentImpact                int
-		confidentialityImpact        int
-		integrityImpact              int
-		availabilityImpact           int
-		inherentLikelihood           int
-		inherentImpact               int
+		title                         string
+		description                   string
+		riskType                      string
+		origin                        string
+		category                      string
+		assets                        []string
+		currentLikelihood             int
+		currentImpact                 int
+		confidentialityImpact         int
+		integrityImpact               int
+		availabilityImpact            int
+		inherentLikelihood            int
+		inherentImpact                int
 		inherentConfidentialityImpact int
-		inherentIntegrityImpact      int
-		inherentAvailabilityImpact   int
-		targetLikelihood             int
-		targetImpact                 int
-		treatment                    string
-		treatmentPlan                string
-		linkedDocs []string
-		owner                        string
-		status                       string
-		reviewDate                   string
-		notes                        string
+		inherentIntegrityImpact       int
+		inherentAvailabilityImpact    int
+		targetLikelihood              int
+		targetImpact                  int
+		treatment                     string
+		treatmentPlan                 string
+		linkedDocs                    []string
+		owner                         string
+		status                        string
+		reviewDate                    string
+		notes                         string
 	)
 
 	cmd := &cobra.Command{
@@ -66,27 +66,27 @@ func riskAddCmd() *cobra.Command {
 			r := &db.Risk{
 				Title:                         title,
 				Description:                   description,
-				RiskType:                       riskType,
-				Origin:                         origin,
-				Category:                       category,
-				CurrentLikelihood:              &currentLikelihood,
-				CurrentImpact:                  &currentImpact,
-				ConfidentialityImpact:          &confidentialityImpact,
-				IntegrityImpact:                &integrityImpact,
-				AvailabilityImpact:             &availabilityImpact,
-				InherentLikelihood:             &inherentLikelihood,
-				InherentImpact:                 &inherentImpact,
-				InherentConfidentialityImpact:  &inherentConfidentialityImpact,
-				InherentIntegrityImpact:        &inherentIntegrityImpact,
-				InherentAvailabilityImpact:     &inherentAvailabilityImpact,
-				TargetLikelihood:               &targetLikelihood,
-				TargetImpact:                   &targetImpact,
-				Treatment:                      treatment,
-				TreatmentPlan:                  treatmentPlan,
-				Owner:                          owner,
-				Status:                         status,
-				NextReview:                     rd,
-				Notes:                          notes,
+				RiskType:                      riskType,
+				Origin:                        origin,
+				Category:                      category,
+				CurrentLikelihood:             &currentLikelihood,
+				CurrentImpact:                 &currentImpact,
+				ConfidentialityImpact:         &confidentialityImpact,
+				IntegrityImpact:               &integrityImpact,
+				AvailabilityImpact:            &availabilityImpact,
+				InherentLikelihood:            &inherentLikelihood,
+				InherentImpact:                &inherentImpact,
+				InherentConfidentialityImpact: &inherentConfidentialityImpact,
+				InherentIntegrityImpact:       &inherentIntegrityImpact,
+				InherentAvailabilityImpact:    &inherentAvailabilityImpact,
+				TargetLikelihood:              &targetLikelihood,
+				TargetImpact:                  &targetImpact,
+				Treatment:                     treatment,
+				TreatmentPlan:                 treatmentPlan,
+				Owner:                         owner,
+				Status:                        status,
+				NextReview:                    rd,
+				Notes:                         notes,
 			}
 			result, err := c.AddRisk(r, buildRefs(
 				refSpec{"asset", assets},

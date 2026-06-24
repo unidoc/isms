@@ -544,15 +544,15 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 
 func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, error) {
 	var payload struct {
-		Title              string   `json:"title"`
-		Description        string   `json:"description"`
-		RiskType           string   `json:"risk_type"`
-		Origin             string   `json:"origin"`
-		Category           string   `json:"category"`
-		CurrentLikelihood  *int     `json:"current_likelihood"`
-		CurrentImpact *int   `json:"current_impact"`
-		TreatmentPlan string `json:"treatment_plan"`
-		Treatment     string `json:"treatment"`
+		Title             string `json:"title"`
+		Description       string `json:"description"`
+		RiskType          string `json:"risk_type"`
+		Origin            string `json:"origin"`
+		Category          string `json:"category"`
+		CurrentLikelihood *int   `json:"current_likelihood"`
+		CurrentImpact     *int   `json:"current_impact"`
+		TreatmentPlan     string `json:"treatment_plan"`
+		Treatment         string `json:"treatment"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid risk payload: %w", err)
@@ -657,19 +657,29 @@ func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	old := risk.ToChangeMap()
 
 	if v, ok := payload.Fields["owner"]; ok {
-		if s, ok := v.(string); ok { risk.Owner = s }
+		if s, ok := v.(string); ok {
+			risk.Owner = s
+		}
 	}
 	if v, ok := payload.Fields["status"]; ok {
-		if s, ok := v.(string); ok { risk.Status = s }
+		if s, ok := v.(string); ok {
+			risk.Status = s
+		}
 	}
 	if v, ok := payload.Fields["treatment"]; ok {
-		if s, ok := v.(string); ok { risk.Treatment = s }
+		if s, ok := v.(string); ok {
+			risk.Treatment = s
+		}
 	}
 	if v, ok := payload.Fields["treatment_plan"]; ok {
-		if s, ok := v.(string); ok { risk.TreatmentPlan = s }
+		if s, ok := v.(string); ok {
+			risk.TreatmentPlan = s
+		}
 	}
 	if v, ok := payload.Fields["notes"]; ok {
-		if s, ok := v.(string); ok { risk.Notes = s }
+		if s, ok := v.(string); ok {
+			risk.Notes = s
+		}
 	}
 
 	if err := db.UpdateRiskTx(ctx, tx, orgID, risk); err != nil {
@@ -757,25 +767,39 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	old := inc.ToChangeMap()
 
 	if v, ok := payload.Fields["severity"]; ok {
-		if sv, ok := v.(string); ok { inc.Severity = sv }
+		if sv, ok := v.(string); ok {
+			inc.Severity = sv
+		}
 	}
 	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok { inc.Status = sv }
+		if sv, ok := v.(string); ok {
+			inc.Status = sv
+		}
 	}
 	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok { inc.Assignee = sv }
+		if sv, ok := v.(string); ok {
+			inc.Assignee = sv
+		}
 	}
 	if v, ok := payload.Fields["root_cause"]; ok {
-		if sv, ok := v.(string); ok { inc.RootCause = sv }
+		if sv, ok := v.(string); ok {
+			inc.RootCause = sv
+		}
 	}
 	if v, ok := payload.Fields["affects_c"]; ok {
-		if bv, ok := v.(bool); ok { inc.AffectsC = bv }
+		if bv, ok := v.(bool); ok {
+			inc.AffectsC = bv
+		}
 	}
 	if v, ok := payload.Fields["affects_i"]; ok {
-		if bv, ok := v.(bool); ok { inc.AffectsI = bv }
+		if bv, ok := v.(bool); ok {
+			inc.AffectsI = bv
+		}
 	}
 	if v, ok := payload.Fields["affects_a"]; ok {
-		if bv, ok := v.(bool); ok { inc.AffectsA = bv }
+		if bv, ok := v.(bool); ok {
+			inc.AffectsA = bv
+		}
 	}
 
 	if err := db.UpdateIncidentTx(ctx, tx, orgID, inc); err != nil {
@@ -881,13 +905,19 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	old := sup.ToChangeMap()
 
 	if v, ok := payload.Fields["criticality"]; ok {
-		if sv, ok := v.(string); ok { sup.Criticality = sv }
+		if sv, ok := v.(string); ok {
+			sup.Criticality = sv
+		}
 	}
 	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok { sup.Notes = sv }
+		if sv, ok := v.(string); ok {
+			sup.Notes = sv
+		}
 	}
 	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok { sup.Status = sv }
+		if sv, ok := v.(string); ok {
+			sup.Status = sv
+		}
 	}
 
 	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup); err != nil {
@@ -961,10 +991,14 @@ func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	old := lr.ToChangeMap()
 
 	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok { lr.Owner = sv }
+		if sv, ok := v.(string); ok {
+			lr.Owner = sv
+		}
 	}
 	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok { lr.Notes = sv }
+		if sv, ok := v.(string); ok {
+			lr.Notes = sv
+		}
 	}
 
 	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, lr); err != nil {
@@ -1037,10 +1071,26 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err != nil {
 		return "", fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
 	}
-	if v, ok := payload.Fields["priority"]; ok { if sv, ok := v.(string); ok { cr.Priority = sv } }
-	if v, ok := payload.Fields["risk_level"]; ok { if sv, ok := v.(string); ok { cr.RiskLevel = sv } }
-	if v, ok := payload.Fields["rollback_plan"]; ok { if sv, ok := v.(string); ok { cr.RollbackPlan = sv } }
-	if v, ok := payload.Fields["assigned_to"]; ok { if sv, ok := v.(string); ok { cr.AssignedTo = sv } }
+	if v, ok := payload.Fields["priority"]; ok {
+		if sv, ok := v.(string); ok {
+			cr.Priority = sv
+		}
+	}
+	if v, ok := payload.Fields["risk_level"]; ok {
+		if sv, ok := v.(string); ok {
+			cr.RiskLevel = sv
+		}
+	}
+	if v, ok := payload.Fields["rollback_plan"]; ok {
+		if sv, ok := v.(string); ok {
+			cr.RollbackPlan = sv
+		}
+	}
+	if v, ok := payload.Fields["assigned_to"]; ok {
+		if sv, ok := v.(string); ok {
+			cr.AssignedTo = sv
+		}
+	}
 	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, cr.ID, cr); err != nil {
 		return "", err
 	}
@@ -1102,10 +1152,26 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		return "", fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
 	}
 	old := ca.ToChangeMap()
-	if v, ok := payload.Fields["assignee"]; ok { if sv, ok := v.(string); ok { ca.Assignee = sv } }
-	if v, ok := payload.Fields["status"]; ok { if sv, ok := v.(string); ok { ca.Status = sv } }
-	if v, ok := payload.Fields["root_cause"]; ok { if sv, ok := v.(string); ok { ca.RootCause = sv } }
-	if v, ok := payload.Fields["notes"]; ok { if sv, ok := v.(string); ok { ca.Notes = sv } }
+	if v, ok := payload.Fields["assignee"]; ok {
+		if sv, ok := v.(string); ok {
+			ca.Assignee = sv
+		}
+	}
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok {
+			ca.Status = sv
+		}
+	}
+	if v, ok := payload.Fields["root_cause"]; ok {
+		if sv, ok := v.(string); ok {
+			ca.RootCause = sv
+		}
+	}
+	if v, ok := payload.Fields["notes"]; ok {
+		if sv, ok := v.(string); ok {
+			ca.Notes = sv
+		}
+	}
 	if err := db.UpdateCorrectiveActionTx(ctx, tx, orgID, ca); err != nil {
 		return "", err
 	}
@@ -1139,8 +1205,12 @@ func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		Assignee: payload.Assignee, CreatedBy: actor,
 		Priority: payload.Priority, TaskType: payload.TaskType, Status: "open",
 	}
-	if t.Priority == "" { t.Priority = "medium" }
-	if t.TaskType == "" { t.TaskType = "general" }
+	if t.Priority == "" {
+		t.Priority = "medium"
+	}
+	if t.TaskType == "" {
+		t.TaskType = "general"
+	}
 	// tasks.assignee_id is NOT NULL; default to the applier when the suggestion carries none.
 	if t.Assignee == "" {
 		t.Assignee = actor
@@ -1164,10 +1234,26 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		return "", fmt.Errorf("task %s not found: %w", sg.EntityID, err)
 	}
 	old := t.ToChangeMap()
-	if v, ok := payload.Fields["assignee"]; ok { if sv, ok := v.(string); ok { t.Assignee = sv } }
-	if v, ok := payload.Fields["priority"]; ok { if sv, ok := v.(string); ok { t.Priority = sv } }
-	if v, ok := payload.Fields["title"]; ok { if sv, ok := v.(string); ok { t.Title = sv } }
-	if v, ok := payload.Fields["status"]; ok { if sv, ok := v.(string); ok { t.Status = sv } }
+	if v, ok := payload.Fields["assignee"]; ok {
+		if sv, ok := v.(string); ok {
+			t.Assignee = sv
+		}
+	}
+	if v, ok := payload.Fields["priority"]; ok {
+		if sv, ok := v.(string); ok {
+			t.Priority = sv
+		}
+	}
+	if v, ok := payload.Fields["title"]; ok {
+		if sv, ok := v.(string); ok {
+			t.Title = sv
+		}
+	}
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok {
+			t.Status = sv
+		}
+	}
 	if err := db.UpdateTaskTx(ctx, tx, orgID, t); err != nil {
 		return "", err
 	}
@@ -1238,11 +1324,31 @@ func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 		return "", fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
 	}
 	old := o.ToChangeMap()
-	if v, ok := payload.Fields["title"]; ok { if sv, ok := v.(string); ok { o.Title = sv } }
-	if v, ok := payload.Fields["description"]; ok { if sv, ok := v.(string); ok { o.Description = sv } }
-	if v, ok := payload.Fields["owner"]; ok { if sv, ok := v.(string); ok { o.Owner = sv } }
-	if v, ok := payload.Fields["measurement_method"]; ok { if sv, ok := v.(string); ok { o.MeasurementMethod = sv } }
-	if v, ok := payload.Fields["status"]; ok { if sv, ok := v.(string); ok { o.Status = sv } }
+	if v, ok := payload.Fields["title"]; ok {
+		if sv, ok := v.(string); ok {
+			o.Title = sv
+		}
+	}
+	if v, ok := payload.Fields["description"]; ok {
+		if sv, ok := v.(string); ok {
+			o.Description = sv
+		}
+	}
+	if v, ok := payload.Fields["owner"]; ok {
+		if sv, ok := v.(string); ok {
+			o.Owner = sv
+		}
+	}
+	if v, ok := payload.Fields["measurement_method"]; ok {
+		if sv, ok := v.(string); ok {
+			o.MeasurementMethod = sv
+		}
+	}
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok {
+			o.Status = sv
+		}
+	}
 	if err := db.UpdateObjectiveTx(ctx, tx, orgID, o); err != nil {
 		return "", err
 	}
@@ -1321,13 +1427,41 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		return "", fmt.Errorf("system %s not found: %w", sg.EntityID, err)
 	}
 	old := sys.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok { if sv, ok := v.(string); ok { sys.Name = sv } }
-	if v, ok := payload.Fields["criticality"]; ok { if sv, ok := v.(string); ok { sys.Criticality = sv } }
-	if v, ok := payload.Fields["classification"]; ok { if sv, ok := v.(string); ok { sys.Classification = sv } }
-	if v, ok := payload.Fields["owner"]; ok { if sv, ok := v.(string); ok { sys.Owner = sv } }
-	if v, ok := payload.Fields["notes"]; ok { if sv, ok := v.(string); ok { sys.Notes = sv } }
-	if v, ok := payload.Fields["department"]; ok { if sv, ok := v.(string); ok { sys.Department = sv } }
-	if v, ok := payload.Fields["status"]; ok { if sv, ok := v.(string); ok { sys.Status = sv } }
+	if v, ok := payload.Fields["name"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Name = sv
+		}
+	}
+	if v, ok := payload.Fields["criticality"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Criticality = sv
+		}
+	}
+	if v, ok := payload.Fields["classification"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Classification = sv
+		}
+	}
+	if v, ok := payload.Fields["owner"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Owner = sv
+		}
+	}
+	if v, ok := payload.Fields["notes"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Notes = sv
+		}
+	}
+	if v, ok := payload.Fields["department"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Department = sv
+		}
+	}
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok {
+			sys.Status = sv
+		}
+	}
 	if err := db.UpdateSystemTx(ctx, tx, orgID, sys); err != nil {
 		return "", err
 	}
@@ -1395,11 +1529,31 @@ func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		return "", fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
 	}
 	old := asset.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok { if sv, ok := v.(string); ok { asset.Name = sv } }
-	if v, ok := payload.Fields["owner"]; ok { if sv, ok := v.(string); ok { asset.Owner = sv } }
-	if v, ok := payload.Fields["status"]; ok { if sv, ok := v.(string); ok { asset.Status = sv } }
-	if v, ok := payload.Fields["notes"]; ok { if sv, ok := v.(string); ok { asset.Notes = sv } }
-	if v, ok := payload.Fields["asset_type"]; ok { if sv, ok := v.(string); ok { asset.AssetType = sv } }
+	if v, ok := payload.Fields["name"]; ok {
+		if sv, ok := v.(string); ok {
+			asset.Name = sv
+		}
+	}
+	if v, ok := payload.Fields["owner"]; ok {
+		if sv, ok := v.(string); ok {
+			asset.Owner = sv
+		}
+	}
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok {
+			asset.Status = sv
+		}
+	}
+	if v, ok := payload.Fields["notes"]; ok {
+		if sv, ok := v.(string); ok {
+			asset.Notes = sv
+		}
+	}
+	if v, ok := payload.Fields["asset_type"]; ok {
+		if sv, ok := v.(string); ok {
+			asset.AssetType = sv
+		}
+	}
 	if err := db.UpdateAssetTx(ctx, tx, orgID, asset); err != nil {
 		return "", err
 	}
@@ -1443,7 +1597,9 @@ func applyAuditFindingCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 		Description: desc,
 		Status:      "open",
 	}
-	if f.FindingType == "" { f.FindingType = "observation" }
+	if f.FindingType == "" {
+		f.FindingType = "observation"
+	}
 	if err := db.AddAuditFindingTx(ctx, tx, orgID, &f); err != nil {
 		return "", err
 	}

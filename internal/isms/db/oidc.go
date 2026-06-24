@@ -14,18 +14,18 @@ import (
 
 // OIDCProvider represents an OIDC/OAuth2 identity provider configured for an organization.
 type OIDCProvider struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	ProviderName   string    `json:"provider_name"`
-	DisplayName    string    `json:"display_name"`
-	ClientID       string    `json:"client_id"`
-	ClientSecret   string    `json:"client_secret,omitempty"`
-	DiscoveryURL   string    `json:"discovery_url"`
-	Scopes         string    `json:"scopes"`
-	AutoAddMembers bool      `json:"auto_add_members"`
-	DefaultRole    string    `json:"default_role"`
-	Enabled        bool  `json:"enabled"`
-	CreatedAt      Epoch `json:"created_at"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	ProviderName   string `json:"provider_name"`
+	DisplayName    string `json:"display_name"`
+	ClientID       string `json:"client_id"`
+	ClientSecret   string `json:"client_secret,omitempty"`
+	DiscoveryURL   string `json:"discovery_url"`
+	Scopes         string `json:"scopes"`
+	AutoAddMembers bool   `json:"auto_add_members"`
+	DefaultRole    string `json:"default_role"`
+	Enabled        bool   `json:"enabled"`
+	CreatedAt      Epoch  `json:"created_at"`
 }
 
 // EncryptSecret encrypts plaintext using AES-GCM with a key derived from ISMS_SECRET.

@@ -33,6 +33,17 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - name: gofmt
+        # Fail the build on any file that isn't gofmt-formatted, so diffs stay
+        # free of import-order / whitespace churn. Fix locally with `just fmt`.
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-formatted:"
+            echo "$unformatted"
+            echo "Run: just fmt"
+            exit 1
+          fi
       - name: Placeholder web dist
         # cmd/isms embeds web/dist (go:embed fails on an empty pattern); the
         # unit job doesn't exercise the SPA, so a placeholder satisfies it

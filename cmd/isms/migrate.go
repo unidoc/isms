@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/db"
 )
 
 //go:embed migrations/*.sql

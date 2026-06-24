@@ -6,13 +6,13 @@ import (
 
 // EntityReference represents a cross-reference link between two entities.
 type EntityReference struct {
-	ID             int64     `json:"id"`
-	OrganizationID int       `json:"-"`
-	SourceType     string    `json:"source_type"`
-	SourceID       string    `json:"source_id"`
-	TargetType     string    `json:"target_type"`
-	TargetID       string    `json:"target_id"`
-	Title          string    `json:"title,omitempty"` // resolved display name (populated by API, not stored)
+	ID             int64  `json:"id"`
+	OrganizationID int    `json:"-"`
+	SourceType     string `json:"source_type"`
+	SourceID       string `json:"source_id"`
+	TargetType     string `json:"target_type"`
+	TargetID       string `json:"target_id"`
+	Title          string `json:"title,omitempty"` // resolved display name (populated by API, not stored)
 	CreatedBy      string `json:"created_by,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 }

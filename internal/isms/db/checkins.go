@@ -25,9 +25,9 @@ func (c *Checkin) ToChangeMap() map[string]string {
 
 // Checkin is a time-series measurement for an objective.
 type Checkin struct {
-	ID             int64      `json:"id"`
-	OrganizationID int        `json:"organization_id"`
-	ObjectiveID    int64      `json:"objective_id"`
+	ID             int64    `json:"id"`
+	OrganizationID int      `json:"organization_id"`
+	ObjectiveID    int64    `json:"objective_id"`
 	OccurredAt     Epoch    `json:"occurred_at"`
 	RecordedAt     Epoch    `json:"recorded_at"`
 	CreatedBy      string   `json:"created_by,omitempty"`

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"isms.sh/internal/isms/client"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/client"
 )
 
 func reviewCmd() *cobra.Command {

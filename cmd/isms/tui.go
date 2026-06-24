@@ -1,8 +1,8 @@
 package main
 
 import (
-	"isms.sh/internal/isms/tui"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/tui"
 )
 
 func tuiCmd() *cobra.Command {

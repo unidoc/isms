@@ -109,7 +109,9 @@ const assetSelectCols = `id, organization_id, identifier, name, COALESCE(descrip
 		COALESCE(notes, ''),
 		created_at, updated_at`
 
-func scanAsset(scanner interface{ Scan(dest ...interface{}) error }, a *Asset) error {
+func scanAsset(scanner interface {
+	Scan(dest ...interface{}) error
+}, a *Asset) error {
 	return scanner.Scan(&a.ID, &a.OrganizationID, &a.Identifier, &a.Name, &a.Description,
 		&a.AssetType, &a.Status, &a.Owner, &a.PrimaryLocation,
 		&a.Confidentiality, &a.Integrity, &a.Availability,

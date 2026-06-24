@@ -224,4 +224,3 @@ func (s *Server) handleReviewPolicyStatus(c echo.Context) error {
 		"can_auto_merge": canAutoMerge,
 	})
 }
-

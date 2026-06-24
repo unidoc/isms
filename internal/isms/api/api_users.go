@@ -196,8 +196,8 @@ func (s *Server) handleMyOrganizations(c echo.Context) error {
 // handleCreateOrganization creates a new org and adds the current user as admin.
 func (s *Server) handleCreateOrganization(c echo.Context) error {
 	var req struct {
-		Name      string `json:"name"`
-		Slug      string `json:"slug"`
+		Name     string `json:"name"`
+		Slug     string `json:"slug"`
 		Template string `json:"template"` // optional: iso27001, soc2, nis2
 	}
 	if err := c.Bind(&req); err != nil {
@@ -333,7 +333,6 @@ func emailToName(email string) string {
 	return name
 }
 
-
 // handleListAvailableTemplates returns all templates available in the registry.
 // GET /api/v1/templates/available
 func (s *Server) handleListAvailableTemplates(c echo.Context) error {
@@ -387,7 +386,6 @@ func (s *Server) handleAddTemplate(c echo.Context) error {
 	if err := scaffold.ScaffoldToRepo(st, req.Template, authorName, email); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("scaffolding template: %v", err))
 	}
-
 
 	// Invalidate store cache to pick up new files
 	s.stores.Delete(orgID)

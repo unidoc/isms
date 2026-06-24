@@ -5,10 +5,10 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
+	"isms.sh/internal/isms/db"
 )
 
 func userCmd() *cobra.Command {

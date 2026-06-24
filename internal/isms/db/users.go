@@ -12,17 +12,17 @@ import (
 
 // User represents an ISMS platform user.
 type User struct {
-	ID            int        `json:"id"`
-	Email         string     `json:"email"`
-	Name          string     `json:"name"`
-	PasswordHash  *string    `json:"-"`                    // bcrypt, nil = external auth only
-	OTPSecret     *string    `json:"-"`                    // TOTP base32 secret, nil = OTP not enabled
-	OTPVerified   bool       `json:"otp_verified"`         // true after first successful OTP
-	EmailVerified bool       `json:"email_verified"`       // true after verification or CF login
-	IsAgent       bool   `json:"is_agent"`
-	Active        bool   `json:"active"`
-	CreatedAt     Epoch  `json:"created_at"`
-	LastSeen      *Epoch `json:"last_seen,omitempty"`
+	ID            int     `json:"id"`
+	Email         string  `json:"email"`
+	Name          string  `json:"name"`
+	PasswordHash  *string `json:"-"`              // bcrypt, nil = external auth only
+	OTPSecret     *string `json:"-"`              // TOTP base32 secret, nil = OTP not enabled
+	OTPVerified   bool    `json:"otp_verified"`   // true after first successful OTP
+	EmailVerified bool    `json:"email_verified"` // true after verification or CF login
+	IsAgent       bool    `json:"is_agent"`
+	Active        bool    `json:"active"`
+	CreatedAt     Epoch   `json:"created_at"`
+	LastSeen      *Epoch  `json:"last_seen,omitempty"`
 }
 
 // UserWithRole is a User plus their role within a specific organization.
@@ -33,21 +33,21 @@ type UserWithRole struct {
 
 // Organization represents a tenant / customer org.
 type Organization struct {
-	ID        int       `json:"-"`                          // never exposed externally
-	UUID     string    `json:"uuid"`                       // public identifier
-	Name     string    `json:"name"`
-	Slug     string    `json:"slug"`                       // URL-friendly (e.g. "unidoc")
-	RepoPath string    `json:"repo_path,omitempty"`        // git repo path on server
-	Domain   *string `json:"domain,omitempty"`           // custom domain
-	CreatedAt Epoch  `json:"created_at"`
-	UpdatedAt Epoch  `json:"updated_at"`
+	ID        int     `json:"-"`    // never exposed externally
+	UUID      string  `json:"uuid"` // public identifier
+	Name      string  `json:"name"`
+	Slug      string  `json:"slug"`                // URL-friendly (e.g. "unidoc")
+	RepoPath  string  `json:"repo_path,omitempty"` // git repo path on server
+	Domain    *string `json:"domain,omitempty"`    // custom domain
+	CreatedAt Epoch   `json:"created_at"`
+	UpdatedAt Epoch   `json:"updated_at"`
 }
 
 // OrgMember represents a user's membership and role within an organization.
 type OrgMember struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	UserID         int       `json:"user_id"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	UserID         int    `json:"user_id"`
 	Role           string `json:"role"`
 	CreatedAt      Epoch  `json:"created_at"`
 }

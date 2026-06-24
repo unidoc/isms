@@ -59,7 +59,7 @@ type LegalRequirement struct {
 	TreatmentPlan     string `json:"treatment_plan,omitempty"`
 	TargetLikelihood  *int   `json:"target_likelihood,omitempty"`
 	TargetImpact      *int   `json:"target_impact,omitempty"`
-	Completion int `json:"completion"`
+	Completion        int    `json:"completion"`
 	// Assessment lifecycle: see entity_readings table for the canonical assessment log
 	CreatedAt Epoch `json:"created_at"`
 	UpdatedAt Epoch `json:"updated_at"`
@@ -131,7 +131,9 @@ const legalSelectCols = `id, identifier, organization_id, title, COALESCE(descri
 	target_likelihood, target_impact, COALESCE(completion, 0),
 	created_at, updated_at`
 
-func scanLegal(scanner interface{ Scan(dest ...interface{}) error }, lr *LegalRequirement) error {
+func scanLegal(scanner interface {
+	Scan(dest ...interface{}) error
+}, lr *LegalRequirement) error {
 	return scanner.Scan(
 		&lr.ID, &lr.Identifier, &lr.OrganizationID, &lr.Title, &lr.Description,
 		&lr.Jurisdiction, &lr.Category, &lr.Reference, &lr.URL,

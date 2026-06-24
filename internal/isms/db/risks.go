@@ -30,14 +30,14 @@ var riskSortable = map[string]string{
 
 // Risk represents a single risk entry in the register.
 type Risk struct {
-	ID              int64    `json:"id"`
-	OrganizationID  int      `json:"organization_id"`
-	Identifier      string   `json:"identifier"` // RISK-001
-	Title           string   `json:"title"`
-	Description     string   `json:"description,omitempty"`
-	RiskType        string   `json:"risk_type"`
-	Origin          string   `json:"origin"`
-	Category string `json:"category,omitempty"`
+	ID             int64  `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	Identifier     string `json:"identifier"` // RISK-001
+	Title          string `json:"title"`
+	Description    string `json:"description,omitempty"`
+	RiskType       string `json:"risk_type"`
+	Origin         string `json:"origin"`
+	Category       string `json:"category,omitempty"`
 	// PotentialConsequences was a column; now lives in description (## Potential consequences)
 
 	// Current/residual assessment (nil = not assessed)
@@ -288,7 +288,9 @@ const riskSelectCols = `id, organization_id, identifier, title, COALESCE(descrip
 		COALESCE((SELECT email FROM users WHERE id = risks.owner_id), ''), status, last_review, next_review,
 		COALESCE(notes, ''), created_at, updated_at`
 
-func scanRisk(scanner interface{ Scan(dest ...interface{}) error }, r *Risk) error {
+func scanRisk(scanner interface {
+	Scan(dest ...interface{}) error
+}, r *Risk) error {
 	return scanner.Scan(&r.ID, &r.OrganizationID, &r.Identifier, &r.Title, &r.Description,
 		&r.RiskType, &r.Origin, &r.Category,
 		&r.CurrentLikelihood, &r.CurrentImpact, &r.CurrentScore, &r.CurrentLevel,

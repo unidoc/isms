@@ -147,8 +147,8 @@ type DocSummary struct {
 
 // DocFolder is a folder of documents returned by /documents/all.
 type DocFolder struct {
-	Name       string      `json:"name"`
-	Title      string      `json:"title,omitempty"`
+	Name       string       `json:"name"`
+	Title      string       `json:"title,omitempty"`
 	Files      []DocSummary `json:"files"`
 	SubFolders []DocFolder  `json:"subfolders,omitempty"`
 }
@@ -441,8 +441,6 @@ func (c *Client) DeleteAccessReview(id string) error {
 	_, err := c.delete("/v1/access-reviews/" + id)
 	return err
 }
-
-
 
 // --- Reviews ---
 

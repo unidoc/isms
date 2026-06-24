@@ -67,11 +67,11 @@ func exportPolicyCmd() *cobra.Command {
 	var format, output string
 
 	cmd := &cobra.Command{
-		Use:   "policy <doc-id>",
-		Short: "Export a single policy as markdown",
-		Long:  "Export a policy document. Use the document ID (e.g. POL-AC-001).",
+		Use:     "policy <doc-id>",
+		Short:   "Export a single policy as markdown",
+		Long:    "Export a policy document. Use the document ID (e.g. POL-AC-001).",
 		Example: "  isms export policy POL-AC-001\n  isms export policy POL-AC-001 --output policy.md",
-		Args:  cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkExportFormat(format); err != nil {
 				return err

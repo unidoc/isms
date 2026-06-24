@@ -441,6 +441,7 @@ func (s *Server) routes() {
 
 	// User management (authenticated)
 	api.POST("/auth/invite", s.handleInviteUser)
+	api.POST("/auth/resend-invite", s.handleResendInvite)
 
 	// Self-service (authenticated)
 	api.PUT("/auth/password", s.handleChangePassword)

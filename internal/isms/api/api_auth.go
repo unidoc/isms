@@ -702,6 +702,74 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	})
 }
 
+// handleResendInvite re-sends the verification email to a pending (not yet
+// verified) invited user — for invites that were lost or expired (#42).
+func (s *Server) handleResendInvite(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+	if req.Email == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+	}
+
+	user, err := s.db.GetUserByEmail(ctx, req.Email)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+	// Must be a member of this org — don't resend across organizations.
+	if _, err := s.db.GetOrgMember(ctx, orgID, user.ID); err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "user is not a member of this organization")
+	}
+	// Only pending invites can be resent; an active user has already accepted.
+	if user.Active {
+		return echo.NewHTTPError(http.StatusConflict, "user has already accepted the invite")
+	}
+
+	if s.mailer == nil || !s.mailer.Enabled() {
+		return echo.NewHTTPError(http.StatusInternalServerError, "email not configured (SMTP_HOST)")
+	}
+
+	// Invalidate any still-live invite tokens before issuing a new one, so a
+	// leaked/intercepted earlier link can't be used in parallel with this one.
+	if err := s.db.InvalidateEmailVerifications(ctx, user.ID, "verify"); err != nil {
+		log.Printf("resend-invite: invalidating old tokens for %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
+	}
+
+	// Fresh verification token (72h), same as the original invite.
+	raw := make([]byte, 32)
+	rand.Read(raw)
+	token := hex.EncodeToString(raw)
+	hash := sha256.Sum256([]byte(token))
+	if err := s.db.CreateEmailVerification(ctx, user.ID, hex.EncodeToString(hash[:])); err != nil {
+		log.Printf("resend-invite: creating verification for %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
+	}
+
+	m := s.orgMail(ctx, orgID)
+	if err := s.mailer.SendVerificationBranded(user.Email, user.Name, m.PublicURL, token, m.Branding); err != nil {
+		log.Printf("resend-invite: sending email to %s failed: %v", user.Email, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to send invite email")
+	}
+
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  getUserEmail(c),
+		Action: "user_invite_resent",
+		Detail: fmt.Sprintf("Resent invite to %s", user.Email),
+	})
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "invite_resent", "email": user.Email})
+}
+
 // --- Verify email + set password ---
 
 type verifyEmailRequest struct {

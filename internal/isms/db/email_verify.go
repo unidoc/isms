@@ -14,6 +14,18 @@ type EmailVerification struct {
 	CreatedAt Epoch  `json:"created_at"`
 }
 
+// InvalidateEmailVerifications marks every live (unused) token of the given
+// purpose for a user as used. Call it before issuing a fresh token so a resend
+// doesn't leave older invite/reset links usable in parallel.
+func (d *DB) InvalidateEmailVerifications(ctx context.Context, userID int, purpose string) error {
+	_, err := d.pool.Exec(ctx, `
+		UPDATE email_verifications
+		SET used_at = now()
+		WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
+	`, userID, purpose)
+	return err
+}
+
 // CreateEmailVerification stores a new verification token (72h expiry).
 func (d *DB) CreateEmailVerification(ctx context.Context, userID int, tokenHash string) error {
 	_, err := d.pool.Exec(ctx, `

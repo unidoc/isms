@@ -50,6 +50,7 @@
                     </div>
                     <span class="text-sm text-slate-200">{{ member.name || '-' }}</span>
                     <span v-if="member.is_agent" class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/15 text-purple-400">AI Agent</span>
+                    <span v-if="!member.active" class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/15 text-amber-400">Pending</span>
                   </div>
                 </td>
                 <td class="px-5 py-3 text-sm text-slate-400">{{ member.email }}</td>
@@ -66,6 +67,10 @@
                   </select>
                 </td>
                 <td class="px-5 py-3 text-right">
+                  <button v-if="!member.active" @click="resendInvite(member)"
+                    class="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 transition-colors mr-1">
+                    Resend invite
+                  </button>
                   <button @click="removeMember(member)"
                     class="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">
                     Remove
@@ -895,6 +900,19 @@ async function sendInvite() {
     inviteError.value = true
   } finally {
     inviting.value = false
+  }
+}
+
+async function resendInvite(member) {
+  membersMsg.value = ''
+  membersError.value = false
+  try {
+    await api.postJSON('/api/v1/auth/resend-invite', { email: member.email })
+    membersMsg.value = `Invite resent to ${member.email}`
+    membersError.value = false
+  } catch (e) {
+    membersMsg.value = e.message
+    membersError.value = true
   }
 }
 

@@ -54,6 +54,16 @@
       </div>
     </section>
 
+    <!-- Why — lead with the conviction, not the feature list (#45) -->
+    <section class="relative z-10 max-w-3xl mx-auto px-8 pt-8 pb-16">
+      <h2 class="text-3xl font-bold text-center mb-8">Why another management system?</h2>
+      <div class="space-y-5 text-slate-400 leading-relaxed text-lg">
+        <p>Because the ones we have are complex, opaque, and treated as a compliance exercise — relevant for the audit, irrelevant the day after. And the stakes keep rising: as AI adoption accelerates and threat surfaces widen, a management system that doesn't stay alive is worse than useless.</p>
+        <p class="text-slate-200">It doesn't have to work this way. Security done right starts at the root — genuinely understanding and managing your risks, not papering over them. Built AI-first, with real discipline in how it's designed and used, a management system should be a living part of how you operate, not a burden bolted on top.</p>
+        <p>That's why it's open source — built for organizations of every size, and finally a credible option for smaller ones, who've never had a management system that's simple, stays current, and doesn't fight them. We built this to change that.</p>
+      </div>
+    </section>
+
     <!-- Thesis: 3 pillars -->
     <section class="relative z-10 max-w-5xl mx-auto px-8 py-16">
       <div class="grid md:grid-cols-3 gap-8">

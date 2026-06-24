@@ -4,12 +4,19 @@
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
     <div v-else-if="suggestions.length === 0 && !showCreate" class="text-sm text-slate-600 italic py-2">No suggestions yet.</div>
     <div v-else class="space-y-2">
+      <!-- Make the nature of suggestions unmistakable: they're proposals
+           pending a decision, not changes that have happened yet (#88).
+           openCount covers both 'open' and 'in_review', so the wording must
+           fit both — not just the 'Under review' state. -->
+      <p v-if="openCount > 0" class="text-[11px] text-amber-400/90 bg-amber-500/5 border border-amber-500/15 rounded-md px-2.5 py-1.5">
+        Proposals pending — these changes take effect only once a manager applies them.
+      </p>
       <div v-for="sg in suggestions" :key="sg.id"
         class="bg-slate-800/40 border border-slate-700/40 rounded-lg px-4 py-3 space-y-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-sm font-medium text-slate-300">{{ sg.title }}</span>
           <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/15 text-blue-400">{{ typeLabel(sg.suggestion_type) }}</span>
-          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" :class="statusClass(sg.status)">{{ sg.status.replace(/_/g, ' ') }}</span>
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" :class="statusClass(sg.status)">{{ statusLabel(sg.status) }}</span>
           <span v-if="sg.suggested_by_type === 'agent'" class="px-1 py-0.5 rounded text-[9px] bg-purple-500/15 text-purple-400">AI</span>
         </div>
         <div v-if="sg.rationale" class="text-sm text-slate-500">{{ sg.rationale }}</div>
@@ -209,6 +216,18 @@ function statusClass(s) {
     case 'withdrawn': return 'bg-slate-500/15 text-slate-400'
     default: return 'bg-blue-500/15 text-blue-400'
   }
+}
+
+// Labels that say what the state means — "open" reads as "awaiting review", not
+// as a finished change (#88).
+function statusLabel(s) {
+  return {
+    open: 'Awaiting review',
+    in_review: 'Under review',
+    applied: 'Applied',
+    rejected: 'Rejected',
+    withdrawn: 'Withdrawn',
+  }[s] || s.replace(/_/g, ' ')
 }
 
 function formatDate(d) {

@@ -32,15 +32,15 @@ type auditProgrammeUpdateRequest struct {
 }
 
 type auditCreateRequest struct {
-	ProgrammeID *int       `json:"programme_id"`
-	Title       string     `json:"title"`
-	Scope       string     `json:"scope"`
-	Auditor     string     `json:"auditor"`
-	AuditType   string     `json:"audit_type"`
-	Status      string     `json:"status"`
-	PlannedDate *db.Epoch  `json:"planned_date"`
-	EndDate     *db.Epoch  `json:"end_date"`
-	Notes       string     `json:"notes"`
+	ProgrammeID *int      `json:"programme_id"`
+	Title       string    `json:"title"`
+	Scope       string    `json:"scope"`
+	Auditor     string    `json:"auditor"`
+	AuditType   string    `json:"audit_type"`
+	Status      string    `json:"status"`
+	PlannedDate *db.Epoch `json:"planned_date"`
+	EndDate     *db.Epoch `json:"end_date"`
+	Notes       string    `json:"notes"`
 }
 
 // auditUpdateRequest is the API contract for updating an audit. nil = leave alone.

@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"isms.sh/internal/isms/model"
 	"gopkg.in/yaml.v3"
+	"isms.sh/internal/isms/model"
 )
 
 // DocumentFile represents a policy markdown file with parsed frontmatter.
 type DocumentFile struct {
-	Path        string                  `json:"path"`
+	Path        string                    `json:"path"`
 	Frontmatter model.DocumentFrontmatter `json:"frontmatter"`
-	Body        string                  `json:"body"` // markdown body after frontmatter
+	Body        string                    `json:"body"` // markdown body after frontmatter
 }
 
 // LoadDocument reads a document file and parses its frontmatter.

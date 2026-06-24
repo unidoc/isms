@@ -29,7 +29,7 @@ type AuthConfig struct {
 	CloudflareTeamDomain string // e.g. "mycompany.cloudflareaccess.com"
 	CloudflareAudience   string // CF Access Application Audience (AUD) tag — set via ISMS_CF_AUDIENCE
 	DB                   *db.DB // for API token lookups
-	Secret            string // for validating JWT session tokens
+	Secret               string // for validating JWT session tokens
 }
 
 // AuthMiddleware validates authentication on all API routes.

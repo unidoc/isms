@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/db"
 )
 
 func systemCmd() *cobra.Command {

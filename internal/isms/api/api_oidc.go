@@ -11,8 +11,8 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/labstack/echo/v4"
-	"isms.sh/internal/isms/db"
 	"golang.org/x/oauth2"
+	"isms.sh/internal/isms/db"
 )
 
 // handleOIDCProviders returns the list of enabled OIDC providers for an organization.
@@ -107,12 +107,12 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 
 	// Store session (10 minute expiry)
 	session := &db.OIDCSession{
-		State:       state,
-		Nonce:       nonce,
-		ProviderID:  provider.ID,
+		State:          state,
+		Nonce:          nonce,
+		ProviderID:     provider.ID,
 		OrganizationID: org.ID,
-		RedirectURI: redirectURI,
-		ExpiresAt:   time.Now().Add(10 * time.Minute),
+		RedirectURI:    redirectURI,
+		ExpiresAt:      time.Now().Add(10 * time.Minute),
 	}
 	if err := s.db.CreateOIDCSession(ctx, session); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating OIDC session: "+err.Error())

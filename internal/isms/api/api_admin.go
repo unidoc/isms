@@ -323,11 +323,11 @@ func (s *Server) handleAdminTestOIDC(c echo.Context) error {
 	// Extract endpoint info
 	endpoint := oidcProvider.Endpoint()
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success":        true,
-		"auth_url":       endpoint.AuthURL,
-		"token_url":      endpoint.TokenURL,
-		"discovery_url":  provider.DiscoveryURL,
-		"scopes":         strings.Split(provider.Scopes, " "),
+		"success":       true,
+		"auth_url":      endpoint.AuthURL,
+		"token_url":     endpoint.TokenURL,
+		"discovery_url": provider.DiscoveryURL,
+		"scopes":        strings.Split(provider.Scopes, " "),
 	})
 }
 

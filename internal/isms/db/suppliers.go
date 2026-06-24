@@ -114,7 +114,9 @@ const supplierSelectCols = `id, organization_id, identifier, name, supplier_type
 		last_review, next_review,
 		COALESCE(notes, ''), created_at, updated_at`
 
-func scanSupplier(scanner interface{ Scan(dest ...interface{}) error }, s *Supplier) error {
+func scanSupplier(scanner interface {
+	Scan(dest ...interface{}) error
+}, s *Supplier) error {
 	return scanner.Scan(&s.ID, &s.OrganizationID, &s.Identifier, &s.Name, &s.SupplierType, &s.Criticality,
 		&s.DataAccess,
 		&s.Contact, &s.ContractRef,

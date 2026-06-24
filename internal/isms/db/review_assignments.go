@@ -6,10 +6,10 @@ import (
 
 // ReviewAssignment tracks who needs to review a given review request.
 type ReviewAssignment struct {
-	ID             int        `json:"id"`
-	OrganizationID int        `json:"organization_id"`
-	ReviewID       int        `json:"review_id"`
-	Reviewer       string     `json:"reviewer"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	ReviewID       int    `json:"review_id"`
+	Reviewer       string `json:"reviewer"`
 	Status         string `json:"status"`
 	ReviewedAt     *Epoch `json:"reviewed_at,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`

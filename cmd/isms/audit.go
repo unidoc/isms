@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"isms.sh/internal/isms/db"
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/db"
 )
 
 func auditCmd() *cobra.Command {

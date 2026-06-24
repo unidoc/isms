@@ -6,13 +6,13 @@ import (
 
 // Evidence is an S3-backed file attachment on a checkin.
 type Evidence struct {
-	ID             int64     `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	CheckinID      int64     `json:"checkin_id"`
-	Title          string    `json:"title"`
-	ObjectKey      string    `json:"object_key"`
-	ContentType    string    `json:"content_type"`
-	SizeBytes      *int64    `json:"size_bytes,omitempty"`
+	ID             int64  `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	CheckinID      int64  `json:"checkin_id"`
+	Title          string `json:"title"`
+	ObjectKey      string `json:"object_key"`
+	ContentType    string `json:"content_type"`
+	SizeBytes      *int64 `json:"size_bytes,omitempty"`
 	SHA256         string `json:"sha256,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 }

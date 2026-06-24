@@ -21,12 +21,12 @@ import (
 	gowebauthn "github.com/go-webauthn/webauthn/webauthn"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gopkg.in/yaml.v3"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/mail"
 	"isms.sh/internal/isms/notify"
-"isms.sh/internal/isms/store"
-	"gopkg.in/yaml.v3"
+	"isms.sh/internal/isms/store"
 )
 
 // Server is the ISMS API server.
@@ -37,8 +37,8 @@ type Server struct {
 	echo     *echo.Echo
 	addr     string
 	webDir   string
-	webFS    fs.FS      // embedded web assets (optional, used if webDir is empty)
-	stores   sync.Map   // orgID -> *store.Store cache
+	webFS    fs.FS    // embedded web assets (optional, used if webDir is empty)
+	stores   sync.Map // orgID -> *store.Store cache
 
 	// Unified storage for org files (branding, evidence, etc.).
 	// Local filesystem by default, S3 with ISMS_STORAGE_BACKEND=s3.
@@ -53,8 +53,8 @@ type Server struct {
 	passkeyLogins        sync.Map // email -> *webauthn.SessionData
 
 	// Platform-level legal docs (markdown files on disk, rendered and served)
-	termsFile      string // ISMS_TERMS_FILE
-	privacyFile    string // ISMS_PRIVACY_FILE
+	termsFile        string // ISMS_TERMS_FILE
+	privacyFile      string // ISMS_PRIVACY_FILE
 	hidePoweredBy    bool   // ISMS_HIDE_POWERED_BY=1
 	subdomainRouting bool   // ISMS_SUBDOMAIN_ROUTING=1 enables (default off)
 	apexHost         string // derived from ISMS_BASE_URL — the deployment's canonical apex
@@ -176,7 +176,6 @@ func (s *Server) storeForOrg(ctx context.Context, orgID int) (*store.Store, erro
 	actual, _ := s.stores.LoadOrStore(orgID, st)
 	return actual.(*store.Store), nil
 }
-
 
 // New creates a new API server.
 func New(addr, webDir string, database *db.DB) *Server {
@@ -349,12 +348,12 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 
 	// Authentication + role enforcement
 	teamDomain := os.Getenv("CLOUDFLARE_TEAM_DOMAIN") // e.g. mycompany.cloudflareaccess.com
-	cfAudience := os.Getenv("ISMS_CF_AUDIENCE")        // CF Access Application Audience (AUD) tag
+	cfAudience := os.Getenv("ISMS_CF_AUDIENCE")       // CF Access Application Audience (AUD) tag
 	srv.echo.Use(AuthMiddleware(AuthConfig{
 		CloudflareTeamDomain: teamDomain,
 		CloudflareAudience:   cfAudience,
 		DB:                   database,
-		Secret:            srv.secret,
+		Secret:               srv.secret,
 	}))
 	srv.echo.Use(srv.RoleMiddleware())
 	// Tenant isolation model (defense in depth):
@@ -838,11 +837,11 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 		Branding         map[string]string `json:"branding,omitempty"`
 		OrganizationName string            `json:"organization_name"`
 		OrganizationSlug string            `json:"organization_slug"`
-		HasTerms       bool   `json:"has_terms"`
-		HasPrivacy     bool   `json:"has_privacy"`
-		ShowPoweredBy  bool   `json:"show_powered_by"`
-		TermsURL       string `json:"terms_url,omitempty"`
-		PrivacyURL     string `json:"privacy_url,omitempty"`
+		HasTerms         bool              `json:"has_terms"`
+		HasPrivacy       bool              `json:"has_privacy"`
+		ShowPoweredBy    bool              `json:"show_powered_by"`
+		TermsURL         string            `json:"terms_url,omitempty"`
+		PrivacyURL       string            `json:"privacy_url,omitempty"`
 
 		// Routing: does this deployment serve tenant orgs on wildcard
 		// subdomains (<slug>.<apex>), or only path-based (<apex>/<slug>)?
@@ -1155,16 +1154,16 @@ func (s *Server) handleGetDocumentBody(c echo.Context) error {
 	}
 
 	resp := map[string]interface{}{
-		"document_id":   pf.Frontmatter.DocumentID,
-		"title":         pf.Frontmatter.Title,
-		"version":       pf.Frontmatter.Version,
-		"status":        pf.Frontmatter.Status,
-		"author":        pf.Frontmatter.Author,
-		"owner":         pf.Frontmatter.Owner,
-		"review_cycle":  pf.Frontmatter.ReviewCycle,
-		"next_review":   pf.Frontmatter.NextReview,
-		"body":          pf.Body,
-		"path":        path,
+		"document_id":  pf.Frontmatter.DocumentID,
+		"title":        pf.Frontmatter.Title,
+		"version":      pf.Frontmatter.Version,
+		"status":       pf.Frontmatter.Status,
+		"author":       pf.Frontmatter.Author,
+		"owner":        pf.Frontmatter.Owner,
+		"review_cycle": pf.Frontmatter.ReviewCycle,
+		"next_review":  pf.Frontmatter.NextReview,
+		"body":         pf.Body,
+		"path":         path,
 	}
 	// Include active review ID so the frontend can link directly to it
 	if pf.Frontmatter.Status == "in_review" {
@@ -1323,12 +1322,12 @@ func (s *Server) handleCreateDocument(c echo.Context) error {
 
 	var req struct {
 		Folder     string `json:"folder"`      // e.g. "iso27001/policies"
-		Filename   string `json:"filename"`     // e.g. "data-classification.md"
-		DocumentID string `json:"document_id"`  // e.g. "data-classification"
-		Title      string `json:"title"`        // e.g. "Data Classification Policy"
-		Type       string `json:"type"`         // optional: control, policy, procedure, etc.
-		Content    string `json:"content"`      // optional initial body
-		Author     string `json:"author"`       // optional
+		Filename   string `json:"filename"`    // e.g. "data-classification.md"
+		DocumentID string `json:"document_id"` // e.g. "data-classification"
+		Title      string `json:"title"`       // e.g. "Data Classification Policy"
+		Type       string `json:"type"`        // optional: control, policy, procedure, etc.
+		Content    string `json:"content"`     // optional initial body
+		Author     string `json:"author"`      // optional
 	}
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -2150,7 +2149,6 @@ func (s *Server) handleRiskMatrix(c echo.Context) error {
 	return c.JSON(http.StatusOK, cells)
 }
 
-
 // handleRiskAdvisories returns advisory messages about CIA consistency between
 // a risk and its linked assets. This is informational only, not enforcement.
 func (s *Server) handleRiskAdvisories(c echo.Context) error {
@@ -2175,7 +2173,7 @@ func (s *Server) handleRiskAdvisories(c echo.Context) error {
 	}
 
 	type Advisory struct {
-		Level   string `json:"level"`   // "warning" or "info"
+		Level   string `json:"level"` // "warning" or "info"
 		Message string `json:"message"`
 	}
 
@@ -3036,7 +3034,6 @@ func (s *Server) handleCreateOverdueTasks(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-
 // stripFrontmatter removes YAML frontmatter from markdown content.
 // incrementVersion bumps a version string by 0.1 (e.g. "1.0" → "1.1", "2.3" → "2.4").
 // If the version is empty or unparseable, returns "0.1".
@@ -3062,15 +3059,23 @@ func compareVersions(a, b string) int {
 	aMaj, aMin := 0, 0
 	bMaj, bMin := 0, 0
 	fmt.Sscanf(pa[0], "%d", &aMaj)
-	if len(pa) > 1 { fmt.Sscanf(pa[1], "%d", &aMin) }
+	if len(pa) > 1 {
+		fmt.Sscanf(pa[1], "%d", &aMin)
+	}
 	fmt.Sscanf(pb[0], "%d", &bMaj)
-	if len(pb) > 1 { fmt.Sscanf(pb[1], "%d", &bMin) }
+	if len(pb) > 1 {
+		fmt.Sscanf(pb[1], "%d", &bMin)
+	}
 	if aMaj != bMaj {
-		if aMaj < bMaj { return -1 }
+		if aMaj < bMaj {
+			return -1
+		}
 		return 1
 	}
 	if aMin != bMin {
-		if aMin < bMin { return -1 }
+		if aMin < bMin {
+			return -1
+		}
 		return 1
 	}
 	return 0

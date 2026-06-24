@@ -22,9 +22,9 @@ type webAuthnUser struct {
 	creds []webauthn.Credential
 }
 
-func (u *webAuthnUser) WebAuthnID() []byte            { return []byte(fmt.Sprintf("%d", u.user.ID)) }
-func (u *webAuthnUser) WebAuthnName() string           { return u.user.Email }
-func (u *webAuthnUser) WebAuthnDisplayName() string    { return u.user.Name }
+func (u *webAuthnUser) WebAuthnID() []byte                         { return []byte(fmt.Sprintf("%d", u.user.ID)) }
+func (u *webAuthnUser) WebAuthnName() string                       { return u.user.Email }
+func (u *webAuthnUser) WebAuthnDisplayName() string                { return u.user.Name }
 func (u *webAuthnUser) WebAuthnCredentials() []webauthn.Credential { return u.creds }
 
 // dbCredToWebAuthn converts a stored DB credential to the library's Credential type.

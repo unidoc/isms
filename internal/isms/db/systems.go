@@ -153,7 +153,9 @@ const systemSelectCols = `id, organization_id, identifier, name, COALESCE(descri
 		COALESCE((SELECT email FROM users WHERE id = systems.owner_id), ''),
 		COALESCE(notes, ''), created_at, updated_at`
 
-func scanSystem(scanner interface{ Scan(dest ...interface{}) error }, sys *System) error {
+func scanSystem(scanner interface {
+	Scan(dest ...interface{}) error
+}, sys *System) error {
 	return scanner.Scan(&sys.ID, &sys.OrganizationID, &sys.Identifier, &sys.Name, &sys.Description,
 		&sys.SupplierID, &sys.Department,
 		&sys.Classification, &sys.Criticality, &sys.Status,

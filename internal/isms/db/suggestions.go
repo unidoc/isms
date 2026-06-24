@@ -9,26 +9,26 @@ import (
 
 // Suggestion represents a proposed change to an operational entity.
 type Suggestion struct {
-	ID                int64            `json:"id"`
-	OrganizationID    int              `json:"organization_id"`
-	EntityType        string           `json:"entity_type"`
-	EntityID          string           `json:"entity_id,omitempty"`
-	SuggestionType    string           `json:"suggestion_type"`
-	Title             string           `json:"title"`
-	Payload           json.RawMessage  `json:"payload"`
-	Rationale         string           `json:"rationale,omitempty"`
-	SourceRefs        json.RawMessage  `json:"source_refs,omitempty"`
-	EntityUpdatedAt   *Epoch           `json:"entity_updated_at,omitempty"`
-	Status            string           `json:"status"`
-	SuggestedBy       string           `json:"suggested_by"`
-	SuggestedByType   string           `json:"suggested_by_type"`
-	ReviewedBy        string           `json:"reviewed_by,omitempty"`
-	ReviewedAt        *Epoch           `json:"reviewed_at,omitempty"`
-	AppliedAt         *Epoch           `json:"applied_at,omitempty"`
-	AppliedEntityID   string           `json:"applied_entity_id,omitempty"`
-	RejectReason      string           `json:"reject_reason,omitempty"`
-	CreatedAt         Epoch            `json:"created_at"`
-	UpdatedAt         Epoch            `json:"updated_at"`
+	ID              int64           `json:"id"`
+	OrganizationID  int             `json:"organization_id"`
+	EntityType      string          `json:"entity_type"`
+	EntityID        string          `json:"entity_id,omitempty"`
+	SuggestionType  string          `json:"suggestion_type"`
+	Title           string          `json:"title"`
+	Payload         json.RawMessage `json:"payload"`
+	Rationale       string          `json:"rationale,omitempty"`
+	SourceRefs      json.RawMessage `json:"source_refs,omitempty"`
+	EntityUpdatedAt *Epoch          `json:"entity_updated_at,omitempty"`
+	Status          string          `json:"status"`
+	SuggestedBy     string          `json:"suggested_by"`
+	SuggestedByType string          `json:"suggested_by_type"`
+	ReviewedBy      string          `json:"reviewed_by,omitempty"`
+	ReviewedAt      *Epoch          `json:"reviewed_at,omitempty"`
+	AppliedAt       *Epoch          `json:"applied_at,omitempty"`
+	AppliedEntityID string          `json:"applied_entity_id,omitempty"`
+	RejectReason    string          `json:"reject_reason,omitempty"`
+	CreatedAt       Epoch           `json:"created_at"`
+	UpdatedAt       Epoch           `json:"updated_at"`
 }
 
 const suggestionSelectCols = `
@@ -40,7 +40,9 @@ const suggestionSelectCols = `
 	COALESCE(applied_entity_id, ''), COALESCE(reject_reason, ''),
 	created_at, updated_at`
 
-func scanSuggestion(scanner interface{ Scan(dest ...interface{}) error }, s *Suggestion) error {
+func scanSuggestion(scanner interface {
+	Scan(dest ...interface{}) error
+}, s *Suggestion) error {
 	return scanner.Scan(
 		&s.ID, &s.OrganizationID, &s.EntityType, &s.EntityID,
 		&s.SuggestionType, &s.Title, &s.Payload, &s.Rationale,

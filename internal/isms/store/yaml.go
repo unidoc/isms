@@ -25,7 +25,7 @@ type Store struct {
 	root    string          // root directory of the ISMS repo
 	repo    *git.Repository // nil = filesystem mode, non-nil = bare repo mode
 	mu      sync.Mutex      // protects concurrent git write operations
-	signing *SigningConfig   // SSH signing config (nil = unsigned commits)
+	signing *SigningConfig  // SSH signing config (nil = unsigned commits)
 
 	// Document ID index cache (invalidated on HEAD change)
 	docIndexMu   sync.Mutex
@@ -166,4 +166,3 @@ func (s *Store) writeYAML(path string, data interface{}) error {
 	}
 	return os.WriteFile(path, out, 0o644)
 }
-

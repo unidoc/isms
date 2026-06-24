@@ -135,6 +135,10 @@ release VERSION:
 
 # ── Maintenance ──────────────────────────────────────────────────────────────
 
+# Format all Go files (matches the gofmt CI gate in tests.yml)
+fmt:
+    gofmt -w .
+
 # Run go mod tidy
 tidy:
     go mod tidy

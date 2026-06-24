@@ -7,14 +7,14 @@ import (
 
 // Notification represents an inbox item for a user.
 type Notification struct {
-	ID             int       `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	RecipientID    int       `json:"recipient_id"`
-	Title          string    `json:"title"`
-	Body           string    `json:"body,omitempty"`
-	Link           string    `json:"link,omitempty"`
-	Read           bool  `json:"read"`
-	CreatedAt      Epoch `json:"created_at"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	RecipientID    int    `json:"recipient_id"`
+	Title          string `json:"title"`
+	Body           string `json:"body,omitempty"`
+	Link           string `json:"link,omitempty"`
+	Read           bool   `json:"read"`
+	CreatedAt      Epoch  `json:"created_at"`
 }
 
 func (d *DB) CreateNotification(ctx context.Context, orgID int, n *Notification) error {

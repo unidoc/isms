@@ -581,4 +581,3 @@ func writeSystemFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int
 	_ = actor
 	return db.UpdateSystemTx(ctx, tx, orgID, sys)
 }
-

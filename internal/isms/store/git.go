@@ -86,10 +86,15 @@ type dirEntry struct {
 	isDir bool
 }
 
-func (d dirEntry) Name() string               { return d.name }
-func (d dirEntry) IsDir() bool                 { return d.isDir }
-func (d dirEntry) Type() fs.FileMode           { if d.isDir { return fs.ModeDir }; return 0 }
-func (d dirEntry) Info() (fs.FileInfo, error)   { return nil, fmt.Errorf("not supported") }
+func (d dirEntry) Name() string { return d.name }
+func (d dirEntry) IsDir() bool  { return d.isDir }
+func (d dirEntry) Type() fs.FileMode {
+	if d.isDir {
+		return fs.ModeDir
+	}
+	return 0
+}
+func (d dirEntry) Info() (fs.FileInfo, error) { return nil, fmt.Errorf("not supported") }
 
 // readDir lists entries in a directory from the git tree or filesystem.
 func (s *Store) readDir(path string) ([]fs.DirEntry, error) {
@@ -415,7 +420,7 @@ func (s *Store) ResetToCommit(hash string) error {
 
 // ChangedFile describes a file changed in a recent commit.
 type ChangedFile struct {
-	Path       string `json:"path"`        // relative to documents/
+	Path       string `json:"path"` // relative to documents/
 	DocumentID string `json:"document_id"`
 	Title      string `json:"title"`
 	Folder     string `json:"folder"`
@@ -1292,7 +1297,9 @@ func (s *Store) commitFileUnlocked(filePath string, content []byte, authorName, 
 }
 
 // storeBlob creates a blob object in the repo.
-func storeBlob(storer interface{ SetEncodedObject(plumbing.EncodedObject) (plumbing.Hash, error) }, content []byte) (plumbing.Hash, error) {
+func storeBlob(storer interface {
+	SetEncodedObject(plumbing.EncodedObject) (plumbing.Hash, error)
+}, content []byte) (plumbing.Hash, error) {
 	obj := &plumbing.MemoryObject{}
 	obj.SetType(plumbing.BlobObject)
 	obj.SetSize(int64(len(content)))

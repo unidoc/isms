@@ -9,18 +9,18 @@ import (
 
 // ChangelogEntry represents a single field-level change in the entity changelog.
 type ChangelogEntry struct {
-	ID             int64     `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	EntityType     string    `json:"entity_type"`
-	EntityID       int64     `json:"entity_id"`
-	Action         string    `json:"action"`
-	Field          string    `json:"field,omitempty"`
-	OldValue       *string   `json:"old_value,omitempty"`
-	NewValue       *string   `json:"new_value,omitempty"`
-	ChangedBy      string    `json:"changed_by"`
-	APIKeyID       *int      `json:"api_key_id,omitempty"`
-	Reason         string `json:"reason,omitempty"`
-	CreatedAt      Epoch  `json:"created_at"`
+	ID             int64   `json:"id"`
+	OrganizationID int     `json:"organization_id"`
+	EntityType     string  `json:"entity_type"`
+	EntityID       int64   `json:"entity_id"`
+	Action         string  `json:"action"`
+	Field          string  `json:"field,omitempty"`
+	OldValue       *string `json:"old_value,omitempty"`
+	NewValue       *string `json:"new_value,omitempty"`
+	ChangedBy      string  `json:"changed_by"`
+	APIKeyID       *int    `json:"api_key_id,omitempty"`
+	Reason         string  `json:"reason,omitempty"`
+	CreatedAt      Epoch   `json:"created_at"`
 }
 
 // LogChange inserts a single changelog entry.

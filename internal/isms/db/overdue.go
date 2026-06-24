@@ -7,23 +7,23 @@ import (
 
 // OverdueItem represents something that needs review attention.
 type OverdueItem struct {
-	EntityType string `json:"entity_type"` // risk, supplier, system, legal, policy
-	EntityID   string `json:"entity_id"`   // identifier (RISK-1, SUPPLIER-1, etc.)
-	Title      string `json:"title"`
-	Owner      string `json:"owner,omitempty"`
-	NextReview *Epoch `json:"next_review"`
-	DaysLate   int    `json:"days_late"`
+	EntityType  string `json:"entity_type"` // risk, supplier, system, legal, policy
+	EntityID    string `json:"entity_id"`   // identifier (RISK-1, SUPPLIER-1, etc.)
+	Title       string `json:"title"`
+	Owner       string `json:"owner,omitempty"`
+	NextReview  *Epoch `json:"next_review"`
+	DaysLate    int    `json:"days_late"`
 	Criticality string `json:"criticality,omitempty"` // risk level or criticality
 }
 
 // OverdueSummary is the aggregate overdue status across all entity types.
 type OverdueSummary struct {
-	Risks       []OverdueItem `json:"risks"`
-	Suppliers   []OverdueItem `json:"suppliers"`
-	Systems     []OverdueItem `json:"systems"`
-	Legal       []OverdueItem `json:"legal"`
-	Tasks       []OverdueItem `json:"tasks"`
-	TotalCount  int           `json:"total_count"`
+	Risks      []OverdueItem `json:"risks"`
+	Suppliers  []OverdueItem `json:"suppliers"`
+	Systems    []OverdueItem `json:"systems"`
+	Legal      []OverdueItem `json:"legal"`
+	Tasks      []OverdueItem `json:"tasks"`
+	TotalCount int           `json:"total_count"`
 }
 
 // GetOverdueSummary returns all overdue review items across entity types.
@@ -280,12 +280,12 @@ func (d *DB) OverdueObjectiveCheckins(ctx context.Context, orgID int) ([]Overdue
 		daysLate := int(now.Sub(nextDue).Hours() / 24)
 		due := Epoch{Time: nextDue}
 		items = append(items, OverdueItem{
-			EntityType:  "objective",
-			EntityID:    displayID,
-			Title:       title,
-			Owner:       owner,
-			NextReview:  &due,
-			DaysLate:    daysLate,
+			EntityType: "objective",
+			EntityID:   displayID,
+			Title:      title,
+			Owner:      owner,
+			NextReview: &due,
+			DaysLate:   daysLate,
 		})
 	}
 	return items, nil
@@ -393,13 +393,13 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 			assignee = createdBy
 		}
 		task := Task{
-			Title:    p.title,
-			TaskType: p.taskType,
-			Assignee: assignee,
+			Title:     p.title,
+			TaskType:  p.taskType,
+			Assignee:  assignee,
 			CreatedBy: createdBy,
-			Status:   "open",
-			Priority: p.priority,
-			DueDate:  p.dueDate,
+			Status:    "open",
+			Priority:  p.priority,
+			DueDate:   p.dueDate,
 		}
 		if err := d.CreateTask(ctx, orgID, &task); err != nil {
 			continue

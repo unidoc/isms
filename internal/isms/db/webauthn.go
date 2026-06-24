@@ -6,16 +6,16 @@ import (
 
 // WebAuthnCredential represents a WebAuthn/FIDO2 passkey credential for a user.
 type WebAuthnCredential struct {
-	ID              int        `json:"id"`
-	UserID          int        `json:"user_id"`
-	CredentialID    []byte     `json:"-"`
-	PublicKey       []byte     `json:"-"`
-	AttestationType string     `json:"attestation_type"`
-	Transport       []string   `json:"transport"`
-	SignCount       int        `json:"sign_count"`
-	Name            string `json:"name"`
-	CreatedAt       Epoch  `json:"created_at"`
-	LastUsedAt      *Epoch `json:"last_used_at,omitempty"`
+	ID              int      `json:"id"`
+	UserID          int      `json:"user_id"`
+	CredentialID    []byte   `json:"-"`
+	PublicKey       []byte   `json:"-"`
+	AttestationType string   `json:"attestation_type"`
+	Transport       []string `json:"transport"`
+	SignCount       int      `json:"sign_count"`
+	Name            string   `json:"name"`
+	CreatedAt       Epoch    `json:"created_at"`
+	LastUsedAt      *Epoch   `json:"last_used_at,omitempty"`
 }
 
 // CreateWebAuthnCredential stores a new WebAuthn credential.

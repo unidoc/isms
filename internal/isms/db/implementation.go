@@ -7,12 +7,12 @@ import (
 
 // ImplementationStatus tracks the implementation state of an ISMS item.
 type ImplementationStatus struct {
-	ID             int        `json:"id"`
-	OrganizationID int        `json:"organization_id"`
-	ItemID         string     `json:"item_id"`
-	ItemType       string     `json:"item_type"`
-	Status         string     `json:"status"`
-	Owner          string     `json:"owner,omitempty"`
+	ID             int    `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	ItemID         string `json:"item_id"`
+	ItemType       string `json:"item_type"`
+	Status         string `json:"status"`
+	Owner          string `json:"owner,omitempty"`
 	TargetDate     *Epoch `json:"target_date,omitempty"`
 	Notes          string `json:"notes,omitempty"`
 	UpdatedAt      Epoch  `json:"updated_at"`

@@ -6,13 +6,13 @@ import (
 
 // Program groups related objectives under a keyed programme.
 type Program struct {
-	ID             int64     `json:"id"`
-	Identifier     string    `json:"identifier"`
-	OrganizationID int       `json:"organization_id"`
-	Key            string    `json:"key"`
-	Title          string    `json:"title"`
-	Description    string    `json:"description,omitempty"`
-	Notes          string    `json:"notes,omitempty"`
+	ID             int64  `json:"id"`
+	Identifier     string `json:"identifier"`
+	OrganizationID int    `json:"organization_id"`
+	Key            string `json:"key"`
+	Title          string `json:"title"`
+	Description    string `json:"description,omitempty"`
+	Notes          string `json:"notes,omitempty"`
 	Owner          string `json:"owner,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`

@@ -25,11 +25,11 @@ type ObjectiveListParams struct {
 }
 
 var objectiveSortable = map[string]string{
-	"title":     "title",
-	"display":   "display_id",
-	"status":    "status",
-	"created":   "created_at",
-	"updated":   "updated_at",
+	"title":   "title",
+	"display": "display_id",
+	"status":  "status",
+	"created": "created_at",
+	"updated": "updated_at",
 }
 
 const objectiveSelectCols = `id, organization_id, program_id, display_id, seq_number,
@@ -41,28 +41,28 @@ const objectiveSelectCols = `id, organization_id, program_id, display_id, seq_nu
 
 // Objective is a measurable ISMS objective within a program.
 type Objective struct {
-	ID                int64      `json:"id"`
-	OrganizationID    int        `json:"organization_id"`
-	ProgramID         int64      `json:"program_id"`
-	DisplayID         string     `json:"display_id"`
-	SeqNumber         int        `json:"seq_number"`
-	Title             string     `json:"title"`
-	Description       string     `json:"description,omitempty"`
-	Owner             string     `json:"owner,omitempty"`
-	Source            string     `json:"source,omitempty"`
-	MeasurementMethod string     `json:"measurement_method,omitempty"`
-	TargetValue       *float64   `json:"target_value,omitempty"`
-	TargetOperator    string     `json:"target_operator"`
-	Unit              string     `json:"unit,omitempty"`
-	WindowSeconds     *int       `json:"window_seconds,omitempty"`
-	GraceSeconds      int        `json:"grace_seconds"`
-	CheckinCycle      int        `json:"checkin_cycle"`
-	Status            string     `json:"status"`
-	StartedAt         *Epoch `json:"started_at,omitempty"`
-	ArchivedAt        *Epoch `json:"archived_at,omitempty"`
-	Notes             string `json:"notes,omitempty"`
-	CreatedAt         Epoch  `json:"created_at"`
-	UpdatedAt         Epoch  `json:"updated_at"`
+	ID                int64    `json:"id"`
+	OrganizationID    int      `json:"organization_id"`
+	ProgramID         int64    `json:"program_id"`
+	DisplayID         string   `json:"display_id"`
+	SeqNumber         int      `json:"seq_number"`
+	Title             string   `json:"title"`
+	Description       string   `json:"description,omitempty"`
+	Owner             string   `json:"owner,omitempty"`
+	Source            string   `json:"source,omitempty"`
+	MeasurementMethod string   `json:"measurement_method,omitempty"`
+	TargetValue       *float64 `json:"target_value,omitempty"`
+	TargetOperator    string   `json:"target_operator"`
+	Unit              string   `json:"unit,omitempty"`
+	WindowSeconds     *int     `json:"window_seconds,omitempty"`
+	GraceSeconds      int      `json:"grace_seconds"`
+	CheckinCycle      int      `json:"checkin_cycle"`
+	Status            string   `json:"status"`
+	StartedAt         *Epoch   `json:"started_at,omitempty"`
+	ArchivedAt        *Epoch   `json:"archived_at,omitempty"`
+	Notes             string   `json:"notes,omitempty"`
+	CreatedAt         Epoch    `json:"created_at"`
+	UpdatedAt         Epoch    `json:"updated_at"`
 }
 
 func (d *DB) CreateObjective(ctx context.Context, orgID int, o *Objective) error {

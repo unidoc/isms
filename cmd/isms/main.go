@@ -205,7 +205,7 @@ func apiClient() *client.Client {
 	}
 	apiKey := os.Getenv("ISMS_API_KEY")
 	if apiKey == "" {
-		apiKey = os.Getenv("ISMS_API_TOKEN") 
+		apiKey = os.Getenv("ISMS_API_TOKEN")
 	}
 	return client.New(client.Config{
 		BaseURL:        apiURL,

@@ -408,7 +408,7 @@ func (s *Server) handleReviewTimeline(c echo.Context) error {
 
 	// Build unified timeline entries.
 	type TimelineEntry struct {
-		Type        string      `json:"type"`       // "activity", "comment", "approval", "assignment", "decision"
+		Type        string      `json:"type"` // "activity", "comment", "approval", "assignment", "decision"
 		Actor       string      `json:"actor"`
 		Action      string      `json:"action"`
 		Detail      string      `json:"detail,omitempty"`
@@ -1023,12 +1023,12 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 	}
 
 	resp := map[string]interface{}{
-		"approval":           approval,
-		"review_status":      newStatus,
-		"round":              review.Round,
-		"total_reviewers":    totalAssigned,
-		"approved_count":     approvedCount,
-		"pending_reviewers":  pendingReviewers,
+		"approval":          approval,
+		"review_status":     newStatus,
+		"round":             review.Round,
+		"total_reviewers":   totalAssigned,
+		"approved_count":    approvedCount,
+		"pending_reviewers": pendingReviewers,
 	}
 	if autoMerged {
 		resp["auto_merged"] = true

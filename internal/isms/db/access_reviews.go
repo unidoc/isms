@@ -6,9 +6,9 @@ import (
 
 // AccessReview represents a periodic access review for a system.
 type AccessReview struct {
-	ID             int64     `json:"id"`
-	OrganizationID int       `json:"organization_id"`
-	SystemID       int64     `json:"system_id"`
+	ID             int64  `json:"id"`
+	OrganizationID int    `json:"organization_id"`
+	SystemID       int64  `json:"system_id"`
 	ReviewedAt     Epoch  `json:"reviewed_at"`
 	ReviewedBy     string `json:"reviewed_by"`
 	UsersAdded     int    `json:"users_added"`

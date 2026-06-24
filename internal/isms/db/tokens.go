@@ -16,9 +16,9 @@ type APIKey struct {
 	ID             int    `json:"id"`
 	Name           string `json:"name"`
 	UserID         int    `json:"user_id"`
-	UserEmail      string `json:"user_email"`  // from users table
+	UserEmail      string `json:"user_email"`                // from users table
 	OrganizationID *int   `json:"organization_id,omitempty"` // NULL = all orgs, set = org-scoped
-	Permissions    string `json:"permissions"` // read, write, read-write
+	Permissions    string `json:"permissions"`               // read, write, read-write
 	CreatedAt      Epoch  `json:"created_at"`
 	RevokedAt      *Epoch `json:"revoked_at,omitempty"`
 	LastUsedAt     *Epoch `json:"last_used_at,omitempty"`

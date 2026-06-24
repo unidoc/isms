@@ -20,7 +20,7 @@ type mode int
 
 const (
 	modeList   mode = iota // two-pane: list on left, preview on right
-	modeReader              // full-screen rendered document
+	modeReader             // full-screen rendered document
 )
 
 // item is a row in the document list — either a folder header or a document.

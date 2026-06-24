@@ -266,22 +266,6 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, 
 		}
 		return p.Title
 
-	case "control":
-		// Controls are documents — resolve via document_id lookup.
-		st, err := s.storeForOrg(ctx, orgID)
-		if err != nil {
-			return entityID
-		}
-		path := st.FindDocumentByID(entityID)
-		if path == "" {
-			return entityID
-		}
-		doc, err := st.LoadDocument(path)
-		if err != nil {
-			return entityID
-		}
-		return doc.Frontmatter.Title
-
 	case "document":
 		st, err := s.storeForOrg(ctx, orgID)
 		if err != nil {

@@ -43,14 +43,13 @@
           <div>
             <label class="block text-xs text-slate-500 mb-1">Type</label>
             <select v-model="form.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <!-- Manual task types only. The *_followup types are created
+                   automatically by the system, not chosen here (#32). -->
               <option value="general">General</option>
-              <option value="risk_review">Risk review</option>
-              <option value="supplier_review">Supplier review</option>
-              <option value="access_review">Access review</option>
-              <option value="legal_review">Legal review</option>
-              <option value="document_review">Document review</option>
-              <option value="objective_checkin">Objective check-in</option>
-              <option value="corrective_action">Corrective action</option>
+              <option value="review">Review</option>
+              <option value="onboarding">Onboarding</option>
+              <option value="offboarding">Offboarding</option>
+              <option value="training">Training</option>
               <option value="other">Other</option>
             </select>
           </div>
@@ -100,13 +99,14 @@
         <select v-model="filterTaskType" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
           <option value="">All types</option>
           <option value="general">General</option>
-          <option value="risk_review">Risk review</option>
-          <option value="supplier_review">Supplier review</option>
-          <option value="access_review">Access review</option>
-          <option value="legal_review">Legal review</option>
-          <option value="document_review">Document review</option>
-          <option value="objective_checkin">Objective check-in</option>
-          <option value="corrective_action">Corrective action</option>
+          <option value="review">Review</option>
+          <option value="incident_followup">Incident follow-up</option>
+          <option value="audit_followup">Audit follow-up</option>
+          <option value="ca_followup">Corrective action follow-up</option>
+          <option value="change_followup">Change follow-up</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="offboarding">Offboarding</option>
+          <option value="training">Training</option>
           <option value="other">Other</option>
         </select>
         <div class="w-48">
@@ -244,14 +244,17 @@
                       <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
                         <select v-model="editForm.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <!-- All real task types, so an auto-generated task's
+                               type is representable when editing (#32). -->
                           <option value="general">General</option>
-                          <option value="risk_review">Risk review</option>
-                          <option value="supplier_review">Supplier review</option>
-                          <option value="access_review">Access review</option>
-                          <option value="legal_review">Legal review</option>
-                          <option value="document_review">Document review</option>
-                          <option value="objective_checkin">Objective check-in</option>
-                          <option value="corrective_action">Corrective action</option>
+                          <option value="review">Review</option>
+                          <option value="incident_followup">Incident follow-up</option>
+                          <option value="audit_followup">Audit follow-up</option>
+                          <option value="ca_followup">Corrective action follow-up</option>
+                          <option value="change_followup">Change follow-up</option>
+                          <option value="onboarding">Onboarding</option>
+                          <option value="offboarding">Offboarding</option>
+                          <option value="training">Training</option>
                           <option value="other">Other</option>
                         </select>
                       </div>

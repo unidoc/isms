@@ -442,14 +442,12 @@ export const api = {
   // the local (file) backend streams the file directly. Branch on Content-Type
   // so the local backend works instead of failing to parse bytes as JSON (#31).
   downloadEvidence: async (id) => {
-    const res = await fetch(`${API}/evidence/${id}/download`, { headers: getHeaders() })
-    if (res.status === 401) {
-      clearApiToken()
-      window.dispatchEvent(new Event('isms:unauthorized'))
-      const e = new Error('Authentication required'); e.status = 401; throw e
-    }
+    const res = await safeFetch(`${API}/evidence/${id}/download`, { headers: getHeaders() })
+    checkAuth(res)
     if (!res.ok) {
-      const e = new Error(`${res.status} ${res.statusText}`); e.status = res.status; throw e
+      const e = new Error(`${res.status} ${res.statusText}`)
+      e.status = res.status
+      throw e
     }
     if ((res.headers.get('content-type') || '').includes('application/json')) {
       return await res.json() // S3 backend: { url, title, content_type }

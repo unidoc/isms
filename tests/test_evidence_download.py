@@ -5,6 +5,12 @@ streams the file directly. The frontend now branches on Content-Type to handle
 both. This test pins the backend contract the frontend relies on: on the file
 backend, GET /evidence/:id/download returns the raw file bytes with the file's
 content type — NOT a JSON envelope — so the client can save it.
+
+Coverage gap: the S3 backend path (JSON {url} response) is not covered here —
+the test stack runs ISMS_STORAGE_BACKEND=file and there's no mocked S3 (minio/
+localstack) fixture. The server-side S3 path is unchanged by this fix; only the
+client gained the Content-Type branch. Add a mock-S3 fixture if that path needs
+regression coverage.
 """
 import uuid
 

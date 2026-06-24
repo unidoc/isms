@@ -1124,6 +1124,8 @@ async function downloadEv(ev) {
       a.click()
       a.remove()
       URL.revokeObjectURL(objUrl)
+    } else {
+      error.value = 'Download failed: unexpected response from server'
     }
   } catch (e) {
     error.value = e.message

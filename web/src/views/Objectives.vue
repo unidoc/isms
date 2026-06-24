@@ -1112,7 +1112,20 @@ async function downloadEv(ev) {
   try {
     const result = await api.downloadEvidence(ev.id)
     if (result?.url) {
+      // S3 backend: presigned URL.
       window.open(result.url, '_blank')
+    } else if (result?.blob) {
+      // Local (file) backend: trigger a download of the streamed file.
+      const objUrl = URL.createObjectURL(result.blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      a.download = result.filename || ev.title || 'evidence'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(objUrl)
+    } else {
+      error.value = 'Download failed: unexpected response from server'
     }
   } catch (e) {
     error.value = e.message

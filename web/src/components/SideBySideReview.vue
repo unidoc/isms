@@ -138,6 +138,7 @@ import { ref, computed, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import DiffView from './DiffView.vue'
 import { parseMd } from '../composables/useRenderMd'
+import { diffTables, isTableBlock } from '../composables/useTableDiff'
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -235,13 +236,35 @@ const diff = computed(() => {
   return diffBlocks(oldBlocks.value, newBlocks.value)
 })
 
-const leftBlocks = computed(() =>
-  oldBlocks.value.map((b, i) => ({ ...b, changed: diff.value.oldChanged[i] }))
+// A changed table renders as a single per-cell diff in the Current column
+// (see useTableDiff) instead of a wholesale red-old / green-new block — so a
+// one-cell edit reads as one cell, not a replaced table. The Previous column
+// then shows the old table plainly (the merged diff already marks removals).
+const changedOldTables = computed(() =>
+  oldBlocks.value.filter((b, i) => diff.value.oldChanged[i] && isTableBlock(b.text))
 )
 
-const rightBlocks = computed(() =>
-  newBlocks.value.map((b, i) => ({ ...b, changed: diff.value.newChanged[i] }))
+const leftBlocks = computed(() =>
+  oldBlocks.value.map((b, i) => ({
+    ...b,
+    // Don't strike through a whole old table — its diff is shown on the right.
+    changed: diff.value.oldChanged[i] && !isTableBlock(b.text),
+  }))
 )
+
+const rightBlocks = computed(() => {
+  let tIdx = 0
+  return newBlocks.value.map((b, i) => {
+    const changed = diff.value.newChanged[i]
+    if (changed && isTableBlock(b.text)) {
+      const oldText = changedOldTables.value[tIdx]?.text || ''
+      tIdx++
+      const merged = diffTables(oldText, b.text)
+      if (merged) return { ...b, changed: false, html: merged }
+    }
+    return { ...b, changed }
+  })
+})
 
 const changedCount = computed(() =>
   diff.value.newChanged.filter(c => c).length

@@ -513,6 +513,18 @@
   border-radius: 2px;
 }
 
+/* Table cell-level diff (#6): tint only what changed; unchanged cells keep
+   their own colors. Word-level del/ins inside cells reuse .tc-word-* above. */
+.doc-prose td.tc-cell-change { background: rgba(59, 130, 246, 0.10); }
+.doc-prose td.tc-cell-add,
+.doc-prose .tc-row-add > td { background: rgba(34, 197, 94, 0.12); }
+.doc-prose .tc-row-del > td {
+  background: rgba(239, 68, 68, 0.10);
+  color: #fca5a5;
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.4);
+}
+
 /* ── Print / read mode ── */
 @media print {
   /* Hide chrome: sidebar, toolbars, navigation, buttons */

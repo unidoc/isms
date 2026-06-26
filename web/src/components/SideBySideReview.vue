@@ -138,6 +138,7 @@ import { ref, computed, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import DiffView from './DiffView.vue'
 import { parseMd } from '../composables/useRenderMd'
+import { diffTables, isTableBlock } from '../composables/useTableDiff'
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -208,22 +209,34 @@ function diffBlocks(oldBlocks, newBlocks) {
         : Math.max(dp[i - 1][j], dp[i][j - 1])
     }
   }
-  // Backtrack to mark changed blocks
+  // Backtrack into a full edit script, then derive changed flags + del→ins pairs.
   const oldChanged = new Array(m).fill(true)
   const newChanged = new Array(n).fill(true)
+  const ops = []
   let i = m, j = n
-  while (i > 0 && j > 0) {
-    if (oldBlocks[i - 1].text === newBlocks[j - 1].text) {
-      oldChanged[i - 1] = false
-      newChanged[j - 1] = false
-      i--; j--
-    } else if (dp[i - 1][j] > dp[i][j - 1]) {
-      i--
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldBlocks[i - 1].text === newBlocks[j - 1].text) {
+      ops.push({ type: 'eq', oi: i - 1, ni: j - 1 }); i--; j--
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      ops.push({ type: 'ins', ni: j - 1 }); j--
     } else {
-      j--
+      ops.push({ type: 'del', oi: i - 1 }); i--
     }
   }
-  return { oldChanged, newChanged }
+  ops.reverse()
+  for (const op of ops) {
+    if (op.type === 'eq') { oldChanged[op.oi] = false; newChanged[op.ni] = false }
+  }
+  // A removed block immediately followed by an inserted one is a replacement —
+  // pair them so a changed table is diffed against the RIGHT old table even when
+  // an unrelated pure deletion sits earlier in the document.
+  const pairs = new Map() // newIdx → oldIdx
+  for (let k = 0; k < ops.length - 1; k++) {
+    if (ops[k].type === 'del' && ops[k + 1].type === 'ins') {
+      pairs.set(ops[k + 1].ni, ops[k].oi); k++
+    }
+  }
+  return { oldChanged, newChanged, pairs }
 }
 
 const oldBlocks = computed(() => splitBlocks(props.oldBody))
@@ -235,12 +248,32 @@ const diff = computed(() => {
   return diffBlocks(oldBlocks.value, newBlocks.value)
 })
 
+// A changed table renders as a single per-cell diff in the Current column
+// (see useTableDiff) instead of a wholesale red-old / green-new block — so a
+// one-cell edit reads as one cell, not a replaced table. The Previous column
+// then shows the old table plainly (the merged diff already marks removals).
 const leftBlocks = computed(() =>
-  oldBlocks.value.map((b, i) => ({ ...b, changed: diff.value.oldChanged[i] }))
+  oldBlocks.value.map((b, i) => ({
+    ...b,
+    // Don't strike through a whole old table — its diff is shown on the right.
+    changed: diff.value.oldChanged[i] && !isTableBlock(b.text),
+  }))
 )
 
 const rightBlocks = computed(() =>
-  newBlocks.value.map((b, i) => ({ ...b, changed: diff.value.newChanged[i] }))
+  newBlocks.value.map((b, i) => {
+    const changed = diff.value.newChanged[i]
+    if (changed && isTableBlock(b.text)) {
+      // Pair against the old block this one replaced (del→ins), not a sequential
+      // counter — so an unrelated table deletion can't mis-pair the diff.
+      const oldIdx = diff.value.pairs?.get(i)
+      const oldText = (oldIdx != null && isTableBlock(oldBlocks.value[oldIdx]?.text))
+        ? oldBlocks.value[oldIdx].text : ''
+      const merged = diffTables(oldText, b.text)
+      if (merged) return { ...b, changed: false, html: merged }
+    }
+    return { ...b, changed }
+  })
 )
 
 const changedCount = computed(() =>

@@ -12,8 +12,19 @@ export function escapeHtml(t) {
 }
 
 // Token-level LCS → merged runs of equal/add/remove (each run's text concatenated).
+// The DP table is Uint16Array, so an LCS dimension ≥ 65536 would wrap silently
+// and corrupt the backtrack. Far beyond any real review (~500 KB in one cell),
+// but make the failure mode explicit: fall back to a whole remove+add.
+const DP_MAX = 65535
+
 export function diffTokens(oldToks, newToks) {
   const m = oldToks.length, n = newToks.length
+  if (m > DP_MAX || n > DP_MAX) {
+    return [
+      ...(m ? [{ type: 'remove', text: oldToks.join('') }] : []),
+      ...(n ? [{ type: 'add', text: newToks.join('') }] : []),
+    ]
+  }
   const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1))
   for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = oldToks[i - 1] === newToks[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1])
   const raw = []; let i = m, j = n
@@ -26,6 +37,12 @@ export function diffTokens(oldToks, newToks) {
 // Line-level LCS → merged runs of equal/add/remove (runs joined by newline).
 export function diffLines(oldArr, newArr) {
   const m = oldArr.length, n = newArr.length
+  if (m > DP_MAX || n > DP_MAX) {
+    return [
+      ...(m ? [{ type: 'remove', text: oldArr.join('\n') }] : []),
+      ...(n ? [{ type: 'add', text: newArr.join('\n') }] : []),
+    ]
+  }
   const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1))
   for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = oldArr[i - 1] === newArr[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1])
   const raw = []; let i = m, j = n

@@ -14,7 +14,7 @@
 // so styling/colgroup/colors are preserved.
 
 import DOMPurify from 'dompurify'
-import { tokenize, diffTokens, escapeHtml } from './useWordDiff'
+import { wordDiffPlain } from './useWordDiff'
 import { parseMd } from './useRenderMd'
 
 const HTML_TABLE_RE = /^\s*<table[\s>]/i
@@ -51,14 +51,6 @@ function isHeaderRow(tr) {
 function rowKey(tr) {
   const cells = rowCells(tr)
   return cells.length ? cells[0].textContent.trim() : ''
-}
-
-function cellWordDiff(oldText, newText) {
-  return diffTokens(tokenize(oldText), tokenize(newText))
-    .map(op => op.type === 'equal' ? escapeHtml(op.text)
-      : op.type === 'remove' ? `<del class="tc-word-del">${escapeHtml(op.text)}</del>`
-        : `<ins class="tc-word-ins">${escapeHtml(op.text)}</ins>`)
-    .join('')
 }
 
 // Diff two tables (each given as HTML or markdown). Returns sanitised HTML for
@@ -101,7 +93,7 @@ export function diffTables(oldText, newText) {
       const oldCellText = oc.textContent.trim()
       const newCellText = nc.textContent.trim()
       if (oldCellText !== newCellText) {
-        nc.innerHTML = cellWordDiff(oldCellText, newCellText)
+        nc.innerHTML = wordDiffPlain(oldCellText, newCellText)
         nc.classList.add('tc-cell-change')
       }
     }

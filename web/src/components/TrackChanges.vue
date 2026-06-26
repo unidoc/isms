@@ -302,7 +302,16 @@ const segments = computed(() => {
       // Tables: diff cell-by-cell (handles md→HTML conversion + colors) instead
       // of word-diffing the HTML/tag soup. Falls back to prose word-diff.
       const tableHtml = diffTables(oldT, newT)
-      paired.push({ type: 'change', oldText: oldT, newText: newT, html: tableHtml || wordDiffHtml(oldT, newT), isTable: !!tableHtml })
+      if (tableHtml) {
+        // Count changed cells so the stats header reflects cells, not the raw
+        // line delta (a 2-cell edit must not read "+1 -5" from md→HTML).
+        const tmp = document.createElement('div')
+        tmp.innerHTML = tableHtml
+        const cellCount = tmp.querySelectorAll('td.tc-cell-change, .tc-row-add > td, .tc-row-del > td').length
+        paired.push({ type: 'change', oldText: oldT, newText: newT, html: tableHtml, isTable: true, cellCount })
+      } else {
+        paired.push({ type: 'change', oldText: oldT, newText: newT, html: wordDiffHtml(oldT, newT), isTable: false })
+      }
       i += 2
     } else {
       paired.push(raw[i])
@@ -317,7 +326,12 @@ const stats = computed(() => {
   for (const s of segments.value) {
     if (s.type === 'add') added += s.text.split('\n').length
     else if (s.type === 'remove') removed += s.text.split('\n').length
-    else if (s.type === 'change') { removed += s.oldText.split('\n').length; added += s.newText.split('\n').length }
+    else if (s.type === 'change') {
+      // A table change is measured in changed cells, not the raw line delta —
+      // otherwise a md→HTML table reads "+1 added -5 removed" for a 2-cell edit.
+      if (s.isTable) { added += s.cellCount || 0 }
+      else { removed += s.oldText.split('\n').length; added += s.newText.split('\n').length }
+    }
   }
   return { added, removed }
 })

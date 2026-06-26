@@ -26,21 +26,23 @@ import (
 
 // AuthConfig configures the authentication middleware.
 type AuthConfig struct {
-	CloudflareTeamDomain string // e.g. "mycompany.cloudflareaccess.com"
-	CloudflareAudience   string // CF Access Application Audience (AUD) tag — set via ISMS_CF_AUDIENCE
-	DB                   *db.DB // for API token lookups
-	Secret               string // for validating JWT session tokens
+	CloudflareTeamDomain string            // e.g. "mycompany.cloudflareaccess.com"
+	CloudflareAudience   string            // CF Access Application Audience (AUD) tag — set via ISMS_CF_AUDIENCE
+	DB                   *db.DB            // for API token lookups
+	Secret               string            // for validating JWT session tokens
+	KeyCache             *cfKeyCache       // shared CF JWKS cache (also used by the cf-session handler)
+	Provision            cfProvisionConfig // JIT user provisioning on first CF Access login
 }
 
 // AuthMiddleware validates authentication on all API routes.
 // Two auth methods: Bearer token or Cloudflare Zero Trust. No exceptions.
 func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
-	var keyCache *cfKeyCache
-	if cfg.CloudflareTeamDomain != "" {
+	keyCache := cfg.KeyCache
+	if keyCache == nil && cfg.CloudflareTeamDomain != "" {
 		keyCache = newCFKeyCache(cfg.CloudflareTeamDomain, cfg.CloudflareAudience)
-		if cfg.CloudflareAudience == "" {
-			log.Println("WARNING: ISMS_CF_AUDIENCE not set — Cloudflare Access JWT audience validation is disabled. Any CF Access JWT from any application will be accepted. Set ISMS_CF_AUDIENCE to the Application Audience (AUD) tag from your CF Access dashboard.")
-		}
+	}
+	if keyCache != nil && cfg.CloudflareAudience == "" {
+		log.Println("WARNING: ISMS_CF_AUDIENCE not set — Cloudflare Access JWT audience validation is disabled. Any CF Access JWT from any application will be accepted. Set ISMS_CF_AUDIENCE to the Application Audience (AUD) tag from your CF Access dashboard.")
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -55,7 +57,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			if path == "/healthz" ||
 				path == "/docs" || path == "/api/openapi.yaml" ||
 				path == "/api/v1/auth/login" || path == "/api/v1/auth/signup" || path == "/api/v1/auth/verify-email" ||
-				path == "/api/v1/auth/forgot-password" ||
+				path == "/api/v1/auth/forgot-password" || path == "/api/v1/auth/cf-session" ||
 				path == "/api/v1/auth/passkey/login/begin" || path == "/api/v1/auth/passkey/login/complete" ||
 				path == "/api/v1/auth/oidc/providers" || path == "/api/v1/auth/oidc/authorize" || path == "/api/v1/auth/oidc/callback" {
 				return next(c)
@@ -230,6 +232,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				return echo.NewHTTPError(http.StatusUnauthorized, "API key required. Use: isms server api-key create")
 			}
 
+			cfName := ""
 			{
 				jwt := c.Request().Header.Get("Cf-Access-Jwt-Assertion")
 				if jwt == "" {
@@ -239,17 +242,24 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				if err != nil {
 					return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("invalid token: %v", err))
 				}
-				if claims.Email != "" && claims.Email != email {
+				if claims.Email != "" && !strings.EqualFold(claims.Email, email) {
 					return echo.NewHTTPError(http.StatusUnauthorized, "token email mismatch")
 				}
+				cfName = claims.Name
 			}
 
-			// Resolve user and org for CF-authenticated users
+			// Resolve (or, when enabled, JIT-provision) the CF-authenticated user.
 			c.Set("user_email", email)
 			ctx := c.Request().Context()
-			user, err := cfg.DB.GetUserByEmail(ctx, email)
+			user, created, err := resolveCFUser(ctx, cfg.DB, email, cfName, cfg.Provision)
 			if err != nil {
+				if errors.Is(err, errProvisionFailed) {
+					return echo.NewHTTPError(http.StatusInternalServerError, "auto-provision failed")
+				}
 				return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+			}
+			if created {
+				log.Printf("[cf-access] auto-provisioned user %s", email)
 			}
 
 			// If OrgResolverMiddleware already resolved the org (subdomain/domain/path),
@@ -377,6 +387,7 @@ func (s *Server) RoleMiddleware() echo.MiddlewareFunc {
 
 type cfClaims struct {
 	Email string          `json:"email"`
+	Name  string          `json:"name,omitempty"` // present when CF Access passes identity claims
 	Exp   int64           `json:"exp"`
 	Iat   int64           `json:"iat"`
 	Iss   string          `json:"iss"`

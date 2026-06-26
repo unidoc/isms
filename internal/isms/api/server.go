@@ -61,6 +61,11 @@ type Server struct {
 
 	// In-memory search index per org — avoids 10+ DB queries per keystroke.
 	searchIndex *SearchIndex
+
+	// Cloudflare Access: shared JWKS cache + JIT provisioning config, used by
+	// both the auth middleware and the cf-session web-login handler.
+	cfKeyCache  *cfKeyCache
+	cfProvision cfProvisionConfig
 }
 
 // storeForOrg returns (or creates and caches) a store for the given organization.
@@ -349,11 +354,21 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	// Authentication + role enforcement
 	teamDomain := os.Getenv("CLOUDFLARE_TEAM_DOMAIN") // e.g. mycompany.cloudflareaccess.com
 	cfAudience := os.Getenv("ISMS_CF_AUDIENCE")       // CF Access Application Audience (AUD) tag
+	if teamDomain != "" {
+		srv.cfKeyCache = newCFKeyCache(teamDomain, cfAudience)
+	}
+	// JIT provisioning on first CF Access login (opt-in, default off). See #98.
+	// Creates the user row only — org membership/role is an explicit admin/CLI step.
+	srv.cfProvision = cfProvisionConfig{
+		Enabled: os.Getenv("ISMS_CF_AUTO_PROVISION") == "true" || os.Getenv("ISMS_CF_AUTO_PROVISION") == "1",
+	}
 	srv.echo.Use(AuthMiddleware(AuthConfig{
 		CloudflareTeamDomain: teamDomain,
 		CloudflareAudience:   cfAudience,
 		DB:                   database,
 		Secret:               srv.secret,
+		KeyCache:             srv.cfKeyCache,
+		Provision:            srv.cfProvision,
 	}))
 	srv.echo.Use(srv.RoleMiddleware())
 	// Tenant isolation model (defense in depth):
@@ -427,6 +442,7 @@ func (s *Server) routes() {
 	// the individual handlers (handleLogin, handlePasskeyLoginComplete).
 	authLimit := AuthRateLimitMiddleware(s.db)
 	api.POST("/auth/login", s.handleLogin, authLimit)
+	api.GET("/auth/cf-session", s.handleCFSession, authLimit) // Cloudflare Access → web session (#98)
 	api.POST("/auth/signup", s.handleSignup, authLimit)
 	api.POST("/auth/verify-email", s.handleVerifyEmail, authLimit)
 	api.POST("/auth/forgot-password", s.handleForgotPassword, authLimit)

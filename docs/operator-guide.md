@@ -188,6 +188,7 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 |----------|-------------|
 | `CLOUDFLARE_TEAM_DOMAIN` | Cloudflare Access team domain (e.g. `mycompany.cloudflareaccess.com`). Enables CF Zero Trust authentication. |
 | `ISMS_CF_AUDIENCE` | CF Access Application Audience (AUD) tag. **Set this when using CF Access** — without it, any CF Access JWT from any application is accepted. |
+| `ISMS_CF_AUTO_PROVISION` | Set to `1`/`true` to create the **user record** automatically on their first Cloudflare Access login (JIT). Off by default. The user is created with no org membership — an admin (or the CLI) then adds them to the right organization and role. **Only safe when your CF Access policy is the source of truth for who may reach ISMS** — see the warning below. |
 | `ISMS_USER_SIGNUP` | Set to `1` to enable self-registration. Off by default. |
 | `ISMS_SKIP_EMAIL_VERIFY` | Set to `1` to skip email verification on signup (users are active immediately). For dev/eval only. |
 
@@ -582,6 +583,26 @@ Disable with `ISMS_RATE_LIMIT=0`. The default is 20 requests per minute per IP.
 ### CF Access warning: "ISMS_CF_AUDIENCE not set"
 
 When `CLOUDFLARE_TEAM_DOMAIN` is set but `ISMS_CF_AUDIENCE` is not, the server logs a warning on startup. Without the audience check, any CF Access JWT from any application on your team domain is accepted. Set `ISMS_CF_AUDIENCE` to the Application Audience (AUD) tag from your CF Access dashboard.
+
+### Cloudflare Access as web login (Zero Trust SSO)
+
+With `CLOUDFLARE_TEAM_DOMAIN` + `ISMS_CF_AUDIENCE` set and ISMS published behind a CF Access application, a user who has already passed CF Access (e.g. via Entra at the CF layer) is logged into the **web app** automatically — no separate ISMS login. On load the SPA calls `GET /api/v1/auth/cf-session`; behind CF Access the proxy adds the identity headers, the server **validates the Access JWT** (not just the email header), resolves the user, and mints an ISMS session. The same CF identity also authenticates the API, CLI, and git.
+
+By default the user must already exist in ISMS and be a member of the org. To skip the manual "create the user" step, enable JIT provisioning:
+
+```
+ISMS_CF_AUTO_PROVISION=1
+```
+
+With this on, the first CF Access login **creates the user record** (no org, no role). They can authenticate, but can't load an org's data until an **admin adds them to the right organization** — Admin → Members, or:
+
+```
+isms server org add-member --org acme --email user@acme.com --role reader
+```
+
+There is intentionally **no default org/role**: which org someone belongs to, and at what role, is a deliberate decision, not an env-var guess.
+
+**Security tradeoff — read before enabling JIT.** Auto-provisioning is safe **only when your CF Access policy is the source of truth for who may reach ISMS.** If a route is left unprotected, or a CF Access token leaks, an unintended user could create an account. Mitigations: it's opt-in (default off); a provisioned user has **no org access at all** until an admin grants it (so a stray account can see nothing); and the Access JWT is always cryptographically verified — a missing/invalid token never provisions.
 
 ### Git repo not found for organization
 

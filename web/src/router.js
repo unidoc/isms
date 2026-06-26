@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { getApiToken, clearApiToken } from './api'
+import { getApiToken, setApiToken, clearApiToken } from './api'
 import api from './api'
 import Login from './views/Login.vue'
 import Signup from './views/Signup.vue'
@@ -102,6 +102,9 @@ const router = createRouter({
 
 // Navigation guard: check auth before each route
 let sessionValidated = false
+// Probe Cloudflare Access SSO at most once per load — if we're not behind CF
+// Access it 401s, and we shouldn't pay that latency on every navigation.
+let cfTried = false
 
 router.beforeEach(async (to, from) => {
   // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
@@ -124,7 +127,20 @@ router.beforeEach(async (to, from) => {
   }
 
   if (!getApiToken()) {
-    return { path: '/login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : undefined }
+    // No local token — but if we're behind Cloudflare Access, the server can
+    // mint a session from the CF identity (no ISMS login needed). Try once.
+    if (!cfTried) {
+      cfTried = true
+      const cf = await api.cfSession()
+      if (cf?.token) {
+        setApiToken(cf.token)
+        if (cf.email) localStorage.setItem('isms_user_email', cf.email)
+        if (cf.name) localStorage.setItem('isms_user_name', cf.name)
+      }
+    }
+    if (!getApiToken()) {
+      return { path: '/login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : undefined }
+    }
   }
 
   if (!sessionValidated) {

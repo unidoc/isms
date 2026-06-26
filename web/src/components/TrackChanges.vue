@@ -40,7 +40,7 @@
               :class="{
                 'tc-del': block.type === 'remove',
                 'tc-ins': block.type === 'add',
-                'tc-change': block.type === 'change',
+                'tc-change': block.type === 'change' && !block.isTable,
               }">
               <div class="doc-prose" v-html="block.html"></div>
             </div>
@@ -122,6 +122,8 @@
 import { ref, computed, watch, reactive } from 'vue'
 import DOMPurify from 'dompurify'
 import { parseMd } from '../composables/useRenderMd'
+import { tokenize, diffTokens, diffLines, escapeHtml } from '../composables/useWordDiff'
+import { diffTables } from '../composables/useTableDiff'
 import DiffView from './DiffView.vue'
 import api from '../api'
 
@@ -296,7 +298,20 @@ const segments = computed(() => {
   let i = 0
   while (i < raw.length) {
     if (raw[i].type === 'remove' && i + 1 < raw.length && raw[i + 1].type === 'add') {
-      paired.push({ type: 'change', oldText: raw[i].text, newText: raw[i + 1].text, html: wordDiffHtml(raw[i].text, raw[i + 1].text) })
+      const oldT = raw[i].text, newT = raw[i + 1].text
+      // Tables: diff cell-by-cell (handles md→HTML conversion + colors) instead
+      // of word-diffing the HTML/tag soup. Falls back to prose word-diff.
+      const tableHtml = diffTables(oldT, newT)
+      if (tableHtml) {
+        // Count changed cells so the stats header reflects cells, not the raw
+        // line delta (a 2-cell edit must not read "+1 -5" from md→HTML).
+        const tmp = document.createElement('div')
+        tmp.innerHTML = tableHtml
+        const cellCount = tmp.querySelectorAll('td.tc-cell-change, .tc-row-add > td, .tc-row-del > td').length
+        paired.push({ type: 'change', oldText: oldT, newText: newT, html: tableHtml, isTable: true, cellCount })
+      } else {
+        paired.push({ type: 'change', oldText: oldT, newText: newT, html: wordDiffHtml(oldT, newT), isTable: false })
+      }
       i += 2
     } else {
       paired.push(raw[i])
@@ -311,7 +326,12 @@ const stats = computed(() => {
   for (const s of segments.value) {
     if (s.type === 'add') added += s.text.split('\n').length
     else if (s.type === 'remove') removed += s.text.split('\n').length
-    else if (s.type === 'change') { removed += s.oldText.split('\n').length; added += s.newText.split('\n').length }
+    else if (s.type === 'change') {
+      // A table change is measured in changed cells, not the raw line delta —
+      // otherwise a md→HTML table reads "+1 added -5 removed" for a 2-cell edit.
+      if (s.isTable) { added += s.cellCount || 0 }
+      else { removed += s.oldText.split('\n').length; added += s.newText.split('\n').length }
+    }
   }
   return { added, removed }
 })
@@ -331,7 +351,7 @@ const finalBlocks = computed(() => {
     if (seg.type === 'change') {
       const lineBlame = newLineIdx < blame.length ? blame[newLineIdx] : null
       newLineIdx += seg.newText.split('\n').length
-      blocks.push({ type: 'change', text: seg.newText, html: seg.html, blame: lineBlame, blameKey: lineBlame ? lineBlame.hash : 'change' })
+      blocks.push({ type: 'change', text: seg.newText, html: seg.html, isTable: seg.isTable, blame: lineBlame, blameKey: lineBlame ? lineBlame.hash : 'change' })
       continue
     }
     // equal or add — split by blame boundaries
@@ -373,34 +393,11 @@ const rawDiff = computed(() => {
 
 function renderMd(text) { return text ? DOMPurify.sanitize(parseMd(text)) : '' }
 
+// Prose word-diff: equal text stays raw so markdown still renders; only the
+// del/ins payloads are escaped. (Table cells use the plain-text path instead.)
 function wordDiffHtml(oldText, newText) {
   const ops = diffTokens(tokenize(oldText), tokenize(newText))
-  const parts = ops.map(op => op.type === 'equal' ? op.text : op.type === 'remove' ? `<del class="tc-word-del">${esc(op.text)}</del>` : `<ins class="tc-word-ins">${esc(op.text)}</ins>`)
+  const parts = ops.map(op => op.type === 'equal' ? op.text : op.type === 'remove' ? `<del class="tc-word-del">${escapeHtml(op.text)}</del>` : `<ins class="tc-word-ins">${escapeHtml(op.text)}</ins>`)
   return DOMPurify.sanitize(parseMd(parts.join('')), { ADD_TAGS: ['del', 'ins'], ADD_ATTR: ['class'] })
-}
-
-function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
-function tokenize(text) { return text.match(/\S+|\s+/g) || [] }
-
-function diffTokens(oldToks, newToks) {
-  const m = oldToks.length, n = newToks.length
-  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1))
-  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = oldToks[i-1] === newToks[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1])
-  const raw = []; let i = m, j = n
-  while (i > 0 || j > 0) { if (i > 0 && j > 0 && oldToks[i-1] === newToks[j-1]) { raw.push({ type: 'equal', text: oldToks[i-1] }); i--; j-- } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { raw.push({ type: 'add', text: newToks[j-1] }); j-- } else { raw.push({ type: 'remove', text: oldToks[i-1] }); i-- } }
-  raw.reverse()
-  const merged = []; for (const op of raw) { if (merged.length > 0 && merged[merged.length-1].type === op.type) merged[merged.length-1].text += op.text; else merged.push({...op}) }
-  return merged
-}
-
-function diffLines(oldArr, newArr) {
-  const m = oldArr.length, n = newArr.length
-  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1))
-  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = oldArr[i-1] === newArr[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1])
-  const raw = []; let i = m, j = n
-  while (i > 0 || j > 0) { if (i > 0 && j > 0 && oldArr[i-1] === newArr[j-1]) { raw.push({ type: 'equal', text: oldArr[i-1] }); i--; j-- } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { raw.push({ type: 'add', text: newArr[j-1] }); j-- } else { raw.push({ type: 'remove', text: oldArr[i-1] }); i-- } }
-  raw.reverse()
-  const merged = []; for (const op of raw) { if (merged.length > 0 && merged[merged.length-1].type === op.type) merged[merged.length-1].text += '\n' + op.text; else merged.push({...op}) }
-  return merged
 }
 </script>

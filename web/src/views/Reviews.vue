@@ -218,6 +218,21 @@
                       </svg>
                       <span class="text-[10px] font-mono text-slate-600" title="SHA-256 content hash for tamper evidence">{{ entry.content_hash.substring(0, 16) }}...</span>
                     </div>
+                    <!-- Per-event diff: exactly what this revision changed (#6) -->
+                    <div v-if="entry.decision === 'proposed_revision' && entry.data?.commit_ref" class="ml-6 mt-2">
+                      <button @click="toggleEventDiff(entry)" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
+                        {{ openEventDiff === entry.data.commit_ref ? 'Hide changes' : 'View changes' }}
+                      </button>
+                      <div v-if="openEventDiff === entry.data.commit_ref" class="mt-2 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                        <div v-if="eventDiff[entry.data.commit_ref]?.loading" class="px-4 py-3 text-xs text-slate-500">Loading changes…</div>
+                        <div v-else-if="eventDiff[entry.data.commit_ref]?.error" class="px-4 py-3 text-xs text-red-400">Couldn't load this revision's diff.</div>
+                        <TrackChanges v-else
+                          :old-body="eventDiff[entry.data.commit_ref]?.old || ''"
+                          :new-body="eventDiff[entry.data.commit_ref]?.new || ''"
+                          :document-id="review?.document_id || ''"
+                          :readonly="true" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 </template>
@@ -817,7 +832,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useConfirm } from '../composables/useConfirm'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
@@ -971,6 +986,27 @@ const reviewGuideHidden = ref(false)
 const diffViewMode = ref('track-changes')
 const changesViewMode = ref('split')
 const diffScope = ref('round') // 'round' = changes in this round, 'all' = all changes in review
+
+// Per-event diff (#6): expand a `proposed_revision` timeline entry to see exactly
+// what that one revision changed (the proposal commit vs its parent). Cached by
+// commit ref so re-opening is instant.
+const openEventDiff = ref(null)
+const eventDiff = reactive({})
+async function toggleEventDiff(entry) {
+  const ref_ = entry.data?.commit_ref
+  if (!ref_ || !review.value) return
+  if (openEventDiff.value === ref_) { openEventDiff.value = null; return }
+  openEventDiff.value = ref_
+  if (!eventDiff[ref_]) {
+    eventDiff[ref_] = { loading: true, old: '', new: '' }
+    try {
+      const d = await api.getReviewDiff(review.value.id, null, ref_)
+      eventDiff[ref_] = { loading: false, old: d.old_body || '', new: d.new_body || '' }
+    } catch {
+      eventDiff[ref_] = { loading: false, error: true, old: '', new: '' }
+    }
+  }
+}
 const approvalFeedback = ref('')
 const policyStatus = ref(null)
 

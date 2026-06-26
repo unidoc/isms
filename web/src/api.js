@@ -248,7 +248,13 @@ export const api = {
   updateReviewStatus: (id, status) => putJSON(`${API}/reviews/${id}/status`, { status }),
   forwardReview: (id, data) => postJSON(`${API}/reviews/${id}/forward`, data),
   getReviewTimeline: (id) => fetchJSON(`${API}/reviews/${id}/timeline`),
-  getReviewDiff: (id, from) => fetchJSON(`${API}/reviews/${id}/diff${from ? '?from=' + encodeURIComponent(from) : ''}`),
+  getReviewDiff: (id, from, to) => {
+    const p = new URLSearchParams()
+    if (from) p.set('from', from)
+    if (to) p.set('to', to) // per-event diff: a single proposal commit (commit^..commit)
+    const qs = p.toString()
+    return fetchJSON(`${API}/reviews/${id}/diff${qs ? '?' + qs : ''}`)
+  },
   addReviewComment: (id, data) => postJSON(`${API}/reviews/${id}/comment`, typeof data === 'string' ? { body: data } : data),
   approveReview: (id, decision, comment) => postJSON(`${API}/reviews/${id}/approve`, { decision, comment }),
   mergeReview: (id) => postJSON(`${API}/reviews/${id}/merge`, {}),

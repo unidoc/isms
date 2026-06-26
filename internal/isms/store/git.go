@@ -390,6 +390,72 @@ func (s *Store) HeadHash() (string, error) {
 	return ref.Hash().String(), nil
 }
 
+// ListRefHashes returns every ref in the repo as full-name → commit-hash. Used
+// to snapshot refs around a push so server-managed refs (review/*) and history
+// rewrites can be detected and reverted.
+func (s *Store) ListRefHashes() (map[string]string, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("not a bare repo store")
+	}
+	out := map[string]string{}
+	iter, err := s.repo.References()
+	if err != nil {
+		return nil, err
+	}
+	err = iter.ForEach(func(r *plumbing.Reference) error {
+		if r.Type() == plumbing.HashReference {
+			out[r.Name().String()] = r.Hash().String()
+		}
+		return nil
+	})
+	return out, err
+}
+
+// SetRefHash points a ref at a commit hash (creating it if absent).
+func (s *Store) SetRefHash(name, hash string) error {
+	if s.repo == nil {
+		return fmt.Errorf("not a bare repo store")
+	}
+	return s.repo.Storer.SetReference(plumbing.NewHashReference(plumbing.ReferenceName(name), plumbing.NewHash(hash)))
+}
+
+// DeleteRef removes a ref.
+func (s *Store) DeleteRef(name string) error {
+	if s.repo == nil {
+		return fmt.Errorf("not a bare repo store")
+	}
+	return s.repo.Storer.RemoveReference(plumbing.ReferenceName(name))
+}
+
+// IsAncestor reports whether `ancestor` is an ancestor of `descendant` — i.e. the
+// update old→new is a fast-forward (no history rewrite).
+func (s *Store) IsAncestor(ancestor, descendant string) (bool, error) {
+	if s.repo == nil {
+		return false, fmt.Errorf("not a bare repo store")
+	}
+	a, err := s.repo.CommitObject(plumbing.NewHash(ancestor))
+	if err != nil {
+		return false, err
+	}
+	d, err := s.repo.CommitObject(plumbing.NewHash(descendant))
+	if err != nil {
+		return false, err
+	}
+	return a.IsAncestor(d)
+}
+
+// RefHash resolves a ref (branch name, tag, commit hash, HEAD~N) to its commit
+// hash. Used to anchor a review's proposed-revision commit in the decision log
+// so the per-event diff can be reconstructed later (even once the branch ref is
+// archived out of refs/heads).
+func (s *Store) RefHash(ref string) (string, error) {
+	commit, err := s.resolveRef(ref)
+	if err != nil {
+		return "", err
+	}
+	return commit.Hash.String(), nil
+}
+
 // HeadCommit returns the HEAD commit object.
 func (s *Store) HeadCommit() (*object.Commit, error) {
 	if s.repo == nil {

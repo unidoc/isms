@@ -22,7 +22,7 @@
     <!-- Side-by-side rendered view -->
     <div v-else class="flex border border-t-0 border-slate-800 rounded-b-xl overflow-hidden">
       <!-- Left: Previous version -->
-      <div class="flex-1 min-w-0 border-r border-slate-800 overflow-y-auto max-h-[80vh]">
+      <div ref="leftPane" data-pane="previous" @scroll="syncScroll('left')" class="flex-1 min-w-0 border-r border-slate-800 overflow-y-auto max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
           <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Previous</span>
         </div>
@@ -36,7 +36,7 @@
         </div>
       </div>
       <!-- Right: New version -->
-      <div class="flex-1 min-w-0 overflow-y-auto max-h-[80vh]">
+      <div ref="rightPane" data-pane="current" @scroll="syncScroll('right')" class="flex-1 min-w-0 overflow-y-auto max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
           <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Current</span>
         </div>
@@ -152,6 +152,25 @@ const props = defineProps({
 
 const emit = defineEmits(['comment'])
 const showAdvanced = ref(false)
+
+// Synchronised scrolling between the two panes (GitHub-style): scroll one and
+// the other follows proportionally, so a change lines up across both columns
+// without scrolling each separately. Proportional (not 1:1) because the panes
+// can differ in height. A guard flag breaks the scroll→scroll feedback loop.
+const leftPane = ref(null)
+const rightPane = ref(null)
+let syncingScroll = false
+function syncScroll(source) {
+  if (syncingScroll) return
+  const from = source === 'left' ? leftPane.value : rightPane.value
+  const to = source === 'left' ? rightPane.value : leftPane.value
+  if (!from || !to) return
+  const fromMax = from.scrollHeight - from.clientHeight
+  const toMax = to.scrollHeight - to.clientHeight
+  syncingScroll = true
+  to.scrollTop = fromMax > 0 ? (from.scrollTop / fromMax) * toMax : 0
+  requestAnimationFrame(() => { syncingScroll = false })
+}
 const commentingIndex = ref(null)
 const commentBody = ref('')
 const expandedBlock = ref(null)

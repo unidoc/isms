@@ -128,6 +128,17 @@ func (s *Server) handleGitRPC(c echo.Context, service string) error {
 		}
 	}
 
+	// Snapshot refs before a push so we can reject + revert server-managed ref
+	// changes (review/*) and history rewrites (non-fast-forward / deletions).
+	var refsBefore map[string]string
+	if service == "receive-pack" {
+		if orgID, ok := c.Get("org_id").(int); ok {
+			if st, err := s.storeForOrg(c.Request().Context(), orgID); err == nil {
+				refsBefore, _ = st.ListRefHashes()
+			}
+		}
+	}
+
 	cmd := exec.Command("git", service, "--stateless-rpc", repoPath)
 	cmd.Stdin = c.Request().Body
 	cmd.Stderr = os.Stderr
@@ -135,6 +146,22 @@ func (s *Server) handleGitRPC(c echo.Context, service string) error {
 	out, err := cmd.Output()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("git %s error: %v", service, err))
+	}
+
+	// Ref-level protection: server-managed review refs are immutable via push, and
+	// other refs are fast-forward-only (no history rewrite, no deletion). On a
+	// violation, restore the pre-push ref state and reject.
+	if service == "receive-pack" && refsBefore != nil {
+		if orgID, ok := c.Get("org_id").(int); ok {
+			if st, stErr := s.storeForOrg(c.Request().Context(), orgID); stErr == nil {
+				refsAfter, _ := st.ListRefHashes()
+				if reason := reviewRefViolation(refsBefore, refsAfter, st.IsAncestor); reason != "" {
+					restoreRefs(st, refsBefore, refsAfter)
+					fmt.Fprintf(os.Stderr, "REJECTED push for org %d: %s\n", orgID, reason)
+					return echo.NewHTTPError(http.StatusForbidden, "push rejected: "+reason)
+				}
+			}
+		}
 	}
 
 	// Post-receive validation: comprehensive repo protection
@@ -203,4 +230,58 @@ const maxFileSizeBytes = 2 * 1024 * 1024 // 2 MB
 // filesystem walks would never see pushed content.
 func validateRepoContents(st *store.Store) error {
 	return st.ValidateRepoContents(int64(maxFileSizeBytes))
+}
+
+// reviewRefViolation enforces ref-level push policy and returns a rejection
+// reason (or "" if the push is allowed):
+//   - refs/heads/review/* and refs/reviews/* are server-managed — a push must
+//     not create, change, or delete them.
+//   - every other ref is fast-forward-only (the old commit must be an ancestor
+//     of the new one) and may not be deleted — so a push can't rewrite or erase
+//     history (e.g. an approved document's commits or a reviewer's proposal).
+//
+// isAncestor reports whether old is an ancestor of new (a fast-forward).
+func reviewRefViolation(before, after map[string]string, isAncestor func(old, new string) (bool, error)) string {
+	serverManaged := func(name string) bool {
+		return strings.HasPrefix(name, "refs/heads/review/") || strings.HasPrefix(name, "refs/reviews/")
+	}
+	// Created or changed refs.
+	for name, newHash := range after {
+		oldHash, existed := before[name]
+		if serverManaged(name) {
+			if !existed || oldHash != newHash {
+				return "review refs are server-managed and cannot be pushed to: " + name
+			}
+			continue
+		}
+		if existed && oldHash != newHash {
+			if ok, _ := isAncestor(oldHash, newHash); !ok {
+				return "non-fast-forward push (history rewrite) rejected: " + name
+			}
+		}
+	}
+	// Deleted refs.
+	for name := range before {
+		if _, stillThere := after[name]; !stillThere {
+			return "deleting refs via push is not allowed: " + name
+		}
+	}
+	return ""
+}
+
+// restoreRefs reverts the repo's refs to the pre-push snapshot: restores changed
+// and deleted refs to their old hash, and removes any refs the push created.
+func restoreRefs(st *store.Store, before, after map[string]string) {
+	for name, hash := range before {
+		if err := st.SetRefHash(name, hash); err != nil {
+			fmt.Fprintf(os.Stderr, "restoreRefs: could not restore %s to %.8s: %v\n", name, hash, err)
+		}
+	}
+	for name := range after {
+		if _, ok := before[name]; !ok {
+			if err := st.DeleteRef(name); err != nil {
+				fmt.Fprintf(os.Stderr, "restoreRefs: could not delete new ref %s: %v\n", name, err)
+			}
+		}
+	}
 }

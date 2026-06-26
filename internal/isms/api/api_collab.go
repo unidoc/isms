@@ -41,6 +41,11 @@ func (s *Server) logAndNotify(ctx context.Context, orgID int, a *db.Activity) {
 				Action: a.Action,
 				Detail: a.Detail,
 				Link:   docLink(a.DocumentID),
+				// Org-scoped base so the link lands on the tenant's own URL
+				// (e.g. unidoc.isms.sh / a custom domain) via orgURLs, not the
+				// bare apex (isms.sh). Empty AppURL falls back to the notifier's
+				// configured BaseURL.
+				BaseURL: s.orgMail(ctx, orgID).AppURL,
 				Channels: notify.OrgChannels{
 					SlackWebhook: slackWH,
 					MatrixRoomID: matrixRoom,
@@ -528,36 +533,48 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "document file not found")
 	}
 
-	// Use sent_head as the diff baseline: "what changed since this was sent for review" (current round).
-	// For first review (commit_hash empty = never approved), use empty baseline so the whole document shows as new.
-	// The ?from= query param allows overriding the baseline (used for "all changes in review" view).
-	from := c.QueryParam("from")
-	if from == "" {
-		if review.CommitHash == "" {
-			// First review — no prior approved version. Show entire document as new content.
-			from = ""
-		} else {
-			from = review.SentHead
-			if from == "" {
-				from = review.CommitHash
-			}
-		}
-	}
 	var diffText string
 
-	// Check if a review branch exists with edits
+	// Detect a reviewer's proposed-revision branch (review/<id>) up front — it
+	// decides the right baseline below.
 	branchName := fmt.Sprintf("review/%d", id)
 	toRef := "HEAD"
 	branchDiff, branchErr := st.DiffSuggestion(filePath, branchName)
 	hasBranch := branchErr == nil && branchDiff != ""
-	customFrom := c.QueryParam("from") != "" // explicit baseline override
 
-	if hasBranch && !customFrom {
-		// Review branch has edits, no explicit baseline — show diff between main and review branch
-		diffText = branchDiff
-	} else if hasBranch && customFrom {
-		// Review branch has edits + explicit baseline — diff from custom baseline to branch
+	// Baseline ("from") = what was sent for review (sent_head). It is set even
+	// when the document was never approved, so a reviewer's proposed revision
+	// diffs against what the author actually sent — not the whole document.
+	// (Without this, a never-approved doc shows an empty "Previous" pane and the
+	// reviewer's change is buried as "everything is new".) Fall back to the last
+	// approved commit; only a first review with NOTHING proposed yet uses an
+	// empty baseline, where reviewing the whole document is the point.
+	// `to` scopes the diff to a single event (the per-event timeline diff, #6):
+	// the reviewer's proposal commit vs its parent (commit^..commit), so an
+	// author can see exactly what one revision changed. Defaults below to the
+	// whole-round view.
+	to := c.QueryParam("to")
+	from := c.QueryParam("from")
+	if from == "" {
+		if to != "" {
+			from = to + "^" // per-event: the proposal vs the state it was based on
+		} else if review.SentHead != "" && (hasBranch || review.CommitHash != "") {
+			from = review.SentHead
+		} else if review.CommitHash != "" {
+			from = review.CommitHash
+		}
+	}
+
+	if to != "" {
+		// Per-event diff between two explicit commits.
+		diffText, _ = st.DiffDocumentBodies(from, to, filePath)
+	} else if hasBranch && from != "" {
+		// Diff what was sent (from) against the reviewer's proposed branch, so
+		// "Previous" is the sent version and "Current" is the proposal.
 		diffText, _ = st.DiffDocumentBodies(from, branchName, filePath)
+	} else if hasBranch {
+		// A proposal with no baseline at all — branch vs main.
+		diffText = branchDiff
 	} else if from == "" {
 		// First review — no base commit. Show entire current content as "added".
 		raw, readErr := st.ReadFile(filePath)
@@ -578,7 +595,9 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to compute diff: "+err.Error())
 		}
 	}
-	if hasBranch {
+	if to != "" {
+		toRef = to
+	} else if hasBranch {
 		toRef = branchName
 	}
 
@@ -633,8 +652,12 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 			oldBody = store.StripFrontmatter(string(raw))
 		}
 	}
-	// New body: from review branch if exists, otherwise current HEAD
-	if hasBranch {
+	// New body: a specific commit (per-event), else the review branch, else HEAD.
+	if to != "" {
+		if raw, err := st.ReadFileAtRef(to, relPath); err == nil {
+			newBody = store.StripFrontmatter(string(raw))
+		}
+	} else if hasBranch {
 		if raw, err := st.ReadFileAtRef(branchName, relPath); err == nil {
 			newBody = store.StripFrontmatter(string(raw))
 		}
@@ -845,6 +868,13 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 			if readErr == nil {
 				h := sha256.Sum256(raw)
 				decRec.ContentHash = hex.EncodeToString(h[:])
+			}
+			// Anchor the reviewer's proposal commit so the per-event diff can be
+			// reconstructed later (commit^..commit), independent of the branch ref.
+			if req.Decision == "proposed_revision" {
+				if bh, bhErr := st.RefHash(branchName); bhErr == nil {
+					decRec.CommitRef = bh
+				}
 			}
 		}
 	}

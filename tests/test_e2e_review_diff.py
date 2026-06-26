@@ -193,3 +193,107 @@ def test_review_table_diff_pairs_correctly_after_deletion(pw_browser, table_revi
             "deleted-table rows must not be mis-paired into the changed table"
     finally:
         ctx.close()
+
+
+# A document that was NEVER approved before being sent for review (no baseline
+# commit). The diff must still show the reviewer's proposal against what was
+# *sent* — not an empty "Previous" pane with the whole doc as "new". (#6: the
+# review-diff baseline bug — old_body was empty when commit_hash was empty.)
+@pytest.fixture(scope="module")
+def table_review_unapproved(tokens):
+    t = tokens["admin"]
+    r1t = api("post", "/auth/login",
+              json={"email": R1[0], "password": R1[1], "organization": ORG},
+              expect_status=200).json()["token"]
+    doc_id = f"e2e-tablenoappr-{uuid.uuid4().hex[:8]}"
+    api("post", "/documents", t, json={
+        "folder": "iso27001", "filename": f"{doc_id}.md",
+        "document_id": doc_id, "title": "E2E Table No-Approval", "content": OLD_BODY,
+    }, expect_status=[200, 201])
+    # NOTE: no approve/merge — the doc has no approved baseline (commit_hash == "").
+    rid = api("post", f"/documents/{doc_id}/reviews", t,
+              json={"reviewers": [R1[0]], "message": "Review"},
+              expect_status=[200, 201]).json()["review_id"]
+    api("put", f"/reviews/{rid}/content", r1t, json={"content": NEW_BODY}, expect_status=200)
+    # The diff must expose the SENT version as old_body, not an empty baseline.
+    d = api("get", f"/reviews/{rid}/diff", t, expect_status=200).json()
+    assert "Customers" in d["old_body"], \
+        f"old_body must be the sent version even without an approved baseline, got: {d['old_body'][:80]!r}"
+    yield rid
+    api("put", f"/reviews/{rid}/status", t, json={"status": "closed"})
+
+
+def test_review_diff_shows_sent_version_without_approved_baseline(pw_browser, table_review_unapproved):
+    ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+    page = ctx.new_page()
+    try:
+        do_login(page, ADMIN[0], ADMIN[1], then_goto=f"reviews/{table_review_unapproved}")
+        page.locator("button:has-text('Changes')").first.click()
+        page.wait_for_load_state("networkidle")
+        # The reviewer's edit must render as a per-cell diff — which only happens
+        # when the sent version is present as the baseline. (The bug showed an
+        # empty Previous pane → whole table as "new" → 0 cell-changes.)
+        page.locator("td.tc-cell-change").first.wait_for(state="visible", timeout=10000)
+        assert page.locator("td.tc-cell-change").count() == 2, \
+            f"expected 2 changed cells against the sent baseline, got {page.locator('td.tc-cell-change').count()}"
+    finally:
+        ctx.close()
+
+
+# A reviewer who submits a proposed_revision *decision* (not just edits the
+# branch) — so the Conversation timeline has an expandable per-event entry. #6.
+@pytest.fixture(scope="module")
+def table_review_proposed(tokens):
+    t = tokens["admin"]
+    r1t = api("post", "/auth/login",
+              json={"email": R1[0], "password": R1[1], "organization": ORG},
+              expect_status=200).json()["token"]
+    doc_id = f"e2e-perevent-{uuid.uuid4().hex[:8]}"
+    api("post", "/documents", t, json={
+        "folder": "iso27001", "filename": f"{doc_id}.md",
+        "document_id": doc_id, "title": "E2E Per-event", "content": OLD_BODY,
+    }, expect_status=[200, 201])
+    rid0 = api("post", f"/documents/{doc_id}/reviews", t,
+               json={"reviewers": [R1[0]], "message": "baseline"},
+               expect_status=[200, 201]).json()["review_id"]
+    api("post", f"/reviews/{rid0}/approve", r1t,
+        json={"decision": "approved", "comment": "ok"}, expect_status=200)
+    api("post", f"/reviews/{rid0}/merge", t, json={}, expect_status=200)
+    rid = api("post", f"/documents/{doc_id}/reviews", t,
+              json={"reviewers": [R1[0]], "message": "Review"},
+              expect_status=[200, 201]).json()["review_id"]
+    api("put", f"/reviews/{rid}/content", r1t, json={"content": NEW_BODY}, expect_status=200)
+    # The decision record anchors the proposal commit (commit_ref) for per-event diff.
+    api("post", f"/reviews/{rid}/approve", r1t,
+        json={"decision": "proposed_revision", "comment": "tweaked two cells"}, expect_status=200)
+    # Sanity: the per-event diff (to=proposal commit) shows the markdown→HTML edit.
+    tl = api("get", f"/reviews/{rid}/timeline", t, expect_status=200).json()
+    entries = tl.get("data", tl) if isinstance(tl, dict) else tl
+    cref = next((e.get("data", {}).get("commit_ref") for e in entries
+                 if isinstance(e, dict) and e.get("type") == "decision"
+                 and e.get("decision") == "proposed_revision"
+                 and e.get("data", {}).get("commit_ref")), None)
+    assert cref, "proposed_revision decision must anchor a commit_ref"
+    d = api("get", f"/reviews/{rid}/diff?to={cref}", t, expect_status=200).json()
+    assert "Customers" in d["old_body"] and "<table" in d["new_body"], "per-event diff should be base→proposal"
+    yield rid
+    api("put", f"/reviews/{rid}/status", t, json={"status": "closed"})
+
+
+def test_per_event_diff_expands_in_conversation(pw_browser, table_review_proposed):
+    ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+    page = ctx.new_page()
+    try:
+        do_login(page, ADMIN[0], ADMIN[1], then_goto=f"reviews/{table_review_proposed}")
+        page.locator("button:has-text('Conversation')").first.click()
+        page.wait_for_load_state("networkidle")
+        # Expand the reviewer's proposed-revision entry.
+        page.locator("button:has-text('View changes')").first.wait_for(state="visible", timeout=10000)
+        page.locator("button:has-text('View changes')").first.click()
+        # The per-event diff renders the two edited cells, scoped to that revision.
+        page.locator("td.tc-cell-change").first.wait_for(state="visible", timeout=8000)
+        assert page.locator("td.tc-cell-change").count() == 2, \
+            f"per-event diff should show exactly the 2 edited cells, got {page.locator('td.tc-cell-change').count()}"
+        assert page.locator(".tc-cell-change .tc-word-ins", has_text="Background check.").count() >= 1
+    finally:
+        ctx.close()

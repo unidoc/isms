@@ -510,6 +510,11 @@ func (s *Server) handleReviewTimeline(c echo.Context) error {
 }
 
 // handleReviewDiff returns the diff for a review (between commit_hash stored on review and current HEAD).
+// reSHA matches a full lowercase git commit SHA — the only accepted form for the
+// per-event diff `to` param (always a decision_log commit_ref), so arbitrary
+// revision strings (HEAD~1, branch names) can't reach the diff machinery.
+var reSHA = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
 func (s *Server) handleReviewDiff(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
@@ -554,10 +559,18 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 	// author can see exactly what one revision changed. Defaults below to the
 	// whole-round view.
 	to := c.QueryParam("to")
+	if to != "" && !reSHA.MatchString(to) {
+		return echo.NewHTTPError(http.StatusBadRequest, "to must be a full commit SHA")
+	}
 	from := c.QueryParam("from")
 	if from == "" {
 		if to != "" {
-			from = to + "^" // per-event: the proposal vs the state it was based on
+			// Per-event: the proposal vs its parent. A root commit has no parent —
+			// leave the baseline empty (the whole document is genuinely new) rather
+			// than relying on a silently-swallowed resolve failure.
+			if _, perr := st.RefHash(to + "^"); perr == nil {
+				from = to + "^"
+			}
 		} else if review.SentHead != "" && (hasBranch || review.CommitHash != "") {
 			from = review.SentHead
 		} else if review.CommitHash != "" {
@@ -567,11 +580,19 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 
 	if to != "" {
 		// Per-event diff between two explicit commits.
-		diffText, _ = st.DiffDocumentBodies(from, to, filePath)
+		var dErr error
+		diffText, dErr = st.DiffDocumentBodies(from, to, filePath)
+		if dErr != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "per-event diff failed: "+dErr.Error())
+		}
 	} else if hasBranch && from != "" {
 		// Diff what was sent (from) against the reviewer's proposed branch, so
 		// "Previous" is the sent version and "Current" is the proposal.
-		diffText, _ = st.DiffDocumentBodies(from, branchName, filePath)
+		var dErr error
+		diffText, dErr = st.DiffDocumentBodies(from, branchName, filePath)
+		if dErr != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to compute branch diff: "+dErr.Error())
+		}
 	} else if hasBranch {
 		// A proposal with no baseline at all — branch vs main.
 		diffText = branchDiff

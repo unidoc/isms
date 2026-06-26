@@ -273,11 +273,15 @@ func reviewRefViolation(before, after map[string]string, isAncestor func(old, ne
 // and deleted refs to their old hash, and removes any refs the push created.
 func restoreRefs(st *store.Store, before, after map[string]string) {
 	for name, hash := range before {
-		_ = st.SetRefHash(name, hash)
+		if err := st.SetRefHash(name, hash); err != nil {
+			fmt.Fprintf(os.Stderr, "restoreRefs: could not restore %s to %.8s: %v\n", name, hash, err)
+		}
 	}
 	for name := range after {
 		if _, ok := before[name]; !ok {
-			_ = st.DeleteRef(name)
+			if err := st.DeleteRef(name); err != nil {
+				fmt.Fprintf(os.Stderr, "restoreRefs: could not delete new ref %s: %v\n", name, err)
+			}
 		}
 	}
 }

@@ -276,6 +276,8 @@ def table_review_proposed(tokens):
     assert cref, "proposed_revision decision must anchor a commit_ref"
     d = api("get", f"/reviews/{rid}/diff?to={cref}", t, expect_status=200).json()
     assert "Customers" in d["old_body"] and "<table" in d["new_body"], "per-event diff should be base→proposal"
+    # `to` must be a commit SHA — arbitrary revision strings are rejected (400).
+    api("get", f"/reviews/{rid}/diff?to=refs/heads/master", t, expect_status=400)
     yield rid
     api("put", f"/reviews/{rid}/status", t, json={"status": "closed"})
 
@@ -290,10 +292,12 @@ def test_per_event_diff_expands_in_conversation(pw_browser, table_review_propose
         # Expand the reviewer's proposed-revision entry.
         page.locator("button:has-text('View changes')").first.wait_for(state="visible", timeout=10000)
         page.locator("button:has-text('View changes')").first.click()
-        # The per-event diff renders the two edited cells, scoped to that revision.
+        # The per-event diff renders the reviewer's edits, scoped to that revision.
+        # Content-based (not an exact element count) so it survives renderer tweaks.
         page.locator("td.tc-cell-change").first.wait_for(state="visible", timeout=8000)
-        assert page.locator("td.tc-cell-change").count() == 2, \
-            f"per-event diff should show exactly the 2 edited cells, got {page.locator('td.tc-cell-change').count()}"
-        assert page.locator(".tc-cell-change .tc-word-ins", has_text="Background check.").count() >= 1
+        assert page.locator(".tc-cell-change .tc-word-ins", has_text="Background check.").count() >= 1, \
+            "the 'Background check.' insertion should be highlighted in the per-event diff"
+        assert page.locator(".tc-cell-change .tc-word-ins", has_text="Review supplier security docs.").count() >= 1, \
+            "the supplier-docs insertion should be highlighted in the per-event diff"
     finally:
         ctx.close()

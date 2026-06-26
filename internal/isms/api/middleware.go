@@ -242,7 +242,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				if err != nil {
 					return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("invalid token: %v", err))
 				}
-				if claims.Email != "" && claims.Email != email {
+				if claims.Email != "" && !strings.EqualFold(claims.Email, email) {
 					return echo.NewHTTPError(http.StatusUnauthorized, "token email mismatch")
 				}
 				cfName = claims.Name
@@ -253,6 +253,9 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			ctx := c.Request().Context()
 			user, created, err := resolveCFUser(ctx, cfg.DB, email, cfName, cfg.Provision)
 			if err != nil {
+				if errors.Is(err, errProvisionFailed) {
+					return echo.NewHTTPError(http.StatusInternalServerError, "auto-provision failed")
+				}
 				return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
 			}
 			if created {

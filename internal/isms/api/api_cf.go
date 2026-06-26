@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
+
+// errProvisionFailed distinguishes a failed JIT user creation (DB error → 500)
+// from a genuine "user not found / provisioning off" (401), so an operator
+// debugging a broken DB doesn't chase a misleading 401 down the CF JWT path.
+var errProvisionFailed = errors.New("auto-provision failed")
 
 // cfProvisionConfig controls just-in-time user provisioning on Cloudflare Access
 // login. Off by default — opt in via ISMS_CF_AUTO_PROVISION. Safe ONLY when the
@@ -54,7 +60,7 @@ func resolveCFUser(ctx context.Context, d *db.DB, email, name string, pc cfProvi
 		u.Name = deriveNameFromEmail(email)
 	}
 	if err := d.UpsertUser(ctx, u); err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("%w: %v", errProvisionFailed, err)
 	}
 	return u, true, nil
 }
@@ -95,6 +101,10 @@ func (s *Server) handleCFSession(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, created, err := resolveCFUser(ctx, s.db, email, claims.Name, s.cfProvision)
 	if err != nil {
+		if errors.Is(err, errProvisionFailed) {
+			log.Printf("[cf-access] auto-provision failed for %s: %v", email, err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "auto-provision failed")
+		}
 		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
 	}
 	if created {

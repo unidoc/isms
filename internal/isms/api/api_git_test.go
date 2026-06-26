@@ -11,9 +11,9 @@ func TestReviewRefViolation(t *testing.T) {
 	ffOnly := func(old, new string) (bool, error) { return new == "ff", nil }
 
 	cases := []struct {
-		name           string
-		before, after  map[string]string
-		wantViolation  bool
+		name          string
+		before, after map[string]string
+		wantViolation bool
 	}{
 		{
 			name:   "fast-forward of a normal branch is allowed",

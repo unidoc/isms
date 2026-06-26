@@ -182,6 +182,19 @@ export const api = {
   // Config
   getConfig: () => fetchJSON(`${API}/config`),
 
+  // Cloudflare Access SSO: when behind CF Access, the proxy adds identity
+  // headers and the server mints a session. Returns the login payload, or null
+  // when not behind CF Access / not provisioned (a probe — never throws/redirects).
+  cfSession: async () => {
+    try {
+      const res = await safeFetch(`${API}/auth/cf-session`, { headers: getHeaders() })
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
+  },
+
   // Users
   getMe: () => fetchJSON(`${API}/me`),
   getMyOrgs: () => fetchJSON(`${API}/me/organizations`),

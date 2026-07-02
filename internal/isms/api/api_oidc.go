@@ -311,7 +311,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	// hop to https://<slug>.isms.sh/. Otherwise stay on the apex with #token=...
 	// and let the SPA route via /:org-prefixed paths.
 	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
-	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, token, role)
+	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, token, role, s.subdomainRouting)
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
@@ -319,7 +319,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 // Prefers a subdomain hop (https://<slug>.<apex>/#token=...) when the base URL
 // has a hostname that can host subdomains; falls back to path-based routing
 // (<base>/<slug>/#token=...) for single-label / localhost hosts.
-func orgTokenRedirectURL(baseURL, slug, token, role string) string {
+func orgTokenRedirectURL(baseURL, slug, token, role string, subdomainRouting bool) string {
 	// Parse the base URL — extract scheme and host so we can splice in the slug.
 	// Cheap parse: assume baseURL like "https://isms.sh" or "http://localhost:9090".
 	const sep = "://"
@@ -337,9 +337,10 @@ func orgTokenRedirectURL(baseURL, slug, token, role string) string {
 		host = hostAndPort[:c]
 		port = hostAndPort[c:] // includes ':'
 	}
-	// Can this host serve subdomains? Need at least 2 dot-separated parts and
-	// not localhost / IP literal.
-	canSubdomain := strings.Contains(host, ".") &&
+	// Subdomain hop only when the deployment routes by subdomain; otherwise stay
+	// path-based so the redirect matches how requests are actually routed.
+	canSubdomain := subdomainRouting &&
+		strings.Contains(host, ".") &&
 		!strings.HasPrefix(host, "localhost") &&
 		!isIPLiteral(host)
 	if canSubdomain {

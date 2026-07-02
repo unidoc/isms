@@ -98,7 +98,7 @@ func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
 	if color, err := s.db.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
 		m.Branding.Color = color
 	}
-	m.AppURL, m.PublicURL = orgURLs(raw, org)
+	m.AppURL, m.PublicURL = orgURLs(raw, org, s.subdomainRouting)
 	return m
 }
 
@@ -108,10 +108,11 @@ func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
 //   - subdomain host: https://<slug>.<apex> for both (the org IS the host)
 //   - path-based:     <base>/<slug> for app pages, <base> for public pages
 //
-// The subdomain-vs-path decision uses the same heuristic as the post-OIDC
-// redirect (orgTokenRedirectURL): a dotted, non-localhost, non-IP host can serve
-// per-org subdomains.
-func orgURLs(baseURL string, org *db.Organization) (app, public string) {
+// Subdomain URLs are used only when subdomainRouting is enabled (the deployment
+// actually serves tenants on wildcard subdomains); otherwise links stay
+// path-based, so the generated URL always matches how requests are routed —
+// never inferred from the host shape alone.
+func orgURLs(baseURL string, org *db.Organization, subdomainRouting bool) (app, public string) {
 	if org.Domain != nil && *org.Domain != "" {
 		d := *org.Domain
 		if !strings.Contains(d, "://") {
@@ -137,7 +138,11 @@ func orgURLs(baseURL string, org *db.Organization) (app, public string) {
 		host = hostAndPort[:c]
 		port = hostAndPort[c:] // includes ':'
 	}
-	canSubdomain := strings.Contains(host, ".") &&
+	// Only emit subdomain URLs when the deployment actually routes by subdomain.
+	// Otherwise (path-based, incl. a single-tenant box on a real domain) links
+	// must stay path-based — never guess subdomain from the host shape alone.
+	canSubdomain := subdomainRouting &&
+		strings.Contains(host, ".") &&
 		!strings.HasPrefix(host, "localhost") &&
 		!isIPLiteral(host)
 	if canSubdomain {

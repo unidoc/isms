@@ -91,3 +91,66 @@ func TestOrgURLs(t *testing.T) {
 		})
 	}
 }
+
+// orgTokenRedirectURL (post-OIDC login redirect) must make the SAME host
+// decision as orgURLs — custom domain > subdomain (only when routing on) > path
+// — so a user logging in via OIDC lands on the same host their notification/
+// email links point to. It carried the identical subdomainRouting gate as
+// orgURLs but had no test; this locks the precedence in CI, including the
+// custom-domain case that was previously ignored (#108 review).
+func TestOrgTokenRedirectURL(t *testing.T) {
+	cases := []struct {
+		name             string
+		base             string
+		slug             string
+		domain           *string
+		subdomainRouting bool
+		want             string
+	}{
+		{
+			name:             "subdomain routing on: hop to the tenant subdomain",
+			base:             "https://isms.sh",
+			slug:             "sts",
+			subdomainRouting: true,
+			want:             "https://sts.isms.sh/login#token=TOK&role=reader",
+		},
+		{
+			name:             "subdomain routing OFF on a real domain: stay path-based",
+			base:             "https://isms.stsplatform.com",
+			slug:             "sts",
+			subdomainRouting: false,
+			want:             "https://isms.stsplatform.com/sts/login#token=TOK&role=reader",
+		},
+		{
+			name:             "localhost stays path-based regardless of routing flag",
+			base:             "http://localhost:9090",
+			slug:             "sts",
+			subdomainRouting: true,
+			want:             "http://localhost:9090/sts/login#token=TOK&role=reader",
+		},
+		{
+			name:             "custom domain wins regardless of routing mode",
+			base:             "https://isms.sh",
+			slug:             "sts",
+			domain:           ptr("audit.sts.is"),
+			subdomainRouting: true,
+			want:             "https://audit.sts.is/login#token=TOK&role=reader",
+		},
+		{
+			name:             "custom domain with explicit scheme is preserved",
+			base:             "https://isms.sh",
+			slug:             "sts",
+			domain:           ptr("https://audit.sts.is/"),
+			subdomainRouting: false,
+			want:             "https://audit.sts.is/login#token=TOK&role=reader",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := orgTokenRedirectURL(tc.base, tc.slug, tc.domain, "TOK", "reader", tc.subdomainRouting)
+			if got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

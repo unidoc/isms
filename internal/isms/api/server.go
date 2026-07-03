@@ -125,32 +125,45 @@ func orgURLs(baseURL string, org *db.Organization, subdomainRouting bool) (app, 
 		d = strings.TrimRight(d, "/")
 		return d, d
 	}
-	const sep = "://"
-	i := strings.Index(baseURL, sep)
-	if i < 0 {
+	scheme, host, port, canSubdomain := resolveSubdomainHost(baseURL, subdomainRouting)
+	if scheme == "" {
+		// Malformed base URL (no "://") — return it unchanged for both.
 		return baseURL, baseURL
 	}
-	scheme := baseURL[:i]
-	hostAndPort := baseURL[i+len(sep):]
-	host := hostAndPort
-	port := ""
-	if c := strings.LastIndex(hostAndPort, ":"); c > 0 {
-		host = hostAndPort[:c]
-		port = hostAndPort[c:] // includes ':'
-	}
-	// Only emit subdomain URLs when the deployment actually routes by subdomain.
-	// Otherwise (path-based, incl. a single-tenant box on a real domain) links
-	// must stay path-based — never guess subdomain from the host shape alone.
-	canSubdomain := subdomainRouting &&
-		strings.Contains(host, ".") &&
-		!strings.HasPrefix(host, "localhost") &&
-		!isIPLiteral(host)
 	if canSubdomain {
 		apex := strings.TrimPrefix(host, "www.")
 		sub := fmt.Sprintf("%s://%s.%s%s", scheme, org.Slug, apex, port)
 		return sub, sub
 	}
 	return baseURL + "/" + org.Slug, baseURL
+}
+
+// resolveSubdomainHost parses a "scheme://host:port" base URL and reports
+// whether this deployment can serve a tenant on a wildcard subdomain of it.
+// It is the single source of truth for the subdomain-vs-path decision shared by
+// orgURLs and orgTokenRedirectURL — each previously computed it independently,
+// which let the same "ignore subdomainRouting" bug ship in two copies (#108).
+// A zero scheme ("") signals a malformed base URL (no "://").
+func resolveSubdomainHost(baseURL string, subdomainRouting bool) (scheme, host, port string, canSubdomain bool) {
+	const sep = "://"
+	i := strings.Index(baseURL, sep)
+	if i < 0 {
+		return "", "", "", false
+	}
+	scheme = baseURL[:i]
+	hostAndPort := baseURL[i+len(sep):]
+	host = hostAndPort
+	if c := strings.LastIndex(hostAndPort, ":"); c > 0 {
+		host = hostAndPort[:c]
+		port = hostAndPort[c:] // includes ':'
+	}
+	// Only route by subdomain when the deployment actually does — never guess
+	// from the host shape alone (a real domain with routing off stays path-based).
+	canSubdomain = subdomainRouting &&
+		strings.Contains(host, ".") &&
+		!strings.HasPrefix(host, "localhost") &&
+		!isIPLiteral(host)
+	return scheme, host, port, canSubdomain
 }
 
 func (s *Server) storeForOrg(ctx context.Context, orgID int) (*store.Store, error) {

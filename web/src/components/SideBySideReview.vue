@@ -22,7 +22,7 @@
     <!-- Side-by-side rendered view -->
     <div v-else class="flex flex-col md:flex-row border border-t-0 border-slate-800 rounded-b-xl overflow-hidden">
       <!-- Left: Previous version — stacks above the new version on narrow screens -->
-      <div ref="leftPane" data-pane="previous" @scroll="syncScroll('left')" class="flex-1 min-w-0 border-b md:border-b-0 md:border-r border-slate-800 overflow-y-auto max-h-[80vh]">
+      <div ref="leftPane" data-pane="previous" @scroll="syncScroll('left')" class="flex-1 min-w-0 border-b md:border-b-0 md:border-r border-slate-800 overflow-y-auto max-h-[40vh] md:max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
           <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Previous</span>
         </div>
@@ -36,7 +36,7 @@
         </div>
       </div>
       <!-- Right: New version -->
-      <div ref="rightPane" data-pane="current" @scroll="syncScroll('right')" class="flex-1 min-w-0 overflow-y-auto max-h-[80vh]">
+      <div ref="rightPane" data-pane="current" @scroll="syncScroll('right')" class="flex-1 min-w-0 overflow-y-auto max-h-[40vh] md:max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
           <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Current</span>
         </div>

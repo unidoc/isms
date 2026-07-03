@@ -138,6 +138,13 @@ gs:
 gl:
     {{compose}} exec isms bash -lc "git log --oneline -20"
 
+# ── Web ──────────────────────────────────────────────────────────────────────
+
+# Build the Vue frontend as the isms user so web/dist is never owned by
+# the subuid-mapped root (UID 100000 on the host).
+build-web:
+    {{compose}} exec -u isms isms bash -lc "cd /home/isms/workspace/isms && just build-web"
+
 # ── Go ───────────────────────────────────────────────────────────────────────
 
 # Go build of the ISMS binary

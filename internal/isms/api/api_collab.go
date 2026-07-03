@@ -3580,6 +3580,30 @@ func (s *Server) handleConfirmDocumentReview(c echo.Context) error {
 	})
 }
 
+// --- Open-review probe (read-only) ---
+
+// handleGetOpenReview returns the open (or changes_requested) review for a
+// document without firing any side effects.  HTTP 200 with {review_id} if one
+// exists, HTTP 404 otherwise.
+func (s *Server) handleGetOpenReview(c echo.Context) error {
+	orgID := getOrgID(c)
+	docID := c.Param("docId")
+	ctx := c.Request().Context()
+
+	review, err := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking open review: %v", err))
+	}
+	if review == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "no open review for this document")
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"review_id": review.ID,
+		"status":    review.Status,
+		"version":   review.Version,
+	})
+}
+
 // --- Review Send (compound operation) ---
 
 func (s *Server) handleReviewSend(c echo.Context) error {

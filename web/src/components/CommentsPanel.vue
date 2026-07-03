@@ -31,6 +31,7 @@ import { ref, onMounted, watch } from 'vue'
 import { api } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
+import { renderMention } from '../composables/useMention'
 import { useToast } from '../composables/useToast'
 
 const { show: showError } = useToast()
@@ -45,13 +46,6 @@ const props = defineProps({
 const comments = ref([])
 const loading = ref(false)
 const newComment = ref('')
-
-function renderMention(body) {
-  if (!body) return ''
-  const escaped = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return escaped.replace(/@([\w.+-]+@[\w.-]+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
-    .replace(/@(\w+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
-}
 
 function formatDate(d) {
   if (!d && d !== 0) return ''

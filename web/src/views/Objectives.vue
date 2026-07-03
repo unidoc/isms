@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-full">
+    <div class="overflow-y-auto">
     <!-- Loading -->
     <div v-if="loading" class="max-w-6xl mx-auto px-8 py-10">
       <ListSkeleton :rows="5" />
@@ -119,7 +120,7 @@
       <!-- Programs Tab -->
       <div v-if="activeTab === 'programs'" class="space-y-6">
         <!-- Programs list -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-800">
@@ -247,7 +248,7 @@
         </Teleport>
 
         <!-- Objectives table -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-800">
@@ -627,6 +628,7 @@
     </Transition>
     </Teleport>
 
+    </div>
   </div>
 </template>
 

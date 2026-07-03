@@ -595,6 +595,7 @@ func (s *Server) routes() {
 	api.GET("/reviews/:id/policy-status", s.handleReviewPolicyStatus)
 	api.PUT("/reviews/:id/content", s.handleUpdateReviewContent)
 	api.GET("/reviews/:id/content", s.handleGetReviewContent)
+	api.GET("/documents/:docId/reviews/open", s.handleGetOpenReview)
 	api.POST("/documents/:docId/reviews", s.handleReviewSend)
 	api.POST("/documents/:docId/confirm-review", s.handleConfirmDocumentReview)
 	api.GET("/agent/pending-actions", s.handleAgentPendingActions)

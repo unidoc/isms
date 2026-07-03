@@ -622,10 +622,11 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 	if from == "" {
 		if to != "" {
 			// Per-event: the proposal vs its parent. A root commit has no parent —
-			// leave the baseline empty (the whole document is genuinely new) rather
-			// than relying on a silently-swallowed resolve failure.
-			if _, perr := st.RefHash(to + "^"); perr == nil {
-				from = to + "^"
+			// leave the baseline empty (the whole document is genuinely new).
+			// Use ParentHash (direct commit object lookup) rather than "sha^" revision
+			// notation, which can silently fail on some bare-repo configurations.
+			if parentSHA, perr := st.ParentHash(to); perr == nil {
+				from = parentSHA
 			}
 		} else if review.SentHead != "" && (hasBranch || review.CommitHash != "") {
 			from = review.SentHead
@@ -3576,6 +3577,30 @@ func (s *Server) handleConfirmDocumentReview(c echo.Context) error {
 		"version":     version,
 		"reviewed_by": actor,
 		"comment":     req.Comment,
+	})
+}
+
+// --- Open-review probe (read-only) ---
+
+// handleGetOpenReview returns the open (or changes_requested) review for a
+// document without firing any side effects.  HTTP 200 with {review_id} if one
+// exists, HTTP 404 otherwise.
+func (s *Server) handleGetOpenReview(c echo.Context) error {
+	orgID := getOrgID(c)
+	docID := c.Param("docId")
+	ctx := c.Request().Context()
+
+	review, err := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking open review: %v", err))
+	}
+	if review == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "no open review for this document")
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"review_id": review.ID,
+		"status":    review.Status,
+		"version":   review.Version,
 	})
 }
 

@@ -18,15 +18,31 @@ class TestSuggestionWorkflow:
     suggestion_id = None
 
     def test_01_setup_review(self, api_url, admin_headers):
-        """Create a document with known content and send for review."""
+        """Create a document with known content and send for review.
+
+        Idempotent on a persistent stack: uses GET /documents/:id/reviews/open
+        (read-only, no side effects) to close any stale review before creating
+        a fresh one, so no stale review branch can pollute the run.
+        """
         r = requests.put(f"{api_url}/documents/iso27001-6-1/content",
                          headers=admin_headers,
                          json={"content": "# Planning\n\nThis is the original paragraph.\n\nAnother paragraph here."})
         assert r.status_code == 200, f"Edit failed: {r.text}"
+
+        # Close any open review left from previous runs without firing side
+        # effects — use the read-only GET endpoint instead of a probe POST.
+        existing = requests.get(f"{api_url}/documents/iso27001-6-1/reviews/open",
+                                headers=admin_headers)
+        if existing.status_code == 200:
+            stale_rid = existing.json()["review_id"]
+            requests.put(f"{api_url}/reviews/{stale_rid}/status",
+                         headers=admin_headers,
+                         json={"status": "closed"})
+
         r = requests.post(f"{api_url}/documents/iso27001-6-1/reviews",
                           headers=admin_headers,
                           json={"reviewers": [READER_EMAIL], "message": "Suggestion test"})
-        assert r.status_code in [200, 201], f"Create review failed: {r.text}"
+        assert r.status_code == 201, f"Create fresh review failed: {r.text}"
         TestSuggestionWorkflow.review_id = r.json()["review_id"]
 
     def test_02_reviewer_creates_suggestion(self, api_url, reader_headers):

@@ -200,7 +200,7 @@
           <div v-if="programmeSearch || programmeYearFilter || programmeStatusFilter" class="text-sm text-slate-500">No programmes match your filter.</div>
           <div v-else class="text-sm text-slate-500">No audit programmes yet — click Add Programme to create one.</div>
         </div>
-        <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b border-slate-800">
@@ -295,7 +295,7 @@
         <div v-if="findings.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
           <div class="text-sm text-slate-500">{{ findingsHasFilter ? 'No findings match your filter.' : 'No findings recorded yet.' }}</div>
         </div>
-        <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b border-slate-800">

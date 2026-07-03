@@ -456,6 +456,37 @@ func (s *Store) RefHash(ref string) (string, error) {
 	return commit.Hash.String(), nil
 }
 
+// firstParentCommit resolves hash to a commit and returns its first parent.
+// Returns (nil, nil) for a root commit with no parents.
+func (s *Store) firstParentCommit(hash plumbing.Hash) (*object.Commit, error) {
+	commit, err := s.repo.CommitObject(hash)
+	if err != nil {
+		return nil, fmt.Errorf("commit %q not found: %w", hash, err)
+	}
+	if len(commit.ParentHashes) == 0 {
+		return nil, nil
+	}
+	parent, err := s.repo.CommitObject(commit.ParentHashes[0])
+	if err != nil {
+		return nil, fmt.Errorf("resolving parent of %q: %w", hash, err)
+	}
+	return parent, nil
+}
+
+// ParentHash returns the first parent commit hash of the given SHA.
+// It resolves the SHA directly via the commit object, avoiding revision-string
+// notation (sha^) which can fail on certain bare-repo configurations.
+func (s *Store) ParentHash(sha string) (string, error) {
+	parent, err := s.firstParentCommit(plumbing.NewHash(sha))
+	if err != nil {
+		return "", err
+	}
+	if parent == nil {
+		return "", fmt.Errorf("commit %q has no parents (root commit)", sha)
+	}
+	return parent.Hash.String(), nil
+}
+
 // HeadCommit returns the HEAD commit object.
 func (s *Store) HeadCommit() (*object.Commit, error) {
 	if s.repo == nil {
@@ -649,16 +680,11 @@ func (s *Store) DiffFiles(fromRef, toRef, filePath string) (string, error) {
 	// If no fromRef, use the parent of toCommit.
 	var fromCommit *object.Commit
 	if fromRef == "" {
-		parents := toCommit.ParentHashes
-		if len(parents) == 0 {
-			// Initial commit — diff against empty.
-			fromCommit = nil
-		} else {
-			fromCommit, err = s.repo.CommitObject(parents[0])
-			if err != nil {
-				return "", fmt.Errorf("resolving parent commit: %w", err)
-			}
+		fromCommit, err = s.firstParentCommit(toCommit.Hash)
+		if err != nil {
+			return "", fmt.Errorf("resolving parent commit: %w", err)
 		}
+		// fromCommit == nil means root commit — diff against empty.
 	} else {
 		fromCommit, err = s.resolveRef(fromRef)
 		if err != nil {

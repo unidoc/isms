@@ -114,7 +114,7 @@
 
       <!-- Search + Filters -->
       <div class="space-y-3">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <div class="relative flex-1 max-w-xs">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -161,7 +161,7 @@
       </div>
 
       <!-- Table -->
-      <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div v-else class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr class="border-b border-slate-800">

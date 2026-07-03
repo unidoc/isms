@@ -38,7 +38,7 @@
         Living documents, tracked reviews, and operational cadence in one auditable platform. Pick a framework or bring your own. AI helps with the work. Humans stay in control.
       </p>
       <div class="flex items-center justify-center gap-4 flex-wrap">
-        <router-link to="/signup"
+        <router-link v-if="signupEnabled" to="/signup"
           class="brand-cta-btn inline-flex items-center gap-2 px-7 py-3 text-white font-semibold rounded-xl transition-all hover:-translate-y-0.5">
           Start in cloud
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
@@ -133,7 +133,8 @@
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">Managed cloud</h3>
           <p class="text-sm text-slate-400 leading-relaxed mb-4">Sign up, pick your framework, start working. We handle infrastructure, backups, and updates. Multi-tenant with row-level data isolation.</p>
-          <router-link to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">Start free &rarr;</router-link>
+          <router-link v-if="signupEnabled" to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">Start free &rarr;</router-link>
+          <router-link v-else to="/login" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">Sign in &rarr;</router-link>
         </div>
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">Self-hosted</h3>
@@ -148,7 +149,7 @@
       <h2 class="text-4xl font-bold mb-4">Your auditor will thank you</h2>
       <p class="text-slate-400 mb-8">Full version history. Immutable approval records. Cryptographically verifiable decisions. Complete audit trail from day one.</p>
       <div class="flex items-center justify-center gap-4 flex-wrap">
-        <router-link to="/signup"
+        <router-link v-if="signupEnabled" to="/signup"
           class="brand-cta-btn inline-flex items-center gap-2 px-7 py-3 text-white font-semibold rounded-xl transition-all hover:-translate-y-0.5">
           Start in cloud
         </router-link>
@@ -180,6 +181,7 @@ const brandFooter = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)
 const showPoweredBy = ref(true)
+const signupEnabled = ref(false)
 
 const features = [
   { title: 'Git-native documents', desc: 'Policies are markdown files in a git repo. Every change is a commit with full diff. Branch for review, merge to publish. No proprietary formats, no lock-in.' },
@@ -217,6 +219,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
+    signupEnabled.value = cfg.signup_enabled === true
   } catch {
     // Config endpoint may not be available pre-auth
   }

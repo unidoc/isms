@@ -311,42 +311,40 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	// hop to https://<slug>.isms.sh/. Otherwise stay on the apex with #token=...
 	// and let the SPA route via /:org-prefixed paths.
 	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
-	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, token, role)
+	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, org.Domain, token, role, s.subdomainRouting)
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
 // orgTokenRedirectURL builds the post-OIDC-login redirect for a given org.
-// Prefers a subdomain hop (https://<slug>.<apex>/#token=...) when the base URL
-// has a hostname that can host subdomains; falls back to path-based routing
-// (<base>/<slug>/#token=...) for single-label / localhost hosts.
-func orgTokenRedirectURL(baseURL, slug, token, role string) string {
-	// Parse the base URL — extract scheme and host so we can splice in the slug.
-	// Cheap parse: assume baseURL like "https://isms.sh" or "http://localhost:9090".
-	const sep = "://"
-	i := strings.Index(baseURL, sep)
-	if i < 0 {
+// Precedence mirrors orgURLs (server.go): a configured custom domain wins, then
+// a subdomain hop (https://<slug>.<apex>/login#token=...) when the deployment
+// routes by subdomain, otherwise path-based routing (<base>/<slug>/login#...).
+// Sharing resolveSubdomainHost keeps this decision identical to orgURLs, so the
+// login redirect always lands on the same host the org's other links use.
+func orgTokenRedirectURL(baseURL, slug string, domain *string, token, role string, subdomainRouting bool) string {
+	// Custom domain wins — an org with its own domain (e.g. audit.sts.is) must
+	// land its OIDC login there, not on the apex subdomain/path.
+	if domain != nil && *domain != "" {
+		d := *domain
+		if !strings.Contains(d, "://") {
+			scheme := "https"
+			if strings.HasPrefix(baseURL, "http://") {
+				scheme = "http"
+			}
+			d = scheme + "://" + d
+		}
+		d = strings.TrimRight(d, "/")
+		return fmt.Sprintf("%s/login#token=%s&role=%s", d, token, role)
+	}
+	scheme, host, port, canSubdomain := resolveSubdomainHost(baseURL, subdomainRouting)
+	if scheme == "" {
 		// Malformed base — fall back to apex with fragment, SPA will route from there.
 		return fmt.Sprintf("%s/#token=%s&role=%s", baseURL, token, role)
 	}
-	scheme := baseURL[:i]
-	hostAndPort := baseURL[i+len(sep):]
-	// Split host:port
-	host := hostAndPort
-	port := ""
-	if c := strings.LastIndex(hostAndPort, ":"); c > 0 {
-		host = hostAndPort[:c]
-		port = hostAndPort[c:] // includes ':'
-	}
-	// Can this host serve subdomains? Need at least 2 dot-separated parts and
-	// not localhost / IP literal.
-	canSubdomain := strings.Contains(host, ".") &&
-		!strings.HasPrefix(host, "localhost") &&
-		!isIPLiteral(host)
 	if canSubdomain {
-		// www.isms.sh → isms.sh
+		// www.isms.sh → isms.sh. Land on /login — Login.vue's onMounted handler
+		// parses the token fragment, sets the session, and routes to /overview.
 		apex := strings.TrimPrefix(host, "www.")
-		// Land on /login — Login.vue's onMounted handler parses the token
-		// fragment, sets the session, and routes onward to /overview.
 		return fmt.Sprintf("%s://%s.%s%s/login#token=%s&role=%s", scheme, slug, apex, port, token, role)
 	}
 	// Path-based fallback (e.g. localhost dev): https://localhost:9090/<slug>/login#token=...

@@ -92,15 +92,18 @@ run +CMD:
 
 # ── Test environment ─────────────────────────────────────────────────────────
 
-# Run pytest from inside the dev container against the test server
+# Run pytest from inside the dev container against the test server.
+# Rebuilds web/dist first: isms-test serves the bundle live from disk, so an
+# e2e test would otherwise silently run against a stale UI after a .vue change
+# (test-restart only reloads Go). ~1s; harmless for backend-only runs.
 test +ARGS="tests/":
     {{compose}} exec -u isms isms bash -lc \
-        "cd /home/isms/workspace/isms && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }}"
+        "cd /home/isms/workspace/isms && just build-web && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }}"
 
-# Run the Playwright e2e suite against the test server
+# Run the Playwright e2e suite against the test server (web/dist rebuilt first).
 test-e2e +ARGS="tests/test_e2e_browser.py tests/test_e2e_routing.py":
     {{compose}} exec -u isms isms bash -lc \
-        "cd /home/isms/workspace/isms && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }} -v"
+        "cd /home/isms/workspace/isms && just build-web && ISMS_TEST_URL=http://isms-test:9090 .venv/bin/pytest {{ ARGS }} -v"
 
 # Restart the test server only — reloads current code, keeps the test DB.
 # Incremental `go run` rebuild, so this is the fast path after code changes.

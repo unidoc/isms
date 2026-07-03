@@ -154,7 +154,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "legal_requirement", lr.Identifier, actor, req.References)
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "legal_requirement",
 		EntityID:   int64(lr.ID),
 		Action:     "create",
@@ -295,7 +295,7 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("legal_requirement", int64(id), actor, reason, oldMap, after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 	}
 
@@ -337,7 +337,7 @@ func (s *Server) handleDeleteLegal(c echo.Context) error {
 	}
 
 	if lr != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "legal_requirement",
 			EntityID:   int64(lr.ID),
 			Action:     "delete",

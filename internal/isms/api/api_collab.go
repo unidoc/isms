@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -54,6 +55,22 @@ func (s *Server) logAndNotify(ctx context.Context, orgID int, a *db.Activity) {
 				},
 			})
 		}
+	}
+}
+
+// logChange writes a single changelog entry and logs any write error.
+// The main request is never failed on changelog errors — audit trail writes
+// are best-effort and must not block mutations.
+func (s *Server) logChange(ctx context.Context, orgID int, entry *db.ChangelogEntry) {
+	if err := s.db.LogChange(ctx, orgID, entry); err != nil {
+		log.Printf("changelog write error (org %d, entity %s %d): %v", orgID, entry.EntityType, entry.EntityID, err)
+	}
+}
+
+// logChanges writes multiple changelog entries and logs any write error.
+func (s *Server) logChanges(ctx context.Context, orgID int, entries []db.ChangelogEntry) {
+	if err := s.db.LogChanges(ctx, orgID, entries); err != nil {
+		log.Printf("changelog write error (org %d, %d entries): %v", orgID, len(entries), err)
 	}
 }
 
@@ -2060,7 +2077,7 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 
 	s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "task",
 		EntityID:   int64(t.ID),
 		Action:     "create",
@@ -2119,7 +2136,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("task", int64(id), actor, "", before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
@@ -2218,7 +2235,7 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 
 	user := getUserEmail(c)
 	diffs := db.DiffFields("task", int64(id), user, "", old.ToChangeMap(), t.ToChangeMap())
-	_ = s.db.LogChanges(ctx, orgID, diffs)
+	s.logChanges(ctx, orgID, diffs)
 
 	s.searchUpsert(orgID, "task", old.Identifier, t.Title, old.Identifier+" "+t.Title+" "+t.Description)
 
@@ -2257,7 +2274,7 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "task",
 		EntityID:   int64(id),
 		Action:     "delete",
@@ -2451,7 +2468,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		cr = *out
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "change_request",
 		EntityID:   int64(cr.ID),
 		Action:     "create",
@@ -2568,7 +2585,7 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	actor := getUserEmail(c)
 	diffs := db.DiffFields("change_request", int64(id), actor, "", oldMap, updated.ToChangeMap())
 	if len(diffs) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, diffs)
+		s.logChanges(ctx, orgID, diffs)
 	}
 
 	s.searchUpsert(orgID, "change", updated.Identifier, updated.Title, updated.Identifier+" "+updated.Title+" "+updated.Description)
@@ -2628,7 +2645,7 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	if oldStatus != req.Status {
 		ov := oldStatus
 		nv := req.Status
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "change_request",
 			EntityID:   int64(id),
 			Action:     "update",
@@ -2674,7 +2691,7 @@ func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, update
 		DueDate:     &due,
 	}
 	if err := s.db.CreateTask(ctx, orgID, t); err == nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "task",
 			EntityID:   int64(t.ID),
 			Action:     "create",
@@ -2718,7 +2735,7 @@ func (s *Server) handleDeleteChange(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "change_request",
 		EntityID:   int64(id),
 		Action:     "delete",

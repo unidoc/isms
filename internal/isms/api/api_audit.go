@@ -288,7 +288,7 @@ func (s *Server) handleCreateAudit(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit",
 		EntityID:   int64(out.ID),
 		Action:     "create",
@@ -360,7 +360,7 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("audit", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
@@ -402,7 +402,7 @@ func (s *Server) handleUpdateAuditStatus(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("audit", int64(id), actor, "", before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
@@ -707,7 +707,7 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_finding",
 		EntityID:   int64(out.ID),
 		Action:     "create",
@@ -774,7 +774,7 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	if changes := db.DiffFields("audit_finding", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 	if req.Status != nil && before.Status != after.Status {
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -818,7 +818,7 @@ func (s *Server) handleUpdateAuditFindingStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	if changes := db.DiffFields("audit_finding", int64(id), actor, "", before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
@@ -844,7 +844,7 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 	if err := s.db.SoftDeleteAuditFinding(ctx, orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_finding",
 		EntityID:   int64(id),
 		Action:     "delete",

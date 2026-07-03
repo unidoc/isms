@@ -206,7 +206,7 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		inc = *out
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "incident",
 		EntityID:   int64(inc.ID),
 		Action:     "create",
@@ -415,7 +415,7 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("incident", int64(id), actor, reason, oldMap, after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 	}
 
@@ -563,7 +563,7 @@ func (s *Server) handleDeleteIncident(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "incident",
 		EntityID:   int64(id),
 		Action:     "delete",

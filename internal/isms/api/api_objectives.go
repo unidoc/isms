@@ -129,7 +129,7 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "program",
 		EntityID:   p.ID,
 		Action:     "create",
@@ -206,7 +206,7 @@ func (s *Server) handleUpdateProgram(c echo.Context) error {
 		after = &p
 	}
 	diffs := db.DiffFields("program", id, user, "", old.ToChangeMap(), after.ToChangeMap())
-	_ = s.db.LogChanges(ctx, orgID, diffs)
+	s.logChanges(ctx, orgID, diffs)
 
 	return c.JSON(http.StatusOK, after)
 }
@@ -227,7 +227,7 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "program",
 		EntityID:   id,
 		Action:     "delete",
@@ -344,7 +344,7 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 	user := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "objective", o.DisplayID, user, req.References)
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "objective",
 		EntityID:   o.ID,
 		Action:     "create",
@@ -461,7 +461,7 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 		after = &o
 	}
 	diffs := db.DiffFields("objective", id, user, "", old.ToChangeMap(), after.ToChangeMap())
-	_ = s.db.LogChanges(ctx, orgID, diffs)
+	s.logChanges(ctx, orgID, diffs)
 
 	return c.JSON(http.StatusOK, after)
 }
@@ -482,7 +482,7 @@ func (s *Server) handleDeleteObjective(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "objective",
 		EntityID:   id,
 		Action:     "delete",
@@ -520,7 +520,7 @@ func (s *Server) handleArchiveObjective(c echo.Context) error {
 
 	user := getUserEmail(c)
 	newStatus := "archived"
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "objective",
 		EntityID:   id,
 		Action:     "update",
@@ -565,7 +565,7 @@ func (s *Server) handleUnarchiveObjective(c echo.Context) error {
 	if after != nil {
 		newStatus = after.Status
 	}
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "objective",
 		EntityID:   id,
 		Action:     "update",
@@ -655,7 +655,7 @@ func (s *Server) handleCreateCheckin(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "checkin",
 		EntityID:   ci.ID,
 		Action:     "create",
@@ -731,7 +731,7 @@ func (s *Server) handleUpdateCheckin(c echo.Context) error {
 
 	user := getUserEmail(c)
 	if changes := db.DiffFields("checkin", id, user, "", existing.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
-		_ = s.db.LogChanges(ctx, orgID, changes)
+		s.logChanges(ctx, orgID, changes)
 	}
 
 	objLabel := fmt.Sprintf("#%d", existing.ObjectiveID)
@@ -763,7 +763,7 @@ func (s *Server) handleDeleteCheckin(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "checkin",
 		EntityID:   id,
 		Action:     "delete",

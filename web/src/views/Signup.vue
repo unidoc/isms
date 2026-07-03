@@ -117,7 +117,8 @@ onMounted(async () => {
     if (cfg.privacy_url) privacyUrl.value = cfg.privacy_url
     else if (cfg.has_privacy) privacyUrl.value = '/privacy'
   } catch {
-    // Public config endpoint may be limited
+    // Config unreachable — fail closed, same as signup_enabled === false.
+    router.replace('/login')
   }
 })
 </script>

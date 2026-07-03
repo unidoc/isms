@@ -31,7 +31,7 @@
             Continue
           </button>
         </form>
-        <div class="text-sm text-slate-500 mt-6">
+        <div v-if="signupEnabled" class="text-sm text-slate-500 mt-6">
           Don't have an account?
           <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Get started</router-link>
         </div>
@@ -190,7 +190,7 @@
             Forgot password?
           </router-link>
         </div>
-        <div class="text-sm text-slate-500">
+        <div v-if="signupEnabled" class="text-sm text-slate-500">
           Don't have an account?
           <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Sign up</router-link>
         </div>
@@ -230,6 +230,7 @@ const orgSlug = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)
 const showPoweredBy = ref(true)
+const signupEnabled = ref(false)
 
 // Signup
 const oidcProviders = ref([])
@@ -481,6 +482,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
+    signupEnabled.value = cfg.signup_enabled === true
     if (cfg.terms_url) termsUrl.value = cfg.terms_url
     else if (cfg.has_terms) termsUrl.value = '/terms'
     if (cfg.privacy_url) privacyUrl.value = cfg.privacy_url

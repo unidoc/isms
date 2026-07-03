@@ -865,10 +865,18 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 		// for demo / dev where wildcard DNS + TLS isn't set up.
 		SubdomainRouting bool   `json:"subdomain_routing"`
 		ApexHost         string `json:"apex_host,omitempty"`
+
+		// Whether self-registration is enabled (ISMS_USER_SIGNUP). The frontend
+		// hides the "Sign up" affordances when this is false — the signup handler
+		// itself is the hard gate (403), this just keeps the UI honest.
+		SignupEnabled bool `json:"signup_enabled"`
 	}
 	resp := configResponse{}
 	resp.SubdomainRouting = s.subdomainRouting
 	resp.ApexHost = s.apexHost
+	if sv := os.Getenv("ISMS_USER_SIGNUP"); sv == "true" || sv == "1" {
+		resp.SignupEnabled = true
+	}
 
 	// Branding from org settings (Postgres)
 	branding := map[string]string{}

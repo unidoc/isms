@@ -58,7 +58,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
+
+const router = useRouter()
 
 const name = ref('')
 const email = ref('')
@@ -97,6 +100,12 @@ async function doSignup() {
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
+    // Self-registration disabled (ISMS_USER_SIGNUP unset) — the signup endpoint
+    // 403s anyway; don't dangle a dead form. Send them to the login page.
+    if (cfg.signup_enabled !== true) {
+      router.replace('/login')
+      return
+    }
     if (cfg.organization?.name) orgName.value = cfg.organization.name
     if (cfg.organization_name) orgName.value = cfg.organization_name
     if (cfg.branding?.branding_name) orgName.value = cfg.branding.branding_name

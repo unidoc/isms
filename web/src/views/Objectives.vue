@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-full">
+    <div class="overflow-y-auto">
     <!-- Loading -->
     <div v-if="loading" class="max-w-6xl mx-auto px-8 py-10">
       <ListSkeleton :rows="5" />
@@ -627,6 +628,7 @@
     </Transition>
     </Teleport>
 
+    </div>
   </div>
 </template>
 

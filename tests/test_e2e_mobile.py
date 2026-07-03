@@ -13,7 +13,7 @@ This pins the mobile fix:
 Own file to keep the monolithic test_e2e_browser.py free of per-branch conflicts.
 """
 import pytest
-from test_e2e_browser import do_login, ORG, ADMIN, pw_browser  # noqa: F401
+from test_e2e_browser import do_login, ORG, ADMIN, pw_browser, tokens  # noqa: F401
 
 MOBILE = {"width": 390, "height": 844}  # iPhone 12-ish
 REGISTERS = ["risks", "assets", "suppliers", "legal", "systems", "objectives"]
@@ -29,7 +29,7 @@ def _goto(page, view):
     page.wait_for_timeout(300)
 
 
-def test_register_pages_usable_on_mobile(pw_browser):
+def test_register_pages_usable_on_mobile(pw_browser, tokens):
     ctx = pw_browser.new_context(viewport=MOBILE)
     page = ctx.new_page()
     try:

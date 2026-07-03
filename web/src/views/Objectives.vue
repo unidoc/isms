@@ -119,7 +119,7 @@
       <!-- Programs Tab -->
       <div v-if="activeTab === 'programs'" class="space-y-6">
         <!-- Programs list -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-800">
@@ -247,7 +247,7 @@
         </Teleport>
 
         <!-- Objectives table -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-800">

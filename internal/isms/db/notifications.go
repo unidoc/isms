@@ -56,7 +56,9 @@ func (d *DB) ListNotifications(ctx context.Context, orgID int, userID int, unrea
 	}
 	defer rows.Close()
 
-	var notifications []Notification
+	// Initialise (not a nil slice) so an empty result serialises as JSON [] not
+	// null — frontend/tests can iterate the result without a null guard.
+	notifications := []Notification{}
 	for rows.Next() {
 		var n Notification
 		if err := rows.Scan(&n.ID, &n.OrganizationID, &n.RecipientID, &n.Title, &n.Body, &n.Link, &n.Read, &n.CreatedAt); err != nil {

@@ -73,6 +73,62 @@ func docLink(docID string) string {
 	}
 }
 
+// mentionRe matches @handle tokens in a comment body. A handle is a member's
+// email local-part (maria@… → @maria) or their name with spaces removed.
+var mentionRe = regexp.MustCompile(`@([a-zA-Z0-9._-]+)`)
+
+// notifyReviewMentions creates an in-app notification for each org member
+// @-mentioned in a review comment (#4), excluding the comment's author. Matching
+// is case-insensitive against the member's email local-part or name-slug.
+func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, actor, body string) {
+	matches := mentionRe.FindAllStringSubmatchIndex(body, -1)
+	if len(matches) == 0 {
+		return
+	}
+	users, err := s.db.ListOrgUsers(ctx, orgID)
+	if err != nil {
+		return
+	}
+	// Keep email local-parts and name-slugs in SEPARATE maps. One member's email
+	// local-part can equal another member's name-slug ("alicesmith@…" vs "Alice
+	// Smith"); merging both into one map would let whichever sorts later silently
+	// overwrite the other and mis-route the mention. Local-parts are unique
+	// (emails are), so prefer them and only fall back to a name-slug on a miss.
+	byLocal := map[string]string{}
+	bySlug := map[string]string{}
+	for _, u := range users {
+		local := u.Email
+		if at := strings.IndexByte(local, '@'); at > 0 {
+			local = local[:at]
+		}
+		byLocal[strings.ToLower(local)] = u.Email
+		if slug := strings.ToLower(strings.ReplaceAll(u.Name, " ", "")); slug != "" {
+			bySlug[slug] = u.Email
+		}
+	}
+	snippet := truncateStr(body, 200)
+	title := fmt.Sprintf("%s mentioned you in a review comment", actor)
+	link := fmt.Sprintf("/reviews/%d", reviewID)
+	notified := map[string]bool{}
+	for _, m := range matches {
+		// Skip "@scope/pkg" tokens (e.g. @babel/core): a '/' right after the
+		// handle marks a package path or URL segment, not a mention.
+		if end := m[3]; end < len(body) && body[end] == '/' {
+			continue
+		}
+		handle := strings.ToLower(body[m[2]:m[3]])
+		email, ok := byLocal[handle]
+		if !ok {
+			email, ok = bySlug[handle]
+		}
+		if !ok || email == actor || notified[email] {
+			continue // unknown handle, self-mention, or already notified
+		}
+		notified[email] = true
+		_ = s.db.CreateNotificationByEmail(ctx, orgID, email, title, snippet, link)
+	}
+}
+
 // getUserEmail extracts the authenticated user email from context or headers.
 func getUserEmail(c echo.Context) string {
 	// Set by token auth middleware
@@ -789,6 +845,13 @@ func (s *Server) handleAddReviewComment(c echo.Context) error {
 		Action:     action,
 		Detail:     detail,
 	})
+
+	// Notify anyone @-mentioned in the comment or its suggested replacement (#4).
+	mentionText := req.Body
+	if req.SuggestionBody != nil && *req.SuggestionBody != "" {
+		mentionText += "\n" + *req.SuggestionBody
+	}
+	s.notifyReviewMentions(ctx, orgID, id, actor, mentionText)
 
 	return c.JSON(http.StatusCreated, comment)
 }

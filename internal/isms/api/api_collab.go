@@ -566,10 +566,11 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 	if from == "" {
 		if to != "" {
 			// Per-event: the proposal vs its parent. A root commit has no parent —
-			// leave the baseline empty (the whole document is genuinely new) rather
-			// than relying on a silently-swallowed resolve failure.
-			if _, perr := st.RefHash(to + "^"); perr == nil {
-				from = to + "^"
+			// leave the baseline empty (the whole document is genuinely new).
+			// Use ParentHash (direct commit object lookup) rather than "sha^" revision
+			// notation, which can silently fail on some bare-repo configurations.
+			if parentSHA, perr := st.ParentHash(to); perr == nil {
+				from = parentSHA
 			}
 		} else if review.SentHead != "" && (hasBranch || review.CommitHash != "") {
 			from = review.SentHead

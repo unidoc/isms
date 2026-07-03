@@ -456,6 +456,21 @@ func (s *Store) RefHash(ref string) (string, error) {
 	return commit.Hash.String(), nil
 }
 
+// ParentHash returns the first parent commit hash of the given SHA.
+// It resolves the SHA directly via the commit object, avoiding revision-string
+// notation (sha^) which can fail on certain bare-repo configurations.
+func (s *Store) ParentHash(sha string) (string, error) {
+	h := plumbing.NewHash(sha)
+	commit, err := s.repo.CommitObject(h)
+	if err != nil {
+		return "", fmt.Errorf("commit %q not found: %w", sha, err)
+	}
+	if len(commit.ParentHashes) == 0 {
+		return "", fmt.Errorf("commit %q has no parents (root commit)", sha)
+	}
+	return commit.ParentHashes[0].String(), nil
+}
+
 // HeadCommit returns the HEAD commit object.
 func (s *Store) HeadCommit() (*object.Commit, error) {
 	if s.repo == nil {

@@ -18,15 +18,37 @@ class TestSuggestionWorkflow:
     suggestion_id = None
 
     def test_01_setup_review(self, api_url, admin_headers):
-        """Create a document with known content and send for review."""
+        """Create a document with known content and send for review.
+
+        Idempotent on a persistent stack: any open review for iso27001-6-1 is
+        closed first so handleReviewSend always creates a fresh review (no stale
+        review branch from a previous accepted suggestion can pollute the run).
+        """
         r = requests.put(f"{api_url}/documents/iso27001-6-1/content",
                          headers=admin_headers,
                          json={"content": "# Planning\n\nThis is the original paragraph.\n\nAnother paragraph here."})
         assert r.status_code == 200, f"Edit failed: {r.text}"
-        r = requests.post(f"{api_url}/documents/iso27001-6-1/reviews",
-                          headers=admin_headers,
-                          json={"reviewers": [READER_EMAIL], "message": "Suggestion test"})
-        assert r.status_code in [200, 201], f"Create review failed: {r.text}"
+
+        # Close any open reviews left from previous runs so we always get a
+        # fresh review (and a fresh review branch) below.
+        existing = requests.post(f"{api_url}/documents/iso27001-6-1/reviews",
+                                 headers=admin_headers,
+                                 json={"reviewers": [READER_EMAIL], "message": "Suggestion test"})
+        assert existing.status_code in [200, 201], f"Review probe failed: {existing.text}"
+        stale_rid = existing.json()["review_id"]
+        if existing.status_code == 200:
+            # 200 means an existing open review was returned — close it so the
+            # next call creates a genuinely fresh one with no review branch.
+            requests.put(f"{api_url}/reviews/{stale_rid}/status",
+                         headers=admin_headers,
+                         json={"status": "closed"})
+            r = requests.post(f"{api_url}/documents/iso27001-6-1/reviews",
+                              headers=admin_headers,
+                              json={"reviewers": [READER_EMAIL], "message": "Suggestion test"})
+            assert r.status_code == 201, f"Create fresh review failed: {r.text}"
+        else:
+            r = existing
+
         TestSuggestionWorkflow.review_id = r.json()["review_id"]
 
     def test_02_reviewer_creates_suggestion(self, api_url, reader_headers):

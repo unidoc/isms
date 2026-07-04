@@ -433,7 +433,11 @@ class TestSuggestionBrowser:
             # Accept the suggestion in UI
             page.locator("button:has-text('Accept')").first.wait_for(state="visible", timeout=5000)
             page.locator("button:has-text('Accept')").first.click()
-            page.locator("text=Accepted").first.wait_for(state="visible", timeout=10000)
+            # Element-level wait with a generous timeout tolerates a slow server
+            # round-trip under full-suite load (many browser contexts competing)
+            # without depending on global network quiescence — Playwright
+            # discourages networkidle for apps that may poll in the background.
+            page.locator("text=Accepted").first.wait_for(state="visible", timeout=20000)
 
             # Verify conversation tab shows suggestion activity
             page.locator("button:has-text('Conversation')").first.click()

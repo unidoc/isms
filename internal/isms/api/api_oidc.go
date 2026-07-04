@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -118,8 +119,16 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating OIDC session: "+err.Error())
 	}
 
-	// Clean up expired sessions in the background
-	go s.db.DeleteExpiredOIDCSessions(ctx)
+	// Clean up expired sessions in the background. A detached context so the
+	// DELETE survives request completion (the #114 bug), but bounded by a
+	// timeout so a slow/overloaded DB can't leave these fire-and-forget
+	// goroutines blocked in Exec indefinitely — one is spawned per authorize
+	// call, so an unbounded wait would let them pile up under DB stress.
+	go func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = s.db.DeleteExpiredOIDCSessions(cleanupCtx)
+	}()
 
 	authURL := oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce))
 	return c.Redirect(http.StatusFound, authURL)

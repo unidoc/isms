@@ -77,7 +77,13 @@ class TestSubdomainResolution:
         )
 
     def test_apex_has_no_org_context(self):
-        """Plain apex Host → no org bound, neutral config."""
+        """Plain apex Host → no org bound, neutral config.
+
+        NB: the server auto-resolves the apex to the org when a deployment has
+        EXACTLY ONE org (single-org self-hosted convenience). This suite always
+        has multiple orgs (the admin org from conftest + acme-logistics created
+        in setup_class), so the apex stays neutral here.
+        """
         _require_subdomain_routing(self.cfg)
         r = requests.get(
             f"{BASE_URL}/api/v1/config",
@@ -86,7 +92,8 @@ class TestSubdomainResolution:
         assert r.status_code == 200
         cfg = r.json()
         assert not cfg.get("organization_slug"), (
-            f"apex must not surface an org_slug; got {cfg.get('organization_slug')!r}"
+            f"apex must not surface an org_slug with multiple orgs; "
+            f"got {cfg.get('organization_slug')!r}"
         )
 
     def test_unknown_subdomain_falls_through(self):
@@ -106,6 +113,57 @@ class TestSubdomainResolution:
         _require_subdomain_routing(self.cfg)
         assert self.cfg.get("subdomain_routing") is True
         assert self.cfg.get("apex_host"), "apex_host must be set when subdomain routing is on"
+
+
+class TestSpaApexInjection:
+    """Regression: the SPA index.html must carry the deployment's apex host as a
+    <meta name="isms-apex"> tag so the frontend classifies its own hostname (apex
+    vs tenant subdomain) synchronously at boot — before /api/v1/config loads.
+
+    Without it, host classification runs at module-import time (router.js,
+    App.vue) with only the isms.sh seed, so a self-hosted apex on any other
+    domain (e.g. isms.stsplatform.com) is misread as a tenant subdomain "isms".
+    The login page then probes a phantom org and 404s on /auth/oidc/providers.
+
+    A meta tag is used (not an inline <script>) because the CSP is script-src
+    'self' — an inline script would be blocked and silently never run.
+    """
+
+    @classmethod
+    def setup_class(cls):
+        cls.cfg = _server_config()
+
+    def test_index_html_injects_apex_host(self):
+        apex = self.cfg.get("apex_host")
+        if not apex:
+            pytest.skip("server has no apex_host configured (ISMS_DOMAIN unset)")
+        r = requests.get(f"{BASE_URL}/")
+        assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
+        assert "text/html" in r.headers.get("content-type", "")
+        marker = f'<meta name="isms-apex" content="{apex}">'
+        assert marker in r.text, (
+            f"expected {marker!r} injected into index.html; "
+            f"apex_host={apex!r} not found in served HTML"
+        )
+
+    def test_apex_injection_is_not_an_inline_script(self):
+        """Guard against regressing to an inline <script>, which the CSP
+        (script-src 'self') would block from executing."""
+        r = requests.get(f"{BASE_URL}/")
+        assert "window.__ISMS_APEX__" not in r.text, (
+            "apex host must be injected as a <meta> tag, not an inline script "
+            "(CSP script-src 'self' blocks inline scripts)"
+        )
+
+    def test_spa_fallback_route_also_injects(self):
+        """A deep-link client route (/login) falls back to index.html and must
+        carry the same injection — /login is exactly where the bug surfaced."""
+        apex = self.cfg.get("apex_host")
+        if not apex:
+            pytest.skip("server has no apex_host configured (ISMS_DOMAIN unset)")
+        r = requests.get(f"{BASE_URL}/login")
+        assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
+        assert f'<meta name="isms-apex" content="{apex}">' in r.text
 
 
 class TestDocsServedNatively:

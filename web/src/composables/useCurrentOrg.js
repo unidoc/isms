@@ -23,6 +23,20 @@ const _apexHosts = new Set([
   'www.isms.sh',
 ])
 
+// Race-free apex seed: the server injects its own apex host into index.html as
+// a <meta name="isms-apex"> tag (see server.go SPA handler). Host classification
+// runs at module-import time — in router.js and App.vue setup — which is BEFORE
+// the async /api/v1/config fetch calls setApexHost(). Without this synchronous
+// seed, a self-hosted apex on a non-isms.sh domain (e.g. isms.stsplatform.com)
+// is misclassified as a tenant subdomain "isms" on boot.
+//
+// A meta tag (not an inline <script>) is used deliberately: the server's CSP is
+// script-src 'self', which blocks inline scripts — a script tag would never run.
+if (typeof document !== 'undefined') {
+  const _apexMeta = document.querySelector('meta[name="isms-apex"]')
+  if (_apexMeta && _apexMeta.content) _apexHosts.add(_apexMeta.content.toLowerCase())
+}
+
 export function setApexHost(host) {
   if (host) _apexHosts.add(host.toLowerCase())
 }

@@ -85,6 +85,14 @@ func resolveFrom(configFrom, fromName string) (header, envelope string) {
 	return (&netmail.Address{Name: fromName, Address: envelope}).String(), envelope
 }
 
+// PreviewFrom returns the From header and envelope sender that a branded send
+// with brandName would produce, WITHOUT sending. For diagnostics (e.g.
+// `isms server test-email --org`), so an operator can see the exact From a
+// tenant's mail will carry. An empty brandName previews an unbranded send.
+func PreviewFrom(configFrom, brandName string) (header, envelope string) {
+	return resolveFrom(configFrom, brandName)
+}
+
 // Send sends an email using the configured SMTP_FROM as-is.
 func (m *Mailer) Send(to, subject, body string) error {
 	return m.sendAs(to, subject, body, "")

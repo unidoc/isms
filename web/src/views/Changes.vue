@@ -25,7 +25,14 @@
         <form @submit.prevent="create" class="space-y-4">
         <h2 class="text-sm font-semibold text-slate-300">Add Change Request</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="sm:col-span-2">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Type</label>
+            <select v-model="form.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="change">Change</option>
+              <option value="access_request">Access request</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-xs text-slate-500 mb-1">Title <span class="text-red-400">*</span></label>
             <input v-model="form.title" type="text" required autofocus
               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -467,7 +474,7 @@ const canCreate = computed(() => ['admin', 'manager', 'contributor'].includes(us
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 const pendingRefs = ref([])
 
-const form = ref({ title: '', priority: 'medium', category: 'process' })
+const form = ref({ type: 'change', title: '', priority: 'medium', category: 'process' })
 
 const statusStats = computed(() => {
   return [
@@ -618,7 +625,7 @@ async function create() {
       }
     }
     pendingRefs.value = []
-    form.value = { title: '', priority: 'medium', category: 'process' }
+    form.value = { type: 'change', title: '', priority: 'medium', category: 'process' }
     showCreate.value = false
     await loadChanges()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.

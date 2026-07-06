@@ -231,6 +231,15 @@ func (d *DB) MigrateFS(ctx context.Context, fsys fs.FS, dir string) error {
 	}
 	sort.Strings(files)
 
+	// No .sql found means the embed dir holds only the .keep placeholder — the
+	// compile-time `cp -f migrations/*.sql cmd/isms/migrations/` step was skipped.
+	// Fail loudly here rather than let it surface later as a confusing
+	// "relation does not exist" at first query.
+	if len(files) == 0 {
+		return fmt.Errorf("no migrations found in embedded %q — the build's migration-sync step was skipped "+
+			"(run `just migrations-sync` before `go run`/build)", dir)
+	}
+
 	count := 0
 	for _, name := range files {
 		if applied[name] {

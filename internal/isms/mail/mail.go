@@ -152,6 +152,28 @@ func (m *Mailer) SendVerificationBranded(to, name, baseURL, token string, b Bran
 	return m.sendAs(to, fmt.Sprintf("%s — Verify your email", b.name()), body, b.name())
 }
 
+// SendEmailChangeVerification sends a confirmation link to the *new* address a
+// user wants to switch to. Clicking it swaps the account's email over.
+func (m *Mailer) SendEmailChangeVerification(to, name, baseURL, token string) error {
+	return m.SendEmailChangeVerificationBranded(to, name, baseURL, token, Branding{})
+}
+
+// SendEmailChangeVerificationBranded sends the email-change confirmation link with org branding.
+func (m *Mailer) SendEmailChangeVerificationBranded(to, name, baseURL, token string, b Branding) error {
+	link := fmt.Sprintf("%s/verify-email-change?token=%s", strings.TrimRight(baseURL, "/"), token)
+
+	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+<h2>Confirm your new %s email</h2>
+<p>Hi %s,</p>
+<p>We received a request to change your sign-in email to this address. Click the button below to confirm the change. Until you do, your current email stays active.</p>
+<p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Confirm new email</a></p>
+<p>Or copy this link: %s</p>
+<p style="color: #666; font-size: 12px;">This link expires in 2 hours. If you didn't request this change, you can safely ignore this email — nothing will change.</p>
+</div>`, b.name(), name, link, b.color(), link)
+
+	return m.sendAs(to, fmt.Sprintf("%s — Confirm your new email", b.name()), body, b.name())
+}
+
 // SendPasswordReset sends a password reset link. The same flow also activates
 // unverified accounts — setting a new password via the reset link marks the
 // email as verified.

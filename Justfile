@@ -13,7 +13,7 @@ build-go:
     #!/usr/bin/env bash
     set -euo pipefail
     # Sync migrations and web dist into cmd/isms for embedding
-    cp -f migrations/*.sql cmd/isms/migrations/
+    ./scripts/sync-migrations.sh
     rm -rf cmd/isms/web/dist && mkdir -p cmd/isms/web/dist
     [ -d web/dist ] && cp -r web/dist/* cmd/isms/web/dist/ || true
     VERSION=$(cat version.txt | tr -d '[:space:]')
@@ -26,6 +26,11 @@ build-go:
 # Build Vue frontend
 build-web:
     cd web && npm run build
+
+# Sync migrations into the embed dir (compile-time artifact, never committed).
+# Every path that compiles cmd/isms must run this first; see scripts/sync-migrations.sh.
+migrations-sync:
+    ./scripts/sync-migrations.sh
 
 # Dev mode: Go API + Vite hot reload in one command
 dev:
@@ -113,7 +118,7 @@ snapshot:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/ 2>/dev/null || true
-    cp -f migrations/*.sql cmd/isms/migrations/
+    ./scripts/sync-migrations.sh
     COMMIT_COUNT=$(git rev-list --count HEAD) goreleaser release --snapshot --clean --skip=validate
     echo "✓ snapshot in dist/ — try: tar -xzf dist/*linux_amd64.tar.gz -C /tmp isms && /tmp/isms version"
 

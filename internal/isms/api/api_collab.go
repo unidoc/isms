@@ -2358,6 +2358,7 @@ type taskUpdateRequest struct {
 
 // changeCreateRequest is the API contract for creating a change request.
 type changeCreateRequest struct {
+	Type          string           `json:"type"`
 	Title         string           `json:"title"`
 	Description   string           `json:"description"`
 	Justification string           `json:"justification"`
@@ -2454,6 +2455,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	cr := db.ChangeRequest{
+		Type:          req.Type,
 		Title:         req.Title,
 		Description:   req.Description,
 		Justification: req.Justification,
@@ -2470,6 +2472,9 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	if cr.AssignedTo == "" {
 		cr.AssignedTo = cr.RequestedBy
 	}
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
 	if cr.Status == "" {
 		cr.Status = "proposed"
 	}
@@ -2481,6 +2486,9 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	}
 	if cr.RiskLevel == "" {
 		cr.RiskLevel = "low"
+	}
+	if err := validateEnum("type", cr.Type, db.ChangeTypes); err != nil {
+		return err
 	}
 	if err := validateEnum("status", cr.Status, db.ChangeStatuses); err != nil {
 		return err

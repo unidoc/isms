@@ -135,6 +135,7 @@ services:
       - -lc
       - |
         cd /home/isms/workspace/isms && \
+        ./scripts/sync-migrations.sh && \
         go run ./cmd/isms server migrate && \
         exec go run ./cmd/isms server serve --addr :9090
     restart: unless-stopped

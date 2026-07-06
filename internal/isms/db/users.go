@@ -8,17 +8,23 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+// ErrEmailTaken is returned when an email change targets an address that already
+// belongs to another account.
+var ErrEmailTaken = errors.New("email address is already in use")
 
 // User represents an ISMS platform user.
 type User struct {
 	ID            int     `json:"id"`
 	Email         string  `json:"email"`
 	Name          string  `json:"name"`
-	PasswordHash  *string `json:"-"`              // bcrypt, nil = external auth only
-	OTPSecret     *string `json:"-"`              // TOTP base32 secret, nil = OTP not enabled
-	OTPVerified   bool    `json:"otp_verified"`   // true after first successful OTP
-	EmailVerified bool    `json:"email_verified"` // true after verification or CF login
+	PasswordHash  *string `json:"-"`                       // bcrypt, nil = external auth only
+	OTPSecret     *string `json:"-"`                       // TOTP base32 secret, nil = OTP not enabled
+	OTPVerified   bool    `json:"otp_verified"`            // true after first successful OTP
+	EmailVerified bool    `json:"email_verified"`          // true after verification or CF login
+	PendingEmail  *string `json:"pending_email,omitempty"` // address awaiting change verification, nil = none
 	IsAgent       bool    `json:"is_agent"`
 	Active        bool    `json:"active"`
 	CreatedAt     Epoch   `json:"created_at"`
@@ -83,13 +89,24 @@ func (u *User) OTPPending() bool {
 // User CRUD
 // ---------------------------------------------------------------------------
 
+// EmailExists reports whether any account already uses the given (active) email.
+// Case-insensitive. Cheaper than GetUserByEmail for a mere existence check — no
+// row hydration, no OTP decrypt.
+func (d *DB) EmailExists(ctx context.Context, email string) (bool, error) {
+	var exists bool
+	err := d.pool.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower($1))`,
+		email).Scan(&exists)
+	return exists, err
+}
+
 // GetUserByEmail looks up a user. Returns nil if not found.
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, is_agent, active, created_at, last_seen
+		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
 		FROM users WHERE email = $1
-	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +195,80 @@ func (d *DB) SetEmailVerified(ctx context.Context, userID int) error {
 	return err
 }
 
+// SetPendingEmail records an address awaiting change verification. The user's
+// active email is untouched until the new address is verified (verify-before-swap).
+// Email is normalized to lowercase. Returns ErrEmailTaken if the target already
+// belongs to another account.
+func (d *DB) SetPendingEmail(ctx context.Context, userID int, pendingEmail string) error {
+	tag, err := d.pool.Exec(ctx, `UPDATE users SET pending_email = $2 WHERE id = $1`,
+		userID, strings.ToLower(pendingEmail))
+	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrEmailTaken
+		}
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("user %d not found", userID)
+	}
+	return nil
+}
+
+// SwapPendingEmail promotes a user's pending_email to their active email in one
+// atomic step: sets email = pending_email, clears pending_email, and marks the
+// email verified. Returns the new email, or ErrEmailTaken if the address was
+// claimed by another account between request and verification. Errors (returning
+// "" ) if there is no pending change.
+func (d *DB) SwapPendingEmail(ctx context.Context, userID int) (string, error) {
+	var newEmail string
+	err := d.pool.QueryRow(ctx, `
+		UPDATE users
+		SET email = pending_email, pending_email = NULL, email_verified = true
+		WHERE id = $1 AND pending_email IS NOT NULL
+		RETURNING email
+	`, userID).Scan(&newEmail)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return "", ErrEmailTaken
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", fmt.Errorf("no pending email change for user %d", userID)
+		}
+		return "", err
+	}
+	return newEmail, nil
+}
+
+// ClearPendingEmail cancels a pending email change.
+func (d *DB) ClearPendingEmail(ctx context.Context, userID int) error {
+	_, err := d.pool.Exec(ctx, `UPDATE users SET pending_email = NULL WHERE id = $1`, userID)
+	return err
+}
+
+// SetEmail directly changes a user's active email (admin/CLI path — no
+// verification round-trip). Email is normalized to lowercase.
+func (d *DB) SetEmail(ctx context.Context, userID int, email string) error {
+	tag, err := d.pool.Exec(ctx,
+		`UPDATE users SET email = $2, pending_email = NULL WHERE id = $1`,
+		userID, strings.ToLower(email))
+	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrEmailTaken
+		}
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("user %d not found", userID)
+	}
+	return nil
+}
+
+// isUniqueViolation reports whether err is a Postgres unique-constraint violation.
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
 // SetUserActive sets a user's active status.
 func (d *DB) SetUserActive(ctx context.Context, userID int, active bool) error {
 	_, err := d.pool.Exec(ctx, `UPDATE users SET active = $2 WHERE id = $1`, userID, active)
@@ -193,7 +284,7 @@ func (d *DB) UpdateName(ctx context.Context, userID int, name string) error {
 // ListUsers returns all users (global, no org filter).
 func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, is_agent, active, created_at, last_seen
+		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
 		FROM users ORDER BY name
 	`)
 	if err != nil {
@@ -204,7 +295,7 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen); err != nil {
 			return nil, err
 		}
 		if err := u.decryptOTP(d.encryptionKey); err != nil {
@@ -221,8 +312,8 @@ func (d *DB) TouchUser(ctx context.Context, email, name string) (*User, error) {
 	err := d.pool.QueryRow(ctx, `
 		UPDATE users SET last_seen = now()
 		WHERE email = $1
-		RETURNING id, email, name, password_hash, otp_secret, otp_verified, email_verified, is_agent, active, created_at, last_seen
-	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+		RETURNING id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
+	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}

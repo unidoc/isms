@@ -56,6 +56,52 @@
       </div>
     </section>
 
+    <!-- Change Email -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Email</h2>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Current email</label>
+          <div class="text-sm text-slate-300">{{ user?.email }}</div>
+        </div>
+
+        <div v-if="user?.pending_email"
+          class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+          <div>
+            Change to <strong>{{ user.pending_email }}</strong> is pending — check that inbox for a confirmation link.
+            Your current email stays active until you confirm.
+          </div>
+          <button @click="cancelEmailChange" :disabled="cancellingEmail"
+            class="mt-2 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-md border border-amber-500/40 transition-colors disabled:opacity-50">
+            {{ cancellingEmail ? 'Cancelling…' : 'Cancel pending change' }}
+          </button>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">New email</label>
+          <input v-model="newEmail" type="email" autocomplete="email"
+            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+        </div>
+        <div v-if="user?.has_password">
+          <label class="block text-xs text-slate-500 mb-1">Current password</label>
+          <input v-model="emailCurrentPassword" type="password" autocomplete="current-password"
+            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+        </div>
+        <div v-if="user?.otp_enabled">
+          <label class="block text-xs text-slate-500 mb-1">Authenticator code</label>
+          <input v-model="emailOtp" type="text" maxlength="6" inputmode="numeric" placeholder="000000"
+            @input="emailOtp = emailOtp.replace(/\D/g, '').slice(0, 6)"
+            class="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white tracking-widest text-center focus:outline-none focus:border-blue-500" />
+        </div>
+        <button @click="changeEmail" :disabled="changingEmail || !newEmail"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+          {{ changingEmail ? 'Sending...' : 'Change email' }}
+        </button>
+        <p class="text-xs text-slate-500">We'll send a confirmation link to the new address. The change takes effect only after you click it.</p>
+        <div v-if="emailMsg" class="text-xs" :class="emailError ? 'text-red-400' : 'text-emerald-400'">{{ emailMsg }}</div>
+      </div>
+    </section>
+
     <!-- Two-Factor Authentication -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
       <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Two-Factor Authentication (OTP)</h2>
@@ -291,6 +337,15 @@ const changingPw = ref(false)
 const pwMsg = ref('')
 const pwError = ref(false)
 
+// Change email
+const newEmail = ref('')
+const emailCurrentPassword = ref('')
+const emailOtp = ref('')
+const changingEmail = ref(false)
+const cancellingEmail = ref(false)
+const emailMsg = ref('')
+const emailError = ref(false)
+
 // OTP
 const otpEnabled = ref(false)
 const otpSecret = ref('')
@@ -346,6 +401,46 @@ async function changePassword() {
     pwError.value = true
   } finally {
     changingPw.value = false
+  }
+}
+
+async function changeEmail() {
+  changingEmail.value = true
+  emailMsg.value = ''
+  try {
+    const res = await api.putJSON('/api/v1/auth/email', {
+      new_email: newEmail.value.trim(),
+      current_password: emailCurrentPassword.value,
+      otp: emailOtp.value,
+    })
+    emailMsg.value = res.message || 'Confirmation sent — check your new inbox.'
+    emailError.value = false
+    emailCurrentPassword.value = ''
+    emailOtp.value = ''
+    // Reflect the pending change immediately.
+    user.value = await api.getMe()
+    newEmail.value = ''
+  } catch (e) {
+    emailMsg.value = e.message
+    emailError.value = true
+  } finally {
+    changingEmail.value = false
+  }
+}
+
+async function cancelEmailChange() {
+  cancellingEmail.value = true
+  emailMsg.value = ''
+  try {
+    await api.deleteJSON('/api/v1/auth/email')
+    user.value = await api.getMe()
+    emailMsg.value = 'Pending email change cancelled.'
+    emailError.value = false
+  } catch (e) {
+    emailMsg.value = e.message
+    emailError.value = true
+  } finally {
+    cancellingEmail.value = false
   }
 }
 

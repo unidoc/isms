@@ -10,7 +10,13 @@ import (
 	"isms.sh/internal/isms/db"
 )
 
-//go:embed migrations/*.sql
+// migrations/*.sql are NOT committed — cmd/isms/migrations/ is a build artifact,
+// synced from the repo-root migrations/ at compile time (just build-go, the CI
+// jobs, goreleaser). Only a .keep placeholder lives in git so the directory
+// exists and this embed always resolves; `all:` includes that dotfile. MigrateFS
+// filters to *.sql, so .keep is ignored at runtime.
+//
+//go:embed all:migrations
 var embeddedMigrations embed.FS
 
 func migrateCmd() *cobra.Command {

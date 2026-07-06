@@ -72,6 +72,7 @@ func (s *Server) handleMe(c echo.Context) error {
 		"has_password":    user.HasPassword(),
 		"otp_enabled":     user.HasOTP(),
 		"email_verified":  user.EmailVerified,
+		"pending_email":   user.PendingEmail,
 		"organization_id": orgID,
 		"ai_enabled":      aiEnabled,
 	}

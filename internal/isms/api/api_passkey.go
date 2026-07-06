@@ -193,10 +193,13 @@ func (s *Server) handlePasskeyLoginBegin(c echo.Context) error {
 	ctx := c.Request().Context()
 	clientIP := c.RealIP()
 
-	// Per-account brute-force protection (DB-backed, shared with password login)
-	count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
-	if count >= maxLoginAttempts {
-		return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+	// Per-account brute-force protection (DB-backed, shared with password login;
+	// skipped when ISMS_RATE_LIMIT=0)
+	if !rateLimitDisabled() {
+		count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
+		if count >= maxLoginAttempts {
+			return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+		}
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)

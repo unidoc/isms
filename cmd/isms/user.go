@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	netmail "net/mail"
 	"net/url"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -18,7 +20,7 @@ func userCmd() *cobra.Command {
 		Short: "Manage users",
 	}
 
-	cmd.AddCommand(userCreateCmd(), userListCmd(), userSetPasswordCmd(), userVerifyCmd(), userTestAuthCmd(), userResetOTPCmd())
+	cmd.AddCommand(userCreateCmd(), userListCmd(), userSetPasswordCmd(), userSetEmailCmd(), userVerifyCmd(), userTestAuthCmd(), userResetOTPCmd())
 	return cmd
 }
 
@@ -243,6 +245,50 @@ func userSetPasswordCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&email, "email", "", "User email (required)")
 	cmd.Flags().StringVar(&password, "password", "", "Password (optional, prompts if not provided)")
+	return cmd
+}
+
+// userSetEmailCmd directly changes a user's sign-in email — an admin path that
+// skips the self-service verify-before-swap round-trip. Any pending change is
+// cleared. Use when a user is locked out of both their old and new inboxes.
+func userSetEmailCmd() *cobra.Command {
+	var email, newEmail string
+	cmd := &cobra.Command{
+		Use:   "set-email",
+		Short: "Change a user's sign-in email (admin; no verification round-trip)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if email == "" || newEmail == "" {
+				return fmt.Errorf("--email and --new-email are both required")
+			}
+			// Validate the address the same way the self-service API path does, so an
+			// admin typo can't write a malformed value straight into users.email.
+			lower := strings.ToLower(strings.TrimSpace(newEmail))
+			if addr, perr := netmail.ParseAddress(lower); perr != nil || addr.Address != lower {
+				return fmt.Errorf("--new-email is not a valid email address")
+			}
+			d, err := connectDB()
+			if err != nil {
+				return err
+			}
+			defer d.Close()
+
+			ctx := cmd.Context()
+			user, err := d.GetUserByEmail(ctx, email)
+			if err != nil || user == nil {
+				return fmt.Errorf("user %q not found", email)
+			}
+			if err := d.SetEmail(ctx, user.ID, lower); err != nil {
+				if err == db.ErrEmailTaken {
+					return fmt.Errorf("%q is already in use by another account", lower)
+				}
+				return fmt.Errorf("changing email: %w", err)
+			}
+			fmt.Printf("Email changed: %s → %s\n", user.Email, lower)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&email, "email", "", "Current user email (required)")
+	cmd.Flags().StringVar(&newEmail, "new-email", "", "New email address (required)")
 	return cmd
 }
 

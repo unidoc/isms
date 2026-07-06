@@ -47,6 +47,16 @@ The one exception: a **serious security issue** (or active data loss) whose fix
 requires a migration may ship in a patch — security comes first. Any such
 exception must be called out explicitly in that release.
 
+**One migration file per minor release.** Migrations live in `migrations/` and
+are named for the *release*, not for what they change — e.g.
+`<timestamp>_v0.7.0.sql`. There is exactly one per minor; every schema change
+that lands in that release adds its `ALTER`/`CREATE` to that same file as the
+work goes in. Don't create a second migration for the release, and don't name it
+after a feature. Files apply in filename order and are tracked by filename in
+`schema_migrations`, so the timestamp prefix keeps ordering after earlier
+releases. Use `IF NOT EXISTS` so re-applying against a shared/persistent dev DB
+is safe.
+
 ## Release focus (themes)
 
 Each minor has a single headline focus, decided ahead of time. The focus and

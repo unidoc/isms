@@ -12,6 +12,9 @@ var (
 	ChangePriorities = []string{"low", "medium", "high", "critical"}
 	ChangeRiskLevels = []string{"low", "medium", "high", "critical"}
 	ChangeCategories = []string{"process", "technology", "people", "documentation", "infrastructure", "other"}
+	// A change request is a normal change or an access request — same approval
+	// flow; access-request specifics live in notes, no extra structured fields.
+	ChangeTypes = []string{"change", "access_request"}
 )
 
 // ChangeRequestListParams specifies filtering, sorting, and pagination for the change register.
@@ -39,13 +42,15 @@ const changeRequestSelectCols = `change_requests.id, change_requests.organizatio
 	(SELECT email FROM users WHERE id = change_requests.requested_by_id),
 	COALESCE((SELECT email FROM users WHERE id = change_requests.assigned_to_id), ''),
 	status, COALESCE(approved_by, ''),
-	approved_at, planned_at, implemented_at, change_requests.created_at, change_requests.updated_at`
+	approved_at, planned_at, implemented_at, change_requests.created_at, change_requests.updated_at,
+	change_requests.type`
 
 // ChangeRequest represents a change management record.
 type ChangeRequest struct {
 	ID             int    `json:"id"`
 	OrganizationID int    `json:"organization_id"`
 	Identifier     string `json:"identifier"`
+	Type           string `json:"type"`
 	Title          string `json:"title"`
 	Description    string `json:"description"`
 	Justification  string `json:"justification,omitempty"`
@@ -67,19 +72,22 @@ type ChangeRequest struct {
 
 func (d *DB) CreateChangeRequest(ctx context.Context, orgID int, cr *ChangeRequest) error {
 	cr.OrganizationID = orgID
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "change_request")
 	if err != nil {
 		return err
 	}
 	cr.Identifier = ident
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at)
+		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at, type)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, (SELECT id FROM users WHERE email = $11),
-			(SELECT id FROM users WHERE email = $12), $13, $14)
+			(SELECT id FROM users WHERE email = $12), $13, $14, $15)
 		RETURNING id, created_at, updated_at
 	`, orgID, cr.Identifier, cr.Title, cr.Description, nilIfEmpty(cr.Justification),
 		cr.Priority, cr.Category, cr.RiskLevel, nilIfEmpty(cr.RollbackPlan), nilIfEmpty(cr.Notes),
-		cr.RequestedBy, nilIfEmpty(cr.AssignedTo), cr.Status, cr.PlannedAt,
+		cr.RequestedBy, nilIfEmpty(cr.AssignedTo), cr.Status, cr.PlannedAt, cr.Type,
 	).Scan(&cr.ID, &cr.CreatedAt, &cr.UpdatedAt)
 }
 
@@ -91,7 +99,7 @@ func (d *DB) GetChangeRequest(ctx context.Context, orgID int, id int) (*ChangeRe
 	`, id, orgID).Scan(&cr.ID, &cr.OrganizationID, &cr.Identifier, &cr.Title, &cr.Description, &cr.Justification,
 		&cr.Priority, &cr.Category, &cr.RiskLevel, &cr.RollbackPlan, &cr.Notes,
 		&cr.RequestedBy, &cr.AssignedTo, &cr.Status, &cr.ApprovedBy,
-		&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt)
+		&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +131,7 @@ func (d *DB) ListChangeRequests(ctx context.Context, orgID int, status string, l
 		if err := rows.Scan(&cr.ID, &cr.OrganizationID, &cr.Identifier, &cr.Title, &cr.Description, &cr.Justification,
 			&cr.Priority, &cr.Category, &cr.RiskLevel, &cr.RollbackPlan, &cr.Notes,
 			&cr.RequestedBy, &cr.AssignedTo, &cr.Status, &cr.ApprovedBy,
-			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt); err != nil {
+			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type); err != nil {
 			return nil, err
 		}
 		crs = append(crs, cr)
@@ -192,6 +200,7 @@ func (d *DB) UpdateChangeRequestStatus(ctx context.Context, orgID int, id int, s
 
 func (cr *ChangeRequest) ToChangeMap() map[string]string {
 	return map[string]string{
+		"type":          cr.Type,
 		"title":         cr.Title,
 		"description":   cr.Description,
 		"justification": cr.Justification,
@@ -314,7 +323,7 @@ func (d *DB) PaginatedChangeRequests(ctx context.Context, orgID int, p ChangeReq
 		if err := rows.Scan(&cr.ID, &cr.OrganizationID, &cr.Identifier, &cr.Title, &cr.Description, &cr.Justification,
 			&cr.Priority, &cr.Category, &cr.RiskLevel, &cr.RollbackPlan, &cr.Notes,
 			&cr.RequestedBy, &cr.AssignedTo, &cr.Status, &cr.ApprovedBy,
-			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt); err != nil {
+			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type); err != nil {
 			return nil, 0, err
 		}
 		crs = append(crs, cr)

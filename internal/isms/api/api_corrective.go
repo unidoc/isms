@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -103,23 +105,9 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 	if ca.Assignee == "" {
 		ca.Assignee = ca.CreatedBy
 	}
-	if ca.Status == "" {
-		ca.Status = "todo"
-	}
-	if ca.Severity == "" {
-		ca.Severity = "observation"
-	}
-	if ca.Source == "" {
-		ca.Source = "other"
-	}
-	if ca.DueDate == nil {
-		d := db.NewEpoch(time.Now().AddDate(0, 0, 30))
-		ca.DueDate = &d
-	}
-	// Seed Notes with template if empty.
-	if ca.Notes == "" {
-		ca.Notes = "## Action plan\n\n## Implementation\n\n## Verification\n\n## Evidence\n"
-	}
+	// Server-side create defaults — shared with suggestion-apply so a CA starts
+	// in the same state regardless of write path (#26).
+	applyCorrectiveActionDefaults(&ca)
 	if err := validateEnum("status", ca.Status, db.CorrectiveActionStatuses); err != nil {
 		return err
 	}
@@ -203,6 +191,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
 	}
+	prevStatus := existing.Status
 
 	var req correctiveActionUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -230,28 +219,11 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		}
 	}
 
-	// Route status changes through the dedicated transition function so that
-	// resolved_at / resolved_by_id closure metadata is set correctly.
-	if req.Status != nil && *req.Status != existing.Status {
-		// Same rule as the dedicated status endpoint: cannot resolve a CA
-		// with open implementation tasks still linked.
-		if *req.Status == "resolved" {
-			// An empty identifier is corrupt data — the open-task query can't
-			// match anything, so skipping would silently disable enforcement.
-			if existing.Identifier == "" {
-				return echo.NewHTTPError(http.StatusInternalServerError, "corrective action has no identifier")
-			}
-			if n, err := s.db.CountOpenTasksByCA(ctx, orgID, existing.Identifier); err == nil && n > 0 {
-				return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot resolve %s: %d open implementation task(s) still linked", existing.Identifier, n))
-			}
-		}
-		if err := s.db.UpdateCorrectiveActionStatus(ctx, orgID, id, *req.Status, getUserEmail(c)); err != nil {
-			return pgxHTTPError(err)
-		}
-		existing, err = s.db.GetCorrectiveAction(ctx, orgID, id)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
-		}
+	// Status transitions flow through the unified write path below (open-task
+	// guard + resolved_at/by) — the same enforced function suggestion-apply uses
+	// (#26). Top-level requireRole(admin,manager) already gates status changes.
+	if req.Status != nil {
+		existing.Status = *req.Status
 	}
 
 	// Apply pointer-based partial update onto existing record.
@@ -282,7 +254,15 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 
 	oldMap := existing.ToChangeMap()
 	existing.ID = id
-	if err := s.db.UpdateCorrectiveAction(ctx, orgID, existing); err != nil {
+	// Single enforced CA write path (#26): open-task guard on resolve +
+	// resolved_at/by, shared verbatim with suggestion-apply.
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		return enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, getUserEmail(c))
+	}); err != nil {
+		var ote openTasksLinkedError
+		if errors.As(err, &ote) {
+			return echo.NewHTTPError(http.StatusConflict, ote.Error())
+		}
 		return pgxHTTPError(err)
 	}
 

@@ -193,6 +193,79 @@ func UpdateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 	return err
 }
 
+// CountOpenCAsByIncidentTx is the transaction-aware twin of CountOpenCAsByIncident
+// (corrective_actions.go). Used by the unified incident write path (#26) so the
+// open-CA guard runs identically from the HTTP handler and suggestion-apply.
+func CountOpenCAsByIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, incidentIdentifier string) (int, error) {
+	var n int
+	err := tx.QueryRow(ctx, `
+		SELECT count(DISTINCT ca.id) FROM corrective_actions ca
+		JOIN entity_references r ON r.organization_id = ca.organization_id
+		WHERE ca.organization_id = $1
+		  AND ca.status != 'resolved'
+		  AND ca.deleted_at IS NULL
+		  AND (
+		    (r.source_type = 'corrective_action' AND r.source_id = ca.identifier
+		      AND r.target_type = 'incident' AND r.target_id = $2)
+		    OR
+		    (r.target_type = 'corrective_action' AND r.target_id = ca.identifier
+		      AND r.source_type = 'incident' AND r.source_id = $2)
+		  )
+	`, orgID, incidentIdentifier).Scan(&n)
+	return n, err
+}
+
+// SetIncidentLifecycleTx stamps/clears the lifecycle timestamps for a status,
+// mirroring UpdateIncidentStatusWithDetails (incidents.go) but on a transaction.
+// UpdateIncidentTx writes status but NOT the timestamps, so the unified write
+// path (#26) calls this right after it to keep contained/resolved/closed_at
+// correct on both forward transitions and reopens.
+func SetIncidentLifecycleTx(ctx context.Context, tx pgx.Tx, orgID, id int, status string) error {
+	query := `UPDATE incidents SET updated_at = now()`
+	switch status {
+	case "draft", "open", "investigating":
+		query += `, contained_at = NULL, resolved_at = NULL, closed_at = NULL`
+	case "contained":
+		query += `, contained_at = COALESCE(contained_at, now()), resolved_at = NULL, closed_at = NULL`
+	case "resolved":
+		query += `, resolved_at = COALESCE(resolved_at, now()), closed_at = NULL`
+	case "closed":
+		query += `, closed_at = COALESCE(closed_at, now())`
+	}
+	query += ` WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`
+	_, err := tx.Exec(ctx, query, id, orgID)
+	return err
+}
+
+// CountOpenTasksByCATx is the transaction-aware twin of CountOpenTasksByCA
+// (corrective_actions.go). Used by the unified CA write path (#26) so the
+// open-task guard runs identically from the HTTP handler and suggestion-apply.
+func CountOpenTasksByCATx(ctx context.Context, tx pgx.Tx, orgID int, caIdentifier string) (int, error) {
+	var n int
+	err := tx.QueryRow(ctx,
+		`SELECT count(*) FROM tasks WHERE organization_id = $1
+		   AND task_type = 'ca_followup'
+		   AND status NOT IN ('done','cancelled')
+		   AND deleted_at IS NULL
+		   AND (title LIKE $2 OR COALESCE(description,'') LIKE $2)`,
+		orgID, "%"+caIdentifier+"%").Scan(&n)
+	return n, err
+}
+
+// SetCorrectiveActionResolvedTx stamps resolved_at / resolved_by_id, mirroring
+// UpdateCorrectiveActionStatus's resolved branch (corrective_actions.go) but on a
+// transaction. UpdateCorrectiveActionTx writes status but NOT this closure
+// metadata, so the unified CA write path (#26) calls this on a →resolved
+// transition — the exact field suggestion-apply previously skipped.
+func SetCorrectiveActionResolvedTx(ctx context.Context, tx pgx.Tx, orgID, id int, actor string) error {
+	_, err := tx.Exec(ctx, `
+		UPDATE corrective_actions
+		SET resolved_at = now(), resolved_by_id = (SELECT id FROM users WHERE email = $3), updated_at = now()
+		WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+	`, id, orgID, actor)
+	return err
+}
+
 // CreateReferenceTx creates an entity reference within an existing transaction.
 // Idempotent: on conflict returns the existing row.
 func CreateReferenceTx(ctx context.Context, tx pgx.Tx, orgID int, ref *EntityReference) error {

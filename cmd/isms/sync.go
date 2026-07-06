@@ -41,10 +41,10 @@ and reset to main.`,
 				return err
 			}
 
-			// Verify we are inside a git repo
-			root, err := gitRoot()
+			// Locate the local clone: --root / ISMS_ROOT, else walk up from cwd.
+			root, err := resolveRepoRoot()
 			if err != nil {
-				return fmt.Errorf("not in a git repository — run 'isms init' first or cd into your ISMS repo")
+				return fmt.Errorf("no ISMS repo found — set ISMS_ROOT, pass --root, or cd into your clone")
 			}
 
 			repo, err := git.PlainOpen(root)

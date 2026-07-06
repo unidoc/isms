@@ -114,20 +114,25 @@ func isServerCommand(cmd *cobra.Command) bool {
 	return false
 }
 
-func getRoot() string {
+// configuredRoot returns the explicitly configured repo root — the --root flag,
+// else ISMS_ROOT — or "" if neither is set. The single place that encodes that
+// precedence, shared by resolveRepoRoot and clone so they can't drift.
+func configuredRoot() string {
 	if ismsRoot != "" {
 		return ismsRoot
 	}
-	if v := os.Getenv("ISMS_ROOT"); v != "" {
-		return v
+	return os.Getenv("ISMS_ROOT")
+}
+
+// resolveRepoRoot locates the local ISMS clone for repo commands (sync, git):
+// the configured root (--root / ISMS_ROOT), then walking up from cwd to a .git.
+// Errors when none is found so commands fail clearly instead of silently
+// operating on the current directory.
+func resolveRepoRoot() (string, error) {
+	if r := configuredRoot(); r != "" {
+		return r, nil
 	}
-	if root, err := gitRoot(); err == nil {
-		return root
-	}
-	if cwd, err := os.Getwd(); err == nil {
-		return cwd
-	}
-	return "."
+	return gitRoot()
 }
 
 func gitRoot() (string, error) {

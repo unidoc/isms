@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"isms.sh/internal/isms/client"
+	"isms.sh/internal/isms/store"
 )
 
 // mode controls the top-level layout.
@@ -24,17 +24,21 @@ const (
 )
 
 // item is a row in the document list — either a folder header or a document.
+// Document rows cache the parsed body/version so the reader is fully offline —
+// no re-read when previewing or opening.
 type item struct {
 	docID    string // empty for folder rows
 	title    string
 	path     string // folder path for folder rows
 	status   string
+	version  string
+	body     string // markdown body (frontmatter stripped), empty for folder rows
 	isFolder bool
 }
 
 // Model is the bubbletea model for the document TUI.
 type Model struct {
-	client   *client.Client
+	store    *store.Store
 	width    int
 	height   int
 	ready    bool
@@ -56,14 +60,14 @@ const (
 	helpHeight    = 1
 )
 
-// New creates a new document-focused TUI model.
-func New(c *client.Client) Model {
+// New creates a document-focused TUI model that reads the local clone at root.
+func New(root string) Model {
 	r, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(80),
 	)
 	m := Model{
-		client:   c,
+		store:    store.New(root),
 		renderer: r,
 	}
 	m.loadDocuments()
@@ -182,7 +186,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == modeList {
 			vis := m.visibleItems()
 			if m.cursor < len(vis) && !vis[m.cursor].isFolder {
-				m.openDocument(vis[m.cursor].docID)
+				m.openDocument(vis[m.cursor])
 			}
 		}
 		return m, nil
@@ -373,34 +377,22 @@ func (m Model) renderPreview() string {
 			Foreground(lipgloss.Color("240")).PaddingLeft(2).PaddingTop(1).
 			Render("Folder — select a document.")
 	}
-	doc, err := m.client.GetDocumentBody(it.docID)
-	if err != nil || doc == nil {
-		return lipgloss.NewStyle().Width(w).Height(h).
-			Foreground(lipgloss.Color("203")).PaddingLeft(2).PaddingTop(1).
-			Render("Could not load document.")
-	}
 	r, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(w-4),
 	)
-	body := stripFrontmatter(doc.Body)
-	rendered, _ := r.Render(body)
-	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(doc.Title)
+	rendered, _ := r.Render(it.body)
+	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(it.title)
 	meta := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(
-		fmt.Sprintf("%s · %s · v%s · enter to read", doc.DocumentID, doc.Status, doc.Version))
+		fmt.Sprintf("%s · %s · v%s · enter to read", it.docID, it.status, it.version))
 	combined := header + "\n" + meta + "\n\n" + rendered
 	return lipgloss.NewStyle().Width(w).Height(h).PaddingLeft(2).PaddingTop(1).Render(combined)
 }
 
-// openDocument fetches and renders a single document into the viewport.
-func (m *Model) openDocument(docID string) {
-	doc, err := m.client.GetDocumentBody(docID)
-	if err != nil || doc == nil {
-		m.loadErr = "Could not load document: " + docID
-		return
-	}
-	m.docBody = stripFrontmatter(doc.Body)
-	m.docTitle = fmt.Sprintf("%s — %s (%s, v%s)", doc.DocumentID, doc.Title, doc.Status, doc.Version)
+// openDocument renders the selected (already-loaded) document into the viewport.
+func (m *Model) openDocument(it item) {
+	m.docBody = it.body
+	m.docTitle = fmt.Sprintf("%s — %s (%s, v%s)", it.docID, it.title, it.status, it.version)
 	m.mode = modeReader
 	m.rebuildViewport()
 	m.rerender()
@@ -420,52 +412,32 @@ func (m *Model) rerender() {
 	m.viewport.SetContent(m.rendered)
 }
 
-// loadDocuments fetches the document tree and flattens it into the list.
+// loadDocuments reads the local clone: one section header per top-level folder,
+// with its documents (recursively, flattened) listed under it. Bodies are parsed
+// and cached now so preview/read need no re-read.
 func (m *Model) loadDocuments() {
-	folders, err := m.client.ListAllDocuments()
-	if err != nil {
-		m.loadErr = err.Error()
-		return
-	}
 	m.items = nil
-	for _, f := range folders {
-		m.collectFolder(f, f.Title, 0)
-	}
-}
-
-func (m *Model) collectFolder(f client.DocFolder, label string, depth int) {
-	if label == "" {
-		label = f.Name
-	}
-	all := append([]client.DocSummary{}, f.Files...)
-	for _, sub := range f.SubFolders {
-		// Inline subfolder files into the parent for a flat layout — folder
-		// headers stay only at the top level so the list reads as section
-		// dividers, not a nested tree.
-		all = append(all, sub.Files...)
-	}
-	if len(all) == 0 && len(f.SubFolders) == 0 {
-		return
-	}
-
-	if depth == 0 {
-		m.items = append(m.items, item{title: strings.ToUpper(label), isFolder: true, path: f.Name})
-	}
-
-	sort.SliceStable(all, func(i, j int) bool {
-		return all[i].DocumentID < all[j].DocumentID
-	})
-	for _, d := range all {
-		m.items = append(m.items, item{
-			docID:  d.DocumentID,
-			title:  d.Title,
-			status: d.Status,
-		})
-	}
-	if depth == 0 {
-		for _, sub := range f.SubFolders {
-			m.collectFolder(sub, sub.Title, depth+1)
+	for _, folder := range m.store.ListDocFolders() {
+		docs, err := m.store.LoadDocumentsFromDir(folder)
+		if err != nil || len(docs) == 0 {
+			continue
 		}
+		m.items = append(m.items, item{title: strings.ToUpper(folder), isFolder: true, path: folder})
+		sort.SliceStable(docs, func(i, j int) bool {
+			return docs[i].Frontmatter.DocumentID < docs[j].Frontmatter.DocumentID
+		})
+		for _, d := range docs {
+			m.items = append(m.items, item{
+				docID:   d.Frontmatter.DocumentID,
+				title:   d.Frontmatter.Title,
+				status:  d.Frontmatter.Status,
+				version: d.Frontmatter.Version,
+				body:    d.Body,
+			})
+		}
+	}
+	if len(m.items) == 0 {
+		m.loadErr = "No documents found in the local clone (looked under documents/)."
 	}
 }
 
@@ -485,18 +457,6 @@ func (m Model) visibleItems() []item {
 		}
 	}
 	return out
-}
-
-// stripFrontmatter removes a leading YAML frontmatter block from the body.
-func stripFrontmatter(s string) string {
-	if !strings.HasPrefix(s, "---\n") {
-		return s
-	}
-	end := strings.Index(s[4:], "\n---\n")
-	if end < 0 {
-		return s
-	}
-	return strings.TrimLeft(s[4+end+5:], "\n")
 }
 
 func padRight(s string, n int) string {
@@ -519,9 +479,9 @@ func truncRight(s string, n int) string {
 	return s[:n-1] + "…"
 }
 
-// Run starts the TUI.
-func Run(c *client.Client) error {
-	m := New(c)
+// Run starts the TUI against the local clone at root.
+func Run(root string) error {
+	m := New(root)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err := p.Run()
 	return err

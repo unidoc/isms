@@ -18,16 +18,16 @@ func gitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "git [-- git-args...]",
 		Short:              "Run a git command inside the ISMS repo (auth handled)",
-		Long:               "Thin passthrough to the system `git` CLI. Runs in the ISMS repo root and uses the credential helper that `isms sync` configured for the remote, so the user does not have to manage tokens.",
+		Long:               "Thin passthrough to the system `git` CLI. Runs in the ISMS repo root and uses the credential helper that `isms sync` configured for the remote, so the user does not have to manage tokens.\n\nNote: --root is NOT supported here (args are passed straight through to the system git CLI) — use ISMS_ROOT to point at a clone from another directory.",
 		DisableFlagParsing: true,
 		Args:               cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := exec.LookPath("git"); err != nil {
 				return fmt.Errorf("git CLI not found on PATH — install it")
 			}
-			root, err := gitRoot()
+			root, err := resolveRepoRoot()
 			if err != nil {
-				return fmt.Errorf("not in an ISMS git repository — run `isms clone` first")
+				return fmt.Errorf("no ISMS repo found — set ISMS_ROOT, or cd into your clone (or run `isms clone`)")
 			}
 			// Refresh credential helper for the current API token. Idempotent —
 			// catches older repos that were cloned before the helper code worked.

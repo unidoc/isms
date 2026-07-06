@@ -20,7 +20,8 @@ func cloneCmd() *cobra.Command {
 		Short: "Clone the ISMS repository from the server",
 		Long: `Clone the organization's ISMS git repository from the server.
 
-Directory defaults to {org-slug}-isms. All config comes from your env file:
+Directory defaults to the configured root (--root or ISMS_ROOT), else
+{org-slug}-isms. All config comes from your env file:
   ISMS_BASE_URL, ISMS_API_TOKEN, ISMS_ORGANIZATION`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get base URL and token from env
@@ -50,13 +51,20 @@ Directory defaults to {org-slug}-isms. All config comes from your env file:
 				return fmt.Errorf("token is not scoped to an organization")
 			}
 
-			// Target directory
+			// Target directory. Precedence: explicit --dir/arg, then the
+			// configured root (--root or ISMS_ROOT) so clone and the other local
+			// commands agree on where the repo lives, then {slug}-isms.
 			target := dir
 			if target == "" && len(args) > 0 {
 				target = args[0]
 			}
 			if target == "" {
-				target = info.OrganizationSlug + "-isms"
+				if r := configuredRoot(); r != "" {
+					target = r
+					fmt.Printf("Using configured root %s (from --root/ISMS_ROOT)\n", target)
+				} else {
+					target = info.OrganizationSlug + "-isms"
+				}
 			}
 
 			if _, err := os.Stat(target); err == nil {

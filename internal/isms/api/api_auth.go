@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	netmail "net/mail"
 	"os"
 	"strconv"
 	"strings"
@@ -59,10 +60,12 @@ func (s *Server) handleLogin(c echo.Context) error {
 	ctx := c.Request().Context()
 	clientIP := c.RealIP()
 
-	// Per-account brute-force protection (DB-backed)
-	count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
-	if count >= maxLoginAttempts {
-		return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+	// Per-account brute-force protection (DB-backed; skipped when ISMS_RATE_LIMIT=0)
+	if !rateLimitDisabled() {
+		count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
+		if count >= maxLoginAttempts {
+			return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+		}
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
@@ -470,6 +473,147 @@ func (s *Server) handleChangePassword(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "password updated"})
+}
+
+// --- Self-service: change email (verify-before-swap) ---
+
+type changeEmailRequest struct {
+	NewEmail        string `json:"new_email"`
+	CurrentPassword string `json:"current_password"`
+	OTP             string `json:"otp"`
+}
+
+// handleRequestEmailChange starts a self-service email change. The account's
+// active email is NOT touched here: we re-authenticate the caller, record the
+// new address as pending, and mail a confirmation link to that new address.
+// The swap happens only when that link is verified (handleVerifyEmailChange).
+// PUT /api/v1/auth/email
+func (s *Server) handleRequestEmailChange(c echo.Context) error {
+	var req changeEmailRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	newEmail := strings.ToLower(strings.TrimSpace(req.NewEmail))
+	if newEmail == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "new_email is required")
+	}
+	if addr, err := netmail.ParseAddress(newEmail); err != nil || addr.Address != newEmail {
+		return echo.NewHTTPError(http.StatusBadRequest, "new_email is not a valid email address")
+	}
+
+	ctx := c.Request().Context()
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+	}
+
+	if newEmail == strings.ToLower(user.Email) {
+		return echo.NewHTTPError(http.StatusBadRequest, "that is already your email address")
+	}
+
+	// Re-authenticate: password (if set) and TOTP (if enabled). A changed email
+	// is a takeover vector, so we never rely on the session alone.
+	if user.HasPassword() {
+		if req.CurrentPassword == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "current password required")
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "current password is incorrect")
+		}
+	}
+	if user.HasOTP() {
+		if req.OTP == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "authenticator code required")
+		}
+		if !verifyTOTP(*user.OTPSecret, req.OTP) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid authenticator code")
+		}
+	}
+
+	// Reject addresses already taken by another account (best-effort; the DB
+	// unique index is the real guard, re-checked at swap time).
+	if existing, _ := s.db.GetUserByEmail(ctx, newEmail); existing != nil {
+		return echo.NewHTTPError(http.StatusConflict, "that email address is already in use")
+	}
+
+	if err := s.db.SetPendingEmail(ctx, user.ID, newEmail); err != nil {
+		if err == db.ErrEmailTaken {
+			return echo.NewHTTPError(http.StatusConflict, "that email address is already in use")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "recording email change: "+err.Error())
+	}
+
+	// One live email-change token at a time — a fresh request invalidates the old.
+	if err := s.db.InvalidateEmailVerifications(ctx, user.ID, "email_change"); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "preparing verification")
+	}
+	raw := make([]byte, 32)
+	rand.Read(raw)
+	token := hex.EncodeToString(raw)
+	hash := sha256.Sum256([]byte(token))
+	if err := s.db.CreateEmailChangeToken(ctx, user.ID, hex.EncodeToString(hash[:])); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
+	}
+
+	if s.mailer == nil || !s.mailer.Enabled() {
+		log.Printf("change-email: mailer not configured — user %d requested change to %s but no email sent", user.ID, newEmail)
+		return echo.NewHTTPError(http.StatusInternalServerError,
+			"email delivery is not configured on this server — contact the administrator")
+	}
+	m := s.orgMail(ctx, getOrgID(c))
+	if err := s.mailer.SendEmailChangeVerificationBranded(newEmail, user.Name, m.PublicURL, token, m.Branding); err != nil {
+		log.Printf("change-email: SendEmailChangeVerification to %s failed: %v", newEmail, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to send confirmation email: "+err.Error())
+	}
+	log.Printf("change-email: confirmation sent to %s for user %d", newEmail, user.ID)
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"status":  "verification_sent",
+		"message": "Check your new inbox to confirm the change. Your current email stays active until you do.",
+	})
+}
+
+// handleVerifyEmailChange completes an email change: the link mailed to the new
+// address swaps it in. Unauthenticated — the token is the proof, and the caller
+// may be on a device without an active session.
+// POST /api/v1/auth/verify-email-change
+func (s *Server) handleVerifyEmailChange(c echo.Context) error {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := c.Bind(&req); err != nil || req.Token == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "token is required")
+	}
+
+	ctx := c.Request().Context()
+	hash := sha256.Sum256([]byte(req.Token))
+	verification, err := s.db.LookupEmailVerification(ctx, hex.EncodeToString(hash[:]))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid or expired confirmation link")
+	}
+	if verification.Purpose != "email_change" {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid or expired confirmation link")
+	}
+
+	newEmail, err := s.db.SwapPendingEmail(ctx, verification.UserID)
+	if err != nil {
+		if err == db.ErrEmailTaken {
+			return echo.NewHTTPError(http.StatusConflict,
+				"that email address was claimed by another account — the change was not applied")
+		}
+		return echo.NewHTTPError(http.StatusBadRequest, "no pending email change for this link")
+	}
+
+	s.db.UseEmailVerification(ctx, verification.ID)
+	log.Printf("change-email: user %d email changed to %s", verification.UserID, newEmail)
+
+	// Existing sessions carry the old email as subject and will fail on refresh —
+	// the user signs in again with the new address. We don't mint a token here.
+	return c.JSON(http.StatusOK, map[string]string{
+		"status": "email_changed",
+		"email":  newEmail,
+	})
 }
 
 // --- Self-service: update profile name ---

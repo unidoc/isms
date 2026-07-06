@@ -44,6 +44,17 @@ func (d *DB) CreatePasswordResetToken(ctx context.Context, userID int, tokenHash
 	return err
 }
 
+// CreateEmailChangeToken stores a new email-change verification token (2h expiry).
+// The token is delivered to the *new* address; verifying it swaps the account's
+// email to the pending address (verify-before-swap).
+func (d *DB) CreateEmailChangeToken(ctx context.Context, userID int, tokenHash string) error {
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO email_verifications (user_id, token_hash, purpose, expires_at)
+		VALUES ($1, $2, 'email_change', now() + interval '2 hours')
+	`, userID, tokenHash)
+	return err
+}
+
 // LookupEmailVerification finds a valid (unused, not expired) verification token.
 func (d *DB) LookupEmailVerification(ctx context.Context, tokenHash string) (*EmailVerification, error) {
 	var v EmailVerification

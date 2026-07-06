@@ -143,6 +143,70 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /auth/email:
+    put:
+      tags: [Auth]
+      summary: Request an email change (verify-before-swap)
+      description: >
+        Re-authenticates the caller (current password and, if enabled, an
+        authenticator code) and records the new address as pending. A
+        confirmation link is mailed to the new address; the account's email is
+        swapped only when that link is verified. The active email is unchanged
+        until then.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_email]
+              properties:
+                new_email: { type: string, format: email }
+                current_password: { type: string }
+                otp: { type: string }
+      responses:
+        '200':
+          description: Confirmation email sent to the new address
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The target email is already in use
+
+  /auth/verify-email-change:
+    post:
+      tags: [Auth]
+      summary: Confirm an email change
+      description: >
+        Completes an email change using the token mailed to the new address.
+        Unauthenticated — the token is the proof. Existing sessions carry the
+        old email and must sign in again.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          description: Email changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  email: { type: string, format: email }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: The address was claimed by another account before confirmation
+
   /auth/refresh:
     post:
       tags: [Auth]
@@ -3165,6 +3229,7 @@ components:
         name: { type: string }
         otp_verified: { type: boolean }
         email_verified: { type: boolean }
+        pending_email: { type: string, format: email, nullable: true, description: "Address awaiting change confirmation, null if none (#128)" }
         active: { type: boolean }
         created_at: { type: string, format: date-time }
         last_seen: { type: string, format: date-time }
@@ -3499,6 +3564,7 @@ components:
       type: object
       properties:
         id: { type: integer }
+        type: { type: string, enum: [change, access_request], default: change, description: "Record kind — a change, or an access request captured as a change record (#128)" }
         title: { type: string }
         description: { type: string }
         justification: { type: string }

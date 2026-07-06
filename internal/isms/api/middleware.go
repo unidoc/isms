@@ -57,6 +57,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			if path == "/healthz" ||
 				path == "/docs" || path == "/api/openapi.yaml" ||
 				path == "/api/v1/auth/login" || path == "/api/v1/auth/signup" || path == "/api/v1/auth/verify-email" ||
+				path == "/api/v1/auth/verify-email-change" ||
 				path == "/api/v1/auth/forgot-password" || path == "/api/v1/auth/cf-session" ||
 				path == "/api/v1/auth/passkey/login/begin" || path == "/api/v1/auth/passkey/login/complete" ||
 				path == "/api/v1/auth/oidc/providers" || path == "/api/v1/auth/oidc/authorize" || path == "/api/v1/auth/oidc/callback" {

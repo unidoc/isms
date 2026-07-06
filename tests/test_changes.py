@@ -117,6 +117,39 @@ class TestChangesStatusFlow:
         assert r.json()["status"] == "rejected"
 
 
+class TestChangeType:
+    """#128: change requests carry a type — 'change' (default) or 'access_request'."""
+
+    def test_default_type_is_change(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+            "title": "Type default test",
+            "description": "No type supplied.",
+        })
+        assert r.status_code == 201, r.text
+        assert r.json()["type"] == "change"
+
+    def test_create_access_request(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+            "title": "Grant finance read access",
+            "description": "Access request captured as a change record.",
+            "type": "access_request",
+        })
+        assert r.status_code == 201, r.text
+        cid = r.json()["id"]
+        assert r.json()["type"] == "access_request"
+        # Type persists on read.
+        r = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers)
+        assert r.json()["type"] == "access_request"
+
+    def test_invalid_type_rejected(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+            "title": "Bad type",
+            "description": "Should be rejected.",
+            "type": "not_a_type",
+        })
+        assert r.status_code == 400, r.text
+
+
 class TestChangesRBAC:
     """Reader cannot create or change status."""
 

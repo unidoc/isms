@@ -5,6 +5,7 @@ import Login from './views/Login.vue'
 import Signup from './views/Signup.vue'
 import ForgotPassword from './views/ForgotPassword.vue'
 import VerifyEmail from './views/VerifyEmail.vue'
+import VerifyEmailChange from './views/VerifyEmailChange.vue'
 import Landing from './views/Landing.vue'
 import { isSubdomainMode, orgFromSubdomain } from './composables/useCurrentOrg'
 
@@ -87,6 +88,7 @@ const routes = [
   { path: '/signup', component: Signup, meta: { public: true } },
   { path: '/forgot-password', component: ForgotPassword, meta: { public: true } },
   { path: '/verify-email', component: VerifyEmail, meta: { public: true } },
+  { path: '/verify-email-change', component: VerifyEmailChange, meta: { public: true } },
 
   // Org picker — also always top level
   { path: '/organizations', component: Organizations },

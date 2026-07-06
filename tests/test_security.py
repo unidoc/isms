@@ -1,6 +1,8 @@
 """Security-specific tests."""
+import os
 import uuid
 
+import pytest
 import requests
 
 
@@ -76,8 +78,18 @@ def test_xss_in_risk_title(api_url, admin_headers):
         assert len(found) > 0  # stored safely, tags intact as text
 
 
+@pytest.mark.skipif(
+    os.environ.get("ISMS_RATE_LIMIT") == "0",
+    reason="rate limiting disabled on the test server (ISMS_RATE_LIMIT=0); "
+    "limiter logic is covered by internal/isms/api/rate_limit_test.go",
+)
 def test_brute_force_protection(api_url):
-    """Multiple failed logins should be rate limited."""
+    """Multiple failed logins should be rate limited.
+
+    Skipped when ISMS_RATE_LIMIT=0 (the test/dev default) — you can't
+    integration-test a limiter that's turned off, and enabling it here would trip
+    the per-IP cap during the full suite. The switch + limits are unit-tested.
+    """
     for i in range(6):
         requests.post(f"{api_url}/auth/login", json={
             "email": "bruteforce@test.local",

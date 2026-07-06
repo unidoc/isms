@@ -87,6 +87,7 @@ func changeShowCmd() *cobra.Command {
 			}
 			fmt.Printf("%s  %s\n", ch.Identifier, ch.Title)
 			fmt.Println(repeat("-", 60))
+			fmt.Printf("Type:          %s\n", ch.Type)
 			fmt.Printf("Status:        %s\n", ch.Status)
 			fmt.Printf("Priority:      %s\n", ch.Priority)
 			fmt.Printf("Risk level:    %s\n", ch.RiskLevel)
@@ -136,6 +137,7 @@ func changeCreateCmd() *cobra.Command {
 	// No --status: a change is born "proposed" and transitioned via
 	// `change status`, so approved_by / the follow-up task / the changelog
 	// transition are never skipped.
+	cmd.Flags().StringVar(&cr.Type, "type", "", "Type ("+strings.Join(db.ChangeTypes, ", ")+"; default change)")
 	cmd.Flags().StringVar(&cr.Title, "title", "", "Change title (required)")
 	cmd.Flags().StringVar(&cr.Description, "desc", "", "What is changing and why")
 	cmd.Flags().StringVar(&cr.Justification, "justification", "", "Business justification")

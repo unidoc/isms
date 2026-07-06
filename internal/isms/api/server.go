@@ -464,6 +464,7 @@ func (s *Server) routes() {
 	api.GET("/auth/cf-session", s.handleCFSession, authLimit) // Cloudflare Access → web session (#98)
 	api.POST("/auth/signup", s.handleSignup, authLimit)
 	api.POST("/auth/verify-email", s.handleVerifyEmail, authLimit)
+	api.POST("/auth/verify-email-change", s.handleVerifyEmailChange, authLimit) // #128 confirm new email (public: token is proof)
 	api.POST("/auth/forgot-password", s.handleForgotPassword, authLimit)
 	api.POST("/auth/passkey/login/begin", s.handlePasskeyLoginBegin, authLimit)
 	api.POST("/auth/passkey/login/complete", s.handlePasskeyLoginComplete, authLimit)
@@ -479,6 +480,7 @@ func (s *Server) routes() {
 
 	// Self-service (authenticated)
 	api.PUT("/auth/password", s.handleChangePassword)
+	api.PUT("/auth/email", s.handleRequestEmailChange) // #128 self-service email change (re-auth + verify)
 	api.PUT("/auth/profile", s.handleUpdateProfile)
 	api.POST("/auth/otp/setup", s.handleOTPSetup)
 	api.POST("/auth/otp/verify", s.handleOTPVerify)

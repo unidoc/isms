@@ -263,9 +263,9 @@ func (d *DB) CleanOldLoginAttempts(ctx context.Context) {
 func (d *DB) GetUserByID(ctx context.Context, id int) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, is_agent, active, created_at, last_seen
+		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
 		FROM users WHERE id = $1
-	`, id).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+	`, id).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}

@@ -115,6 +115,10 @@ jobs:
 
       - name: Start server
         run: |
+          # Sync migrations into the embed dir at compile time (never committed —
+          # cmd/isms/migrations/ is a build artifact, gitignored). Mirrors
+          # release.yml and just build-go.
+          mkdir -p cmd/isms/migrations && cp -f migrations/*.sql cmd/isms/migrations/
           go run ./cmd/isms server migrate
           nohup go run ./cmd/isms server serve --addr :9090 > server.log 2>&1 &
           for i in $(seq 1 60); do

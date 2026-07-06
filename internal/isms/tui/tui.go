@@ -5,6 +5,7 @@ package tui
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -32,7 +33,7 @@ type item struct {
 	path     string // folder path for folder rows
 	status   string
 	version  string
-	body     string // markdown body (frontmatter stripped), empty for folder rows
+	body     string // markdown body (frontmatter already parsed out by store), empty for folder rows
 	isFolder bool
 }
 
@@ -417,12 +418,17 @@ func (m *Model) rerender() {
 // and cached now so preview/read need no re-read.
 func (m *Model) loadDocuments() {
 	m.items = nil
+	var loadErrs []string
 	for _, folder := range m.store.ListDocFolders() {
 		docs, err := m.store.LoadDocumentsFromDir(folder)
-		if err != nil || len(docs) == 0 {
+		if err != nil {
+			loadErrs = append(loadErrs, fmt.Sprintf("%s: %v", folder, err))
 			continue
 		}
-		m.items = append(m.items, item{title: strings.ToUpper(folder), isFolder: true, path: folder})
+		if len(docs) == 0 {
+			continue
+		}
+		m.items = append(m.items, item{title: strings.ToUpper(m.folderLabel(folder)), isFolder: true, path: folder})
 		sort.SliceStable(docs, func(i, j int) bool {
 			return docs[i].Frontmatter.DocumentID < docs[j].Frontmatter.DocumentID
 		})
@@ -436,9 +442,22 @@ func (m *Model) loadDocuments() {
 			})
 		}
 	}
-	if len(m.items) == 0 {
+	if len(loadErrs) > 0 {
+		m.loadErr = "Failed to load: " + strings.Join(loadErrs, "; ")
+	} else if len(m.items) == 0 {
 		m.loadErr = "No documents found in the local clone (looked under documents/)."
 	}
+}
+
+// folderLabel returns the folder's display name — the content of a .title file
+// under it, the same convention the API-backed folder tree honored via
+// readDirTitle — falling back to the raw folder name when no .title is set.
+func (m *Model) folderLabel(folder string) string {
+	data, err := m.store.ReadFile(filepath.Join(m.store.DocsRoot(), folder, ".title"))
+	if err != nil || len(data) == 0 {
+		return folder
+	}
+	return strings.TrimSpace(string(data))
 }
 
 func (m Model) visibleItems() []item {

@@ -69,7 +69,7 @@ func (s *Server) handleCreateRiskReading(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "risk",
 		EntityID:   riskID,
 		Action:     "reading",
@@ -212,7 +212,7 @@ func (s *Server) handleCreateAssetReading(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "asset",
 		EntityID:   assetID,
 		Action:     "reading",
@@ -336,7 +336,7 @@ func (s *Server) handleCreateLegalReading(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "legal_requirement",
 		EntityID:   legalID,
 		Action:     "reading",
@@ -439,7 +439,7 @@ func (s *Server) handleCreateSupplierReading(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "supplier",
 		EntityID:   supplierID,
 		Action:     "reading",
@@ -539,7 +539,7 @@ func (s *Server) handleCreateSystemReading(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "system",
 		EntityID:   systemID,
 		Action:     "reading",

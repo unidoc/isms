@@ -1857,7 +1857,7 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "asset", a.Identifier, actor, req.References)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "asset",
 		EntityID:   a.ID,
 		Action:     "create",
@@ -1885,7 +1885,7 @@ func (s *Server) handleDeleteAsset(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 	if old != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "asset",
 			EntityID:   old.ID,
 			Action:     "delete",
@@ -2014,7 +2014,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "system", sys.Identifier, actor, req.References)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "system",
 		EntityID:   sys.ID,
 		Action:     "create",
@@ -2162,7 +2162,7 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "risk", r.Identifier, actor, req.References)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "risk",
 		EntityID:   r.ID,
 		Action:     "create",
@@ -2306,7 +2306,7 @@ func (s *Server) handleDeleteRisk(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 	if old != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "risk",
 			EntityID:   old.ID,
 			Action:     "delete",
@@ -2428,7 +2428,7 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	}
 	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "supplier", sup.Identifier, actor, req.References)
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "supplier",
 		EntityID:   sup.ID,
 		Action:     "create",
@@ -2522,7 +2522,7 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("asset", id, actor, reason, old.ToChangeMap(), after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 		s.searchUpsert(orgID, "asset", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Description)
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -2689,7 +2689,7 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("risk", id, actor, reason, old.ToChangeMap(), after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 		s.searchUpsert(orgID, "risk", after.Identifier, after.Title, after.Identifier+" "+after.Title+" "+after.Description+" "+after.Category)
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -2804,7 +2804,7 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("system", id, actor, reason, old.ToChangeMap(), after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 		s.searchUpsert(orgID, "system", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Description)
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -2832,7 +2832,7 @@ func (s *Server) handleDeleteSystem(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 	if old != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "system",
 			EntityID:   old.ID,
 			Action:     "delete",
@@ -2888,7 +2888,7 @@ func (s *Server) handleCreateAccessReview(c echo.Context) error {
 	if err := s.db.CreateAccessReview(ctx, orgID, &ar); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "access_review",
 		EntityID:   ar.ID,
 		Action:     "create",
@@ -3007,7 +3007,7 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("supplier", id, actor, reason, old.ToChangeMap(), after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 		s.searchUpsert(orgID, "supplier", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Notes)
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -3035,7 +3035,7 @@ func (s *Server) handleDeleteSupplier(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 	if old != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "supplier",
 			EntityID:   old.ID,
 			Action:     "delete",

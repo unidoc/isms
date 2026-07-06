@@ -144,7 +144,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		ca = *out
 	}
 
-	_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "corrective_action",
 		EntityID:   int64(ca.ID),
 		Action:     "create",
@@ -293,7 +293,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		reason := c.QueryParam("reason")
 		changes := db.DiffFields("corrective_action", int64(id), actor, reason, oldMap, after.ToChangeMap())
 		if len(changes) > 0 {
-			_ = s.db.LogChanges(ctx, orgID, changes)
+			s.logChanges(ctx, orgID, changes)
 		}
 	}
 
@@ -391,7 +391,7 @@ func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {
 	}
 
 	if old != nil {
-		_ = s.db.LogChange(ctx, orgID, &db.ChangelogEntry{
+		s.logChange(ctx, orgID, &db.ChangelogEntry{
 			EntityType: "corrective_action",
 			EntityID:   int64(old.ID),
 			Action:     "delete",

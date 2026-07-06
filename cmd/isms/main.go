@@ -61,6 +61,7 @@ func main() {
 		auditCmd(),
 		incidentCmd(),
 		correctiveCmd(),
+		changeCmd(),
 		legalCmd(),
 		programCmd(),
 		objectiveCmd(),

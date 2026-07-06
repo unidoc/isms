@@ -569,17 +569,26 @@ func (c *Client) GetTask(id int) (*db.Task, error) {
 
 // --- Changes ---
 
-func (c *Client) ListChanges(status string) ([]db.ChangeRequest, error) {
-	path := "/v1/changes"
+// ListChanges returns the change requests (up to a high limit) and the server's
+// total count, so callers can report truncation. The endpoint is paginated
+// (default 50) and wraps results in {data,total,...}.
+func (c *Client) ListChanges(status string) ([]db.ChangeRequest, int, error) {
+	path := "/v1/changes?limit=1000"
 	if status != "" {
-		path += "?status=" + status
+		path += "&status=" + status
 	}
 	data, err := c.get(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	var result []db.ChangeRequest
-	return result, unwrapList(data, &result)
+	var wrapper struct {
+		Data  []db.ChangeRequest `json:"data"`
+		Total int                `json:"total"`
+	}
+	if err := json.Unmarshal(data, &wrapper); err != nil {
+		return nil, 0, err
+	}
+	return wrapper.Data, wrapper.Total, nil
 }
 
 func (c *Client) GetChange(id int) (*db.ChangeRequest, error) {
@@ -589,6 +598,47 @@ func (c *Client) GetChange(id int) (*db.ChangeRequest, error) {
 	}
 	var result db.ChangeRequest
 	return &result, json.Unmarshal(data, &result)
+}
+
+// CreateChange posts a change request. Passing *db.ChangeRequest (the file's
+// convention) lets the server bind everything it accepts — incl. planned_at —
+// and apply its own defaults (status defaults to "proposed"; RequestedBy is
+// server-stamped from the token).
+func (c *Client) CreateChange(cr *db.ChangeRequest) (*db.ChangeRequest, error) {
+	data, err := c.post("/v1/changes", cr)
+	if err != nil {
+		return nil, err
+	}
+	var result db.ChangeRequest
+	return &result, json.Unmarshal(data, &result)
+}
+
+// UpdateChange PUTs only the changed fields. The server's update contract is
+// nil-means-leave-alone, so callers build the map from cmd.Flags().Changed to
+// avoid clobbering unspecified fields with zero values.
+func (c *Client) UpdateChange(id int, fields map[string]interface{}) (*db.ChangeRequest, error) {
+	data, err := c.put("/v1/changes/"+strconv.Itoa(id), fields)
+	if err != nil {
+		return nil, err
+	}
+	var result db.ChangeRequest
+	return &result, json.Unmarshal(data, &result)
+}
+
+// UpdateChangeStatus transitions status. The endpoint returns only {"status"},
+// not a full entity, so this returns the new status string.
+func (c *Client) UpdateChangeStatus(id int, status string) (string, error) {
+	data, err := c.put("/v1/changes/"+strconv.Itoa(id)+"/status", map[string]string{"status": status})
+	if err != nil {
+		return "", err
+	}
+	var result struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return "", err
+	}
+	return result.Status, nil
 }
 
 // --- Document Comments ---

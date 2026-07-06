@@ -1,11 +1,14 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -274,6 +277,7 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
 	}
+	prevStatus := existing.Status
 
 	var req incidentUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -321,30 +325,11 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		}
 	}
 
-	// Route status changes through the dedicated transition function so that
-	// contained_at / resolved_at / closed_at are cleared correctly on reverse transitions.
-	if req.Status != nil && *req.Status != existing.Status {
-		// Changing status is a manager/admin action. The dedicated status
-		// endpoint already enforces this; the general edit endpoint must apply
-		// the same rule so it can't be used as an RBAC bypass (#24).
-		if err := requireRole(c, "admin", "manager"); err != nil {
-			return err
-		}
-		// Same rule as the dedicated status endpoint: cannot resolve/close an
-		// incident with open corrective actions still linked.
-		if *req.Status == "closed" || *req.Status == "resolved" {
-			if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, existing.Identifier); err == nil && n > 0 {
-				return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", statusVerb(*req.Status), n))
-			}
-		}
-		if err := s.db.UpdateIncidentStatus(ctx, orgID, id, *req.Status); err != nil {
-			return pgxHTTPError(err)
-		}
-		// Re-load so subsequent UpdateIncident writes against the new state.
-		existing, err = s.db.GetIncident(ctx, orgID, id)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusNotFound, "incident not found")
-		}
+	// Status transitions flow through the unified write path below (open-CA guard
+	// + lifecycle timestamps) — the same enforced function suggestion-apply uses
+	// (#26). Top-level requireRole(admin,manager) already gates status changes.
+	if req.Status != nil {
+		existing.Status = *req.Status
 	}
 
 	// Apply pointer-based partial update onto existing record.
@@ -405,7 +390,15 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 
 	oldMap := existing.ToChangeMap()
 	existing.ID = id
-	if err := s.db.UpdateIncident(ctx, orgID, existing); err != nil {
+	// Single enforced incident write path (#26): open-CA guard on resolve/close
+	// + lifecycle timestamps, shared verbatim with suggestion-apply.
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		return enforceIncidentWriteTx(ctx, tx, orgID, existing, prevStatus)
+	}); err != nil {
+		var oce openCAsLinkedError
+		if errors.As(err, &oce) {
+			return echo.NewHTTPError(http.StatusConflict, oce.Error())
+		}
 		return pgxHTTPError(err)
 	}
 

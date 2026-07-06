@@ -765,6 +765,7 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	}
 
 	old := inc.ToChangeMap()
+	prevStatus := inc.Status
 
 	if v, ok := payload.Fields["severity"]; ok {
 		if sv, ok := v.(string); ok {
@@ -802,7 +803,9 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		}
 	}
 
-	if err := db.UpdateIncidentTx(ctx, tx, orgID, inc); err != nil {
+	// Unified write path (#26): same open-CA guard + lifecycle timestamps the
+	// HTTP handler enforces — previously suggestion-apply bypassed both.
+	if err := enforceIncidentWriteTx(ctx, tx, orgID, inc, prevStatus); err != nil {
 		return "", err
 	}
 
@@ -1123,16 +1126,12 @@ func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		Assignee: payload.Assignee, CreatedBy: actor,
 		Notes: payload.Notes, RootCause: payload.RootCause,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if ca.Status == "" {
-		ca.Status = "assessment"
+	if ca.Assignee == "" {
+		ca.Assignee = actor
 	}
-	if ca.Severity == "" {
-		ca.Severity = "minor_nc"
-	}
-	if ca.Source == "" {
-		ca.Source = "internal_audit"
-	}
+	// Same server-side defaults as the HTTP create handler (#26) — previously
+	// suggestion-apply seeded a different starting state.
+	applyCorrectiveActionDefaults(&ca)
 	if err := db.CreateCorrectiveActionTx(ctx, tx, orgID, &ca); err != nil {
 		return "", err
 	}
@@ -1152,6 +1151,7 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		return "", fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
 	}
 	old := ca.ToChangeMap()
+	prevStatus := ca.Status
 	if v, ok := payload.Fields["assignee"]; ok {
 		if sv, ok := v.(string); ok {
 			ca.Assignee = sv
@@ -1172,7 +1172,9 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 			ca.Notes = sv
 		}
 	}
-	if err := db.UpdateCorrectiveActionTx(ctx, tx, orgID, ca); err != nil {
+	// Unified write path (#26): same open-task guard + resolved_at/by the HTTP
+	// handler enforces — previously suggestion-apply bypassed both.
+	if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, ca, prevStatus, actor); err != nil {
 		return "", err
 	}
 	diffs := db.DiffFields("corrective_action", int64(ca.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, ca.ToChangeMap())

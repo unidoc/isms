@@ -731,7 +731,7 @@ async function selectItem(item) {
 async function openItemFromRoute(id) {
   const numId = parseInt(id)
   // Try current page first; otherwise fetch the item directly so deep links work across pages
-  let item = items.value.find(i => i.id === numId)
+  let item = items.value.find(i => i.id === numId || i.identifier === id)
   if (!item) {
     try { item = await api.fetchJSON(`/api/v1/legal/${numId}`) } catch { return }
   }

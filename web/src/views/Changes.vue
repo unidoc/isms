@@ -714,7 +714,7 @@ async function saveSection() {
 
 async function openChangeFromRoute(id) {
   const numId = parseInt(id)
-  let cr = changes.value.find(c => c.id === numId)
+  let cr = changes.value.find(c => c.id === numId || c.identifier === id)
   if (!cr) {
     try { cr = await api.fetchJSON(`/api/v1/changes/${numId}`) } catch { return }
   }

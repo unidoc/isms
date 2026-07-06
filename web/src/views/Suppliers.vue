@@ -756,7 +756,7 @@ async function selectItem(item) {
 
 async function openItemFromRoute(id) {
   const numId = parseInt(id)
-  let item = suppliers.value.find(s => s.id === numId)
+  let item = suppliers.value.find(s => s.id === numId || s.identifier === id)
   if (!item) {
     try { item = await api.fetchJSON(`/api/v1/suppliers/${numId}`) } catch { return }
   }

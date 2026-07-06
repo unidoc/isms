@@ -64,6 +64,29 @@ def test_unknown_handle_and_self_mention_produce_no_notification(api_url, admin_
         "author self-mention must not create a notification"
 
 
+def test_entity_comment_mention_notifies_the_member(api_url, admin_headers, reader_headers):
+    """#4 slice 2: @-mentioning in an entity comment (any register — here a change
+    request) notifies the member, linking to the entity.
+
+    The link uses the entity IDENTIFIER (what CommentsPanel sends as entity_id,
+    e.g. /changes/CR-1). This is deliberate and load-bearing: the register views'
+    openXFromRoute resolve the route param by numeric id OR identifier, so an
+    identifier link opens the entity. Don't "fix" this to a numeric link without
+    the numeric id in hand — the backend only has the identifier here."""
+    suffix = uuid.uuid4().hex[:8]
+    entity_id = f"chg-{suffix}"
+    handle = READER_EMAIL.split("@")[0]
+    c = requests.post(f"{api_url}/entity-comments", headers=admin_headers, json={
+        "entity_type": "change_request", "entity_id": entity_id,
+        "body": f"@{handle} can you own the rollback step?",
+    })
+    assert c.status_code in (200, 201), c.text
+
+    items = _notifications(api_url, reader_headers)
+    assert any("mentioned you in a comment" in (n.get("title", "")) and f"/changes/{entity_id}" in (n.get("link") or "")
+               for n in items), "reader should have an entity-comment mention notification linking to the change"
+
+
 def test_scoped_package_token_is_not_a_mention(api_url, admin_headers, reader_headers):
     """`@handle/...` (e.g. @babel/core) is a package path, not a mention (#4 review)."""
     suffix = uuid.uuid4().hex[:8]

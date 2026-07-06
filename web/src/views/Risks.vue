@@ -1017,7 +1017,7 @@ async function selectRisk(risk) {
 
 async function openRiskFromRoute(id) {
   const numId = parseInt(id)
-  let risk = risks.value.find(r => r.id === numId)
+  let risk = risks.value.find(r => r.id === numId || r.identifier === id)
   if (!risk) {
     try { risk = await api.fetchJSON(`/api/v1/risks/${numId}`) } catch { return }
   }

@@ -66,6 +66,12 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 		Detail: fmt.Sprintf("Comment on %s %s: %s", req.EntityType, req.EntityID, truncateStr(req.Body, 80)),
 	})
 
+	// Notify anyone @-mentioned in the comment (#4) — works on any entity type,
+	// so change-request comments (and every other register) pull members in.
+	s.notifyMentions(ctx, orgID, actor, req.Body,
+		fmt.Sprintf("%s mentioned you in a comment", actor),
+		entityLink(req.EntityType, req.EntityID))
+
 	return c.JSON(http.StatusCreated, comment)
 }
 

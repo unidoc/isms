@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"html"
 	"io/fs"
 	"log"
 	"net"
@@ -833,6 +834,32 @@ func (s *Server) routes() {
 	}
 	if spaFS != nil {
 		fileServer := http.FileServerFS(spaFS)
+		// serveIndex serves index.html with the deployment's apex host injected
+		// as window.__ISMS_APEX__. The SPA classifies its own hostname (apex vs
+		// tenant subdomain) at module-import time — before /api/v1/config is
+		// fetched — so it needs the apex synchronously. Without this a self-hosted
+		// apex like isms.stsplatform.com is misread as tenant "isms" on boot.
+		// See web/src/composables/useCurrentOrg.js.
+		serveIndex := func(w http.ResponseWriter) {
+			data, err := fs.ReadFile(spaFS, "index.html")
+			if err != nil {
+				http.Error(w, "index.html not found", http.StatusInternalServerError)
+				return
+			}
+			if s.apexHost != "" {
+				// Inject as a <meta> tag, NOT an inline <script>: the CSP set
+				// below (script-src 'self') blocks inline scripts, so a script
+				// tag would be silently dropped in production. A meta tag carries
+				// the value without executing JS, so CSP never touches it.
+				// html.EscapeString (not %q, which is Go string-escaping) so a
+				// stray quote in the apex can't break out of the attribute.
+				inject := fmt.Sprintf(`<meta name="isms-apex" content="%s"></head>`, html.EscapeString(s.apexHost))
+				data = []byte(strings.Replace(string(data), "</head>", inject, 1))
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Write(data)
+		}
 		s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Go vanity import: go get isms.sh@latest
 			if r.URL.Query().Get("go-get") == "1" {
@@ -844,15 +871,16 @@ func (s *Server) routes() {
 				return
 			}
 			path := strings.TrimPrefix(r.URL.Path, "/")
-			if path == "" {
-				path = "index.html"
+			if path == "" || path == "index.html" {
+				serveIndex(w)
+				return
 			}
 			if f, err := fs.Stat(spaFS, path); err == nil && !f.IsDir() {
 				fileServer.ServeHTTP(w, r)
 				return
 			}
-			r.URL.Path = "/"
-			fileServer.ServeHTTP(w, r)
+			// SPA client-side route — serve the injected index.html.
+			serveIndex(w)
 		})))
 	}
 }
@@ -865,7 +893,18 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 
 	// Org context comes strictly from URL (subdomain, custom domain, or path)
 	// via OrgResolverMiddleware which sets it on the request. No query-param
-	// fallback, no single-org auto-detect. Apex domain = no org = neutral config.
+	// fallback. Apex domain = no org = neutral config, EXCEPT:
+	//
+	// Single-org auto-detect: a self-hosted deployment with exactly one org has
+	// no meaningful "pick an org" step — the apex IS that org. Resolve to it so
+	// the login page auto-selects it (branding + org scope) instead of prompting
+	// for an org slug. Multi-tenant apexes (many orgs) are unaffected: the count
+	// is != 1, so orgID stays 0 and the apex serves neutral org-discovery.
+	if orgID == 0 {
+		if orgs, err := s.db.ListOrganizations(ctx); err == nil && len(orgs) == 1 {
+			orgID = orgs[0].ID
+		}
+	}
 
 	// All config comes from PostgreSQL — isms.yaml is not read at runtime.
 	type configResponse struct {

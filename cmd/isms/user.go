@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"text/tabwriter"
 
@@ -17,7 +18,63 @@ func userCmd() *cobra.Command {
 		Short: "Manage users",
 	}
 
-	cmd.AddCommand(userCreateCmd(), userListCmd(), userSetPasswordCmd(), userVerifyCmd())
+	cmd.AddCommand(userCreateCmd(), userListCmd(), userSetPasswordCmd(), userVerifyCmd(), userTestAuthCmd(), userResetOTPCmd())
+	return cmd
+}
+
+// userResetOTPCmd clears a user's OTP so they can log in and re-enroll. The
+// primary use case: an OTP secret encrypted with a different ISMS_SECRET (e.g. a
+// DB copied to a new install with its own secret) can no longer be decrypted, so
+// GetUserByEmail errors and login fails with "invalid credentials" and no OTP
+// prompt. Clearing OTP lets the user in with just their password to re-enroll.
+func userResetOTPCmd() *cobra.Command {
+	var email string
+	var yes bool
+	cmd := &cobra.Command{
+		Use:   "reset-otp",
+		Short: "Remove a user's OTP (2FA) so they can log in and re-enroll",
+		Long: `Clears otp_secret and otp_verified for the user.
+
+Use this when the OTP secret can no longer be decrypted — typically after a DB
+was copied to a new install that has its own ISMS_SECRET. The symptom is login
+failing with "invalid credentials" and NO OTP prompt (GetUserByEmail errors on
+the undecryptable OTP secret before the password check completes). After reset,
+the user logs in with just their password and can re-enroll 2FA, which is then
+encrypted with this install's ISMS_SECRET.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if email == "" {
+				return fmt.Errorf("--email is required")
+			}
+			d, err := connectDB()
+			if err != nil {
+				return err
+			}
+			defer d.Close()
+
+			ctx := cmd.Context()
+			user, err := d.GetUserByEmail(ctx, email)
+			if err != nil || user == nil {
+				return fmt.Errorf("user %q not found", email)
+			}
+			// This disables a security control (2FA), so confirm unless --yes —
+			// cheap insurance against a fat-fingered --email.
+			if !yes {
+				fmt.Printf("Clear OTP (2FA) for %s? [y/N] ", user.Email)
+				var resp string
+				fmt.Scanln(&resp)
+				if resp != "y" && resp != "Y" {
+					return fmt.Errorf("aborted")
+				}
+			}
+			if err := d.ClearOTP(ctx, user.ID); err != nil {
+				return fmt.Errorf("clearing OTP: %w", err)
+			}
+			fmt.Printf("OTP cleared for %s. Log in with just the password, then re-enroll 2FA.\n", user.Email)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&email, "email", "", "User email (required)")
+	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 	return cmd
 }
 
@@ -226,5 +283,121 @@ func userVerifyCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&email, "email", "", "User email (required)")
+	return cmd
+}
+
+// userTestAuthCmd runs the exact credential checks that POST /auth/login
+// performs — read-only, against this box's own DATABASE_URL. It isolates a
+// login failure as either bad data (wrong DB / stale hash / inactive account)
+// or transport (something altering the request before it reaches the API).
+func userTestAuthCmd() *cobra.Command {
+	var email, password string
+
+	cmd := &cobra.Command{
+		Use:   "test-auth",
+		Short: "Test whether an email + password would authenticate (read-only, mirrors login)",
+		Long: `Runs the same credential checks as POST /auth/login — user lookup, active
+check, password-set check, and bcrypt comparison — against this box's own
+DATABASE_URL. Read-only: records no login attempt and issues no token.
+
+Use it to tell apart a data problem (this box points at a different DB, the row's
+hash differs, or the account is inactive) from a transport problem (a proxy
+altering the request before it reaches the API). OTP is reported but not required
+here — the "invalid username or password" error happens before the OTP step.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if email == "" {
+				return fmt.Errorf("--email is required")
+			}
+
+			var pw []byte
+			if password != "" {
+				pw = []byte(password)
+			} else {
+				fmt.Print("Password: ")
+				var err error
+				pw, err = term.ReadPassword(int(os.Stdin.Fd()))
+				fmt.Println()
+				if err != nil {
+					return fmt.Errorf("reading password: %w", err)
+				}
+			}
+
+			// Show which DB we're actually talking to (credentials redacted) —
+			// the whole point is to confirm it's the DB you think it is.
+			if raw := os.Getenv("DATABASE_URL"); raw != "" {
+				if u, perr := url.Parse(raw); perr == nil {
+					fmt.Printf("DB:    %s%s\n\n", u.Host, u.Path)
+				}
+			}
+
+			d, err := connectDB()
+			if err != nil {
+				return err
+			}
+			defer d.Close()
+
+			ctx := cmd.Context()
+
+			user, err := d.GetUserByEmail(ctx, email)
+			if err != nil || user == nil {
+				fmt.Printf("✗ user %q NOT FOUND in this database\n\n", email)
+				fmt.Println("VERDICT: FAIL — no such user here. This box points at a different")
+				fmt.Println("         database than the one where the account exists (check DATABASE_URL).")
+				return nil
+			}
+			fmt.Printf("✓ user found: id=%d name=%q agent=%v\n", user.ID, user.Name, user.IsAgent)
+
+			if user.Active {
+				fmt.Println("✓ account active")
+			} else {
+				fmt.Println("✗ account INACTIVE")
+			}
+			fmt.Printf("• email_verified=%v (not required for login)\n", user.EmailVerified)
+
+			if !user.HasPassword() {
+				fmt.Println("✗ no local password set (external-auth-only account)")
+				fmt.Println()
+				fmt.Println("VERDICT: FAIL — login returns \"invalid credentials\" (no local password).")
+				return nil
+			}
+			hash := *user.PasswordHash
+			prefix := hash
+			if len(prefix) > 7 {
+				prefix = prefix[:7]
+			}
+			fmt.Printf("✓ password hash present: %s… (len %d)\n", prefix, len(hash))
+
+			bcryptErr := bcrypt.CompareHashAndPassword([]byte(hash), pw)
+			if bcryptErr != nil {
+				fmt.Printf("✗ bcrypt does NOT match: %v\n", bcryptErr)
+			} else {
+				fmt.Println("✓ bcrypt password MATCHES")
+			}
+
+			if user.HasOTP() {
+				fmt.Println("• OTP is ENABLED — a valid TOTP code is also required at login")
+			}
+
+			// Final verdict mirrors handleLogin's decision order.
+			fmt.Println()
+			switch {
+			case !user.Active:
+				fmt.Println("VERDICT: FAIL — account is INACTIVE; login returns \"invalid credentials\"")
+				fmt.Printf("         even with the right password. Fix: isms server user verify --email %s\n", email)
+			case bcryptErr != nil:
+				fmt.Println("VERDICT: FAIL — password does NOT match the stored hash in THIS database.")
+				fmt.Println("         Either the password differs, or this row's hash differs from the working box")
+				fmt.Println("         (a DB copy rather than the same DB).")
+			default:
+				fmt.Println("VERDICT: PASS — these credentials authenticate against this database.")
+				fmt.Println("         If the web login still fails, the problem is between the browser and the")
+				fmt.Println("         API (proxy/transport), not the credentials or the DB.")
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&email, "email", "", "User email (required)")
+	cmd.Flags().StringVar(&password, "password", "", "Password (optional, prompts if not provided)")
 	return cmd
 }

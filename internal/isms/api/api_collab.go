@@ -94,10 +94,11 @@ func docLink(docID string) string {
 // email local-part (maria@… → @maria) or their name with spaces removed.
 var mentionRe = regexp.MustCompile(`@([a-zA-Z0-9._-]+)`)
 
-// notifyReviewMentions creates an in-app notification for each org member
-// @-mentioned in a review comment (#4), excluding the comment's author. Matching
-// is case-insensitive against the member's email local-part or name-slug.
-func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, actor, body string) {
+// notifyMentions creates an in-app notification for each org member @-mentioned
+// in body (excluding the actor), with the given title and link. Matching is
+// case-insensitive against the member's email local-part or name-slug. Generic
+// across surfaces — review comments, entity comments, change fields (#4).
+func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, title, link string) {
 	matches := mentionRe.FindAllStringSubmatchIndex(body, -1)
 	if len(matches) == 0 {
 		return
@@ -124,8 +125,6 @@ func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, 
 		}
 	}
 	snippet := truncateStr(body, 200)
-	title := fmt.Sprintf("%s mentioned you in a review comment", actor)
-	link := fmt.Sprintf("/reviews/%d", reviewID)
 	notified := map[string]bool{}
 	for _, m := range matches {
 		// Skip "@scope/pkg" tokens (e.g. @babel/core): a '/' right after the
@@ -144,6 +143,43 @@ func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, 
 		notified[email] = true
 		_ = s.db.CreateNotificationByEmail(ctx, orgID, email, title, snippet, link)
 	}
+}
+
+// notifyReviewMentions notifies members @-mentioned in a review comment (#4).
+func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, actor, body string) {
+	s.notifyMentions(ctx, orgID, actor, body,
+		fmt.Sprintf("%s mentioned you in a review comment", actor),
+		fmt.Sprintf("/reviews/%d", reviewID))
+}
+
+// entityLink returns the SPA route for an entity, or "" if the type has no
+// direct route (mirrors web/src/router.js). Points mention notifications at the
+// mentioned entity. entityID is the entity's identifier (e.g. "CR-1"); the
+// register views resolve the route param by numeric id OR identifier, so an
+// identifier-based deep link opens the entity.
+func entityLink(entityType, entityID string) string {
+	if entityID == "" {
+		return ""
+	}
+	if entityType == "document" {
+		return docLink(entityID) // documents resolve by doc_id (/documents?doc=…), not a path param
+	}
+	prefix := map[string]string{
+		"risk":              "/risks/",
+		"supplier":          "/suppliers/",
+		"asset":             "/assets/",
+		"system":            "/systems/",
+		"legal_requirement": "/legal/",
+		"incident":          "/incidents/",
+		"change_request":    "/changes/",
+		"corrective_action": "/corrective-actions/",
+		"task":              "/tasks/",
+	}[entityType]
+	// objective / audit* use tab-nested routes with no flat deep-link — deliberately unlinked.
+	if prefix == "" {
+		return ""
+	}
+	return prefix + entityID
 }
 
 // getUserEmail extracts the authenticated user email from context or headers.
@@ -2482,6 +2518,15 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		Action: "change_requested",
 		Detail: fmt.Sprintf("Change request: %s", cr.Title),
 	})
+
+	// Notify anyone @-mentioned in the change's free-text fields (#4). Create-only
+	// (not on update) so re-saving a persistent field doesn't re-notify — new
+	// mentions added during collaboration go through comments.
+	s.notifyMentions(ctx, orgID, cr.RequestedBy,
+		strings.Join([]string{cr.Description, cr.Justification, cr.Notes, cr.RollbackPlan}, "\n"),
+		fmt.Sprintf("%s mentioned you in a change request", cr.RequestedBy),
+		entityLink("change_request", strconv.Itoa(cr.ID)))
+
 	return c.JSON(http.StatusCreated, cr)
 }
 

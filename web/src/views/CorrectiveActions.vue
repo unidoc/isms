@@ -625,7 +625,7 @@ function resolveUserName(email) {
 
 async function openCAFromRoute(id) {
   const numId = parseInt(id)
-  let ca = actions.value.find(a => a.id === numId)
+  let ca = actions.value.find(a => a.id === numId || a.identifier === id)
   if (!ca) {
     try { ca = await api.fetchJSON(`/api/v1/corrective-actions/${numId}`) } catch { return }
   }

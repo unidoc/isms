@@ -801,7 +801,7 @@ async function generateOverdueTasks() {
 
 async function openTaskFromRoute(id) {
   const numId = parseInt(id)
-  let task = tasks.value.find(t => t.id === numId)
+  let task = tasks.value.find(t => t.id === numId || t.identifier === id)
   if (!task) {
     try { task = await api.fetchJSON(`/api/v1/tasks/${numId}`) } catch { return }
   }

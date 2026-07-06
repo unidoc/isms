@@ -692,7 +692,7 @@ function resolveUserName(email) {
 
 async function openIncidentFromRoute(id) {
   const numId = parseInt(id)
-  let inc = incidents.value.find(i => i.id === numId)
+  let inc = incidents.value.find(i => i.id === numId || i.identifier === id)
   if (!inc) {
     try { inc = await api.fetchJSON(`/api/v1/incidents/${numId}`) } catch { return }
   }

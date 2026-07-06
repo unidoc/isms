@@ -67,8 +67,14 @@
 
         <div v-if="user?.pending_email"
           class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
-          Change to <strong>{{ user.pending_email }}</strong> is pending — check that inbox for a confirmation link.
-          Your current email stays active until you confirm.
+          <div>
+            Change to <strong>{{ user.pending_email }}</strong> is pending — check that inbox for a confirmation link.
+            Your current email stays active until you confirm.
+          </div>
+          <button @click="cancelEmailChange" :disabled="cancellingEmail"
+            class="mt-2 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-md border border-amber-500/40 transition-colors disabled:opacity-50">
+            {{ cancellingEmail ? 'Cancelling…' : 'Cancel pending change' }}
+          </button>
         </div>
 
         <div>
@@ -336,6 +342,7 @@ const newEmail = ref('')
 const emailCurrentPassword = ref('')
 const emailOtp = ref('')
 const changingEmail = ref(false)
+const cancellingEmail = ref(false)
 const emailMsg = ref('')
 const emailError = ref(false)
 
@@ -418,6 +425,22 @@ async function changeEmail() {
     emailError.value = true
   } finally {
     changingEmail.value = false
+  }
+}
+
+async function cancelEmailChange() {
+  cancellingEmail.value = true
+  emailMsg.value = ''
+  try {
+    await api.deleteJSON('/api/v1/auth/email')
+    user.value = await api.getMe()
+    emailMsg.value = 'Pending email change cancelled.'
+    emailError.value = false
+  } catch (e) {
+    emailMsg.value = e.message
+    emailError.value = true
+  } finally {
+    cancellingEmail.value = false
   }
 }
 

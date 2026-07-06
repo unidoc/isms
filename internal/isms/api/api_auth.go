@@ -253,11 +253,8 @@ func (s *Server) handleSignup(c echo.Context) error {
 	}
 
 	// Generate email verification token
-	raw := make([]byte, 32)
-	rand.Read(raw)
-	token := hex.EncodeToString(raw)
-	tokenHash := sha256.Sum256([]byte(token))
-	if err := s.db.CreateEmailVerification(ctx, user.ID, hex.EncodeToString(tokenHash[:])); err != nil {
+	token, tokenHash := newHashedToken()
+	if err := s.db.CreateEmailVerification(ctx, user.ID, tokenHash); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
 	}
 
@@ -313,11 +310,8 @@ func (s *Server) handleForgotPassword(c echo.Context) error {
 	}
 
 	// Generate reset token
-	raw := make([]byte, 32)
-	rand.Read(raw)
-	token := hex.EncodeToString(raw)
-	tokenHash := sha256.Sum256([]byte(token))
-	if err := s.db.CreatePasswordResetToken(ctx, user.ID, hex.EncodeToString(tokenHash[:])); err != nil {
+	token, tokenHash := newHashedToken()
+	if err := s.db.CreatePasswordResetToken(ctx, user.ID, tokenHash); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating reset token")
 	}
 
@@ -512,29 +506,28 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "that is already your email address")
 	}
 
-	// Re-authenticate: password (if set) and TOTP (if enabled). A changed email
-	// is a takeover vector, so we never rely on the session alone.
-	if user.HasPassword() {
-		if req.CurrentPassword == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "current password required")
-		}
-		if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "current password is incorrect")
-		}
-	}
-	if user.HasOTP() {
-		if req.OTP == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "authenticator code required")
-		}
-		if !verifyTOTP(*user.OTPSecret, req.OTP) {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid authenticator code")
-		}
+	// Re-authenticate (password + OTP) — a changed email is a takeover vector, so
+	// we never rely on the session alone.
+	if err := reauthenticate(user, req.CurrentPassword, req.OTP); err != nil {
+		return err
 	}
 
-	// Reject addresses already taken by another account (best-effort; the DB
-	// unique index is the real guard, re-checked at swap time).
-	if existing, _ := s.db.GetUserByEmail(ctx, newEmail); existing != nil {
+	// Reject an address already in use by another account, up front — a cheap
+	// existence check (no OTP decrypt). The DB is the real guard: a partial unique
+	// index on pending_email stops two concurrent requests to the same address,
+	// and the unique index on email is the final word at swap time.
+	if exists, _ := s.db.EmailExists(ctx, newEmail); exists {
 		return echo.NewHTTPError(http.StatusConflict, "that email address is already in use")
+	}
+
+	// Fail before committing any state if mail can't be delivered — otherwise the
+	// account would be stranded in "pending change" (a self-hosted box with no
+	// SMTP would strand every attempt; DELETE /auth/email can also cancel). This
+	// is the last gate before we write pending_email / the token.
+	if s.mailer == nil || !s.mailer.Enabled() {
+		log.Printf("change-email: mailer not configured — user %d requested change to %s but no email sent", user.ID, newEmail)
+		return echo.NewHTTPError(http.StatusInternalServerError,
+			"email delivery is not configured on this server — contact the administrator")
 	}
 
 	if err := s.db.SetPendingEmail(ctx, user.ID, newEmail); err != nil {
@@ -546,23 +539,20 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 
 	// One live email-change token at a time — a fresh request invalidates the old.
 	if err := s.db.InvalidateEmailVerifications(ctx, user.ID, "email_change"); err != nil {
+		s.db.ClearPendingEmail(ctx, user.ID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "preparing verification")
 	}
-	raw := make([]byte, 32)
-	rand.Read(raw)
-	token := hex.EncodeToString(raw)
-	hash := sha256.Sum256([]byte(token))
-	if err := s.db.CreateEmailChangeToken(ctx, user.ID, hex.EncodeToString(hash[:])); err != nil {
+	token, tokenHash := newHashedToken()
+	if err := s.db.CreateEmailChangeToken(ctx, user.ID, tokenHash); err != nil {
+		s.db.ClearPendingEmail(ctx, user.ID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
 	}
 
-	if s.mailer == nil || !s.mailer.Enabled() {
-		log.Printf("change-email: mailer not configured — user %d requested change to %s but no email sent", user.ID, newEmail)
-		return echo.NewHTTPError(http.StatusInternalServerError,
-			"email delivery is not configured on this server — contact the administrator")
-	}
 	m := s.orgMail(ctx, getOrgID(c))
 	if err := s.mailer.SendEmailChangeVerificationBranded(newEmail, user.Name, m.PublicURL, token, m.Branding); err != nil {
+		// Roll back so a send failure doesn't strand the account in "pending".
+		s.db.ClearPendingEmail(ctx, user.ID)
+		s.db.InvalidateEmailVerifications(ctx, user.ID, "email_change")
 		log.Printf("change-email: SendEmailChangeVerification to %s failed: %v", newEmail, err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to send confirmation email: "+err.Error())
 	}
@@ -572,6 +562,23 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 		"status":  "verification_sent",
 		"message": "Check your new inbox to confirm the change. Your current email stays active until you do.",
 	})
+}
+
+// handleCancelEmailChange clears a pending email change and invalidates the
+// outstanding token, so a user (or admin) can recover from a stuck "pending"
+// state — e.g. a confirmation that never arrived — without touching the DB.
+// DELETE /api/v1/auth/email
+func (s *Server) handleCancelEmailChange(c echo.Context) error {
+	ctx := c.Request().Context()
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+	}
+	if err := s.db.ClearPendingEmail(ctx, user.ID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "cancelling email change")
+	}
+	s.db.InvalidateEmailVerifications(ctx, user.ID, "email_change")
+	return c.JSON(http.StatusOK, map[string]string{"status": "cancelled"})
 }
 
 // handleVerifyEmailChange completes an email change: the link mailed to the new
@@ -596,6 +603,10 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid or expired confirmation link")
 	}
 
+	// Consume the token before attempting the swap — a failed swap (address taken,
+	// or no pending change) must not leave a replayable token valid until expiry.
+	s.db.UseEmailVerification(ctx, verification.ID)
+
 	newEmail, err := s.db.SwapPendingEmail(ctx, verification.UserID)
 	if err != nil {
 		if err == db.ErrEmailTaken {
@@ -605,7 +616,6 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "no pending email change for this link")
 	}
 
-	s.db.UseEmailVerification(ctx, verification.ID)
 	log.Printf("change-email: user %d email changed to %s", verification.UserID, newEmail)
 
 	// Existing sessions carry the old email as subject and will fail on refresh —
@@ -812,11 +822,7 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 
 	// Generate verification token
-	raw := make([]byte, 32)
-	rand.Read(raw)
-	token := hex.EncodeToString(raw)
-	hash := sha256.Sum256([]byte(token))
-	tokenHash := hex.EncodeToString(hash[:])
+	token, tokenHash := newHashedToken()
 
 	if err := s.db.CreateEmailVerification(ctx, user.ID, tokenHash); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification: "+err.Error())
@@ -890,11 +896,8 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 	}
 
 	// Fresh verification token (72h), same as the original invite.
-	raw := make([]byte, 32)
-	rand.Read(raw)
-	token := hex.EncodeToString(raw)
-	hash := sha256.Sum256([]byte(token))
-	if err := s.db.CreateEmailVerification(ctx, user.ID, hex.EncodeToString(hash[:])); err != nil {
+	token, tokenHash := newHashedToken()
+	if err := s.db.CreateEmailVerification(ctx, user.ID, tokenHash); err != nil {
 		log.Printf("resend-invite: creating verification for %s failed: %v", user.Email, err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
 	}
@@ -1143,6 +1146,39 @@ func generateAPIKey() (string, string) {
 	token := "isms_" + hex.EncodeToString(raw)
 	hash := sha256.Sum256([]byte(token))
 	return token, hex.EncodeToString(hash[:])
+}
+
+// reauthenticate re-verifies a user's credentials before a sensitive change:
+// the current password (if the account has one) and a TOTP code (if OTP is
+// enabled). Returns an *echo.HTTPError describing the failure, or nil on success.
+func reauthenticate(user *db.User, password, otp string) error {
+	if user.HasPassword() {
+		if password == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "current password required")
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "current password is incorrect")
+		}
+	}
+	if user.HasOTP() {
+		if otp == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "authenticator code required")
+		}
+		if !verifyTOTP(*user.OTPSecret, otp) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid authenticator code")
+		}
+	}
+	return nil
+}
+
+// newHashedToken returns a random URL-safe token and its sha256 hex hash. The
+// raw token goes in the emailed link; only the hash is ever stored.
+func newHashedToken() (raw, hash string) {
+	b := make([]byte, 32)
+	rand.Read(b)
+	raw = hex.EncodeToString(b)
+	h := sha256.Sum256([]byte(raw))
+	return raw, hex.EncodeToString(h[:])
 }
 
 // verifyTOTP checks a 6-digit TOTP code against a base32-encoded secret.

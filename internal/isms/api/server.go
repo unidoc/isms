@@ -480,7 +480,8 @@ func (s *Server) routes() {
 
 	// Self-service (authenticated)
 	api.PUT("/auth/password", s.handleChangePassword)
-	api.PUT("/auth/email", s.handleRequestEmailChange) // #128 self-service email change (re-auth + verify)
+	api.PUT("/auth/email", s.handleRequestEmailChange)   // #128 self-service email change (re-auth + verify)
+	api.DELETE("/auth/email", s.handleCancelEmailChange) // #128 cancel a pending email change
 	api.PUT("/auth/profile", s.handleUpdateProfile)
 	api.POST("/auth/otp/setup", s.handleOTPSetup)
 	api.POST("/auth/otp/verify", s.handleOTPVerify)

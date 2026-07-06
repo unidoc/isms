@@ -7,6 +7,12 @@
 -- swap email = pending_email. A typo can't lock anyone out of their login identity.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_email TEXT;
 
+-- No two accounts may have the same pending change in flight — the DB rejects the
+-- second claim at request time (SetPendingEmail surfaces it as ErrEmailTaken)
+-- instead of letting both proceed to a confusing failure at confirmation time.
+CREATE UNIQUE INDEX IF NOT EXISTS users_pending_email_unique
+    ON users (pending_email) WHERE pending_email IS NOT NULL;
+
 -- The email-change confirmation link reuses the email_verifications table with a
 -- new purpose; widen the CHECK constraint to admit it (#128).
 ALTER TABLE email_verifications DROP CONSTRAINT IF EXISTS email_verifications_purpose_check;

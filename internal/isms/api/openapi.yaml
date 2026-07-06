@@ -173,6 +173,18 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '409':
           description: The target email is already in use
+    delete:
+      tags: [Auth]
+      summary: Cancel a pending email change
+      description: >
+        Clears any pending email change and invalidates the outstanding
+        confirmation token, so a stuck "pending" state can be recovered without
+        DB access. No-op if nothing is pending.
+      responses:
+        '200':
+          description: Pending change cancelled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /auth/verify-email-change:
     post:

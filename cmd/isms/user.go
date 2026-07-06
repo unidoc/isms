@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	netmail "net/mail"
 	"net/url"
 	"os"
 	"strings"
@@ -259,6 +260,12 @@ func userSetEmailCmd() *cobra.Command {
 			if email == "" || newEmail == "" {
 				return fmt.Errorf("--email and --new-email are both required")
 			}
+			// Validate the address the same way the self-service API path does, so an
+			// admin typo can't write a malformed value straight into users.email.
+			lower := strings.ToLower(strings.TrimSpace(newEmail))
+			if addr, perr := netmail.ParseAddress(lower); perr != nil || addr.Address != lower {
+				return fmt.Errorf("--new-email is not a valid email address")
+			}
 			d, err := connectDB()
 			if err != nil {
 				return err
@@ -270,13 +277,13 @@ func userSetEmailCmd() *cobra.Command {
 			if err != nil || user == nil {
 				return fmt.Errorf("user %q not found", email)
 			}
-			if err := d.SetEmail(ctx, user.ID, newEmail); err != nil {
+			if err := d.SetEmail(ctx, user.ID, lower); err != nil {
 				if err == db.ErrEmailTaken {
-					return fmt.Errorf("%q is already in use by another account", newEmail)
+					return fmt.Errorf("%q is already in use by another account", lower)
 				}
 				return fmt.Errorf("changing email: %w", err)
 			}
-			fmt.Printf("Email changed: %s → %s\n", user.Email, strings.ToLower(newEmail))
+			fmt.Printf("Email changed: %s → %s\n", user.Email, lower)
 			return nil
 		},
 	}

@@ -46,7 +46,7 @@ jobs:
           cd web && npm ci && npm run build
           cd ..
           mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/
-          cp -f migrations/*.sql cmd/isms/migrations/
+          ./scripts/sync-migrations.sh
 
       - name: Commit count for version string
         run: echo "COMMIT_COUNT=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"

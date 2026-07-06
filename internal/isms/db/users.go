@@ -89,6 +89,17 @@ func (u *User) OTPPending() bool {
 // User CRUD
 // ---------------------------------------------------------------------------
 
+// EmailExists reports whether any account already uses the given (active) email.
+// Case-insensitive. Cheaper than GetUserByEmail for a mere existence check — no
+// row hydration, no OTP decrypt.
+func (d *DB) EmailExists(ctx context.Context, email string) (bool, error) {
+	var exists bool
+	err := d.pool.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower($1))`,
+		email).Scan(&exists)
+	return exists, err
+}
+
 // GetUserByEmail looks up a user. Returns nil if not found.
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User

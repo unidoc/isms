@@ -90,3 +90,18 @@ def test_verify_bogus_token(api_url):
         "token": "deadbeef" * 8,
     })
     assert r.status_code == 400, r.text
+
+
+def test_cancel_requires_authentication(api_url):
+    r = requests.delete(f"{api_url}/auth/email")
+    assert r.status_code == 401, r.text
+
+
+def test_cancel_pending_is_idempotent(api_url, admin_headers):
+    # Cancelling clears any pending change; a no-op when nothing is pending still
+    # succeeds (the recovery path must always leave a clean state). Lets a user
+    # escape a stuck "pending" banner without DB access.
+    r = requests.delete(f"{api_url}/auth/email", headers=admin_headers)
+    assert r.status_code == 200, r.text
+    me = requests.get(f"{api_url}/me", headers=admin_headers).json()
+    assert not me.get("pending_email"), me

@@ -10,8 +10,12 @@ import uuid
 import requests
 
 
-def _ca_by_identifier(api_url, headers, identifier):
-    r = requests.get(f"{api_url}/corrective-actions", headers=headers)
+def _ca_by_identifier(api_url, headers, identifier, q=""):
+    # Search by the (unique) title rather than scanning the first page — the test
+    # stack is persistent, so a plain list is paginated and a freshly-created CA
+    # can fall outside it (GET /corrective-actions/:id only accepts a numeric id).
+    r = requests.get(f"{api_url}/corrective-actions", headers=headers,
+                     params={"q": q, "limit": 100})
     assert r.status_code == 200, r.text
     data = r.json()
     items = data.get("data", data) if isinstance(data, dict) else data
@@ -34,7 +38,7 @@ def test_apply_create_uses_handler_default_status(api_url, admin_headers):
     assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
 
     ident = ap.json().get("applied_entity_id")
-    ca = _ca_by_identifier(api_url, admin_headers, ident)
+    ca = _ca_by_identifier(api_url, admin_headers, ident, q=title)
     assert ca is not None, f"CA {ident} not found after apply"
     assert ca["status"] == "todo", f"apply-created CA should default to 'todo', got {ca['status']!r}"
 

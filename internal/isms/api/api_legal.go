@@ -125,13 +125,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	}
 
 	applyLegalDefaults(&lr, getUserEmail(c))
-	if err := validateEnum("status", lr.Status, db.LegalStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("treatment", lr.Treatment, db.LegalTreatments); err != nil {
-		return err
-	}
-	if err := validateEnum("category", lr.Category, db.LegalCategories); err != nil {
+	if err := validateLegalCreate(&lr); err != nil {
 		return err
 	}
 

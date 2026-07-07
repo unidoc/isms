@@ -1880,10 +1880,7 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 		Notes:           req.Notes,
 	}
 	applyAssetDefaults(&a, getUserEmail(c))
-	if err := validateEnum("status", a.Status, db.AssetStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("asset_type", a.AssetType, db.AssetTypes); err != nil {
+	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
 	if err := s.db.CreateAsset(ctx, orgID, &a); err != nil {
@@ -2015,13 +2012,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		Notes:           req.Notes,
 	}
 	applySystemDefaults(&sys, getUserEmail(c))
-	if err := validateEnum("status", sys.Status, db.SystemStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("criticality", sys.Criticality, db.SystemCriticalities); err != nil {
-		return err
-	}
-	if err := validateEnum("classification", sys.Classification, db.SystemClassifications); err != nil {
+	if err := validateSystemCreate(&sys); err != nil {
 		return err
 	}
 	// Verify supplier belongs to this org if referenced.
@@ -2420,13 +2411,7 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		Notes:           req.Notes,
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
-	if err := validateEnum("status", sup.Status, db.SupplierStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("supplier_type", sup.SupplierType, db.SupplierTypes); err != nil {
-		return err
-	}
-	if err := validateEnum("criticality", sup.Criticality, db.CriticalityLevels); err != nil {
+	if err := validateSupplierCreate(&sup); err != nil {
 		return err
 	}
 	if err := s.db.CreateSupplier(ctx, orgID, &sup); err != nil {

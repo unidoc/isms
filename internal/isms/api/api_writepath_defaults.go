@@ -84,3 +84,53 @@ func applyObjectiveDefaults(o *db.Objective, actor string) {
 		o.Owner = actor
 	}
 }
+
+// Shared create-time enum validation (#26): both the HTTP create handler and the
+// applyXCreate suggestion handler call these (after applyXDefaults), so an invalid
+// value fails the same way on both paths — a clean 400 with the allowed list,
+// rather than HTTP 400 vs a raw CHECK-violation 500 on apply. Mirrors exactly the
+// validateEnum calls the HTTP handlers used inline.
+
+func validateAssetCreate(a *db.Asset) error {
+	if err := validateEnum("status", a.Status, db.AssetStatuses); err != nil {
+		return err
+	}
+	return validateEnum("asset_type", a.AssetType, db.AssetTypes)
+}
+
+func validateSupplierCreate(sup *db.Supplier) error {
+	if err := validateEnum("status", sup.Status, db.SupplierStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("supplier_type", sup.SupplierType, db.SupplierTypes); err != nil {
+		return err
+	}
+	return validateEnum("criticality", sup.Criticality, db.CriticalityLevels)
+}
+
+func validateLegalCreate(lr *db.LegalRequirement) error {
+	if err := validateEnum("status", lr.Status, db.LegalStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("treatment", lr.Treatment, db.LegalTreatments); err != nil {
+		return err
+	}
+	return validateEnum("category", lr.Category, db.LegalCategories)
+}
+
+func validateSystemCreate(sys *db.System) error {
+	if err := validateEnum("status", sys.Status, db.SystemStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("criticality", sys.Criticality, db.SystemCriticalities); err != nil {
+		return err
+	}
+	return validateEnum("classification", sys.Classification, db.SystemClassifications)
+}
+
+func validateObjectiveCreate(o *db.Objective) error {
+	if err := validateEnum("status", o.Status, db.ObjectiveStatuses); err != nil {
+		return err
+	}
+	return validateEnum("target_operator", o.TargetOperator, db.ObjectiveTargetOperators)
+}

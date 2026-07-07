@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -416,7 +417,14 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 		return nil
 	})
 	if txErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "apply failed: "+txErr.Error())
+		// Preserve an actionable status: validation returns *echo.HTTPError (400
+		// with the allowed list); a DB constraint violation maps to 400 via
+		// pgxHTTPError; anything else is a genuine 500.
+		var he *echo.HTTPError
+		if errors.As(txErr, &he) {
+			return he
+		}
+		return pgxHTTPError(txErr)
 	}
 
 	// Post-commit: activity log + notifications (non-transactional, OK to fail)
@@ -874,6 +882,9 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		Notes:        payload.Notes,
 	}
 	applySupplierDefaults(&sup, actor)
+	if err := validateSupplierCreate(&sup); err != nil {
+		return "", err
+	}
 
 	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup); err != nil {
 		return "", err
@@ -954,6 +965,9 @@ func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		Notes:        payload.Notes,
 	}
 	applyLegalDefaults(&lr, actor)
+	if err := validateLegalCreate(&lr); err != nil {
+		return "", err
+	}
 
 	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr); err != nil {
 		return "", err
@@ -1288,6 +1302,9 @@ func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 		Unit:              payload.Unit,
 	}
 	applyObjectiveDefaults(&o, actor)
+	if err := validateObjectiveCreate(&o); err != nil {
+		return "", err
+	}
 	if err := db.CreateObjectiveTx(ctx, tx, orgID, &o); err != nil {
 		return "", err
 	}
@@ -1375,6 +1392,9 @@ func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		Owner:          payload.Owner,
 	}
 	applySystemDefaults(&sys, actor)
+	if err := validateSystemCreate(&sys); err != nil {
+		return "", err
+	}
 	if err := db.CreateSystemTx(ctx, tx, orgID, &sys); err != nil {
 		return "", err
 	}
@@ -1468,6 +1488,9 @@ func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		Owner:       payload.Owner,
 	}
 	applyAssetDefaults(&a, actor)
+	if err := validateAssetCreate(&a); err != nil {
+		return "", err
+	}
 	if err := db.CreateAssetTx(ctx, tx, orgID, &a); err != nil {
 		return "", err
 	}

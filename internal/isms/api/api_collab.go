@@ -2378,6 +2378,7 @@ type changeCreateRequest struct {
 // metadata (approved_at, approved_by, implemented_at) is cleared correctly on
 // reverse transitions — never inline-set via UpdateChangeRequest.
 type changeUpdateRequest struct {
+	Type          *string    `json:"type"`
 	Title         *string    `json:"title"`
 	Description   *string    `json:"description"`
 	Justification *string    `json:"justification"`
@@ -2559,6 +2560,11 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	if req.Type != nil {
+		if err := validateEnum("type", *req.Type, db.ChangeTypes); err != nil {
+			return err
+		}
+	}
 	if req.Priority != nil {
 		if err := validateEnum("priority", *req.Priority, db.ChangePriorities); err != nil {
 			return err
@@ -2597,6 +2603,9 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 		}
 	}
 	cr := *old
+	if req.Type != nil {
+		cr.Type = *req.Type
+	}
 	if req.Title != nil {
 		cr.Title = *req.Title
 	}

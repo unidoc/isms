@@ -143,16 +143,19 @@ func (d *DB) ListChangeRequests(ctx context.Context, orgID int, status string, l
 }
 
 func (d *DB) UpdateChangeRequest(ctx context.Context, orgID int, id int, cr *ChangeRequest) error {
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
 	_, err := d.pool.Exec(ctx, `
 		UPDATE change_requests SET title = $2, description = $3, justification = $4,
 			priority = $5, category = $6, risk_level = $7, rollback_plan = $8, notes = $9,
 			assigned_to_id = (SELECT id FROM users WHERE email = $10),
-			planned_at = $11,
+			planned_at = $11, type = $13,
 			updated_at = now()
 		WHERE id = $1 AND organization_id = $12 AND deleted_at IS NULL
 	`, id, cr.Title, cr.Description, nilIfEmpty(cr.Justification),
 		cr.Priority, cr.Category, cr.RiskLevel, nilIfEmpty(cr.RollbackPlan), nilIfEmpty(cr.Notes),
-		nilIfEmpty(cr.AssignedTo), cr.PlannedAt, orgID)
+		nilIfEmpty(cr.AssignedTo), cr.PlannedAt, orgID, cr.Type)
 	return err
 }
 

@@ -151,7 +151,7 @@ func changeCreateCmd() *cobra.Command {
 }
 
 func changeUpdateCmd() *cobra.Command {
-	var title, desc, justification, priority, category, risk, rollback, notes, assignedTo string
+	var changeType, title, desc, justification, priority, category, risk, rollback, notes, assignedTo string
 	cmd := &cobra.Command{
 		Use:   "update <id|ref>",
 		Short: "Update change request fields (only the flags you pass are changed)",
@@ -166,7 +166,7 @@ func changeUpdateCmd() *cobra.Command {
 			fields := map[string]interface{}{}
 			f := cmd.Flags()
 			for flag, val := range map[string]*string{
-				"title": &title, "desc": &desc, "justification": &justification,
+				"type": &changeType, "title": &title, "desc": &desc, "justification": &justification,
 				"priority": &priority, "category": &category, "risk": &risk,
 				"rollback": &rollback, "notes": &notes, "assigned-to": &assignedTo,
 			} {
@@ -185,6 +185,7 @@ func changeUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&changeType, "type", "", "Type ("+strings.Join(db.ChangeTypes, ", ")+")")
 	cmd.Flags().StringVar(&title, "title", "", "Change title")
 	cmd.Flags().StringVar(&desc, "desc", "", "Description")
 	cmd.Flags().StringVar(&justification, "justification", "", "Business justification")
@@ -199,6 +200,7 @@ func changeUpdateCmd() *cobra.Command {
 
 // changeFieldJSON maps update flag names to the API's JSON field names.
 var changeFieldJSON = map[string]string{
+	"type":  "type",
 	"title": "title", "desc": "description", "justification": "justification",
 	"priority": "priority", "category": "category", "risk": "risk_level",
 	"rollback": "rollback_plan", "notes": "notes", "assigned-to": "assigned_to",

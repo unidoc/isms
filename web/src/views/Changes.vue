@@ -199,6 +199,13 @@
                         <MarkdownField v-model="editForm.description" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" placeholder="Describe the change..." />
                       </div>
                       <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <select v-model="editForm.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="change">Change</option>
+                          <option value="access_request">Access request</option>
+                        </select>
+                      </div>
+                      <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
                         <select v-model="editForm.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
@@ -260,6 +267,10 @@
                       </div>
 
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
+                          <div class="text-sm text-slate-300">{{ selectedChange.type === 'access_request' ? 'Access request' : 'Change' }}</div>
+                        </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Priority</div>
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedChange.priority)">{{ selectedChange.priority }}</span>
@@ -660,6 +671,7 @@ async function changeStatus(id, status) {
 
 function startEdit(cr) {
   editForm.value = {
+    type: cr.type || 'change',
     title: cr.title || '',
     description: cr.description || '',
     justification: cr.justification || '',

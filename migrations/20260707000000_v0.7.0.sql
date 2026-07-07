@@ -22,4 +22,7 @@ ALTER TABLE email_verifications ADD CONSTRAINT email_verifications_purpose_check
 -- Change requests can be a normal change or an access request. Same approval
 -- flow; specifics (system, grantee, duration) live in the existing notes — no
 -- access-request-only structured fields.
+-- NB: the DB CHECK for this column lives in 20260707120000_change_type_check.sql,
+-- NOT here — this file already shipped on master (#133), so amending it would be
+-- skipped (runner tracks by filename) on any DB that already ran it.
 ALTER TABLE change_requests ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'change';

@@ -28,8 +28,7 @@
           <div>
             <label class="block text-xs text-slate-500 mb-1">Type</label>
             <select v-model="form.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="change">Change</option>
-              <option value="access_request">Access request</option>
+              <option v-for="t in CHANGE_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
           </div>
           <div>
@@ -199,6 +198,12 @@
                         <MarkdownField v-model="editForm.description" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" placeholder="Describe the change..." />
                       </div>
                       <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <select v-model="editForm.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option v-for="t in CHANGE_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+                        </select>
+                      </div>
+                      <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
                         <select v-model="editForm.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
@@ -260,6 +265,10 @@
                       </div>
 
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
+                          <div class="text-sm text-slate-300">{{ typeLabel(selectedChange.type) }}</div>
+                        </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Priority</div>
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedChange.priority)">{{ selectedChange.priority }}</span>
@@ -474,6 +483,16 @@ const canCreate = computed(() => ['admin', 'manager', 'contributor'].includes(us
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 const pendingRefs = ref([])
 
+// Change-request types — single source for the create/edit selects and the
+// read-view label. Extend here (+ db.ChangeTypes + the DB CHECK) to add a kind.
+const CHANGE_TYPES = [
+  { value: 'change', label: 'Change' },
+  { value: 'access_request', label: 'Access request' },
+]
+function typeLabel(t) {
+  return (CHANGE_TYPES.find((x) => x.value === t) || CHANGE_TYPES[0]).label
+}
+
 const form = ref({ type: 'change', title: '', priority: 'medium', category: 'process' })
 
 const statusStats = computed(() => {
@@ -660,6 +679,7 @@ async function changeStatus(id, status) {
 
 function startEdit(cr) {
   editForm.value = {
+    type: cr.type || 'change',
     title: cr.title || '',
     description: cr.description || '',
     justification: cr.justification || '',

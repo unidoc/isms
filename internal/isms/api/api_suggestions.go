@@ -1074,6 +1074,14 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err != nil {
 		return "", fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
 	}
+	if v, ok := payload.Fields["type"]; ok {
+		if sv, ok := v.(string); ok {
+			if err := validateEnum("type", sv, db.ChangeTypes); err != nil {
+				return "", err
+			}
+			cr.Type = sv
+		}
+	}
 	if v, ok := payload.Fields["priority"]; ok {
 		if sv, ok := v.(string); ok {
 			cr.Priority = sv

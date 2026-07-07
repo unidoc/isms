@@ -1603,12 +1603,28 @@ func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
 	idInt, _ := parseEntityID(sg.EntityID)
-	// Update individual fields using existing field-level update
 	for field, val := range payload.Fields {
-		if sv, ok := val.(string); ok {
-			if err := db.UpdateAuditFindingFieldTx(ctx, tx, orgID, int(idInt), field, sv); err != nil {
-				return "", fmt.Errorf("updating field %s: %w", field, err)
+		// Status transitions go through the shared closure-metadata path (same as
+		// the HTTP handler) — a plain field write would skip closed_at/closed_by.
+		if field == "status" {
+			sv, ok := val.(string)
+			if !ok {
+				return "", fmt.Errorf("field status: expected a string, got %T", val)
 			}
+			if !db.AuditFindingStatuses[sv] {
+				return "", fmt.Errorf("invalid status: %s", sv)
+			}
+			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, int(idInt), sv, actor); err != nil {
+				return "", err
+			}
+			continue
+		}
+		sv, ok := val.(string)
+		if !ok {
+			continue
+		}
+		if err := db.UpdateAuditFindingFieldTx(ctx, tx, orgID, int(idInt), field, sv); err != nil {
+			return "", fmt.Errorf("updating field %s: %w", field, err)
 		}
 	}
 	return sg.EntityID, nil

@@ -751,6 +751,12 @@ func UpdateAuditFindingFieldTx(ctx context.Context, tx pgx.Tx, orgID int, id int
 	return err
 }
 
+// SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — shares the
+// same core (closure metadata + not-found guard) so the two can't drift (#26).
+func SetAuditFindingStatusTx(ctx context.Context, tx pgx.Tx, orgID, id int, status, closedBy string) error {
+	return setAuditFindingStatus(ctx, tx, orgID, id, status, closedBy)
+}
+
 // --- Review / approval Tx variants ---
 
 // AddApprovalTx inserts an approval record within an existing transaction.

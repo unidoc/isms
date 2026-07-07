@@ -92,6 +92,22 @@ run +CMD:
 
 # ── Test environment ─────────────────────────────────────────────────────────
 
+# (Re)create the Python test venv from tests/requirements.txt — the same thing CI
+# does, so the .venv can't silently go stale (a hand-made, never-upgraded .venv is
+# what broke local e2e: it held an old playwright wanting a Chromium build the image
+# never had). `-U` pulls the current playwright, whose Chromium build matches the one
+# baked into the image (devenv/Dockerfile bakes it via the same-minor @playwright/test).
+#
+# If playwright ever ships a NEW minor before the image is rebuilt, its Chromium won't
+# be in the image yet — then fetch the exact matching build once, as root:
+#   just attach-root
+#   PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright /home/isms/workspace/isms/.venv/bin/playwright install --with-deps chromium && chmod -R a+rX /opt/ms-playwright
+# (No version is hard-coded anywhere — the browser is always whatever the venv's own
+# playwright asks for.)
+test-setup:
+    {{compose}} exec -u isms isms bash -lc \
+        "cd /home/isms/workspace/isms && python3 -m venv .venv && .venv/bin/pip install --quiet -U -r tests/requirements.txt && .venv/bin/playwright --version"
+
 # Run pytest from inside the dev container against the test server.
 # Rebuilds web/dist first: isms-test serves the bundle live from disk, so an
 # e2e test would otherwise silently run against a stale UI after a .vue change

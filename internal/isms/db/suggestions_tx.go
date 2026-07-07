@@ -478,6 +478,43 @@ func UpdateChangeRequestTx(ctx context.Context, tx pgx.Tx, orgID int, id int, cr
 	return err
 }
 
+// UpdateChangeRequestStatusTx is the tx variant of DB.UpdateChangeRequestStatus —
+// transitions status and derives approved_at/by + implemented_at consistently
+// (cleared on reverse transitions), so suggestion-apply changes status exactly
+// like the HTTP status handler (#26).
+func UpdateChangeRequestStatusTx(ctx context.Context, tx pgx.Tx, orgID int, id int, status, approvedBy string) error {
+	clearApproved := status == "proposed" || status == "in_progress" || status == "rejected"
+	clearImplemented := status != "implemented" && status != "closed"
+
+	query := `UPDATE change_requests SET status = $2, updated_at = now()`
+	args := []interface{}{id, status}
+	switch {
+	case status == "approved" && approvedBy != "":
+		query += `, approved_by = $3, approved_by_user_id = (SELECT id FROM users WHERE email = $3), approved_at = now()`
+		args = append(args, approvedBy)
+		if clearImplemented {
+			query += `, implemented_at = NULL`
+		}
+		query += ` WHERE id = $1 AND organization_id = $4 AND deleted_at IS NULL`
+		args = append(args, orgID)
+	case status == "implemented":
+		query += `, implemented_at = COALESCE(implemented_at, now())`
+		query += ` WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`
+		args = append(args, orgID)
+	default:
+		if clearApproved {
+			query += `, approved_at = NULL, approved_by = NULL, approved_by_user_id = NULL`
+		}
+		if clearImplemented {
+			query += `, implemented_at = NULL`
+		}
+		query += ` WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`
+		args = append(args, orgID)
+	}
+	_, err := tx.Exec(ctx, query, args...)
+	return err
+}
+
 // CreateCorrectiveActionTx creates a corrective action within an existing transaction.
 func CreateCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, ca *CorrectiveAction) error {
 	ca.OrganizationID = orgID

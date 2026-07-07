@@ -149,6 +149,25 @@ class TestChangeType:
         })
         assert r.status_code == 400, r.text
 
+    def test_suggestion_apply_status_stamps_approved(self, api_url, admin_headers):
+        """#26 slice C: status via suggestion-apply derives approved_at/by like HTTP."""
+        r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+            "title": "Approve via suggestion", "description": "x"})
+        assert r.status_code == 201, r.text
+        cid = r.json()["id"]
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "change_request", "suggestion_type": "update",
+            "entity_id": str(cid),
+            "payload": {"fields": {"status": "approved"}},
+            "rationale": "ready", "title": "approve"})
+        assert sg.status_code in (200, 201), sg.text
+        ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
+                           headers=admin_headers, json={"force": True})
+        assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
+        got = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers).json()
+        assert got["status"] == "approved", got
+        assert got.get("approved_at"), "apply→approved must stamp approved_at like HTTP"
+
     def test_suggestion_apply_change_type(self, api_url, admin_headers):
         """The suggestion-apply path (agents/MCP) can reclassify type too."""
         r = requests.post(f"{api_url}/changes", headers=admin_headers, json={

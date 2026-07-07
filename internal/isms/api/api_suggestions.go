@@ -1102,6 +1102,20 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 			cr.AssignedTo = sv
 		}
 	}
+	// Status transitions go through the shared enforced path so approved_at/by and
+	// implemented_at are derived exactly as the HTTP handler does — a plain field
+	// write (UpdateChangeRequestTx doesn't touch status) would skip that metadata.
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok && sv != cr.Status {
+			if err := validateEnum("status", sv, db.ChangeStatuses); err != nil {
+				return "", err
+			}
+			if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, cr.ID, sv, actor); err != nil {
+				return "", err
+			}
+			cr.Status = sv
+		}
+	}
 	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, cr.ID, cr); err != nil {
 		return "", err
 	}

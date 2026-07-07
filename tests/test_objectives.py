@@ -37,6 +37,25 @@ class TestPrograms:
         })
         assert r.status_code == 403
 
+    def test_get_resolves_id_or_key(self, api_url, admin_headers):
+        """#149: program endpoints accept a numeric id OR the program key —
+        cross-entity reference chips deep-link programs by key."""
+        key = "BYKEY2026"
+        requests.post(f"{api_url}/programs", headers=admin_headers,
+                      json={"title": "By-key resolver test", "key": key})  # idempotent
+        progs = requests.get(f"{api_url}/programs", headers=admin_headers).json().get("data") or []
+        p = next((x for x in progs if x.get("key") == key), None)
+        assert p is not None, "program missing from list after create"
+        # by key
+        rk = requests.get(f"{api_url}/programs/{key}", headers=admin_headers)
+        assert rk.status_code == 200 and rk.json().get("key") == key, rk.text
+        # by numeric id
+        ri = requests.get(f"{api_url}/programs/{p['id']}", headers=admin_headers)
+        assert ri.status_code == 200 and ri.json().get("id") == p["id"], ri.text
+        # unknown key → 404 (not 400)
+        r404 = requests.get(f"{api_url}/programs/NOSUCHKEY999", headers=admin_headers)
+        assert r404.status_code == 404, f"expected 404, got {r404.status_code}: {r404.text}"
+
 
 class TestObjectives:
     def test_create(self, api_url, admin_headers):

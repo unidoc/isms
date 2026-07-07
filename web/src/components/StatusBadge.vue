@@ -38,6 +38,8 @@ const classes = computed(() => {
     // Task statuses
     in_progress: 'bg-blue-900/60 text-blue-300',
     done: 'bg-emerald-900/60 text-emerald-300',
+    cancelled: 'bg-slate-700 text-slate-400',
+    todo: 'bg-red-900/60 text-red-300',
 
     // Change management
     proposed: 'bg-amber-900/60 text-amber-300',

@@ -136,7 +136,7 @@ const typeRoutes = {
   corrective_action: 'corrective-actions',
   objective: 'objectives',
   task: 'tasks',
-  program: 'objectives',
+  program: 'programs',
 }
 
 function open() {

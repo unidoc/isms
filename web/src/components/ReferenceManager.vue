@@ -120,7 +120,7 @@ const typeRoutes = {
   risk: 'risks', legal: 'legal', document: 'documents', asset: 'assets',
   supplier: 'suppliers', system: 'systems', incident: 'incidents', change: 'changes',
   audit: 'audit', corrective_action: 'corrective-actions',
-  objective: 'objectives', program: 'objectives', task: 'tasks',
+  objective: 'objectives', program: 'programs', task: 'tasks',
 }
 
 function otherSide(r) {

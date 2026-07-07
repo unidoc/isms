@@ -153,10 +153,7 @@
               :class="typeClass(inc.incident_type)">
               {{ inc.incident_type }}
             </span>
-            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full"
-              :class="statusClass(inc.status)">
-              {{ inc.status }}
-            </span>
+            <StatusBadge :status="inc.status" />
             <span class="text-sm font-medium text-slate-200 flex-1 truncate">{{ inc.title }}</span>
             <span class="text-xs text-slate-600 font-mono">{{ inc.identifier }}</span>
             <span class="text-xs text-slate-600">{{ formatDate(inc.created_at) }}</span>
@@ -879,17 +876,6 @@ function typeClass(type_) {
     case 'incident': return 'bg-red-900/40 text-red-400'
     case 'event': return 'bg-amber-900/40 text-amber-400'
     case 'weakness': return 'bg-purple-900/40 text-purple-400'
-    default: return 'bg-slate-800 text-slate-400'
-  }
-}
-
-function statusClass(status) {
-  switch (status) {
-    case 'open': return 'bg-red-900/40 text-red-400'
-    case 'investigating': return 'bg-amber-900/40 text-amber-400'
-    case 'contained': return 'bg-blue-900/40 text-blue-400'
-    case 'resolved': return 'bg-emerald-900/40 text-emerald-400'
-    case 'closed': return 'bg-slate-800 text-slate-500'
     default: return 'bg-slate-800 text-slate-400'
   }
 }

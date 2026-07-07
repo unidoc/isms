@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // writeDoc writes a minimal valid document under documents/<folder>/<name>.
@@ -212,6 +214,90 @@ func TestEditNoEditorIsNoOp(t *testing.T) {
 	}
 	if !strings.Contains(nm.(Model).loadErr, "EDITOR") {
 		t.Errorf("expected an $EDITOR hint, got %q", nm.(Model).loadErr)
+	}
+}
+
+// TestEscClearingFilterResetsCursor verifies clearing an active filter with esc
+// (tree focus) resets the cursor to the top rather than leaving it on an unrelated
+// row of the full list (#136 review finding 1).
+func TestEscClearingFilterResetsCursor(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "iso27001/clauses", "5-1.md", "iso27001-5-1", "Leadership")
+	writeDoc(t, root, "policies", "acc.md", "policies-access", "Access Policy")
+
+	m := New(root)
+	m.filter = "leadership"
+	m.cursor = len(m.visibleRows()) - 1 // sitting on the matched doc
+
+	nm, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyEsc})
+	got := nm.(Model)
+	if got.filter != "" {
+		t.Errorf("esc should clear the filter, got %q", got.filter)
+	}
+	if got.cursor != 0 {
+		t.Errorf("esc should reset cursor to 0, got %d", got.cursor)
+	}
+}
+
+// TestFilterAcceptsNonASCII verifies a multi-byte rune extends the filter (#136
+// review finding 2 — was dropped by a byte-length check).
+func TestFilterAcceptsNonASCII(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "iso27001", "4-1.md", "iso27001-4-1", "Ábyrgð")
+
+	m := New(root)
+	m.filterOn = true
+	nm, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("Á")})
+	if got := nm.(Model).filter; got != "Á" {
+		t.Errorf("filter should accept a non-ASCII rune, got %q", got)
+	}
+}
+
+// TestTitledEmptyFolderKept verifies a folder that only carries a .title (no docs
+// yet) still appears — matching the web viewer's tree (#136 review finding 3).
+func TestTitledEmptyFolderKept(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "iso27001/clauses", "4-1.md", "iso27001-4-1", "Context")
+	// annex-a: empty folder with only a .title placeholder.
+	annex := filepath.Join(root, "documents", "iso27001", "annex-a")
+	if err := os.MkdirAll(annex, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(annex, ".title"), []byte("Annex A\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := New(root)
+	if _, ok := folderItem(m, "Annex A"); !ok {
+		t.Errorf("a .title-only folder should still appear; items=%+v", m.items)
+	}
+}
+
+// TestFilteredCountDocsCountsMatches verifies the folder placeholder counts only
+// filter-reachable docs, not the full subtree (#136 review finding 4).
+func TestFilteredCountDocsCountsMatches(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "iso27001/clauses", "4-1.md", "iso27001-4-1", "Context")
+	writeDoc(t, root, "iso27001/clauses", "5-1.md", "iso27001-5-1", "Leadership")
+	writeDoc(t, root, "iso27001/clauses", "6-1.md", "iso27001-6-1", "Planning")
+
+	m := New(root)
+	// Unfiltered: clauses has 3 docs.
+	clausesIdx := -1
+	for i, it := range m.items {
+		if it.isFolder && it.label == "clauses" {
+			clausesIdx = i
+		}
+	}
+	if clausesIdx < 0 {
+		t.Fatal("clauses folder not found")
+	}
+	if n := m.countDocs(clausesIdx); n != 3 {
+		t.Errorf("unfiltered clauses should count 3 docs, got %d", n)
+	}
+	m.filter = "leadership"
+	if n := m.countDocs(clausesIdx); n != 1 {
+		t.Errorf("filtered clauses should count 1 reachable doc, got %d", n)
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -253,6 +254,14 @@ func (m *Model) clampCursor(n int) {
 	}
 }
 
+// setCursor moves the tree cursor, keeps the window/scroll in range, and loads
+// the newly-selected item into the reader pane.
+func (m *Model) setCursor(n int) {
+	m.cursor = n
+	m.clampCursor(len(m.visibleRows()))
+	m.syncPreview()
+}
+
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
@@ -269,18 +278,17 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.filterOn = false
 			return m, nil
 		case "backspace":
-			if len(m.filter) > 0 {
-				m.filter = m.filter[:len(m.filter)-1]
-				m.cursor, m.listOffset = 0, 0
-				m.syncPreview()
+			if r := []rune(m.filter); len(r) > 0 {
+				m.filter = string(r[:len(r)-1])
+				m.setCursor(0)
 			}
 			return m, nil
 		default:
-			if len(key) == 1 {
-				m.filter += key
-				m.cursor, m.listOffset = 0, 0
-				m.syncPreview()
-				return m, nil
+			// A single rune (not a multi-byte no-op) extends the filter — measure
+			// runes, not bytes, so accented/non-ASCII titles are searchable.
+			if r := []rune(key); len(r) == 1 {
+				m.filter += string(r[0])
+				m.setCursor(0)
 			}
 			return m, nil
 		}
@@ -331,9 +339,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "esc":
 		if m.filter != "" {
+			// Row indices differ between filtered and full views — reset to the top
+			// rather than leaving the cursor on an unrelated item.
 			m.filter = ""
-			m.clampCursor(len(m.visibleRows()))
-			m.syncPreview()
+			m.setCursor(0)
 		}
 		return m, nil
 
@@ -369,7 +378,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					for j := ci - 1; j >= 0; j-- {
 						if m.items[j].isFolder && m.items[j].depth < it.depth {
 							m.items[j].expanded = false
-							m.cursor = visIndexOf(m.visibleRows(), j)
+							m.cursor = slices.Index(m.visibleRows(), j)
 							break
 						}
 					}
@@ -388,41 +397,23 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "up", "k":
-		m.cursor--
-		m.clampCursor(len(m.visibleRows()))
-		m.syncPreview()
+		m.setCursor(m.cursor - 1)
 		return m, nil
 
 	case "down", "j":
-		m.cursor++
-		m.clampCursor(len(m.visibleRows()))
-		m.syncPreview()
+		m.setCursor(m.cursor + 1)
 		return m, nil
 
 	case "g":
-		m.cursor = 0
-		m.clampCursor(len(m.visibleRows()))
-		m.syncPreview()
+		m.setCursor(0)
 		return m, nil
 
 	case "G":
-		m.cursor = len(m.visibleRows()) - 1
-		m.clampCursor(len(m.visibleRows()))
-		m.syncPreview()
+		m.setCursor(len(m.visibleRows()) - 1)
 		return m, nil
 	}
 
 	return m, nil
-}
-
-// visIndexOf returns the position of item index `it` within the visible rows.
-func visIndexOf(rows []int, it int) int {
-	for i, r := range rows {
-		if r == it {
-			return i
-		}
-	}
-	return 0
 }
 
 // View implements tea.Model.
@@ -556,16 +547,40 @@ func (m Model) cursorItemIndex() int {
 	return rows[m.cursor]
 }
 
-// countDocs counts the document descendants of the folder at item index fi.
+// countDocs counts the document descendants of the folder at item index fi that
+// are actually reachable in the current view — so a filtered folder reports the
+// matches, not the full subtree.
 func (m Model) countDocs(fi int) int {
 	if fi < 0 {
 		return 0
 	}
 	d := m.items[fi].depth
-	n := 0
-	for j := fi + 1; j < len(m.items) && m.items[j].depth > d; j++ {
-		if !m.items[j].isFolder {
-			n++
+	if m.filter == "" {
+		// Full subtree — the count is meaningful even while the folder is collapsed
+		// ("3 documents · enter to expand").
+		n := 0
+		for j := fi + 1; j < len(m.items) && m.items[j].depth > d; j++ {
+			if !m.items[j].isFolder {
+				n++
+			}
+		}
+		return n
+	}
+	// Filtering: count only the docs reachable in the filtered view.
+	rows := m.visibleRows()
+	inSubtree, n := false, 0
+	for _, r := range rows {
+		if r == fi {
+			inSubtree = true
+			continue
+		}
+		if inSubtree {
+			if m.items[r].depth <= d {
+				break
+			}
+			if !m.items[r].isFolder {
+				n++
+			}
 		}
 	}
 	return n
@@ -674,7 +689,11 @@ func (m *Model) buildFolder(dir string, errs *[]string) (tnode, bool) {
 	}
 	sort.SliceStable(docs, func(i, j int) bool { return docs[i].docID < docs[j].docID })
 	n.children = append(n.children, docs...)
-	return n, len(n.children) > 0
+	// Keep an otherwise-empty folder if it carries an explicit .title, matching the
+	// web API's tree builder (server.go: `sub.Title != ""`) — a placeholder folder
+	// scaffolded before its docs should show on both surfaces. folderLabel returns
+	// the raw dir name when there's no .title, so a differing label signals one.
+	return n, len(n.children) > 0 || n.label != filepath.Base(dir)
 }
 
 // folderLabel returns a folder's display name — the content of its .title file,

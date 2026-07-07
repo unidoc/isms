@@ -221,9 +221,9 @@ func supplierEditCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dataAccess, "data-access", false, "Data access")
 	cmd.Flags().StringVar(&contact, "contact", "", "Contact")
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes (use ## Services heading)")
-	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5)")
-	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5)")
-	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5)")
+	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5, unset = not assessed)")
+	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5, unset = not assessed)")
+	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5, unset = not assessed)")
 	return cmd
 }
 

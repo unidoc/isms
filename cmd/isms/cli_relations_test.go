@@ -209,3 +209,15 @@ func TestSupplierAddRejectsOutOfRangeCIA(t *testing.T) {
 		t.Error("expected an error for --confidentiality 9 (out of 0-5)")
 	}
 }
+
+func TestSupplierAddRejectsNegativeCIA(t *testing.T) {
+	srv, _ := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high",
+		"--confidentiality", "-1"})
+	if err := cmd.Execute(); err == nil {
+		t.Error("expected an error for --confidentiality -1 (out of 0-5)")
+	}
+}

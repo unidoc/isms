@@ -751,30 +751,10 @@ func UpdateAuditFindingFieldTx(ctx context.Context, tx pgx.Tx, orgID int, id int
 	return err
 }
 
-// SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — moves a
-// finding open <-> closed and keeps closure metadata (closed_at/closed_by)
-// consistent, so suggestion-apply closes a finding exactly like the HTTP path (#26).
+// SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — shares the
+// same core (closure metadata + not-found guard) so the two can't drift (#26).
 func SetAuditFindingStatusTx(ctx context.Context, tx pgx.Tx, orgID, id int, status, closedBy string) error {
-	if status == "closed" {
-		_, err := tx.Exec(ctx, `
-			UPDATE audit_findings
-			   SET status = 'closed',
-			       closed_at = COALESCE(closed_at, now()),
-			       closed_by = $2,
-			       closed_by_user_id = (SELECT id FROM users WHERE email = $2),
-			       updated_at = now()
-			 WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, id, closedBy, orgID)
-		return err
-	}
-	_, err := tx.Exec(ctx, `
-		UPDATE audit_findings
-		   SET status = $2,
-		       closed_at = NULL,
-		       closed_by = NULL,
-		       closed_by_user_id = NULL,
-		       updated_at = now()
-		 WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, id, status, orgID)
-	return err
+	return setAuditFindingStatus(ctx, tx, orgID, id, status, closedBy)
 }
 
 // --- Review / approval Tx variants ---

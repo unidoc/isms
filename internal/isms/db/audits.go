@@ -4,7 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+// pgExecer is satisfied by both *pgxpool.Pool and pgx.Tx, so a pool-based DB
+// method and its tx variant can share one query body (no duplicated SQL).
+type pgExecer interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
 
 // --- Status / type allowlists ---
 
@@ -739,8 +747,21 @@ func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID, id int, title
 // SetAuditFindingStatus moves a finding open <-> closed and keeps closure metadata consistent.
 // On close: stamps closed_at + closed_by.  On reopen: clears closed_at, closed_by, closed_by_user_id.
 func (d *DB) SetAuditFindingStatus(ctx context.Context, orgID, id int, status, closedBy string) error {
+	return setAuditFindingStatus(ctx, d.pool, orgID, id, status, closedBy)
+}
+
+// setAuditFindingStatus is the shared core: moves a finding open<->closed and
+// keeps closure metadata consistent (closed_at/closed_by on close, cleared on
+// reopen). Errors if no row matched (nonexistent or soft-deleted), so a status
+// apply can't be recorded as "applied" for a mutation that touched nothing.
+// Runs against the pool (DB method) or a tx (SetAuditFindingStatusTx) — one body.
+func setAuditFindingStatus(ctx context.Context, e pgExecer, orgID, id int, status, closedBy string) error {
+	var (
+		tag pgconn.CommandTag
+		err error
+	)
 	if status == "closed" {
-		_, err := d.pool.Exec(ctx, `
+		tag, err = e.Exec(ctx, `
 			UPDATE audit_findings
 			   SET status = 'closed',
 			       closed_at = COALESCE(closed_at, now()),
@@ -748,17 +769,23 @@ func (d *DB) SetAuditFindingStatus(ctx context.Context, orgID, id int, status, c
 			       closed_by_user_id = (SELECT id FROM users WHERE email = $2),
 			       updated_at = now()
 			 WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, id, closedBy, orgID)
+	} else {
+		tag, err = e.Exec(ctx, `
+			UPDATE audit_findings
+			   SET status = $2,
+			       closed_at = NULL,
+			       closed_by = NULL,
+			       closed_by_user_id = NULL,
+			       updated_at = now()
+			 WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, id, status, orgID)
+	}
+	if err != nil {
 		return err
 	}
-	_, err := d.pool.Exec(ctx, `
-		UPDATE audit_findings
-		   SET status = $2,
-		       closed_at = NULL,
-		       closed_by = NULL,
-		       closed_by_user_id = NULL,
-		       updated_at = now()
-		 WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, id, status, orgID)
-	return err
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("audit finding %d not found", id)
+	}
+	return nil
 }
 
 // SoftDeleteAuditFinding marks a finding as deleted.  Refuses if the finding has

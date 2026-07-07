@@ -221,3 +221,59 @@ func TestSupplierAddRejectsNegativeCIA(t *testing.T) {
 		t.Error("expected an error for --confidentiality -1 (out of 0-5)")
 	}
 }
+
+func TestSupplierEditOmitsUnchangedFields(t *testing.T) {
+	// #147: a partial edit must only send the changed field, so the server never
+	// blanks name/type/status/data_access on an edit that didn't touch them.
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SetArgs([]string{"edit", "SUP-001", "--criticality", "high"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	b := (*got)[len(*got)-1].body
+	if b["criticality"] != "high" {
+		t.Errorf("criticality not sent: %+v", b)
+	}
+	for _, k := range []string{"name", "supplier_type", "data_access", "contact", "notes"} {
+		if _, ok := b[k]; ok {
+			t.Errorf("unchanged field %q must be omitted, got %v", k, b[k])
+		}
+	}
+}
+
+func TestSupplierEditDataAccessFalseIsSent(t *testing.T) {
+	// *bool (not bool) so an explicit --data-access=false turns it off instead of
+	// being dropped as a zero value.
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SetArgs([]string{"edit", "SUP-001", "--data-access=false"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	b := (*got)[len(*got)-1].body
+	if v, ok := b["data_access"]; !ok || v != false {
+		t.Errorf("explicit --data-access=false must be sent as false, got %v (present=%v)", v, ok)
+	}
+}
+
+func TestAssetEditOmitsUnchangedFields(t *testing.T) {
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := assetCmd()
+	cmd.SetArgs([]string{"edit", "AST-001", "--status", "archived"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	b := (*got)[len(*got)-1].body
+	if b["status"] != "archived" {
+		t.Errorf("status not sent: %+v", b)
+	}
+	for _, k := range []string{"name", "asset_type", "owner", "description", "primary_location"} {
+		if _, ok := b[k]; ok {
+			t.Errorf("unchanged field %q must be omitted, got %v", k, b[k])
+		}
+	}
+}

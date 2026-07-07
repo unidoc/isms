@@ -125,6 +125,24 @@ func assetListCmd() *cobra.Command {
 	return cmd
 }
 
+// assetEditPayload is the partial-update wire shape for `asset edit` — pointer
+// fields with omitempty so an unset flag is omitted rather than sent as a zero
+// value the server would write over an existing value (#147). Mirrors the
+// server's assetUpdateRequest.
+type assetEditPayload struct {
+	Name            *string   `json:"name,omitempty"`
+	AssetType       *string   `json:"asset_type,omitempty"`
+	Owner           *string   `json:"owner,omitempty"`
+	Description     *string   `json:"description,omitempty"`
+	Status          *string   `json:"status,omitempty"`
+	PrimaryLocation *string   `json:"primary_location,omitempty"`
+	Confidentiality *int      `json:"confidentiality,omitempty"`
+	Integrity       *int      `json:"integrity,omitempty"`
+	Availability    *int      `json:"availability,omitempty"`
+	NextReview      *db.Epoch `json:"next_review,omitempty"`
+	Notes           *string   `json:"notes,omitempty"`
+}
+
 func assetEditCmd() *cobra.Command {
 	var (
 		name            string
@@ -148,24 +166,26 @@ func assetEditCmd() *cobra.Command {
 			id := args[0]
 
 			c := requireAPI()
-			update := &db.Asset{}
+			// Only fields whose flag was set go on the wire; everything else is
+			// omitted so a partial edit never blanks an untouched field (#147).
+			update := &assetEditPayload{}
 			if cmd.Flags().Changed("name") {
-				update.Name = name
+				update.Name = &name
 			}
 			if cmd.Flags().Changed("type") {
-				update.AssetType = assetType
+				update.AssetType = &assetType
 			}
 			if cmd.Flags().Changed("owner") {
-				update.Owner = owner
+				update.Owner = &owner
 			}
 			if cmd.Flags().Changed("desc") {
-				update.Description = description
+				update.Description = &description
 			}
 			if cmd.Flags().Changed("status") {
-				update.Status = status
+				update.Status = &status
 			}
 			if cmd.Flags().Changed("location") {
-				update.PrimaryLocation = primaryLocation
+				update.PrimaryLocation = &primaryLocation
 			}
 			if cmd.Flags().Changed("confidentiality") {
 				update.Confidentiality = &confidentiality
@@ -184,7 +204,7 @@ func assetEditCmd() *cobra.Command {
 				update.NextReview = rd
 			}
 			if cmd.Flags().Changed("notes") {
-				update.Notes = notes
+				update.Notes = &notes
 			}
 			if _, err := c.UpdateAsset(id, update); err != nil {
 				return err

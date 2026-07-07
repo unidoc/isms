@@ -149,6 +149,25 @@ class TestChangeType:
         })
         assert r.status_code == 400, r.text
 
+    def test_suggestion_apply_change_type(self, api_url, admin_headers):
+        """The suggestion-apply path (agents/MCP) can reclassify type too."""
+        r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+            "title": "Reclassify via suggestion", "description": "x"})
+        assert r.status_code == 201, r.text
+        cid = r.json()["id"]
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "change_request", "suggestion_type": "update",
+            "entity_id": str(cid),
+            "payload": {"fields": {"type": "access_request"}},
+            "rationale": "misclassified", "title": "reclassify"})
+        assert sg.status_code in (200, 201), sg.text
+        # force=true bypasses the fresh entity's own create-changelog stale flag.
+        ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
+                           headers=admin_headers, json={"force": True})
+        assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
+        r = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers)
+        assert r.json()["type"] == "access_request", r.text
+
     def test_type_editable_after_create(self, api_url, admin_headers):
         """Type is settable on an existing change (misclassification is fixable)."""
         r = requests.post(f"{api_url}/changes", headers=admin_headers, json={

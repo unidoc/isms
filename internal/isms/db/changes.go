@@ -143,9 +143,9 @@ func (d *DB) ListChangeRequests(ctx context.Context, orgID int, status string, l
 }
 
 func (d *DB) UpdateChangeRequest(ctx context.Context, orgID int, id int, cr *ChangeRequest) error {
-	if cr.Type == "" {
-		cr.Type = "change"
-	}
+	// No empty→'change' default here: on update the row already has a type, and
+	// silently rewriting an unset value would reclassify an access_request back to
+	// change instead of failing loudly on the DB CHECK (both callers load first).
 	_, err := d.pool.Exec(ctx, `
 		UPDATE change_requests SET title = $2, description = $3, justification = $4,
 			priority = $5, category = $6, risk_level = $7, rollback_plan = $8, notes = $9,

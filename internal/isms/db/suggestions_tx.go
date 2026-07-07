@@ -463,9 +463,8 @@ func CreateChangeRequestTx(ctx context.Context, tx pgx.Tx, orgID int, cr *Change
 
 // UpdateChangeRequestTx updates a change request within an existing transaction.
 func UpdateChangeRequestTx(ctx context.Context, tx pgx.Tx, orgID int, id int, cr *ChangeRequest) error {
-	if cr.Type == "" {
-		cr.Type = "change"
-	}
+	// No empty→'change' default on update — see UpdateChangeRequest. Rely on the
+	// DB CHECK to reject a bad/blank type loudly rather than silently reclassify.
 	_, err := tx.Exec(ctx, `
 		UPDATE change_requests SET title = $2, description = $3, justification = $4,
 			priority = $5, category = $6, risk_level = $7, rollback_plan = $8, notes = $9,

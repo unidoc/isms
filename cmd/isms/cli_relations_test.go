@@ -168,3 +168,56 @@ func TestReviewApproveUsesApprovalEndpoint(t *testing.T) {
 		t.Errorf("comment not forwarded: body=%v", r.body)
 	}
 }
+
+func TestSupplierAddSendsCIA(t *testing.T) {
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high",
+		"--confidentiality", "3", "--integrity", "4", "--availability", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	b := (*got)[len(*got)-1].body
+	if b["confidentiality"] != float64(3) || b["integrity"] != float64(4) || b["availability"] != float64(5) {
+		t.Errorf("CIA ratings not sent: %+v", b)
+	}
+}
+
+func TestSupplierAddOmitsUnsetCIA(t *testing.T) {
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	// Unset → null (not assessed); the **int update DTO treats null as skip.
+	if b := (*got)[len(*got)-1].body; b["confidentiality"] != nil {
+		t.Errorf("unset confidentiality should be null, got %v", b["confidentiality"])
+	}
+}
+
+func TestSupplierAddRejectsOutOfRangeCIA(t *testing.T) {
+	srv, _ := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high",
+		"--confidentiality", "9"})
+	if err := cmd.Execute(); err == nil {
+		t.Error("expected an error for --confidentiality 9 (out of 0-5)")
+	}
+}
+
+func TestSupplierAddRejectsNegativeCIA(t *testing.T) {
+	srv, _ := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high",
+		"--confidentiality", "-1"})
+	if err := cmd.Execute(); err == nil {
+		t.Error("expected an error for --confidentiality -1 (out of 0-5)")
+	}
+}

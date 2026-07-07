@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -144,11 +145,26 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	return c.JSON(http.StatusCreated, p)
 }
 
+// resolveProgramID accepts either a numeric program id or a program key (e.g.
+// "AWARE"). Cross-entity reference chips link programs by key, while the register's
+// own list links by id — both must reach these endpoints. Mirrors the id-or-key
+// fallback the reference title resolver already uses.
+func (s *Server) resolveProgramID(ctx context.Context, orgID int, raw string) (int64, error) {
+	if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		return id, nil
+	}
+	p, err := s.db.GetProgramByKey(ctx, orgID, raw)
+	if err != nil {
+		return 0, err
+	}
+	return p.ID, nil
+}
+
 func (s *Server) handleGetProgram(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := s.resolveProgramID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return echo.NewHTTPError(http.StatusNotFound, "program not found")
 	}
 	p, err := s.db.GetProgram(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -163,9 +179,9 @@ func (s *Server) handleUpdateProgram(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := s.resolveProgramID(ctx, orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return echo.NewHTTPError(http.StatusNotFound, "program not found")
 	}
 
 	old, err := s.db.GetProgram(ctx, orgID, id)
@@ -217,9 +233,9 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := s.resolveProgramID(ctx, orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return echo.NewHTTPError(http.StatusNotFound, "program not found")
 	}
 
 	if err := s.db.DeleteProgram(ctx, orgID, id); err != nil {

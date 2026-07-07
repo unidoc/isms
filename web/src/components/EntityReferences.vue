@@ -98,7 +98,7 @@ const typeRoutes = {
   corrective_action: 'corrective-actions',
   control: 'documents',
   objective: 'objectives',
-  program: 'objectives',
+  program: 'programs',
   task: 'tasks',
 }
 
@@ -130,7 +130,7 @@ function refRoute(r) {
     return orgPath(`/documents/${other.id}`)
   }
   // Deep link for entity types that support /:id routes
-  const deepLinkTypes = ['change', 'incident', 'corrective_action', 'supplier', 'asset', 'task', 'risk', 'legal', 'system']
+  const deepLinkTypes = ['change', 'incident', 'corrective_action', 'supplier', 'asset', 'task', 'risk', 'legal', 'system', 'program']
   if (deepLinkTypes.includes(other.type) && other.id) {
     const numId = other.id.replace(/^[A-Z]+-/, '')
     return orgPath(`/${routeBase}/${numId}`)
@@ -138,7 +138,7 @@ function refRoute(r) {
   // Objective deep-links need tab prefix
   if (other.type === 'objective' && other.id) {
     const numId = other.id.replace(/^[A-Z]+-/, '')
-    return orgPath(`/objectives/objectives/${numId}`)
+    return orgPath(`/objectives/${numId}`)
   }
   // Audit deep-links need tab prefix
   if (other.type === 'audit' && other.id) {

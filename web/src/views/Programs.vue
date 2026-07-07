@@ -351,10 +351,13 @@ function closeDetail() {
 }
 
 async function openFromRoute(id) {
+  // id may be a numeric program id (register list links) or a program key like
+  // "AWARE" (cross-entity reference chips link by key). Match either, and pass the
+  // raw value to the API — the backend resolves id-or-key.
   const numId = parseInt(id)
-  let p = programs.value.find(x => x.id === numId)
+  let p = programs.value.find(x => x.id === numId || x.key === id)
   if (!p) {
-    try { p = await api.getProgram(numId) } catch { return }
+    try { p = await api.getProgram(id) } catch { return }
   }
   if (!p) return
   selected.value = p

@@ -21,13 +21,16 @@ func supplierCmd() *cobra.Command {
 
 func supplierAddCmd() *cobra.Command {
 	var (
-		name         string
-		supplierType string
-		criticality  string
-		dataAccess   bool
-		contact      string
-		contractRef  string
-		notes        string
+		name            string
+		supplierType    string
+		criticality     string
+		dataAccess      bool
+		contact         string
+		contractRef     string
+		notes           string
+		confidentiality int
+		integrity       int
+		availability    int
 	)
 
 	cmd := &cobra.Command{
@@ -36,6 +39,9 @@ func supplierAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if name == "" || supplierType == "" || criticality == "" {
 				return fmt.Errorf("required: --name, --type, --criticality")
+			}
+			if err := validateCIA(cmd); err != nil {
+				return err
 			}
 
 			c := requireAPI()
@@ -47,6 +53,17 @@ func supplierAddCmd() *cobra.Command {
 				Contact:      contact,
 				ContractRef:  contractRef,
 				Notes:        notes,
+			}
+			// CIA ratings: set only when supplied, so an unset flag stays NULL
+			// (not assessed) rather than writing 0.
+			if cmd.Flags().Changed("confidentiality") {
+				sup.Confidentiality = &confidentiality
+			}
+			if cmd.Flags().Changed("integrity") {
+				sup.Integrity = &integrity
+			}
+			if cmd.Flags().Changed("availability") {
+				sup.Availability = &availability
 			}
 			result, err := c.AddSupplier(sup)
 			if err != nil {
@@ -64,7 +81,25 @@ func supplierAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&contact, "contact", "", "Contact info")
 	cmd.Flags().StringVar(&contractRef, "contract-ref", "", "Contract reference")
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes (use ## Services heading to describe services)")
+	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5, unset = not assessed)")
+	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5, unset = not assessed)")
+	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5, unset = not assessed)")
 	return cmd
+}
+
+// validateCIA checks that any supplied CIA rating flag is within the DB's 0-5
+// range, giving a fast, friendly error before the API round-trip.
+func validateCIA(cmd *cobra.Command) error {
+	for _, f := range []string{"confidentiality", "integrity", "availability"} {
+		if !cmd.Flags().Changed(f) {
+			continue
+		}
+		v, _ := cmd.Flags().GetInt(f)
+		if v < 0 || v > 5 {
+			return fmt.Errorf("--%s must be between 0 and 5", f)
+		}
+	}
+	return nil
 }
 
 func supplierListCmd() *cobra.Command {
@@ -120,12 +155,15 @@ func supplierListCmd() *cobra.Command {
 
 func supplierEditCmd() *cobra.Command {
 	var (
-		name         string
-		supplierType string
-		criticality  string
-		dataAccess   bool
-		contact      string
-		notes        string
+		name            string
+		supplierType    string
+		criticality     string
+		dataAccess      bool
+		contact         string
+		notes           string
+		confidentiality int
+		integrity       int
+		availability    int
 	)
 
 	cmd := &cobra.Command{
@@ -134,6 +172,9 @@ func supplierEditCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id := args[0]
+			if err := validateCIA(cmd); err != nil {
+				return err
+			}
 
 			c := requireAPI()
 			update := &db.Supplier{}
@@ -155,6 +196,17 @@ func supplierEditCmd() *cobra.Command {
 			if cmd.Flags().Changed("notes") {
 				update.Notes = notes
 			}
+			// CIA sent only when supplied; the update DTO skips a nil/null rating,
+			// so unrelated edits never disturb an existing rating.
+			if cmd.Flags().Changed("confidentiality") {
+				update.Confidentiality = &confidentiality
+			}
+			if cmd.Flags().Changed("integrity") {
+				update.Integrity = &integrity
+			}
+			if cmd.Flags().Changed("availability") {
+				update.Availability = &availability
+			}
 			if _, err := c.UpdateSupplier(id, update); err != nil {
 				return err
 			}
@@ -169,6 +221,9 @@ func supplierEditCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dataAccess, "data-access", false, "Data access")
 	cmd.Flags().StringVar(&contact, "contact", "", "Contact")
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes (use ## Services heading)")
+	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5)")
+	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5)")
+	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5)")
 	return cmd
 }
 

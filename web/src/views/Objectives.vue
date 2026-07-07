@@ -21,139 +21,17 @@
           <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Objectives</h1>
           <p class="text-sm text-slate-500 mt-1">Track measurable ISMS objectives and KPI performance</p>
         </div>
-      </div>
-
-      <!-- Tabs + actions -->
-      <div class="flex items-center border-b border-slate-800">
-        <div class="flex gap-1 flex-1">
-          <button
-            v-for="t in tabs" :key="t.key"
-            @click="switchTab(t.key)"
-            class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
-            :class="activeTab === t.key ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'"
-          >{{ t.label }}</button>
-        </div>
-        <div class="flex gap-2 pb-1">
-          <button v-if="canWrite" @click="activeTab === 'programs' ? (showCreateProgram = !showCreateProgram) : (showCreateObjective = !showCreateObjective)"
+        <div class="flex gap-2">
+          <button v-if="canWrite" @click="showCreateObjective = !showCreateObjective"
             class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            {{ activeTab === 'programs' ? 'Add Program' : 'Add Objective' }}
+            Add Objective
           </button>
-          <SuggestNewButton :entityType="activeTab === 'programs' ? 'program' : 'objective'" :typeLabel="activeTab === 'programs' ? 'Program' : 'Objective'" />
+          <SuggestNewButton entityType="objective" typeLabel="Objective" />
         </div>
       </div>
 
-      <!-- Create program form (modal) -->
-      <Teleport to="body">
-      <Transition name="modal">
-      <div v-if="showCreateProgram" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4">
-        <div class="absolute inset-0 bg-black/60" @click="showCreateProgram = false" />
-        <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
-          <h3 class="text-sm font-semibold text-slate-300">Add Program</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-slate-500 mb-1">Key (uppercase) *</label>
-              <input v-model="newProgram.key" @input="newProgram.key = newProgram.key.toUpperCase().replace(/[^A-Z0-9]/g, '')"
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
-                placeholder="AWARE" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 mb-1">Title *</label>
-              <input v-model="newProgram.title"
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Security Awareness" />
-            </div>
-          </div>
-          <div class="text-[10px] text-slate-600 mt-1">You can add description and notes after creating.</div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button @click="showCreateProgram = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
-            <button @click="createProgram" :disabled="!newProgram.key || !newProgram.title"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors">
-              Add
-            </button>
-          </div>
-        </div>
-      </div>
-      </Transition>
-      </Teleport>
-
-      <!-- Edit program modal -->
-      <Teleport to="body">
-      <Transition name="modal">
-      <div v-if="showEditProgram" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4">
-        <div class="absolute inset-0 bg-black/60" @click="showEditProgram = false" />
-        <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
-          <h3 class="text-sm font-semibold text-slate-300">Edit Program</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-slate-500 mb-1">Key (uppercase)</label>
-              <input v-model="editProgramData.key" @input="editProgramData.key = editProgramData.key.toUpperCase().replace(/[^A-Z0-9]/g, '')"
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
-                placeholder="AWARE" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 mb-1">Title</label>
-              <input v-model="editProgramData.title"
-                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Security Awareness" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-slate-500 mb-1">Description</label>
-              <MarkdownField v-model="editProgramData.description" :rows="2" placeholder="Program description" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-slate-500 mb-1">Notes</label>
-              <MarkdownField v-model="editProgramData.notes" :rows="2" placeholder="Additional notes..." />
-            </div>
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button @click="showEditProgram = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
-            <button @click="saveProgram" :disabled="!editProgramData.key || !editProgramData.title"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors">
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-      </Transition>
-      </Teleport>
-
-      <!-- Programs Tab -->
-      <div v-if="activeTab === 'programs'" class="space-y-6">
-        <!-- Programs list -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-800">
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Key</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Objectives</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800/50">
-              <tr v-for="p in programs" :key="p.id" class="hover:bg-slate-800/30 transition-colors">
-                <td class="px-4 py-3 font-mono text-blue-400 font-medium">{{ p.key }}</td>
-                <td class="px-4 py-3 text-slate-200">{{ p.title }}</td>
-                <td class="px-4 py-3 text-slate-400 tabular-nums">{{ objectiveCountByProgram(p.id) }}</td>
-                <td class="px-4 py-3 text-slate-500 truncate max-w-xs">{{ p.description || '-' }}</td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-2">
-                    <button @click="editProgram(p)" class="text-xs text-blue-400 hover:text-blue-300">Edit</button>
-                    <button @click="deleteProgram(p)" class="text-xs text-red-400 hover:text-red-300">Delete</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="programs.length === 0">
-                <td colspan="5" class="px-4 py-8 text-center text-slate-600 text-sm">No programs yet</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Objectives Tab -->
-      <div v-if="activeTab === 'objectives'" class="space-y-6">
+      <!-- Objectives -->
+      <div class="space-y-6">
         <!-- Stats cards -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
@@ -274,10 +152,7 @@
                   <span v-else class="text-slate-600">-</span>
                 </td>
                 <td class="px-4 py-3">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                    :class="statusClass(o.status)">
-                    {{ statusLabel(o.status) }}
-                  </span>
+                  <StatusBadge :status="o.status" />
                 </td>
                 <td class="px-4 py-3 text-slate-400 text-xs">{{ resolveUserName(o.owner) }}</td>
                 <td class="px-4 py-3" @click.stop>
@@ -318,9 +193,7 @@
             <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedObjective.title }}</h2>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium" :class="statusClass(selectedObjective.status)">
-              {{ statusLabel(selectedObjective.status) }}
-            </span>
+            <StatusBadge :status="selectedObjective.status" />
             <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
               <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -648,6 +521,7 @@ import HistoryPanel from '../components/HistoryPanel.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
+import StatusBadge from '../components/StatusBadge.vue'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
@@ -668,11 +542,7 @@ const objectives = ref([])
 const checkins = ref([])
 const selectedObjective = ref(null)
 const showCreateObjective = ref(false)
-const showCreateProgram = ref(false)
-const showEditProgram = ref(false)
-useModalEscape(showCreateProgram)
 useModalEscape(showCreateObjective)
-useModalEscape(showEditProgram)
 useModalEscape(computed(() => !!selectedObjective.value), () => closeDetail())
 const pendingRefs = ref([])
 const evidenceByCheckin = ref({})
@@ -709,19 +579,6 @@ const total = ref(0)
 const stats = ref({ total: 0, draft: 0, active: 0, at_risk: 0, paused: 0, complete: 0, archived: 0 })
 const orgMembers = ref([])
 
-const tabs = [
-  { key: 'programs', label: 'Programs' },
-  { key: 'objectives', label: 'Objectives' },
-]
-
-const activeTab = computed(() => route.params.tab || 'objectives')
-
-function switchTab(tab) {
-  router.push(orgPath(`/objectives/${tab}`))
-}
-
-const newProgram = reactive({ key: '', title: '' })
-const editProgramData = reactive({ id: null, key: '', title: '', description: '', notes: '' })
 const newObjective = reactive({
   program_id: '',
   title: '',
@@ -733,22 +590,6 @@ const newCheckin = reactive({
   message: '',
   public_note: '',
 })
-
-function objectiveCountByProgram(programId) {
-  // Best-effort: only counts objectives on the current page. Programs table is for navigation only.
-  return (Array.isArray(objectives.value) ? objectives.value : []).filter(o => o.program_id === programId).length
-}
-
-function statusClass(status) {
-  const map = {
-    draft: 'bg-slate-500/20 text-slate-400',
-    active: 'bg-emerald-500/20 text-emerald-300',
-    at_risk: 'bg-red-500/20 text-red-300',
-    paused: 'bg-amber-500/20 text-amber-300',
-    complete: 'bg-blue-500/20 text-blue-300',
-  }
-  return map[status] || 'bg-slate-500/20 text-slate-400'
-}
 
 function statusLabel(status) {
   const map = { draft: 'Draft', active: 'Active', at_risk: 'At Risk', paused: 'Paused', complete: 'Complete' }
@@ -857,7 +698,7 @@ async function selectObjective(o) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/objectives/objectives/${o.id}`))
+  router.push(orgPath(`/objectives/${o.id}`))
 }
 
 async function switchDetailTab(key) {
@@ -882,7 +723,7 @@ async function closeDetail() {
     })
     if (!ok) return
   }
-  router.push(orgPath('/objectives/objectives'))
+  router.push(orgPath('/objectives'))
 }
 
 async function openObjectiveFromRoute(id) {
@@ -965,64 +806,6 @@ async function deleteSelectedObjective() {
   }
 }
 
-async function createProgram() {
-  try {
-    const created = await api.createProgram({
-      key: newProgram.key,
-      title: newProgram.title,
-    })
-    newProgram.key = ''
-    newProgram.title = ''
-    showCreateProgram.value = false
-    await loadAll()
-    // Drop user into program edit modal so they can keep filling things in.
-    if (created && created.id) {
-      let fresh = created
-      try { fresh = await api.getProgram(created.id) } catch { /* fall back */ }
-      Object.assign(editProgramData, {
-        id: fresh.id,
-        key: fresh.key || '',
-        title: fresh.title || '',
-        description: fresh.description || '',
-        notes: fresh.notes || '',
-      })
-      showEditProgram.value = true
-    }
-  } catch (e) {
-    error.value = e.message
-  }
-}
-
-async function deleteProgram(p) {
-  if (!await confirmAsk(`Delete program "${p.key}"? All objectives under it will also be deleted.`, { confirm: 'Delete', variant: 'danger' })) return
-  try {
-    await api.deleteProgram(p.id)
-    await loadAll()
-  } catch (e) {
-    error.value = e.message
-  }
-}
-
-function editProgram(p) {
-  Object.assign(editProgramData, { id: p.id, key: p.key, title: p.title, description: p.description || '', notes: p.notes || '' })
-  showEditProgram.value = true
-}
-
-async function saveProgram() {
-  try {
-    await api.updateProgram(editProgramData.id, {
-      key: editProgramData.key,
-      title: editProgramData.title,
-      description: editProgramData.description,
-      notes: editProgramData.notes,
-    })
-    showEditProgram.value = false
-    await loadAll()
-  } catch (e) {
-    error.value = e.message
-  }
-}
-
 async function createObjective() {
   try {
     const payload = { ...newObjective }
@@ -1050,7 +833,7 @@ async function createObjective() {
       startEditObjective(fresh)
       editingSection.value = 'overview'
       loadCheckins()
-      router.push(orgPath(`/objectives/objectives/${fresh.id}`))
+      router.push(orgPath(`/objectives/${fresh.id}`))
     }
   } catch (e) {
     error.value = e.message

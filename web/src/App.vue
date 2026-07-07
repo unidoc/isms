@@ -226,6 +226,15 @@
               </svg>
               <span v-if="!sidebarCollapsed">Objectives</span>
             </router-link>
+            <router-link v-if="hasOrg" :to="orgPath('/programs')"
+              class="flex items-center gap-2.5 py-1.5 text-sm rounded-lg transition-colors"
+              :class="[route.path.startsWith(orgPath('/programs')) ? 'bg-slate-800 text-white font-medium' : 'text-slate-400 hover:text-white hover:bg-slate-800/50', sidebarCollapsed ? 'px-2.5 justify-center' : 'px-2']"
+              :title="sidebarCollapsed ? 'Programs' : undefined">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span v-if="!sidebarCollapsed">Programs</span>
+            </router-link>
             <router-link v-if="hasOrg" :to="orgPath('/audit')"
               class="flex items-center gap-2.5 py-1.5 text-sm rounded-lg transition-colors"
               :class="[route.path.startsWith(orgPath('/audit')) ? 'bg-slate-800 text-white font-medium' : 'text-slate-400 hover:text-white hover:bg-slate-800/50', sidebarCollapsed ? 'px-2.5 justify-center' : 'px-2']"
@@ -579,9 +588,13 @@ const nav = computed(() => {
     { path: orgPath('/assets'), label: 'Assets' },
     { path: orgPath('/systems'), label: 'Systems' },
     { path: orgPath('/objectives'), label: 'Objectives' },
+    { path: orgPath('/programs'), label: 'Programs' },
     { path: orgPath('/audit'), label: 'Audit' },
     { path: orgPath('/corrective-actions'), label: 'Corrective Actions' },
     { path: orgPath('/incidents'), label: 'Incidents' },
+    { path: orgPath('/changes'), label: 'Change Management' },
+    { path: orgPath('/tasks'), label: 'Tasks' },
+    { path: orgPath('/reviews'), label: 'Reviews' },
   ]
   if (currentUserData.value?.role === 'admin') {
     base.push({ path: orgPath('/admin'), label: 'Admin' })

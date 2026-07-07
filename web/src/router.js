@@ -23,6 +23,7 @@ const Changes = () => import('./views/Changes.vue')
 const Tasks = () => import('./views/Tasks.vue')
 const Legal = () => import('./views/Legal.vue')
 const Objectives = () => import('./views/Objectives.vue')
+const Programs = () => import('./views/Programs.vue')
 const Reviews = () => import('./views/Reviews.vue')
 const Settings = () => import('./views/Settings.vue')
 const Admin = () => import('./views/Admin.vue')
@@ -48,8 +49,9 @@ const orgScopedRoutes = [
   { path: '/legal', component: Legal },
   { path: '/legal/:id', component: Legal },
   { path: '/objectives', component: Objectives },
-  { path: '/objectives/:tab', component: Objectives },
-  { path: '/objectives/:tab/:objId', component: Objectives },
+  { path: '/objectives/:objId', component: Objectives },
+  { path: '/programs', component: Programs },
+  { path: '/programs/:id', component: Programs },
   { path: '/audit', component: Audit },
   { path: '/audit/:tab', component: Audit },
   { path: '/audit/:tab/:itemId', component: Audit },

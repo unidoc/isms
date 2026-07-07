@@ -112,6 +112,7 @@ class TestSmoke:
         ("Corrective Actions", "Corrective"),
         ("Incidents", "Incident"),
         ("Objectives", "Objectives"),
+        ("Programs", "Program Register"),
         ("Tasks", "Tasks"),
         ("Inbox", "Inbox"),
         ("Admin", "Members"),

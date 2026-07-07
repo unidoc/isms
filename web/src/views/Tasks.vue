@@ -140,11 +140,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm font-medium text-slate-200">{{ task.title }}</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  :class="statusClass(task.status)">
-                  <span class="w-1.5 h-1.5 rounded-full" :class="statusDot(task.status)"></span>
-                  {{ task.status.replace(/_/g, ' ') }}
-                </span>
+                <StatusBadge :status="task.status" />
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(task.priority)">{{ task.priority }}</span>
                 <span v-if="task.task_type && task.task_type !== 'general'" class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ task.task_type.replace(/_/g, ' ') }}</span>
               </div>
@@ -529,25 +525,6 @@ function priorityClass(p) {
     case 'high': return 'bg-amber-500/15 text-amber-400'
     case 'medium': return 'bg-blue-500/15 text-blue-400'
     default: return 'bg-slate-500/15 text-slate-400'
-  }
-}
-
-function statusClass(s) {
-  switch (s) {
-    case 'open': return 'bg-blue-500/15 text-blue-400'
-    case 'in_progress': return 'bg-amber-500/15 text-amber-400'
-    case 'done': return 'bg-emerald-500/15 text-emerald-400'
-    case 'cancelled': return 'bg-slate-500/15 text-slate-400'
-    default: return 'bg-slate-500/15 text-slate-400'
-  }
-}
-
-function statusDot(s) {
-  switch (s) {
-    case 'open': return 'bg-blue-400'
-    case 'in_progress': return 'bg-amber-400'
-    case 'done': return 'bg-emerald-400'
-    default: return 'bg-slate-400'
   }
 }
 

@@ -125,11 +125,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm font-medium text-slate-200">{{ cr.title }}</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  :class="statusClass(cr.status)">
-                  <span class="w-1.5 h-1.5 rounded-full" :class="statusDot(cr.status)"></span>
-                  {{ cr.status }}
-                </span>
+                <StatusBadge :status="cr.status" />
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(cr.priority)">{{ cr.priority }}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ cr.category }}</span>
               </div>
@@ -505,29 +501,6 @@ const statusStats = computed(() => {
     { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-500' },
   ]
 })
-
-function statusClass(s) {
-  switch (s) {
-    case 'proposed': return 'bg-blue-500/15 text-blue-400'
-    case 'approved': return 'bg-emerald-500/15 text-emerald-400'
-    case 'in_progress': return 'bg-amber-500/15 text-amber-400'
-    case 'rejected': return 'bg-red-500/15 text-red-400'
-    case 'implemented': return 'bg-purple-500/15 text-purple-400'
-    case 'closed': return 'bg-slate-500/15 text-slate-400'
-    default: return 'bg-slate-500/15 text-slate-400'
-  }
-}
-
-function statusDot(s) {
-  switch (s) {
-    case 'proposed': return 'bg-blue-400'
-    case 'approved': return 'bg-emerald-400'
-    case 'in_progress': return 'bg-amber-400'
-    case 'rejected': return 'bg-red-400'
-    case 'implemented': return 'bg-purple-400'
-    default: return 'bg-slate-400'
-  }
-}
 
 function priorityClass(p) {
   switch (p) {

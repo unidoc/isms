@@ -177,10 +177,7 @@
               {{ sourceLabel(ca.source) }}
             </span>
             <!-- Status badge -->
-            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full whitespace-nowrap"
-              :class="statusClass(ca.status)">
-              {{ statusLabel(ca.status) }}
-            </span>
+            <StatusBadge :status="ca.status" />
             <!-- Title -->
             <span class="text-sm font-medium text-slate-200 flex-1 truncate">{{ ca.title }}</span>
             <!-- Assignee -->
@@ -209,10 +206,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedCA.title }}</h2>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap"
-                :class="statusClass(selectedCA.status)">
-                {{ statusLabel(selectedCA.status) }}
-              </span>
+              <StatusBadge :status="selectedCA.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -431,6 +425,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
+import StatusBadge from '../components/StatusBadge.vue'
 import EntityReferences from '../components/EntityReferences.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
@@ -890,18 +885,6 @@ function severityClass(sev) {
     case 'observation': return 'bg-blue-900/60 text-blue-300 border border-blue-800'
     case 'opportunity': return 'bg-emerald-900/60 text-emerald-300 border border-emerald-800'
     default: return 'bg-slate-800 text-slate-400 border border-slate-700'
-  }
-}
-
-function statusClass(status) {
-  switch (status) {
-    case 'todo': return 'bg-red-900/40 text-red-400'
-    case 'assessment': return 'bg-amber-900/40 text-amber-400'
-    case 'awaiting_approval': return 'bg-purple-900/40 text-purple-400'
-    case 'implementation': return 'bg-blue-900/40 text-blue-400'
-    case 'monitoring': return 'bg-cyan-900/40 text-cyan-400'
-    case 'resolved': return 'bg-emerald-900/40 text-emerald-400'
-    default: return 'bg-slate-800 text-slate-400'
   }
 }
 

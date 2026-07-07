@@ -872,18 +872,8 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		Criticality:  payload.Criticality,
 		Owner:        payload.Owner,
 		Notes:        payload.Notes,
-		Status:       "active",
 	}
-	if sup.SupplierType == "" {
-		sup.SupplierType = "other"
-	}
-	if sup.Criticality == "" {
-		sup.Criticality = "medium"
-	}
-	// Services description seeded into notes (## Services heading).
-	if sup.Notes == "" {
-		sup.Notes = "## Services\n\n"
-	}
+	applySupplierDefaults(&sup, actor)
 
 	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup); err != nil {
 		return "", err
@@ -963,13 +953,7 @@ func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		Owner:        payload.Owner,
 		Notes:        payload.Notes,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if lr.Jurisdiction == "" {
-		lr.Jurisdiction = "EU"
-	}
-	if lr.Category == "" {
-		lr.Category = "privacy"
-	}
+	applyLegalDefaults(&lr, actor)
 
 	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr); err != nil {
 		return "", err
@@ -1302,11 +1286,8 @@ func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 		MeasurementMethod: payload.MeasurementMethod,
 		TargetValue:       payload.TargetValue,
 		Unit:              payload.Unit,
-		Status:            "draft",
 	}
-	if o.Owner == "" {
-		o.Owner = actor
-	}
+	applyObjectiveDefaults(&o, actor)
 	if err := db.CreateObjectiveTx(ctx, tx, orgID, &o); err != nil {
 		return "", err
 	}
@@ -1393,23 +1374,7 @@ func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		Department:     payload.Department,
 		Owner:          payload.Owner,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if sys.Classification == "" {
-		sys.Classification = "internal"
-	}
-	if sys.Criticality == "" {
-		sys.Criticality = "medium"
-	}
-	if sys.Owner == "" {
-		sys.Owner = actor
-	}
-	// Seed description with ## Purpose and notes with ## Access control when empty.
-	if sys.Description == "" {
-		sys.Description = "## Purpose\n\n"
-	}
-	if sys.Notes == "" {
-		sys.Notes = "## Access control\n\n"
-	}
+	applySystemDefaults(&sys, actor)
 	if err := db.CreateSystemTx(ctx, tx, orgID, &sys); err != nil {
 		return "", err
 	}
@@ -1502,16 +1467,7 @@ func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		AssetType:   payload.AssetType,
 		Owner:       payload.Owner,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if a.AssetType == "" {
-		a.AssetType = "other"
-	}
-	if a.Status == "" {
-		a.Status = "active"
-	}
-	if a.Owner == "" {
-		a.Owner = actor
-	}
+	applyAssetDefaults(&a, actor)
 	if err := db.CreateAssetTx(ctx, tx, orgID, &a); err != nil {
 		return "", err
 	}

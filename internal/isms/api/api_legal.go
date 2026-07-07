@@ -124,18 +124,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 		Completion:        req.Completion,
 	}
 
-	if lr.Jurisdiction == "" {
-		lr.Jurisdiction = "EU"
-	}
-	if lr.Category == "" {
-		lr.Category = "privacy"
-	}
-	if lr.Owner == "" {
-		lr.Owner = getUserEmail(c)
-	}
-	if lr.Status == "" {
-		lr.Status = "open"
-	}
+	applyLegalDefaults(&lr, getUserEmail(c))
 	if err := validateEnum("status", lr.Status, db.LegalStatuses); err != nil {
 		return err
 	}

@@ -1879,15 +1879,7 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 	}
-	if a.Owner == "" {
-		a.Owner = getUserEmail(c)
-	}
-	if a.Status == "" {
-		a.Status = "open"
-	}
-	if a.AssetType == "" {
-		a.AssetType = "other"
-	}
+	applyAssetDefaults(&a, getUserEmail(c))
 	if err := validateEnum("status", a.Status, db.AssetStatuses); err != nil {
 		return err
 	}
@@ -2022,20 +2014,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		Owner:           req.Owner,
 		Notes:           req.Notes,
 	}
-	if sys.Status == "" {
-		sys.Status = "active"
-	}
-	if sys.Owner == "" {
-		sys.Owner = getUserEmail(c)
-	}
-	// Seed description with ## Purpose heading; seed notes with ## Access control heading.
-	// Only when fields are empty so we never overwrite user input.
-	if sys.Description == "" {
-		sys.Description = "## Purpose\n\n"
-	}
-	if sys.Notes == "" {
-		sys.Notes = "## Access control\n\n"
-	}
+	applySystemDefaults(&sys, getUserEmail(c))
 	if err := validateEnum("status", sys.Status, db.SystemStatuses); err != nil {
 		return err
 	}
@@ -2440,22 +2419,7 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 	}
-	if sup.Status == "" {
-		sup.Status = "active"
-	}
-	if sup.SupplierType == "" {
-		sup.SupplierType = "other"
-	}
-	if sup.Criticality == "" {
-		sup.Criticality = "medium"
-	}
-	if sup.Owner == "" {
-		sup.Owner = getUserEmail(c)
-	}
-	// Seed notes with ## Services heading when empty.
-	if sup.Notes == "" {
-		sup.Notes = "## Services\n\n"
-	}
+	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateEnum("status", sup.Status, db.SupplierStatuses); err != nil {
 		return err
 	}

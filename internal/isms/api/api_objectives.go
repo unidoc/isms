@@ -336,6 +336,7 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		StartedAt:         req.StartedAt,
 		Notes:             req.Notes,
 	}
+	applyObjectiveDefaults(&o, getUserEmail(c))
 
 	if err := s.db.CreateObjective(ctx, orgID, &o); err != nil {
 		return pgxHTTPError(err)

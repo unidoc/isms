@@ -385,18 +385,15 @@ func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 	lr.OrganizationID = orgID
 	lr.CalculateRiskScore(nil)
 
-	var seq int
-	err := tx.QueryRow(ctx, `
-		INSERT INTO identifier_sequences (organization_id, entity_type, next_value)
-		VALUES ($1, 'legal', 1)
-		ON CONFLICT (organization_id, entity_type)
-		DO UPDATE SET next_value = identifier_sequences.next_value + 1
-		RETURNING next_value
-	`, orgID).Scan(&seq)
+	// Use the shared identifier allocator with the SAME entity_type key as the
+	// HTTP path (NextIdentifier(..,"legal_requirement")). The old hardcoded
+	// 'legal' key violated identifier_sequences' CHECK, so applying a legal
+	// suggestion always failed — a #26 write-path divergence.
+	ident, err := nextIdentifierTx(ctx, tx, orgID, "legal_requirement")
 	if err != nil {
-		return fmt.Errorf("allocate identifier: %w", err)
+		return err
 	}
-	lr.Identifier = fmt.Sprintf("LEGAL-%d", seq)
+	lr.Identifier = ident
 
 	return tx.QueryRow(ctx, `
 		INSERT INTO legal_requirements (organization_id, identifier, `+legalCols+`)

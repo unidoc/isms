@@ -1879,19 +1879,8 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 	}
-	if a.Owner == "" {
-		a.Owner = getUserEmail(c)
-	}
-	if a.Status == "" {
-		a.Status = "open"
-	}
-	if a.AssetType == "" {
-		a.AssetType = "other"
-	}
-	if err := validateEnum("status", a.Status, db.AssetStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("asset_type", a.AssetType, db.AssetTypes); err != nil {
+	applyAssetDefaults(&a, getUserEmail(c))
+	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
 	if err := s.db.CreateAsset(ctx, orgID, &a); err != nil {
@@ -2022,27 +2011,8 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		Owner:           req.Owner,
 		Notes:           req.Notes,
 	}
-	if sys.Status == "" {
-		sys.Status = "active"
-	}
-	if sys.Owner == "" {
-		sys.Owner = getUserEmail(c)
-	}
-	// Seed description with ## Purpose heading; seed notes with ## Access control heading.
-	// Only when fields are empty so we never overwrite user input.
-	if sys.Description == "" {
-		sys.Description = "## Purpose\n\n"
-	}
-	if sys.Notes == "" {
-		sys.Notes = "## Access control\n\n"
-	}
-	if err := validateEnum("status", sys.Status, db.SystemStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("criticality", sys.Criticality, db.SystemCriticalities); err != nil {
-		return err
-	}
-	if err := validateEnum("classification", sys.Classification, db.SystemClassifications); err != nil {
+	applySystemDefaults(&sys, getUserEmail(c))
+	if err := validateSystemCreate(&sys); err != nil {
 		return err
 	}
 	// Verify supplier belongs to this org if referenced.
@@ -2440,29 +2410,8 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 	}
-	if sup.Status == "" {
-		sup.Status = "active"
-	}
-	if sup.SupplierType == "" {
-		sup.SupplierType = "other"
-	}
-	if sup.Criticality == "" {
-		sup.Criticality = "medium"
-	}
-	if sup.Owner == "" {
-		sup.Owner = getUserEmail(c)
-	}
-	// Seed notes with ## Services heading when empty.
-	if sup.Notes == "" {
-		sup.Notes = "## Services\n\n"
-	}
-	if err := validateEnum("status", sup.Status, db.SupplierStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("supplier_type", sup.SupplierType, db.SupplierTypes); err != nil {
-		return err
-	}
-	if err := validateEnum("criticality", sup.Criticality, db.CriticalityLevels); err != nil {
+	applySupplierDefaults(&sup, getUserEmail(c))
+	if err := validateSupplierCreate(&sup); err != nil {
 		return err
 	}
 	if err := s.db.CreateSupplier(ctx, orgID, &sup); err != nil {

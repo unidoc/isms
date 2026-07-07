@@ -309,12 +309,6 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 	if req.Title == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
 	}
-	if err := validateEnum("status", req.Status, db.ObjectiveStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("target_operator", req.TargetOperator, db.ObjectiveTargetOperators); err != nil {
-		return err
-	}
 	// Cross-org parent guard: confirm the program belongs to this org.
 	if _, err := s.db.GetProgram(ctx, orgID, req.ProgramID); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "program not found in this organization")
@@ -335,6 +329,10 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		Status:            req.Status,
 		StartedAt:         req.StartedAt,
 		Notes:             req.Notes,
+	}
+	applyObjectiveDefaults(&o, getUserEmail(c))
+	if err := validateObjectiveCreate(&o); err != nil {
+		return err
 	}
 
 	if err := s.db.CreateObjective(ctx, orgID, &o); err != nil {

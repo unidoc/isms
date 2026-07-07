@@ -338,6 +338,21 @@ func (s *Server) handleClaimEntitySuggestion(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": newStatus})
 }
 
+// applyPostCommitKey carries a queue of side-effect callbacks that must run only
+// AFTER the apply transaction commits. Apply handlers use registerApplyPostCommit
+// for effects that touch the pool directly or send mail (e.g. auto-created tasks),
+// which must not fire inside WithOrgTx — mirroring how the HTTP handlers run their
+// post-commit work. Keeps the HTTP and suggestion-apply paths behaving identically.
+type applyPostCommitKey struct{}
+
+// registerApplyPostCommit queues fn to run after the enclosing apply tx commits.
+// A no-op if the context carries no queue (defensive; the apply path always sets one).
+func registerApplyPostCommit(ctx context.Context, fn func()) {
+	if q, ok := ctx.Value(applyPostCommitKey{}).(*[]func()); ok {
+		*q = append(*q, fn)
+	}
+}
+
 func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -345,6 +360,11 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
+
+	// Callbacks registered by apply handlers for side effects that must run only
+	// after the tx commits (task auto-creation, mail). Drained below on success.
+	var postCommit []func()
+	ctx = context.WithValue(ctx, applyPostCommitKey{}, &postCommit)
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -427,7 +447,12 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 		return pgxHTTPError(txErr)
 	}
 
-	// Post-commit: activity log + notifications (non-transactional, OK to fail)
+	// Post-commit: run side effects handlers deferred until the tx committed
+	// (auto-created tasks, mail), then the activity log + notifications. All
+	// non-transactional and OK to fail — the entity mutation is already durable.
+	for _, fn := range postCommit {
+		fn()
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "suggestion_applied",
@@ -1098,6 +1123,29 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if v, ok := payload.Fields["assigned_to"]; ok {
 		if sv, ok := v.(string); ok {
 			cr.AssignedTo = sv
+		}
+	}
+	// Status transitions go through the shared enforced path so approved_at/by and
+	// implemented_at are derived exactly as the HTTP handler does — a plain field
+	// write (UpdateChangeRequestTx doesn't touch status) would skip that metadata.
+	if v, ok := payload.Fields["status"]; ok {
+		if sv, ok := v.(string); ok && sv != cr.Status {
+			if err := validateEnum("status", sv, db.ChangeStatuses); err != nil {
+				return "", err
+			}
+			if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, cr.ID, sv, actor); err != nil {
+				return "", err
+			}
+			cr.Status = sv
+			// The HTTP status paths auto-create the "Implement <CR>" task on
+			// approval; keep suggestion-apply identical (#26 acceptance criterion).
+			// Deferred to post-commit — createChangeFollowupTask writes via the pool
+			// and sends mail, neither safe inside this transaction.
+			if sv == "approved" {
+				registerApplyPostCommit(ctx, func() {
+					s.createChangeFollowupTask(context.Background(), orgID, cr, actor)
+				})
+			}
 		}
 	}
 	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, cr.ID, cr); err != nil {

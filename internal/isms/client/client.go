@@ -274,8 +274,8 @@ func (c *Client) AddAsset(asset *db.Asset) (*db.Asset, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateAsset(id string, asset *db.Asset) (*db.Asset, error) {
-	data, err := c.put("/v1/assets/"+id, asset)
+func (c *Client) UpdateAsset(id string, body any) (*db.Asset, error) {
+	data, err := c.put("/v1/assets/"+id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -369,8 +369,8 @@ func (c *Client) AddSupplier(supplier *db.Supplier) (*db.Supplier, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateSupplier(id string, supplier *db.Supplier) (*db.Supplier, error) {
-	data, err := c.put("/v1/suppliers/"+id, supplier)
+func (c *Client) UpdateSupplier(id string, body any) (*db.Supplier, error) {
+	data, err := c.put("/v1/suppliers/"+id, body)
 	if err != nil {
 		return nil, err
 	}

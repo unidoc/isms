@@ -153,6 +153,23 @@ func supplierListCmd() *cobra.Command {
 	return cmd
 }
 
+// supplierEditPayload is the partial-update wire shape for `supplier edit`: every
+// field is a pointer with omitempty, so an unset flag is omitted entirely rather
+// than sent as a zero value the server would write over an existing value (#147).
+// Mirrors the server's supplierUpdateRequest. data_access is *bool (not bool) so an
+// explicit --data-access=false still turns it off instead of being dropped.
+type supplierEditPayload struct {
+	Name            *string `json:"name,omitempty"`
+	SupplierType    *string `json:"supplier_type,omitempty"`
+	Criticality     *string `json:"criticality,omitempty"`
+	DataAccess      *bool   `json:"data_access,omitempty"`
+	Contact         *string `json:"contact,omitempty"`
+	Notes           *string `json:"notes,omitempty"`
+	Confidentiality *int    `json:"confidentiality,omitempty"`
+	Integrity       *int    `json:"integrity,omitempty"`
+	Availability    *int    `json:"availability,omitempty"`
+}
+
 func supplierEditCmd() *cobra.Command {
 	var (
 		name            string
@@ -177,27 +194,27 @@ func supplierEditCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			update := &db.Supplier{}
+			// Only fields whose flag was set go on the wire; everything else is
+			// omitted so a partial edit never blanks an untouched field (#147).
+			update := &supplierEditPayload{}
 			if cmd.Flags().Changed("name") {
-				update.Name = name
+				update.Name = &name
 			}
 			if cmd.Flags().Changed("type") {
-				update.SupplierType = supplierType
+				update.SupplierType = &supplierType
 			}
 			if cmd.Flags().Changed("criticality") {
-				update.Criticality = criticality
+				update.Criticality = &criticality
 			}
 			if cmd.Flags().Changed("data-access") {
-				update.DataAccess = dataAccess
+				update.DataAccess = &dataAccess
 			}
 			if cmd.Flags().Changed("contact") {
-				update.Contact = contact
+				update.Contact = &contact
 			}
 			if cmd.Flags().Changed("notes") {
-				update.Notes = notes
+				update.Notes = &notes
 			}
-			// CIA sent only when supplied; the update DTO skips a nil/null rating,
-			// so unrelated edits never disturb an existing rating.
 			if cmd.Flags().Changed("confidentiality") {
 				update.Confidentiality = &confidentiality
 			}

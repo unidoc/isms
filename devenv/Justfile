@@ -24,10 +24,12 @@ compose := env_var_or_default('COMPOSE_CMD', 'docker compose')
 # ── Lifecycle ────────────────────────────────────────────────────────────────
 
 # Ensure optional bind-mount sources exist (compose errors if they don't).
-# isms-demo is private prospect content — contributors without it get an
-# empty dir so the mount resolves and the container can still boot.
+# isms-demo is private prospect content; isms-python is the sibling client repo.
+# Contributors without either get an empty dir so the mount resolves and the
+# container can still boot.
 _ensure-paths:
     @mkdir -p "$ISMS_SRC_ROOT/isms-demo"
+    @mkdir -p "$ISMS_SRC_ROOT/isms-python"
 
 # Build the shared image
 build: _ensure-paths
@@ -106,7 +108,7 @@ run +CMD:
 # playwright asks for.)
 test-setup:
     {{compose}} exec -u isms isms bash -lc \
-        "cd /home/isms/workspace/isms && python3 -m venv .venv && .venv/bin/pip install --quiet -U -r tests/requirements.txt && .venv/bin/playwright --version"
+        "cd /home/isms/workspace/isms && python3 -m venv --clear .venv && .venv/bin/pip install --quiet -U -r tests/requirements.txt && .venv/bin/playwright --version"
 
 # Run pytest from inside the dev container against the test server.
 # Rebuilds web/dist first: isms-test serves the bundle live from disk, so an

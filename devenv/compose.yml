@@ -39,6 +39,7 @@ services:
       - "${ISMS_BIND_ADDRESS:-127.0.0.1}:9090:9090"
     volumes:
       - ${ISMS_SRC_ROOT}/isms:/home/isms/workspace/isms
+      - ${ISMS_SRC_ROOT}/isms-python:/home/isms/workspace/isms-python
       - ${ISMS_SRC_ROOT}/isms-templates:/home/isms/workspace/isms-templates
       # isms-demo is private prospect content. Contributors without it cloned
       # get an empty directory (created by `just up`/`just build`) so the mount

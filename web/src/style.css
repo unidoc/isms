@@ -78,6 +78,13 @@
 .doc-prose ol > li {
   list-style-type: decimal;
 }
+/* Loose markdown lists (a blank line between items) make marked wrap each item
+   in a <p>, which would otherwise stack the 1rem paragraph margin on top of the
+   list-item spacing — a big gap between bullets. Collapse it so loose and tight
+   lists share the same rhythm. */
+.doc-prose li > p {
+  margin: 0;
+}
 .doc-prose code {
   color: rgb(147 197 253);
   background: rgb(30 41 59);

@@ -32,29 +32,8 @@
 
       <!-- Objectives -->
       <div class="space-y-6">
-        <!-- Stats cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ stats.total || 0 }}</div>
-            <div class="text-xs text-slate-500 mt-1">Total</div>
-          </button>
-          <button @click="filterStatus = 'active'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'active' ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ stats.active || 0 }}</div>
-            <div class="text-xs text-slate-500 mt-1">Active</div>
-          </button>
-          <button @click="filterStatus = 'at_risk'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'at_risk' ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-red-400 tabular-nums">{{ stats.at_risk || 0 }}</div>
-            <div class="text-xs text-slate-500 mt-1">At Risk</div>
-          </button>
-          <button @click="filterStatus = 'paused'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'paused' ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.paused || 0 }}</div>
-            <div class="text-xs text-slate-500 mt-1">Paused</div>
-          </button>
-          <button @click="filterStatus = 'complete'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'complete' ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ stats.complete || 0 }}</div>
-            <div class="text-xs text-slate-500 mt-1">Complete</div>
-          </button>
-        </div>
+        <!-- Stats strip -->
+        <StatStrip :stats="statusStats" v-model="filterStatus" />
 
         <!-- Filters + Create -->
         <div class="flex items-center gap-3 flex-wrap">
@@ -513,6 +492,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, getCurrentUser } from '../api'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import MemberPicker from '../components/MemberPicker.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
@@ -577,6 +557,13 @@ const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
 const stats = ref({ total: 0, draft: 0, active: 0, at_risk: 0, paused: 0, complete: 0, archived: 0 })
+const statusStats = computed(() => [
+  { key: '', label: 'Total', count: stats.value.total || 0, color: 'text-slate-100' },
+  { key: 'active', label: 'Active', count: stats.value.active || 0, color: 'text-emerald-400' },
+  { key: 'at_risk', label: 'At Risk', count: stats.value.at_risk || 0, color: 'text-red-400' },
+  { key: 'paused', label: 'Paused', count: stats.value.paused || 0, color: 'text-amber-400' },
+  { key: 'complete', label: 'Complete', count: stats.value.complete || 0, color: 'text-blue-400' },
+])
 const orgMembers = ref([])
 
 const newObjective = reactive({

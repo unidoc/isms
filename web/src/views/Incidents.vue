@@ -30,33 +30,8 @@
         </div>
       </div>
 
-      <!-- Stats cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ stats.total || total || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Total</div>
-        </button>
-        <button @click="filterStatus = 'open'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'open' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-red-400 tabular-nums">{{ stats.open || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Open</div>
-        </button>
-        <button @click="filterStatus = 'investigating'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'investigating' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.investigating || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Investigating</div>
-        </button>
-        <button @click="filterStatus = 'contained'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'contained' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ stats.contained || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Contained</div>
-        </button>
-        <button @click="filterStatus = 'resolved'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'resolved' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ stats.resolved || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Resolved</div>
-        </button>
-        <button @click="filterStatus = 'closed'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'closed' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-400 tabular-nums">{{ stats.closed || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Closed</div>
-        </button>
-      </div>
+      <!-- Stats strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" />
 
       <!-- Actions bar -->
       <div class="flex items-center gap-3 flex-wrap">
@@ -543,6 +518,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -576,6 +552,14 @@ const loading = ref(true)
 const error = ref(null)
 const incidents = ref([])
 const stats = ref({})
+const statusStats = computed(() => [
+  { key: '', label: 'Total', count: stats.value.total || total.value || 0, color: 'text-slate-100' },
+  { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-red-400' },
+  { key: 'investigating', label: 'Investigating', count: stats.value.investigating || 0, color: 'text-amber-400' },
+  { key: 'contained', label: 'Contained', count: stats.value.contained || 0, color: 'text-blue-400' },
+  { key: 'resolved', label: 'Resolved', count: stats.value.resolved || 0, color: 'text-emerald-400' },
+  { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-400' },
+])
 const selectedIncident = ref(null)
 const showCreateForm = ref(false)
 const filterStatus = ref('')

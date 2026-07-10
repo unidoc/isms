@@ -84,29 +84,8 @@
       </Transition>
       </Teleport>
 
-      <!-- Summary cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ stats.total }}</div>
-          <div class="text-xs text-slate-500 mt-1">Total</div>
-        </button>
-        <button @click="filterStatus = 'active'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'active' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ stats.active }}</div>
-          <div class="text-xs text-slate-500 mt-1">Active</div>
-        </button>
-        <button @click="filterStatus = 'under_review'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'under_review' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.under_review }}</div>
-          <div class="text-xs text-slate-500 mt-1">Under Review</div>
-        </button>
-        <button @click="filterStatus = 'suspended'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'suspended' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-orange-400 tabular-nums">{{ stats.suspended || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Suspended</div>
-        </button>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="stats.critical > 0 ? 'text-red-400' : 'text-slate-100'">{{ stats.critical }}</div>
-          <div class="text-xs text-slate-500 mt-1">Critical</div>
-        </div>
-      </div>
+      <!-- Summary strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" />
 
       <!-- Search + Filters -->
       <div class="space-y-3">
@@ -483,6 +462,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -519,6 +499,13 @@ const suppliers = ref([])
 const orgMembers = ref([])
 const saving = ref(false)
 const stats = ref({ total: 0, active: 0, under_review: 0, suspended: 0, terminated: 0, critical: 0, high: 0, medium: 0, low: 0 })
+const statusStats = computed(() => [
+  { key: '', label: 'Total', count: stats.value.total, color: 'text-slate-100' },
+  { key: 'active', label: 'Active', count: stats.value.active, color: 'text-emerald-400' },
+  { key: 'under_review', label: 'Under Review', count: stats.value.under_review, color: 'text-amber-400' },
+  { key: 'suspended', label: 'Suspended', count: stats.value.suspended || 0, color: 'text-orange-400' },
+  { key: 'critical', label: 'Critical', count: stats.value.critical, color: stats.value.critical > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+])
 
 const selectedItem = ref(null)
 const detailTab = ref('overview')

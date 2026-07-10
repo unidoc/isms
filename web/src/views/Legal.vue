@@ -76,33 +76,8 @@
       </Transition>
       </Teleport>
 
-      <!-- Summary cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ stats.total || items.length }}</div>
-          <div class="text-xs text-slate-500 mt-1">Total</div>
-        </button>
-        <button @click="filterStatus = 'open'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'open' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ stats.open || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Open</div>
-        </button>
-        <button @click="filterStatus = 'draft'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'draft' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.draft || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Draft</div>
-        </button>
-        <button @click="filterStatus = 'closed'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'closed' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-400 tabular-nums">{{ stats.closed || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Closed</div>
-        </button>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="criticalCount > 0 ? 'text-red-400' : 'text-slate-100'">{{ criticalCount }}</div>
-          <div class="text-xs text-slate-500 mt-1">Critical</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="highCount > 0 ? 'text-orange-400' : 'text-slate-100'">{{ highCount }}</div>
-          <div class="text-xs text-slate-500 mt-1">High</div>
-        </div>
-      </div>
+      <!-- Summary strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" />
 
       <!-- Risk Map (collapsible) -->
       <details class="group">
@@ -506,6 +481,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import HeatMap from '../components/HeatMap.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -600,6 +576,14 @@ useModalEscape(computed(() => !!selectedItem.value), closeDetail)
 const stats = ref({ total: 0, critical: 0, high: 0, medium: 0, low: 0, not_assessed: 0, open: 0, closed: 0, draft: 0 })
 const criticalCount = computed(() => stats.value.critical)
 const highCount = computed(() => stats.value.high)
+const statusStats = computed(() => [
+  { key: '', label: 'Total', count: stats.value.total || items.value.length, color: 'text-slate-100' },
+  { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-blue-400' },
+  { key: 'draft', label: 'Draft', count: stats.value.draft || 0, color: 'text-amber-400' },
+  { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-400' },
+  { key: 'critical', label: 'Critical', count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+  { key: 'high', label: 'High', count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
+])
 const notAssessedCount = computed(() => stats.value.not_assessed)
 
 const heatMapItems = computed(() => items.value.filter(i => i.current_likelihood > 0 && i.current_impact > 0))

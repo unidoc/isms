@@ -30,33 +30,8 @@
         </div>
       </div>
 
-      <!-- Stats cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-red-400 tabular-nums">{{ stats.todo || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Todo</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.assessment || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Assessment</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-purple-400 tabular-nums">{{ stats.awaiting_approval || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Awaiting Approval</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ stats.implementation || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Implementation</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-cyan-400 tabular-nums">{{ stats.monitoring || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Monitoring</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ stats.resolved || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Resolved</div>
-        </div>
-      </div>
+      <!-- Stats strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" />
 
       <!-- Actions bar -->
       <div class="flex items-center gap-3 flex-wrap">
@@ -426,6 +401,7 @@ import api from '../api'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import EntityReferences from '../components/EntityReferences.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
@@ -459,6 +435,14 @@ const loading = ref(true)
 const error = ref(null)
 const actions = ref([])
 const stats = ref({})
+const statusStats = computed(() => [
+  { key: 'todo', label: 'Todo', count: stats.value.todo || 0, color: 'text-red-400' },
+  { key: 'assessment', label: 'Assessment', count: stats.value.assessment || 0, color: 'text-amber-400' },
+  { key: 'awaiting_approval', label: 'Awaiting Approval', count: stats.value.awaiting_approval || 0, color: 'text-purple-400' },
+  { key: 'implementation', label: 'Implementation', count: stats.value.implementation || 0, color: 'text-blue-400' },
+  { key: 'monitoring', label: 'Monitoring', count: stats.value.monitoring || 0, color: 'text-cyan-400' },
+  { key: 'resolved', label: 'Resolved', count: stats.value.resolved || 0, color: 'text-emerald-400' },
+])
 const selectedCA = ref(null)
 const showCreateForm = ref(false)
 

@@ -79,25 +79,8 @@
       </Teleport>
 
 
-      <!-- Summary cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ risks.length }}</div>
-          <div class="text-xs text-slate-500 mt-1">Total Risks</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="criticalCount > 0 ? 'text-red-400' : 'text-slate-100'">{{ criticalCount }}</div>
-          <div class="text-xs text-slate-500 mt-1">Critical</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="highCount > 0 ? 'text-orange-400' : 'text-slate-100'">{{ highCount }}</div>
-          <div class="text-xs text-slate-500 mt-1">High</div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ treatedCount }}</div>
-          <div class="text-xs text-slate-500 mt-1">Closed</div>
-        </div>
-      </div>
+      <!-- Summary strip (display-only) -->
+      <StatStrip :stats="summaryStats" />
 
       <!-- Heat Map (collapsible) -->
       <details class="group">
@@ -722,6 +705,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import HeatMap from '../components/HeatMap.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -907,6 +891,15 @@ const stats = ref({ total: 0, critical: 0, high: 0, medium: 0, low: 0, open: 0, 
 const criticalCount = computed(() => stats.value.critical)
 const highCount = computed(() => stats.value.high)
 const treatedCount = computed(() => stats.value.closed)
+// Risk summary chips are display-only (derived metrics across different filter
+// dimensions), so they render as static StatStrip chips — the tall stat-card
+// grid was reclaimed for the list; the Risk Map stays in its collapsible "More".
+const summaryStats = computed(() => [
+  { key: 'total', label: 'Total Risks', count: risks.value.length, color: 'text-slate-100', static: true },
+  { key: 'critical', label: 'Critical', count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+  { key: 'high', label: 'High', count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
+  { key: 'closed', label: 'Closed', count: treatedCount.value, color: 'text-emerald-400', static: true },
+])
 
 // Refetch on filter/search/page change
 let searchTimer = null

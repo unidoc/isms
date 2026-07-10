@@ -72,16 +72,8 @@
       </Transition>
       </Teleport>
 
-      <!-- Summary stats -->
-      <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-        <button v-for="s in statusStats" :key="s.key"
-          @click="filterStatus = filterStatus === s.key ? '' : s.key"
-          class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors"
-          :class="filterStatus === s.key ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold tabular-nums" :class="s.color">{{ s.count }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ s.label }}</div>
-        </button>
-      </div>
+      <!-- Summary strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" class="mb-6" />
 
       <!-- Search + filters -->
       <div class="flex items-center gap-3 mb-4 flex-wrap">
@@ -413,6 +405,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'

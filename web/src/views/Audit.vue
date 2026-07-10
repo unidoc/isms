@@ -148,25 +148,8 @@
 
       <!-- ═══════════════════ PROGRAMMES TAB ═══════════════════ -->
       <template v-if="activeTab === 'programmes'">
-        <!-- Stats -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ programmes.length }}</div>
-            <div class="text-xs text-slate-500 mt-1">Total</div>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ programmeStats.active }}</div>
-            <div class="text-xs text-slate-500 mt-1">Active</div>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-2xl font-bold text-slate-400 tabular-nums">{{ programmeStats.closed }}</div>
-            <div class="text-xs text-slate-500 mt-1">Closed</div>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ programmeStats.draft }}</div>
-            <div class="text-xs text-slate-500 mt-1">Draft</div>
-          </div>
-        </div>
+        <!-- Stats strip -->
+        <StatStrip :stats="programmeStatusStats" v-model="programmeStatusFilter" />
 
         <!-- Filters -->
         <div class="flex items-center gap-3 flex-wrap">
@@ -235,23 +218,17 @@
 
       <!-- ═══════════════════ FINDINGS TAB ═══════════════════ -->
       <template v-if="activeTab === 'findings'">
-        <!-- Stats -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <button @click="findingStatusFilter = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!findingStatusFilter ? 'ring-1 ring-blue-500/40' : ''">
-            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ findingTotal }}</div>
-            <div class="text-xs text-slate-500 mt-1">Total</div>
-          </button>
-          <button @click="findingStatusFilter = 'open'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-red-700 transition-colors" :class="findingStatusFilter === 'open' ? 'ring-1 ring-red-500/40' : ''">
-            <div class="text-2xl font-bold tabular-nums" :class="openFindingsTotal > 0 ? 'text-red-400' : 'text-slate-100'">{{ openFindingsTotal }}</div>
-            <div class="text-xs text-slate-500 mt-1">Open</div>
-          </button>
-          <button @click="findingStatusFilter = 'closed'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="findingStatusFilter === 'closed' ? 'ring-1 ring-emerald-500/40' : ''">
-            <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ closedFindingsTotal }}</div>
-            <div class="text-xs text-slate-500 mt-1">Closed</div>
-          </button>
-          <button @click="findingOverdueOnly = !findingOverdueOnly" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-amber-700 transition-colors" :class="findingOverdueOnly ? 'ring-1 ring-amber-500/40' : ''">
-            <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ overdueFindingsTotal }}</div>
-            <div class="text-xs text-slate-500 mt-1">Overdue</div>
+        <!-- Stats strip (+ Overdue toggle, a separate boolean dimension) -->
+        <div class="flex flex-wrap items-center gap-2">
+          <StatStrip :stats="findingStatusStats" v-model="findingStatusFilter" />
+          <button type="button" @click="findingOverdueOnly = !findingOverdueOnly"
+            class="inline-flex items-baseline gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors"
+            :class="findingOverdueOnly
+              ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
+              : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-slate-300'"
+            title="Toggle: Overdue only">
+            <span class="font-bold tabular-nums" :class="findingOverdueOnly ? '' : (overdueFindingsTotal > 0 ? 'text-amber-400' : 'text-slate-100')">{{ overdueFindingsTotal }}</span>
+            <span>Overdue</span>
           </button>
         </div>
 
@@ -1155,6 +1132,7 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -1324,6 +1302,21 @@ const programmeStats = computed(() => {
   programmes.value.forEach(p => { if (s[p.status] !== undefined) s[p.status]++ })
   return s
 })
+
+const programmeStatusStats = computed(() => [
+  { key: '', label: 'Total', count: programmes.value.length, color: 'text-slate-100' },
+  { key: 'active', label: 'Active', count: programmeStats.value.active, color: 'text-emerald-400' },
+  { key: 'closed', label: 'Closed', count: programmeStats.value.closed, color: 'text-slate-400' },
+  { key: 'draft', label: 'Draft', count: programmeStats.value.draft, color: 'text-amber-400' },
+])
+
+// Overdue is a boolean toggle (separate dimension), so it rides alongside the
+// status strip as its own chip rather than inside StatStrip's single v-model.
+const findingStatusStats = computed(() => [
+  { key: '', label: 'Total', count: findingTotal.value, color: 'text-slate-100' },
+  { key: 'open', label: 'Open', count: openFindingsTotal.value, color: openFindingsTotal.value > 0 ? 'text-red-400' : 'text-slate-100' },
+  { key: 'closed', label: 'Closed', count: closedFindingsTotal.value, color: 'text-emerald-400' },
+])
 
 const filteredProgrammes = computed(() => {
   const q = programmeSearch.value.toLowerCase().trim()

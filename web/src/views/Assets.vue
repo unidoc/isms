@@ -74,29 +74,8 @@
       </Transition>
       </Teleport>
 
-      <!-- Summary cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <button @click="filterStatus = ''" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="!filterStatus ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ stats.total }}</div>
-          <div class="text-xs text-slate-500 mt-1">Total</div>
-        </button>
-        <button @click="filterStatus = 'draft'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'draft' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ stats.draft || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">Draft</div>
-        </button>
-        <button @click="filterStatus = 'open'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'open' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ stats.open }}</div>
-          <div class="text-xs text-slate-500 mt-1">Open</div>
-        </button>
-        <button @click="filterStatus = 'archived'" class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-700 transition-colors" :class="filterStatus === 'archived' ? 'ring-1 ring-blue-500/40' : ''">
-          <div class="text-2xl font-bold text-slate-400 tabular-nums">{{ stats.archived }}</div>
-          <div class="text-xs text-slate-500 mt-1">Archived</div>
-        </button>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div class="text-2xl font-bold tabular-nums" :class="stats.critical > 0 ? 'text-red-400' : 'text-slate-100'">{{ stats.critical }}</div>
-          <div class="text-xs text-slate-500 mt-1">Severe (CIA = 5)</div>
-        </div>
-      </div>
+      <!-- Summary strip -->
+      <StatStrip :stats="statusStats" v-model="filterStatus" />
 
       <!-- Search + Filters -->
       <div class="space-y-3">
@@ -422,6 +401,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import StatStrip from '../components/StatStrip.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -457,6 +437,13 @@ const assets = ref([])
 const orgMembers = ref([])
 const saving = ref(false)
 const stats = ref({ total: 0, draft: 0, open: 0, archived: 0, critical: 0 })
+const statusStats = computed(() => [
+  { key: '', label: 'Total', count: stats.value.total, color: 'text-slate-100' },
+  { key: 'draft', label: 'Draft', count: stats.value.draft || 0, color: 'text-amber-400' },
+  { key: 'open', label: 'Open', count: stats.value.open, color: 'text-blue-400' },
+  { key: 'archived', label: 'Archived', count: stats.value.archived, color: 'text-slate-400' },
+  { key: 'critical', label: 'Severe (CIA = 5)', count: stats.value.critical, color: stats.value.critical > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+])
 
 const selectedItem = ref(null)
 const detailTab = ref('overview')

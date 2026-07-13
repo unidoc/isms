@@ -239,6 +239,76 @@ class TestSupplierReview:
         assert sup.get("last_review"), "last_review should be set after review"
 
 
+class TestSupplierReadings:
+    """Supplier CIA reading lifecycle — regression for #161.
+
+    The supplier reading path shipped but entity_readings' entity_type CHECK
+    constraint never listed 'supplier', so POST /suppliers/:id/readings failed
+    with entity_readings_entity_type_check (SQLSTATE 23514). This is the exact
+    flow from the report: create supplier -> save CIA reading -> verify.
+    """
+
+    supplier_id = None
+    reading_id = None
+
+    def test_01_create_supplier(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/suppliers", headers=admin_headers, json={
+            "name": "Reading test - Managed Hosting Provider",
+            "supplier_type": "cloud",
+            "criticality": "high",
+        })
+        assert r.status_code in [200, 201], f"Create supplier failed: {r.text}"
+        TestSupplierReadings.supplier_id = r.json()["id"]
+
+    def test_02_submit_cia_reading(self, api_url, admin_headers):
+        """POST /suppliers/:id/readings with CIA values should return 201 (#161)."""
+        sid = TestSupplierReadings.supplier_id
+        r = requests.post(f"{api_url}/suppliers/{sid}/readings", headers=admin_headers, json={
+            "confidentiality": 4,
+            "integrity": 3,
+            "availability": 5,
+            "notes": "Initial supplier CIA assessment",
+        })
+        assert r.status_code in [200, 201], f"Submit supplier reading failed: {r.text}"
+        data = r.json()
+        assert data.get("id"), "Expected reading ID"
+        assert data["confidentiality"] == 4
+        assert data["integrity"] == 3
+        assert data["availability"] == 5
+        TestSupplierReadings.reading_id = data["id"]
+
+    def test_03_supplier_updated(self, api_url, admin_headers):
+        """Supplier CIA classification + last_review updated from the reading."""
+        sid = TestSupplierReadings.supplier_id
+        r = requests.get(f"{api_url}/suppliers/{sid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        sup = r.json()
+        assert sup["confidentiality"] == 4
+        assert sup["integrity"] == 3
+        assert sup["availability"] == 5
+        assert sup.get("last_review"), "Expected last_review to be set after reading"
+
+    def test_04_list_readings(self, api_url, admin_headers):
+        sid = TestSupplierReadings.supplier_id
+        r = requests.get(f"{api_url}/suppliers/{sid}/readings", headers=admin_headers)
+        assert r.status_code == 200
+        data = r.json()
+        readings = data.get("data") if isinstance(data, dict) else data
+        assert isinstance(readings, list)
+        assert any(rd["id"] == TestSupplierReadings.reading_id for rd in readings)
+
+    def test_05_reader_cannot_submit(self, api_url, reader_headers):
+        """Reader role gets 403 when submitting a supplier reading."""
+        sid = TestSupplierReadings.supplier_id
+        r = requests.post(f"{api_url}/suppliers/{sid}/readings", headers=reader_headers, json={
+            "confidentiality": 1,
+            "integrity": 1,
+            "availability": 1,
+            "notes": "Should be rejected",
+        })
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
+
+
 class TestReadingSuggestion:
     """Reading via suggestion workflow: suggest reading -> apply -> verify."""
 

@@ -788,7 +788,11 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
 
-	inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, sg.EntityID)
+	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+	}
+	inc, err := s.db.GetIncident(ctx, orgID, incID)
 	if err != nil {
 		return "", fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
 	}
@@ -1195,7 +1199,11 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, sg.EntityID)
+	caID, err := s.resolveCorrectiveActionID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
+	}
+	ca, err := s.db.GetCorrectiveAction(ctx, orgID, caID)
 	if err != nil {
 		return "", fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
 	}
@@ -1279,7 +1287,11 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	t, err := s.db.GetTaskByIdentifier(ctx, orgID, sg.EntityID)
+	taskID, err := s.resolveTaskID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("task %s not found: %w", sg.EntityID, err)
+	}
+	t, err := s.db.GetTask(ctx, orgID, taskID)
 	if err != nil {
 		return "", fmt.Errorf("task %s not found: %w", sg.EntityID, err)
 	}

@@ -3128,18 +3128,64 @@ func stripFrontmatter(s string) string {
 }
 
 // parseID extracts a numeric ID from a string that may have a prefix like "ASSET-5", "RISK-3", etc.
+// parseID accepts a bare numeric id, or an identifier whose numeric SUFFIX IS the
+// primary key: findings (FIND-<id>) and the pre-existing SUPPLIER-/ASSET-/RISK-/
+// SYSTEM- handlers. It does NOT work for seq-based identifiers (TASK-/INC-/CA-/
+// LEGAL-), where the suffix is a per-org sequence, not the id — those resolve via
+// the resolve*ID lookups below (see #174).
 func parseID(s string) (int64, error) {
-	// Strip any entity identifier prefix so URLs accept the human form
-	// (TASK-6, INC-3, …) as well as the bare numeric id. Prefixes are the ones
-	// NextIdentifier mints; AST- is kept for legacy assets minted before the
-	// AST-/ASSET- consistency fix.
-	for _, prefix := range []string{
-		"RISK-", "ASSET-", "AST-", "SUPPLIER-", "SYSTEM-", "LEGAL-",
-		"PROG-", "INC-", "CR-", "TASK-", "CA-", "OBJ-", "AUDIT-", "FIND-",
-	} {
+	for _, prefix := range []string{"RISK-", "ASSET-", "AST-", "SUPPLIER-", "SYSTEM-", "FIND-"} {
 		s = strings.TrimPrefix(s, prefix)
 	}
 	return strconv.ParseInt(s, 10, 64)
+}
+
+// resolve*ID map a URL param (numeric id OR the PREFIX-<seq> identifier form) to
+// the numeric primary key. For task/incident/corrective-action/legal the
+// identifier suffix is a per-org sequence, NOT the id, so the identifier form
+// must be looked up rather than stripped (#174).
+func (s *Server) resolveTaskID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	t, err := s.db.GetTaskByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return t.ID, nil
+}
+
+func (s *Server) resolveIncidentID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return inc.ID, nil
+}
+
+func (s *Server) resolveCorrectiveActionID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return ca.ID, nil
+}
+
+func (s *Server) resolveLegalID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return lr.ID, nil
 }
 
 // extractHostname parses a URL and returns just the hostname (no port).

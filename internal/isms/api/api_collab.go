@@ -2140,7 +2140,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2184,7 +2184,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 
 func (s *Server) handleGetTask(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2201,7 +2201,7 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2295,7 +2295,7 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}

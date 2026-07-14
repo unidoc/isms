@@ -165,7 +165,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 
 func (s *Server) handleGetCorrectiveAction(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
 	}
@@ -181,7 +181,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
 	}
@@ -296,7 +296,7 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
 	}
@@ -359,7 +359,7 @@ func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
 	}

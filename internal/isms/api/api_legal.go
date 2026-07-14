@@ -157,7 +157,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 
 func (s *Server) handleGetLegal(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
 	}
@@ -173,7 +173,7 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
 	}
@@ -301,7 +301,7 @@ func (s *Server) handleDeleteLegal(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
 	}

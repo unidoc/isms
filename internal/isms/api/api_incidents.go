@@ -250,7 +250,7 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 
 func (s *Server) handleGetIncident(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
 	}
@@ -266,7 +266,7 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
 	}
@@ -446,7 +446,7 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
 	}
@@ -541,7 +541,7 @@ func (s *Server) handleDeleteIncident(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
+	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
 	}

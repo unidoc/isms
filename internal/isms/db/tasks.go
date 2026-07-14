@@ -193,6 +193,23 @@ func (d *DB) GetTask(ctx context.Context, orgID int, id int64) (*Task, error) {
 	return &t, nil
 }
 
+// GetTaskByIdentifier resolves a task by its per-org identifier (e.g. "TASK-6").
+// The identifier suffix is a per-org sequence, not the primary key, so this can't
+// be derived by stripping the prefix — it must be looked up (#174).
+func (d *DB) GetTaskByIdentifier(ctx context.Context, orgID int, identifier string) (*Task, error) {
+	var t Task
+	err := d.pool.QueryRow(ctx, `
+		SELECT `+taskSelectCols+`
+		FROM tasks t WHERE t.identifier = $1 AND t.organization_id = $2 AND t.deleted_at IS NULL
+	`, identifier, orgID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
+		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
+		&t.Notes, &t.CreatedAt, &t.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 // OverdueTasks returns tasks past their due date that aren't done/cancelled.
 func (d *DB) OverdueTasks(ctx context.Context, orgID int) ([]Task, error) {
 	return d.ListTasksWhere(ctx, orgID, `status NOT IN ('done','cancelled') AND due_date < now()`, 100)

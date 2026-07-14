@@ -68,7 +68,7 @@ type Supplier struct {
 }
 
 // Valid supplier types.
-var SupplierTypes = []string{"cloud", "saas", "consulting", "hosting", "infrastructure", "software", "other"}
+var SupplierTypes = []string{"cloud", "saas", "consulting", "hosting", "infrastructure", "software", "contractor", "other"}
 
 // Valid criticality levels.
 var CriticalityLevels = []string{"low", "medium", "high", "critical"}

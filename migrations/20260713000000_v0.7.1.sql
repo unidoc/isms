@@ -11,3 +11,12 @@
 ALTER TABLE entity_readings DROP CONSTRAINT IF EXISTS entity_readings_entity_type_check;
 ALTER TABLE entity_readings ADD CONSTRAINT entity_readings_entity_type_check
     CHECK (entity_type IN ('risk', 'legal_requirement', 'asset', 'system', 'supplier'));
+
+-- Supplier register: add 'contractor' to supplier_type. The IT-centric set had
+-- no home for physical works contractors (rock/concrete, blasting, tank cleaning,
+-- coating, marine), which were landing in 'other'. DROP IF EXISTS + re-ADD is
+-- safe on fresh DBs; existing rows all satisfy the wider set.
+ALTER TABLE suppliers DROP CONSTRAINT IF EXISTS suppliers_supplier_type_check;
+ALTER TABLE suppliers ADD CONSTRAINT suppliers_supplier_type_check
+    CHECK (supplier_type IN ('cloud', 'saas', 'consulting', 'hosting',
+        'infrastructure', 'software', 'contractor', 'other'));

@@ -35,6 +35,7 @@
 
       <!-- Actions bar -->
       <div class="flex items-center gap-3 flex-wrap">
+        <RefreshButton :loading="refreshing" @refresh="reload" class="shrink-0" />
         <div class="relative flex-1 max-w-xs">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -519,6 +520,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -549,6 +551,15 @@ const canReport = computed(() => userRole.value === 'admin' || userRole.value ==
 
 const orgMembers = ref([])
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try {
+    await loadAll()
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 const incidents = ref([])
 const stats = ref({})

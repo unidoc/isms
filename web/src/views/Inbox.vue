@@ -20,10 +20,13 @@
           <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Inbox</h1>
           <p class="text-sm text-slate-500 mt-1">{{ totalActionItems }} action item{{ totalActionItems !== 1 ? 's' : '' }} requiring attention</p>
         </div>
-        <button @click="markAllNotificationsRead"
-          class="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
-          Mark all read
-        </button>
+        <div class="flex items-center gap-2">
+          <RefreshButton :loading="refreshing" @refresh="reload" />
+          <button @click="markAllNotificationsRead"
+            class="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
+            Mark all read
+          </button>
+        </div>
       </div>
 
       <!-- Tab bar -->
@@ -716,6 +719,7 @@ import { api, getCurrentUser } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
@@ -730,6 +734,23 @@ const { success: showSaved, error: showError } = useToast()
 
 // ---------- State ----------
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try {
+    await Promise.all([
+      loadOpenComments(),
+      loadReviews(),
+      loadTasks(),
+      loadChanges(),
+      loadIncidents(),
+      loadCAs(),
+      loadSuggestions(),
+    ])
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 
 const reviews = ref([])

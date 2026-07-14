@@ -697,6 +697,7 @@
           <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Reviews</h1>
           <p class="text-sm text-slate-500 mt-1">Document review requests</p>
         </div>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
 
       <!-- Stats tiles -->
@@ -846,6 +847,7 @@ import SideBySideReview from '../components/SideBySideReview.vue'
 import DocumentViewer from '../components/DocumentViewer.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 const DocumentEditor = defineAsyncComponent(() => import('../components/DocumentEditor.vue'))
@@ -894,6 +896,15 @@ const userCanReview = computed(() => {
 })
 
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  try {
+    await Promise.all([loadReviews(), loadReviewStats()])
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 const reviews = ref([])
 const statusFilter = ref('open')

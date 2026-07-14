@@ -557,6 +557,7 @@ const supplierTypes = [
   { key: 'hosting', label: 'Hosting' },
   { key: 'infrastructure', label: 'Infrastructure' },
   { key: 'software', label: 'Software' },
+  { key: 'contractor', label: 'Contractor' },
   { key: 'other', label: 'Other' },
 ]
 

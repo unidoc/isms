@@ -75,7 +75,7 @@ func supplierAddCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Supplier name")
-	cmd.Flags().StringVar(&supplierType, "type", "", "Type: cloud, saas, consulting, hosting, other")
+	cmd.Flags().StringVar(&supplierType, "type", "", "Type: cloud, saas, consulting, hosting, infrastructure, software, contractor, other")
 	cmd.Flags().StringVar(&criticality, "criticality", "", "Criticality: low, medium, high, critical")
 	cmd.Flags().BoolVar(&dataAccess, "data-access", false, "Supplier has access to our data")
 	cmd.Flags().StringVar(&contact, "contact", "", "Contact info")

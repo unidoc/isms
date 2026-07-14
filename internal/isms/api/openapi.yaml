@@ -3376,7 +3376,7 @@ components:
         id: { type: integer }
         identifier: { type: string, example: "SUPPLIER-001" }
         name: { type: string }
-        supplier_type: { type: string, enum: [cloud, saas, consulting, hosting, infrastructure, software, other] }
+        supplier_type: { type: string, enum: [cloud, saas, consulting, hosting, infrastructure, software, contractor, other] }
         criticality: { type: string, enum: [low, medium, high, critical] }
         data_access: { type: boolean }
         contact: { type: string }

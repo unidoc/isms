@@ -509,33 +509,5 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-/* Brand-colored focus rings for inputs */
-.brand-focus:focus {
-  border-color: var(--brand-color);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-color) 30%, transparent);
-}
-
-/* Brand-colored primary buttons */
-.brand-btn {
-  background-color: var(--brand-color);
-}
-.brand-btn:hover:not(:disabled) {
-  filter: brightness(1.15);
-}
-
-/* Brand-colored text */
-.brand-text {
-  color: var(--brand-color);
-}
-.brand-text-hover:hover {
-  color: var(--brand-color);
-}
-
-/* Brand info box (passkey status) */
-.brand-info-box {
-  background-color: color-mix(in srgb, var(--brand-color) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-color) 20%, transparent);
-  color: color-mix(in srgb, var(--brand-color) 80%, white);
-}
-</style>
+<!-- brand-* auth controls now live globally in src/style.css so every auth
+     screen (not just Login) gets them — see #169. -->

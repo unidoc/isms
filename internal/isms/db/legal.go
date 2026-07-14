@@ -36,7 +36,7 @@ var legalSortable = map[string]string{
 
 // LegalRequirement represents an entry in the legal register.
 type LegalRequirement struct {
-	ID             int    `json:"id"`
+	ID             int64  `json:"id"`
 	Identifier     string `json:"identifier"`
 	OrganizationID int    `json:"organization_id"`
 	Title          string `json:"title"`
@@ -180,7 +180,7 @@ func (d *DB) CreateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 	).Scan(&lr.ID, &lr.CreatedAt, &lr.UpdatedAt)
 }
 
-func (d *DB) GetLegalRequirement(ctx context.Context, orgID int, id int) (*LegalRequirement, error) {
+func (d *DB) GetLegalRequirement(ctx context.Context, orgID int, id int64) (*LegalRequirement, error) {
 	var lr LegalRequirement
 	err := scanLegal(d.pool.QueryRow(ctx, `
 		SELECT `+legalSelectCols+`
@@ -337,7 +337,7 @@ func (d *DB) PaginatedLegalRequirements(ctx context.Context, orgID int, p LegalL
 }
 
 func (d *DB) GetLegalRequirementByIdentifier(ctx context.Context, orgID int, identifier string) (*LegalRequirement, error) {
-	var id int
+	var id int64
 	err := d.pool.QueryRow(ctx, `SELECT id FROM legal_requirements WHERE organization_id = $1 AND identifier = $2 AND deleted_at IS NULL`, orgID, identifier).Scan(&id)
 	if err != nil {
 		return nil, err
@@ -369,7 +369,7 @@ func (d *DB) UpdateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 	return err
 }
 
-func (d *DB) DeleteLegalRequirement(ctx context.Context, orgID int, id int) error {
+func (d *DB) DeleteLegalRequirement(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE legal_requirements SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err
 }

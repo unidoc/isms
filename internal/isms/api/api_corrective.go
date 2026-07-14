@@ -165,9 +165,11 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 
 func (s *Server) handleGetCorrectiveAction(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
 	}
 	ca, err := s.db.GetCorrectiveAction(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -181,9 +183,11 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
 	}
 
 	ctx := c.Request().Context()
@@ -296,9 +300,11 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
 	}
 
 	var req struct {
@@ -359,9 +365,11 @@ func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
 	}
 
 	ctx := c.Request().Context()

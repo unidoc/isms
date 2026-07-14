@@ -47,7 +47,7 @@ const correctiveActionSelectCols = `id, organization_id, identifier, title, desc
 
 // CorrectiveAction represents a corrective action / nonconformity record.
 type CorrectiveAction struct {
-	ID             int    `json:"id"`
+	ID             int64  `json:"id"`
 	OrganizationID int    `json:"organization_id"`
 	Identifier     string `json:"identifier"`
 	Title          string `json:"title"`
@@ -87,7 +87,7 @@ func (d *DB) CreateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 	).Scan(&ca.ID, &ca.CreatedAt, &ca.UpdatedAt)
 }
 
-func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int) (*CorrectiveAction, error) {
+func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int64) (*CorrectiveAction, error) {
 	var ca CorrectiveAction
 	err := d.pool.QueryRow(ctx, `
 		SELECT `+correctiveActionSelectCols+`
@@ -187,7 +187,7 @@ func (d *DB) UpdateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 	return err
 }
 
-func (d *DB) UpdateCorrectiveActionStatus(ctx context.Context, orgID int, id int, status, actor string) error {
+func (d *DB) UpdateCorrectiveActionStatus(ctx context.Context, orgID int, id int64, status, actor string) error {
 	if status == "resolved" {
 		_, err := d.pool.Exec(ctx, `
 			UPDATE corrective_actions SET status = $2, resolved_at = now(), resolved_by_id = (SELECT id FROM users WHERE email = $4), updated_at = now()
@@ -241,7 +241,7 @@ func (d *DB) CountOpenTasksByCA(ctx context.Context, orgID int, caIdentifier str
 	return n, err
 }
 
-func (d *DB) DeleteCorrectiveAction(ctx context.Context, orgID int, id int) error {
+func (d *DB) DeleteCorrectiveAction(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE corrective_actions SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err
 }

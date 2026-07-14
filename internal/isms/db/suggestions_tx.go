@@ -220,7 +220,7 @@ func CountOpenCAsByIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inciden
 // UpdateIncidentTx writes status but NOT the timestamps, so the unified write
 // path (#26) calls this right after it to keep contained/resolved/closed_at
 // correct on both forward transitions and reopens.
-func SetIncidentLifecycleTx(ctx context.Context, tx pgx.Tx, orgID, id int, status string) error {
+func SetIncidentLifecycleTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, status string) error {
 	query := `UPDATE incidents SET updated_at = now()`
 	switch status {
 	case "draft", "open", "investigating":
@@ -257,7 +257,7 @@ func CountOpenTasksByCATx(ctx context.Context, tx pgx.Tx, orgID int, caIdentifie
 // transaction. UpdateCorrectiveActionTx writes status but NOT this closure
 // metadata, so the unified CA write path (#26) calls this on a →resolved
 // transition — the exact field suggestion-apply previously skipped.
-func SetCorrectiveActionResolvedTx(ctx context.Context, tx pgx.Tx, orgID, id int, actor string) error {
+func SetCorrectiveActionResolvedTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, actor string) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE corrective_actions
 		SET resolved_at = now(), resolved_by_id = (SELECT id FROM users WHERE email = $3), updated_at = now()
@@ -733,18 +733,13 @@ func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) erro
 func CreateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 	a.OrganizationID = orgID
 
-	var seq int
-	err := tx.QueryRow(ctx, `
-		INSERT INTO identifier_sequences (organization_id, entity_type, next_value)
-		VALUES ($1, 'asset', 1)
-		ON CONFLICT (organization_id, entity_type)
-		DO UPDATE SET next_value = identifier_sequences.next_value + 1
-		RETURNING next_value
-	`, orgID).Scan(&seq)
+	// Use the shared helper so suggestion-applied assets get the same ASSET-
+	// prefix (and sequence) as the HTTP create path — not the old hardcoded AST-.
+	ident, err := nextIdentifierTx(ctx, tx, orgID, "asset")
 	if err != nil {
-		return fmt.Errorf("allocate identifier: %w", err)
+		return err
 	}
-	a.Identifier = fmt.Sprintf("AST-%d", seq)
+	a.Identifier = ident
 
 	return tx.QueryRow(ctx, `
 		INSERT INTO assets (organization_id, identifier, name, description, asset_type, status,
@@ -790,7 +785,7 @@ func UpdateAuditFindingFieldTx(ctx context.Context, tx pgx.Tx, orgID int, id int
 
 // SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — shares the
 // same core (closure metadata + not-found guard) so the two can't drift (#26).
-func SetAuditFindingStatusTx(ctx context.Context, tx pgx.Tx, orgID, id int, status, closedBy string) error {
+func SetAuditFindingStatusTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, status, closedBy string) error {
 	return setAuditFindingStatus(ctx, tx, orgID, id, status, closedBy)
 }
 

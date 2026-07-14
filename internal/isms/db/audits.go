@@ -485,7 +485,7 @@ func (d *DB) UpdateAuditItem(ctx context.Context, orgID, id int, result, evidenc
 // --- Audit Findings ---
 
 type AuditFinding struct {
-	ID             int    `json:"id"`
+	ID             int64  `json:"id"`
 	OrganizationID int    `json:"organization_id"`
 	AuditID        int    `json:"audit_id"`
 	AuditTitle     string `json:"audit_title,omitempty"`
@@ -550,7 +550,7 @@ func (d *DB) AddAuditFinding(ctx context.Context, orgID int, f *AuditFinding) er
 	).Scan(&f.ID, &f.CreatedAt, &f.UpdatedAt)
 }
 
-func (d *DB) GetAuditFinding(ctx context.Context, orgID, id int) (*AuditFinding, error) {
+func (d *DB) GetAuditFinding(ctx context.Context, orgID int, id int64) (*AuditFinding, error) {
 	var f AuditFinding
 	err := scanAuditFinding(d.pool.QueryRow(ctx, `SELECT `+auditFindingCols+` FROM audit_findings f WHERE f.id = $1 AND f.organization_id = $2 AND f.deleted_at IS NULL`, id, orgID), &f)
 	if err != nil {
@@ -700,7 +700,7 @@ func (d *DB) PaginatedAuditFindings(ctx context.Context, orgID int, p AuditFindi
 // UpdateAuditFindingPartial applies a partial update with pointer semantics.
 // nil = leave alone, non-nil = set (empty string clears, except for required fields).
 // Corrective action content is folded into description (## Corrective Action heading).
-func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID, id int, title, description, owner *string, dueDate **Epoch) error {
+func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID int, id int64, title, description, owner *string, dueDate **Epoch) error {
 	sets := []string{"updated_at = now()"}
 	args := []interface{}{id, orgID}
 	idx := 3
@@ -746,7 +746,7 @@ func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID, id int, title
 
 // SetAuditFindingStatus moves a finding open <-> closed and keeps closure metadata consistent.
 // On close: stamps closed_at + closed_by.  On reopen: clears closed_at, closed_by, closed_by_user_id.
-func (d *DB) SetAuditFindingStatus(ctx context.Context, orgID, id int, status, closedBy string) error {
+func (d *DB) SetAuditFindingStatus(ctx context.Context, orgID int, id int64, status, closedBy string) error {
 	return setAuditFindingStatus(ctx, d.pool, orgID, id, status, closedBy)
 }
 
@@ -755,7 +755,7 @@ func (d *DB) SetAuditFindingStatus(ctx context.Context, orgID, id int, status, c
 // reopen). Errors if no row matched (nonexistent or soft-deleted), so a status
 // apply can't be recorded as "applied" for a mutation that touched nothing.
 // Runs against the pool (DB method) or a tx (SetAuditFindingStatusTx) — one body.
-func setAuditFindingStatus(ctx context.Context, e pgExecer, orgID, id int, status, closedBy string) error {
+func setAuditFindingStatus(ctx context.Context, e pgExecer, orgID int, id int64, status, closedBy string) error {
 	var (
 		tag pgconn.CommandTag
 		err error
@@ -790,7 +790,7 @@ func setAuditFindingStatus(ctx context.Context, e pgExecer, orgID, id int, statu
 
 // SoftDeleteAuditFinding marks a finding as deleted.  Refuses if the finding has
 // linked corrective actions (open or closed) reachable via entity_references.
-func (d *DB) SoftDeleteAuditFinding(ctx context.Context, orgID, id int) error {
+func (d *DB) SoftDeleteAuditFinding(ctx context.Context, orgID int, id int64) error {
 	findingID := fmt.Sprintf("FIND-%d", id)
 	var n int
 	err := d.pool.QueryRow(ctx, `

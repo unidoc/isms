@@ -294,7 +294,7 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, 
 		if err != nil {
 			return entityID
 		}
-		f, err := s.db.GetAuditFinding(ctx, orgID, id)
+		f, err := s.db.GetAuditFinding(ctx, orgID, int64(id))
 		if err != nil {
 			return entityID
 		}
@@ -316,7 +316,7 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, 
 		if err != nil {
 			return entityID
 		}
-		t, err := s.db.GetTask(ctx, orgID, id)
+		t, err := s.db.GetTask(ctx, orgID, int64(id))
 		if err != nil {
 			return entityID
 		}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -157,9 +158,11 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 
 func (s *Server) handleGetLegal(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
 	}
 	lr, err := s.db.GetLegalRequirement(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -173,9 +176,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
 	}
 
 	ctx := c.Request().Context()
@@ -301,9 +306,11 @@ func (s *Server) handleDeleteLegal(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
 	}
 
 	ctx := c.Request().Context()

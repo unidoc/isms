@@ -41,7 +41,7 @@ const taskSelectCols = `t.id, t.organization_id, t.identifier, t.title, COALESCE
 
 // Task represents a work item in the ISMS.
 type Task struct {
-	ID             int    `json:"id"`
+	ID             int64  `json:"id"`
 	OrganizationID int    `json:"organization_id"`
 	Identifier     string `json:"identifier"`
 	Title          string `json:"title"`
@@ -126,7 +126,7 @@ func (d *DB) ListTasks(ctx context.Context, orgID int, assignee, status string, 
 	return tasks, nil
 }
 
-func (d *DB) UpdateTaskStatus(ctx context.Context, orgID int, id int, status string) error {
+func (d *DB) UpdateTaskStatus(ctx context.Context, orgID int, id int64, status string) error {
 	query := `UPDATE tasks SET status = $2, updated_at = now()`
 	if status == "done" {
 		query += `, completed_at = now()`
@@ -158,7 +158,7 @@ func (d *DB) UpdateTask(ctx context.Context, orgID int, t *Task) error {
 	return err
 }
 
-func (d *DB) DeleteTask(ctx context.Context, orgID int, id int) error {
+func (d *DB) DeleteTask(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE tasks SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err
 }
@@ -179,7 +179,7 @@ func (t *Task) ToChangeMap() map[string]string {
 	return m
 }
 
-func (d *DB) GetTask(ctx context.Context, orgID int, id int) (*Task, error) {
+func (d *DB) GetTask(ctx context.Context, orgID int, id int64) (*Task, error) {
 	var t Task
 	err := d.pool.QueryRow(ctx, `
 		SELECT `+taskSelectCols+`

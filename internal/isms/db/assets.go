@@ -39,7 +39,7 @@ type AssetStats struct {
 type Asset struct {
 	ID              int64  `json:"id"`
 	OrganizationID  int    `json:"organization_id"`
-	Identifier      string `json:"identifier"` // AST-001
+	Identifier      string `json:"identifier"` // ASSET-001
 	Name            string `json:"name"`
 	Description     string `json:"description,omitempty"`
 	AssetType       string `json:"asset_type"`

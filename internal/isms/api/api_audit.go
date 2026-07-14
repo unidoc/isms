@@ -641,7 +641,7 @@ func (s *Server) handlePaginatedAuditFindings(c echo.Context) error {
 
 func (s *Server) handleGetAuditFinding(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
 	}
@@ -726,7 +726,7 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
 	}
@@ -791,7 +791,7 @@ func (s *Server) handleUpdateAuditFindingStatus(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
 	}
@@ -833,7 +833,7 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
 	}

@@ -351,7 +351,7 @@ func (s *Server) handleCreateLegalReading(c echo.Context) error {
 // Each reading just updates current likelihood/impact and recomputes score.
 // nextReview, if provided, sets the legal requirement's next review date (YYYY-MM-DD).
 func writeLegalFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, legalID int, r *db.EntityReading, actor string, nextReview string) error {
-	lr, err := s.db.GetLegalRequirement(ctx, orgID, legalID)
+	lr, err := s.db.GetLegalRequirement(ctx, orgID, int64(legalID))
 	if err != nil {
 		return fmt.Errorf("legal requirement %d not found: %w", legalID, err)
 	}

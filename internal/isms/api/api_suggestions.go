@@ -792,7 +792,7 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	if parseErr != nil {
 		return "", fmt.Errorf("invalid incident ID %s: %w", sg.EntityID, parseErr)
 	}
-	inc, err := s.db.GetIncident(ctx, orgID, int(incID))
+	inc, err := s.db.GetIncident(ctx, orgID, incID)
 	if err != nil {
 		return "", fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
 	}
@@ -1200,7 +1200,7 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
 	idInt, _ := parseEntityID(sg.EntityID)
-	ca, err := s.db.GetCorrectiveAction(ctx, orgID, int(idInt))
+	ca, err := s.db.GetCorrectiveAction(ctx, orgID, idInt)
 	if err != nil {
 		return "", fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
 	}
@@ -1285,7 +1285,7 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
 	idInt, _ := parseEntityID(sg.EntityID)
-	t, err := s.db.GetTask(ctx, orgID, int(idInt))
+	t, err := s.db.GetTask(ctx, orgID, idInt)
 	if err != nil {
 		return "", fmt.Errorf("task %s not found: %w", sg.EntityID, err)
 	}
@@ -1662,7 +1662,7 @@ func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 			if !db.AuditFindingStatuses[sv] {
 				return "", fmt.Errorf("invalid status: %s", sv)
 			}
-			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, int(idInt), sv, actor); err != nil {
+			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, idInt, sv, actor); err != nil {
 				return "", err
 			}
 			continue
@@ -1724,7 +1724,7 @@ func applyLegalReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err := db.CreateEntityReadingTx(ctx, tx, orgID, &reading); err != nil {
 		return "", fmt.Errorf("create reading: %w", err)
 	}
-	if err := writeLegalFromReading(ctx, tx, s, orgID, lr.ID, &reading, actor, ""); err != nil {
+	if err := writeLegalFromReading(ctx, tx, s, orgID, int(lr.ID), &reading, actor, ""); err != nil {
 		return "", err
 	}
 	return lr.Identifier, nil

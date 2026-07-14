@@ -52,7 +52,7 @@ const incidentSelectCols = `incidents.id, incidents.organization_id, identifier,
 
 // Incident represents a security or operational incident.
 type Incident struct {
-	ID                  int    `json:"id"`
+	ID                  int64  `json:"id"`
 	OrganizationID      int    `json:"organization_id"`
 	Identifier          string `json:"identifier"`
 	Title               string `json:"title"`
@@ -145,7 +145,7 @@ func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, m
 	return &inc, nil
 }
 
-func (d *DB) GetIncident(ctx context.Context, orgID int, id int) (*Incident, error) {
+func (d *DB) GetIncident(ctx context.Context, orgID int, id int64) (*Incident, error) {
 	return d.getIncidentWhere(ctx, orgID, "id", id)
 }
 
@@ -226,12 +226,12 @@ func (d *DB) UpdateIncident(ctx context.Context, orgID int, inc *Incident) error
 	return err
 }
 
-func (d *DB) DeleteIncident(ctx context.Context, orgID int, id int) error {
+func (d *DB) DeleteIncident(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE incidents SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err
 }
 
-func (d *DB) UpdateIncidentStatus(ctx context.Context, orgID int, id int, status string) error {
+func (d *DB) UpdateIncidentStatus(ctx context.Context, orgID int, id int64, status string) error {
 	return d.UpdateIncidentStatusWithDetails(ctx, orgID, id, status, "", "")
 }
 
@@ -242,7 +242,7 @@ func (d *DB) UpdateIncidentStatus(ctx context.Context, orgID int, id int, status
 //
 // Empty rootCause / lessonsLearned leave the existing values unchanged.
 // Returns an error if no rows were affected (incident not found / already deleted).
-func (d *DB) UpdateIncidentStatusWithDetails(ctx context.Context, orgID, id int, status, rootCause, lessonsLearned string) error {
+func (d *DB) UpdateIncidentStatusWithDetails(ctx context.Context, orgID int, id int64, status, rootCause, lessonsLearned string) error {
 	// Lifecycle: draft → open → investigating → contained → resolved → closed.
 	// Forward transitions stamp the relevant timestamp; reopens clear timestamps
 	// for stages AT OR AFTER the new state so closure metadata reflects reality.

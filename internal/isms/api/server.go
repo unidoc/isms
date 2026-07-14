@@ -3129,7 +3129,14 @@ func stripFrontmatter(s string) string {
 
 // parseID extracts a numeric ID from a string that may have a prefix like "ASSET-5", "RISK-3", etc.
 func parseID(s string) (int64, error) {
-	for _, prefix := range []string{"ASSET-", "RISK-", "SUPPLIER-", "SYSTEM-"} {
+	// Strip any entity identifier prefix so URLs accept the human form
+	// (TASK-6, INC-3, …) as well as the bare numeric id. Prefixes are the ones
+	// NextIdentifier mints; AST- is kept for legacy assets minted before the
+	// AST-/ASSET- consistency fix.
+	for _, prefix := range []string{
+		"RISK-", "ASSET-", "AST-", "SUPPLIER-", "SYSTEM-", "LEGAL-",
+		"PROG-", "INC-", "CR-", "TASK-", "CA-", "OBJ-", "AUDIT-", "FIND-",
+	} {
 		s = strings.TrimPrefix(s, prefix)
 	}
 	return strconv.ParseInt(s, 10, 64)

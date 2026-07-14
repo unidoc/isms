@@ -2140,7 +2140,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2184,7 +2184,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 
 func (s *Server) handleGetTask(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2201,7 +2201,7 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -2295,7 +2295,7 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseID(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
 	}
@@ -3300,7 +3300,7 @@ func (s *Server) handleInbox(c echo.Context) error {
 	tasks = append(tasks, inProgressTasks...)
 	for _, t := range tasks {
 		items = append(items, inboxItem{
-			Type: "task", ID: t.ID,
+			Type: "task", ID: int(t.ID),
 			Title: t.Title, Status: t.Status, From: t.CreatedBy, CreatedAt: t.CreatedAt,
 		})
 	}
@@ -3442,7 +3442,7 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 	tasks = append(tasks, inProgress...)
 	for _, t := range tasks {
 		dump.Tasks = append(dump.Tasks, taskInfo{
-			ID: t.ID, Title: t.Title, Description: t.Description,
+			ID: int(t.ID), Title: t.Title, Description: t.Description,
 			TaskType: t.TaskType,
 			Priority: t.Priority, Status: t.Status,
 		})

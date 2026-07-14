@@ -8,8 +8,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-6xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>{{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -32,6 +33,7 @@
 
       <!-- Filter/search bar -->
       <div class="flex items-center gap-3 flex-wrap">
+        <RefreshButton :loading="refreshing" @refresh="reload" class="shrink-0" />
         <div class="relative flex-1 max-w-xs">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -267,6 +269,7 @@ import CommentsPanel from '../components/CommentsPanel.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -278,6 +281,18 @@ const userRole = ref('')
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  error.value = null
+  try {
+    await fetchAll()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 const programs = ref([])
 const selected = ref(null)
@@ -332,13 +347,19 @@ async function loadAll() {
   loading.value = true
   error.value = null
   try {
-    const progs = await api.getPrograms()
-    programs.value = Array.isArray(progs) ? progs : (progs?.data || [])
+    await fetchAll()
   } catch (e) {
     error.value = e.message
   } finally {
     loading.value = false
   }
+}
+
+// Fetch body without the loading toggle, so reload() refreshes in place
+// (no full-list skeleton flicker) — see #165 review.
+async function fetchAll() {
+  const progs = await api.getPrograms()
+  programs.value = Array.isArray(progs) ? progs : (progs?.data || [])
 }
 
 function selectProgram(p) {

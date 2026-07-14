@@ -8,8 +8,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-5xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        Failed to load audit module. {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>Failed to load audit module. {{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -22,6 +23,7 @@
           <p class="text-sm text-slate-500 mt-1">Audit programmes, schedule, and findings</p>
         </div>
         <div class="flex gap-2">
+          <RefreshButton :loading="refreshing" @refresh="reload" />
           <button v-if="canWrite && activeTab === 'programmes'"
             @click="openCreateProgramme"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
@@ -1133,6 +1135,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
@@ -1193,6 +1196,19 @@ const userRole = ref('')
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  error.value = null
+  try {
+    await Promise.all([loadProgrammes(), loadAudits()])
+    await refreshFindingCounts()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 const orgMembers = ref([])
 

@@ -7,8 +7,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-5xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>{{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -697,6 +698,7 @@
           <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Reviews</h1>
           <p class="text-sm text-slate-500 mt-1">Document review requests</p>
         </div>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
 
       <!-- Stats tiles -->
@@ -846,6 +848,7 @@ import SideBySideReview from '../components/SideBySideReview.vue'
 import DocumentViewer from '../components/DocumentViewer.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 const DocumentEditor = defineAsyncComponent(() => import('../components/DocumentEditor.vue'))
@@ -894,6 +897,18 @@ const userCanReview = computed(() => {
 })
 
 const loading = ref(true)
+const refreshing = ref(false)
+async function reload() {
+  refreshing.value = true
+  error.value = null
+  try {
+    await Promise.all([loadReviews(), loadReviewStats()])
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    refreshing.value = false
+  }
+}
 const error = ref(null)
 const reviews = ref([])
 const statusFilter = ref('open')

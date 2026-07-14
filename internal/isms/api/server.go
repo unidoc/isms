@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"html"
 	"io/fs"
@@ -3127,12 +3128,13 @@ func stripFrontmatter(s string) string {
 	return strings.TrimLeft(rest[idx+4:], "\n")
 }
 
-// parseID extracts a numeric ID from a string that may have a prefix like "ASSET-5", "RISK-3", etc.
-// parseID accepts a bare numeric id, or an identifier whose numeric SUFFIX IS the
-// primary key: findings (FIND-<id>) and the pre-existing SUPPLIER-/ASSET-/RISK-/
-// SYSTEM- handlers. It does NOT work for seq-based identifiers (TASK-/INC-/CA-/
-// LEGAL-), where the suffix is a per-org sequence, not the id — those resolve via
-// the resolve*ID lookups below (see #174).
+// parseID accepts a bare numeric id, or an identifier whose numeric SUFFIX is used
+// directly as the primary key: findings (FIND-<id>, built from the row id itself —
+// see SoftDeleteAuditFinding) and, so far incidentally rather than by design, the
+// pre-existing SUPPLIER-/ASSET-/RISK-/SYSTEM- handlers (same identifier_sequences
+// mechanism as TASK-/INC-/CA-/LEGAL-, just not yet observed to diverge). It does
+// NOT work for seq-based identifiers known to diverge from the id (TASK-/INC-/CA-/
+// LEGAL-) — those resolve via the resolve*ID lookups below (#174).
 func parseID(s string) (int64, error) {
 	for _, prefix := range []string{"RISK-", "ASSET-", "AST-", "SUPPLIER-", "SYSTEM-", "FIND-"} {
 		s = strings.TrimPrefix(s, prefix)
@@ -3140,13 +3142,22 @@ func parseID(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
+// errInvalidID marks a param that is neither numeric nor a well-formed identifier
+// for the entity. Callers map it to 400; a well-formed-but-missing identifier (a
+// real lookup miss) returns the lookup error instead, which callers map to 404 —
+// matching the numeric path, where a nonexistent id 404s at the Get* call.
+var errInvalidID = errors.New("invalid id")
+
 // resolve*ID map a URL param (numeric id OR the PREFIX-<seq> identifier form) to
 // the numeric primary key. For task/incident/corrective-action/legal the
-// identifier suffix is a per-org sequence, NOT the id, so the identifier form
-// must be looked up rather than stripped (#174).
+// identifier suffix is a per-org sequence, NOT the id, so the identifier form must
+// be looked up rather than stripped (#174).
 func (s *Server) resolveTaskID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
+	}
+	if !strings.HasPrefix(param, "TASK-") {
+		return 0, errInvalidID
 	}
 	t, err := s.db.GetTaskByIdentifier(ctx, orgID, param)
 	if err != nil {
@@ -3159,6 +3170,9 @@ func (s *Server) resolveIncidentID(ctx context.Context, orgID int, param string)
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
 	}
+	if !strings.HasPrefix(param, "INC-") {
+		return 0, errInvalidID
+	}
 	inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, param)
 	if err != nil {
 		return 0, err
@@ -3170,6 +3184,9 @@ func (s *Server) resolveCorrectiveActionID(ctx context.Context, orgID int, param
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
 	}
+	if !strings.HasPrefix(param, "CA-") {
+		return 0, errInvalidID
+	}
 	ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, param)
 	if err != nil {
 		return 0, err
@@ -3180,6 +3197,9 @@ func (s *Server) resolveCorrectiveActionID(ctx context.Context, orgID int, param
 func (s *Server) resolveLegalID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
+	}
+	if !strings.HasPrefix(param, "LEGAL-") {
+		return 0, errInvalidID
 	}
 	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, param)
 	if err != nil {

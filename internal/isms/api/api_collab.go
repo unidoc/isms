@@ -2141,8 +2141,10 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if err != nil {
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "task not found")
 	}
 	var req struct {
 		Status string `json:"status"`
@@ -2185,8 +2187,10 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 func (s *Server) handleGetTask(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if err != nil {
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "task not found")
 	}
 	task, err := s.db.GetTask(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -2202,8 +2206,10 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if err != nil {
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "task not found")
 	}
 
 	old, err := s.db.GetTask(ctx, orgID, id)
@@ -2296,8 +2302,10 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if err != nil {
+	if errors.Is(err, errInvalidID) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+	} else if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "task not found")
 	}
 
 	task, err := s.db.GetTask(ctx, orgID, id)

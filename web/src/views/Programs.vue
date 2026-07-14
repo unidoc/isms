@@ -8,8 +8,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-6xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>{{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -283,8 +284,11 @@ const loading = ref(true)
 const refreshing = ref(false)
 async function reload() {
   refreshing.value = true
+  error.value = null
   try {
-    await loadAll()
+    await fetchAll()
+  } catch (e) {
+    error.value = e.message
   } finally {
     refreshing.value = false
   }
@@ -343,13 +347,19 @@ async function loadAll() {
   loading.value = true
   error.value = null
   try {
-    const progs = await api.getPrograms()
-    programs.value = Array.isArray(progs) ? progs : (progs?.data || [])
+    await fetchAll()
   } catch (e) {
     error.value = e.message
   } finally {
     loading.value = false
   }
+}
+
+// Fetch body without the loading toggle, so reload() refreshes in place
+// (no full-list skeleton flicker) — see #165 review.
+async function fetchAll() {
+  const progs = await api.getPrograms()
+  programs.value = Array.isArray(progs) ? progs : (progs?.data || [])
 }
 
 function selectProgram(p) {

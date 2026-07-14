@@ -8,8 +8,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-5xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        Failed to load risks. {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>Failed to load risks. {{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -761,9 +762,11 @@ const loading = ref(true)
 const refreshing = ref(false)
 async function reload() {
   refreshing.value = true
+  error.value = null
   try {
     await loadRisks()
-    loadAllAdvisories()
+  } catch (e) {
+    error.value = e.message
   } finally {
     refreshing.value = false
   }

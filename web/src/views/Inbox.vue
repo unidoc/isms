@@ -7,8 +7,9 @@
 
     <!-- Error -->
     <div v-else-if="error" class="max-w-4xl mx-auto px-8 py-12">
-      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm">
-        {{ error }}
+      <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
+        <span>{{ error }}</span>
+        <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
 
@@ -737,6 +738,7 @@ const loading = ref(true)
 const refreshing = ref(false)
 async function reload() {
   refreshing.value = true
+  error.value = null
   try {
     await Promise.all([
       loadOpenComments(),
@@ -747,6 +749,8 @@ async function reload() {
       loadCAs(),
       loadSuggestions(),
     ])
+  } catch (e) {
+    error.value = e.message
   } finally {
     refreshing.value = false
   }

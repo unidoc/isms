@@ -673,3 +673,30 @@
     page-break-after: avoid;
   }
 }
+
+/* ── Brand-colored auth controls ────────────────────────────────────────────
+   Shared by every auth screen (login, signup, forgot/reset password, email
+   verification). Previously scoped to Login.vue, so the OTHER auth screens
+   rendered their buttons/inputs unstyled ("ugly"). Global now; --brand-color
+   falls back to blue-500 when no org branding is configured. */
+.brand-focus:focus {
+  border-color: var(--brand-color, #3b82f6);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-color, #3b82f6) 30%, transparent);
+}
+.brand-btn {
+  background-color: var(--brand-color, #3b82f6);
+}
+.brand-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.brand-text {
+  color: var(--brand-color, #3b82f6);
+}
+.brand-text-hover:hover {
+  color: var(--brand-color, #3b82f6);
+}
+.brand-info-box {
+  background-color: color-mix(in srgb, var(--brand-color, #3b82f6) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-color, #3b82f6) 20%, transparent);
+  color: color-mix(in srgb, var(--brand-color, #3b82f6) 80%, white);
+}

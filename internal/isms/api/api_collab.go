@@ -2505,11 +2505,13 @@ func (s *Server) handleChangeStats(c echo.Context) error {
 
 func (s *Server) handleGetChange(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.Atoi(c.Param("id"))
+	// Accept the numeric id OR the identifier (CR-12) so deep-links resolve for
+	// off-page items too (#166 review). resolveChangeID returns int64 → cast.
+	id, err := s.resolveChangeID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid change id")
+		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
 	}
-	cr, err := s.db.GetChangeRequest(c.Request().Context(), orgID, id)
+	cr, err := s.db.GetChangeRequest(c.Request().Context(), orgID, int(id))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
 	}

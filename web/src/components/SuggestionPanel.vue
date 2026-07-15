@@ -87,7 +87,7 @@ import { api } from '../api'
 import { useConfirm } from '../composables/useConfirm'
 import { useToast } from '../composables/useToast'
 
-const { show: showError } = useToast()
+const { show: showError, success: showSuccess } = useToast()
 
 const { ask } = useConfirm()
 
@@ -158,6 +158,7 @@ async function submitSuggestion() {
     })
     newSuggestion.value = { suggestion_type: 'update', title: '', rationale: '' }
     showCreate.value = false
+    showSuccess('Suggestion submitted — a manager will review it before it takes effect.') // #167
     await load()
   } catch (e) {
     createError.value = e.message || 'Failed to create suggestion'

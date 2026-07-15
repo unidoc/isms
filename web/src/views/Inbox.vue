@@ -664,7 +664,7 @@
                 </div>
                 <div class="text-sm text-slate-300 mt-0.5">{{ sg.title }}</div>
                 <div class="text-xs text-slate-500 mt-1">
-                  {{ sg.suggested_by?.split('@')[0] }} &middot; {{ formatDate(sg.created_at) }}
+                  Suggested by {{ sg.suggested_by?.split('@')[0] }} &middot; {{ formatDate(sg.created_at) }}
                 </div>
               </div>
               <!-- Actions -->

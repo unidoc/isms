@@ -655,10 +655,13 @@ func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 		return fmt.Errorf("program not found: %w", err)
 	}
 
-	// Get next seq number for this program
+	// Get next seq number for this program. Count ALL rows incl. soft-deleted —
+	// UNIQUE(organization_id, display_id) is not partial, so excluding deleted rows
+	// would let MAX+1 regenerate a taken display_id after a delete (mirrors the
+	// fix in CreateObjective).
 	var maxSeq int
 	_ = tx.QueryRow(ctx,
-		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1 AND deleted_at IS NULL`,
+		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1`,
 		o.ProgramID).Scan(&maxSeq)
 	o.SeqNumber = maxSeq + 1
 	o.DisplayID = fmt.Sprintf("%s-%d", progKey, o.SeqNumber)

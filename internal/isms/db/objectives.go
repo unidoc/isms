@@ -74,10 +74,13 @@ func (d *DB) CreateObjective(ctx context.Context, orgID int, o *Objective) error
 		return fmt.Errorf("program not found: %w", err)
 	}
 
-	// Get next seq number for this program
+	// Get next seq number for this program. Count ALL rows incl. soft-deleted:
+	// display_id is UNIQUE(organization_id, display_id) with no partial index, so a
+	// soft-deleted objective still holds its display_id. Excluding deleted rows here
+	// let MAX+1 regenerate a taken display_id after any delete → duplicate-key 409.
 	var maxSeq int
 	_ = d.pool.QueryRow(ctx,
-		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1 AND deleted_at IS NULL`,
+		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1`,
 		o.ProgramID).Scan(&maxSeq)
 	o.SeqNumber = maxSeq + 1
 	o.DisplayID = fmt.Sprintf("%s-%d", prog.Key, o.SeqNumber)

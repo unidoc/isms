@@ -3215,6 +3215,58 @@ func (s *Server) resolveLegalID(ctx context.Context, orgID int, param string) (i
 	return lr.ID, nil
 }
 
+// resolveChangeID / resolveObjectiveID / resolveSystemID / resolveAssetID map a
+// suggestion's EntityID (numeric primary key OR the per-org identifier form) to
+// the numeric id via lookup (#177). Unlike resolveTaskID et al. these skip a
+// fixed-prefix check on purpose: asset identifiers exist as both ASSET- and AST-,
+// systems as SYSTEM-, and objective "identifiers" are program-key-scoped display
+// IDs (e.g. ISMS-1), so a hardcoded prefix would be wrong. Numeric → the id;
+// otherwise look it up — a per-org seq that differs from the id no longer silently
+// resolves to the wrong row.
+func (s *Server) resolveChangeID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	cr, err := s.db.GetChangeRequestByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return int64(cr.ID), nil
+}
+
+func (s *Server) resolveObjectiveID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	o, err := s.db.GetObjectiveByDisplayID(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return o.ID, nil
+}
+
+func (s *Server) resolveSystemID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	sys, err := s.db.GetSystemByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return sys.ID, nil
+}
+
+func (s *Server) resolveAssetID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	a, err := s.db.GetAssetByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return a.ID, nil
+}
+
 // extractHostname parses a URL and returns just the hostname (no port).
 // deriveKey uses HKDF-SHA256 to derive a purpose-specific key from the master secret.
 func deriveKey(master []byte, label string, n int) []byte {

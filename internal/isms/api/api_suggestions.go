@@ -1123,8 +1123,11 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	idInt, _ := parseEntityID(sg.EntityID)
-	cr, err := s.db.GetChangeRequest(ctx, orgID, int(idInt))
+	id, err := s.resolveChangeID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
+	}
+	cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 	if err != nil {
 		return "", fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
 	}
@@ -1411,8 +1414,11 @@ func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	idInt, _ := parseEntityID(sg.EntityID)
-	o, err := s.db.GetObjective(ctx, orgID, idInt)
+	id, err := s.resolveObjectiveID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
+	}
+	o, err := s.db.GetObjective(ctx, orgID, id)
 	if err != nil {
 		return "", fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
 	}
@@ -1501,8 +1507,11 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	idInt, _ := parseEntityID(sg.EntityID)
-	sys, err := s.db.GetSystem(ctx, orgID, idInt)
+	id, err := s.resolveSystemID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+	}
+	sys, err := s.db.GetSystem(ctx, orgID, id)
 	if err != nil {
 		return "", fmt.Errorf("system %s not found: %w", sg.EntityID, err)
 	}
@@ -1597,8 +1606,11 @@ func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid update payload: %w", err)
 	}
-	idInt, _ := parseEntityID(sg.EntityID)
-	asset, err := s.db.GetAsset(ctx, orgID, idInt)
+	id, err := s.resolveAssetID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+	}
+	asset, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
 		return "", fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
 	}

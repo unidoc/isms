@@ -54,6 +54,9 @@
 import { ref, computed, watch } from 'vue'
 import { api } from '../api'
 import { useSession } from '../composables/useSession'
+import { useToast } from '../composables/useToast.js'
+
+const { success: toastSuccess } = useToast()
 
 // Suggestions are the contributor entry point; readers are read-only (#23), so
 // hide the control entirely for them rather than letting it 403 on submit.
@@ -150,6 +153,10 @@ async function submit() {
     }
     await api.createSuggestion(payload)
     showForm.value = false
+    // #167: a suggestion goes to managers for review rather than taking effect,
+    // and it isn't shown on this list view — without this the submit felt like it
+    // vanished. Confirm it landed and is pending review.
+    toastSuccess('Suggestion submitted — a manager will review it before it takes effect.')
     emit('created')
   } catch (e) {
     error.value = e.message || 'Failed to create suggestion'

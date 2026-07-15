@@ -178,6 +178,23 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 	return c.JSON(http.StatusCreated, sg)
 }
 
+// taskSuggestionHidden reports whether a suggestion targets a private task the
+// caller may not see (mirrors canViewTask). Non-task suggestions and CanSeeAll
+// callers are never hidden. Keeps suggestions raised on a private task out of the
+// open /suggestions list and single-get for unrelated readers/contributors (#178).
+func (s *Server) taskSuggestionHidden(c echo.Context, orgID int, sg *db.Suggestion) bool {
+	if sg.EntityType != "task" || sg.EntityID == "" || taskViewer(c).CanSeeAll {
+		return false
+	}
+	var t *db.Task
+	if id, err := strconv.ParseInt(sg.EntityID, 10, 64); err == nil {
+		t, _ = s.db.GetTask(c.Request().Context(), orgID, id)
+	} else {
+		t, _ = s.db.GetTaskByIdentifier(c.Request().Context(), orgID, sg.EntityID)
+	}
+	return t != nil && !canViewTask(c, t)
+}
+
 func (s *Server) handleListEntitySuggestions(c echo.Context) error {
 	orgID := getOrgID(c)
 
@@ -198,7 +215,17 @@ func (s *Server) handleListEntitySuggestions(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{"data": suggestions})
+	// Drop suggestions raised on a private task the caller may not see (#178 review).
+	// taskSuggestionHidden short-circuits for managers/admins, so this is a no-op
+	// (no extra DB hits) for CanSeeAll viewers.
+	kept := make([]db.Suggestion, 0, len(suggestions))
+	for i := range suggestions {
+		if s.taskSuggestionHidden(c, orgID, &suggestions[i]) {
+			continue
+		}
+		kept = append(kept, suggestions[i])
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{"data": kept})
 }
 
 func (s *Server) handleGetEntitySuggestion(c echo.Context) error {
@@ -210,6 +237,10 @@ func (s *Server) handleGetEntitySuggestion(c echo.Context) error {
 
 	sg, err := s.db.GetSuggestion(c.Request().Context(), orgID, id)
 	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+	}
+	// A suggestion on a private task is 404 for someone who can't see the task (#178).
+	if s.taskSuggestionHidden(c, orgID, sg) {
 		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
 	}
 

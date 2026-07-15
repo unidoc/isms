@@ -655,15 +655,14 @@ func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 		return fmt.Errorf("program not found: %w", err)
 	}
 
-	// Get next seq number for this program. Count ALL rows incl. soft-deleted —
-	// UNIQUE(organization_id, display_id) is not partial, so excluding deleted rows
-	// would let MAX+1 regenerate a taken display_id after a delete (mirrors the
-	// fix in CreateObjective).
-	var maxSeq int
-	_ = tx.QueryRow(ctx,
-		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1`,
-		o.ProgramID).Scan(&maxSeq)
-	o.SeqNumber = maxSeq + 1
+	// Allocate the next seq under a program-row lock so this serializes against
+	// other objective creates for the same program (#183 follow-up). Shares the
+	// helper with CreateObjective so both take the same lock.
+	seq, err := nextObjectiveSeqTx(ctx, tx, o.ProgramID)
+	if err != nil {
+		return err
+	}
+	o.SeqNumber = seq
 	o.DisplayID = fmt.Sprintf("%s-%d", progKey, o.SeqNumber)
 
 	if o.TargetOperator == "" {

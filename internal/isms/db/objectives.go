@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Allowed enum values for objective fields. Mirrors schema CHECK constraints.
@@ -65,25 +67,33 @@ type Objective struct {
 	UpdatedAt         Epoch    `json:"updated_at"`
 }
 
+// nextObjectiveSeqTx allocates the next per-program seq_number inside a tx, taking
+// a FOR UPDATE lock on the program row so concurrent objective creates for the
+// same program serialize instead of racing on MAX+1 and colliding on
+// UNIQUE(program_id, seq_number) / UNIQUE(org, display_id) → duplicate-key 409.
+// Both create paths (CreateObjective + CreateObjectiveTx) route through this so
+// the lock is mutually effective (#183 follow-up).
+func nextObjectiveSeqTx(ctx context.Context, tx pgx.Tx, programID int64) (int, error) {
+	if _, err := tx.Exec(ctx, `SELECT id FROM programs WHERE id = $1 FOR UPDATE`, programID); err != nil {
+		return 0, fmt.Errorf("lock program: %w", err)
+	}
+	var maxSeq int
+	if err := tx.QueryRow(ctx,
+		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1`,
+		programID).Scan(&maxSeq); err != nil {
+		return 0, err
+	}
+	return maxSeq + 1, nil
+}
+
 func (d *DB) CreateObjective(ctx context.Context, orgID int, o *Objective) error {
 	o.OrganizationID = orgID
 
-	// Get program key for display_id generation
+	// Get program key for display_id generation.
 	prog, err := d.GetProgram(ctx, orgID, o.ProgramID)
 	if err != nil {
 		return fmt.Errorf("program not found: %w", err)
 	}
-
-	// Get next seq number for this program. Count ALL rows incl. soft-deleted:
-	// display_id is UNIQUE(organization_id, display_id) with no partial index, so a
-	// soft-deleted objective still holds its display_id. Excluding deleted rows here
-	// let MAX+1 regenerate a taken display_id after any delete → duplicate-key 409.
-	var maxSeq int
-	_ = d.pool.QueryRow(ctx,
-		`SELECT COALESCE(MAX(seq_number), 0) FROM objectives WHERE program_id = $1`,
-		o.ProgramID).Scan(&maxSeq)
-	o.SeqNumber = maxSeq + 1
-	o.DisplayID = fmt.Sprintf("%s-%d", prog.Key, o.SeqNumber)
 
 	if o.TargetOperator == "" {
 		o.TargetOperator = "gte"
@@ -91,12 +101,26 @@ func (d *DB) CreateObjective(ctx context.Context, orgID int, o *Objective) error
 	if o.Status == "" {
 		o.Status = "draft"
 	}
-
 	if o.CheckinCycle <= 0 {
 		o.CheckinCycle = 12
 	}
 
-	return d.pool.QueryRow(ctx, `
+	// Allocate the seq + insert in one transaction so the program-row lock in
+	// nextObjectiveSeqTx actually serializes concurrent creates (#183 follow-up).
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	seq, err := nextObjectiveSeqTx(ctx, tx, o.ProgramID)
+	if err != nil {
+		return err
+	}
+	o.SeqNumber = seq
+	o.DisplayID = fmt.Sprintf("%s-%d", prog.Key, o.SeqNumber)
+
+	if err := tx.QueryRow(ctx, `
 		INSERT INTO objectives (organization_id, program_id, display_id, seq_number,
 			title, description, owner_id, source, measurement_method,
 			target_value, target_operator, unit, window_seconds, grace_seconds,
@@ -108,7 +132,10 @@ func (d *DB) CreateObjective(ctx context.Context, orgID int, o *Objective) error
 		nilIfEmpty(o.Source), nilIfEmpty(o.MeasurementMethod),
 		o.TargetValue, o.TargetOperator, nilIfEmpty(o.Unit),
 		o.WindowSeconds, o.GraceSeconds, o.CheckinCycle, o.Status, o.StartedAt, nilIfEmpty(o.Notes),
-	).Scan(&o.ID, &o.CreatedAt, &o.UpdatedAt)
+	).Scan(&o.ID, &o.CreatedAt, &o.UpdatedAt); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (d *DB) GetObjective(ctx context.Context, orgID int, id int64) (*Objective, error) {

@@ -20,7 +20,7 @@
           <span v-if="sg.suggested_by_type === 'agent'" class="px-1 py-0.5 rounded text-[9px] bg-purple-500/15 text-purple-400">AI</span>
         </div>
         <div v-if="sg.rationale" class="text-sm text-slate-500">{{ sg.rationale }}</div>
-        <div class="text-[10px] text-slate-600">{{ sg.suggested_by }} · {{ formatDate(sg.created_at) }}</div>
+        <div class="text-[10px] text-slate-600">Suggested by {{ sg.suggested_by }}<span v-if="sg.suggested_by_type === 'agent'"> (AI)</span> · {{ formatDate(sg.created_at) }}</div>
 
         <!-- Actions -->
         <div v-if="canReview && sg.status === 'open'" class="flex items-center gap-1.5 pt-1">

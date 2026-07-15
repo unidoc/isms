@@ -69,7 +69,7 @@ func (s *Server) handleListReferences(c echo.Context) error {
 		}
 		seen[pairKey] = true
 		rwt := refWithTitle{EntityReference: r}
-		rwt.Title = s.resolveEntityTitle(ctx, orgID, otherType, otherID)
+		rwt.Title = s.resolveEntityTitle(ctx, orgID, taskViewer(c), otherType, otherID)
 		if otherType == "document" {
 			rwt.Subtype = s.resolveDocumentSubtype(ctx, orgID, otherID)
 		}
@@ -179,7 +179,7 @@ func (s *Server) resolveDocumentSubtype(ctx context.Context, orgID int, docID st
 }
 
 // resolveEntityTitle looks up the display name for an entity by type and ID.
-func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, entityID string) string {
+func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) string {
 	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
 	// the UI and createReferencesForEntity write that format. Resolve by
 	// identifier, never by numeric row id: the numeric part of an identifier
@@ -318,6 +318,11 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, entityType, 
 		}
 		t, err := s.db.GetTask(ctx, orgID, int64(id))
 		if err != nil {
+			return entityID
+		}
+		// Don't leak a private task's title to someone who may not see it — fall
+		// back to the identifier (mirrors db.TaskViewer's rule).
+		if t.Private && !viewer.CanSeeAll && t.Assignee != viewer.Email && t.CreatedBy != viewer.Email {
 			return entityID
 		}
 		return t.Title

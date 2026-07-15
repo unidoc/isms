@@ -53,6 +53,13 @@
               <option value="other">Other</option>
             </select>
           </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Visibility</label>
+            <select v-model="form.private" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option :value="false">Public — everyone in the org</option>
+              <option :value="true">Private — assignee, creator &amp; managers</option>
+            </select>
+          </div>
         </div>
         <div class="text-[10px] text-slate-600 mt-1">You can add description, assignee, due date and notes after creating.</div>
         <div class="flex gap-2 pt-2">
@@ -135,6 +142,7 @@
                 <StatusBadge :status="task.status" />
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(task.priority)">{{ task.priority }}</span>
                 <span v-if="task.task_type && task.task_type !== 'general'" class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ task.task_type.replace(/_/g, ' ') }}</span>
+                <span v-if="task.private" class="px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-300 bg-amber-500/10" title="Private — visible to assignee, creator &amp; managers">Private</span>
               </div>
               <div class="text-xs text-slate-500 mt-1">
                 <span v-if="task.assignee">{{ resolveUserName(task.assignee) }}</span>
@@ -451,6 +459,9 @@ const creating = ref(false)
 const generating = ref(false)
 const genResult = ref(null)
 const userRole = ref('')
+// Org default for a new task's visibility (task_default_private) — seeds the
+// create form's Public/Private control so a privacy-by-default org gets it right.
+const orgDefaultPrivate = ref(false)
 
 // Tab-based detail state
 const detailTab = ref('overview')
@@ -484,7 +495,7 @@ function defaultDueDate() {
   return d.toISOString().slice(0, 10)
 }
 function defaultForm() {
-  return { title: '', priority: 'medium', task_type: 'general' }
+  return { title: '', priority: 'medium', task_type: 'general', private: orgDefaultPrivate.value }
 }
 const form = ref(defaultForm())
 
@@ -615,6 +626,7 @@ async function create() {
       title: form.value.title,
       priority: form.value.priority,
       task_type: form.value.task_type,
+      private: form.value.private,
     }
     // Source links come from quick-action query params; the same info also seeds
     // a one-line markdown reference into Notes so the source is visible inline
@@ -811,6 +823,7 @@ onMounted(async () => {
     currentUserEmail.value = me?.email || ''
   } catch {}
   try { orgMembers.value = await api.getUsers() || [] } catch { orgMembers.value = [] }
+  try { const cfg = await api.getConfig(); orgDefaultPrivate.value = !!cfg?.task_default_private } catch { /* keep public default */ }
   await loadTasks()
   if (route.params.id) await openTaskFromRoute(route.params.id)
 

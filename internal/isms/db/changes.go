@@ -106,6 +106,24 @@ func (d *DB) GetChangeRequest(ctx context.Context, orgID int, id int) (*ChangeRe
 	return &cr, nil
 }
 
+// GetChangeRequestByIdentifier resolves a change request by its per-org identifier
+// (e.g. "CR-6"). The suffix is a per-org sequence, not the primary key, so it must
+// be looked up rather than stripped (#174/#177).
+func (d *DB) GetChangeRequestByIdentifier(ctx context.Context, orgID int, identifier string) (*ChangeRequest, error) {
+	var cr ChangeRequest
+	err := d.pool.QueryRow(ctx, `
+		SELECT `+changeRequestSelectCols+`
+		FROM change_requests WHERE identifier = $1 AND organization_id = $2 AND deleted_at IS NULL
+	`, identifier, orgID).Scan(&cr.ID, &cr.OrganizationID, &cr.Identifier, &cr.Title, &cr.Description, &cr.Justification,
+		&cr.Priority, &cr.Category, &cr.RiskLevel, &cr.RollbackPlan, &cr.Notes,
+		&cr.RequestedBy, &cr.AssignedTo, &cr.Status, &cr.ApprovedBy,
+		&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type)
+	if err != nil {
+		return nil, err
+	}
+	return &cr, nil
+}
+
 func (d *DB) ListChangeRequests(ctx context.Context, orgID int, status string, limit int) ([]ChangeRequest, error) {
 	query := `SELECT ` + changeRequestSelectCols + `
 		FROM change_requests WHERE organization_id = $1 AND deleted_at IS NULL`

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"isms.sh/internal/isms/db"
 )
 
 // SearchEntry is a single searchable item in the index.
@@ -306,7 +307,12 @@ func (s *Server) buildSearchIndex(orgID int) {
 
 	// Tasks
 	collect(func() []SearchEntry {
-		items, err := s.db.ListTasks(ctx, orgID, "", "", 0)
+		// The search index is an org-wide shared/cached structure, so it can't be
+		// filtered per viewer at build time. Include ONLY public tasks (zero
+		// TaskViewer → public-only) so a private task's title can't leak through
+		// universal search. Trade-off: private tasks aren't universally searchable
+		// (tracked as a follow-up — needs query-time visibility filtering).
+		items, err := s.db.ListTasks(ctx, orgID, db.TaskViewer{}, "", "", 0)
 		if err != nil {
 			return nil
 		}

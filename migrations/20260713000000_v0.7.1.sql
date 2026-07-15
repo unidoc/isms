@@ -20,3 +20,18 @@ ALTER TABLE suppliers DROP CONSTRAINT IF EXISTS suppliers_supplier_type_check;
 ALTER TABLE suppliers ADD CONSTRAINT suppliers_supplier_type_check
     CHECK (supplier_type IN ('cloud', 'saas', 'consulting', 'hosting',
         'infrastructure', 'software', 'contractor', 'other'));
+
+-- Task visibility: per-task privacy flag. PUBLIC by default, so existing tasks
+-- and existing deployments are unchanged. When true, a task is visible only to
+-- its assignee, its creator, and managers/admins — enforced in the API task read
+-- paths (NOT via RLS). Org setting `task_default_private` decides the value for
+-- new tasks when a create request omits it.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS private BOOLEAN NOT NULL DEFAULT false;
+
+-- Org default for new-task visibility, surfaced in Admin -> Settings. The
+-- settings UI is catalog-driven and renders this as a boolean toggle because
+-- default_value is 'true'/'false'. Public by default; an org opts into privacy
+-- by flipping this. Idempotent so a re-run / fresh DB both behave.
+INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
+    ('task_default_private', 'New tasks default to private (visible only to the assignee, creator, and managers)', 'tasks', 'false', false)
+ON CONFLICT (key) DO NOTHING;

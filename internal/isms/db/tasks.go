@@ -37,7 +37,7 @@ var taskSortable = map[string]string{
 }
 
 const taskSelectCols = `t.id, t.organization_id, t.identifier, t.title, COALESCE(t.description,''), t.task_type,
-	(SELECT email FROM users WHERE id = t.assignee_id), t.created_by, t.status, t.priority, t.due_date, t.completed_at, t.recurrence_days, COALESCE(t.notes,''), t.created_at, t.updated_at`
+	(SELECT email FROM users WHERE id = t.assignee_id), t.created_by, t.status, t.priority, t.due_date, t.completed_at, t.recurrence_days, COALESCE(t.notes,''), t.created_at, t.updated_at, t.private`
 
 // Task represents a work item in the ISMS.
 type Task struct {
@@ -57,6 +57,27 @@ type Task struct {
 	Notes          string `json:"notes,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`
+	Private        bool   `json:"private"`
+}
+
+// TaskViewer scopes task reads under the privacy rule: managers/admins (CanSeeAll)
+// see every task; everyone else sees public tasks plus their own (assigned or
+// created). A zero TaskViewer{} sees only public tasks — callers that must see
+// everything (system/rollup jobs) pass TaskViewer{CanSeeAll: true}.
+type TaskViewer struct {
+	Email     string
+	CanSeeAll bool
+}
+
+// visibilityClause returns an AND-predicate (leading space) restricting tasks to
+// what the viewer may see, using placeholder $n, plus the arg to append. Returns
+// ("", nil) when the viewer may see everything, so existing queries are unchanged.
+func (v TaskViewer) visibilityClause(n int) (string, []interface{}) {
+	if v.CanSeeAll {
+		return "", nil
+	}
+	return fmt.Sprintf(` AND (t.private = false OR t.created_by = $%d OR t.assignee_id = (SELECT id FROM users WHERE email = $%d))`, n, n),
+		[]interface{}{v.Email}
 }
 
 func (d *DB) FindTaskByTitle(ctx context.Context, orgID int, title string) (*Task, error) {
@@ -76,15 +97,15 @@ func (d *DB) CreateTask(ctx context.Context, orgID int, t *Task) error {
 	}
 	t.Identifier = ident
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes)
-		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $6), $7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12)
+		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes, private)
+		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $6), $7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at, updated_at
 	`, orgID, t.Identifier, t.Title, t.Description, t.TaskType,
-		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes),
+		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes), t.Private,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
-func (d *DB) ListTasks(ctx context.Context, orgID int, assignee, status string, limit int) ([]Task, error) {
+func (d *DB) ListTasks(ctx context.Context, orgID int, viewer TaskViewer, assignee, status string, limit int) ([]Task, error) {
 	query := `SELECT ` + taskSelectCols + `
 		FROM tasks t WHERE t.organization_id = $1 AND t.deleted_at IS NULL`
 	args := []interface{}{orgID}
@@ -98,6 +119,11 @@ func (d *DB) ListTasks(ctx context.Context, orgID int, assignee, status string, 
 		n++
 		query += fmt.Sprintf(` AND t.status = $%d`, n)
 		args = append(args, status)
+	}
+	if clause, cargs := viewer.visibilityClause(n + 1); clause != "" {
+		n++
+		query += clause
+		args = append(args, cargs...)
 	}
 	query += ` ORDER BY CASE t.priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END, t.due_date ASC NULLS LAST`
 	if limit > 0 {
@@ -115,7 +141,7 @@ func (d *DB) ListTasks(ctx context.Context, orgID int, assignee, status string, 
 		var t Task
 		if err := rows.Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 			&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-			&t.Notes, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, t)
@@ -151,10 +177,11 @@ func (d *DB) UpdateTask(ctx context.Context, orgID int, t *Task) error {
 				ELSE completed_at
 			END,
 			notes = $9,
+			private = $11,
 			updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, t.ID, t.Title, nilIfEmpty(t.Description), t.Assignee,
-		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID)
+		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID, t.Private)
 	return err
 }
 
@@ -172,6 +199,7 @@ func (t *Task) ToChangeMap() map[string]string {
 		"status":      t.Status,
 		"task_type":   t.TaskType,
 		"notes":       t.Notes,
+		"private":     fmt.Sprintf("%t", t.Private),
 	}
 	if t.DueDate != nil {
 		m["due_date"] = t.DueDate.Format("2006-01-02")
@@ -186,7 +214,7 @@ func (d *DB) GetTask(ctx context.Context, orgID int, id int64) (*Task, error) {
 		FROM tasks t WHERE t.id = $1 AND t.organization_id = $2 AND t.deleted_at IS NULL
 	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-		&t.Notes, &t.CreatedAt, &t.UpdatedAt)
+		&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +231,7 @@ func (d *DB) GetTaskByIdentifier(ctx context.Context, orgID int, identifier stri
 		FROM tasks t WHERE t.identifier = $1 AND t.organization_id = $2 AND t.deleted_at IS NULL
 	`, identifier, orgID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-		&t.Notes, &t.CreatedAt, &t.UpdatedAt)
+		&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private)
 	if err != nil {
 		return nil, err
 	}
@@ -211,15 +239,18 @@ func (d *DB) GetTaskByIdentifier(ctx context.Context, orgID int, identifier stri
 }
 
 // OverdueTasks returns tasks past their due date that aren't done/cancelled.
-func (d *DB) OverdueTasks(ctx context.Context, orgID int) ([]Task, error) {
-	return d.ListTasksWhere(ctx, orgID, `status NOT IN ('done','cancelled') AND due_date < now()`, 100)
+func (d *DB) OverdueTasks(ctx context.Context, orgID int, viewer TaskViewer) ([]Task, error) {
+	return d.ListTasksWhere(ctx, orgID, viewer, `status NOT IN ('done','cancelled') AND due_date < now()`, 100)
 }
 
-func (d *DB) ListTasksWhere(ctx context.Context, orgID int, where string, limit int) ([]Task, error) {
+func (d *DB) ListTasksWhere(ctx context.Context, orgID int, viewer TaskViewer, where string, limit int) ([]Task, error) {
+	args := []interface{}{orgID}
+	vis, vargs := viewer.visibilityClause(2)
+	args = append(args, vargs...)
 	query := fmt.Sprintf(`SELECT `+taskSelectCols+`
-		FROM tasks t WHERE t.organization_id = $1 AND t.deleted_at IS NULL AND %s ORDER BY t.due_date ASC NULLS LAST LIMIT %d`, where, limit)
+		FROM tasks t WHERE t.organization_id = $1 AND t.deleted_at IS NULL AND %s%s ORDER BY t.due_date ASC NULLS LAST LIMIT %d`, where, vis, limit)
 
-	rows, err := d.pool.Query(ctx, query, orgID)
+	rows, err := d.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +261,7 @@ func (d *DB) ListTasksWhere(ctx context.Context, orgID int, where string, limit 
 		var t Task
 		if err := rows.Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 			&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-			&t.Notes, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, t)
@@ -279,7 +310,7 @@ func (d *DB) TaskStats(ctx context.Context, orgID int) (*TaskStats, error) {
 }
 
 // PaginatedTasks returns a filtered/sorted/paginated slice of tasks plus total count.
-func (d *DB) PaginatedTasks(ctx context.Context, orgID int, p TaskListParams) ([]Task, int, error) {
+func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p TaskListParams) ([]Task, int, error) {
 	if p.Page < 1 {
 		p.Page = 1
 	}
@@ -322,6 +353,11 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, p TaskListParams) ([
 		args = append(args, p.Assignee)
 		idx++
 	}
+	if clause, cargs := viewer.visibilityClause(idx); clause != "" {
+		where += clause
+		args = append(args, cargs...)
+		idx++
+	}
 
 	var total int
 	if err := d.pool.QueryRow(ctx, `SELECT count(*) FROM tasks t`+where, args...).Scan(&total); err != nil {
@@ -358,7 +394,7 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, p TaskListParams) ([
 		var t Task
 		if err := rows.Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 			&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-			&t.Notes, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private); err != nil {
 			return nil, 0, err
 		}
 		tasks = append(tasks, t)

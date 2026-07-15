@@ -243,6 +243,11 @@ func (d *DB) OverdueTasks(ctx context.Context, orgID int, viewer TaskViewer) ([]
 	return d.ListTasksWhere(ctx, orgID, viewer, `status NOT IN ('done','cancelled') AND due_date < now()`, 100)
 }
 
+// ListTasksWhere runs a task read with a caller-supplied WHERE fragment.
+// NOTE: `where` must NOT contain positional placeholders ($1, $2, …) — the
+// visibility clause always claims $2, so any placeholder in `where` would collide.
+// Pass only literal predicates (current callers do); parameterize via a dedicated
+// method if a future caller needs bound values.
 func (d *DB) ListTasksWhere(ctx context.Context, orgID int, viewer TaskViewer, where string, limit int) ([]Task, error) {
 	args := []interface{}{orgID}
 	vis, vargs := viewer.visibilityClause(2)
@@ -285,23 +290,26 @@ type TaskStats struct {
 	Low        int `json:"low"`
 }
 
-// TaskStats returns counts by status and priority for the org.
-func (d *DB) TaskStats(ctx context.Context, orgID int) (*TaskStats, error) {
+// TaskStats returns counts by status and priority for the org, scoped to what the
+// viewer may see — private tasks are excluded from a non-manager's counts so the
+// aggregate doesn't leak their existence/volume (#178 review).
+func (d *DB) TaskStats(ctx context.Context, orgID int, viewer TaskViewer) (*TaskStats, error) {
 	var s TaskStats
+	vis, vargs := viewer.visibilityClause(2)
 	err := d.pool.QueryRow(ctx, `
 		SELECT
 			count(*),
-			count(*) FILTER (WHERE status = 'open'),
-			count(*) FILTER (WHERE status = 'in_progress'),
-			count(*) FILTER (WHERE status = 'done'),
-			count(*) FILTER (WHERE status = 'cancelled'),
-			count(*) FILTER (WHERE priority = 'critical'),
-			count(*) FILTER (WHERE priority = 'high'),
-			count(*) FILTER (WHERE priority = 'medium'),
-			count(*) FILTER (WHERE priority = 'low')
-		FROM tasks
-		WHERE organization_id = $1 AND deleted_at IS NULL
-	`, orgID).Scan(&s.Total, &s.Open, &s.InProgress, &s.Done, &s.Cancelled,
+			count(*) FILTER (WHERE t.status = 'open'),
+			count(*) FILTER (WHERE t.status = 'in_progress'),
+			count(*) FILTER (WHERE t.status = 'done'),
+			count(*) FILTER (WHERE t.status = 'cancelled'),
+			count(*) FILTER (WHERE t.priority = 'critical'),
+			count(*) FILTER (WHERE t.priority = 'high'),
+			count(*) FILTER (WHERE t.priority = 'medium'),
+			count(*) FILTER (WHERE t.priority = 'low')
+		FROM tasks t
+		WHERE t.organization_id = $1 AND t.deleted_at IS NULL`+vis,
+		append([]interface{}{orgID}, vargs...)...).Scan(&s.Total, &s.Open, &s.InProgress, &s.Done, &s.Cancelled,
 		&s.Critical, &s.High, &s.Medium, &s.Low)
 	if err != nil {
 		return nil, err

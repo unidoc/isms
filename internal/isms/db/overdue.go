@@ -27,7 +27,7 @@ type OverdueSummary struct {
 }
 
 // GetOverdueSummary returns all overdue review items across entity types.
-func (d *DB) GetOverdueSummary(ctx context.Context, orgID int) (*OverdueSummary, error) {
+func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer) (*OverdueSummary, error) {
 	now := time.Now()
 	summary := &OverdueSummary{}
 
@@ -140,7 +140,9 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int) (*OverdueSummary,
 		rows4.Close()
 	}
 
-	// Overdue tasks
+	// Overdue tasks — scoped to the viewer so a private task's title/assignee
+	// doesn't leak through the overdue widget (#178 review).
+	visT, visArgs := viewer.visibilityClause(3)
 	rows5, err := d.pool.Query(ctx, `
 		SELECT t.id::text, t.title,
 			COALESCE((SELECT email FROM users WHERE id = t.assignee_id), ''),
@@ -150,9 +152,9 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int) (*OverdueSummary,
 			AND t.status NOT IN ('done', 'cancelled')
 			AND t.due_date IS NOT NULL
 			AND t.due_date < $2
-			AND t.deleted_at IS NULL
+			AND t.deleted_at IS NULL`+visT+`
 		ORDER BY t.due_date ASC
-	`, orgID, now)
+	`, append([]interface{}{orgID, now}, visArgs...)...)
 	if err == nil {
 		defer rows5.Close()
 		for rows5.Next() {
@@ -292,7 +294,9 @@ func (d *DB) OverdueObjectiveCheckins(ctx context.Context, orgID int) ([]Overdue
 }
 
 func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy string) (*CreatedReviewTasks, error) {
-	summary, err := d.GetOverdueSummary(ctx, orgID)
+	// System rollup — needs full visibility so review tasks are created for every
+	// overdue task (incl. private) and dedup is correct.
+	summary, err := d.GetOverdueSummary(ctx, orgID, TaskViewer{CanSeeAll: true})
 	if err != nil {
 		return nil, err
 	}

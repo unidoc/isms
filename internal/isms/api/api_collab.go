@@ -2076,7 +2076,7 @@ func (s *Server) handleListTasks(c echo.Context) error {
 
 func (s *Server) handleTaskStats(c echo.Context) error {
 	orgID := getOrgID(c)
-	stats, err := s.db.TaskStats(c.Request().Context(), orgID)
+	stats, err := s.db.TaskStats(c.Request().Context(), orgID, taskViewer(c))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -2143,7 +2143,11 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 
 	s.createReferencesForEntity(ctx, orgID, "task", t.Identifier, t.CreatedBy, req.References)
 
-	s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
+	// A private task must not surface its title through the shared search index or
+	// the org-wide activity feed / chat webhooks (#178 review).
+	if !t.Private {
+		s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
+	}
 
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "task",
@@ -2151,10 +2155,14 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 		Action:     "create",
 		ChangedBy:  t.CreatedBy,
 	})
+	createDetail := fmt.Sprintf("Task: %s assigned to %s", t.Title, t.Assignee)
+	if t.Private {
+		createDetail = "Private task created"
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  t.CreatedBy,
 		Action: "task_created",
-		Detail: fmt.Sprintf("Task: %s assigned to %s", t.Title, t.Assignee),
+		Detail: createDetail,
 	})
 
 	// Email assignee if set
@@ -2317,12 +2325,22 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	diffs := db.DiffFields("task", int64(id), user, "", old.ToChangeMap(), t.ToChangeMap())
 	s.logChanges(ctx, orgID, diffs)
 
-	s.searchUpsert(orgID, "task", old.Identifier, t.Title, old.Identifier+" "+t.Title+" "+t.Description)
+	// Keep the search index and activity feed clear of a private task's title;
+	// a public→private flip must also remove any existing index entry (#178 review).
+	if t.Private {
+		s.searchRemove(orgID, "task", old.Identifier)
+	} else {
+		s.searchUpsert(orgID, "task", old.Identifier, t.Title, old.Identifier+" "+t.Title+" "+t.Description)
+	}
 
+	updateDetail := fmt.Sprintf("Task #%d: %s", id, t.Title)
+	if t.Private {
+		updateDetail = fmt.Sprintf("Task #%d updated (private)", id)
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  user,
 		Action: "task_updated",
-		Detail: fmt.Sprintf("Task #%d: %s", id, t.Title),
+		Detail: updateDetail,
 	})
 
 	// Reload to get computed fields
@@ -2362,10 +2380,14 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 		Action:     "delete",
 		ChangedBy:  user,
 	})
+	deleteDetail := fmt.Sprintf("%s: %s", task.Identifier, task.Title)
+	if task.Private {
+		deleteDetail = fmt.Sprintf("%s deleted (private)", task.Identifier)
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  user,
 		Action: "task_deleted",
-		Detail: fmt.Sprintf("%s: %s", task.Identifier, task.Title),
+		Detail: deleteDetail,
 	})
 
 	s.searchRemove(orgID, "task", task.Identifier)

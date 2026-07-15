@@ -3047,7 +3047,7 @@ func (s *Server) handleDeleteSupplier(c echo.Context) error {
 
 func (s *Server) handleOverdueSummary(c echo.Context) error {
 	orgID := getOrgID(c)
-	summary, err := s.db.GetOverdueSummary(c.Request().Context(), orgID)
+	summary, err := s.db.GetOverdueSummary(c.Request().Context(), orgID, taskViewer(c))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

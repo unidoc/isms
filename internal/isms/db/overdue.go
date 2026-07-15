@@ -298,7 +298,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	}
 
 	// Load existing open review tasks to deduplicate.
-	existingTasks, err := d.ListTasksWhere(ctx, orgID, "status NOT IN ('done','cancelled')", 1000)
+	existingTasks, err := d.ListTasksWhere(ctx, orgID, TaskViewer{CanSeeAll: true}, "status NOT IN ('done','cancelled')", 1000)
 	if err != nil {
 		existingTasks = nil
 	}

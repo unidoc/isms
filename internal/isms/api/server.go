@@ -932,6 +932,10 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 		// hides the "Sign up" affordances when this is false — the signup handler
 		// itself is the hard gate (403), this just keeps the UI honest.
 		SignupEnabled bool `json:"signup_enabled"`
+
+		// New tasks default to private in this org (ISMS task_default_private).
+		// The web create form seeds its Public/Private control from this.
+		TaskDefaultPrivate bool `json:"task_default_private"`
 	}
 	resp := configResponse{}
 	resp.SubdomainRouting = s.subdomainRouting
@@ -987,6 +991,9 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 	if val, err := s.db.GetOrgSetting(ctx, orgID, "privacy_url"); err == nil && val != "" {
 		resp.PrivacyURL = val
 		resp.HasPrivacy = true
+	}
+	if val, err := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); err == nil {
+		resp.TaskDefaultPrivate = val == "true" || val == "1"
 	}
 
 	return c.JSON(http.StatusOK, resp)

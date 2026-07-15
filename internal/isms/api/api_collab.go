@@ -195,6 +195,31 @@ func getUserEmail(c echo.Context) string {
 	return ""
 }
 
+// taskViewer builds the task-visibility scope for the current caller: managers
+// and admins see every task; everyone else sees only public tasks plus their own
+// (assigned to them or created by them).
+func taskViewer(c echo.Context) db.TaskViewer {
+	role, _ := c.Get("user_role").(string)
+	return db.TaskViewer{
+		Email:     getUserEmail(c),
+		CanSeeAll: role == "manager" || role == "admin",
+	}
+}
+
+// canViewTask mirrors db.TaskViewer for single by-id fetches (which aren't
+// SQL-filtered): reports whether the caller may see this task under the privacy
+// rule. A hidden task is treated as not-found (404), never 403 — don't reveal it.
+func canViewTask(c echo.Context, t *db.Task) bool {
+	if !t.Private {
+		return true
+	}
+	if role, _ := c.Get("user_role").(string); role == "manager" || role == "admin" {
+		return true
+	}
+	email := getUserEmail(c)
+	return t.Assignee == email || t.CreatedBy == email
+}
+
 // getOrgID returns the organization ID set by AuthMiddleware, or 0 if not set.
 func getOrgID(c echo.Context) int {
 	if id, ok := c.Get("org_id").(int); ok {
@@ -2031,7 +2056,7 @@ func (s *Server) handleListTasks(c echo.Context) error {
 		TaskType: c.QueryParam("task_type"),
 		Assignee: c.QueryParam("assignee"),
 	}
-	items, total, err := s.db.PaginatedTasks(c.Request().Context(), orgID, params)
+	items, total, err := s.db.PaginatedTasks(c.Request().Context(), orgID, taskViewer(c), params)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -2105,6 +2130,13 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
+	// Visibility: an explicit flag wins; otherwise fall back to the org default
+	// (public unless the org has opted into task_default_private).
+	if req.Private != nil {
+		t.Private = *req.Private
+	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
+		t.Private = true
+	}
 	if err := s.db.CreateTask(ctx, orgID, &t); err != nil {
 		return pgxHTTPError(err)
 	}
@@ -2196,6 +2228,9 @@ func (s *Server) handleGetTask(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "task not found")
 	}
+	if !canViewTask(c, task) {
+		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+	}
 	return c.JSON(http.StatusOK, task)
 }
 
@@ -2269,6 +2304,9 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	}
 	if req.Notes != nil {
 		t.Notes = *req.Notes
+	}
+	if req.Private != nil {
+		t.Private = *req.Private
 	}
 
 	if err := s.db.UpdateTask(ctx, orgID, &t); err != nil {
@@ -2347,6 +2385,7 @@ type taskCreateRequest struct {
 	DueDate        *db.Epoch        `json:"due_date"`
 	RecurrenceDays *int             `json:"recurrence_days"`
 	Notes          string           `json:"notes"`
+	Private        *bool            `json:"private"`
 	References     []ReferenceInput `json:"references"`
 }
 
@@ -2360,6 +2399,7 @@ type taskUpdateRequest struct {
 	DueDate        **db.Epoch `json:"due_date"`
 	RecurrenceDays **int      `json:"recurrence_days"`
 	Notes          *string    `json:"notes"`
+	Private        *bool      `json:"private"`
 }
 
 // --- Change Requests ---
@@ -3303,8 +3343,8 @@ func (s *Server) handleInbox(c echo.Context) error {
 	}
 
 	// Open tasks assigned to this user
-	tasks, _ := s.db.ListTasks(ctx, orgID, actor, "open", 50)
-	inProgressTasks, _ := s.db.ListTasks(ctx, orgID, actor, "in_progress", 50)
+	tasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "open", 50)
+	inProgressTasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "in_progress", 50)
 	tasks = append(tasks, inProgressTasks...)
 	for _, t := range tasks {
 		items = append(items, inboxItem{
@@ -3445,8 +3485,8 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 	}
 
 	// Tasks assigned to actor
-	tasks, _ := s.db.ListTasks(ctx, orgID, actor, "open", 50)
-	inProgress, _ := s.db.ListTasks(ctx, orgID, actor, "in_progress", 50)
+	tasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "open", 50)
+	inProgress, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "in_progress", 50)
 	tasks = append(tasks, inProgress...)
 	for _, t := range tasks {
 		dump.Tasks = append(dump.Tasks, taskInfo{

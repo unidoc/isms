@@ -237,6 +237,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedRisk.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
+              <CopyLinkButton />
               <StatusBadge :status="selectedRisk.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -712,6 +713,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import HeatMap from '../components/HeatMap.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
@@ -1020,14 +1022,13 @@ async function selectRisk(risk) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/risks/${risk.id}`))
+  router.push(orgPath(`/risks/${risk.identifier}`))
 }
 
 async function openRiskFromRoute(id) {
-  const numId = parseInt(id)
-  let risk = risks.value.find(r => r.id === numId || r.identifier === id)
+  let risk = risks.value.find(r => r.identifier === id || String(r.id) === String(id))
   if (!risk) {
-    try { risk = await api.fetchJSON(`/api/v1/risks/${numId}`) } catch { return }
+    try { risk = await api.fetchJSON(`/api/v1/risks/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!risk) return
   selectedRisk.value = risk
@@ -1233,7 +1234,7 @@ watch(() => route.params.id, (id) => {
     editingSection.value = ''
     return
   }
-  if (selectedRisk.value?.id === parseInt(id)) return
+  if (selectedRisk.value && (selectedRisk.value.identifier === id || String(selectedRisk.value.id) === String(id))) return
   openRiskFromRoute(id)
 })
 </script>

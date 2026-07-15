@@ -625,6 +625,7 @@
             <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedAudit.title }}</h2>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
+            <CopyLinkButton />
             <StatusBadge :status="selectedAudit.status" />
             <button @click="closeAuditDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
               <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -961,6 +962,7 @@
             <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedFinding.title }}</h2>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
+            <CopyLinkButton />
             <StatusBadge :status="selectedFinding.status" />
             <button @click="closeFindingDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
               <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1134,6 +1136,7 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import StatStrip from '../components/StatStrip.vue'
 import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'

@@ -174,6 +174,7 @@
             <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedObjective.title }}</h2>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
+            <CopyLinkButton />
             <StatusBadge :status="selectedObjective.status" />
             <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
               <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -498,6 +499,7 @@ import StatStrip from '../components/StatStrip.vue'
 import RefreshButton from '../components/RefreshButton.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import SuggestNewButton from '../components/SuggestNewButton.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
@@ -706,7 +708,7 @@ async function selectObjective(o) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/objectives/${o.id}`))
+  router.push(orgPath(`/objectives/${o.display_id}`))
 }
 
 async function switchDetailTab(key) {
@@ -735,10 +737,9 @@ async function closeDetail() {
 }
 
 async function openObjectiveFromRoute(id) {
-  const numId = parseInt(id)
-  let obj = objectives.value.find(o => o.id === numId)
+  let obj = objectives.value.find(o => o.display_id === id || String(o.id) === String(id))
   if (!obj) {
-    try { obj = await api.fetchJSON(`/api/v1/objectives/${numId}`) } catch { return }
+    try { obj = await api.fetchJSON(`/api/v1/objectives/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!obj) return
   selectedObjective.value = obj
@@ -957,7 +958,7 @@ watch(() => route.params.objId, (objId) => {
     checkins.value = []
     return
   }
-  if (selectedObjective.value?.id === parseInt(objId)) return
+  if (selectedObjective.value && (selectedObjective.value.display_id === objId || String(selectedObjective.value.id) === String(objId))) return
   openObjectiveFromRoute(objId)
 })
 </script>

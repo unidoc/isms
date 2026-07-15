@@ -158,6 +158,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedIncident.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
+              <CopyLinkButton />
               <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider"
                 :class="severityClass(selectedIncident.severity)">
                 {{ selectedIncident.severity }}
@@ -525,6 +526,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import SuggestNewButton from '../components/SuggestNewButton.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
@@ -630,7 +632,7 @@ watch(() => route.params.id, (id) => {
     editingSection.value = ''
     return
   }
-  if (selectedIncident.value?.id === parseInt(id)) return
+  if (selectedIncident.value && (selectedIncident.value.identifier === id || String(selectedIncident.value.id) === String(id))) return
   openIncidentFromRoute(id)
 })
 
@@ -693,10 +695,9 @@ function resolveUserName(email) {
 }
 
 async function openIncidentFromRoute(id) {
-  const numId = parseInt(id)
-  let inc = incidents.value.find(i => i.id === numId || i.identifier === id)
+  let inc = incidents.value.find(i => i.identifier === id || String(i.id) === String(id))
   if (!inc) {
-    try { inc = await api.fetchJSON(`/api/v1/incidents/${numId}`) } catch { return }
+    try { inc = await api.fetchJSON(`/api/v1/incidents/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!inc) return
   selectedIncident.value = inc
@@ -830,7 +831,7 @@ async function selectIncident(inc) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/incidents/${inc.id}`))
+  router.push(orgPath(`/incidents/${inc.identifier}`))
 }
 
 async function switchDetailTab(key) {

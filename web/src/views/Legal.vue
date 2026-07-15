@@ -196,6 +196,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedItem.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
+              <CopyLinkButton />
               <StatusBadge :status="selectedItem.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -488,6 +489,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import HeatMap from '../components/HeatMap.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
@@ -724,15 +726,14 @@ async function selectItem(item) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/legal/${item.id}`))
+  router.push(orgPath(`/legal/${item.identifier}`))
 }
 
 async function openItemFromRoute(id) {
-  const numId = parseInt(id)
   // Try current page first; otherwise fetch the item directly so deep links work across pages
-  let item = items.value.find(i => i.id === numId || i.identifier === id)
+  let item = items.value.find(i => i.identifier === id || String(i.id) === String(id))
   if (!item) {
-    try { item = await api.fetchJSON(`/api/v1/legal/${numId}`) } catch { return }
+    try { item = await api.fetchJSON(`/api/v1/legal/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!item) return
   selectedItem.value = item
@@ -828,7 +829,7 @@ watch(() => route.params.id, (id) => {
     editingSection.value = ''
     return
   }
-  if (selectedItem.value?.id === parseInt(id)) return
+  if (selectedItem.value && (selectedItem.value.identifier === id || String(selectedItem.value.id) === String(id))) return
   openItemFromRoute(id)
 })
 </script>

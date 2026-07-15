@@ -171,6 +171,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedTask.title }}</h2>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
+              <CopyLinkButton />
               <StatusBadge :status="selectedTask.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -404,6 +405,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import SuggestNewButton from '../components/SuggestNewButton.vue'
@@ -547,7 +549,7 @@ async function selectTask(task) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/tasks/${task.id}`))
+  router.push(orgPath(`/tasks/${task.identifier}`))
 }
 
 async function switchDetailTab(key) {
@@ -792,10 +794,9 @@ async function generateOverdueTasks() {
 }
 
 async function openTaskFromRoute(id) {
-  const numId = parseInt(id)
-  let task = tasks.value.find(t => t.id === numId || t.identifier === id)
+  let task = tasks.value.find(t => t.identifier === id || String(t.id) === String(id))
   if (!task) {
-    try { task = await api.fetchJSON(`/api/v1/tasks/${numId}`) } catch { return }
+    try { task = await api.fetchJSON(`/api/v1/tasks/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!task) return
   selectedTask.value = task
@@ -812,7 +813,7 @@ watch(() => route.params.id, (id) => {
     editingSection.value = ''
     return
   }
-  if (selectedTask.value?.id === parseInt(id)) return
+  if (selectedTask.value && (selectedTask.value.identifier === id || String(selectedTask.value.id) === String(id))) return
   openTaskFromRoute(id)
 }, { immediate: false })
 

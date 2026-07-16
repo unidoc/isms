@@ -364,6 +364,44 @@ func (s *Server) buildSearchIndex(orgID int) {
 		return entries
 	})
 
+	// Objectives (#171: were missing from search, so couldn't be picked as a
+	// reference target). display_id is the identifier form resolveEntityTitle +
+	// deep-links use.
+	collect(func() []SearchEntry {
+		items, err := s.db.ListObjectives(ctx, orgID, 0, "")
+		if err != nil {
+			return nil
+		}
+		entries := make([]SearchEntry, 0, len(items))
+		for _, o := range items {
+			entries = append(entries, SearchEntry{
+				Type:   "objective",
+				ID:     o.DisplayID,
+				Title:  o.Title,
+				Search: strings.ToLower(o.DisplayID + " " + o.Title + " " + o.Description),
+			})
+		}
+		return entries
+	})
+
+	// Programs (#171). Key is the identifier form resolveEntityTitle + deep-links use.
+	collect(func() []SearchEntry {
+		items, err := s.db.ListPrograms(ctx, orgID)
+		if err != nil {
+			return nil
+		}
+		entries := make([]SearchEntry, 0, len(items))
+		for _, p := range items {
+			entries = append(entries, SearchEntry{
+				Type:   "program",
+				ID:     p.Key,
+				Title:  p.Title,
+				Search: strings.ToLower(p.Key + " " + p.Title + " " + p.Description),
+			})
+		}
+		return entries
+	})
+
 	wg.Wait()
 
 	s.searchIndex.Set(orgID, all)

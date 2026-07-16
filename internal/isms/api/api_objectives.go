@@ -375,9 +375,11 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 
 func (s *Server) handleGetObjective(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// Accept the numeric id OR the display_id (e.g. "SEC2026-1") so identifier
+	// deep-links resolve for off-page objectives too (#166).
+	id, err := s.resolveObjectiveID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return echo.NewHTTPError(http.StatusNotFound, "objective not found")
 	}
 	o, err := s.db.GetObjective(c.Request().Context(), orgID, id)
 	if err != nil {

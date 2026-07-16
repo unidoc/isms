@@ -1852,9 +1852,11 @@ func (s *Server) handleAssetStats(c echo.Context) error {
 
 func (s *Server) handleGetAsset(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// Accept the numeric id OR the identifier (ASSET-7) so deep-links resolve for
+	// off-page items too (#166 review).
+	id, err := s.resolveAssetID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return echo.NewHTTPError(http.StatusNotFound, "asset not found")
 	}
 	a, err := s.db.GetAsset(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -1980,9 +1982,11 @@ func (s *Server) handleSystemStats(c echo.Context) error {
 
 func (s *Server) handleGetSystem(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	// Resolve via DB lookup (not prefix-strip) so SYSTEM-5 maps to the row whose
+	// identifier is SYSTEM-5, not row id 5, if the per-org seq has drifted (#166 review).
+	id, err := s.resolveSystemID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return echo.NewHTTPError(http.StatusNotFound, "system not found")
 	}
 	sys, err := s.db.GetSystem(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -2050,9 +2054,11 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 
 func (s *Server) handleGetRisk(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// Accept the numeric id OR the identifier (RISK-3) so deep-links resolve for
+	// off-page items too (#166 review).
+	id, err := s.resolveRiskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
 	}
 	r, err := s.db.GetRisk(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -2380,9 +2386,11 @@ func (s *Server) handleSupplierStats(c echo.Context) error {
 
 func (s *Server) handleGetSupplier(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	// Resolve via DB lookup (not prefix-strip) so SUPPLIER-8 maps to the right row
+	// even if the per-org seq has drifted from the primary key (#166 review).
+	id, err := s.resolveSupplierID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return echo.NewHTTPError(http.StatusNotFound, "supplier not found")
 	}
 	sup, err := s.db.GetSupplier(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -3265,6 +3273,28 @@ func (s *Server) resolveAssetID(ctx context.Context, orgID int, param string) (i
 		return 0, err
 	}
 	return a.ID, nil
+}
+
+func (s *Server) resolveRiskID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	r, err := s.db.GetRiskByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return r.ID, nil
+}
+
+func (s *Server) resolveSupplierID(ctx context.Context, orgID int, param string) (int64, error) {
+	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
+		return n, nil
+	}
+	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, param)
+	if err != nil {
+		return 0, err
+	}
+	return sup.ID, nil
 }
 
 // extractHostname parses a URL and returns just the hostname (no port).

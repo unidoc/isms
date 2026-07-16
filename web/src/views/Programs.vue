@@ -118,11 +118,14 @@
             <span class="text-[10px] font-mono uppercase tracking-wider text-blue-400 flex-shrink-0">{{ selected.key }}</span>
             <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selected.title }}</h2>
           </div>
-          <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
-            <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <CopyLinkButton />
+            <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
+              <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Body: sidebar nav + content -->
@@ -263,6 +266,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import SuggestNewButton from '../components/SuggestNewButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -364,7 +368,7 @@ async function fetchAll() {
 
 function selectProgram(p) {
   if (selected.value?.id === p.id) { closeDetail(); return }
-  router.push(orgPath(`/programs/${p.id}`))
+  router.push(orgPath(`/programs/${p.key}`))
 }
 
 function closeDetail() {
@@ -375,8 +379,7 @@ async function openFromRoute(id) {
   // id may be a numeric program id (register list links) or a program key like
   // "AWARE" (cross-entity reference chips link by key). Match either, and pass the
   // raw value to the API — the backend resolves id-or-key.
-  const numId = parseInt(id)
-  let p = programs.value.find(x => x.id === numId || x.key === id)
+  let p = programs.value.find(x => x.key === id || String(x.id) === String(id))
   if (!p) {
     try { p = await api.getProgram(id) } catch { return }
   }
@@ -465,7 +468,7 @@ onMounted(async () => {
 
 watch(() => route.params.id, (id) => {
   if (!id) { selected.value = null; editing.value = false; return }
-  if (selected.value?.id === parseInt(id)) return
+  if (selected.value && (selected.value.key === id || String(selected.value.id) === String(id))) return
   openFromRoute(id)
 })
 </script>

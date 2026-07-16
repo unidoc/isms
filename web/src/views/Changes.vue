@@ -146,6 +146,7 @@
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedChange.title }}</h2>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
+              <CopyLinkButton />
               <StatusBadge :status="selectedChange.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -411,6 +412,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import SuggestNewButton from '../components/SuggestNewButton.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
@@ -527,7 +529,7 @@ async function selectChange(cr) {
     closeDetail()
     return
   }
-  router.push(orgPath(`/changes/${cr.id}`))
+  router.push(orgPath(`/changes/${cr.identifier}`))
 }
 
 async function switchDetailTab(key) {
@@ -717,10 +719,9 @@ async function saveSection() {
 }
 
 async function openChangeFromRoute(id) {
-  const numId = parseInt(id)
-  let cr = changes.value.find(c => c.id === numId || c.identifier === id)
+  let cr = changes.value.find(c => c.identifier === id || String(c.id) === String(id))
   if (!cr) {
-    try { cr = await api.fetchJSON(`/api/v1/changes/${numId}`) } catch { return }
+    try { cr = await api.fetchJSON(`/api/v1/changes/${encodeURIComponent(id)}`) } catch { return }
   }
   if (!cr) return
   selectedChange.value = cr
@@ -736,7 +737,7 @@ watch(() => route.params.id, (id) => {
     editingSection.value = ''
     return
   }
-  if (selectedChange.value?.id === parseInt(id)) return
+  if (selectedChange.value && (selectedChange.value.identifier === id || String(selectedChange.value.id) === String(id))) return
   openChangeFromRoute(id)
 }, { immediate: false })
 

@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# PROVIDE: isms
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# rc.d service script for ISMS. Copy to /usr/local/etc/rc.d/isms (chmod +x),
+# then enable in rc.conf:
+#
+#   sysrc isms_enable=YES
+#   service isms start
+#
+# Configuration is read from an environment file (KEY=VALUE lines) — see
+# isms.env.sample. Required at minimum: ISMS_DATABASE_URL and ISMS_TEMPLATE_PATH.
+#
+# rc.conf variables (defaults shown):
+#   isms_enable="NO"
+#   isms_user="isms"                          # user to run as
+#   isms_env_file="/usr/local/etc/isms.env"   # ISMS_* configuration
+#   isms_args="server"                        # isms subcommand + flags
+
+. /etc/rc.subr
+
+name="isms"
+rcvar="isms_enable"
+
+load_rc_config "$name"
+
+: ${isms_enable:="NO"}
+: ${isms_user:="isms"}
+: ${isms_env_file:="/usr/local/etc/isms.env"}
+: ${isms_args:="server"}
+
+pidfile="/var/run/${name}.pid"
+procname="/usr/local/bin/${name}"
+command="/usr/sbin/daemon"
+command_args="-f -p ${pidfile} -u ${isms_user} ${procname} ${isms_args}"
+
+start_precmd="isms_precmd"
+isms_precmd()
+{
+	# Load ISMS_* config into the environment; daemon(8) inherits it and passes
+	# it through to the isms process.
+	if [ -r "${isms_env_file}" ]; then
+		set -a
+		. "${isms_env_file}"
+		set +a
+	fi
+	# daemon writes the pidfile as isms_user — make sure it can.
+	install -o "${isms_user}" -g wheel -m 644 /dev/null "${pidfile}" 2>/dev/null || true
+}
+
+run_rc_command "$1"

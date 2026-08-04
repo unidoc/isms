@@ -59,12 +59,10 @@ function buildOrgRoutes(subdomainMode) {
 }
 function buildRoutes(subdomainMode, opts = {}) {
   const extra = []
-  // Finding #2's proposed additions, under test in section E.
+  // Finding #2 as shipped: the /:org/login route only (section E). No catch-all —
+  // it would break server-served paths via App.vue's link interceptor.
   if (opts.orgLoginRoute && !subdomainMode) {
     extra.push({ path: '/:org/login', component: Login, meta: { public: true } })
-  }
-  if (opts.catchAll) {
-    extra.push({ path: '/:pathMatch(.*)*', redirect: '/login' })
   }
   return [
     ...extra,
@@ -304,19 +302,29 @@ await run({
 }
 
 console.log('\n' + '='.repeat(78))
-console.log("E. Finding #2's SUGGESTED fix under test — /:org/login route + catch-all")
+console.log("E. Finding #2 as SHIPPED — /:org/login route, NO catch-all")
 console.log('='.repeat(78))
-const R2 = { orgLoginRoute: true, catchAll: true }
+// The review also proposed a /:pathMatch(.*)* catch-all. It is NOT shipped: it
+// makes EVERY path match a route, and App.vue's link interceptor treats "matches
+// a route" as "handle in the SPA" — so server-served paths (/docs, /terms,
+// /api/openapi.yaml, /branding/…) get swallowed and bounce to /login. The
+// integration test test_e2e_routing caught exactly that. So R2 registers only the
+// /:org/login route; the native-path invariant is asserted in E2.
+const R2 = { orgLoginRoute: true }
 await run({
   title: 'E1 live session + /<org>/login registered — guard UNCHANGED (head)', variant: 'head',
   subdomainMode: false, url: `/acme/login#token=${JWT}&role=reader`, preToken: 'OLDJWT', getMe: 'ok', routeOpts: R2,
   expect: { label: 'route alone is a sufficient safety net for finding #1', outcome: '/acme/overview | view=Login → handled hash | token=NEWJWT' },
 })
-await run({
-  title: 'E2 unmatched org path with catch-all — head', variant: 'head',
-  subdomainMode: false, url: '/acme/typo', preToken: 'OLDJWT', getMe: 'ok', routeOpts: R2,
-  expect: { label: 'catch-all replaces the blank page', outcome: '/login | view=Login (form) | token=OLDJWT' },
-})
+{
+  // E2 INVARIANT: with the shipped routes, server-served paths must still match
+  // NOTHING, so App.vue's interceptor lets the browser navigate to them natively.
+  // A catch-all would break this (all three would read matched=1).
+  const r = makeRouter({ subdomainMode: false, orgFromSubdomain: () => null, variant: 'head', routeOpts: R2 })
+  for (const p of ['/docs', '/terms', '/api/openapi.yaml']) {
+    check(`E2 native path ${p} stays unmatched (navigates natively)`, String(r.resolve(p).matched.length), '0')
+  }
+}
 await run({
   title: 'E3 existing org route still matches (no shadowing) — head', variant: 'head',
   subdomainMode: false, url: '/acme/risks/5', preToken: 'OLDJWT', getMe: 'ok', routeOpts: R2,
@@ -333,9 +341,9 @@ await run({
   expect: { label: 'guard handles it before Login.vue mounts', outcome: '/acme/overview | view=other | token=NEWJWT' },
 })
 await run({
-  title: 'E6 route + catch-all combined with the FIXED guard', variant: 'fixed',
+  title: 'E6 /:org/login route combined with the FIXED guard', variant: 'fixed',
   subdomainMode: false, url: `/acme/login#token=${JWT}&role=reader`, preToken: 'OLDJWT', getMe: 'ok', routeOpts: R2,
-  expect: { label: 'belt-and-braces: both fixes coexist', outcome: '/acme/overview | view=other | token=NEWJWT' },
+  expect: { label: 'belt-and-braces: guard fix + org-login route coexist', outcome: '/acme/overview | view=other | token=NEWJWT' },
 })
 {
   const r = makeRouter({ subdomainMode: false, orgFromSubdomain: () => null, variant: 'head', routeOpts: R2 })

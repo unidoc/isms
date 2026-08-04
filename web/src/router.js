@@ -100,15 +100,16 @@ const routes = [
 
   // Path mode only: /<org>/login must be a real (public) route. Otherwise an
   // org-scoped SSO callback or a bookmarked login link matches nothing and
-  // dead-ends on the app shell around a blank page (the guard's hash handling
-  // covers the token case, but not a plain visit). Subdomain mode already has
+  // dead-ends on the app shell around a blank page. Subdomain mode already has
   // the top-level /login.
+  //
+  // NB: deliberately NO /:pathMatch(.*)* catch-all here. App.vue's link
+  // interceptor navigates NATIVELY for any absolute path vue-router doesn't
+  // match (/docs Scalar UI, /api/openapi.yaml, /healthz, /branding/…, /terms).
+  // A catch-all makes every such path "match", so the SPA swallows those clicks
+  // and the auth guard bounces to /login — it breaks server-served routes. The
+  // residual dead-end on a mistyped /<org>/xyz is a far smaller cost.
   ...(subdomainMode ? [] : [{ path: '/:org/login', component: Login, meta: { public: true } }]),
-
-  // Catch-all: anything otherwise unmatched redirects to /login instead of
-  // rendering the app shell around an empty <router-view/>. Ranked last by
-  // vue-router regardless of position, so it never shadows a real route.
-  { path: '/:pathMatch(.*)*', redirect: '/login' },
 ]
 
 const router = createRouter({

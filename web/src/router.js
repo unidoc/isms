@@ -111,6 +111,21 @@ let sessionValidated = false
 let cfTried = false
 
 router.beforeEach(async (to, from) => {
+  // SSO (OIDC, …) hands the session token back in the URL hash (#token=…). Store
+  // it BEFORE any auth gate runs: otherwise the guard sees no local token and
+  // bounces to /login, trapping the token in a ?redirect= param — and in path mode
+  // the org-scoped `/<org>/login` isn't even a matched route, so the destination
+  // never gets to process the hash (#187; same class as the CF Access fix in #100).
+  // Then land on the org's overview with the hash stripped from the URL.
+  if (!getApiToken() && to.hash && to.hash.includes('token=')) {
+    const token = new URLSearchParams(to.hash.replace(/^#/, '')).get('token')
+    if (token) {
+      setApiToken(token)
+      // "/login" → "/overview"; "/<org>/login" → "/<org>/overview".
+      return { path: to.path.replace(/\/login$/, '/overview') }
+    }
+  }
+
   // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
   // the org picker should never be reachable from there. Stale-token refreshes
   // would otherwise leak the user's other org memberships into the verkis UI.

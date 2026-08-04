@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# PROVIDE: isms
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# rc.d service script for ISMS. Copy to /usr/local/etc/rc.d/isms (chmod +x),
+# then enable in rc.conf:
+#
+#   sysrc isms_enable=YES
+#   service isms start
+#
+# Configuration is read from an environment file (KEY=VALUE lines) — see
+# isms.env.sample. Required at minimum: DATABASE_URL, ISMS_DATA_DIR,
+# ISMS_STORAGE_BACKEND and ISMS_TEMPLATE_PATH.
+#
+# rc.conf variables (defaults shown):
+#   isms_enable="NO"
+#   isms_user="isms"                          # user to run as
+#   isms_env_file="/usr/local/etc/isms.env"   # DATABASE_URL / ISMS_* config
+#   isms_args="server serve"                  # isms subcommand + flags
+
+. /etc/rc.subr
+
+name="isms"
+rcvar="isms_enable"
+
+load_rc_config "$name"
+
+: ${isms_enable:="NO"}
+: ${isms_user:="isms"}
+: ${isms_env_file:="/usr/local/etc/isms.env"}
+: ${isms_args:="server serve"}
+
+pidfile="/var/run/${name}.pid"
+procname="/usr/local/bin/${name}"
+command="/usr/sbin/daemon"
+# -f: detach; -S -T isms: forward the child's stdout/stderr to syslog under the
+# "isms" tag (without -S, -f sends output to /dev/null and a failed start — e.g. a
+# fatal config error — is undiagnosable); -r: restart the child if it exits.
+command_args="-f -r -S -T ${name} -p ${pidfile} -u ${isms_user} ${procname} ${isms_args}"
+
+start_precmd="isms_precmd"
+isms_precmd()
+{
+	# Load ISMS_* config into the environment; daemon(8) inherits it and passes
+	# it through to the isms process.
+	if [ -r "${isms_env_file}" ]; then
+		set -a
+		. "${isms_env_file}"
+		set +a
+	fi
+	# daemon writes the pidfile as isms_user — make sure it can.
+	install -o "${isms_user}" -g wheel -m 644 /dev/null "${pidfile}" 2>/dev/null || true
+}
+
+run_rc_command "$1"

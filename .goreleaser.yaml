@@ -19,6 +19,7 @@ builds:
       - linux
       - darwin
       - openbsd
+      - freebsd
     goarch:
       - amd64
       - arm64
@@ -36,6 +37,21 @@ universal_binaries:
 archives:
   - formats: [tar.gz]
     name_template: "isms_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # Specifying `files` REPLACES goreleaser's default list, so the defaults
+    # (LICENSE/README/CHANGELOG) must be re-listed explicitly or every platform's
+    # tarball silently loses them — a licence-distribution regression, not just a
+    # FreeBSD one. Keep the defaults, then add the FreeBSD rc.d script + config
+    # sample so a jail install is copy-into-place (harmless on other OSes).
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+      - src: contrib/freebsd/rc.d/isms
+        dst: rc.d/isms
+      - src: contrib/freebsd/isms.env.sample
+        dst: isms.env.sample
+      - src: contrib/freebsd/README.md
+        dst: FREEBSD.md
 
 checksum:
   name_template: checksums.txt

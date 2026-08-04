@@ -97,6 +97,19 @@ const routes = [
 
   // Org-scoped — registered with or without /:org prefix depending on host
   ...buildOrgRoutes(subdomainMode),
+
+  // Path mode only: /<org>/login must be a real (public) route. Otherwise an
+  // org-scoped SSO callback or a bookmarked login link matches nothing and
+  // dead-ends on the app shell around a blank page. Subdomain mode already has
+  // the top-level /login.
+  //
+  // NB: deliberately NO /:pathMatch(.*)* catch-all here. App.vue's link
+  // interceptor navigates NATIVELY for any absolute path vue-router doesn't
+  // match (/docs Scalar UI, /api/openapi.yaml, /healthz, /branding/…, /terms).
+  // A catch-all makes every such path "match", so the SPA swallows those clicks
+  // and the auth guard bounces to /login — it breaks server-served routes. The
+  // residual dead-end on a mistyped /<org>/xyz is a far smaller cost.
+  ...(subdomainMode ? [] : [{ path: '/:org/login', component: Login, meta: { public: true } }]),
 ]
 
 const router = createRouter({
@@ -111,6 +124,30 @@ let sessionValidated = false
 let cfTried = false
 
 router.beforeEach(async (to, from) => {
+  // SSO (OIDC, …) hands the session token back in the URL hash (#token=…). Store
+  // it BEFORE any auth gate runs: otherwise the guard sees no local token and
+  // bounces to /login, trapping the token in a ?redirect= param — and in path mode
+  // the org-scoped `/<org>/login` isn't even a matched route, so the destination
+  // never gets to process the hash (#187; same class as the CF Access fix in #100).
+  //
+  // A hash token is a fresh, server-minted assertion, so it wins UNCONDITIONALLY —
+  // even over an existing localStorage session. Gating this on `!getApiToken()`
+  // would silently drop the new token for anyone already logged in (a re-auth, an
+  // org switch, or the reporter's step-6 re-login): the `/<org>/login` route is
+  // unmatched, so the old session's shell renders around a blank page and the
+  // stale identity sticks. Reset sessionValidated so the new token is revalidated
+  // via getMe on the redirect rather than riding a prior validation this page load.
+  // Then land on the org's overview with the hash stripped from the URL.
+  if (to.hash && to.hash.includes('token=')) {
+    const token = new URLSearchParams(to.hash.replace(/^#/, '')).get('token')
+    if (token) {
+      setApiToken(token)
+      sessionValidated = false
+      // "/login" → "/overview"; "/<org>/login" → "/<org>/overview".
+      return { path: to.path.replace(/\/login$/, '/overview') }
+    }
+  }
+
   // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
   // the org picker should never be reachable from there. Stale-token refreshes
   // would otherwise leak the user's other org memberships into the verkis UI.

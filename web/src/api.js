@@ -20,7 +20,7 @@ export function getCurrentUser() {
   return localStorage.getItem('isms_user_email') || ''
 }
 
-function setCurrentUser(email, name) {
+export function setCurrentUser(email, name) {
   if (email) localStorage.setItem('isms_user_email', email)
   if (name) localStorage.setItem('isms_user_name', name)
 }

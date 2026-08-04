@@ -104,15 +104,22 @@ function checkForMention(el) {
 }
 
 let searchTimer = null
+let searchSeq = 0
 function searchEntities(q) {
   clearTimeout(searchTimer)
   if (!q) { entityResults.value = []; return }
   searchTimer = setTimeout(async () => {
+    // Guard against out-of-order responses: a slow earlier request must not
+    // overwrite results for a newer query.
+    const seq = ++searchSeq
     try {
       const res = await api.search(q)
+      if (seq !== searchSeq) return
       const data = (res && (res.data || res)) || []
       entityResults.value = data.slice(0, 8)
-    } catch { entityResults.value = [] }
+    } catch {
+      if (seq === searchSeq) entityResults.value = []
+    }
   }, 200)
 }
 

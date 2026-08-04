@@ -11,13 +11,14 @@
 #   service isms start
 #
 # Configuration is read from an environment file (KEY=VALUE lines) — see
-# isms.env.sample. Required at minimum: ISMS_DATABASE_URL and ISMS_TEMPLATE_PATH.
+# isms.env.sample. Required at minimum: DATABASE_URL, ISMS_DATA_DIR,
+# ISMS_STORAGE_BACKEND and ISMS_TEMPLATE_PATH.
 #
 # rc.conf variables (defaults shown):
 #   isms_enable="NO"
 #   isms_user="isms"                          # user to run as
-#   isms_env_file="/usr/local/etc/isms.env"   # ISMS_* configuration
-#   isms_args="server"                        # isms subcommand + flags
+#   isms_env_file="/usr/local/etc/isms.env"   # DATABASE_URL / ISMS_* config
+#   isms_args="server serve"                  # isms subcommand + flags
 
 . /etc/rc.subr
 
@@ -29,12 +30,15 @@ load_rc_config "$name"
 : ${isms_enable:="NO"}
 : ${isms_user:="isms"}
 : ${isms_env_file:="/usr/local/etc/isms.env"}
-: ${isms_args:="server"}
+: ${isms_args:="server serve"}
 
 pidfile="/var/run/${name}.pid"
 procname="/usr/local/bin/${name}"
 command="/usr/sbin/daemon"
-command_args="-f -p ${pidfile} -u ${isms_user} ${procname} ${isms_args}"
+# -f: detach; -S -T isms: forward the child's stdout/stderr to syslog under the
+# "isms" tag (without -S, -f sends output to /dev/null and a failed start — e.g. a
+# fatal config error — is undiagnosable); -r: restart the child if it exits.
+command_args="-f -r -S -T ${name} -p ${pidfile} -u ${isms_user} ${procname} ${isms_args}"
 
 start_precmd="isms_precmd"
 isms_precmd()

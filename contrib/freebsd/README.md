@@ -26,13 +26,19 @@ tar xzf isms_X.Y.Z_freebsd_amd64.tar.gz
 install -m 755 isms /usr/local/bin/isms
 install -m 755 rc.d/isms /usr/local/etc/rc.d/isms
 
-# Service account (no login, no home needed — git storage lives under a data dir
-# you choose via config):
+# Service account (no login, no home — it only runs the daemon):
 pw useradd isms -d /nonexistent -s /usr/sbin/nologin -c "ISMS service"
 
-# Configuration:
-install -m 600 -o isms isms.env.sample /usr/local/etc/isms.env
-$EDITOR /usr/local/etc/isms.env        # set DATABASE_URL, ISMS_TEMPLATE_PATH, ISMS_BASE_URL
+# Data directory: per-org git repos ($ISMS_DATA_DIR/repos/{slug}.git) and, with
+# the file storage backend, branding + evidence blobs. Create it and hand it to
+# the service user (matches ISMS_DATA_DIR in the env file):
+mkdir -p /var/db/isms && chown isms:isms /var/db/isms
+
+# Configuration. Install as root:wheel — NOT owned by the isms user: the rc.d
+# script sources this file as root (before dropping privileges), so an env file
+# writable by isms would be a local root-escalation path.
+install -m 600 -o root -g wheel isms.env.sample /usr/local/etc/isms.env
+$EDITOR /usr/local/etc/isms.env        # DATABASE_URL, ISMS_DATA_DIR, ISMS_STORAGE_BACKEND, ISMS_TEMPLATE_PATH
 ```
 
 ## Database + templates
@@ -42,7 +48,7 @@ $EDITOR /usr/local/etc/isms.env        # set DATABASE_URL, ISMS_TEMPLATE_PATH, I
 - Apply the schema — migrations are embedded:
 
   ```sh
-  env $(grep -v '^#' /usr/local/etc/isms.env | xargs) isms migrate
+  env $(grep -v '^#' /usr/local/etc/isms.env | xargs) isms server migrate
   ```
 
 - Put the standard templates repo at `ISMS_TEMPLATE_PATH`.
@@ -59,7 +65,7 @@ By default it listens on `:8080` and runs as the `isms` user. To change the
 listen address (e.g. bind to loopback behind a reverse proxy):
 
 ```sh
-sysrc isms_args="server --addr 127.0.0.1:8080"
+sysrc isms_args="server serve --addr 127.0.0.1:8080"
 service isms restart
 ```
 
@@ -69,10 +75,10 @@ service isms restart
 | --------------- | ---------------------------- | -------------------------------- |
 | `isms_enable`   | `NO`                         | enable the service               |
 | `isms_user`     | `isms`                       | user to run as                   |
-| `isms_env_file` | `/usr/local/etc/isms.env`    | file with `ISMS_*` / `DATABASE_URL` config |
-| `isms_args`     | `server`                     | `isms` subcommand + flags        |
+| `isms_env_file` | `/usr/local/etc/isms.env`    | file with `DATABASE_URL` / `ISMS_*` config |
+| `isms_args`     | `server serve`               | `isms` subcommand + flags        |
 
-Logs go to syslog via `daemon(8)`; the pidfile is `/var/run/isms.pid`.
+Logs go to syslog (tag `isms`) via `daemon(8) -S`; the pidfile is `/var/run/isms.pid`.
 
 ## `pkg install` (later)
 

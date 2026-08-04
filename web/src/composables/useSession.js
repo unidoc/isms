@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import { api, getCurrentUser, clearApiToken, setApiToken } from '../api'
+import { api, getCurrentUser, clearApiToken, setApiToken, setCurrentUser } from '../api'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
 const user = ref(getCurrentUser())
@@ -86,6 +86,11 @@ export function useSession() {
       if (currentUserData.value?.email) {
         user.value = currentUserData.value.email
       }
+      // Persist identity for the synchronous getCurrentUser() reads (~15 call
+      // sites use it as author/resolved_by/etc.). Every login path flows through
+      // here, so SSO logins — which only store the token — get it too, without
+      // round-tripping name/email through the URL fragment (#190 review #3).
+      setCurrentUser(me?.email, me?.name)
       // Set org name from /me if config didn't have it
       if (!orgName.value && currentUserData.value?.organization_name) {
         orgName.value = currentUserData.value.organization_name

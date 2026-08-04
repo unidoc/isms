@@ -97,6 +97,18 @@ const routes = [
 
   // Org-scoped — registered with or without /:org prefix depending on host
   ...buildOrgRoutes(subdomainMode),
+
+  // Path mode only: /<org>/login must be a real (public) route. Otherwise an
+  // org-scoped SSO callback or a bookmarked login link matches nothing and
+  // dead-ends on the app shell around a blank page (the guard's hash handling
+  // covers the token case, but not a plain visit). Subdomain mode already has
+  // the top-level /login.
+  ...(subdomainMode ? [] : [{ path: '/:org/login', component: Login, meta: { public: true } }]),
+
+  // Catch-all: anything otherwise unmatched redirects to /login instead of
+  // rendering the app shell around an empty <router-view/>. Ranked last by
+  // vue-router regardless of position, so it never shadows a real route.
+  { path: '/:pathMatch(.*)*', redirect: '/login' },
 ]
 
 const router = createRouter({
@@ -116,11 +128,20 @@ router.beforeEach(async (to, from) => {
   // bounces to /login, trapping the token in a ?redirect= param — and in path mode
   // the org-scoped `/<org>/login` isn't even a matched route, so the destination
   // never gets to process the hash (#187; same class as the CF Access fix in #100).
+  //
+  // A hash token is a fresh, server-minted assertion, so it wins UNCONDITIONALLY —
+  // even over an existing localStorage session. Gating this on `!getApiToken()`
+  // would silently drop the new token for anyone already logged in (a re-auth, an
+  // org switch, or the reporter's step-6 re-login): the `/<org>/login` route is
+  // unmatched, so the old session's shell renders around a blank page and the
+  // stale identity sticks. Reset sessionValidated so the new token is revalidated
+  // via getMe on the redirect rather than riding a prior validation this page load.
   // Then land on the org's overview with the hash stripped from the URL.
-  if (!getApiToken() && to.hash && to.hash.includes('token=')) {
+  if (to.hash && to.hash.includes('token=')) {
     const token = new URLSearchParams(to.hash.replace(/^#/, '')).get('token')
     if (token) {
       setApiToken(token)
+      sessionValidated = false
       // "/login" → "/overview"; "/<org>/login" → "/<org>/overview".
       return { path: to.path.replace(/\/login$/, '/overview') }
     }

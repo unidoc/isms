@@ -1,4 +1,7 @@
-# Running ISMS on FreeBSD (jails)
+# Running ISMS on FreeBSD
+
+Works on any FreeBSD system — a bare-metal/VM host or a jail; there is nothing
+jail-specific here (a jail is just a FreeBSD userland with the same rc(8) system).
 
 ISMS ships as a single self-contained binary — the web UI and DB migrations are
 embedded, so there is nothing else to deploy for the app itself. You still need a

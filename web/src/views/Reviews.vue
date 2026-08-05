@@ -384,6 +384,8 @@
                   :show-comments="true"
                   :show-review-progress="true"
                   :can-accept-suggestions="canWrite || review?.requested_by === userEmail"
+                  :can-comment="canCommentOnReview"
+                  :can-resolve-comments="canResolveReviewComments"
                   @suggestion-accepted="onSuggestionAccepted"
                 />
               </div>
@@ -875,6 +877,26 @@ const userAssignmentStatus = computed(() => {
 })
 
 const userIsAuthor = computed(() => review.value?.requested_by === userEmail.value)
+
+// Assignment — not role — is what grants comment rights on a review (CLAUDE.md:
+// "Review assignment grants approve/comment rights to any role"), so an assigned
+// reader participates fully. Mirrors isReviewParticipant in api_collab.go.
+const userIsParticipant = computed(() =>
+  userIsAuthor.value || assignments.value.some(a => a.reviewer === userEmail.value))
+
+// Mirrors authorizeReviewComment, including its refusal on a merged or closed
+// review — a published or abandoned review is a closed record nobody appends to.
+// Hide the composer rather than let it 403 on submit.
+const canCommentOnReview = computed(() => {
+  if (!review.value) return false
+  if (review.value.status === 'merged' || review.value.status === 'closed') return false
+  return canWrite.value || userIsParticipant.value
+})
+
+// The manager/participant half of handleResolveCommentDB; DocumentViewer adds the
+// comment's own author per comment. Resolve is not gated on review status server
+// side, so it isn't gated here either.
+const canResolveReviewComments = computed(() => canWrite.value || userIsParticipant.value)
 
 // Check if a reviewer proposed a revision (edited the doc and sent back)
 const hasProposedRevision = computed(() => {

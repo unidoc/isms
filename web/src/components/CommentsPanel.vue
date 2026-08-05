@@ -11,7 +11,7 @@
     </div>
 
     <!-- Add -->
-    <div class="border-t border-slate-800 pt-4 space-y-2">
+    <div v-if="canComment" class="border-t border-slate-800 pt-4 space-y-2">
       <MentionTextarea v-model="newComment" :members="members"
         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 resize-none"
         placeholder="Add a comment... (type @ to mention)"
@@ -27,16 +27,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
 import { renderMention } from '../composables/useMention'
+import { useSession } from '../composables/useSession'
 import { useToast } from '../composables/useToast'
 
 const { show: showError } = useToast()
 
 const { members } = useMembers()
+
+// Commenting on a register entity is a contributor-and-above write; readers are
+// read-only (#23). Same rule and same reason as SuggestNewButton.vue — hide the
+// composer rather than let it 403 on submit.
+const { currentUserData } = useSession()
+const canComment = computed(() => (currentUserData.value?.role || '') !== 'reader')
 
 const props = defineProps({
   entityType: { type: String, required: true },

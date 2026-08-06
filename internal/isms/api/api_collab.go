@@ -843,6 +843,49 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 	})
 }
 
+// isReviewParticipant reports whether actor is the review's author or one of its
+// assigned reviewers. Assignment — not role — is what grants comment rights on a
+// review, so a reader assigned as a reviewer participates fully (see CLAUDE.md,
+// "Review assignment grants approve/comment rights to any role").
+func (s *Server) isReviewParticipant(ctx context.Context, orgID int, review *db.Review, actor string) bool {
+	if review == nil || actor == "" {
+		return false
+	}
+	if review.RequestedBy == actor {
+		return true
+	}
+	assignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, review.ID)
+	for _, a := range assignments {
+		if a.Reviewer == actor {
+			return true
+		}
+	}
+	return false
+}
+
+// authorizeReviewComment is the single gate for writing a comment onto a review.
+// Both comment routes must call it: POST /reviews/:id/comment and POST /comments
+// with a client-supplied review_id. Without it on the latter, the check here is
+// decorative — one guarded door in a two-door room.
+func (s *Server) authorizeReviewComment(ctx context.Context, orgID int, reviewID int, actor, role string) (*db.Review, error) {
+	review, err := s.db.GetReview(ctx, orgID, reviewID)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "review not found")
+	}
+	// A published or abandoned review is a closed record — nobody appends to it.
+	// Checked before the participant rule so the message names the real reason.
+	if review.Status == "merged" || review.Status == "closed" {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "review is "+review.Status)
+	}
+	if role == "admin" || role == "manager" {
+		return review, nil
+	}
+	if !s.isReviewParticipant(ctx, orgID, review, actor) {
+		return nil, echo.NewHTTPError(http.StatusForbidden, "not authorized to comment on this review")
+	}
+	return review, nil
+}
+
 // handleAddReviewComment adds a comment tied to a specific review.
 func (s *Server) handleAddReviewComment(c echo.Context) error {
 	orgID := getOrgID(c)
@@ -852,27 +895,11 @@ func (s *Server) handleAddReviewComment(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 
-	// Verify review exists.
-	review, err := s.db.GetReview(ctx, orgID, id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
-	}
-
-	// Authorization: admin/manager always, others must be assigned
 	actor := getUserEmail(c)
 	role, _ := c.Get("user_role").(string)
-	if role != "admin" && role != "manager" {
-		assignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, id)
-		isAssigned := false
-		for _, a := range assignments {
-			if a.Reviewer == actor {
-				isAssigned = true
-				break
-			}
-		}
-		if !isAssigned && review.RequestedBy != actor {
-			return echo.NewHTTPError(http.StatusForbidden, "not authorized to comment on this review")
-		}
+	review, err := s.authorizeReviewComment(ctx, orgID, id, actor, role)
+	if err != nil {
+		return err
 	}
 
 	var req struct {
@@ -1704,6 +1731,20 @@ func (s *Server) handleAddCommentDB(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	comment.Author = getUserEmail(c) // always use authenticated user
+	// review_id arrives from the client, so a comment aimed at a review must pass
+	// the same gate as POST /reviews/:id/comment — otherwise this route is a way
+	// around it. Plain document comments (no review_id) stay open to every role,
+	// which is what the reader exemption in RoleMiddleware exists for.
+	if comment.ReviewID != nil {
+		role, _ := c.Get("user_role").(string)
+		review, err := s.authorizeReviewComment(c.Request().Context(), orgID, *comment.ReviewID, comment.Author, role)
+		if err != nil {
+			return err
+		}
+		// Trust the review, not the client, for which document this lands on.
+		comment.DocumentID = review.DocumentID
+	}
+	comment.Status = "open" // the row is inserted open; echo what was stored
 	// If suggestion_body is provided, set suggestion_status to pending
 	if comment.SuggestionBody != nil && *comment.SuggestionBody != "" && comment.SuggestionStatus == nil {
 		pending := "pending"
@@ -1751,8 +1792,29 @@ func (s *Server) handleResolveCommentDB(c echo.Context) error {
 	}
 	resolvedBy := getUserEmail(c) // always use authenticated user
 	ctx := c.Request().Context()
-	// Get document_id from comment before resolving
-	docID, _ := s.db.GetCommentDocumentID(ctx, orgID, id)
+
+	// Resolving closes someone's open feedback, so it needs the same care as
+	// writing it: admin/manager, the comment's own author, or — for a comment on
+	// a review — a participant in that review (the document author resolving
+	// reviewer feedback is the common case).
+	comment, err := s.db.GetComment(ctx, orgID, id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "comment not found")
+	}
+	role, _ := c.Get("user_role").(string)
+	if role != "admin" && role != "manager" && comment.Author != resolvedBy {
+		authorized := false
+		if comment.ReviewID != nil {
+			if review, revErr := s.db.GetReview(ctx, orgID, *comment.ReviewID); revErr == nil {
+				authorized = s.isReviewParticipant(ctx, orgID, review, resolvedBy)
+			}
+		}
+		if !authorized {
+			return echo.NewHTTPError(http.StatusForbidden, "not authorized to resolve this comment")
+		}
+	}
+
+	docID := comment.DocumentID // captured above, before resolving
 	if err := s.db.ResolveComment(ctx, orgID, id, resolvedBy); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

@@ -85,7 +85,7 @@
                   <span class="text-[10px] text-emerald-500 font-medium">Resolved</span>
                 </div>
                 <button
-                  v-else
+                  v-else-if="canResolveComment(comment)"
                   @click="doResolveComment(comment.id)"
                   class="ml-auto text-[10px] text-slate-500 hover:text-emerald-400 transition-colors"
                 >Resolve</button>
@@ -148,7 +148,7 @@
               </div>
 
               <!-- Reply button -->
-              <div v-if="comment.status !== 'resolved'" class="mt-1.5">
+              <div v-if="comment.status !== 'resolved' && props.canComment" class="mt-1.5">
                 <button
                   v-if="replyingTo !== comment.id"
                   @click="replyingTo = comment.id; replyText = ''"
@@ -248,7 +248,20 @@ const props = defineProps({
   showComments: { type: Boolean, default: true },
   showReviewProgress: { type: Boolean, default: false },
   canAcceptSuggestions: { type: Boolean, default: false },
+  // Whether the viewer may write comments here, and whether they may resolve
+  // other people's. Both default to true because without a review in play these
+  // are plain document comments, which readers are entitled to (the deliberate
+  // exemption in RoleMiddleware). The review-scoped caller passes the real rule.
+  canComment: { type: Boolean, default: true },
+  canResolveComments: { type: Boolean, default: true },
 })
+
+// Mirrors handleResolveCommentDB: admin/manager or a participant in the comment's
+// review (both folded into canResolveComments by the caller), or the comment's own
+// author. Hide the control rather than let it 403 on click.
+function canResolveComment(comment) {
+  return props.canResolveComments || (!!comment?.author && comment.author === getCurrentUser())
+}
 
 const emit = defineEmits(['comment', 'resolve', 'suggestion-accepted'])
 

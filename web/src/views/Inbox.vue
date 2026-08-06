@@ -91,7 +91,7 @@
             <div v-if="c.quote" class="mt-2 text-xs text-slate-600 border-l-2 border-slate-700 pl-2 italic truncate">"{{ c.quote }}"</div>
             <div class="mt-3 flex gap-2">
               <button @click="goToComment(c)" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">View in document →</button>
-              <button @click="resolveFromInbox(c.id)" class="text-xs text-slate-500 hover:text-emerald-400 ml-auto">Resolve</button>
+              <button v-if="canResolveComment(c)" @click="resolveFromInbox(c.id)" class="text-xs text-slate-500 hover:text-emerald-400 ml-auto">Resolve</button>
             </div>
           </div>
         </div>
@@ -846,6 +846,15 @@ const sortedTasks = computed(() => {
 })
 
 const canReviewSuggestions = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+
+// Resolving a comment needs manager rights or authorship of the comment itself
+// (the server also accepts a participant in the comment's review, which the
+// inbox list has no data for — those users can still resolve from the review
+// page). Hide rather than let the button 403.
+function canResolveComment(c) {
+  if (['admin', 'manager'].includes(currentUserRole.value)) return true
+  return !!c?.author && c.author === currentUserEmail.value
+}
 const openSuggestions = computed(() => suggestions.value.filter(s => s.status === 'open' || s.status === 'in_review'))
 
 const totalActionItems = computed(() => {

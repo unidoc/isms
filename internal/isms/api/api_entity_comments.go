@@ -29,6 +29,12 @@ func (s *Server) handleListEntityComments(c echo.Context) error {
 }
 
 func (s *Server) handleCreateEntityComment(c echo.Context) error {
+	// Contributors and managers comment on register entities; readers are
+	// read-only (#23). Mirrors handleCreateEntitySuggestion — the two are the
+	// contributor's write surface and had drifted apart.
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)

@@ -372,8 +372,16 @@ func (s *Server) RoleMiddleware() echo.MiddlewareFunc {
 					strings.HasSuffix(path, "/comment") || strings.HasSuffix(path, "/content")) {
 					return next(c)
 				}
-				// Allow readers to add comments (assignment check in handler)
-				if strings.HasPrefix(path, "/api/v1/comments") {
+				// Allow readers to comment on documents and to resolve comments
+				// they are entitled to; both handlers authorize per-comment
+				// (handleAddCommentDB / handleResolveCommentDB). Deliberately not
+				// a bare `/api/v1/comments` prefix — that also exempted
+				// /comments/:id/accept and /reject, and would exempt any future
+				// route under the prefix. `strings.Contains` on "/comments/" is
+				// avoided too, since /api/v1/entity-comments/:id/resolve would
+				// match it.
+				if path == "/api/v1/comments" ||
+					(strings.HasPrefix(path, "/api/v1/comments/") && strings.HasSuffix(path, "/resolve")) {
 					return next(c)
 				}
 				return echo.NewHTTPError(http.StatusForbidden, "read-only access")

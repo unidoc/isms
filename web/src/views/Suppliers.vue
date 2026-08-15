@@ -401,7 +401,7 @@
                     <MarkdownField v-model="editForm.notes" :self-type="'supplier'" :self-id="selectedItem?.identifier || ''" :rows="12" placeholder="Additional notes... Type /doc to link a document" />
                   </template>
                   <template v-else>
-                    <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-html="renderMd(selectedItem.notes)"></div>
+                    <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedItem.notes)"></div>
                     <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
                   </template>
                 </div>

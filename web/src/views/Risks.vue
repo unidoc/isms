@@ -325,7 +325,7 @@
                       <!-- Description -->
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                        <div v-if="selectedRisk.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-html="renderMd(selectedRisk.description)"></div>
+                        <div v-if="selectedRisk.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedRisk.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
 
@@ -396,7 +396,7 @@
 
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Treatment Plan</div>
-                        <div v-if="selectedRisk.treatment_plan" class="text-sm doc-prose text-slate-300 leading-relaxed" v-html="renderMd(selectedRisk.treatment_plan)"></div>
+                        <div v-if="selectedRisk.treatment_plan" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedRisk.treatment_plan)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
                     </div>
@@ -574,7 +574,7 @@
                     </div>
                   </template>
                   <template v-else>
-                    <div v-if="selectedRisk.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-html="renderMd(selectedRisk.notes)"></div>
+                    <div v-if="selectedRisk.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedRisk.notes)"></div>
                     <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
                   </template>
                 </div>

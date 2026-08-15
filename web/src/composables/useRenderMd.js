@@ -1,7 +1,7 @@
 import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/common'
-import { escapeHtml } from '../utils/html'
+import { escapeHtml } from '../utils/html.js'
 
 /**
  * Canonical markdown renderer for entity descriptions, treatment plans,
@@ -22,18 +22,28 @@ import { escapeHtml } from '../utils/html'
 
 const display = new Marked({ breaks: true })
 
-// Custom code-block renderer: syntax-highlight via highlight.js and wrap in a
-// container with a copy button. Copying reads the <code> textContent, so the
-// clipboard gets clean source — never the highlight span markup.
+// Custom code-block renderer. Mermaid fences become inert escaped placeholders
+// for the post-sanitization directive; every other fence follows the existing
+// highlighted, numbered, copyable code-block path. Copying reads the <code>
+// textContent, so the clipboard gets clean source — never highlight markup.
 display.use({
   renderer: {
     code(token) {
+      const info = (token.lang || '').trim().split(/\s+/).filter(Boolean)
+      const lang = info[0] || ''
+
+      if (lang.toLowerCase() === 'mermaid') {
+        return (
+          '<div class="mermaid-diagram" data-mermaid-pending="true">' +
+          escapeHtml(token.text || '') +
+          '</div>'
+        )
+      }
+
       // Trim trailing blank lines/whitespace so they don't render as empty
       // numbered lines at the end of the block (the editor keeps them as typed;
       // the read view shouldn't show dangling whitespace).
       const text = (token.text || '').replace(/\s+$/, '')
-      const info = (token.lang || '').trim().split(/\s+/).filter(Boolean)
-      const lang = info[0] || ''
       const wrapped = info.includes('wrap')
       const known = lang && hljs.getLanguage(lang)
       const body = known

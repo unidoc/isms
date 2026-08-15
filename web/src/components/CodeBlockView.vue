@@ -24,6 +24,7 @@
 <script setup>
 import { computed } from 'vue'
 import { NodeViewWrapper, NodeViewContent, nodeViewProps } from '@tiptap/vue-3'
+import { codeLanguages } from './codeLanguages.js'
 
 const props = defineProps(nodeViewProps)
 
@@ -52,39 +53,7 @@ const lineNumbers = computed(() => {
   return s
 })
 
-// Curated list — every id is a language registered by lowlight's `common` set,
-// so it actually highlights. Sorted by label for the dropdown.
-const languages = [
-  { id: 'bash', label: 'Bash' },
-  { id: 'c', label: 'C' },
-  { id: 'cpp', label: 'C++' },
-  { id: 'csharp', label: 'C#' },
-  { id: 'css', label: 'CSS' },
-  { id: 'diff', label: 'Diff' },
-  { id: 'go', label: 'Go' },
-  { id: 'graphql', label: 'GraphQL' },
-  { id: 'xml', label: 'HTML / XML' },
-  { id: 'ini', label: 'INI / TOML' },
-  { id: 'java', label: 'Java' },
-  { id: 'javascript', label: 'JavaScript' },
-  { id: 'json', label: 'JSON' },
-  { id: 'kotlin', label: 'Kotlin' },
-  { id: 'lua', label: 'Lua' },
-  { id: 'makefile', label: 'Makefile' },
-  { id: 'markdown', label: 'Markdown' },
-  { id: 'perl', label: 'Perl' },
-  { id: 'php', label: 'PHP' },
-  { id: 'python', label: 'Python' },
-  { id: 'r', label: 'R' },
-  { id: 'ruby', label: 'Ruby' },
-  { id: 'rust', label: 'Rust' },
-  { id: 'scss', label: 'SCSS' },
-  { id: 'shell', label: 'Shell' },
-  { id: 'sql', label: 'SQL' },
-  { id: 'swift', label: 'Swift' },
-  { id: 'typescript', label: 'TypeScript' },
-  { id: 'yaml', label: 'YAML' },
-]
+const languages = codeLanguages
 
 function onChange(e) {
   props.updateAttributes({ language: e.target.value })

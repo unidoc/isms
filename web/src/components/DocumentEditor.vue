@@ -249,6 +249,7 @@ import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
 import CodeBlockView from './CodeBlockView.vue'
+import { codeBlockMetadataAttributes } from './codeBlockAttributes.js'
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -390,13 +391,7 @@ const editor = useEditor({
       addAttributes() {
         return {
           ...this.parent?.(),
-          // Per-block word-wrap, round-tripped via a `wrap` token in the fence
-          // info string (see useMarkdownConvert).
-          wrapped: {
-            default: false,
-            parseHTML: el => el.getAttribute('data-wrapped') === 'true',
-            renderHTML: attrs => (attrs.wrapped ? { 'data-wrapped': 'true' } : {}),
-          },
+          ...codeBlockMetadataAttributes(),
         }
       },
       addNodeView() { return VueNodeViewRenderer(CodeBlockView) },

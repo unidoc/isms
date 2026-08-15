@@ -203,10 +203,12 @@
 import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import CodeBlock from '@tiptap/extension-code-block'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { slashCommands as sharedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
+import { codeBlockMetadataAttributes } from './codeBlockAttributes.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -260,6 +262,15 @@ const editor = useEditor({
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
+      codeBlock: false,
+    }),
+    CodeBlock.extend({
+      addAttributes() {
+        return {
+          ...this.parent?.(),
+          ...codeBlockMetadataAttributes(),
+        }
+      },
     }),
     Link.configure({ openOnClick: false }),
     Placeholder.configure({ placeholder: props.placeholder }),

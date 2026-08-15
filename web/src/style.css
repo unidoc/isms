@@ -226,6 +226,48 @@
   border-color: rgba(34, 197, 94, 0.4);
 }
 
+/* ── Mermaid diagrams: inert markdown placeholders rendered client-side ── */
+.mermaid-diagram {
+  position: relative;
+  margin: 0 0 1rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+  color: rgb(203 213 225);
+  background: rgb(15 23 42);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.5rem;
+}
+.mermaid-diagram[data-mermaid-pending="true"],
+.mermaid-diagram[data-mermaid-state="rendering"] {
+  min-height: 8rem;
+  color: transparent;
+}
+.mermaid-diagram[data-mermaid-pending="true"]::after,
+.mermaid-diagram[data-mermaid-state="rendering"]::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgb(100 116 139);
+  content: "Rendering diagram…";
+}
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.mermaid-diagram[data-mermaid-state="error"] {
+  min-height: 0;
+  color: rgb(253 164 175);
+  background: rgba(76, 5, 25, 0.2);
+  border-color: rgba(244, 63, 94, 0.35);
+}
+.mermaid-error-message {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 /* ── Syntax highlighting theme (highlight.js token classes), tuned to the
       app's slate palette. Applies wherever .hljs is rendered. ── */
 .hljs-comment,
@@ -640,6 +682,11 @@
   .doc-prose pre {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
+    page-break-inside: avoid;
+  }
+  .mermaid-diagram {
+    background: transparent !important;
+    border-color: #cbd5e1 !important;
     page-break-inside: avoid;
   }
   .doc-prose table {

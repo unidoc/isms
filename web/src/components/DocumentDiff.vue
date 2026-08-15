@@ -1,5 +1,5 @@
 <template>
-  <div class="document-diff prose prose-invert prose-sm max-w-none px-8 py-6" v-html="renderedDiff"></div>
+  <div v-mermaid class="document-diff prose prose-invert prose-sm max-w-none px-8 py-6" v-html="renderedDiff"></div>
 </template>
 
 <script setup>

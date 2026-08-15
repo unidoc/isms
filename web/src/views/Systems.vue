@@ -290,7 +290,7 @@
                     <div class="space-y-4">
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                        <div v-if="selectedItem.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-html="renderMd(selectedItem.description)"></div>
+                        <div v-if="selectedItem.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedItem.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
@@ -448,7 +448,7 @@
                     <MarkdownField v-model="editForm.notes" :self-type="'system'" :self-id="selectedItem?.identifier || ''" :rows="12" placeholder="Additional notes... Type /doc to link a document" />
                   </template>
                   <template v-else>
-                    <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-html="renderMd(selectedItem.notes)"></div>
+                    <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedItem.notes)"></div>
                     <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
                   </template>
                 </div>

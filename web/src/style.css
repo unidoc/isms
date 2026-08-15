@@ -267,6 +267,19 @@
   font-size: 0.875rem;
   font-weight: 500;
 }
+.mermaid-error-source {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  color: rgb(226 232 240);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: 0.375rem;
+}
 
 /* ── Syntax highlighting theme (highlight.js token classes), tuned to the
       app's slate palette. Applies wherever .hljs is rendered. ── */
@@ -688,6 +701,12 @@
     background: transparent !important;
     border-color: #cbd5e1 !important;
     page-break-inside: avoid;
+  }
+  .mermaid-diagram svg {
+    /* The on-screen palette is dark. Invert the complete SVG for print so
+       free-standing titles and labels stay dark on paper while node text keeps
+       its contrast against the correspondingly inverted node shapes. */
+    filter: invert(1) hue-rotate(180deg);
   }
   .doc-prose table {
     border: 1px solid #94a3b8 !important;

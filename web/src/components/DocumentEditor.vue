@@ -247,7 +247,7 @@ import { ref, reactive, watch, onBeforeUnmount, onMounted, computed, nextTick } 
 import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import { createLowlight, common } from 'lowlight'
+import { createEditorLowlight } from './editorLowlight.js'
 import CodeBlockView from './CodeBlockView.vue'
 import { codeBlockMetadataAttributes } from './codeBlockAttributes.js'
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
@@ -378,7 +378,7 @@ const CustomTableHeader = TableHeader.extend({
 })
 
 // --- Editor setup ---
-const lowlight = createLowlight(common)
+const lowlight = createEditorLowlight()
 const editor = useEditor({
   content: markdownToHtml(props.modelValue),
   editable: props.editable,

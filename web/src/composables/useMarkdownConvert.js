@@ -29,7 +29,7 @@ mdParser.use({
       const info = infoString.split(/\s+/).filter(Boolean)
       const lang = info[0] || ''
       const wrapped = info.includes('wrap')
-      const langClass = lang ? ` class="language-${lang}"` : ''
+      const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : ''
       const wrapAttr = wrapped ? ' data-wrapped="true"' : ''
       const infoAttr = infoString ? ` data-info-string="${escapeHtml(infoString)}"` : ''
       // No trailing newline appended — it would become a dangling empty line in

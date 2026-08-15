@@ -19,7 +19,10 @@ export const mermaidConfig = {
   startOnLoad: false,
   securityLevel: 'strict',
   suppressErrorRendering: true,
-  theme: 'dark',
+  // The base theme is the only Mermaid theme whose full palette can be
+  // controlled through themeVariables. The dark theme overwrites most of
+  // these values after initialization.
+  theme: 'base',
   htmlLabels: false,
   fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   themeVariables: {
@@ -30,6 +33,8 @@ export const mermaidConfig = {
     lineColor: '#64748b',
     secondaryColor: '#0f172a',
     tertiaryColor: '#172554',
+    textColor: '#e2e8f0',
+    titleColor: '#e2e8f0',
   },
 }
 
@@ -43,7 +48,7 @@ async function loadDefaultRenderer() {
   return rendererPromise
 }
 
-function showError(target) {
+function showError(target, source) {
   target.replaceChildren()
   target.removeAttribute('data-mermaid-pending')
   target.dataset.mermaidState = 'error'
@@ -52,7 +57,11 @@ function showError(target) {
   const message = document.createElement('span')
   message.className = 'mermaid-error-message'
   message.textContent = 'Diagram could not be rendered'
-  target.append(message)
+
+  const sourceBlock = document.createElement('pre')
+  sourceBlock.className = 'mermaid-error-source'
+  sourceBlock.textContent = source
+  target.append(message, sourceBlock)
 }
 
 function removeTemporaryElements(id) {
@@ -85,8 +94,8 @@ export async function renderMermaidDiagrams(root, loadRenderer = loadDefaultRend
   try {
     renderer = await loadRenderer()
   } catch {
-    jobs.forEach(({ target }) => {
-      if (root.contains(target)) showError(target)
+    jobs.forEach(({ target, source }) => {
+      if (root.contains(target)) showError(target, source)
     })
     return
   }
@@ -105,7 +114,7 @@ export async function renderMermaidDiagrams(root, loadRenderer = loadDefaultRend
       bindFunctions?.(target)
     } catch {
       removeTemporaryElements(id)
-      if (root.contains(target)) showError(target)
+      if (root.contains(target)) showError(target, source)
     }
   }
 }

@@ -92,7 +92,9 @@ diagram support does not weaken the existing `v-html` boundary.
 
 A syntax or loading failure affects only its diagram. The placeholder becomes
 an accessible `role="alert"` state with the message
-`Diagram could not be rendered`; the rest of the document remains usable.
+`Diagram could not be rendered` and an inert preformatted copy of the source.
+This keeps invalid or diff-marked diagrams inspectable without introducing a
+new HTML sink; the source is assigned through `textContent`.
 
 Mermaid error SVGs and temporary wrapper or sandbox elements are removed. The
 original fenced source remains available in the editor for correction.
@@ -116,9 +118,11 @@ info tokens remain intact. Mermaid trailing blank source lines are preserved.
 ## Styling and printing
 
 Global styles in `web/src/style.css` provide the slate container, loading and
-error states, horizontal overflow, and responsive SVG sizing. Print styles avoid
-splitting a diagram across pages and remove the application container
-background.
+error states, horizontal overflow, and responsive SVG sizing. Mermaid uses its
+configurable `base` theme so the slate palette reaches the generated SVG. Print
+styles avoid splitting a diagram across pages, remove the application container
+background, and invert the complete dark SVG palette to preserve text/shape
+contrast on white paper.
 
 ## Adding a Markdown display surface
 
@@ -142,3 +146,5 @@ For a new field that uses the canonical free-text Markdown model:
 | `web/test/useMarkdownConvert.test.js` | Fence source, info-token, language, wrapping, and trailing-line round-trips |
 | `web/test/codeBlockMetadata.test.js` | TipTap preservation of Mermaid metadata |
 | `web/test/codeLanguages.test.js` | Mermaid availability in the editor language selector |
+| `web/test/editorLowlight.test.js` | Plain Mermaid source without lowlight auto-detection |
+| `web/test/mermaidPrintStyles.test.js` | Print palette inversion for text/shape contrast |

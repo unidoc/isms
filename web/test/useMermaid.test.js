@@ -19,6 +19,12 @@ test('uses the safe explicit Mermaid configuration', () => {
   assert.equal(mermaidConfig.htmlLabels, false)
 })
 
+test('uses the configurable base theme with explicit standalone text colors', () => {
+  assert.equal(mermaidConfig.theme, 'base')
+  assert.equal(mermaidConfig.themeVariables.textColor, '#e2e8f0')
+  assert.equal(mermaidConfig.themeVariables.titleColor, '#e2e8f0')
+})
+
 test('cleans Mermaid temporary DOM after a real syntax error', async () => {
   const root = document.createElement('div')
   root.innerHTML = '<div class="mermaid-diagram" data-mermaid-pending="true">flowchart ???</div>'
@@ -59,7 +65,7 @@ test('renders every pending diagram with a unique id and sanitized SVG', async (
 
 test('isolates a diagram render failure in an accessible error state', async () => {
   const root = document.createElement('div')
-  root.innerHTML = '<div class="mermaid-diagram" data-mermaid-pending="true">flowchart ???</div>'
+  root.innerHTML = '<div class="mermaid-diagram" data-mermaid-pending="true">flowchart ???\n&lt;script&gt;alert(1)&lt;/script&gt;</div>'
 
   await renderMermaidDiagrams(root, async () => ({
     render: async () => { throw new Error('invalid syntax') },
@@ -68,7 +74,9 @@ test('isolates a diagram render failure in an accessible error state', async () 
   const diagram = root.querySelector('.mermaid-diagram')
   assert.equal(diagram.dataset.mermaidState, 'error')
   assert.equal(diagram.getAttribute('role'), 'alert')
-  assert.equal(diagram.textContent, 'Diagram could not be rendered')
+  assert.equal(diagram.querySelector('.mermaid-error-message').textContent, 'Diagram could not be rendered')
+  assert.equal(diagram.querySelector('.mermaid-error-source').textContent, 'flowchart ???\n<script>alert(1)</script>')
+  assert.equal(diagram.querySelector('.mermaid-error-source script'), null)
 })
 
 test('renders fresh placeholders after the containing HTML changes', async () => {

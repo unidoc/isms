@@ -40,3 +40,13 @@ test('keeps custom info tokens when editor controls change language and wrapping
 
   assert.match(markdown, /^```javascript custom-option wrap$/m)
 })
+
+test('round-trips quotes in a Mermaid fence info string without injecting attributes', () => {
+  const source = '```mermaid" data-wrapped="true\nflowchart LR\n  A --> B\n```'
+
+  const html = markdownToHtml(source)
+
+  assert.match(html, /data-info-string="mermaid&quot; data-wrapped=&quot;true"/)
+  assert.match(html, /class="language-mermaid&quot;"/)
+  assert.equal(htmlToMarkdown(html).trim(), source)
+})

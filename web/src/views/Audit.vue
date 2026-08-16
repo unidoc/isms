@@ -513,7 +513,7 @@
                   <div class="space-y-4">
                     <div>
                       <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                      <div v-if="selectedProgramme.description" class="text-sm text-slate-300 doc-prose" v-html="renderMd(selectedProgramme.description)"></div>
+                      <div v-if="selectedProgramme.description" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedProgramme.description)"></div>
                       <div v-else class="text-sm text-slate-600">—</div>
                     </div>
                     <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
@@ -540,7 +540,7 @@
                     </div>
                     <div v-if="selectedProgramme.notes" class="border-t border-slate-800 pt-4">
                       <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Notes</div>
-                      <div class="text-sm text-slate-300 doc-prose" v-html="renderMd(selectedProgramme.notes)"></div>
+                      <div class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedProgramme.notes)"></div>
                     </div>
                   </div>
                 </template>
@@ -708,7 +708,7 @@
                     <div class="space-y-4">
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Scope</div>
-                        <div v-if="selectedAudit.scope" class="text-sm text-slate-300 doc-prose" v-html="renderMd(selectedAudit.scope)"></div>
+                        <div v-if="selectedAudit.scope" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedAudit.scope)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
@@ -752,7 +752,7 @@
                       </div>
                       <div v-if="selectedAudit.notes" class="border-t border-slate-800 pt-4">
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Notes</div>
-                        <div class="text-sm text-slate-300 doc-prose" v-html="renderMd(selectedAudit.notes)"></div>
+                        <div class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedAudit.notes)"></div>
                       </div>
                     </div>
                   </template>
@@ -852,7 +852,7 @@
                         </button>
                         <div v-if="expandedItemNotes.has(item.id)" class="mt-2">
                           <MarkdownField v-if="canWrite" v-model="item.notes" :self-type="'audit'" :self-id="String(selectedAudit.id)" :rows="3" placeholder="Inline notes for this item..." />
-                          <div v-else class="text-xs text-slate-400 doc-prose" v-html="renderMd(item.notes || '—')"></div>
+                          <div v-else class="text-xs text-slate-400 doc-prose" v-mermaid v-html="renderMd(item.notes || '—')"></div>
                           <div v-if="canWrite" class="flex justify-end mt-1.5">
                             <button @click="saveItemField(item, 'notes', item.notes)" class="text-[10px] text-blue-400 hover:text-blue-300">Save notes</button>
                           </div>
@@ -901,7 +901,7 @@
                     <MarkdownField v-model="reportForm.summary" :self-type="'audit'" :self-id="String(selectedAudit.id)" :rows="20" placeholder="Auditor's final report — observations, conclusions, recommendations. Use slash commands to link controls, clauses, evidence..." />
                   </template>
                   <template v-else>
-                    <div v-if="selectedAudit.summary" class="text-sm text-slate-300 doc-prose leading-relaxed" v-html="renderMd(selectedAudit.summary)"></div>
+                    <div v-if="selectedAudit.summary" class="text-sm text-slate-300 doc-prose leading-relaxed" v-mermaid v-html="renderMd(selectedAudit.summary)"></div>
                     <div v-else class="text-sm text-slate-600 italic">No report written yet.</div>
                   </template>
                 </div>
@@ -1029,7 +1029,7 @@
                   <div class="space-y-4">
                     <div>
                       <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                      <div v-if="selectedFinding.description" class="text-sm text-slate-300 doc-prose leading-relaxed" v-html="renderMd(selectedFinding.description)"></div>
+                      <div v-if="selectedFinding.description" class="text-sm text-slate-300 doc-prose leading-relaxed" v-mermaid v-html="renderMd(selectedFinding.description)"></div>
                       <div v-else class="text-sm text-slate-600">—</div>
                     </div>
                     <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">

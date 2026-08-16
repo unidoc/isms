@@ -14,25 +14,27 @@
 import { Marked } from 'marked'
 import TurndownService from 'turndown'
 import { gfm } from 'turndown-plugin-gfm'
-import { escapeHtml } from '../utils/html'
+import { escapeHtml } from '../utils/html.js'
 
-// Dedicated parser so the custom code renderer (which carries the per-block
-// `wrap` flag through to a data-wrapped attribute) doesn't leak globally.
+// Dedicated parser so the custom code renderer (which carries the complete
+// fence info string and per-block `wrap` flag) doesn't leak globally.
 const mdParser = new Marked({ breaks: true })
 mdParser.use({
   renderer: {
-    // Preserve the fenced info string's `wrap` token as data-wrapped so the
-    // editor's code-block node round-trips the word-wrap setting. The language
-    // is the first info token (e.g. ```js wrap → lang=js, wrapped=true).
+    // Preserve the complete fenced info string so Mermaid options survive an
+    // edit/save cycle. Language and wrap are also exposed as normal editor
+    // attributes so the code-block controls remain interactive.
     code(token) {
-      const info = (token.lang || '').trim().split(/\s+/).filter(Boolean)
+      const infoString = (token.lang || '').trim()
+      const info = infoString.split(/\s+/).filter(Boolean)
       const lang = info[0] || ''
       const wrapped = info.includes('wrap')
-      const langClass = lang ? ` class="language-${lang}"` : ''
+      const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : ''
       const wrapAttr = wrapped ? ' data-wrapped="true"' : ''
+      const infoAttr = infoString ? ` data-info-string="${escapeHtml(infoString)}"` : ''
       // No trailing newline appended — it would become a dangling empty line in
       // the editor (off-by-one vs the read view, which uses token.text as-is).
-      return `<pre${wrapAttr}><code${langClass}>${escapeHtml(token.text)}</code></pre>`
+      return `<pre${wrapAttr}${infoAttr}><code${langClass}>${escapeHtml(token.text)}</code></pre>`
     },
   },
 })
@@ -62,9 +64,9 @@ function createTurndown() {
     },
   })
 
-  // Fenced code blocks, carrying the per-block word-wrap flag as a `wrap` token
-  // in the info string (```js wrap). The language comes from the code's
-  // language-* class; wrap from the pre's data-wrapped attribute.
+  // Fenced code blocks retain their complete original info string. If the user
+  // changes language or wrapping in the editor, only those tokens are updated;
+  // all other Mermaid options remain intact and in their original order.
   td.addRule('fencedCodeWithWrap', {
     filter: function (node) {
       return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE'
@@ -74,10 +76,23 @@ function createTurndown() {
       const m = (code.getAttribute('class') || '').match(/language-(\S+)/)
       const lang = m ? m[1] : ''
       const wrapped = node.getAttribute('data-wrapped') === 'true'
-      const info = lang + (wrapped ? (lang ? ' ' : '') + 'wrap' : '')
-      // Trim trailing blank lines/whitespace so saved code blocks don't carry
-      // dangling empty lines — keeps edit and read view consistent.
-      const text = (code.textContent || '').replace(/\s+$/, '')
+      const originalInfo = (node.getAttribute('data-info-string') || '').trim()
+      const originalTokens = originalInfo.split(/\s+/).filter(Boolean)
+      const originalLang = originalTokens[0] || ''
+      const originallyWrapped = originalTokens.includes('wrap')
+      let info = originalInfo
+
+      if (!info || lang !== originalLang || wrapped !== originallyWrapped) {
+        const extraTokens = originalTokens.slice(1).filter(token => token !== 'wrap')
+        const updatedTokens = [lang, ...extraTokens].filter(Boolean)
+        if (wrapped) updatedTokens.push('wrap')
+        info = updatedTokens.join(' ')
+      }
+
+      // Mermaid source is preserved exactly, including meaningful trailing
+      // blank lines. Ordinary code keeps the existing whitespace normalization.
+      const rawText = code.textContent || ''
+      const text = lang.toLowerCase() === 'mermaid' ? rawText : rawText.replace(/\s+$/, '')
       return '\n\n```' + info + '\n' + text + '\n```\n\n'
     },
   })

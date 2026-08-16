@@ -42,7 +42,7 @@
                 'tc-ins': block.type === 'add',
                 'tc-change': block.type === 'change' && !block.isTable,
               }">
-              <div class="doc-prose" v-html="block.html"></div>
+              <div v-mermaid class="doc-prose" v-html="block.html"></div>
             </div>
           </div>
           <!-- Comment badge / add button -->

@@ -784,7 +784,7 @@
               </button>
 
               <!-- The rendered content block (with [[TYPE:ID|Title]] reference pills) -->
-              <div v-html="sanitize(renderRefLinks(block.html))" class="doc-prose" @click="onRefLinkClick" />
+              <div v-mermaid v-html="sanitize(renderRefLinks(block.html))" class="doc-prose" @click="onRefLinkClick" />
 
               <!-- Comment count badge (visible when paragraph has open comments) -->
               <div

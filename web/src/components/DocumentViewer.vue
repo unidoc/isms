@@ -36,7 +36,7 @@
         </button>
 
         <!-- Rendered content block -->
-        <div v-html="sanitize(block.html)" class="doc-prose" />
+        <div v-mermaid v-html="sanitize(block.html)" class="doc-prose" />
 
         <!-- Comment count badge (visible when paragraph has open comments) -->
         <div

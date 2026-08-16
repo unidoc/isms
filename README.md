@@ -67,6 +67,7 @@ AI is a first-class participant, not a bolt-on.
 - **Git-based documents** — Markdown with YAML frontmatter. Full version history with diffs and blame.
 
   ![Documents](docs/screenshots/documents.png)
+- **Mermaid diagrams** — Fenced `mermaid` blocks render as responsive diagrams while their Markdown source remains editable and version-controlled.
 - **Review workflow** — Round-based review, inline suggestions, approval policies, auto-merge. See above.
 - **Risk management** — Risk register with 5×5 matrix, inherent/residual scoring, CIA impact, treatment plans, auto-calculated review dates.
 
@@ -99,6 +100,7 @@ AI is a first-class participant, not a bolt-on.
 - **Agent identity** — `is_agent` flag on users, enforced in policy evaluation and audit trail
 - **AI kill switch** — `ai_enabled` org setting blocks all agent API tokens at middleware level
 - **SVG sanitization** — Regex-based stripping of scripts, event handlers, dangerous URIs on branding uploads
+- **Diagram rendering boundary** — Mermaid source is escaped into inert placeholders, rendered with strict security settings, then sanitized as SVG before insertion
 - **Repo protection** — Path allowlist, size limits, symlink/exec rejection on git push
 - **Audit trail** — Activity log + entity changelog with field-level diffs on all operations
 
@@ -373,6 +375,7 @@ Slack and Matrix notifications are configured per-organization in **Admin → Se
 
 - [Evaluate in 10 Minutes](docs/evaluate.md) — Quick start guide
 - [Architecture](docs/architecture.md) — Core vs templates, multi-tenancy, entity references
+- [Markdown Rendering](docs/markdown-rendering.md) — Display pipeline, Mermaid lifecycle, editor round-tripping, and security boundaries
 - [AI-First Strategy](docs/ai-first.md) — AI architecture, MCP tools, agent identity
 - [Suggestions](docs/suggestions.md) — Entity suggestion system specification
 - [AI Review Loop](docs/ai-review-loop.md) — Multi-agent document review design

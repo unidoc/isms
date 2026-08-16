@@ -232,7 +232,7 @@
       <!-- ===================== TASKS TAB ===================== -->
       <template v-if="activeTab === 'tasks'">
         <!-- Create task button -->
-        <div class="flex justify-end">
+        <div v-if="canManageInbox" class="flex justify-end">
           <button
             @click="showTaskForm = !showTaskForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -361,7 +361,7 @@
 
             <!-- Status button (click to advance) -->
             <button
-              v-if="task.status !== 'done'"
+              v-if="task.status !== 'done' && canAdvanceTask(task)"
               @click="advanceTaskStatus(task)"
               class="flex-shrink-0"
               :title="task.status === 'open' ? 'Start task' : 'Mark done'"
@@ -430,7 +430,7 @@
       <!-- ===================== CHANGES TAB ===================== -->
       <template v-if="activeTab === 'changes'">
         <!-- Create change button -->
-        <div class="flex justify-end">
+        <div v-if="canManageInbox" class="flex justify-end">
           <button
             @click="showChangeForm = !showChangeForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -582,7 +582,7 @@
               <!-- Actions -->
               <div class="flex items-center gap-3 pt-3 border-t border-slate-800">
                 <button
-                  v-if="change.status === 'proposed'"
+                  v-if="canManageInbox && change.status === 'proposed'"
                   @click="updateChangeStatus(change, 'approved')"
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
@@ -590,7 +590,7 @@
                   Approve
                 </button>
                 <button
-                  v-if="change.status === 'proposed'"
+                  v-if="canManageInbox && change.status === 'proposed'"
                   @click="updateChangeStatus(change, 'rejected')"
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
@@ -598,7 +598,7 @@
                   Reject
                 </button>
                 <button
-                  v-if="change.status === 'approved'"
+                  v-if="canManageInbox && change.status === 'approved'"
                   @click="updateChangeStatus(change, 'implemented')"
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
@@ -846,6 +846,19 @@ const sortedTasks = computed(() => {
 })
 
 const canReviewSuggestions = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+
+// Mirrors handleCreateTask, handleCreateChange and handleUpdateChangeStatus in
+// api_collab.go, all of which requireRole("admin", "manager"). Hide the controls
+// rather than let them 403 with the typed input still sitting in the form.
+const canManageInbox = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+
+// handleUpdateTaskStatus is wider than canManageInbox but per-task: a contributor
+// may advance only a task assigned to them, managers and admins any task. The
+// inbox lists other people's tasks too, so this has to be evaluated per row.
+const canAdvanceTask = (task) => {
+  if (['admin', 'manager'].includes(currentUserRole.value)) return true
+  return currentUserRole.value === 'contributor' && task?.assignee === currentUserEmail.value
+}
 
 // Resolving a comment needs manager rights or authorship of the comment itself
 // (the server also accepts a participant in the comment's review, which the

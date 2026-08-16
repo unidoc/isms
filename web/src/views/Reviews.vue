@@ -74,7 +74,7 @@
         </div>
 
         <!-- Review guide for first-time visitors -->
-        <div v-if="review.status === 'open' && !reviewGuideHidden && !userIsAuthor" class="mb-6 bg-blue-950/20 border border-blue-800/20 rounded-xl px-5 py-4">
+        <div v-if="review.status === 'open' && !reviewGuideHidden && !userIsAuthor && userCanReview" class="mb-6 bg-blue-950/20 border border-blue-800/20 rounded-xl px-5 py-4">
           <div class="flex items-start justify-between">
             <div class="space-y-2 text-sm text-blue-300/80">
               <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">1</span> Review the document and changes</div>
@@ -271,7 +271,7 @@
               </div>
 
               <!-- Comment input -->
-              <div v-if="review.status !== 'merged' && review.status !== 'closed'" class="mt-6 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+              <div v-if="canCommentOnReview" class="mt-6 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
                 <div class="px-4 py-2.5 border-b border-slate-800">
                   <span class="text-xs text-slate-500 font-medium">Add a comment</span>
                 </div>
@@ -322,7 +322,7 @@
                 <SideBySideReview v-if="changesViewMode === 'split'"
                   :old-body="activeOldBody" :new-body="activeNewBody" :raw-diff="activeDiffData || ''"
                   :comment-count="review.comment_count || 0" :review-status="statusLabel(review.status)"
-                  :readonly="review.status === 'merged' || review.status === 'closed'"
+                  :readonly="!canCommentOnReview"
                   :comments="diffComments"
                   @comment="onDiffComment" />
                 <!-- Unified view (inline track changes with comments) -->
@@ -331,7 +331,7 @@
                   :author="diffMeta?.last_modified_by" :date="diffMeta?.last_modified"
                   :document-id="review?.document_id || ''" :blame-ref="diffMeta?.has_branch ? `review/${review?.id}` : ''"
                   :comments="diffComments"
-                  :readonly="review.status === 'merged' || review.status === 'closed'"
+                  :readonly="!canCommentOnReview"
                   @comment="onDiffComment" />
 
               </div>

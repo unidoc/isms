@@ -300,9 +300,17 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 	if update.Payload == nil {
 		update.Payload = existing.Payload
 	}
+	// Omitted fields keep their current value, same as Title/Payload above —
+	// a partial edit must not blank rationale or source refs.
+	if update.Rationale == "" {
+		update.Rationale = existing.Rationale
+	}
+	if update.SourceRefs == nil {
+		update.SourceRefs = existing.SourceRefs
+	}
 
 	if err := s.db.UpdateSuggestion(ctx, orgID, &update); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "updated"})

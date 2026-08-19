@@ -845,18 +845,23 @@ const sortedTasks = computed(() => {
   })
 })
 
-const canReviewSuggestions = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+// Base role predicate. The computeds below stay separate because each mirrors a
+// different server-side rule; they happen to share this base today, but they are
+// free to diverge if an endpoint's requireRole() changes.
+const isManagerOrAdmin = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+
+const canReviewSuggestions = computed(() => isManagerOrAdmin.value)
 
 // Mirrors handleCreateTask, handleCreateChange and handleUpdateChangeStatus in
 // api_collab.go, all of which requireRole("admin", "manager"). Hide the controls
 // rather than let them 403 with the typed input still sitting in the form.
-const canManageInbox = computed(() => ['admin', 'manager'].includes(currentUserRole.value))
+const canManageInbox = computed(() => isManagerOrAdmin.value)
 
 // handleUpdateTaskStatus is wider than canManageInbox but per-task: a contributor
 // may advance only a task assigned to them, managers and admins any task. The
 // inbox lists other people's tasks too, so this has to be evaluated per row.
 const canAdvanceTask = (task) => {
-  if (['admin', 'manager'].includes(currentUserRole.value)) return true
+  if (isManagerOrAdmin.value) return true
   return currentUserRole.value === 'contributor' && task?.assignee === currentUserEmail.value
 }
 
@@ -865,7 +870,7 @@ const canAdvanceTask = (task) => {
 // inbox list has no data for — those users can still resolve from the review
 // page). Hide rather than let the button 403.
 function canResolveComment(c) {
-  if (['admin', 'manager'].includes(currentUserRole.value)) return true
+  if (isManagerOrAdmin.value) return true
   return !!c?.author && c.author === currentUserEmail.value
 }
 const openSuggestions = computed(() => suggestions.value.filter(s => s.status === 'open' || s.status === 'in_review'))

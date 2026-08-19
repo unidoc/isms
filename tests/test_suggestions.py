@@ -313,11 +313,9 @@ class TestEntitySuggestionUpdateGuards:
     suggestion_id = None
 
     def _fetch(self, api_url, admin_headers, sid):
-        r = requests.get(f"{api_url}/suggestions?limit=200", headers=admin_headers)
-        data = r.json().get("data") if isinstance(r.json(), dict) else r.json()
-        match = [s for s in (data or []) if s["id"] == sid]
-        assert len(match) == 1, f"Suggestion {sid} not found in list"
-        return match[0]
+        r = requests.get(f"{api_url}/suggestions/{sid}", headers=admin_headers)
+        assert r.status_code == 200, f"Fetch of suggestion {sid} failed: {r.text}"
+        return r.json()["data"]
 
     def test_01_create(self, api_url, admin_headers):
         r = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
@@ -340,6 +338,48 @@ class TestEntitySuggestionUpdateGuards:
         assert s["title"] == "retitled"
         assert s.get("rationale") == "original rationale", \
             "Omitted rationale was blanked by a partial edit"
+
+    def test_02b_explicit_empty_rationale_clears(self, api_url, admin_headers):
+        """Sending rationale explicitly empty is a deliberate clear, not a no-op."""
+        sid = TestEntitySuggestionUpdateGuards.suggestion_id
+        r = requests.put(f"{api_url}/suggestions/{sid}", headers=admin_headers,
+                         json={"rationale": ""})
+        assert r.status_code == 200, f"Update failed: {r.text}"
+
+        s = self._fetch(api_url, admin_headers, sid)
+        assert s["title"] == "retitled", "Omitted title was blanked by a partial edit"
+        assert not s.get("rationale"), "Explicit empty rationale did not clear the field"
+
+        # Restore for the terminal-edit assertions below.
+        r = requests.put(f"{api_url}/suggestions/{sid}", headers=admin_headers,
+                         json={"rationale": "original rationale"})
+        assert r.status_code == 200, f"Restore failed: {r.text}"
+
+    def test_02c_source_refs_omitted_kept_explicit_empty_clears(self, api_url, admin_headers):
+        """The field Copilot flagged: omitted keeps, explicit [] is a real clear."""
+        sid = TestEntitySuggestionUpdateGuards.suggestion_id
+        r = requests.put(f"{api_url}/suggestions/{sid}", headers=admin_headers,
+                         json={"source_refs": ["https://example.com/a"]})
+        assert r.status_code == 200, f"Update failed: {r.text}"
+        assert self._fetch(api_url, admin_headers, sid)["source_refs"] == \
+            ["https://example.com/a"]
+
+        # Omitting it must not blank it.
+        r = requests.put(f"{api_url}/suggestions/{sid}", headers=admin_headers,
+                         json={"title": "retitled"})
+        assert r.status_code == 200, f"Update failed: {r.text}"
+        s = self._fetch(api_url, admin_headers, sid)
+        assert s["source_refs"] == ["https://example.com/a"], \
+            "Omitted source_refs was blanked by a partial edit"
+        assert s.get("rationale") == "original rationale"
+
+        # Sending it explicitly empty clears it.
+        r = requests.put(f"{api_url}/suggestions/{sid}", headers=admin_headers,
+                         json={"source_refs": []})
+        assert r.status_code == 200, f"Update failed: {r.text}"
+        s = self._fetch(api_url, admin_headers, sid)
+        assert not s.get("source_refs"), "Explicit empty source_refs did not clear"
+        assert s.get("rationale") == "original rationale"
 
     def test_03_reject_to_terminal(self, api_url, admin_headers):
         sid = TestEntitySuggestionUpdateGuards.suggestion_id

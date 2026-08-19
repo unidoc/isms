@@ -260,6 +260,25 @@ func (s *Server) handleGetEntitySuggestion(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// updateSuggestionRequest is the editable surface of PUT /suggestions/:id.
+// Pointer fields distinguish "field absent" (keep the stored value) from
+// "field sent empty" (an intentional clear) — see #204.
+type updateSuggestionRequest struct {
+	Title      *string         `json:"title"`
+	Payload    json.RawMessage `json:"payload"`
+	Rationale  *string         `json:"rationale"`
+	SourceRefs json.RawMessage `json:"source_refs"`
+}
+
+// normalizeRawJSON collapses an explicit JSON null to a nil RawMessage so the
+// column is stored as SQL NULL instead of the literal string "null".
+func normalizeRawJSON(raw json.RawMessage) json.RawMessage {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	return raw
+}
+
 func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
@@ -289,20 +308,40 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 		}
 	}
 
-	var update db.Suggestion
-	if err := c.Bind(&update); err != nil {
+	var req updateSuggestionRequest
+	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	update.ID = id
-	if update.Title == "" {
-		update.Title = existing.Title
+
+	// Only the four editable columns are taken from the request; everything else
+	// on the row is server-owned. Absent fields keep their current value so a
+	// partial edit cannot blank what it did not mention (#204).
+	update := db.Suggestion{
+		ID:         id,
+		Title:      existing.Title,
+		Payload:    existing.Payload,
+		Rationale:  existing.Rationale,
+		SourceRefs: existing.SourceRefs,
 	}
-	if update.Payload == nil {
-		update.Payload = existing.Payload
+	// A blank title is never meaningful, so empty is treated as "unchanged"
+	// rather than as a clear.
+	if req.Title != nil && *req.Title != "" {
+		update.Title = *req.Title
+	}
+	if payload := normalizeRawJSON(req.Payload); payload != nil {
+		update.Payload = payload
+	}
+	// rationale and source_refs are optional free-form fields: sending them
+	// explicitly as "" / [] / null clears them, omitting them keeps them.
+	if req.Rationale != nil {
+		update.Rationale = *req.Rationale
+	}
+	if req.SourceRefs != nil {
+		update.SourceRefs = normalizeRawJSON(req.SourceRefs)
 	}
 
 	if err := s.db.UpdateSuggestion(ctx, orgID, &update); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "updated"})

@@ -168,15 +168,22 @@ type SuggestionFilters struct {
 }
 
 // UpdateSuggestion updates editable fields on an open or in_review suggestion.
+// Returns an error if no row matched — a terminal suggestion is not editable.
 func (d *DB) UpdateSuggestion(ctx context.Context, orgID int, s *Suggestion) error {
-	_, err := d.pool.Exec(ctx, `
+	tag, err := d.pool.Exec(ctx, `
 		UPDATE suggestions SET
 			title = $2, payload = $3, rationale = NULLIF($4, ''),
 			source_refs = $5, updated_at = now()
 		WHERE id = $1 AND organization_id = $6
 			AND status IN ('open', 'in_review')
 	`, s.ID, s.Title, s.Payload, s.Rationale, s.SourceRefs, orgID)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("suggestion not found or in terminal state")
+	}
+	return nil
 }
 
 // DeleteSuggestion hard-deletes a non-terminal suggestion.

@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 )
 
 // --- Per-account brute-force protection (DB-backed) ---
@@ -630,6 +631,11 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 
 type updateProfileRequest struct {
 	Name string `json:"name"`
+	// Locale is the user's language choice as a BCP 47 tag. Omitted entirely =
+	// leave unchanged; explicit empty string = clear the choice and follow the
+	// org default. A pointer is required to tell those two apart, which a plain
+	// string cannot do.
+	Locale *string `json:"locale"`
 }
 
 func (s *Server) handleUpdateProfile(c echo.Context) error {
@@ -650,6 +656,23 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 
 	if err := s.db.UpdateName(ctx, user.ID, req.Name); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating name")
+	}
+
+	// Locale is validated strictly and rejected rather than silently coerced: a
+	// typo'd tag that quietly fell back to English would surface as "the language
+	// setting does not work", which is far harder to diagnose than a 400.
+	if req.Locale != nil {
+		var next *string
+		if *req.Locale != "" {
+			tag, ok := i18n.Canonical(*req.Locale)
+			if !ok {
+				return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+			}
+			next = &tag
+		}
+		if err := s.db.UpdateLocale(ctx, user.ID, next); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating locale")
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "profile updated", "name": req.Name})

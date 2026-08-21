@@ -14,6 +14,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 )
 
 // AdminOnly returns middleware that restricts access to admin role only.
@@ -362,6 +363,19 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 	}
 	if req.Key == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "key is required")
+	}
+
+	// Validate the org default locale against the supported set. Resolve() would
+	// degrade an unsupported value to the fallback at read time, so this is not a
+	// correctness gate — it is a diagnosability one: silently accepting "pt_BR_2"
+	// and then rendering English is much harder to debug than a 400 here.
+	// Empty is allowed and means "no org default", not "invalid".
+	if req.Key == "default_locale" && req.Value != "" {
+		tag, ok := i18n.Canonical(req.Value)
+		if !ok {
+			return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+		}
+		req.Value = tag // store the canonical form, not whatever casing was sent
 	}
 
 	// Validate branding values

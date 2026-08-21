@@ -87,6 +87,16 @@ func Canonical(tag string) (string, bool) {
 	// Accept-Language headers in the wild use "_" (pt_BR).
 	tag = strings.ReplaceAll(tag, "_", "-")
 
+	// Reject malformed input BEFORE any fallback. Without this the primary-subtag
+	// fallback below is far too eager: it only ever looks at the text before the
+	// first "-", so "pt-BR-2", "pt-Latn-BR-x-junk" and even "pt-!!!" all reduce to
+	// "pt" and resolve to pt-BR. That silently defeats the 400 that the write
+	// paths (PUT /auth/profile, PUT /admin/settings) depend on for anything that
+	// is not a well-formed tag.
+	if !wellFormed(tag) {
+		return "", false
+	}
+
 	// Exact match, case-insensitive.
 	for s := range supported {
 		if strings.EqualFold(s, tag) {
@@ -98,7 +108,19 @@ func Canonical(tag string) (string, bool) {
 	// subtag. Iterate the sorted set rather than the map so that a language with
 	// several supported regions resolves deterministically instead of picking a
 	// different one per request.
-	lang, _, _ := strings.Cut(strings.ToLower(tag), "-")
+	//
+	// The fallback applies ONLY to simple tags — "pt" or "pt-PT", at most a
+	// language and one region. That restriction is the substance of the fix, not
+	// the syntax check above: "pt-Latn-BR-x-junk" is a perfectly well-formed BCP 47
+	// tag, so shape validation alone still let it reduce to "pt" and resolve to
+	// pt-BR. A caller naming a script, variant or extension is asking for something
+	// specific; answering with pt-BR would be a guess, and for the write paths it
+	// would mean storing a value the caller never asked for. Exact match or nothing.
+	parts := strings.Split(tag, "-")
+	if len(parts) > 2 {
+		return "", false
+	}
+	lang := strings.ToLower(parts[0])
 	if lang == "" {
 		return "", false
 	}
@@ -109,6 +131,60 @@ func Canonical(tag string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// wellFormed reports whether tag has the shape of a BCP 47 language tag. It is a
+// syntax check, not a registry check — whether the language actually exists is
+// decided by matching against the supported set.
+//
+// Deliberately stricter than RFC 5646's full grammar, which also admits grandfathered
+// and private-use ("x-...") forms. Those cannot name a supported locale here, so
+// accepting them would only widen what reaches the fallback. The shape enforced is:
+//
+//	primary subtag  2-3 alpha (ISO 639-1/-2/-3) or 5-8 alpha (registered)
+//	later subtags   1-8 alphanumeric
+//	at most 6 subtags total
+//
+// Note the 4-alpha primary subtag is excluded: it is reserved in RFC 5646 and no
+// real language uses it.
+func wellFormed(tag string) bool {
+	parts := strings.Split(tag, "-")
+	if len(parts) == 0 || len(parts) > 6 {
+		return false
+	}
+	primary := parts[0]
+	if n := len(primary); n < 2 || n > 8 || n == 4 {
+		return false
+	}
+	if !allAlpha(primary) {
+		return false
+	}
+	for _, p := range parts[1:] {
+		if len(p) < 1 || len(p) > 8 || !allAlphaNum(p) {
+			return false
+		}
+	}
+	return true
+}
+
+func allAlpha(s string) bool {
+	for _, r := range s {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
+			return false
+		}
+	}
+	return true
+}
+
+func allAlphaNum(s string) bool {
+	for _, r := range s {
+		alpha := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		digit := r >= '0' && r <= '9'
+		if !alpha && !digit {
+			return false
+		}
+	}
+	return true
 }
 
 // Resolve picks the locale to render in, given the two stored preferences.
@@ -167,7 +243,10 @@ func FromAcceptLanguage(header string) (string, bool) {
 		}
 		q := 1.0
 		if params != "" {
-			if _, qv, ok := strings.Cut(params, "q="); ok {
+			// Parameter names are case-insensitive per RFC 9110, so a literal "q="
+			// search misses "Q=0.5" and leaves q at its 1.0 default — which would
+			// make an explicitly refused locale (Q=0) outrank an accepted one.
+			if qv, ok := cutQ(params); ok {
 				q = parseQ(qv)
 			}
 		}
@@ -188,6 +267,21 @@ func FromAcceptLanguage(header string) (string, bool) {
 	for _, c := range cands {
 		if tag, ok := Canonical(c.tag); ok {
 			return tag, true
+		}
+	}
+	return "", false
+}
+
+// cutQ finds the quality parameter in an Accept-Language entry's parameter list,
+// matching the "q" name case-insensitively, and returns its raw value.
+func cutQ(params string) (string, bool) {
+	for _, p := range strings.Split(params, ";") {
+		name, value, found := strings.Cut(p, "=")
+		if !found {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(name), "q") {
+			return value, true
 		}
 	}
 	return "", false

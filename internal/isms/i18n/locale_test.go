@@ -17,6 +17,22 @@ func TestCanonical(t *testing.T) {
 		{"unsupported region falls back to same language", "pt-PT", "pt-BR", true},
 		{"region we do not distinguish", "en-US", "en", true},
 		{"unknown language", "ja", "", false},
+		// Malformed input must be rejected, not reduced to its primary subtag.
+		// Before BCP 47 shape validation every one of these resolved to "pt-BR",
+		// because only the text before the first "-" was ever examined — which
+		// silently defeated the 400 on both locale write paths.
+		{"trailing numeric subtag", "pt_BR_2", "", false},
+		{"trailing numeric subtag hyphenated", "pt-BR-2", "", false},
+		{"punctuation subtag", "pt-!!!", "", false},
+		{"private-use junk", "pt-Latn-BR-x-junk", "", false},
+		{"too many subtags", "pt-BR-a-b-c-d-e", "", false},
+		{"subtag over 8 chars", "pt-BRAZILIAN1", "", false},
+		{"empty trailing subtag", "pt-", "", false},
+		{"empty leading subtag", "-BR", "", false},
+		{"digits in primary subtag", "p1-BR", "", false},
+		{"reserved 4-alpha primary", "qaaa-BR", "", false},
+		{"single-char primary", "p", "", false},
+		{"separator only", "-", "", false},
 		{"unknown with region", "ja-JP", "", false},
 		{"empty", "", "", false},
 		{"whitespace only", "   ", "", false},
@@ -77,6 +93,13 @@ func TestFromAcceptLanguage(t *testing.T) {
 		{"real-world Chrome header", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7", "pt-BR", true},
 		{"whitespace tolerant", " en ; q=0.2 ,  pt-BR ; q=0.8 ", "pt-BR", true},
 		{"malformed q loses to well-formed", "pt-BR;q=abc, en;q=0.1", "en", true},
+		// Parameter names are case-insensitive (RFC 9110). A literal "q=" search
+		// misses these, leaving q at 1.0 — so an explicitly refused locale would
+		// beat an accepted one.
+		{"uppercase Q=0 is still a refusal", "pt-BR;Q=0, en", "en", true},
+		{"uppercase Q respected in ordering", "pt-BR;Q=0.1, en;Q=0.9", "en", true},
+		{"mixed case q parameter", "pt-BR;Q=0.9, en;q=0.1", "pt-BR", true},
+		{"padded uppercase Q", "pt-BR; Q =0", "", false},
 		{"q above range is malformed", "pt-BR;q=9, en;q=0.1", "en", true},
 	}
 	for _, tc := range tests {

@@ -25,6 +25,12 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT;
 -- configuration already lives in the settings registry, which brings the
 -- existing admin settings API, UI and audit path with it for free. A new column
 -- would need all of that rebuilt.
+--
+-- The description is admin-facing copy rendered in the settings UI, so it says
+-- "users who have not chosen one" rather than "new users": resolution applies
+-- this to EVERY user whose locale is NULL, which immediately after this migration
+-- is all of them. Calling it a new-user default would tell an admin that changing
+-- it is safe for existing staff, when it re-languages the whole org.
 INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
-    ('default_locale', 'Default language for new users and org-wide notifications (BCP 47 tag, e.g. en, pt-BR)', 'localization', 'en', false)
+    ('default_locale', 'Default language for users who have not chosen one, and for org-wide notifications (BCP 47 tag, e.g. en, pt-BR)', 'localization', 'en', false)
 ON CONFLICT (key) DO NOTHING;

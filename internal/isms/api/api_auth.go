@@ -630,7 +630,13 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 // --- Self-service: update profile name ---
 
 type updateProfileRequest struct {
-	Name string `json:"name"`
+	// Name is a pointer so that a locale-only update is expressible. As a plain
+	// string it was indistinguishable from "" and the handler's required-name
+	// check rejected {"locale":"pt-BR"} outright — which forced a locale picker to
+	// resend the current name on every change, making it a lost-update race
+	// against a concurrent rename. Omitted = leave unchanged; present-but-empty is
+	// still rejected, so the existing rename contract is unaffected.
+	Name *string `json:"name"`
 	// Locale is the user's language choice as a BCP 47 tag. Omitted entirely =
 	// leave unchanged; explicit empty string = clear the choice and follow the
 	// org default. A pointer is required to tell those two apart, which a plain
@@ -643,8 +649,14 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
-	if req.Name == "" {
+	// An empty name is still invalid; an absent one just means "not changing it".
+	if req.Name != nil && *req.Name == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+	}
+	// Require at least one field, so a caller cannot mistake an empty body for a
+	// successful update.
+	if req.Name == nil && req.Locale == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "nothing to update")
 	}
 
 	ctx := c.Request().Context()
@@ -654,8 +666,10 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
 	}
 
-	if err := s.db.UpdateName(ctx, user.ID, req.Name); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "updating name")
+	if req.Name != nil {
+		if err := s.db.UpdateName(ctx, user.ID, *req.Name); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating name")
+		}
 	}
 
 	// Locale is validated strictly and rejected rather than silently coerced: a
@@ -675,7 +689,13 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "profile updated", "name": req.Name})
+	// Echo back the current name, which is the incoming one when it changed and
+	// the stored one when the caller only touched their locale.
+	name := user.Name
+	if req.Name != nil {
+		name = *req.Name
+	}
+	return c.JSON(http.StatusOK, map[string]string{"status": "profile updated", "name": name})
 }
 
 // --- Self-service: OTP setup ---

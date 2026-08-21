@@ -367,7 +367,7 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 
 	// Validate the org default locale against the supported set. Resolve() would
 	// degrade an unsupported value to the fallback at read time, so this is not a
-	// correctness gate — it is a diagnosability one: silently accepting "pt_BR_2"
+	// correctness gate — it is a diagnosability one: silently accepting "ja-JP"
 	// and then rendering English is much harder to debug than a 400 here.
 	// Empty is allowed and means "no org default", not "invalid".
 	if req.Key == "default_locale" && req.Value != "" {

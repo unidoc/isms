@@ -1018,10 +1018,16 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 	// Pre-login, Accept-Language is the only signal about who is asking, so it
 	// outranks the org default here — a Brazilian visitor hitting a login page
 	// whose org default is English should still get a Portuguese login form.
-	// Once authenticated this tier drops out entirely: handleMe resolves from the
-	// stored preferences, which are a deliberate choice rather than a guess.
-	if tag, ok := i18n.FromAcceptLanguage(c.Request().Header.Get("Accept-Language")); ok {
-		resp.DefaultLocale = tag
+	//
+	// The anonymous check is load-bearing: /config is served through soft auth, so
+	// an authenticated caller reaches this too. Without the guard a signed-in user
+	// whose org default is pt-BR but whose browser sends "Accept-Language: en" got
+	// default_locale "en", which contradicts the rule this comment states. A stored
+	// preference is a deliberate choice and must outrank a browser header guess.
+	if getUserEmail(c) == "" {
+		if tag, ok := i18n.FromAcceptLanguage(c.Request().Header.Get("Accept-Language")); ok {
+			resp.DefaultLocale = tag
+		}
 	}
 
 	return c.JSON(http.StatusOK, resp)

@@ -9,34 +9,40 @@ func TestCanonical(t *testing.T) {
 		want string
 		ok   bool
 	}{
-		{"exact", "pt-BR", "pt-BR", true},
+		{"exact", "id-ID", "id-ID", true},
 		{"exact default", "en", "en", true},
-		{"case insensitive", "PT-br", "pt-BR", true},
-		{"underscore separator", "pt_BR", "pt-BR", true},
-		{"bare language", "pt", "pt-BR", true},
-		{"unsupported region falls back to same language", "pt-PT", "pt-BR", true},
+		{"case insensitive", "ID-id", "id-ID", true},
+		{"underscore separator", "id_ID", "id-ID", true},
+		{"bare language", "id", "id-ID", true},
+		{"unsupported region falls back to same language", "id-SG", "id-ID", true},
 		{"region we do not distinguish", "en-US", "en", true},
 		{"unknown language", "ja", "", false},
 		// Malformed input must be rejected, not reduced to its primary subtag.
-		// Before BCP 47 shape validation every one of these resolved to "pt-BR",
-		// because only the text before the first "-" was ever examined — which
-		// silently defeated the 400 on both locale write paths.
-		{"trailing numeric subtag", "pt_BR_2", "", false},
-		{"trailing numeric subtag hyphenated", "pt-BR-2", "", false},
-		{"punctuation subtag", "pt-!!!", "", false},
-		{"private-use junk", "pt-Latn-BR-x-junk", "", false},
-		{"too many subtags", "pt-BR-a-b-c-d-e", "", false},
-		{"subtag over 8 chars", "pt-BRAZILIAN1", "", false},
-		{"empty trailing subtag", "pt-", "", false},
-		{"empty leading subtag", "-BR", "", false},
-		{"digits in primary subtag", "p1-BR", "", false},
-		{"reserved 4-alpha primary", "qaaa-BR", "", false},
-		{"single-char primary", "p", "", false},
+		// Before validation every one of these resolved to "id-ID", because only
+		// the text before the first "-" was ever examined — which silently
+		// defeated the 400 on both locale write paths.
+		//
+		// Note the fix has two halves: a BCP 47 shape check rejects the first
+		// three, but "id-Latn-ID-x-junk" is a well-formed tag and is rejected only
+		// because the fallback is restricted to simple tags (language + at most
+		// one region). Keep both kinds of case here — dropping the well-formed
+		// ones would let a regression in the fallback restriction pass unnoticed.
+		{"trailing numeric subtag", "id_ID_2", "", false},
+		{"trailing numeric subtag hyphenated", "id-ID-2", "", false},
+		{"punctuation subtag", "id-!!!", "", false},
+		{"well-formed but over-specified", "id-Latn-ID-x-junk", "", false},
+		{"too many subtags", "id-ID-a-b-c-d-e", "", false},
+		{"subtag over 8 chars", "id-INDONESIA1", "", false},
+		{"empty trailing subtag", "id-", "", false},
+		{"empty leading subtag", "-ID", "", false},
+		{"digits in primary subtag", "i1-ID", "", false},
+		{"reserved 4-alpha primary", "qaaa-ID", "", false},
+		{"single-char primary", "i", "", false},
 		{"separator only", "-", "", false},
 		{"unknown with region", "ja-JP", "", false},
 		{"empty", "", "", false},
 		{"whitespace only", "   ", "", false},
-		{"padded", "  pt-BR  ", "pt-BR", true},
+		{"padded", "  id-ID  ", "id-ID", true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -55,13 +61,14 @@ func TestResolve(t *testing.T) {
 		org  string
 		want string
 	}{
-		{"user choice wins", "pt-BR", "en", "pt-BR"},
-		{"org default when user has none", "", "pt-BR", "pt-BR"},
+		{"user choice wins", "id-ID", "en", "id-ID"},
+		{"org default when user has none", "", "id-ID", "id-ID"},
 		{"fallback when neither is set", "", "", Default},
-		{"unsupported user locale falls through to org", "ja", "pt-BR", "pt-BR"},
+		{"unsupported user locale falls through to org", "ja", "id-ID", "id-ID"},
 		{"unsupported at every tier falls back", "ja", "de", Default},
-		{"user choice normalized", "PT_br", "", "pt-BR"},
-		{"org default normalized", "", "pt", "pt-BR"},
+		{"malformed user locale falls through to org", "id-ID-2", "id-ID", "id-ID"},
+		{"user choice normalized", "ID_id", "", "id-ID"},
+		{"org default normalized", "", "id", "id-ID"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -79,28 +86,28 @@ func TestFromAcceptLanguage(t *testing.T) {
 		want string
 		ok   bool
 	}{
-		{"single supported", "pt-BR", "pt-BR", true},
-		{"quality ordering overrides header order", "en;q=0.5, pt-BR;q=0.9", "pt-BR", true},
-		{"implicit q=1 beats explicit lower q", "pt-BR, en;q=0.9", "pt-BR", true},
-		{"first supported entry wins when q is equal", "pt-BR, en", "pt-BR", true},
-		{"skips unsupported and takes next", "ja, de, pt-BR", "pt-BR", true},
-		{"q=0 means not acceptable", "pt-BR;q=0, en", "en", true},
+		{"single supported", "id-ID", "id-ID", true},
+		{"quality ordering overrides header order", "en;q=0.5, id-ID;q=0.9", "id-ID", true},
+		{"implicit q=1 beats explicit lower q", "id-ID, en;q=0.9", "id-ID", true},
+		{"first supported entry wins when q is equal", "id-ID, en", "id-ID", true},
+		{"skips unsupported and takes next", "ja, de, id-ID", "id-ID", true},
+		{"q=0 means not acceptable", "id-ID;q=0, en", "en", true},
 		{"wildcard alone tells us nothing", "*", "", false},
-		{"wildcard is skipped, real entry used", "*, pt-BR", "pt-BR", true},
-		{"bare language matches a region", "pt", "pt-BR", true},
+		{"wildcard is skipped, real entry used", "*, id-ID", "id-ID", true},
+		{"bare language matches a region", "id", "id-ID", true},
 		{"empty header", "", "", false},
 		{"nothing supported", "ja-JP, ko", "", false},
-		{"real-world Chrome header", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7", "pt-BR", true},
-		{"whitespace tolerant", " en ; q=0.2 ,  pt-BR ; q=0.8 ", "pt-BR", true},
-		{"malformed q loses to well-formed", "pt-BR;q=abc, en;q=0.1", "en", true},
+		{"real-world Chrome header", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7", "id-ID", true},
+		{"whitespace tolerant", " en ; q=0.2 ,  id-ID ; q=0.8 ", "id-ID", true},
+		{"malformed q loses to well-formed", "id-ID;q=abc, en;q=0.1", "en", true},
 		// Parameter names are case-insensitive (RFC 9110). A literal "q=" search
 		// misses these, leaving q at 1.0 — so an explicitly refused locale would
 		// beat an accepted one.
-		{"uppercase Q=0 is still a refusal", "pt-BR;Q=0, en", "en", true},
-		{"uppercase Q respected in ordering", "pt-BR;Q=0.1, en;Q=0.9", "en", true},
-		{"mixed case q parameter", "pt-BR;Q=0.9, en;q=0.1", "pt-BR", true},
-		{"padded uppercase Q", "pt-BR; Q =0", "", false},
-		{"q above range is malformed", "pt-BR;q=9, en;q=0.1", "en", true},
+		{"uppercase Q=0 is still a refusal", "id-ID;Q=0, en", "en", true},
+		{"uppercase Q respected in ordering", "id-ID;Q=0.1, en;Q=0.9", "en", true},
+		{"mixed case q parameter", "id-ID;Q=0.9, en;q=0.1", "id-ID", true},
+		{"padded uppercase Q", "id-ID; Q =0", "", false},
+		{"q above range is malformed", "id-ID;q=9, en;q=0.1", "en", true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -117,6 +124,20 @@ func TestFromAcceptLanguage(t *testing.T) {
 func TestDefaultIsSupported(t *testing.T) {
 	if !IsSupported(Default) {
 		t.Fatalf("Default %q is not in the supported set", Default)
+	}
+}
+
+// Every supported tag must survive its own canonicalization. This is the guard
+// against adding a locale in a form the matcher cannot return — e.g. a key with
+// an underscore, or one with enough subtags that the simple-tag restriction
+// rejects it. Without this, a new entry could be unreachable via every write
+// path while still appearing in the picker.
+func TestEverySupportedTagIsCanonical(t *testing.T) {
+	for _, l := range Supported() {
+		got, ok := Canonical(l.Tag)
+		if !ok || got != l.Tag {
+			t.Errorf("Canonical(%q) = (%q, %v), want (%q, true) — supported tag is not self-canonical", l.Tag, got, ok, l.Tag)
+		}
 	}
 }
 

@@ -32,5 +32,5 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT;
 -- is all of them. Calling it a new-user default would tell an admin that changing
 -- it is safe for existing staff, when it re-languages the whole org.
 INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
-    ('default_locale', 'Default language for users who have not chosen one, and for org-wide notifications (BCP 47 tag, e.g. en, pt-BR)', 'localization', 'en', false)
+    ('default_locale', 'Default language for users who have not chosen one, and for org-wide notifications (BCP 47 tag, e.g. en, id-ID)', 'localization', 'en', false)
 ON CONFLICT (key) DO NOTHING;

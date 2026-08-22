@@ -632,7 +632,7 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 type updateProfileRequest struct {
 	// Name is a pointer so that a locale-only update is expressible. As a plain
 	// string it was indistinguishable from "" and the handler's required-name
-	// check rejected {"locale":"pt-BR"} outright — which forced a locale picker to
+	// check rejected {"locale":"id-ID"} outright — which forced a locale picker to
 	// resend the current name on every change, making it a lost-update race
 	// against a concurrent rename. Omitted = leave unchanged; present-but-empty is
 	// still rejected, so the existing rename contract is unaffected.

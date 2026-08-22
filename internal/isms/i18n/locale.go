@@ -26,19 +26,22 @@ const Default = "en"
 
 // supported maps a canonical locale tag to its endonym — the language's name in
 // itself, which is what a locale picker should display. A user who has landed in
-// the wrong locale cannot read "Portuguese (Brazil)"; they can read
-// "Português (Brasil)".
+// the wrong locale cannot read "Indonesian"; they can read "Bahasa Indonesia".
 //
 // Keys are canonical BCP 47 tags and are matched case-insensitively on input.
 // Adding a locale here is the entire server-side cost of supporting it.
+//
+// Indonesian is tagged id-ID rather than the barer id. Both are valid and the
+// canonicalization below treats them interchangeably (a browser sending either
+// resolves to the same entry), so this is a naming choice, not a functional one.
 var supported = map[string]string{
 	"en":    "English",
-	"pt-BR": "Português (Brasil)",
+	"id-ID": "Bahasa Indonesia",
 }
 
 // Locale is one selectable locale, as exposed to clients.
 type Locale struct {
-	Tag  string `json:"tag"`  // canonical BCP 47 tag, e.g. "pt-BR"
+	Tag  string `json:"tag"`  // canonical BCP 47 tag, e.g. "id-ID"
 	Name string `json:"name"` // endonym, for display in a picker
 }
 
@@ -69,28 +72,30 @@ func IsSupported(tag string) bool {
 // Matching is deliberately region-tolerant in both directions, because the tags
 // clients send rarely match a catalog exactly:
 //
-//	"PT-br"  -> "pt-BR"  (case difference only)
-//	"pt"     -> "pt-BR"  (bare language, one supported region)
-//	"pt-PT"  -> "pt-BR"  (different region, same language)
+//	"ID-id"  -> "id-ID"  (case difference only)
+//	"id"     -> "id-ID"  (bare language, one supported region)
+//	"id-SG"  -> "id-ID"  (different region, same language)
 //	"en-US"  -> "en"     (region we do not distinguish)
 //
-// The pt-PT case is a judgement call worth stating: European Portuguese is not
-// Brazilian Portuguese, but serving a Portuguese speaker pt-BR is far better
-// than serving them English. If pt-PT is ever added, the exact match wins and
-// this fallback stops applying to it.
+// The third case is a judgement call worth stating, and it matters more for some
+// languages than others. Indonesian has no meaningful regional split, so mapping
+// any id-* to id-ID loses nothing. For a language where the regions genuinely
+// differ — pt-BR versus pt-PT, say — serving a speaker the wrong region is still
+// far better than serving them English. If both regions are ever supported, the
+// exact match above wins and this fallback stops applying to them.
 func Canonical(tag string) (string, bool) {
 	tag = strings.TrimSpace(tag)
 	if tag == "" {
 		return "", false
 	}
 	// Normalize separator: BCP 47 uses "-", but Unix locale strings and some
-	// Accept-Language headers in the wild use "_" (pt_BR).
+	// Accept-Language headers in the wild use "_" (id_ID).
 	tag = strings.ReplaceAll(tag, "_", "-")
 
 	// Reject malformed input BEFORE any fallback. Without this the primary-subtag
 	// fallback below is far too eager: it only ever looks at the text before the
-	// first "-", so "pt-BR-2", "pt-Latn-BR-x-junk" and even "pt-!!!" all reduce to
-	// "pt" and resolve to pt-BR. That silently defeats the 400 that the write
+	// first "-", so "id-ID-2", "id-Latn-ID-x-junk" and even "id-!!!" all reduce to
+	// "id" and resolve to id-ID. That silently defeats the 400 that the write
 	// paths (PUT /auth/profile, PUT /admin/settings) depend on for anything that
 	// is not a well-formed tag.
 	if !wellFormed(tag) {
@@ -109,12 +114,12 @@ func Canonical(tag string) (string, bool) {
 	// several supported regions resolves deterministically instead of picking a
 	// different one per request.
 	//
-	// The fallback applies ONLY to simple tags — "pt" or "pt-PT", at most a
+	// The fallback applies ONLY to simple tags — "id" or "id-SG", at most a
 	// language and one region. That restriction is the substance of the fix, not
-	// the syntax check above: "pt-Latn-BR-x-junk" is a perfectly well-formed BCP 47
-	// tag, so shape validation alone still let it reduce to "pt" and resolve to
-	// pt-BR. A caller naming a script, variant or extension is asking for something
-	// specific; answering with pt-BR would be a guess, and for the write paths it
+	// the syntax check above: "id-Latn-ID-x-junk" is a perfectly well-formed BCP 47
+	// tag, so shape validation alone still let it reduce to "id" and resolve to
+	// id-ID. A caller naming a script, variant or extension is asking for something
+	// specific; answering with id-ID would be a guess, and for the write paths it
 	// would mean storing a value the caller never asked for. Exact match or nothing.
 	parts := strings.Split(tag, "-")
 	if len(parts) > 2 {
@@ -216,7 +221,7 @@ func Resolve(userLocale, orgLocale string) string {
 // has an account.
 //
 // Quality values are honoured, and entries are sorted by descending q so that
-// "pt;q=0.9, en;q=0.5" prefers Portuguese regardless of header order. Returns
+// "id;q=0.9, en;q=0.5" prefers Indonesian regardless of header order. Returns
 // ("", false) when nothing matches, letting the caller fall through to an org
 // default rather than forcing Default here.
 func FromAcceptLanguage(header string) (string, bool) {

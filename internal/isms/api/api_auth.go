@@ -659,6 +659,29 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "nothing to update")
 	}
 
+	// Locale is validated strictly and rejected rather than silently coerced: a
+	// typo'd tag that quietly fell back to English would surface as "the language
+	// setting does not work", which is far harder to diagnose than a 400.
+	//
+	// Validated HERE, before any write, and not next to UpdateLocale below: a 400
+	// has to mean nothing changed. With the check down beside its own write,
+	// {"name":"Bob","locale":"bogus"} renamed the user and THEN returned 400, and
+	// there is no transaction to undo it — RLSMiddleware is deliberately not
+	// registered globally (see server.go) and UpdateName/UpdateLocale both Exec on
+	// the pool directly, so they cannot be bound into one. Hoisting the check is
+	// the whole fix: i18n.Canonical is pure, so nothing is lost by running it early.
+	//
+	// nextLocale is the value to store: nil for an explicit empty string, which
+	// clears the choice so the org default applies.
+	var nextLocale *string
+	if req.Locale != nil && *req.Locale != "" {
+		tag, ok := i18n.Canonical(*req.Locale)
+		if !ok {
+			return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+		}
+		nextLocale = &tag
+	}
+
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
@@ -672,19 +695,8 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 		}
 	}
 
-	// Locale is validated strictly and rejected rather than silently coerced: a
-	// typo'd tag that quietly fell back to English would surface as "the language
-	// setting does not work", which is far harder to diagnose than a 400.
 	if req.Locale != nil {
-		var next *string
-		if *req.Locale != "" {
-			tag, ok := i18n.Canonical(*req.Locale)
-			if !ok {
-				return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
-			}
-			next = &tag
-		}
-		if err := s.db.UpdateLocale(ctx, user.ID, next); err != nil {
+		if err := s.db.UpdateLocale(ctx, user.ID, nextLocale); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "updating locale")
 		}
 	}

@@ -276,6 +276,75 @@ class TestAuth:
         })
         assert r.status_code == 200
 
+    # --- Locale preference on PUT /auth/profile (#212) ---
+    #
+    # /me exposes both tiers: "locale_preference" is the raw stored choice (null
+    # when unset) and "locale" is what i18n.Resolve() produced from it, so these
+    # tests read back the preference rather than the resolved value except where
+    # the point is the fallback.
+
+    def _profile(self, api_url, admin_headers):
+        r = requests.get(f"{api_url}/me", headers=admin_headers)
+        assert r.status_code == 200
+        return r.json()
+
+    def test_update_profile_locale_only(self, api_url, admin_headers):
+        """A locale-only payload is valid — name is optional, not required."""
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "id-ID",
+        })
+        assert r.status_code == 200
+        assert self._profile(api_url, admin_headers)["locale_preference"] == "id-ID"
+
+    def test_update_profile_locale_canonicalized(self, api_url, admin_headers):
+        """A non-canonical tag is stored in canonical form, not as sent."""
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "id-id",
+        })
+        assert r.status_code == 200
+        assert self._profile(api_url, admin_headers)["locale_preference"] == "id-ID"
+
+    def test_update_profile_locale_cleared(self, api_url, admin_headers):
+        """An explicit empty string clears the choice so the org default applies."""
+        assert requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "id-ID",
+        }).status_code == 200
+
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "",
+        })
+        assert r.status_code == 200
+        me = self._profile(api_url, admin_headers)
+        assert me["locale_preference"] is None
+        # Cleared, not empty: resolution still yields a usable locale.
+        assert me["locale"]
+
+    def test_update_profile_locale_rejected(self, api_url, admin_headers):
+        """An unsupported tag is a 400, not a silent fallback to the default."""
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "ja-JP",
+        })
+        assert r.status_code == 400
+
+    def test_update_profile_invalid_locale_does_not_change_name(self, api_url, admin_headers):
+        """A 400 must mean nothing changed, including the name sent alongside.
+
+        Regression test for the ordering bug: the name used to be written before
+        the locale was validated, so this request renamed the user AND returned
+        400. There is no transaction to fall back on — the locale check has to run
+        before any write.
+        """
+        assert requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "name": "Test Admin",
+        }).status_code == 200
+
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "name": "Renamed By Failed Request",
+            "locale": "bogus",
+        })
+        assert r.status_code == 400
+        assert self._profile(api_url, admin_headers)["name"] == "Test Admin"
+
 
 class TestAdminEndpoints:
     def test_list_members(self, api_url, admin_headers):

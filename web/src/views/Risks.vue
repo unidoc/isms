@@ -171,7 +171,7 @@
                     <span class="text-sm font-medium text-slate-200">{{ risk.title || risk.risk_id }}</span>
                     <span v-if="isOverdue(risk.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">OVERDUE</span>
                   </div>
-                  <div v-if="risk.category" class="text-[10px] text-slate-600 mt-0.5">{{ formatLabel(risk.category) }}</div>
+                  <div v-if="risk.category" class="text-[10px] text-slate-600 mt-0.5">{{ categoryLabel(risk.category) }}</div>
                   <div v-if="risk.description" class="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{{ stripMd(risk.description) }}</div>
                 </td>
                 <td class="px-5 py-3.5">
@@ -341,7 +341,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Category</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ formatLabel(selectedRisk.category) || '—' }}</div>
+                          <div class="text-sm text-slate-300">{{ categoryLabel(selectedRisk.category) || '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Risk Type</div>
@@ -707,6 +707,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
+import { DEFAULT_RISK_CATEGORIES, categoryLabel as resolveCategoryLabel } from '../riskCategories'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
 import RefreshButton from '../components/RefreshButton.vue'
@@ -874,16 +875,17 @@ const allAssets = ref([])
 const orgMembers = ref([])
 const pendingRefs = ref([])
 
-const riskCategories = [
-  { key: 'people_process', label: 'People & Process' },
-  { key: 'technology', label: 'Technology' },
-  { key: 'third_party', label: 'Third Party' },
-  { key: 'legal_regulatory', label: 'Legal & Regulatory' },
-  { key: 'physical_environmental', label: 'Physical & Environmental' },
-  { key: 'business_continuity', label: 'Business Continuity' },
-  { key: 'governance', label: 'Governance' },
-  { key: 'quality_operations', label: 'Quality & Operations' },
-]
+// Seeded with the built-in defaults so the pickers are never empty — not before
+// the fetch resolves, and not if it fails. Overwritten by the org's configured
+// list from GET /risks/categories.
+const riskCategories = ref(DEFAULT_RISK_CATEGORIES)
+
+async function loadRiskCategories() {
+  try {
+    const res = await api.fetchJSON('/api/v1/risks/categories')
+    if (Array.isArray(res) && res.length > 0) riskCategories.value = res
+  } catch { /* keep defaults */ }
+}
 
 const newRisk = ref({
   title: '',
@@ -942,6 +944,12 @@ function resolveUserName(email) {
 
 function formatLabel(s) {
   return (s || '').replace(/_/g, ' ')
+}
+
+// Display name for a stored category key — see src/riskCategories.js for the
+// resolution rules (configured label, de-slugged key for orphans).
+function categoryLabel(key) {
+  return resolveCategoryLabel(key, riskCategories.value)
 }
 
 function formatOrigin(o) {
@@ -1212,6 +1220,7 @@ function scoreColor(score) {
 
 onMounted(async () => {
   try { const me = await api.getMe(); userRole.value = me?.role || '' } catch {}
+  loadRiskCategories()
   try {
     orgMembers.value = await api.getUsers() || []
   } catch { orgMembers.value = [] }

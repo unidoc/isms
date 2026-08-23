@@ -376,6 +376,15 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 		}
 	}
 
+	// Risk categories are consumed as JSON by risk create/edit validation, so a
+	// malformed blob stored here would break the risk register org-wide. Empty
+	// is allowed and meaningful: it reverts the org to the built-in defaults.
+	if req.Key == "risk_categories" && strings.TrimSpace(req.Value) != "" {
+		if _, err := db.ParseRiskCategories(req.Value); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+	}
+
 	if err := s.db.SetOrgSetting(ctx, orgID, req.Key, req.Value); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
 	}

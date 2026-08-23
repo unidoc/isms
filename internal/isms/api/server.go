@@ -2092,6 +2092,19 @@ func (s *Server) handleListRiskCategories(c echo.Context) error {
 // riskCategoryKeys returns just the category keys for an org, for use as the
 // allowed set in validateEnum. RiskCategoriesFor always falls back to the
 // defaults, so this never returns an empty slice.
+// riskCategoryNeedsValidation reports whether a risk update's category has to be
+// checked against the org's allowed set.
+//
+// Omitted (nil) is skipped so a risk can be edited without touching its category.
+// An UNCHANGED value is skipped too, and that case is load-bearing: a risk may
+// hold a category the org has since removed, and any read-modify-write client —
+// the web edit form always PUTs the whole form — would otherwise resubmit that
+// orphaned key and be rejected, leaving the risk permanently uneditable.
+// Removing a category orphans the value, it does not freeze the risk.
+func riskCategoryNeedsValidation(requested *string, current string) bool {
+	return requested != nil && *requested != current
+}
+
 func (s *Server) riskCategoryKeys(ctx context.Context, orgID int) []string {
 	cats, _ := s.db.RiskCategoriesFor(ctx, orgID)
 	keys := make([]string, 0, len(cats))
@@ -2600,9 +2613,7 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 			return err
 		}
 	}
-	// Gated on req.Category != nil so a risk holding an orphaned category (one
-	// the org has since removed) can still be edited in other fields.
-	if req.Category != nil {
+	if riskCategoryNeedsValidation(req.Category, old.Category) {
 		if err := validateEnum("category", *req.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
 			return err
 		}

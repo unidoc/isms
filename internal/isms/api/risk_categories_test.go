@@ -158,3 +158,34 @@ func assertEnum(t *testing.T, err error, wantErr bool) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// TestRiskCategoryNeedsValidation pins the update-path gate. The unchanged-value
+// case is the one that matters: a risk holding a category the org has since
+// removed must stay editable, otherwise removing a category silently freezes
+// every risk still using it (reported in review on PR #215).
+func TestRiskCategoryNeedsValidation(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+
+	for _, tc := range []struct {
+		name      string
+		requested *string
+		current   string
+		want      bool
+	}{
+		{"omitted — editing other fields only", nil, "technology", false},
+		{"omitted on a risk with an orphaned category", nil, "removed_key", false},
+		{"unchanged orphaned value resubmitted by a full-form PUT", ptr("removed_key"), "removed_key", false},
+		{"unchanged valid value", ptr("technology"), "technology", false},
+		{"changed to another value — must be validated", ptr("technology"), "removed_key", true},
+		{"cleared to empty — must be validated", ptr(""), "technology", true},
+		{"set on a risk that had none", ptr("technology"), "", true},
+		{"case-only difference is a change", ptr("Technology"), "technology", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := riskCategoryNeedsValidation(tc.requested, tc.current); got != tc.want {
+				t.Errorf("riskCategoryNeedsValidation(%v, %q) = %v, want %v",
+					tc.requested, tc.current, got, tc.want)
+			}
+		})
+	}
+}

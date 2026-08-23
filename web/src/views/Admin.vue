@@ -615,10 +615,17 @@
                       label and cannot be changed afterwards, because risks store the key.
                     </div>
                   </div>
-                  <button @click="saveRiskCategories" :disabled="riskCategoriesSaving"
-                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap flex-shrink-0">
-                    {{ riskCategoriesSaving ? 'Saving...' : 'Save' }}
-                  </button>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <button @click="resetRiskCategories" :disabled="riskCategoriesSaving || !riskCategoriesCustomized"
+                      :title="riskCategoriesCustomized ? 'Discard this list and go back to the built-in defaults' : 'Already using the built-in defaults'"
+                      class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 whitespace-nowrap">
+                      Reset to defaults
+                    </button>
+                    <button @click="saveRiskCategories" :disabled="riskCategoriesSaving"
+                      class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap">
+                      {{ riskCategoriesSaving ? 'Saving...' : 'Save' }}
+                    </button>
+                  </div>
                 </div>
 
                 <div class="w-full max-w-xl space-y-2">
@@ -659,7 +666,8 @@
                   </div>
                   <div class="text-[10px] text-slate-600">
                     Removing a category does not change existing risks — they keep the value and still
-                    display and filter by it, but it is no longer selectable.
+                    display and filter by it, but it is no longer selectable. Reset to defaults clears
+                    your list so the organization follows the built-in categories again.
                   </div>
                   <div v-if="riskCategoriesMsg" class="text-xs" :class="riskCategoriesError ? 'text-red-400' : 'text-emerald-400'">
                     {{ riskCategoriesMsg }}
@@ -677,6 +685,7 @@
 
 <script setup>
 import { useConfirm } from '../composables/useConfirm'
+import { slugifyCategory } from '../riskCategories'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
@@ -1080,6 +1089,7 @@ async function loadSettings() {
   try {
     const data = await api.fetchJSON('/api/v1/admin/settings')
     settings.value = (Array.isArray(data) ? data : (data?.data || [])).map(s => ({ ...s, _saving: false, _reveal: false }))
+    syncRiskCategoriesCustomized()
   } catch { /* ignore */ }
 }
 
@@ -1155,6 +1165,17 @@ const riskCategoriesMsg = ref('')
 const riskCategoriesError = ref(false)
 const newCategoryLabel = ref('')
 
+// Whether the org has a stored list of its own, as opposed to following the
+// built-in defaults. Derived from the RAW setting value (empty until an admin
+// saves one) — the effective list from GET /risks/categories cannot tell the
+// two apart. Gates the reset action, which is the only way back to defaults.
+const riskCategoriesCustomized = ref(false)
+
+function syncRiskCategoriesCustomized() {
+  const raw = settings.value.find(s => s.key === 'risk_categories')
+  riskCategoriesCustomized.value = !!(raw?.value || '').trim()
+}
+
 async function loadRiskCategories() {
   // Reads the *effective* list (custom, or the server defaults when unconfigured),
   // not the raw setting value — which is NULL until an admin saves one.
@@ -1168,14 +1189,6 @@ async function loadRiskCategories() {
   }
 }
 
-function slugifyCategory(label) {
-  return (label || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 64)
-    .replace(/^_+|_+$/g, '')
-}
 
 function setCategoryError(msg) {
   riskCategoriesMsg.value = msg
@@ -1246,7 +1259,36 @@ async function saveRiskCategories() {
   try {
     await api.putJSON('/api/v1/admin/settings', { key: 'risk_categories', value: JSON.stringify(list) })
     riskCategories.value = list
+    riskCategoriesCustomized.value = true
     riskCategoriesMsg.value = 'Risk categories saved'
+    riskCategoriesError.value = false
+  } catch (e) {
+    setCategoryError(e.message)
+  } finally {
+    riskCategoriesSaving.value = false
+  }
+}
+
+// Clears the org's stored list by writing an empty value, which the API treats as
+// "follow the built-in defaults". Without this an org that has ever saved a custom
+// list could never get back: Save rejects an empty list, removal refuses to delete
+// the last entry, and the raw setting is hidden from the generic settings list.
+async function resetRiskCategories() {
+  // ask(message, opts) — two args. A third is silently ignored, which is how the
+  // confirm label gets lost (see the 'Confirm' string passed as opts elsewhere).
+  if (!await useConfirm().ask(
+    'Reset risk categories to the built-in defaults? Your custom list is discarded. ' +
+    'Existing risks keep whatever category they already hold, and any value not in the ' +
+    'defaults simply stops being selectable.',
+    { confirm: 'Reset', variant: 'danger' },
+  )) return
+  riskCategoriesMsg.value = ''
+  riskCategoriesSaving.value = true
+  try {
+    await api.putJSON('/api/v1/admin/settings', { key: 'risk_categories', value: '' })
+    riskCategoriesCustomized.value = false
+    await loadRiskCategories()
+    riskCategoriesMsg.value = 'Reset to the built-in defaults'
     riskCategoriesError.value = false
   } catch (e) {
     setCategoryError(e.message)

@@ -2,11 +2,19 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
 	riskpkg "isms.sh/internal/isms/risk"
 )
+
+// riskCategoryFlagHelp derives the --category help text from the default
+// category list so it can never drift, and notes that an org may define its own.
+func riskCategoryFlagHelp() string {
+	return fmt.Sprintf("Category (defaults: %s; your organization may define its own)",
+		strings.Join(db.RiskCategories, ", "))
+}
 
 func riskCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -104,7 +112,7 @@ func riskAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&description, "desc", "", "Description of what could happen")
 	cmd.Flags().StringVar(&riskType, "risk-type", "threat", "Risk type: threat, opportunity")
 	cmd.Flags().StringVar(&origin, "origin", "internal", "Origin: internal, external, 'internal and external'")
-	cmd.Flags().StringVar(&category, "category", "", "Category: people_processes, technology_operations, product_development, grc, physical_security")
+	cmd.Flags().StringVar(&category, "category", "", riskCategoryFlagHelp())
 	cmd.Flags().StringSliceVar(&assets, "assets", nil, "Affected asset IDs (comma-separated)")
 	cmd.Flags().IntVar(&currentLikelihood, "likelihood", 0, "Current likelihood (1-5)")
 	cmd.Flags().IntVar(&currentImpact, "impact", 0, "Current impact (1-5)")

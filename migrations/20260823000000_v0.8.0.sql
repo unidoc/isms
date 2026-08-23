@@ -1,9 +1,11 @@
 -- #213: per-org custom risk categories.
 --
--- Standalone migration, not folded into the v0.8.0 release file (see
--- change_type_check.sql for the same precedent). v0.7.1 is already released, and
--- the v0.8.0 file is open on the in-flight i18n branch (#212) — accumulating
--- there would guarantee a merge conflict for a change that is independent of it.
+-- Named <timestamp>_v0.8.0.sql per the migration convention enforced by
+-- tests/test_migrations.py: one migration per release, named after the version.
+-- (change_type_check.sql is grandfathered, not a precedent — that set is frozen.)
+-- v0.7.1 is already released, so this ships in v0.8.0. The i18n branch (#212) has
+-- its own v0.8.0 file at an earlier timestamp; both apply independently, since the
+-- runner records applied migrations by filename.
 --
 -- Categories are stored as a JSON array in organization_settings under the
 -- 'risk_categories' key: [{"key":"people_process","label":"People & Process"}].

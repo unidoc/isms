@@ -874,7 +874,11 @@ const allAssets = ref([])
 const orgMembers = ref([])
 const pendingRefs = ref([])
 
-const riskCategories = [
+// Fallback list, mirroring db.DefaultRiskCategories(). Orgs may configure their
+// own list (admin setting `risk_categories`), served by GET /risks/categories.
+// These defaults seed the ref so the picker is never empty — not before the
+// fetch resolves, and not if it fails.
+const DEFAULT_RISK_CATEGORIES = [
   { key: 'people_process', label: 'People & Process' },
   { key: 'technology', label: 'Technology' },
   { key: 'third_party', label: 'Third Party' },
@@ -884,6 +888,15 @@ const riskCategories = [
   { key: 'governance', label: 'Governance' },
   { key: 'quality_operations', label: 'Quality & Operations' },
 ]
+
+const riskCategories = ref(DEFAULT_RISK_CATEGORIES)
+
+async function loadRiskCategories() {
+  try {
+    const res = await api.fetchJSON('/api/v1/risks/categories')
+    if (Array.isArray(res) && res.length > 0) riskCategories.value = res
+  } catch { /* keep defaults */ }
+}
 
 const newRisk = ref({
   title: '',
@@ -1212,6 +1225,7 @@ function scoreColor(score) {
 
 onMounted(async () => {
   try { const me = await api.getMe(); userRole.value = me?.role || '' } catch {}
+  loadRiskCategories()
   try {
     orgMembers.value = await api.getUsers() || []
   } catch { orgMembers.value = [] }

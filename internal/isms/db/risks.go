@@ -2,10 +2,14 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // RiskListParams specifies filtering, sorting, and pagination for the risk register.
@@ -204,10 +208,119 @@ var TreatmentOptions = []string{"mitigate", "accept", "transfer", "avoid"}
 // Valid risk statuses.
 var RiskStatuses = []string{"draft", "open", "closed"}
 
-// RiskCategories defines valid risk categories.
-var RiskCategories = []string{
-	"people_process", "technology", "third_party", "legal_regulatory",
-	"physical_environmental", "business_continuity", "governance", "quality_operations",
+// RiskCategories lists the default risk category keys. Derived from
+// DefaultRiskCategories so the keys have exactly one source of truth — a
+// hand-maintained second copy is what let the CLI help text drift (#213).
+// Orgs may define their own set via the risk_categories setting; use
+// RiskCategoriesFor to resolve the list that actually applies to an org.
+var RiskCategories = defaultRiskCategoryKeys()
+
+func defaultRiskCategoryKeys() []string {
+	defaults := DefaultRiskCategories()
+	keys := make([]string, 0, len(defaults))
+	for _, c := range defaults {
+		keys = append(keys, c.Key)
+	}
+	return keys
+}
+
+// RiskCategory is one selectable risk category. Key is a slug frozen at
+// creation (risks store the key, so renaming a label needs no data migration);
+// Label is org-authored display text and is never routed through i18n.
+type RiskCategory struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+}
+
+// DefaultRiskCategories returns the built-in category list used by orgs that
+// have not configured their own.
+func DefaultRiskCategories() []RiskCategory {
+	return []RiskCategory{
+		{Key: "people_process", Label: "People & Process"},
+		{Key: "technology", Label: "Technology"},
+		{Key: "third_party", Label: "Third Party"},
+		{Key: "legal_regulatory", Label: "Legal & Regulatory"},
+		{Key: "physical_environmental", Label: "Physical & Environmental"},
+		{Key: "business_continuity", Label: "Business Continuity"},
+		{Key: "governance", Label: "Governance"},
+		{Key: "quality_operations", Label: "Quality & Operations"},
+	}
+}
+
+// Bounds for a stored risk_categories payload.
+const (
+	maxRiskCategories    = 50
+	maxRiskCategoryKey   = 64
+	maxRiskCategoryLabel = 100
+)
+
+// riskCategoryKeyPattern is the slug shape for a category key: lowercase
+// alphanumeric words joined by single underscores.
+var riskCategoryKeyPattern = regexp.MustCompile(`^[a-z0-9]+(_[a-z0-9]+)*$`)
+
+// ParseRiskCategories parses and validates a risk_categories setting payload.
+// Shared by the settings PUT (which rejects bad input with a 400) and by
+// RiskCategoriesFor (which falls back to defaults instead).
+func ParseRiskCategories(raw string) ([]RiskCategory, error) {
+	var cats []RiskCategory
+	if err := json.Unmarshal([]byte(raw), &cats); err != nil {
+		return nil, fmt.Errorf("risk_categories must be a JSON array of {key, label}: %w", err)
+	}
+	if len(cats) == 0 {
+		return nil, fmt.Errorf("risk_categories must contain at least one category")
+	}
+	if len(cats) > maxRiskCategories {
+		return nil, fmt.Errorf("risk_categories must contain at most %d categories, got %d", maxRiskCategories, len(cats))
+	}
+
+	seen := make(map[string]struct{}, len(cats))
+	out := make([]RiskCategory, 0, len(cats))
+	for i, c := range cats {
+		if utf8.RuneCountInString(c.Key) > maxRiskCategoryKey {
+			return nil, fmt.Errorf("category %d: key must be at most %d characters", i+1, maxRiskCategoryKey)
+		}
+		if !riskCategoryKeyPattern.MatchString(c.Key) {
+			return nil, fmt.Errorf("category %d: key %q must be lowercase words separated by underscores", i+1, c.Key)
+		}
+		lower := strings.ToLower(c.Key)
+		if _, dup := seen[lower]; dup {
+			return nil, fmt.Errorf("category %d: duplicate key %q", i+1, c.Key)
+		}
+		seen[lower] = struct{}{}
+
+		label := strings.TrimSpace(c.Label)
+		if label == "" {
+			return nil, fmt.Errorf("category %d (%s): label is required", i+1, c.Key)
+		}
+		if utf8.RuneCountInString(label) > maxRiskCategoryLabel {
+			return nil, fmt.Errorf("category %d (%s): label must be at most %d characters", i+1, c.Key, maxRiskCategoryLabel)
+		}
+		out = append(out, RiskCategory{Key: c.Key, Label: label})
+	}
+	return out, nil
+}
+
+// RiskCategoriesFor returns the risk categories configured for an org, falling
+// back to DefaultRiskCategories whenever the stored value is unusable: an
+// unseeded settings row, an empty value, or malformed JSON. The fallback is
+// unconditional by design — a bad stored value must never be able to brick risk
+// creation org-wide. The error return is retained for future use and is
+// currently always nil.
+func (d *DB) RiskCategoriesFor(ctx context.Context, orgID int) ([]RiskCategory, error) {
+	raw, err := d.GetOrgSetting(ctx, orgID, "risk_categories")
+	if err != nil {
+		log.Printf("risk categories: reading setting for org %d: %v (using defaults)", orgID, err)
+		return DefaultRiskCategories(), nil
+	}
+	if strings.TrimSpace(raw) == "" {
+		return DefaultRiskCategories(), nil
+	}
+	cats, err := ParseRiskCategories(raw)
+	if err != nil {
+		log.Printf("risk categories: stored value for org %d is invalid: %v (using defaults)", orgID, err)
+		return DefaultRiskCategories(), nil
+	}
+	return cats, nil
 }
 
 // RiskTypes defines valid risk types.

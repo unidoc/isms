@@ -604,6 +604,68 @@
                 <input v-else v-model="s.value" type="text"
                   class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
               </div>
+
+              <!-- Risk categories: bespoke editor (hidden from the generic list) -->
+              <div v-if="cat === 'risk'" class="px-5 py-4">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-sm font-medium text-slate-200">Risk Categories</label>
+                    <div class="text-xs text-slate-500 mt-0.5">
+                      The categories available when creating or editing a risk. Keys are generated from the
+                      label and cannot be changed afterwards, because risks store the key.
+                    </div>
+                  </div>
+                  <button @click="saveRiskCategories" :disabled="riskCategoriesSaving"
+                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap flex-shrink-0">
+                    {{ riskCategoriesSaving ? 'Saving...' : 'Save' }}
+                  </button>
+                </div>
+
+                <div class="w-full max-w-xl space-y-2">
+                  <div v-if="!riskCategoriesLoaded" class="text-xs text-slate-600">Loading...</div>
+                  <div v-else-if="riskCategories.length === 0" class="text-xs text-slate-600">
+                    No categories configured.
+                  </div>
+                  <div v-for="(c, i) in riskCategories" :key="c.key"
+                    class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
+                    <div class="flex flex-col">
+                      <button @click="moveRiskCategory(i, -1)" :disabled="i === 0" title="Move up"
+                        class="text-slate-500 hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-500 leading-none text-[10px]">▲</button>
+                      <button @click="moveRiskCategory(i, 1)" :disabled="i === riskCategories.length - 1" title="Move down"
+                        class="text-slate-500 hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-500 leading-none text-[10px]">▼</button>
+                    </div>
+                    <input v-model="c.label" type="text" maxlength="100" placeholder="Label"
+                      class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+                    <span class="text-[11px] text-slate-500 font-mono truncate max-w-[10rem]" :title="c.key">{{ c.key }}</span>
+                    <button @click="removeRiskCategory(i)" title="Remove"
+                      class="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-2 pt-1">
+                    <input v-model="newCategoryLabel" type="text" maxlength="100"
+                      placeholder="New category label" @keyup.enter="addRiskCategory"
+                      class="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+                    <button @click="addRiskCategory"
+                      class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors whitespace-nowrap">
+                      Add
+                    </button>
+                  </div>
+                  <div v-if="newCategoryLabel.trim()" class="text-[10px] text-slate-600">
+                    Key: <span class="font-mono">{{ slugifyCategory(newCategoryLabel) || '—' }}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-600">
+                    Removing a category does not change existing risks — they keep the value and still
+                    display and filter by it, but it is no longer selectable.
+                  </div>
+                  <div v-if="riskCategoriesMsg" class="text-xs" :class="riskCategoriesError ? 'text-red-400' : 'text-emerald-400'">
+                    {{ riskCategoriesMsg }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div v-if="settingsMsg" class="text-xs" :class="settingsError ? 'text-red-400' : 'text-emerald-400'">{{ settingsMsg }}</div>
@@ -1027,6 +1089,10 @@ const BRANDING_SETTING_KEYS = new Set([
   'show_powered_by', 'terms_url', 'privacy_url',
 ])
 
+// Edited by dedicated UI (the Risk Categories editor in the Risk group) — hide
+// from the generic list so it does not render as a raw JSON text field.
+const HIDDEN_SETTING_KEYS = new Set(['risk_categories'])
+
 const categoryLabels = {
   notifications: 'Notifications',
   review_cycles: 'Review Cycles',
@@ -1038,6 +1104,7 @@ const settingsByCategory = computed(() => {
   const groups = {}
   for (const s of settings.value) {
     if (BRANDING_SETTING_KEYS.has(s.key)) continue
+    if (HIDDEN_SETTING_KEYS.has(s.key)) continue
     const cat = s.category || 'other'
     if (!groups[cat]) groups[cat] = []
     groups[cat].push(s)
@@ -1071,6 +1138,120 @@ async function saveSetting(s) {
     settingsError.value = true
   } finally {
     s._saving = false
+  }
+}
+
+// ---------- Risk categories editor ----------
+// Categories are org-authored data: labels are stored verbatim and are never
+// routed through a translation layer. Keys are slugs, frozen at creation, because
+// risks store the key — renaming a label must never need a data migration.
+const RISK_CATEGORY_KEY_RE = /^[a-z0-9]+(_[a-z0-9]+)*$/
+const RISK_CATEGORY_MAX = 50
+
+const riskCategories = ref([])
+const riskCategoriesLoaded = ref(false)
+const riskCategoriesSaving = ref(false)
+const riskCategoriesMsg = ref('')
+const riskCategoriesError = ref(false)
+const newCategoryLabel = ref('')
+
+async function loadRiskCategories() {
+  // Reads the *effective* list (custom, or the server defaults when unconfigured),
+  // not the raw setting value — which is NULL until an admin saves one.
+  try {
+    const data = await api.fetchJSON('/api/v1/risks/categories')
+    riskCategories.value = (Array.isArray(data) ? data : []).map(c => ({ key: c.key, label: c.label }))
+  } catch {
+    riskCategories.value = []
+  } finally {
+    riskCategoriesLoaded.value = true
+  }
+}
+
+function slugifyCategory(label) {
+  return (label || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 64)
+    .replace(/^_+|_+$/g, '')
+}
+
+function setCategoryError(msg) {
+  riskCategoriesMsg.value = msg
+  riskCategoriesError.value = true
+}
+
+function addRiskCategory() {
+  const label = newCategoryLabel.value.trim()
+  riskCategoriesMsg.value = ''
+  if (!label) return setCategoryError('Enter a label first.')
+  if (label.length > 100) return setCategoryError('Label must be 100 characters or fewer.')
+  if (riskCategories.value.length >= RISK_CATEGORY_MAX) {
+    return setCategoryError(`At most ${RISK_CATEGORY_MAX} categories are allowed.`)
+  }
+  const key = slugifyCategory(label)
+  if (!key || !RISK_CATEGORY_KEY_RE.test(key)) {
+    return setCategoryError('Label must contain at least one letter or number to generate a key.')
+  }
+  if (riskCategories.value.some(c => c.key.toLowerCase() === key)) {
+    return setCategoryError(`A category with key "${key}" already exists.`)
+  }
+  riskCategories.value.push({ key, label })
+  newCategoryLabel.value = ''
+  riskCategoriesError.value = false
+}
+
+function moveRiskCategory(i, delta) {
+  const j = i + delta
+  if (j < 0 || j >= riskCategories.value.length) return
+  const list = riskCategories.value
+  ;[list[i], list[j]] = [list[j], list[i]]
+}
+
+async function removeRiskCategory(i) {
+  const cat = riskCategories.value[i]
+  if (!cat) return
+  if (riskCategories.value.length <= 1) {
+    return setCategoryError('At least one category is required.')
+  }
+  const ok = await useConfirm().ask(
+    `Remove "${cat.label}"? Risks already using it keep the value and still display and filter by it, but it will no longer be selectable on new or edited risks.`,
+    { confirm: 'Remove', variant: 'danger' },
+  )
+  if (!ok) return
+  riskCategories.value.splice(i, 1)
+  riskCategoriesMsg.value = ''
+  riskCategoriesError.value = false
+}
+
+async function saveRiskCategories() {
+  riskCategoriesMsg.value = ''
+  const list = riskCategories.value.map(c => ({ key: c.key, label: (c.label || '').trim() }))
+  if (list.length < 1 || list.length > RISK_CATEGORY_MAX) {
+    return setCategoryError(`Configure between 1 and ${RISK_CATEGORY_MAX} categories.`)
+  }
+  const seen = new Set()
+  for (const c of list) {
+    if (!c.label) return setCategoryError('Every category needs a label.')
+    if (c.label.length > 100) return setCategoryError(`Label "${c.label.slice(0, 20)}…" exceeds 100 characters.`)
+    if (c.key.length > 64 || !RISK_CATEGORY_KEY_RE.test(c.key)) {
+      return setCategoryError(`Invalid category key "${c.key}".`)
+    }
+    const lower = c.key.toLowerCase()
+    if (seen.has(lower)) return setCategoryError(`Duplicate category key "${c.key}".`)
+    seen.add(lower)
+  }
+  riskCategoriesSaving.value = true
+  try {
+    await api.putJSON('/api/v1/admin/settings', { key: 'risk_categories', value: JSON.stringify(list) })
+    riskCategories.value = list
+    riskCategoriesMsg.value = 'Risk categories saved'
+    riskCategoriesError.value = false
+  } catch (e) {
+    setCategoryError(e.message)
+  } finally {
+    riskCategoriesSaving.value = false
   }
 }
 
@@ -1118,7 +1299,7 @@ onMounted(async () => {
   }
 
   try {
-    await Promise.all([loadMembers(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies()])
+    await Promise.all([loadMembers(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies(), loadRiskCategories()])
     loadBrandingFromSettings()
   } finally {
     pageLoading.value = false

@@ -663,6 +663,12 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if payload.Title == "" {
 		return "", fmt.Errorf("title is required in risk payload")
 	}
+	// The suggestion payload is not bound through the risk handlers, so the
+	// category has to be validated here. validateEnum returns an *echo.HTTPError,
+	// which the apply caller unwraps into a 400.
+	if err := validateEnum("category", payload.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
+		return "", err
+	}
 
 	risk := db.Risk{
 		Title:             payload.Title,
@@ -684,9 +690,9 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if risk.Origin == "" {
 		risk.Origin = "internal"
 	}
-	if risk.Category == "" {
-		risk.Category = "technology"
-	}
+	// No default for Category: the column is nullable and empty is a valid
+	// "uncategorised". Picking the first configured category would be
+	// order-dependent and surprising.
 	if risk.CurrentLikelihood == nil {
 		l := 3
 		risk.CurrentLikelihood = &l

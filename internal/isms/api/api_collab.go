@@ -511,9 +511,23 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
 		}
-		s.db.CreateNotificationByEmail(ctx, orgID, reviewer,
-			fmt.Sprintf("Review forwarded: %s", review.Title),
-			notifBody, "/inbox/reviews")
+		// `note` carries the requester's own words. The translated frame owns the
+		// "Note:" label; the message itself is interpolated verbatim and must
+		// never be touched.
+		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
+			Title:    fmt.Sprintf("Review forwarded: %s", review.Title),
+			TitleKey: "notifications.review_forwarded",
+			Body:     notifBody,
+			BodyKey:  "notifications.review_forwarded.body",
+			Params: map[string]any{
+				"actor":   actor,
+				"doc_id":  review.DocumentID,
+				"title":   review.Title,
+				"version": review.Version,
+				"note":    req.Message,
+			},
+			Link: "/inbox/reviews",
+		})
 
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
@@ -1181,10 +1195,14 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 			if st, stErr := s.storeForOrg(ctx, orgID); stErr == nil {
 				if filePath := resolveDocPathFromStore(st, review.DocumentID); filePath != "" {
 					if doc, loadErr := st.LoadDocument(filePath); loadErr == nil && doc != nil && doc.Frontmatter.Owner != "" {
-						_ = s.db.CreateNotificationByEmail(ctx, orgID, doc.Frontmatter.Owner,
-							"AI review escalated",
-							fmt.Sprintf("AI review of %s reached round %d without agreement. Please review and decide.", review.DocumentID, review.Round),
-							fmt.Sprintf("/reviews/%d", id))
+						_ = s.db.CreateNotificationContentByEmail(ctx, orgID, doc.Frontmatter.Owner, db.NotificationContent{
+							Title:    "AI review escalated",
+							TitleKey: "notifications.ai_review_escalated",
+							Body:     fmt.Sprintf("AI review of %s reached round %d without agreement. Please review and decide.", review.DocumentID, review.Round),
+							BodyKey:  "notifications.ai_review_escalated.body",
+							Params:   map[string]any{"doc_id": review.DocumentID, "round": review.Round},
+							Link:     fmt.Sprintf("/reviews/%d", id),
+						})
 					}
 				}
 			}
@@ -3931,9 +3949,20 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 				if req.Message != "" {
 					notifBody += "\n\nNote: " + req.Message
 				}
-				s.db.CreateNotificationByEmail(ctx, orgID, a.Reviewer,
-					fmt.Sprintf("Review resubmitted: %s", title),
-					notifBody, fmt.Sprintf("/reviews/%d", existingReview.ID))
+				s.db.CreateNotificationContentByEmail(ctx, orgID, a.Reviewer, db.NotificationContent{
+					Title:    fmt.Sprintf("Review resubmitted: %s", title),
+					TitleKey: "notifications.review_resubmitted",
+					Body:     notifBody,
+					BodyKey:  "notifications.review_resubmitted.body",
+					Params: map[string]any{
+						"actor":   actor,
+						"doc_id":  docID,
+						"title":   title,
+						"version": version,
+						"note":    req.Message,
+					},
+					Link: fmt.Sprintf("/reviews/%d", existingReview.ID),
+				})
 				if s.mailer != nil && s.mailer.Enabled() {
 					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 				}
@@ -3971,9 +4000,21 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			if req.Message != "" {
 				notifBody += "\n\nNote: " + req.Message
 			}
-			s.db.CreateNotificationByEmail(ctx, orgID, reviewer,
-				fmt.Sprintf("Review: %s v%s", title, version),
-				notifBody, fmt.Sprintf("/reviews/%d", existingReview.ID))
+			// Same frame as the fresh-review site below — verified byte-identical,
+			// so they share one key rather than duplicating a translation.
+			s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
+				Title:    fmt.Sprintf("Review: %s v%s", title, version),
+				TitleKey: "notifications.review_requested",
+				Body:     notifBody,
+				BodyKey:  "notifications.review_requested.body",
+				Params: map[string]any{
+					"actor":   actor,
+					"title":   title,
+					"version": version,
+					"note":    req.Message,
+				},
+				Link: fmt.Sprintf("/reviews/%d", existingReview.ID),
+			})
 			if s.mailer != nil && s.mailer.Enabled() {
 				m := s.orgMail(ctx, orgID)
 				_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
@@ -4035,9 +4076,19 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
 		}
-		s.db.CreateNotificationByEmail(ctx, orgID, reviewer,
-			fmt.Sprintf("Review: %s v%s", title, version),
-			notifBody, fmt.Sprintf("/reviews/%d", review.ID))
+		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
+			Title:    fmt.Sprintf("Review: %s v%s", title, version),
+			TitleKey: "notifications.review_requested",
+			Body:     notifBody,
+			BodyKey:  "notifications.review_requested.body",
+			Params: map[string]any{
+				"actor":   actor,
+				"title":   title,
+				"version": version,
+				"note":    req.Message,
+			},
+			Link: fmt.Sprintf("/reviews/%d", review.ID),
+		})
 
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {

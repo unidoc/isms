@@ -4,10 +4,12 @@ import {
   FALLBACK,
   i18n,
   loadableLocales,
+  loaders,
   negotiate,
   resolveInitialLocale,
   setLocale,
   setSupportedLocales,
+  STORAGE_KEY,
   supportedLocales,
 } from '../src/i18n.js'
 
@@ -121,5 +123,55 @@ test('each area file is merged under its own filename as the area key', () => {
     // snake_case, mirroring the key convention — `correctiveactions` would slip
     // through a looser check and read wrong next to `common.enum.status`.
     assert.ok(/^[a-z][a-z0-9_]*$/.test(area), `area ${area} must be snake_case`)
+  }
+})
+
+test('setLocale does not persist a negotiated locale unless asked', async () => {
+  // Boot negotiates from the browser and the org default before /me or /config
+  // land. Writing that guess would make it outrank the org default forever, so
+  // only an explicit choice (persist: true) reaches storage.
+  const writes = []
+  const original = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem: () => null,
+    setItem: (k, v) => writes.push([k, v]),
+  }
+  try {
+    await setLocale('en')
+    assert.deepEqual(writes, [])
+    await setLocale('en', { persist: true })
+    assert.deepEqual(writes, [[STORAGE_KEY, 'en']])
+  } finally {
+    if (original === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = original
+  }
+})
+
+test('a superseded locale load does not overwrite the newer one', async () => {
+  // main.js starts a load without awaiting it; an explicit pick can land while
+  // that chunk is still in flight. The slow one must discard itself.
+  let release
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  loaders['id-ID'] = async () => {
+    await gate
+    return { default: { common: { action: { save: 'Simpan' } } } }
+  }
+  loaders['fr-FR'] = async () => ({ default: { common: { action: { save: 'Enregistrer' } } } })
+  // No /config seeding here: with no server list, loadable() reports what is
+  // bundled plus every registered loader, which is exactly these two.
+  try {
+    const slow = setLocale('id-ID')
+    const fast = await setLocale('fr-FR')
+    assert.equal(fast, 'fr-FR')
+    release()
+    // The stale continuation reports null and leaves global state alone.
+    assert.equal(await slow, null)
+    assert.equal(i18n.global.locale.value, 'fr-FR')
+  } finally {
+    delete loaders['id-ID']
+    delete loaders['fr-FR']
+    await setLocale(FALLBACK)
   }
 })

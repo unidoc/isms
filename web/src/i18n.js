@@ -20,7 +20,10 @@ export const STORAGE_KEY = 'isms_locale'
 // is bundled. A locale the server advertises but that has no loader here cannot
 // be rendered, which is why applicability is checked against this map and not
 // against the server list alone.
-const loaders = {
+//
+// Exported so tests can register a controllable loader; production code adds a
+// static line here rather than mutating it at runtime.
+export const loaders = {
   // 'id-ID': () => import('./locales/id-ID/index.js'),
 }
 
@@ -104,26 +107,46 @@ function readStored() {
   }
 }
 
+// Monotonic ticket for setLocale calls. Applying a locale can await a chunk
+// import, and boot does not await setLocale — so a slow first load can resolve
+// after a later, higher-precedence call (an explicit pick, or /me arriving) has
+// already applied. Whoever took the newest ticket wins; an older continuation
+// discards itself rather than clobbering global state out of order.
+let applySeq = 0
+
 // Apply a locale: load its chunk if needed, switch vue-i18n, and keep <html lang>
 // in sync so screen readers, spellcheckers and :lang() CSS follow. An unsupported
 // or unloadable tag degrades to FALLBACK instead of throwing — a stale stored
 // value must not brick the app.
-export async function setLocale(tag) {
+//
+// `persist` writes the result to localStorage, and defaults to off: only an
+// explicit choice by this user on this device is a preference. Boot and the
+// /config- or /me-driven applies pass nothing, so an automatically negotiated
+// value (browser order, org default, fallback) never hardens into stored state
+// that would then outrank the org default on the next visit.
+//
+// Returns the applied tag, or null when a newer call superseded this one.
+export async function setLocale(tag, { persist = false } = {}) {
+  const seq = ++applySeq
   let locale = negotiate(tag) ?? FALLBACK
   if (locale !== FALLBACK && !i18n.global.availableLocales.includes(locale)) {
     try {
       const m = await loaders[locale]()
+      if (seq !== applySeq) return null // superseded while the chunk was in flight
       i18n.global.setLocaleMessage(locale, m.default)
     } catch {
+      if (seq !== applySeq) return null
       locale = FALLBACK // chunk failed to load (offline, bad deploy)
     }
   }
   i18n.global.locale.value = locale
   if (typeof document !== 'undefined') document.documentElement.lang = locale
-  try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, locale)
-  } catch {
-    /* storage unavailable; the DB preference is the durable copy anyway */
+  if (persist) {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, locale)
+    } catch {
+      /* storage unavailable; the DB preference is the durable copy anyway */
+    }
   }
   return locale
 }

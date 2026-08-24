@@ -12,7 +12,7 @@ Thank you for your interest in contributing.
 ## Development Setup
 
 - Go 1.22+
-- Node.js 20+ (for web UI)
+- Node.js 22+ (for web UI)
 - PostgreSQL 14+
 
 Build the binary:

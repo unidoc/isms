@@ -11,7 +11,8 @@ app.use(i18n)
 
 // Apply the best locale we can know pre-login (localStorage, then the browser's
 // languages). The authenticated value from GET /me and the org default from
-// GET /config both arrive later and re-apply through the same seam.
+// GET /config both arrive later and re-apply through the same seam. Nothing
+// here persists: a negotiated guess must not become a stored preference.
 setLocale(resolveInitialLocale())
 
 app.use(router).mount('#app')

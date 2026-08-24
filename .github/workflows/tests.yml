@@ -126,6 +126,12 @@ jobs:
           done
           curl -sf http://localhost:9090/healthz || { cat server.log; exit 1; }
 
+      # The unit job has no database, so these skip there. They run here, against
+      # the schema `server migrate` just applied, and are the only coverage of the
+      # notification INSERT/SELECT column order and the JSONB params column.
+      - name: Database round-trip tests
+        run: ISMS_TEST_DATABASE_URL="$DATABASE_URL" go test ./internal/isms/db/... -count=1 -timeout 120s
+
       - name: Run test suite
         run: ISMS_TEST_URL=http://localhost:9090 .venv/bin/pytest tests/ --tb=short
 

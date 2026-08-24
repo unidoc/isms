@@ -98,7 +98,15 @@ var mentionRe = regexp.MustCompile(`@([a-zA-Z0-9._-]+)`)
 // in body (excluding the actor), with the given title and link. Matching is
 // case-insensitive against the member's email local-part or name-slug. Generic
 // across surfaces — review comments, entity comments, change fields (#4).
-func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, title, link string) {
+// notifyMentions notifies members @-mentioned in free text.
+//
+// titleKey names the translated frame for `title`; the caller supplies both
+// because the sentence differs per surface ("in a comment" / "in a review
+// comment" / "in a change request") and those are three complete sentences, not
+// one sentence with a swappable noun — composing them from fragments does not
+// survive translation. The body is a snippet of what the user wrote, so it is
+// content rather than copy and deliberately gets no key.
+func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, title, titleKey, link string) {
 	matches := mentionRe.FindAllStringSubmatchIndex(body, -1)
 	if len(matches) == 0 {
 		return
@@ -141,7 +149,13 @@ func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, tit
 			continue // unknown handle, self-mention, or already notified
 		}
 		notified[email] = true
-		_ = s.db.CreateNotificationByEmail(ctx, orgID, email, title, snippet, link)
+		_ = s.db.CreateNotificationContentByEmail(ctx, orgID, email, db.NotificationContent{
+			Title:    title,
+			TitleKey: titleKey,
+			Body:     snippet,
+			Params:   map[string]any{"actor": actor},
+			Link:     link,
+		})
 	}
 }
 
@@ -149,6 +163,7 @@ func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, tit
 func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, actor, body string) {
 	s.notifyMentions(ctx, orgID, actor, body,
 		fmt.Sprintf("%s mentioned you in a review comment", actor),
+		"notifications.mention_review_comment",
 		fmt.Sprintf("/reviews/%d", reviewID))
 }
 
@@ -2668,6 +2683,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	s.notifyMentions(ctx, orgID, cr.RequestedBy,
 		strings.Join([]string{cr.Description, cr.Justification, cr.Notes, cr.RollbackPlan}, "\n"),
 		fmt.Sprintf("%s mentioned you in a change request", cr.RequestedBy),
+		"notifications.mention_change_request",
 		entityLink("change_request", strconv.Itoa(cr.ID)))
 
 	return c.JSON(http.StatusCreated, cr)

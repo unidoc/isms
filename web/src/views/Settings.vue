@@ -23,6 +23,11 @@
           <div v-if="nameMsg" class="text-xs mt-1" :class="nameError ? 'text-red-400' : 'text-emerald-400'">{{ nameMsg }}</div>
         </div>
         <div>
+          <label class="block text-xs text-slate-500 mb-1">{{ $t('common.locale.label') }}</label>
+          <LocalePicker @error="localeMsg = $event" />
+          <div v-if="localeMsg" class="text-xs mt-1 text-red-400">{{ localeMsg }}</div>
+        </div>
+        <div>
           <label class="block text-xs text-slate-500 mb-1">Role</label>
           <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full"
             :class="user?.role === 'admin' ? 'bg-purple-500/20 text-purple-300' :
@@ -305,6 +310,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { ref, nextTick, onMounted, computed } from 'vue'
 import QRCode from 'qrcode'
 import api from '../api.js'
+import LocalePicker from '../components/LocalePicker.vue'
 
 const user = ref(null)
 
@@ -325,6 +331,7 @@ const passkeyError = ref(false)
 const passkeyAvailable = computed(() => typeof window !== 'undefined' && window.PublicKeyCredential !== undefined)
 
 // Profile
+const localeMsg = ref('')
 const profileName = ref('')
 const savingName = ref(false)
 const nameMsg = ref('')

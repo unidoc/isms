@@ -17,6 +17,10 @@
   "validation": {
     "required": "This field is required"
   },
+  "locale": {
+    "label": "Language",
+    "org_default": "Organization default"
+  },
   "entity": {},
   "field": {},
   "enum": {},

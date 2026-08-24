@@ -72,8 +72,8 @@ test('resolution precedence: user choice beats every weaker signal', () => {
 })
 
 test('resolution falls through unrenderable signals instead of stopping', () => {
-  // Only `en` is loadable in this build, so a stored/navigator/org value naming
-  // anything else must be skipped, not returned.
+  // de-DE, fr and ja-JP are not shipped, so each must be skipped rather than
+  // returned; en-GB is the first signal that resolves.
   assert.equal(
     resolveInitialLocale({
       userLocale: 'de-DE',
@@ -82,6 +82,16 @@ test('resolution falls through unrenderable signals instead of stopping', () => 
       orgLocale: 'id-ID',
     }),
     'en',
+  )
+  // ...and with nothing renderable above it, the org default applies.
+  assert.equal(
+    resolveInitialLocale({
+      userLocale: 'de-DE',
+      stored: null,
+      navigatorLocales: ['ja-JP'],
+      orgLocale: 'id-ID',
+    }),
+    'id-ID',
   )
 })
 
@@ -122,4 +132,33 @@ test('each area file is merged under its own filename as the area key', () => {
     // through a looser check and read wrong next to `common.enum.status`.
     assert.ok(/^[a-z][a-z0-9_]*$/.test(area), `area ${area} must be snake_case`)
   }
+})
+
+test('setLocale loads the id-ID chunk and renders it', async () => {
+  // The whole point of shipping a second locale in the foundation: prove the
+  // resolution chain against something other than the fallback bundle.
+  assert.equal(await setLocale('id-ID'), 'id-ID')
+  assert.equal(i18n.global.locale.value, 'id-ID')
+  assert.equal(i18n.global.t('common.action.save'), 'Simpan')
+  assert.equal(i18n.global.t('common.state.loading'), 'Memuat\u2026')
+  // A bare 'id' resolves to the region variant we actually ship.
+  assert.equal(await setLocale('id'), 'id-ID')
+  await setLocale(FALLBACK)
+  assert.equal(i18n.global.t('common.action.save'), 'Save')
+})
+
+test('a key missing from a translation falls back to English', async () => {
+  // A translation lagging the keyset must render English, not a raw key — this
+  // is what lets CI warn rather than fail on missing keys.
+  await setLocale('id-ID')
+  const full = i18n.global.getLocaleMessage('id-ID')
+  const { save: _dropped, ...rest } = full.common.action
+  i18n.global.setLocaleMessage('id-ID', {
+    ...full,
+    common: { ...full.common, action: rest },
+  })
+  assert.equal(i18n.global.t('common.action.save'), 'Save')
+  assert.equal(i18n.global.t('common.action.cancel'), 'Batal')
+  i18n.global.setLocaleMessage('id-ID', full)
+  await setLocale(FALLBACK)
 })

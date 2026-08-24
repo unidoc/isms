@@ -21,7 +21,7 @@ export const STORAGE_KEY = 'isms_locale'
 // be rendered, which is why applicability is checked against this map and not
 // against the server list alone.
 const loaders = {
-  // 'id-ID': () => import('./locales/id-ID/index.js'),
+  'id-ID': () => import('./locales/id-ID/index.js'),
 }
 
 // Locales the server says it supports, as {tag, name} — name is the endonym, for

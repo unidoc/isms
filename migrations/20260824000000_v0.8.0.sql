@@ -71,6 +71,14 @@ ON CONFLICT (key) DO NOTHING;
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title_key TEXT;
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body_key  TEXT;
 
+-- Bodies with an optional trailing note ("Note: <message>") use two keys, not
+-- one frame with an optional `note` param: the "Note:" label is product copy
+-- the frame owns, so a single frame either renders a dangling label when there
+-- is no note or loses the label's translation. The with-note variant is the
+-- base key plus "_with_note" (notifications.review_requested.body and
+-- notifications.review_requested.body_with_note), and `note` appears in params
+-- only for that variant.
+--
 -- Flat JSON object of interpolation values. Two categories, told apart by key
 -- name so the renderer knows which to translate first: translatable enum-ish
 -- params (status, severity, action, entity, suggestion_type) resolve through

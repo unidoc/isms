@@ -9,11 +9,11 @@ func TestNotificationContentParamsJSON(t *testing.T) {
 	t.Run("no params marshals to SQL NULL, not an empty object", func(t *testing.T) {
 		// A JSONB '{}' and a NULL read back differently on the client: '{}' would
 		// make an unkeyed legacy row look like it carried params.
-		if got := (NotificationContent{}).paramsJSON(); got != nil {
-			t.Fatalf("empty params: want nil, got %q", got)
+		if got, ok := (NotificationContent{}).paramsJSON(); got != nil || !ok {
+			t.Fatalf("empty params: want nil/ok, got %q/%v", got, ok)
 		}
-		if got := (NotificationContent{Params: map[string]any{}}).paramsJSON(); got != nil {
-			t.Fatalf("zero-length map: want nil, got %q", got)
+		if got, ok := (NotificationContent{Params: map[string]any{}}).paramsJSON(); got != nil || !ok {
+			t.Fatalf("zero-length map: want nil/ok, got %q/%v", got, ok)
 		}
 	})
 
@@ -27,9 +27,9 @@ func TestNotificationContentParamsJSON(t *testing.T) {
 			// characters that would break naive string building.
 			"note": "please check \"section 4\" & the annex\nthanks",
 		}}
-		raw := c.paramsJSON()
-		if raw == nil {
-			t.Fatal("want JSON, got nil")
+		raw, ok := c.paramsJSON()
+		if raw == nil || !ok {
+			t.Fatalf("want JSON/ok, got %q/%v", raw, ok)
 		}
 		var back map[string]any
 		if err := json.Unmarshal(raw, &back); err != nil {
@@ -52,8 +52,58 @@ func TestNotificationContentParamsJSON(t *testing.T) {
 		// The English Title still renders, so losing a translation beats losing
 		// the notification.
 		c := NotificationContent{Params: map[string]any{"bad": func() {}}}
-		if got := c.paramsJSON(); got != nil {
+		got, ok := c.paramsJSON()
+		if got != nil {
 			t.Fatalf("want nil on marshal failure, got %q", got)
+		}
+		if ok {
+			t.Fatal("want ok=false on marshal failure, so the caller can drop the keys")
+		}
+	})
+}
+
+func TestNotificationKeyedColumns(t *testing.T) {
+	// Keys and params are written together or not at all. A row carrying
+	// title_key/body_key without the params they interpolate makes the client
+	// resolve a frame it cannot fill — unfilled placeholders on screen — instead
+	// of taking the clean English fallback.
+	t.Run("keys and params are written when params marshal", func(t *testing.T) {
+		c := NotificationContent{
+			Title: "Review: ACP v2", TitleKey: "notifications.review_requested",
+			Body: "alice requested your review", BodyKey: "notifications.review_requested.body",
+			Params: map[string]any{"actor": "alice@example.com"},
+		}
+		titleKey, bodyKey, params := c.keyedColumns()
+		if titleKey == nil || *titleKey != "notifications.review_requested" {
+			t.Errorf("title_key = %v, want the key", titleKey)
+		}
+		if bodyKey == nil || *bodyKey != "notifications.review_requested.body" {
+			t.Errorf("body_key = %v, want the key", bodyKey)
+		}
+		if len(params) == 0 {
+			t.Error("params = empty, want the marshalled map")
+		}
+	})
+
+	t.Run("a marshal failure clears both keys", func(t *testing.T) {
+		c := NotificationContent{
+			Title: "Review: ACP v2", TitleKey: "notifications.review_requested",
+			BodyKey: "notifications.review_requested.body",
+			Params:  map[string]any{"bad": func() {}},
+		}
+		titleKey, bodyKey, params := c.keyedColumns()
+		if titleKey != nil || bodyKey != nil || params != nil {
+			t.Fatalf("want an English-only row (all nil), got %v/%v/%q", titleKey, bodyKey, params)
+		}
+	})
+
+	t.Run("an unkeyed row stays unkeyed", func(t *testing.T) {
+		// Legacy call sites and agent notifications: no keys, no params, and the
+		// columns must be SQL NULL rather than empty strings so the JSON
+		// omitempty round-trip is unchanged.
+		titleKey, bodyKey, params := NotificationContent{Title: "AI review escalated"}.keyedColumns()
+		if titleKey != nil || bodyKey != nil || params != nil {
+			t.Fatalf("want all nil, got %v/%v/%q", titleKey, bodyKey, params)
 		}
 	})
 }

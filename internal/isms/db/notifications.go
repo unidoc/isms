@@ -53,29 +53,45 @@ type NotificationContent struct {
 }
 
 // paramsJSON marshals Params for the JSONB column, returning nil (SQL NULL) for
-// an empty map. A marshal failure drops the params rather than the whole
-// notification: the English Title still renders, so a lost translation beats a
-// lost inbox item.
-func (c NotificationContent) paramsJSON() []byte {
+// an empty map. ok is false only when a non-empty map failed to marshal — the
+// caller must then store the row English-only (see keyedColumns): the params a
+// keyed frame needs are gone, and a key without them renders with unfilled
+// placeholders, which is worse than the English original.
+func (c NotificationContent) paramsJSON() (b []byte, ok bool) {
 	if len(c.Params) == 0 {
-		return nil
+		return nil, true
 	}
 	b, err := json.Marshal(c.Params)
 	if err != nil {
-		return nil
+		return nil, false
 	}
-	return b
+	return b, true
+}
+
+// keyedColumns returns the three translation columns as they should be written.
+// Keys and params travel together: if the params could not be marshalled the
+// keys are dropped too, so the row is unambiguously English-only and the client
+// takes the Title/Body fallback instead of rendering a half-filled frame. A
+// lost translation beats a lost inbox item; a broken translation beats neither.
+func (c NotificationContent) keyedColumns() (titleKey, bodyKey *string, params []byte) {
+	params, ok := c.paramsJSON()
+	if !ok {
+		return nil, nil, nil
+	}
+	return nilIfEmpty(c.TitleKey), nilIfEmpty(c.BodyKey), params
 }
 
 func (d *DB) CreateNotification(ctx context.Context, orgID int, n *Notification) error {
 	n.OrganizationID = orgID
+	titleKey, bodyKey, params := NotificationContent{
+		TitleKey: n.TitleKey, BodyKey: n.BodyKey, Params: n.Params,
+	}.keyedColumns()
 	return d.pool.QueryRow(ctx, `
 		INSERT INTO notifications (organization_id, recipient_id, title, body, link, title_key, body_key, params)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at
 	`, orgID, n.RecipientID, n.Title, nilIfEmpty(n.Body), nilIfEmpty(n.Link),
-		nilIfEmpty(n.TitleKey), nilIfEmpty(n.BodyKey),
-		NotificationContent{Params: n.Params}.paramsJSON(),
+		titleKey, bodyKey, params,
 	).Scan(&n.ID, &n.CreatedAt)
 }
 
@@ -96,12 +112,13 @@ func (d *DB) CreateNotificationByEmail(ctx context.Context, orgID int, recipient
 // identified by email. If the user is not found the notification is silently
 // dropped, matching CreateNotificationByEmail.
 func (d *DB) CreateNotificationContentByEmail(ctx context.Context, orgID int, recipientEmail string, c NotificationContent) error {
+	titleKey, bodyKey, params := c.keyedColumns()
 	_, err := d.pool.Exec(ctx, `
 		INSERT INTO notifications (organization_id, recipient_id, title, body, link, title_key, body_key, params)
 		SELECT $1, u.id, $3, $4, $5, $6, $7, $8
 		FROM users u WHERE u.email = $2
 	`, orgID, recipientEmail, c.Title, nilIfEmpty(c.Body), nilIfEmpty(c.Link),
-		nilIfEmpty(c.TitleKey), nilIfEmpty(c.BodyKey), c.paramsJSON())
+		titleKey, bodyKey, params)
 	return err
 }
 
@@ -138,8 +155,14 @@ func (d *DB) ListNotifications(ctx context.Context, orgID int, userID int, unrea
 		}
 		if len(params) > 0 {
 			// A row with unreadable params still renders from Title, so drop the
-			// params rather than failing the whole inbox listing.
-			_ = json.Unmarshal(params, &n.Params)
+			// params rather than failing the whole inbox listing — and drop the
+			// keys with them, for the same reason the write side does: a key
+			// without its params renders unfilled placeholders, while no key
+			// falls back cleanly to the English Title/Body.
+			if err := json.Unmarshal(params, &n.Params); err != nil {
+				n.Params = nil
+				n.TitleKey, n.BodyKey = "", ""
+			}
 		}
 		notifications = append(notifications, n)
 	}

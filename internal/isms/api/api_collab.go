@@ -508,25 +508,30 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 		assignments = append(assignments, db.ReviewAssignment{ReviewID: id, Reviewer: reviewer, Status: "pending"})
 
 		notifBody := fmt.Sprintf("%s forwarded review of %s (%s v%s) to you", actor, review.DocumentID, review.Title, review.Version)
+		// Two frames, not one with an optional param: the "Note:" label is product
+		// copy the translation owns, so it has to live inside the frame — and a
+		// frame that always carries it renders a dangling label when there is no
+		// note. `note` itself is the requester's own words and interpolates
+		// verbatim; it is passed only to the variant that has a slot for it.
+		bodyKey := "notifications.review_forwarded.body"
+		params := map[string]any{
+			"actor":   actor,
+			"doc_id":  review.DocumentID,
+			"title":   review.Title,
+			"version": review.Version,
+		}
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
+			bodyKey += "_with_note"
+			params["note"] = req.Message
 		}
-		// `note` carries the requester's own words. The translated frame owns the
-		// "Note:" label; the message itself is interpolated verbatim and must
-		// never be touched.
 		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 			Title:    fmt.Sprintf("Review forwarded: %s", review.Title),
 			TitleKey: "notifications.review_forwarded",
 			Body:     notifBody,
-			BodyKey:  "notifications.review_forwarded.body",
-			Params: map[string]any{
-				"actor":   actor,
-				"doc_id":  review.DocumentID,
-				"title":   review.Title,
-				"version": review.Version,
-				"note":    req.Message,
-			},
-			Link: "/inbox/reviews",
+			BodyKey:  bodyKey,
+			Params:   params,
+			Link:     "/inbox/reviews",
 		})
 
 		// Send email notification to reviewer
@@ -3946,22 +3951,27 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			}
 			for _, a := range allAssignments {
 				notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
+				// Separate with-note frame — see handleForwardReview for why the
+				// label cannot be an optional interpolation.
+				bodyKey := "notifications.review_resubmitted.body"
+				params := map[string]any{
+					"actor":   actor,
+					"doc_id":  docID,
+					"title":   title,
+					"version": version,
+				}
 				if req.Message != "" {
 					notifBody += "\n\nNote: " + req.Message
+					bodyKey += "_with_note"
+					params["note"] = req.Message
 				}
 				s.db.CreateNotificationContentByEmail(ctx, orgID, a.Reviewer, db.NotificationContent{
 					Title:    fmt.Sprintf("Review resubmitted: %s", title),
 					TitleKey: "notifications.review_resubmitted",
 					Body:     notifBody,
-					BodyKey:  "notifications.review_resubmitted.body",
-					Params: map[string]any{
-						"actor":   actor,
-						"doc_id":  docID,
-						"title":   title,
-						"version": version,
-						"note":    req.Message,
-					},
-					Link: fmt.Sprintf("/reviews/%d", existingReview.ID),
+					BodyKey:  bodyKey,
+					Params:   params,
+					Link:     fmt.Sprintf("/reviews/%d", existingReview.ID),
 				})
 				if s.mailer != nil && s.mailer.Enabled() {
 					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
@@ -3997,23 +4007,28 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		// Post-commit: notifications (fire-and-forget)
 		for _, reviewer := range req.Reviewers {
 			notifBody := fmt.Sprintf("%s wants to publish %s v%s and requested your review", actor, title, version)
+			// Same frame as the fresh-review site below — verified byte-identical,
+			// so they share one key rather than duplicating a translation. That
+			// includes the with-note split: both sites pick the variant the same
+			// way, or the shared key stops being shared.
+			bodyKey := "notifications.review_requested.body"
+			params := map[string]any{
+				"actor":   actor,
+				"title":   title,
+				"version": version,
+			}
 			if req.Message != "" {
 				notifBody += "\n\nNote: " + req.Message
+				bodyKey += "_with_note"
+				params["note"] = req.Message
 			}
-			// Same frame as the fresh-review site below — verified byte-identical,
-			// so they share one key rather than duplicating a translation.
 			s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 				Title:    fmt.Sprintf("Review: %s v%s", title, version),
 				TitleKey: "notifications.review_requested",
 				Body:     notifBody,
-				BodyKey:  "notifications.review_requested.body",
-				Params: map[string]any{
-					"actor":   actor,
-					"title":   title,
-					"version": version,
-					"note":    req.Message,
-				},
-				Link: fmt.Sprintf("/reviews/%d", existingReview.ID),
+				BodyKey:  bodyKey,
+				Params:   params,
+				Link:     fmt.Sprintf("/reviews/%d", existingReview.ID),
 			})
 			if s.mailer != nil && s.mailer.Enabled() {
 				m := s.orgMail(ctx, orgID)
@@ -4073,21 +4088,25 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	// Post-commit: notifications and emails (fire-and-forget, outside transaction)
 	for _, reviewer := range req.Reviewers {
 		notifBody := fmt.Sprintf("%s wants to publish %s v%s and requested your review", actor, title, version)
+		// Same frame and same with-note split as the reviewers-added site above.
+		bodyKey := "notifications.review_requested.body"
+		params := map[string]any{
+			"actor":   actor,
+			"title":   title,
+			"version": version,
+		}
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
+			bodyKey += "_with_note"
+			params["note"] = req.Message
 		}
 		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 			Title:    fmt.Sprintf("Review: %s v%s", title, version),
 			TitleKey: "notifications.review_requested",
 			Body:     notifBody,
-			BodyKey:  "notifications.review_requested.body",
-			Params: map[string]any{
-				"actor":   actor,
-				"title":   title,
-				"version": version,
-				"note":    req.Message,
-			},
-			Link: fmt.Sprintf("/reviews/%d", review.ID),
+			BodyKey:  bodyKey,
+			Params:   params,
+			Link:     fmt.Sprintf("/reviews/%d", review.ID),
 		})
 
 		// Send email notification to reviewer

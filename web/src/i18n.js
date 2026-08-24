@@ -24,7 +24,7 @@ export const STORAGE_KEY = 'isms_locale'
 // Exported so tests can register a controllable loader; production code adds a
 // static line here rather than mutating it at runtime.
 export const loaders = {
-  // 'id-ID': () => import('./locales/id-ID/index.js'),
+  'id-ID': () => import('./locales/id-ID/index.js'),
 }
 
 // Locales the server says it supports, as {tag, name} — name is the endonym, for

@@ -67,8 +67,14 @@ test('loadable locales always include the bundled fallback', () => {
   // A server list that omits `en` must not empty the set: `en` is bundled, so it
   // is always renderable, and a picker built from this function would otherwise
   // have no options.
-  withServerLocales([{ tag: 'id-ID', name: 'Bahasa Indonesia' }], () => {
+  // fr-FR, not id-ID: id-ID now ships a loader, so it would be renderable and
+  // the assertion would stop being about the fallback.
+  withServerLocales([{ tag: 'fr-FR', name: 'Français' }], () => {
     assert.deepEqual(loadableLocales(), ['en'])
+  })
+  // And a shipped tag is listed alongside it, in server order after the fallback.
+  withServerLocales([{ tag: 'id-ID', name: 'Bahasa Indonesia' }], () => {
+    assert.deepEqual(loadableLocales(), ['en', 'id-ID'])
   })
 })
 
@@ -100,8 +106,8 @@ test('resolution precedence: user choice beats every weaker signal', () => {
 })
 
 test('resolution falls through unrenderable signals instead of stopping', () => {
-  // Only `en` is loadable in this build, so a stored/navigator/org value naming
-  // anything else must be skipped, not returned.
+  // de-DE, fr and ja-JP are not shipped, so each must be skipped rather than
+  // returned; en-GB is the first signal that resolves.
   assert.equal(
     resolveInitialLocale({
       userLocale: 'de-DE',
@@ -110,6 +116,16 @@ test('resolution falls through unrenderable signals instead of stopping', () => 
       orgLocale: 'id-ID',
     }),
     'en',
+  )
+  // ...and with nothing renderable above it, the org default applies.
+  assert.equal(
+    resolveInitialLocale({
+      userLocale: 'de-DE',
+      stored: null,
+      navigatorLocales: ['ja-JP'],
+      orgLocale: 'id-ID',
+    }),
+    'id-ID',
   )
 })
 
@@ -180,6 +196,9 @@ test('a superseded locale load does not overwrite the newer one', async () => {
   const gate = new Promise((resolve) => {
     release = resolve
   })
+  // id-ID now ships a real static loader, so stash it and put it back rather
+  // than deleting the entry and leaving later tests with no bundle to load.
+  const realIdLoader = loaders['id-ID']
   loaders['id-ID'] = async () => {
     await gate
     return { default: { common: { action: { save: 'Simpan' } } } }
@@ -196,8 +215,37 @@ test('a superseded locale load does not overwrite the newer one', async () => {
     assert.equal(await slow, null)
     assert.equal(i18n.global.locale.value, 'fr-FR')
   } finally {
-    delete loaders['id-ID']
+    loaders['id-ID'] = realIdLoader
     delete loaders['fr-FR']
     await setLocale(FALLBACK)
   }
+})
+
+test('setLocale loads the id-ID chunk and renders it', async () => {
+  // The whole point of shipping a second locale in the foundation: prove the
+  // resolution chain against something other than the fallback bundle.
+  assert.equal(await setLocale('id-ID'), 'id-ID')
+  assert.equal(i18n.global.locale.value, 'id-ID')
+  assert.equal(i18n.global.t('common.action.save'), 'Simpan')
+  assert.equal(i18n.global.t('common.state.loading'), 'Memuat\u2026')
+  // A bare 'id' resolves to the region variant we actually ship.
+  assert.equal(await setLocale('id'), 'id-ID')
+  await setLocale(FALLBACK)
+  assert.equal(i18n.global.t('common.action.save'), 'Save')
+})
+
+test('a key missing from a translation falls back to English', async () => {
+  // A translation lagging the keyset must render English, not a raw key — this
+  // is what lets CI warn rather than fail on missing keys.
+  await setLocale('id-ID')
+  const full = i18n.global.getLocaleMessage('id-ID')
+  const { save: _dropped, ...rest } = full.common.action
+  i18n.global.setLocaleMessage('id-ID', {
+    ...full,
+    common: { ...full.common, action: rest },
+  })
+  assert.equal(i18n.global.t('common.action.save'), 'Save')
+  assert.equal(i18n.global.t('common.action.cancel'), 'Batal')
+  i18n.global.setLocaleMessage('id-ID', full)
+  await setLocale(FALLBACK)
 })

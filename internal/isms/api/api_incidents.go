@@ -229,10 +229,16 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 	members, _ := s.db.ListOrgUsers(ctx, orgID)
 	for _, m := range members {
 		if m.Role == "admin" || m.Role == "manager" {
+			// No BodyKey: the body is the reporter's own description of the
+			// incident, org content rather than product copy. `severity` is an
+			// enum and is resolved through the shared enum keys before
+			// interpolation.
 			s.db.CreateNotification(ctx, orgID, &db.Notification{
 				RecipientID: m.ID,
 				Title:       fmt.Sprintf("New %s incident: %s", inc.Severity, inc.Title),
+				TitleKey:    "notifications.incident_new",
 				Body:        inc.Description,
+				Params:      map[string]any{"severity": inc.Severity, "title": inc.Title},
 				Link:        "/incidents",
 			})
 		}
@@ -521,10 +527,14 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 				recipients = append(recipients, inc.Assignee)
 			}
 			for _, r := range recipients {
-				s.db.CreateNotificationByEmail(ctx, orgID, r,
-					fmt.Sprintf("Incident %s: %s", req.Status, inc.Title),
-					fmt.Sprintf("Incident #%d has been %s", id, req.Status),
-					"/incidents")
+				s.db.CreateNotificationContentByEmail(ctx, orgID, r, db.NotificationContent{
+					Title:    fmt.Sprintf("Incident %s: %s", req.Status, inc.Title),
+					TitleKey: "notifications.incident_status",
+					Body:     fmt.Sprintf("Incident #%d has been %s", id, req.Status),
+					BodyKey:  "notifications.incident_status.body",
+					Params:   map[string]any{"status": req.Status, "title": inc.Title, "id": id},
+					Link:     "/incidents",
+				})
 			}
 		}
 	}

@@ -529,7 +529,9 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 		Detail: fmt.Sprintf("Applied suggestion #%d: %s → %s %s", sg.ID, sg.Title, sg.EntityType, appliedEntityID),
 	})
 	s.notifySuggestionResolved(ctx, orgID, sg, "applied",
-		fmt.Sprintf("Your suggestion \"%s\" was applied by %s → %s %s", sg.Title, actor, sg.EntityType, appliedEntityID))
+		fmt.Sprintf("Your suggestion \"%s\" was applied by %s → %s %s", sg.Title, actor, sg.EntityType, appliedEntityID),
+		"notifications.suggestion_applied.body",
+		map[string]any{"title": sg.Title, "actor": actor, "entity": sg.EntityType, "id": appliedEntityID})
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":            "applied",
@@ -576,8 +578,11 @@ func (s *Server) handleRejectEntitySuggestion(c echo.Context) error {
 		Detail: fmt.Sprintf("Rejected suggestion: %s — %s", title, body.Reason),
 	})
 	if sg != nil {
+		// `reason` is the reviewer's own words — verbatim, like a review note.
 		s.notifySuggestionResolved(ctx, orgID, sg, "rejected",
-			fmt.Sprintf("Your suggestion \"%s\" was rejected by %s: %s", sg.Title, actor, body.Reason))
+			fmt.Sprintf("Your suggestion \"%s\" was rejected by %s: %s", sg.Title, actor, body.Reason),
+			"notifications.suggestion_rejected.body",
+			map[string]any{"title": sg.Title, "actor": actor, "reason": body.Reason})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "rejected"})
@@ -625,20 +630,53 @@ func (s *Server) notifySuggestionCreated(ctx context.Context, orgID int, sg *db.
 	link := fmt.Sprintf("/inbox/suggestions?id=%d", sg.ID)
 	body := fmt.Sprintf("%s suggested: %s (%s %s)", sg.SuggestedBy, sg.Title, sg.SuggestionType, sg.EntityType)
 
+	// suggestion_type and entity are enum values, so they are resolved through
+	// the shared enum/entity keys before interpolation — splicing the English
+	// "risk" into a translated frame yields half-translated output.
+	params := map[string]any{
+		"actor":           sg.SuggestedBy,
+		"title":           sg.Title,
+		"suggestion_type": sg.SuggestionType,
+		"entity":          sg.EntityType,
+	}
+
 	// Notify managers
 	users, _ := s.db.ListOrgUsers(ctx, orgID)
 	for _, u := range users {
 		if (u.Role == "admin" || u.Role == "manager") && u.Email != sg.SuggestedBy {
-			_ = s.db.CreateNotificationByEmail(ctx, orgID, u.Email, "New suggestion", body, link)
+			_ = s.db.CreateNotificationContentByEmail(ctx, orgID, u.Email, db.NotificationContent{
+				Title:    "New suggestion",
+				TitleKey: "notifications.suggestion_new",
+				Body:     body,
+				BodyKey:  "notifications.suggestion_new.body",
+				Params:   params,
+				Link:     link,
+			})
 		}
 	}
 }
 
 // notifySuggestionResolved sends notification to the original suggester.
-func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db.Suggestion, action, detail string) {
+//
+// bodyKey and bodyParams come from the caller because applied and rejected say
+// genuinely different things — one names the entity it landed on, the other
+// carries the reviewer's reason. The title frame is shared, with `action` as a
+// translatable param.
+func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db.Suggestion, action, detail, bodyKey string, bodyParams map[string]any) {
 	link := fmt.Sprintf("/inbox/suggestions?id=%d", sg.ID)
 	title := fmt.Sprintf("Suggestion %s", action)
-	_ = s.db.CreateNotificationByEmail(ctx, orgID, sg.SuggestedBy, title, detail, link)
+	params := map[string]any{"action": action}
+	for k, v := range bodyParams {
+		params[k] = v
+	}
+	_ = s.db.CreateNotificationContentByEmail(ctx, orgID, sg.SuggestedBy, db.NotificationContent{
+		Title:    title,
+		TitleKey: "notifications.suggestion_resolved",
+		Body:     detail,
+		BodyKey:  bodyKey,
+		Params:   params,
+		Link:     link,
+	})
 }
 
 // ═══════════════════════════════════════════════════════════════════════

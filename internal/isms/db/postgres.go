@@ -507,6 +507,12 @@ func (d *DB) GetOrgSettingInt(ctx context.Context, orgID int, key string, defaul
 }
 
 // CreateAgentNotification creates a notification marked as agent-actionable.
+//
+// Deliberately has no keyed variant. These rows are consumed by the MCP
+// get_pending_actions tool, i.e. read by an LLM over a protocol surface, not
+// rendered to a person in the web UI. Translating them is a permanent non-goal,
+// so they keep their English title/body and stay unkeyed — this comment exists
+// so nobody "finishes the job" by keying them later.
 func (d *DB) CreateAgentNotification(ctx context.Context, orgID int, recipientEmail, title, body, link string) error {
 	_, err := d.pool.Exec(ctx, `
 		INSERT INTO notifications (organization_id, recipient_id, title, body, link, agent_actionable)

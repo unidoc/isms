@@ -27,8 +27,12 @@ type User struct {
 	PendingEmail  *string `json:"pending_email,omitempty"` // address awaiting change verification, nil = none
 	IsAgent       bool    `json:"is_agent"`
 	Active        bool    `json:"active"`
-	CreatedAt     Epoch   `json:"created_at"`
-	LastSeen      *Epoch  `json:"last_seen,omitempty"`
+	// Locale is the user's explicit language choice as a BCP 47 tag. nil means
+	// they never chose one, which is what lets the org default apply — do not
+	// substitute a default here, resolve it through i18n.Resolve at render time.
+	Locale    *string `json:"locale,omitempty"`
+	CreatedAt Epoch   `json:"created_at"`
+	LastSeen  *Epoch  `json:"last_seen,omitempty"`
 }
 
 // UserWithRole is a User plus their role within a specific organization.
@@ -104,9 +108,9 @@ func (d *DB) EmailExists(ctx context.Context, email string) (bool, error) {
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
+		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, locale, created_at, last_seen
 		FROM users WHERE email = $1
-	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}
@@ -281,10 +285,23 @@ func (d *DB) UpdateName(ctx context.Context, userID int, name string) error {
 	return err
 }
 
+// UpdateLocale sets the user's explicit language preference. Pass nil to clear
+// it, which returns the user to following the org default rather than pinning
+// them to the fallback.
+//
+// The value is not validated here: validation against the supported set belongs
+// at the API boundary (internal/isms/i18n.IsSupported), and the read path
+// re-validates anyway so a locale that later stops being supported degrades
+// instead of breaking.
+func (d *DB) UpdateLocale(ctx context.Context, userID int, locale *string) error {
+	_, err := d.pool.Exec(ctx, `UPDATE users SET locale = $2 WHERE id = $1`, userID, locale)
+	return err
+}
+
 // ListUsers returns all users (global, no org filter).
 func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
+		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, locale, created_at, last_seen
 		FROM users ORDER BY name
 	`)
 	if err != nil {
@@ -295,7 +312,7 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen); err != nil {
 			return nil, err
 		}
 		if err := u.decryptOTP(d.encryptionKey); err != nil {
@@ -312,8 +329,8 @@ func (d *DB) TouchUser(ctx context.Context, email, name string) (*User, error) {
 	err := d.pool.QueryRow(ctx, `
 		UPDATE users SET last_seen = now()
 		WHERE email = $1
-		RETURNING id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, created_at, last_seen
-	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+		RETURNING id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, locale, created_at, last_seen
+	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}
@@ -342,11 +359,11 @@ type UserIdentity struct {
 func (d *DB) GetUserByIdentity(ctx context.Context, provider, subject string) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
-		SELECT u.id, u.email, u.name, u.password_hash, u.otp_secret, u.otp_verified, u.email_verified, u.is_agent, u.active, u.created_at, u.last_seen
+		SELECT u.id, u.email, u.name, u.password_hash, u.otp_secret, u.otp_verified, u.email_verified, u.is_agent, u.active, u.locale, u.created_at, u.last_seen
 		FROM users u
 		JOIN user_identities ui ON ui.user_id = u.id
 		WHERE ui.provider = $1 AND ui.subject = $2
-	`, provider, subject).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.CreatedAt, &u.LastSeen)
+	`, provider, subject).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
 	}

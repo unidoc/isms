@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 )
 
 // --- Per-account brute-force protection (DB-backed) ---
@@ -629,7 +630,18 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 // --- Self-service: update profile name ---
 
 type updateProfileRequest struct {
-	Name string `json:"name"`
+	// Name is a pointer so that a locale-only update is expressible. As a plain
+	// string it was indistinguishable from "" and the handler's required-name
+	// check rejected {"locale":"id-ID"} outright — which forced a locale picker to
+	// resend the current name on every change, making it a lost-update race
+	// against a concurrent rename. Omitted = leave unchanged; present-but-empty is
+	// still rejected, so the existing rename contract is unaffected.
+	Name *string `json:"name"`
+	// Locale is the user's language choice as a BCP 47 tag. Omitted entirely =
+	// leave unchanged; explicit empty string = clear the choice and follow the
+	// org default. A pointer is required to tell those two apart, which a plain
+	// string cannot do.
+	Locale *string `json:"locale"`
 }
 
 func (s *Server) handleUpdateProfile(c echo.Context) error {
@@ -637,8 +649,37 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
-	if req.Name == "" {
+	// An empty name is still invalid; an absent one just means "not changing it".
+	if req.Name != nil && *req.Name == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+	}
+	// Require at least one field, so a caller cannot mistake an empty body for a
+	// successful update.
+	if req.Name == nil && req.Locale == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "nothing to update")
+	}
+
+	// Locale is validated strictly and rejected rather than silently coerced: a
+	// typo'd tag that quietly fell back to English would surface as "the language
+	// setting does not work", which is far harder to diagnose than a 400.
+	//
+	// Validated HERE, before any write, and not next to UpdateLocale below: a 400
+	// has to mean nothing changed. With the check down beside its own write,
+	// {"name":"Bob","locale":"bogus"} renamed the user and THEN returned 400, and
+	// there is no transaction to undo it — RLSMiddleware is deliberately not
+	// registered globally (see server.go) and UpdateName/UpdateLocale both Exec on
+	// the pool directly, so they cannot be bound into one. Hoisting the check is
+	// the whole fix: i18n.Canonical is pure, so nothing is lost by running it early.
+	//
+	// nextLocale is the value to store: nil for an explicit empty string, which
+	// clears the choice so the org default applies.
+	var nextLocale *string
+	if req.Locale != nil && *req.Locale != "" {
+		tag, ok := i18n.Canonical(*req.Locale)
+		if !ok {
+			return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+		}
+		nextLocale = &tag
 	}
 
 	ctx := c.Request().Context()
@@ -648,11 +689,25 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
 	}
 
-	if err := s.db.UpdateName(ctx, user.ID, req.Name); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "updating name")
+	if req.Name != nil {
+		if err := s.db.UpdateName(ctx, user.ID, *req.Name); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating name")
+		}
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "profile updated", "name": req.Name})
+	if req.Locale != nil {
+		if err := s.db.UpdateLocale(ctx, user.ID, nextLocale); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating locale")
+		}
+	}
+
+	// Echo back the current name, which is the incoming one when it changed and
+	// the stored one when the caller only touched their locale.
+	name := user.Name
+	if req.Name != nil {
+		name = *req.Name
+	}
+	return c.JSON(http.StatusOK, map[string]string{"status": "profile updated", "name": name})
 }
 
 // --- Self-service: OTP setup ---

@@ -11,6 +11,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 	"isms.sh/internal/isms/scaffold"
 	"isms.sh/internal/isms/store"
 )
@@ -61,6 +62,19 @@ func (s *Server) handleMe(c echo.Context) error {
 		}
 	}
 
+	// Locale: expose both the raw choice and the resolved value. The frontend
+	// needs "locale" to know what to render in, and "locale_preference" to show
+	// the picker honestly — a user following the org default should see "Org
+	// default" selected, not the concrete language that default happens to be.
+	orgLocale := ""
+	if orgID > 0 {
+		orgLocale, _ = s.db.GetOrgSetting(ctx, orgID, "default_locale")
+	}
+	userLocale := ""
+	if user.Locale != nil {
+		userLocale = *user.Locale
+	}
+
 	resp := map[string]interface{}{
 		"id":              user.ID,
 		"email":           user.Email,
@@ -75,6 +89,9 @@ func (s *Server) handleMe(c echo.Context) error {
 		"pending_email":   user.PendingEmail,
 		"organization_id": orgID,
 		"ai_enabled":      aiEnabled,
+
+		"locale":            i18n.Resolve(userLocale, orgLocale),
+		"locale_preference": user.Locale,
 	}
 
 	// Include org slug for CLI sync support.

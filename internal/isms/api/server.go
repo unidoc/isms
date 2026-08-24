@@ -26,6 +26,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 	"isms.sh/internal/isms/mail"
 	"isms.sh/internal/isms/notify"
 	"isms.sh/internal/isms/store"
@@ -937,6 +938,16 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 		// New tasks default to private in this org (ISMS task_default_private).
 		// The web create form seeds its Public/Private control from this.
 		TaskDefaultPrivate bool `json:"task_default_private"`
+
+		// Localization. Locales is the server's supported-locale set, which is
+		// the single source of truth (internal/isms/i18n) — the web app builds
+		// its picker from this rather than keeping a parallel list, so adding a
+		// locale server-side makes it selectable with no frontend change.
+		// DefaultLocale is this org's default, applied to users who have made no
+		// explicit choice. Both are present pre-login: the login and signup
+		// pages need to render in a sensible language before any user exists.
+		Locales       []i18n.Locale `json:"locales"`
+		DefaultLocale string        `json:"default_locale"`
 	}
 	resp := configResponse{}
 	resp.SubdomainRouting = s.subdomainRouting
@@ -995,6 +1006,29 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 	}
 	if val, err := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); err == nil {
 		resp.TaskDefaultPrivate = val == "true" || val == "1"
+	}
+
+	// Localization. The org default is validated on read rather than trusted:
+	// a stored locale can stop being supported when the binary changes, and
+	// Resolve() degrades it to the fallback instead of handing the frontend a
+	// tag it has no messages for.
+	resp.Locales = i18n.Supported()
+	orgLocale, _ := s.db.GetOrgSetting(ctx, orgID, "default_locale")
+	resp.DefaultLocale = i18n.Resolve("", orgLocale)
+
+	// Pre-login, Accept-Language is the only signal about who is asking, so it
+	// outranks the org default here — an Indonesian visitor hitting a login page
+	// whose org default is English should still get an Indonesian login form.
+	//
+	// The anonymous check is load-bearing: /config is served through soft auth, so
+	// an authenticated caller reaches this too. Without the guard a signed-in user
+	// whose org default is id-ID but whose browser sends "Accept-Language: en" got
+	// default_locale "en", which contradicts the rule this comment states. A stored
+	// preference is a deliberate choice and must outrank a browser header guess.
+	if getUserEmail(c) == "" {
+		if tag, ok := i18n.FromAcceptLanguage(c.Request().Header.Get("Accept-Language")); ok {
+			resp.DefaultLocale = tag
+		}
 	}
 
 	return c.JSON(http.StatusOK, resp)

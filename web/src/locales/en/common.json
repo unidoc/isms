@@ -1,0 +1,30 @@
+{
+  "action": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search"
+  },
+  "state": {
+    "loading": "Loading…",
+    "empty": "Nothing here yet",
+    "error": "Something went wrong"
+  },
+  "validation": {
+    "required": "This field is required"
+  },
+  "entity": {},
+  "field": {},
+  "enum": {},
+  "error": {},
+  "region": {
+    "global": "Global",
+    "eu": "EU",
+    "eea": "EEA",
+    "apac": "APAC"
+  }
+}

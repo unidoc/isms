@@ -33,6 +33,21 @@ pytest tests/ -v
 - **Web UI** — Vue 3 single-file components with Tailwind CSS. Follow existing conventions.
 - Keep commits focused. One logical change per commit.
 
+## User-Facing Strings
+
+Every string a user reads in the web UI belongs in a locale file under
+`web/src/locales/`, not in a component. The same goes for dates, numbers and
+enum labels — those go through `useFormat()` and `useEnumLabel()` rather than
+being formatted or de-slugged inline, because neither survives translation.
+
+- [`web/src/locales/README.md`](web/src/locales/README.md) — the key naming
+  convention and the rules for writing translatable copy.
+- [`docs/i18n.md`](docs/i18n.md) — how locale resolution works and how to add a
+  language.
+
+Translations are very welcome, and adding one needs no architectural change:
+copy `web/src/locales/en/`, translate the values, register one loader line.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE).

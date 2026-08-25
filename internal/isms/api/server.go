@@ -1635,9 +1635,20 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 
 	// Update metadata fields if provided
 	if req.Version != "" {
-		// Prevent version downgrade
-		if compareVersions(req.Version, pf.Frontmatter.Version) < 0 {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("cannot lower version from %s to %s", pf.Frontmatter.Version, req.Version))
+		// The floor is the last APPROVED milestone, not the document's current
+		// draft value: document_versions rows are written only on approve/
+		// merge/confirm, so while a document sits in draft its frontmatter
+		// version is working state, not a milestone — a user must be free to
+		// correct it either way (e.g. undo a typo'd bump) as long as it never
+		// regresses past what was actually accepted. Comparing against the
+		// current draft value instead locks in whatever was last saved,
+		// mistake or not, and blocks exactly that correction.
+		if latest, err := s.db.LatestVersion(c.Request().Context(), orgID, docID); err == nil {
+			if compareVersions(req.Version, latest.Version) <= 0 {
+				return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf(
+					"cannot set version to %s: must be greater than %s, the last approved version (draft version numbers may otherwise move freely)",
+					req.Version, latest.Version))
+			}
 		}
 		pf.Frontmatter.Version = req.Version
 	}

@@ -23,7 +23,8 @@ FREEBSD.md        # this file
 fetch https://github.com/unidoc/isms/releases/download/vX.Y.Z/isms_X.Y.Z_freebsd_amd64.tar.gz
 tar xzf isms_X.Y.Z_freebsd_amd64.tar.gz
 
-install -m 755 isms /usr/local/bin/isms
+install -d /opt/isms/bin /opt/isms/etc
+install -m 755 isms /opt/isms/bin/isms
 install -m 755 rc.d/isms /usr/local/etc/rc.d/isms
 
 # Service account (no login, no home — it only runs the daemon):
@@ -37,8 +38,8 @@ mkdir -p /var/db/isms && chown isms:isms /var/db/isms
 # Configuration. Install as root:wheel — NOT owned by the isms user: the rc.d
 # script sources this file as root (before dropping privileges), so an env file
 # writable by isms would be a local root-escalation path.
-install -m 600 -o root -g wheel isms.env.sample /usr/local/etc/isms.env
-$EDITOR /usr/local/etc/isms.env        # DATABASE_URL, ISMS_DATA_DIR, ISMS_STORAGE_BACKEND, ISMS_TEMPLATE_PATH
+install -m 600 -o root -g wheel isms.env.sample /opt/isms/etc/server.env
+$EDITOR /opt/isms/etc/server.env        # DATABASE_URL, ISMS_DATA_DIR, ISMS_STORAGE_BACKEND, ISMS_TEMPLATE_PATH
 ```
 
 ## Database + templates
@@ -48,7 +49,7 @@ $EDITOR /usr/local/etc/isms.env        # DATABASE_URL, ISMS_DATA_DIR, ISMS_STORA
 - Apply the schema — migrations are embedded:
 
   ```sh
-  env $(grep -v '^#' /usr/local/etc/isms.env | xargs) isms server migrate
+  env $(grep -v '^#' /opt/isms/etc/server.env | xargs) isms server migrate
   ```
 
 - Put the standard templates repo at `ISMS_TEMPLATE_PATH`.
@@ -71,14 +72,16 @@ service isms restart
 
 ## rc.conf variables
 
-| variable        | default                      | meaning                          |
-| --------------- | ---------------------------- | -------------------------------- |
-| `isms_enable`   | `NO`                         | enable the service               |
-| `isms_user`     | `isms`                       | user to run as                   |
-| `isms_env_file` | `/usr/local/etc/isms.env`    | file with `DATABASE_URL` / `ISMS_*` config |
-| `isms_args`     | `server serve`               | `isms` subcommand + flags        |
+| variable        | default                       | meaning                          |
+| --------------- | ------------------------------ | -------------------------------- |
+| `isms_enable`   | `NO`                           | enable the service               |
+| `isms_user`     | `isms`                         | user to run as                   |
+| `isms_env_file` | `/opt/isms/etc/server.env`     | file with `DATABASE_URL` / `ISMS_*` config |
+| `isms_logfile`  | `/var/log/isms.log`            | where `daemon(8) -o` sends stdout/stderr |
+| `isms_args`     | `server serve`                 | `isms` subcommand + flags        |
 
-Logs go to syslog (tag `isms`) via `daemon(8) -S`; the pidfile is `/var/run/isms.pid`.
+Logs go to `isms_logfile` via `daemon(8) -o` (not syslog); the pidfile is
+`/var/run/isms.pid`. `daemon -r` restarts the process if it exits.
 
 ## `pkg install` (later)
 

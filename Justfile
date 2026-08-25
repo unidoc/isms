@@ -23,6 +23,25 @@ build-go:
         -ldflags "-X 'main.version=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.commitCount=${COMMIT_COUNT}'" \
         -o bin/isms ./cmd/isms/
 
+# Cross-compile a FreeBSD binary into bin/isms-freebsd (pure-Go, CGO off — no
+# toolchain needed). Builds the frontend first (like `build`), so the UI + the
+# migrations are embedded and up to date. Defaults to amd64; pass arm64 for
+# aarch64 hosts.
+build-freebsd arch="amd64": build-web
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./scripts/sync-migrations.sh
+    rm -rf cmd/isms/web/dist && mkdir -p cmd/isms/web/dist
+    [ -d web/dist ] && cp -r web/dist/* cmd/isms/web/dist/ || true
+    VERSION=$(cat version.txt | tr -d '[:space:]')
+    COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo "0")
+    echo "→ cross-compiling isms for freebsd/{{arch}} (CGO off)…"
+    GOOS=freebsd GOARCH={{arch}} CGO_ENABLED=0 go build \
+        -ldflags "-X 'main.version=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.commitCount=${COMMIT_COUNT}'" \
+        -o bin/isms-freebsd ./cmd/isms/
+    echo "✓ bin/isms-freebsd  ($(du -h bin/isms-freebsd | cut -f1), freebsd/{{arch}})"
+
 # Build Vue frontend
 build-web:
     cd web && npm run build

@@ -1,0 +1,30 @@
+{
+  "action": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "confirm": "Konfirmasi",
+    "close": "Tutup",
+    "create": "Buat",
+    "edit": "Ubah",
+    "delete": "Hapus",
+    "search": "Cari"
+  },
+  "state": {
+    "loading": "Memuat…",
+    "empty": "Belum ada apa pun di sini",
+    "error": "Terjadi kesalahan"
+  },
+  "validation": {
+    "required": "Kolom ini wajib diisi"
+  },
+  "entity": {},
+  "field": {},
+  "enum": {},
+  "error": {},
+  "region": {
+    "global": "Global",
+    "eu": "UE",
+    "eea": "EEA",
+    "apac": "APAC"
+  }
+}

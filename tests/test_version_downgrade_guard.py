@@ -1,7 +1,8 @@
-"""Regression: the version-downgrade guard on PUT /documents/:docId/content must
-compare a requested version against the last APPROVED milestone
-(document_versions, written only on merge/confirm), not against the document's
-current draft frontmatter value.
+"""Regression: the version-downgrade guard must compare a requested version
+against the last APPROVED milestone (document_versions, written only on
+merge/confirm), not against the document's current draft frontmatter value —
+and it must be enforced on every reachable writer of Frontmatter.Version, not
+just PUT /documents/:docId/content.
 
 A draft's version field is working state until it is re-approved — nothing
 depends on it staying monotonic against its own prior unapproved saves. Before
@@ -9,6 +10,13 @@ this fix, comparing against the current draft value locked in whatever was
 last saved (including a typo) as a new floor, so a user correcting an
 over-bumped draft version (e.g. 0.3 -> 0.2, still well above the 0.1 that was
 actually approved) was permanently blocked.
+
+The fix is a single versionFloorError() helper called from both
+PUT .../content AND PUT .../metadata (review finding F1 on this PR): the
+metadata endpoint is what the document header's own version field uses
+(Documents.vue saveVersion), and it whitelisted `version` with no comparison
+at all — enforcing the floor on only one of the two writers would have made it
+advisory rather than real.
 """
 import uuid
 import requests
@@ -96,3 +104,66 @@ class TestVersionDowngradeGuardComparesAgainstApprovedFloor:
         r = requests.put(f"{api_url}/documents/{DOC}/content", headers=admin_headers,
                          json={"content": BODY, "version": "0.0"})
         assert r.status_code == 400, "setting version below the approved milestone must be rejected"
+
+
+class TestVersionFloorEnforcedOnBothWriters:
+    def test_metadata_endpoint_enforces_the_same_floor_as_content(self, api_url, admin_headers, reader_headers):
+        DOC = f"version-guard-metadata-{uuid.uuid4().hex[:8]}"
+
+        r = requests.post(f"{api_url}/documents", headers=admin_headers, json={
+            "folder": "iso27001", "filename": DOC + ".md",
+            "document_id": DOC, "title": "Version Guard Metadata Test", "content": BODY,
+        })
+        assert r.status_code in (200, 201), r.text
+        r = requests.put(f"{api_url}/documents/{DOC}/content", headers=admin_headers,
+                         json={"content": BODY, "version": "0.1"})
+        assert r.status_code == 200, f"pin initial version: {r.text}"
+        _approve_and_merge(api_url, admin_headers, reader_headers, DOC)
+        # Approved milestone is 0.1.
+
+        # The bypass this test guards against: the document header's version
+        # field (Documents.vue saveVersion) goes through PUT .../metadata, not
+        # .../content — before the fix this endpoint applied any string with
+        # no check, so it could push a version below an approved milestone
+        # (or to anything at all) with no git access needed.
+        r = requests.put(f"{api_url}/documents/{DOC}/metadata", headers=admin_headers,
+                         json={"fields": {"version": "0.0"}})
+        assert r.status_code == 400, \
+            "the metadata endpoint must enforce the same floor as the content endpoint"
+        assert "approved" in r.json()["message"].lower(), \
+            f"error should explain the approved-version floor, got: {r.json()}"
+        assert _current_version(api_url, admin_headers, DOC) == "0.1", \
+            "a rejected metadata update must not have touched the frontmatter"
+
+        # Sanity: a version legitimately above the floor still goes through.
+        r = requests.put(f"{api_url}/documents/{DOC}/metadata", headers=admin_headers,
+                         json={"fields": {"version": "0.5"}})
+        assert r.status_code == 200, f"a version above the floor must still be settable: {r.text}"
+        assert _current_version(api_url, admin_headers, DOC) == "0.5"
+
+    def test_never_approved_document_has_no_floor_on_either_writer(self, api_url, admin_headers):
+        # Documented, intentional widening (review finding F3): a document with
+        # no approval history has nothing to regress past, so both writers
+        # leave it unconstrained — this pins that as the actual contract
+        # rather than an accident, since the old code happened to constrain
+        # this case too (by comparing against the draft value, which every
+        # document has, approved or not).
+        DOC = f"version-guard-never-approved-{uuid.uuid4().hex[:8]}"
+        r = requests.post(f"{api_url}/documents", headers=admin_headers, json={
+            "folder": "iso27001", "filename": DOC + ".md",
+            "document_id": DOC, "title": "Never Approved Version Test", "content": BODY,
+        })
+        assert r.status_code in (200, 201), r.text
+        r = requests.put(f"{api_url}/documents/{DOC}/content", headers=admin_headers,
+                         json={"content": BODY, "version": "0.5"})
+        assert r.status_code == 200, f"pin 0.5: {r.text}"
+
+        r = requests.put(f"{api_url}/documents/{DOC}/content", headers=admin_headers,
+                         json={"content": BODY, "version": "0.1"})
+        assert r.status_code == 200, "a never-approved document has no floor via .../content"
+        assert _current_version(api_url, admin_headers, DOC) == "0.1"
+
+        r = requests.put(f"{api_url}/documents/{DOC}/metadata", headers=admin_headers,
+                         json={"fields": {"version": "0.0"}})
+        assert r.status_code == 200, "a never-approved document has no floor via .../metadata"
+        assert _current_version(api_url, admin_headers, DOC) == "0.0"

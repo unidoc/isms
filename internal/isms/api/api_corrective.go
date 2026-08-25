@@ -150,9 +150,15 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 
 	// Notify assignee if set
 	if ca.Assignee != "" {
-		s.db.CreateNotificationByEmail(ctx, orgID, ca.Assignee,
-			fmt.Sprintf("Corrective action assigned: %s", ca.Title),
-			ca.Description, "/corrective-actions")
+		// No BodyKey: the body is the action's own description, org-authored
+		// content rather than product copy, and must never be translated.
+		s.db.CreateNotificationContentByEmail(ctx, orgID, ca.Assignee, db.NotificationContent{
+			Title:    fmt.Sprintf("Corrective action assigned: %s", ca.Title),
+			TitleKey: "notifications.ca_assigned",
+			Body:     ca.Description,
+			Params:   map[string]any{"title": ca.Title},
+			Link:     "/corrective-actions",
+		})
 		if s.mailer.Enabled() {
 			s.mailer.SendBranded(ca.Assignee,
 				fmt.Sprintf("Corrective Action: %s", ca.Title),
@@ -350,10 +356,14 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	if req.Status == "resolved" {
 		ca, err := s.db.GetCorrectiveAction(ctx, orgID, id)
 		if err == nil {
-			s.db.CreateNotificationByEmail(ctx, orgID, ca.CreatedBy,
-				fmt.Sprintf("Corrective action resolved: %s", ca.Title),
-				fmt.Sprintf("Corrective action #%d has been resolved by %s", id, actor),
-				"/corrective-actions")
+			s.db.CreateNotificationContentByEmail(ctx, orgID, ca.CreatedBy, db.NotificationContent{
+				Title:    fmt.Sprintf("Corrective action resolved: %s", ca.Title),
+				TitleKey: "notifications.ca_resolved",
+				Body:     fmt.Sprintf("Corrective action #%d has been resolved by %s", id, actor),
+				BodyKey:  "notifications.ca_resolved.body",
+				Params:   map[string]any{"title": ca.Title, "id": id, "actor": actor},
+				Link:     "/corrective-actions",
+			})
 		}
 	}
 

@@ -46,3 +46,45 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS locale TEXT;
 INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
     ('default_locale', 'Default language for users who have not chosen one, and for org-wide notifications (BCP 47 tag, e.g. en, id-ID)', 'localization', 'en', false)
 ON CONFLICT (key) DO NOTHING;
+
+-- Keyed notifications (#212). `notifications.title` / `body` are written
+-- pre-rendered in English at 13 call sites, so a row can never be retranslated
+-- once written — there is no key to re-render from. These three columns are the
+-- key, and they are added BEFORE a non-English UI ships rather than after,
+-- because after means real rows exist with nothing to recover from.
+--
+-- title/body deliberately stay populated in English. Three independent reasons,
+-- any one sufficient: historical rows have no keys and must still render;
+-- CreateAgentNotification rows are deliberately English (the MCP
+-- get_pending_actions surface is LLM-facing and translation there is a
+-- non-goal); and it is the fallback whenever a key exists but the client has no
+-- message for it. Same shape as the API-error decision — additive key, the
+-- server keeps a readable English original.
+--
+-- No CHECK tying the keys to a catalog: the catalog lives in the web locale
+-- files and changes with the frontend, not with the schema. A key the client
+-- cannot resolve falls back to `title`, which is exactly the desired failure.
+--
+-- body_key is nullable and often NULL on purpose: several bodies are org
+-- authored content (an incident or corrective-action description, a mention
+-- snippet), not product copy, and must never be translated.
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS title_key TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body_key  TEXT;
+
+-- Bodies with an optional trailing note ("Note: <message>") use two keys, not
+-- one frame with an optional `note` param: the "Note:" label is product copy
+-- the frame owns, so a single frame either renders a dangling label when there
+-- is no note or loses the label's translation. The with-note variant is the
+-- base key plus "_with_note" (notifications.review_requested.body and
+-- notifications.review_requested.body_with_note), and `note` appears in params
+-- only for that variant.
+--
+-- Flat JSON object of interpolation values. Two categories, told apart by key
+-- name so the renderer knows which to translate first: translatable enum-ish
+-- params (status, severity, action, entity, suggestion_type) resolve through
+-- common.enum.* / common.entity.* BEFORE interpolation, and verbatim params
+-- (actor, title, doc_id, version, round, id, note, reason) interpolate as-is
+-- because they are proper nouns, numbers, or user-authored text. Splicing an
+-- untranslated enum into a translated frame yields half-translated output, so
+-- the distinction is load-bearing rather than cosmetic.
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS params JSONB;

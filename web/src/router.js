@@ -164,7 +164,17 @@ router.beforeEach(async (to, from) => {
   // resolves correctly without any change needed there.
   if (!getApiToken() && !cfTried) {
     cfTried = true
-    const cf = await api.cfSession()
+    // Bounded: cfSession() itself swallows every failure and resolves null, but
+    // the underlying fetch has no timeout of its own, so a hung /auth/cf-session
+    // (an overloaded origin, a proxy black-holing the request) would otherwise
+    // hold up first paint on every public route indefinitely — this probe now
+    // runs there too (review finding F5 on #223). 3s is generous for a same-
+    // deployment round trip and short enough that a hang degrades to "not
+    // behind CF Access" rather than a stalled landing page.
+    const cf = await Promise.race([
+      api.cfSession(),
+      new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
+    ])
     if (cf?.token) {
       setApiToken(cf.token)
       if (cf.email) localStorage.setItem('isms_user_email', cf.email)

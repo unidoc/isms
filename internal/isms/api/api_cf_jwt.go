@@ -56,6 +56,17 @@ type cfKeyCache struct {
 	mu               sync.RWMutex
 	lastFetch        time.Time
 	httpClient       *http.Client
+
+	// forceMu/lastForced cool down the unknown-kid forced refresh, separately
+	// from the normal 5-minute throttle. Without this, an unauthenticated
+	// remote can name a random kid on every request and each one bypasses the
+	// throttle and takes mu's exclusive write lock for the full JWKS
+	// round-trip — serializing every legitimate verification behind an
+	// attacker-controlled flood (review finding on #223). A dedicated mutex
+	// (rather than reusing mu) means checking the cooldown never contends with
+	// the RLock a normal verification takes.
+	forceMu    sync.Mutex
+	lastForced time.Time
 }
 
 func newCFKeyCache(teamDomain, audience string) *cfKeyCache {
@@ -91,7 +102,14 @@ type cfJWK struct {
 
 // fetchKeys refreshes the JWKS. Rate-limited to at most once every 5 minutes for
 // normal operation, but callers can pass force to bypass the throttle when they
-// see a kid the current cache doesn't know about.
+// see a kid the current cache doesn't know about (guard the force path with
+// tryForceRefresh, not this directly — see its comment).
+//
+// On any failure — network error, non-200 status, bad JSON — the existing cache
+// is left untouched rather than replaced with an empty map: a transient CF
+// outage or a captive-portal-style error page must not wipe out a previously
+// good key set, and would otherwise also mean every subsequent request retries
+// the fetch (len(c.keys)==0 defeats the normal-path throttle too).
 func (c *cfKeyCache) fetchKeys(force bool) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -105,6 +123,10 @@ func (c *cfKeyCache) fetchKeys(force bool) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("CF Access certs endpoint returned %s", resp.Status)
+	}
 
 	var jwks cfJWKS
 	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
@@ -159,6 +181,37 @@ func (c *cfKeyCache) fetchKeys(force bool) error {
 	return nil
 }
 
+// forceRefreshCooldown bounds how often an unknown kid can trigger a forced
+// JWKS refetch. Without it, an unauthenticated remote can send a flood of
+// tokens naming random kids, and each one bypasses the normal 5-minute
+// throttle and takes fetchKeys' exclusive write lock for a full outbound
+// round-trip to Cloudflare — serializing every legitimate verification behind
+// attacker-controlled traffic (measured on this fix's PoC: a legitimate
+// verify's latency rose from single-digit milliseconds to over 600ms behind
+// eight concurrent flood requests). Capping the forced path is correct for
+// both real cases: an attacker's garbage kid should fail fast rather than
+// queue more fetches, and a genuine key rotation only needs the first miss
+// after it to trigger one refetch — the rest of a burst reuses that result.
+const forceRefreshCooldown = 30 * time.Second
+
+// tryForceRefresh attempts one forced JWKS refetch, but at most once per
+// forceRefreshCooldown regardless of how many callers ask concurrently. The
+// cooldown check uses its own mutex rather than c.mu, so it never contends
+// with the RLock a normal verification takes. Reports whether a refresh
+// actually ran; when it didn't (still cooling down), the caller falls through
+// to whatever is already cached.
+func (c *cfKeyCache) tryForceRefresh() (ran bool, err error) {
+	c.forceMu.Lock()
+	if time.Since(c.lastForced) < forceRefreshCooldown {
+		c.forceMu.Unlock()
+		return false, nil
+	}
+	c.lastForced = time.Now()
+	c.forceMu.Unlock()
+
+	return true, c.fetchKeys(true)
+}
+
 // VerifyJWT parses and cryptographically validates a CF Access JWT. Returns the
 // claims on success. Rejects on any of: malformed JWT, unknown signing key, bad
 // signature, expired, wrong issuer, wrong audience.
@@ -189,14 +242,19 @@ func (c *cfKeyCache) VerifyJWT(token string) (*cfClaims, error) {
 	c.mu.RUnlock()
 	// Unknown kid can mean legitimate key rotation, or the operator pointed us at
 	// the wrong team domain. Force one refresh past the 5-min throttle and try
-	// again before giving up.
+	// again before giving up — but tryForceRefresh caps how often that can
+	// actually happen, so a flood of unknown kids can't turn into a flood of
+	// forced fetches (review finding on #223).
 	if !ok {
-		if err := c.fetchKeys(true); err != nil {
+		ran, err := c.tryForceRefresh()
+		if err != nil {
 			return nil, fmt.Errorf("refreshing CF Access keys after kid miss: %w", err)
 		}
-		c.mu.RLock()
-		key, ok = c.keys[header.Kid]
-		c.mu.RUnlock()
+		if ran {
+			c.mu.RLock()
+			key, ok = c.keys[header.Kid]
+			c.mu.RUnlock()
+		}
 	}
 	if !ok {
 		var peek struct {

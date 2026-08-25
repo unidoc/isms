@@ -8,13 +8,22 @@
 // cfTried/sessionValidated closure, matching the harness style already used in
 // this file's own history for the same class of guard-ordering bug.
 //
+// Caveat (review finding F4 on #223): this is a COPY of the guard body, not an
+// import of it — the real router.js calls createWebHistory() and imports .vue
+// components at module scope, which this harness can't load under `node --test`.
+// That means a future edit that reorders the real guard leaves this test green;
+// the copy stays internally consistent on its own terms. It documents and
+// pins the intended ordering, it does not enforce it against the shipped file.
+// The fix — extracting the guard into an exported factory both router.js and
+// this test consume — is a larger change, deliberately deferred.
+//
 // The bug this guards against: every entry point a fresh, not-yet-locally-
 // authenticated visitor actually lands on — '/', '/login', '/<org>/login' — is
 // meta.public. The probe used to live AFTER the meta.public early-return, so it
 // never ran for any of them: a Cloudflare-Access-authenticated visitor with no
 // local token got told they were logged out, and the only way in was to already
 // know to type a non-public URL (e.g. /organizations) by hand — reported live
-// against isms.nanitor.net.
+// against a self-hosted Cloudflare Access deployment.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -35,15 +44,18 @@ function buildRoutes(subdomainMode) {
 
 // `cfResult`: what the fake api.cfSession() resolves to (null = not behind CF
 // Access, or CF Access rejected the request — the real cfSession() swallows
-// every failure this way, per web/src/api.js).
-function makeRouter({ subdomainMode = false, cfResult = null } = {}) {
+// every failure this way, per web/src/api.js). `cfSession`, if given, replaces
+// the fake entirely — used to simulate a hang. `probeTimeoutMs` mirrors the
+// real guard's Promise.race bound (production uses 3000ms; tests override it
+// to keep the hang case fast).
+function makeRouter({ subdomainMode = false, cfResult = null, cfSession = null, probeTimeoutMs = 3000 } = {}) {
   const store = {}
   const getApiToken = () => store.isms_api_token || ''
   const setApiToken = (t) => {
     store.isms_api_token = t
   }
   const localStorageStub = { setItem: (k, v) => (store[k] = v) }
-  const api = { cfSession: async () => cfResult }
+  const api = { cfSession: cfSession ?? (async () => cfResult) }
   const orgFromSubdomain = () => (subdomainMode ? 'acme' : null)
 
   const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes(subdomainMode) })
@@ -54,7 +66,12 @@ function makeRouter({ subdomainMode = false, cfResult = null } = {}) {
   router.beforeEach(async (to) => {
     if (!getApiToken() && !cfTried) {
       cfTried = true
-      const cf = await api.cfSession()
+      // Bounded the same way the real guard is (review finding F5 on #223): a
+      // hung cfSession() must not hold up a public route's first paint forever.
+      const cf = await Promise.race([
+        api.cfSession(),
+        new Promise((resolve) => setTimeout(() => resolve(null), probeTimeoutMs)),
+      ])
       if (cf?.token) {
         setApiToken(cf.token)
         if (cf.email) localStorageStub.setItem('isms_user_email', cf.email)
@@ -132,6 +149,16 @@ test('the probe fires at most once per page load, even across several navigation
   await router.push('/login')
   await router.push('/')
   assert.equal(calls, 1)
+})
+
+test('a hung cf-session probe degrades to "not logged in" instead of blocking navigation forever', async () => {
+  const { router, getApiToken } = makeRouter({
+    cfSession: () => new Promise(() => {}), // never resolves
+    probeTimeoutMs: 20,
+  })
+  await router.push('/')
+  assert.equal(getApiToken(), '', 'a hang must not be mistaken for a successful login')
+  assert.equal(router.currentRoute.value.path, '/', 'the public route still renders instead of hanging')
 })
 
 test('subdomain mode: /organizations with no token also gets the probe before redirecting to /login', async () => {

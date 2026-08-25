@@ -1,8 +1,25 @@
 #!/bin/sh
-
+#
 # PROVIDE: isms
 # REQUIRE: cleanvar DAEMON NETWORKING
 # KEYWORD: shutdown
+#
+# rc.d service script for ISMS. Copy to /usr/local/etc/rc.d/isms (chmod +x),
+# then enable in rc.conf:
+#
+#   sysrc isms_enable=YES
+#   service isms start
+#
+# Configuration is read from an environment file (KEY=VALUE lines) — see
+# isms.env.sample. Required at minimum: DATABASE_URL, ISMS_DATA_DIR,
+# ISMS_STORAGE_BACKEND and ISMS_TEMPLATE_PATH.
+#
+# rc.conf variables (defaults shown):
+#   isms_enable="NO"
+#   isms_user="isms"                            # user to run as
+#   isms_env_file="/opt/isms/etc/server.env"    # DATABASE_URL / ISMS_* config
+#   isms_logfile="/var/log/isms.log"             # daemon(8) -o target
+#   isms_args="server serve"                    # isms subcommand + flags
 
 . /etc/rc.subr
 
@@ -15,29 +32,32 @@ load_rc_config "$name"
 : ${isms_user:="isms"}
 : ${isms_env_file:="/opt/isms/etc/server.env"}
 : ${isms_logfile:="/var/log/isms.log"}
+: ${isms_args:="server serve"}
 
-command="/opt/isms/bin/isms"
-pidfile="/var/run/isms.pid"
+pidfile="/var/run/${name}.pid"
+procname="/opt/isms/bin/${name}"
+command="/usr/sbin/daemon"
+# -f: detach; -r: restart the child if it exits (a panic, an OOM kill, a
+# transient DB failure at startup must not leave the service down until
+# someone notices); -o: forward stdout/stderr to isms_logfile (without it, -f
+# sends output to /dev/null and a failed start is undiagnosable).
+command_args="-f -r -o ${isms_logfile} -p ${pidfile} -u ${isms_user} ${procname} ${isms_args}"
 
-start_cmd="isms_start"
-
-isms_start()
+start_precmd="isms_precmd"
+isms_precmd()
 {
-        if [ ! -r "$isms_env_file" ]; then
-                err 1 "$isms_env_file is not readable"
-        fi
-
-        set -a
-        . "$isms_env_file"
-        set +a
-
-        /usr/sbin/daemon \
-                -p "$pidfile" \
-                -o "$isms_logfile" \
-                -u "$isms_user" \
-                "$command" \
-                server serve
+	# Refuse to start on a missing/unreadable env file rather than launching
+	# with an empty environment and failing confusingly downstream.
+	if [ ! -r "${isms_env_file}" ]; then
+		err 1 "${isms_env_file} is not readable"
+	fi
+	# Load DATABASE_URL/ISMS_* config into the environment; daemon(8) inherits
+	# it and passes it through to the isms process.
+	set -a
+	. "${isms_env_file}"
+	set +a
+	# daemon writes the pidfile as isms_user — make sure it can.
+	install -o "${isms_user}" -g wheel -m 644 /dev/null "${pidfile}" 2>/dev/null || true
 }
 
 run_rc_command "$1"
-

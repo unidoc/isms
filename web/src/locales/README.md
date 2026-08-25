@@ -21,8 +21,9 @@ Area files arrive with the PR that extracts their view, because extraction is on
 PR per view and a single `en.json` would make them all collide on one file.
 
 Adding an **area**: one JSON file plus one import line in `index.js`.
-Adding a **locale**: copy `en/`, translate the values, register the loader — see
-[`docs/i18n.md`](../../../docs/i18n.md).
+Adding a **locale**: register the tag server-side in
+`internal/isms/i18n/locale.go`, copy `en/`, translate the values, register the
+loader — see [`docs/i18n.md`](../../../docs/i18n.md).
 
 ## Key convention
 
@@ -52,8 +53,8 @@ nothing else needs to do it.
 **Never build a sentence from fragments.** Word order is language-specific.
 
 ```js
-t('risks.owner_assigned', { name })   // ✅ one key, interpolated
-t('risks.owner') + ' ' + name          // ❌ unreachable in most languages
+t('risks.detail.owner_assigned', { name })      // ✅ one key, interpolated
+t('risks.detail.owner') + ' ' + name            // ❌ unreachable in most languages
 ```
 
 **Interpolated entity and field names must themselves be translated.** An API

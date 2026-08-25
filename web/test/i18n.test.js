@@ -46,6 +46,32 @@ test('negotiate returns null rather than guessing', () => {
   assert.equal(negotiate(42, available), null)
 })
 
+test('negotiate does not fall back for an over-specified or malformed tag', () => {
+  // The fallback means "any region of this language will do". A tag naming a
+  // script, variant or extension is asking for something specific, so answering
+  // it with a regional bundle would be a guess. Same rule the Go Canonical()
+  // enforces; these are its own test-table cases.
+  const available = ['en', 'id-ID']
+  assert.equal(negotiate('id-Latn-ID-x-junk', available), null)
+  assert.equal(negotiate('id-ID-2', available), null)
+  assert.equal(negotiate('id-!!!', available), null)
+  assert.equal(negotiate('pt-!!!', ['en', 'pt-PT']), null)
+  // The 4-alpha primary subtag is reserved; no real language uses it.
+  assert.equal(negotiate('idxx-ID', available), null)
+  // The simple forms the fallback does serve keep working.
+  assert.equal(negotiate('id-SG', available), 'id-ID')
+  assert.equal(negotiate('id_ID', available), 'id-ID')
+})
+
+test('loadable locales always include the bundled fallback', () => {
+  // A server list that omits `en` must not empty the set: `en` is bundled, so it
+  // is always renderable, and a picker built from this function would otherwise
+  // have no options.
+  withServerLocales([{ tag: 'id-ID', name: 'Bahasa Indonesia' }], () => {
+    assert.deepEqual(loadableLocales(), ['en'])
+  })
+})
+
 test('loadable locales exclude a server tag this build cannot render', () => {
   // A newer server advertising a locale whose chunk does not exist in this
   // bundle must not become selectable — that renders raw keys.
@@ -56,7 +82,7 @@ test('loadable locales exclude a server tag this build cannot render', () => {
 
 test('supported locales survive a malformed /config payload', () => {
   withServerLocales(null, () => assert.deepEqual(supportedLocales(), []))
-  withServerLocales([{ name: 'no tag' }, null], () => {
+  withServerLocales([{ name: 'no tag' }, null, { tag: 42 }, { tag: '  ' }], () => {
     assert.deepEqual(supportedLocales(), [])
   })
 })

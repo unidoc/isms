@@ -46,7 +46,11 @@ being formatted or de-slugged inline, because neither survives translation.
   language.
 
 Translations are very welcome, and adding one needs no architectural change:
-copy `web/src/locales/en/`, translate the values, register one loader line.
+register the tag and its endonym in `internal/isms/i18n/locale.go` — the server's
+supported map is the single source of truth, and a locale missing from it never
+reaches the picker — then copy `web/src/locales/en/`, translate the values, and
+add one loader line. [`docs/i18n.md`](docs/i18n.md#adding-a-locale) has the full
+steps.
 
 ## License
 

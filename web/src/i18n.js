@@ -33,7 +33,11 @@ export const loaders = {
 let serverLocales = []
 
 export function setSupportedLocales(locales) {
-  serverLocales = Array.isArray(locales) ? locales.filter((l) => l && l.tag) : []
+  // Validate at the boundary rather than leaning on a downstream filter to
+  // reject a malformed entry: a settings parser owes its callers a clean set.
+  serverLocales = Array.isArray(locales)
+    ? locales.filter((l) => l && typeof l.tag === 'string' && l.tag.trim() !== '')
+    : []
 }
 
 export function supportedLocales() {
@@ -46,7 +50,12 @@ export function supportedLocales() {
 export function loadableLocales() {
   const advertised = serverLocales.map((l) => l.tag)
   const tags = advertised.length ? advertised : [FALLBACK, ...Object.keys(loaders)]
-  return tags.filter((t) => t === FALLBACK || Object.hasOwn(loaders, t))
+  // FALLBACK is always renderable — it is bundled — so it belongs in the result
+  // whether or not the server advertised it. Without this a server list that
+  // omits `en` empties the set, and a consumer building a picker from it (the
+  // one documented use) would show no options at all.
+  const renderable = tags.filter((t) => t !== FALLBACK && Object.hasOwn(loaders, t))
+  return [FALLBACK, ...new Set(renderable)]
 }
 
 export const i18n = createI18n({
@@ -65,16 +74,31 @@ export const i18n = createI18n({
 export const t = i18n.global.t
 export const te = i18n.global.te
 
+// The shape a tag must have to be eligible for the primary-subtag fallback: a
+// language, and at most one region. Mirrors the restriction in the Go
+// Canonical() — the fallback answers "any region of this language will do", and
+// a tag naming a script, variant or extension is not asking that. Deliberately
+// stricter than BCP 47: 'id-Latn-ID-x-junk' is perfectly well-formed, and that
+// is exactly the input that must not silently reduce to 'id'. The 4-alpha
+// primary subtag is reserved and excluded, as it is server-side.
+const SIMPLE_TAG = /^[a-z]{2,3}(-[a-z0-9]{1,8})?$|^[a-z]{5,8}(-[a-z0-9]{1,8})?$/
+
 // Region-tolerant match of a requested tag against what this build can render:
 // an exact hit first, then the same primary subtag ('id' -> 'id-ID', 'pt-BR' ->
 // 'pt'). Returns null when nothing matches, so callers can fall through the
 // precedence chain rather than being handed a wrong locale.
+//
+// navigator.languages and a stored tag are uncontrolled input, so the fallback
+// is gated on SIMPLE_TAG: an over-specified or malformed tag falls through to
+// the next signal instead of being answered with a guess.
 export function negotiate(tag, available = loadableLocales()) {
   if (!tag || typeof tag !== 'string') return null
-  const want = tag.trim().toLowerCase()
+  // BCP 47 uses '-', but Unix locale strings and some headers use '_' (id_ID).
+  const want = tag.trim().toLowerCase().replaceAll('_', '-')
   if (!want) return null
   const exact = available.find((a) => a.toLowerCase() === want)
   if (exact) return exact
+  if (!SIMPLE_TAG.test(want)) return null
   const base = want.split('-')[0]
   return available.find((a) => a.toLowerCase().split('-')[0] === base) ?? null
 }

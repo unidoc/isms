@@ -176,7 +176,10 @@
 import { ref, onMounted } from 'vue'
 import api from '../api'
 
-const brandName = ref('isms.sh')
+// Seed from the current hostname synchronously so a self-hosted deployment
+// doesn't flash "isms.sh" in the top-left while /api/v1/config resolves the
+// branded name.
+const brandName = ref(typeof window !== 'undefined' ? window.location.hostname : 'isms.sh')
 const brandFooter = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)

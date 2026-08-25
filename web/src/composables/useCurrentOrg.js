@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 // Internal router handle for use OUTSIDE Vue component setup (e.g. global
@@ -27,7 +27,7 @@ const _apexHosts = new Set([
 // a <meta name="isms-apex"> tag (see server.go SPA handler). Host classification
 // runs at module-import time — in router.js and App.vue setup — which is BEFORE
 // the async /api/v1/config fetch calls setApexHost(). Without this synchronous
-// seed, a self-hosted apex on a non-isms.sh domain (e.g. isms.stsplatform.com)
+// seed, a self-hosted apex on a non-isms.sh domain (e.g. isms.example.com)
 // is misclassified as a tenant subdomain "isms" on boot.
 //
 // A meta tag (not an inline <script>) is used deliberately: the server's CSP is
@@ -143,11 +143,12 @@ export function apexDomainFromHost(hostname) {
 /**
  * Server-reported flag (from /api/v1/config) — whether this deployment
  * serves tenant orgs on wildcard subdomains. Set by setSubdomainRouting().
- * Default null (unknown) — callers that need a deterministic value should
- * await ensureConfigLoaded() before navigating, otherwise orgEntryURL
- * conservatively falls back to path-based.
+ * Default null (unknown); orgEntryURL falls back to path-based when unknown.
+ * Reactive so templates can gate multi-org UI (org switcher, "create new
+ * organization" link) on it — false means the deployment serves one org at
+ * its base URL (ISMS_SUBDOMAIN_ROUTING=0), so those affordances stay hidden.
  */
-let _subdomainRoutingEnabled = null
+const _subdomainRoutingEnabled = ref(null)
 
 let _configPromise = null
 
@@ -164,7 +165,16 @@ export function ensureConfigLoaded(loader) {
 }
 
 export function setSubdomainRouting(enabled) {
-  _subdomainRoutingEnabled = !!enabled
+  _subdomainRoutingEnabled.value = !!enabled
+}
+
+/**
+ * Reactive read of the server-reported subdomain-routing flag. Returns the
+ * ref so templates can `v-if="subdomainRouting"` and see it flip once
+ * /api/v1/config resolves.
+ */
+export function subdomainRouting() {
+  return _subdomainRoutingEnabled
 }
 
 /**
@@ -186,7 +196,7 @@ export function orgEntryURL(slug, suffix) {
   // Safe-fallback: if config hasn't resolved yet, assume path-based. Demo /
   // dev deployments break with the wrong default; production stays on path
   // until config arrives, then switches behaviour for subsequent navigations.
-  if (_subdomainRoutingEnabled !== true) return '/' + slug + path
+  if (_subdomainRoutingEnabled.value !== true) return '/' + slug + path
   const host = window.location.hostname
   const apex = apexDomainFromHost(host)
   if (!apex) return '/' + slug + path // localhost / IP / single-label

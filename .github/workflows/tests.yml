@@ -107,6 +107,11 @@ jobs:
           cd web && npm ci && npm run build
           cd .. && mkdir -p cmd/isms/web/dist && cp -r web/dist/* cmd/isms/web/dist/
 
+      - name: Web unit tests
+        # web/package.json's "test" script (node --test) already exists and
+        # passes locally; it was never wired into CI, so it never ran (#223).
+        run: cd web && npm test
+
       - name: Install test dependencies
         run: |
           python3 -m venv .venv

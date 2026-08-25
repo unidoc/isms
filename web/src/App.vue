@@ -405,7 +405,7 @@
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="org.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-500/20 text-slate-400'">{{ org.role }}</span>
                   </button>
                 </div>
-                <div v-if="!subdomainBound && subdomainRoutingEnabled" class="border-t border-slate-800 py-1">
+                <div v-if="!subdomainBound && otherOrgs.length > 0" class="border-t border-slate-800 py-1">
                   <router-link to="/organizations" @click="showOrgMenu = false" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
                     Switch organization
@@ -541,9 +541,19 @@ const {
 // "create new org" link. Used to hide multi-org UI surfaces below.
 const subdomainBound = isSubdomainMode()
 
-// Server flag from /api/v1/config (ISMS_SUBDOMAIN_ROUTING). false → this
-// deployment serves ONE org at its base URL, so the "Switch organization" /
-// "Create new organization" affordances make no sense and stay hidden.
+// Server flag from /api/v1/config (ISMS_SUBDOMAIN_ROUTING) — whether this
+// deployment's apex can host tenants on wildcard subdomains at all. Only
+// governs "Create new organization": self-serve org creation is a SaaS
+// (isms.sh) affordance, not something a self-hosted single-tenant deployment
+// exposes even after it grows a second org via the CLI.
+//
+// It must NOT gate "Switch organization" (below) — that's an authorization
+// fact (does this user have another org to switch to), not an infrastructure
+// one. A self-hosted apex with subdomain routing permanently off can still
+// legitimately serve two orgs path-based (isms.example.com/org1,
+// isms.example.com/org2); gating the switcher on this flag would hide a real,
+// reachable org the moment that happens. otherOrgs.length is the right signal
+// for that and already updates reactively as membership changes.
 // Reactive: flips when /config resolves after boot.
 const subdomainRoutingEnabled = subdomainRouting()
 

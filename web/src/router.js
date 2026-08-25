@@ -148,6 +148,30 @@ router.beforeEach(async (to, from) => {
     }
   }
 
+  // Cloudflare Access probe — try once per page load, BEFORE any route-type
+  // decision (including meta.public) is made. This used to sit after the
+  // meta.public check below, which meant it never ran on the routes a fresh
+  // visitor actually lands on: the root, /login, and /<org>/login are ALL
+  // meta.public, so a CF-Access-authenticated visitor with no local token
+  // could land on any entry point, get told "you're not logged in", and never
+  // once have the CF identity checked — the only way in was to already know to
+  // type a non-public URL like /organizations by hand. Running the probe
+  // unconditionally here means getApiToken() is accurate by the time the
+  // meta.public branch runs, so it routes a freshly-minted session into the
+  // app the same way it already does for a token that was there beforehand.
+  // Login.vue's own onMounted separately redirects an already-authenticated
+  // visitor away from the form, so landing on /login with a fresh token still
+  // resolves correctly without any change needed there.
+  if (!getApiToken() && !cfTried) {
+    cfTried = true
+    const cf = await api.cfSession()
+    if (cf?.token) {
+      setApiToken(cf.token)
+      if (cf.email) localStorage.setItem('isms_user_email', cf.email)
+      if (cf.name) localStorage.setItem('isms_user_name', cf.name)
+    }
+  }
+
   // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
   // the org picker should never be reachable from there. Stale-token refreshes
   // would otherwise leak the user's other org memberships into the verkis UI.
@@ -168,20 +192,7 @@ router.beforeEach(async (to, from) => {
   }
 
   if (!getApiToken()) {
-    // No local token — but if we're behind Cloudflare Access, the server can
-    // mint a session from the CF identity (no ISMS login needed). Try once.
-    if (!cfTried) {
-      cfTried = true
-      const cf = await api.cfSession()
-      if (cf?.token) {
-        setApiToken(cf.token)
-        if (cf.email) localStorage.setItem('isms_user_email', cf.email)
-        if (cf.name) localStorage.setItem('isms_user_name', cf.name)
-      }
-    }
-    if (!getApiToken()) {
-      return { path: '/login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : undefined }
-    }
+    return { path: '/login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : undefined }
   }
 
   if (!sessionValidated) {

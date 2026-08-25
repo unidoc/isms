@@ -12,7 +12,7 @@ Thank you for your interest in contributing.
 ## Development Setup
 
 - Go 1.22+
-- Node.js 20+ (for web UI)
+- Node.js 22+ (for web UI)
 - PostgreSQL 14+
 
 Build the binary:
@@ -32,6 +32,25 @@ pytest tests/ -v
 - **Go** — `go fmt` and `go vet` on all code.
 - **Web UI** — Vue 3 single-file components with Tailwind CSS. Follow existing conventions.
 - Keep commits focused. One logical change per commit.
+
+## User-Facing Strings
+
+Every string a user reads in the web UI belongs in a locale file under
+`web/src/locales/`, not in a component. The same goes for dates, numbers and
+enum labels — those go through `useFormat()` and `useEnumLabel()` rather than
+being formatted or de-slugged inline, because neither survives translation.
+
+- [`web/src/locales/README.md`](web/src/locales/README.md) — the key naming
+  convention and the rules for writing translatable copy.
+- [`docs/i18n.md`](docs/i18n.md) — how locale resolution works and how to add a
+  language.
+
+Translations are very welcome, and adding one needs no architectural change:
+register the tag and its endonym in `internal/isms/i18n/locale.go` — the server's
+supported map is the single source of truth, and a locale missing from it never
+reaches the picker — then copy `web/src/locales/en/`, translate the values, and
+add one loader line. [`docs/i18n.md`](docs/i18n.md#adding-a-locale) has the full
+steps.
 
 ## License
 

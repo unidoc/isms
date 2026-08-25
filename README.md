@@ -112,7 +112,7 @@ See [Architecture](docs/architecture.md) for details on the core vs templates sp
 
 - Go 1.25+
 - PostgreSQL 14+
-- Node.js 20+ (for web UI development)
+- Node.js 22+ (for web UI development)
 
 ### Build
 

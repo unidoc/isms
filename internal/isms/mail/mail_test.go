@@ -14,7 +14,7 @@ func TestResolveFrom(t *testing.T) {
 	const addr = "noreply@isms.sh"
 
 	t.Run("no brand keeps SMTP_FROM verbatim", func(t *testing.T) {
-		configFrom := `"CommandVector" <` + addr + `>`
+		configFrom := `"Operator Inc" <` + addr + `>`
 		header, envelope := resolveFrom(configFrom, "")
 		if header != configFrom {
 			t.Errorf("header = %q, want unchanged %q", header, configFrom)
@@ -26,10 +26,10 @@ func TestResolveFrom(t *testing.T) {
 
 	t.Run("brand overrides the operator display name", func(t *testing.T) {
 		// The operator's SMTP_FROM carries their own brand; a tenant must not see it.
-		configFrom := `"CommandVector" <` + addr + `>`
-		header, envelope := resolveFrom(configFrom, "STS Audit ehf")
+		configFrom := `"Operator Inc" <` + addr + `>`
+		header, envelope := resolveFrom(configFrom, "Acme Audit ehf")
 
-		if strings.Contains(header, "CommandVector") {
+		if strings.Contains(header, "Operator Inc") {
 			t.Fatalf("LEAK: operator display name present in tenant From header: %q", header)
 		}
 		if envelope != addr {
@@ -41,8 +41,8 @@ func TestResolveFrom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("From header does not parse: %q: %v", header, err)
 		}
-		if parsed.Name != "STS Audit ehf" {
-			t.Errorf("display name = %q, want %q", parsed.Name, "STS Audit ehf")
+		if parsed.Name != "Acme Audit ehf" {
+			t.Errorf("display name = %q, want %q", parsed.Name, "Acme Audit ehf")
 		}
 		if parsed.Address != addr {
 			t.Errorf("address = %q, want %q", parsed.Address, addr)
@@ -84,7 +84,7 @@ func TestBrandingNameFallback(t *testing.T) {
 	if got := (Branding{}).name(); got != "ISMS" {
 		t.Errorf("empty Branding.name() = %q, want %q", got, "ISMS")
 	}
-	if got := (Branding{Name: "STS"}).name(); got != "STS" {
-		t.Errorf("Branding.name() = %q, want %q", got, "STS")
+	if got := (Branding{Name: "Acme"}).name(); got != "Acme" {
+		t.Errorf("Branding.name() = %q, want %q", got, "Acme")
 	}
 }

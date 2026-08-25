@@ -122,7 +122,7 @@ class TestSpaApexInjection:
 
     Without it, host classification runs at module-import time (router.js,
     App.vue) with only the isms.sh seed, so a self-hosted apex on any other
-    domain (e.g. isms.stsplatform.com) is misread as a tenant subdomain "isms".
+    domain (e.g. isms.example.com) is misread as a tenant subdomain "isms".
     The login page then probes a phantom org and 404s on /auth/oidc/providers.
 
     A meta tag is used (not an inline <script>) because the CSP is script-src
@@ -164,6 +164,21 @@ class TestSpaApexInjection:
         r = requests.get(f"{BASE_URL}/login")
         assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
         assert f'<meta name="isms-apex" content="{apex}">' in r.text
+
+    def test_index_html_injects_subdomain_routing_flag(self):
+        """Regression: App.vue's "create new organization" link needs this
+        synchronously — otherwise it stays hidden for the whole session on any
+        page load that skips the /api/v1/config fetch (e.g. landing directly
+        on /organizations, where loadAppData() never calls loadBranding()).
+        Unlike apex_host this is always injected, on or off, so no skip here.
+        """
+        want = "true" if self.cfg.get("subdomain_routing") else "false"
+        r = requests.get(f"{BASE_URL}/")
+        assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
+        marker = f'<meta name="isms-subdomain-routing" content="{want}">'
+        assert marker in r.text, (
+            f"expected {marker!r} injected into index.html"
+        )
 
 
 class TestDocsServedNatively:

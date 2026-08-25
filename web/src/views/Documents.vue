@@ -2779,7 +2779,16 @@ onBeforeUnmount(() => {
 }
 
 .doc-prose :deep(li) {
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.125rem;
+  line-height: 1.55;
+}
+
+/* Loose markdown lists (blank line between items) make marked wrap each item
+   in a <p>, which would otherwise stack the 1rem paragraph margin on top of
+   the list-item spacing — big gap between bullets. Collapse it so loose and
+   tight lists share the same rhythm. */
+.doc-prose :deep(li > p) {
+  margin: 0;
 }
 
 .doc-prose :deep(ul > li) {

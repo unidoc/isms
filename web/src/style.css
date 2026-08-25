@@ -70,7 +70,8 @@
   padding-left: 1.5rem;
 }
 .doc-prose li {
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.125rem;
+  line-height: 1.55;
 }
 .doc-prose ul > li {
   list-style-type: disc;

@@ -176,7 +176,10 @@
 import { ref, onMounted } from 'vue'
 import api from '../api'
 
-const brandName = ref('isms.sh')
+// Neutral seed so a self-hosted deployment doesn't flash "isms.sh" in the
+// top-left while /api/v1/config resolves the branded name — same fallback
+// App.vue's sidebar already uses for orgName.
+const brandName = ref('ISMS')
 const brandFooter = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)

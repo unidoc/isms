@@ -149,10 +149,20 @@ let applySeq = 0
 // value (browser order, org default, fallback) never hardens into stored state
 // that would then outrank the org default on the next visit.
 //
+// One case suppresses the write even with `persist: true`: degrading to FALLBACK
+// because the chunk failed to load. That degrade is a transient failure, not a
+// choice of English, and `stored` outranks navigator.languages in the resolution
+// chain — so writing it would turn one bad network moment or one stale
+// index.html into a permanent silent downgrade that survives the chunk becoming
+// loadable again. Leaving storage untouched lets the next load retry the tag.
+//
 // Returns the applied tag, or null when a newer call superseded this one.
 export async function setLocale(tag, { persist = false } = {}) {
   const seq = ++applySeq
   let locale = negotiate(tag) ?? FALLBACK
+  // Distinguishes "ended up on English because the chunk broke" from every other
+  // route to English, which stay persistable.
+  let loadFailed = false
   if (locale !== FALLBACK && !i18n.global.availableLocales.includes(locale)) {
     try {
       const m = await loaders[locale]()
@@ -161,11 +171,12 @@ export async function setLocale(tag, { persist = false } = {}) {
     } catch {
       if (seq !== applySeq) return null
       locale = FALLBACK // chunk failed to load (offline, bad deploy)
+      loadFailed = true
     }
   }
   i18n.global.locale.value = locale
   if (typeof document !== 'undefined') document.documentElement.lang = locale
-  if (persist) {
+  if (persist && !loadFailed) {
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, locale)
     } catch {

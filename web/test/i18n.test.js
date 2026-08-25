@@ -189,6 +189,47 @@ test('setLocale does not persist a negotiated locale unless asked', async () => 
   }
 })
 
+test('a failed chunk load does not persist the fallback over the stored tag', async () => {
+  // The degrade in setLocale's catch is reachable in production for the first
+  // time now that a locale actually ships a loader. Persisting the FALLBACK it
+  // lands on would be permanent: `stored` outranks navigator.languages, so one
+  // transient chunk failure would pin the user to English across every later
+  // load, long after the chunk became fetchable again.
+  const writes = []
+  const original = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem: () => 'id-ID',
+    setItem: (k, v) => writes.push([k, v]),
+  }
+  // Mock tags, not the real id-ID: loading the shipped bundle would leave it
+  // resident in availableLocales and silently change what later tests exercise.
+  loaders['fr-FR'] = () => Promise.reject(new Error('chunk 404 — stale index.html'))
+  loaders['de-DE'] = async () => ({ default: { common: { action: { save: 'Speichern' } } } })
+  try {
+    assert.equal(await setLocale('fr-FR', { persist: true }), FALLBACK)
+    assert.deepEqual(writes, [], 'a failed load must leave stored state alone')
+    // The app still renders rather than throwing or showing raw keys.
+    assert.equal(i18n.global.t('common.action.save'), 'Save')
+    // The boundary: reaching English any other way is still a real preference.
+    // Choosing it outright...
+    assert.equal(await setLocale('en', { persist: true }), 'en')
+    assert.deepEqual(writes, [[STORAGE_KEY, 'en']])
+    // ...and a load that actually succeeds still persists, so the guard is
+    // scoped to the catch and has not disabled persistence at large.
+    assert.equal(await setLocale('de-DE', { persist: true }), 'de-DE')
+    assert.deepEqual(writes, [
+      [STORAGE_KEY, 'en'],
+      [STORAGE_KEY, 'de-DE'],
+    ])
+  } finally {
+    delete loaders['fr-FR']
+    delete loaders['de-DE']
+    if (original === undefined) delete globalThis.localStorage
+    else globalThis.localStorage = original
+    await setLocale(FALLBACK)
+  }
+})
+
 test('a superseded locale load does not overwrite the newer one', async () => {
   // main.js starts a load without awaiting it; an explicit pick can land while
   // that chunk is still in flight. The slow one must discard itself.

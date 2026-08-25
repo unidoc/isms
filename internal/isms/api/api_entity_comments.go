@@ -76,6 +76,7 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 	// so change-request comments (and every other register) pull members in.
 	s.notifyMentions(ctx, orgID, actor, req.Body,
 		fmt.Sprintf("%s mentioned you in a comment", actor),
+		"notifications.mention_comment",
 		entityLink(req.EntityType, req.EntityID))
 
 	return c.JSON(http.StatusCreated, comment)

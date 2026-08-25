@@ -75,8 +75,10 @@
               </button>
             </div>
 
-            <!-- Create new org — hidden on single-org deployments -->
-            <router-link v-if="subdomainRoutingEnabled" to="/organizations" @click="showOrgMenu = false"
+            <!-- Create new org — hidden on deployments without subdomain routing
+                 (self-serve org creation is a SaaS affordance), and on a tenant
+                 subdomain (router.js bounces /organizations straight back there). -->
+            <router-link v-if="!subdomainBound && subdomainRoutingEnabled" to="/organizations" @click="showOrgMenu = false"
               class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
               Create new organization

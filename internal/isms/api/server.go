@@ -840,10 +840,13 @@ func (s *Server) routes() {
 	}
 	if spaFS != nil {
 		fileServer := http.FileServerFS(spaFS)
-		// serveIndex serves index.html with the deployment's apex host injected
-		// as window.__ISMS_APEX__. The SPA classifies its own hostname (apex vs
-		// tenant subdomain) at module-import time — before /api/v1/config is
-		// fetched — so it needs the apex synchronously. Without this a self-hosted
+		// serveIndex serves index.html with the deployment's apex host and
+		// subdomain-routing flag injected as <meta> tags. Both are needed
+		// synchronously by the SPA: apex classification runs at module-import
+		// time (before /api/v1/config is fetched), and the "create new
+		// organization" link would otherwise stay hidden for an entire session
+		// on any page load that skips the /config fetch (e.g. landing directly
+		// on /organizations). Without the apex seed specifically, a self-hosted
 		// apex like isms.example.com is misread as tenant "isms" on boot.
 		// See web/src/composables/useCurrentOrg.js.
 		serveIndex := func(w http.ResponseWriter) {
@@ -852,15 +855,19 @@ func (s *Server) routes() {
 				http.Error(w, "index.html not found", http.StatusInternalServerError)
 				return
 			}
+			// Inject as <meta> tags, NOT inline <script>: the CSP set below
+			// (script-src 'self') blocks inline scripts, so a script tag would
+			// be silently dropped in production. A meta tag carries the value
+			// without executing JS, so CSP never touches it. html.EscapeString
+			// (not %q, which is Go string-escaping) so a stray quote in the
+			// apex can't break out of the attribute.
+			var inject strings.Builder
 			if s.apexHost != "" {
-				// Inject as a <meta> tag, NOT an inline <script>: the CSP set
-				// below (script-src 'self') blocks inline scripts, so a script
-				// tag would be silently dropped in production. A meta tag carries
-				// the value without executing JS, so CSP never touches it.
-				// html.EscapeString (not %q, which is Go string-escaping) so a
-				// stray quote in the apex can't break out of the attribute.
-				inject := fmt.Sprintf(`<meta name="isms-apex" content="%s"></head>`, html.EscapeString(s.apexHost))
-				data = []byte(strings.Replace(string(data), "</head>", inject, 1))
+				fmt.Fprintf(&inject, `<meta name="isms-apex" content="%s">`, html.EscapeString(s.apexHost))
+			}
+			fmt.Fprintf(&inject, `<meta name="isms-subdomain-routing" content="%t">`, s.subdomainRouting)
+			if inject.Len() > 0 {
+				data = []byte(strings.Replace(string(data), "</head>", inject.String()+"</head>", 1))
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-cache")

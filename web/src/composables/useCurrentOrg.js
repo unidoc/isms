@@ -23,18 +23,34 @@ const _apexHosts = new Set([
   'www.isms.sh',
 ])
 
-// Race-free apex seed: the server injects its own apex host into index.html as
-// a <meta name="isms-apex"> tag (see server.go SPA handler). Host classification
-// runs at module-import time — in router.js and App.vue setup — which is BEFORE
-// the async /api/v1/config fetch calls setApexHost(). Without this synchronous
-// seed, a self-hosted apex on a non-isms.sh domain (e.g. isms.example.com)
-// is misclassified as a tenant subdomain "isms" on boot.
+// Server-reported flag (from /api/v1/config, and synchronously from a <meta>
+// tag below) — whether this deployment serves tenant orgs on wildcard
+// subdomains. Set by setSubdomainRouting(). Reactive so templates can gate
+// multi-org UI ("create new organization" link) on it — false means the
+// deployment serves one org at its base URL (ISMS_SUBDOMAIN_ROUTING=0), so
+// that affordance stays hidden. Default null (unknown) only until the meta
+// seed below runs; orgEntryURL falls back to path-based in that window.
+const _subdomainRoutingEnabled = ref(null)
+
+// Race-free seed: the server injects its own apex host and subdomain-routing
+// flag into index.html as <meta> tags (see server.go SPA handler). Host
+// classification and the create-org link both need these synchronously — the
+// former runs at module-import time (router.js, App.vue setup), which is
+// BEFORE the async /api/v1/config fetch calls setApexHost()/
+// setSubdomainRouting(); the latter would otherwise stay hidden for the whole
+// session on any page load that skips loadBranding() entirely (e.g. landing
+// directly on /organizations — App.vue's loadAppData() never calls it there).
+// Without the apex seed specifically, a self-hosted apex on a non-isms.sh
+// domain (e.g. isms.example.com) is misclassified as a tenant subdomain
+// "isms" on boot.
 //
 // A meta tag (not an inline <script>) is used deliberately: the server's CSP is
 // script-src 'self', which blocks inline scripts — a script tag would never run.
 if (typeof document !== 'undefined') {
   const _apexMeta = document.querySelector('meta[name="isms-apex"]')
   if (_apexMeta && _apexMeta.content) _apexHosts.add(_apexMeta.content.toLowerCase())
+  const _routingMeta = document.querySelector('meta[name="isms-subdomain-routing"]')
+  if (_routingMeta) _subdomainRoutingEnabled.value = _routingMeta.content === 'true'
 }
 
 export function setApexHost(host) {
@@ -139,16 +155,6 @@ export function apexDomainFromHost(hostname) {
   if (host.startsWith('www.')) return host.slice(4)
   return host
 }
-
-/**
- * Server-reported flag (from /api/v1/config) — whether this deployment
- * serves tenant orgs on wildcard subdomains. Set by setSubdomainRouting().
- * Default null (unknown); orgEntryURL falls back to path-based when unknown.
- * Reactive so templates can gate multi-org UI (org switcher, "create new
- * organization" link) on it — false means the deployment serves one org at
- * its base URL (ISMS_SUBDOMAIN_ROUTING=0), so those affordances stay hidden.
- */
-const _subdomainRoutingEnabled = ref(null)
 
 let _configPromise = null
 

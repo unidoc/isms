@@ -165,6 +165,21 @@ class TestSpaApexInjection:
         assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
         assert f'<meta name="isms-apex" content="{apex}">' in r.text
 
+    def test_index_html_injects_subdomain_routing_flag(self):
+        """Regression: App.vue's "create new organization" link needs this
+        synchronously — otherwise it stays hidden for the whole session on any
+        page load that skips the /api/v1/config fetch (e.g. landing directly
+        on /organizations, where loadAppData() never calls loadBranding()).
+        Unlike apex_host this is always injected, on or off, so no skip here.
+        """
+        want = "true" if self.cfg.get("subdomain_routing") else "false"
+        r = requests.get(f"{BASE_URL}/")
+        assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
+        marker = f'<meta name="isms-subdomain-routing" content="{want}">'
+        assert marker in r.text, (
+            f"expected {marker!r} injected into index.html"
+        )
+
 
 class TestDocsServedNatively:
     """Regression guard: /docs is a server-served public path, not an SPA route.

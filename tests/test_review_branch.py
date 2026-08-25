@@ -259,23 +259,56 @@ class TestStaleMergeConflict:
 
 
 class TestDocumentContentSave:
-    """Test that document edit saves content+metadata in one commit."""
+    """Test that document edit saves content+metadata in one commit.
+
+    iso27001-4-1 is a shared scaffold document touched by many test files, so
+    its version only ever climbs across a persistent stack's repeated runs.
+    These tests only care that a version+author save works at all, not which
+    exact number — so they read the document's current version and bump the
+    MAJOR component, which is always strictly above both it and any approved
+    milestone (an approval can never exceed the draft version it was approved
+    from). A hardcoded literal ("1.0", "1.1") would eventually fall behind
+    that climb and start colliding with the approved-version floor.
+    """
+
+    def _next_major(self, api_url, admin_headers):
+        # The floor this PUT must clear is the last APPROVED milestone
+        # (document_versions), which on a persistent stack can outrun the
+        # document's current draft frontmatter — some other test elsewhere in
+        # the suite may have re-scaffolded or otherwise reset iso27001-4-1's
+        # git content to a lower version after an earlier run already
+        # recorded a higher milestone for it. Reading only the draft value
+        # was not enough; take whichever of the two is higher.
+        majors = [0]
+        r = requests.get(f"{api_url}/documents/iso27001-4-1/body", headers=admin_headers)
+        assert r.status_code == 200, f"reading current version: {r.text}"
+        draft = r.json().get("version") or ""
+        if draft:
+            majors.append(int(draft.split(".")[0]))
+        r = requests.get(f"{api_url}/documents/iso27001-4-1/versions", headers=admin_headers)
+        assert r.status_code == 200, f"reading version history: {r.text}"
+        history = r.json().get("data") or []
+        if history:
+            majors.append(int(history[0]["version"].split(".")[0]))
+        return f"{max(majors) + 1}.0"
 
     def test_save_content_with_version_and_author(self, api_url, admin_headers):
         """PUT /documents/:id/content with version+author should work."""
+        v = self._next_major(api_url, admin_headers)
         r = requests.put(f"{api_url}/documents/iso27001-4-1/content",
                          headers=admin_headers,
                          json={"content": "# Test content\n\nUpdated.",
-                               "version": "1.0",
+                               "version": v,
                                "author": "testadmin@isms-test.local"})
         assert r.status_code == 200, f"Save failed: {r.text}"
         assert "commit" in r.json()
 
     def test_metadata_multi_field_update(self, api_url, admin_headers):
         """PUT /documents/:id/metadata with multiple fields in one commit."""
+        v = self._next_major(api_url, admin_headers)
         r = requests.put(f"{api_url}/documents/iso27001-4-1/metadata",
                          headers=admin_headers,
-                         json={"fields": {"version": "1.1", "status": "draft"}})
+                         json={"fields": {"version": v, "status": "draft"}})
         assert r.status_code == 200, f"Metadata update failed: {r.text}"
         assert "commit" in r.json()
 

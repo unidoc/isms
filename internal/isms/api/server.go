@@ -21,6 +21,7 @@ import (
 	"time"
 
 	gowebauthn "github.com/go-webauthn/webauthn/webauthn"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gopkg.in/yaml.v3"
@@ -1372,6 +1373,17 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 		}
 	}
 
+	// This is the second reachable writer of Frontmatter.Version (the other is
+	// PUT .../content) — the floor must be enforced here too, or it is
+	// advisory rather than real: whichever version-edit affordance a user
+	// happens to touch (the editor's save payload vs. the document header's
+	// version field) would otherwise get a different, inconsistent answer.
+	if v, ok := req.Fields["version"]; ok && v != "" {
+		if err := s.versionFloorError(c.Request().Context(), orgID, docID, v); err != nil {
+			return err
+		}
+	}
+
 	st, err := s.storeForOrg(c.Request().Context(), orgID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -1642,9 +1654,8 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 
 	// Update metadata fields if provided
 	if req.Version != "" {
-		// Prevent version downgrade
-		if compareVersions(req.Version, pf.Frontmatter.Version) < 0 {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("cannot lower version from %s to %s", pf.Frontmatter.Version, req.Version))
+		if err := s.versionFloorError(c.Request().Context(), orgID, docID, req.Version); err != nil {
+			return err
 		}
 		pf.Frontmatter.Version = req.Version
 	}
@@ -3161,6 +3172,44 @@ func (s *Server) handleCreateOverdueTasks(c echo.Context) error {
 		Detail: fmt.Sprintf("Created %d review tasks (%d skipped, already existed)", len(result.Created), result.Skipped),
 	})
 	return c.JSON(http.StatusOK, result)
+}
+
+// versionFloorError returns a 400 if v is not strictly above the last
+// approved milestone for docID (a document_versions row, written only on
+// merge/confirm — see CLAUDE.md). A document with no milestone yet (never
+// approved) is unconstrained: nothing has been accepted for its version to
+// regress past.
+//
+// Called from every writer of Frontmatter.Version reachable over the API —
+// PUT .../content and PUT .../metadata both go through this, so the floor
+// cannot be bypassed by picking the other endpoint.
+//
+// A database error other than "no milestone" (pgx.ErrNoRows) is a 500, not a
+// silent skip: this guard exists to enforce a governance invariant, and
+// "the check didn't run because the database hiccuped" must not read as
+// "the check passed".
+//
+// compareVersions reads major.minor only, so a value exactly equal to the
+// milestone (rejected by this <= 0 comparison, not just < 0) also catches a
+// same-major.minor patch component it cannot see — "1.0.1" reads as equal to
+// "1.0.0". No caller in this repo produces a 3-component version today
+// (incrementVersion only ever emits major.minor), so this is unreachable in
+// practice, but it is reachable the moment an operator types one by hand,
+// since the field is a free-form frontmatter string.
+func (s *Server) versionFloorError(ctx context.Context, orgID int, docID, v string) error {
+	latest, err := s.db.LatestVersion(ctx, orgID, docID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "checking version floor: "+err.Error())
+	}
+	if compareVersions(v, latest.Version) <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf(
+			"cannot set version to %s: must be greater than %s, the last approved version (draft version numbers may otherwise move freely)",
+			v, latest.Version))
+	}
+	return nil
 }
 
 // stripFrontmatter removes YAML frontmatter from markdown content.

@@ -69,8 +69,8 @@ func ensureCredentialHelper(repo *git.Repository, remoteURL, token string) error
 // scheme + host (with optional port). That's the scope at which git's
 // credential matching applies — anything under that prefix uses the helper.
 //
-//	https://sts.commandvector.net/git/<uuid>  → https://sts.commandvector.net
-//	https://isms.sh:9443/git/foo              → https://isms.sh:9443
+//	https://acme.isms.sh/git/<uuid>  → https://acme.isms.sh
+//	https://isms.sh:9443/git/foo     → https://isms.sh:9443
 func credentialScopeFromURL(u string) string {
 	// Trim scheme
 	scheme := ""

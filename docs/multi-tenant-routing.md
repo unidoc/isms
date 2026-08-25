@@ -29,7 +29,7 @@ Enabled with `ISMS_SUBDOMAIN_ROUTING=1` plus `ISMS_DOMAIN=<apex>`.
 ### Path mode — `<apex>/<slug>/...`
 
 Org is part of the URL path: `isms.sh/acme/risks`,
-`commandvector.net/verkis/documents`. **The path tells you which org is
+`isms.sh/acme-logistics/documents`. **The path tells you which org is
 active, but the user can switch.**
 
 - The `/organizations` picker is reachable.

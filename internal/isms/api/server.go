@@ -844,7 +844,7 @@ func (s *Server) routes() {
 		// as window.__ISMS_APEX__. The SPA classifies its own hostname (apex vs
 		// tenant subdomain) at module-import time — before /api/v1/config is
 		// fetched — so it needs the apex synchronously. Without this a self-hosted
-		// apex like isms.stsplatform.com is misread as tenant "isms" on boot.
+		// apex like isms.example.com is misread as tenant "isms" on boot.
 		// See web/src/composables/useCurrentOrg.js.
 		serveIndex := func(w http.ResponseWriter) {
 			data, err := fs.ReadFile(spaFS, "index.html")

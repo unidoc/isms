@@ -331,7 +331,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 // Sharing resolveSubdomainHost keeps this decision identical to orgURLs, so the
 // login redirect always lands on the same host the org's other links use.
 func orgTokenRedirectURL(baseURL, slug string, domain *string, token, role string, subdomainRouting bool) string {
-	// Custom domain wins — an org with its own domain (e.g. audit.sts.is) must
+	// Custom domain wins — an org with its own domain (e.g. audit.example.com) must
 	// land its OIDC login there, not on the apex subdomain/path.
 	if domain != nil && *domain != "" {
 		d := *domain

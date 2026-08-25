@@ -182,9 +182,9 @@ router.beforeEach(async (to, from) => {
     }
   }
 
-  // A tenant subdomain (e.g. verkis.commandvector.net) IS the org context —
-  // the org picker should never be reachable from there. Stale-token refreshes
-  // would otherwise leak the user's other org memberships into the verkis UI.
+  // A tenant subdomain (e.g. acme.isms.sh) IS the org context — the org picker
+  // should never be reachable from there. Stale-token refreshes would
+  // otherwise leak the user's other org memberships into the tenant's UI.
   if (to.path === '/organizations' && orgFromSubdomain()) {
     return getApiToken() ? { path: '/overview' } : { path: '/login' }
   }

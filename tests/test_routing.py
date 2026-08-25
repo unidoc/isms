@@ -122,7 +122,7 @@ class TestSpaApexInjection:
 
     Without it, host classification runs at module-import time (router.js,
     App.vue) with only the isms.sh seed, so a self-hosted apex on any other
-    domain (e.g. isms.stsplatform.com) is misread as a tenant subdomain "isms".
+    domain (e.g. isms.example.com) is misread as a tenant subdomain "isms".
     The login page then probes a phantom org and 404s on /auth/oidc/providers.
 
     A meta tag is used (not an inline <script>) because the CSP is script-src

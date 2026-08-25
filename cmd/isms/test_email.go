@@ -20,7 +20,7 @@ variables. Useful for confirming Postmark / SendGrid / SES credentials are corre
 before relying on signup verification or review-notification emails.
 
 With --org <slug>, the email is sent the way a tenant's real mail is: the org's
-name becomes the From display name (e.g. "STS" <noreply@host>) while the envelope
+name becomes the From display name (e.g. "Acme" <noreply@host>) while the envelope
 sender stays SMTP_FROM, so SPF/DKIM alignment is preserved. Without --org, the
 raw SMTP_FROM is used as-is. --org needs DATABASE_URL set.
 

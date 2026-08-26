@@ -109,3 +109,54 @@ Copy reused across two or more areas, plus the four cross-cutting groups
 (`enum`, `entity`, `field`, `error`). Everything else belongs to its area, even
 if the English happens to read the same in two places — the translations may
 diverge.
+
+## ISO terminology
+
+The audit vocabulary is the part of this app most easily mistranslated, because
+the wrong choice is always fluent. ISO separates *correction* from *improvement*
+and *conformity* from *compliance*, and a translator who has not audited before
+will reasonably collapse them. Where a national adoption of the standard exists,
+it decides — not general fluency, and not this file.
+
+**Indonesian.** Verified against the bilingual SNI ISO 9001:2015, whose clauses
+4–10 are the Annex SL structure that SNI ISO/IEC 27001:2022 shares verbatim:
+
+| English | Indonesian | Where it comes from |
+|---|---|---|
+| improvement | peningkatan | clause 10 heading |
+| continual improvement | peningkatan berkelanjutan | clause 10.3 heading |
+| opportunity for improvement | **peluang peningkatan** | clause 9.3.2 f, 10.1 a |
+| nonconformity | ketidaksesuaian | clause 10.2 heading |
+| corrective action | tindakan korektif | clause 10.2 heading |
+| conformity | kesesuaian | throughout |
+| objective | sasaran | clause 6.2 (*sasaran mutu*) |
+| monitoring | pemantauan | clause 9.1 heading |
+| review (management) | tinjauan | clause 9.3 heading |
+| internal audit | audit internal | clause 9.2 heading |
+
+Note what the standard does **not** contain: the word *perbaikan* appears
+nowhere in it. *Perbaikan* is correction/repair; improvement is *peningkatan*.
+"Peluang perbaikan" for an opportunity for improvement therefore inverts the one
+distinction the category exists to draw, and was corrected to *peluang
+peningkatan* on that basis.
+
+Also absent: any grading of nonconformities. *Mayor* / *minor* / *observasi* come
+from certification-body practice under ISO/IEC 17021, not from the standard, so
+they follow Indonesian industry usage and no adopted text can arbitrate them.
+
+**Information classification follows the national ladder**, not a literal
+translation. ANRI Perka 7/2016 (and the ministry regulations adopting it) order
+it *Biasa/Terbuka → Terbatas → Rahasia → Sangat Rahasia*, by increasing
+sensitivity. Our `restricted` is the most sensitive level, so it is
+*Sangat Rahasia*; rendering it *Terbatas* put it below *Rahasia* in a reader's
+mind and inverted the hierarchy the colours already communicate.
+
+**When adding a locale**, find the national adoption of ISO/IEC 27001 (or 9001 —
+the shared clauses are identical) and take these terms from it before writing
+anything else. Portuguese has the same trap in the same place: *correção* is not
+*melhoria*.
+
+**Two keys may share a translation.** `suggestion_type.reassess` and
+`suggestion_type.reading` are both *Nilai ulang* because they are the same
+operation — `api_suggestions.go` registers one handler for both. Keep them as
+separate keys; the duplication is the honest encoding.

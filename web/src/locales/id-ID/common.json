@@ -99,7 +99,7 @@
       "public": "Publik",
       "internal": "Internal",
       "confidential": "Rahasia",
-      "restricted": "Terbatas"
+      "restricted": "Sangat Rahasia"
     },
     "audit_result": {
       "not_assessed": "Belum dinilai",
@@ -107,7 +107,7 @@
       "minor_nc": "Ketidaksesuaian minor",
       "major_nc": "Ketidaksesuaian mayor",
       "observation": "Observasi",
-      "opportunity": "Peluang perbaikan"
+      "opportunity": "Peluang peningkatan"
     },
     "action": {
       "applied": "diterapkan",
@@ -119,7 +119,7 @@
       "reassess": "Nilai ulang",
       "link": "Tautkan",
       "review": "Tinjau",
-      "reading": "Bacaan"
+      "reading": "Nilai ulang"
     }
   },
   "error": {},

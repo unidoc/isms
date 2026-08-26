@@ -5,7 +5,7 @@
     :disabled="saving"
     :aria-label="$t('common.locale.label')"
     :class="compact
-      ? 'bg-transparent border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-500 hover:text-slate-300 focus:outline-none transition-colors disabled:opacity-50'
+      ? 'bg-transparent border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 hover:text-slate-200 focus:outline-none transition-colors disabled:opacity-50'
       : 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50'">
     <!-- Only offered when signed in: with no account to store it against,
          "follow the org default" is not a state the user can be in. -->

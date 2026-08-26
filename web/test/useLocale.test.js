@@ -111,6 +111,27 @@ test('no preference means follow the org default, and the picker says so', async
   assert.equal(i18n.global.locale.value, 'id-ID')
 })
 
+test('without an explicit choice, a supported browser language outranks the org default', async (t) => {
+  t.after(reset)
+  clearStored()
+  // The conflict case the previous test cannot reach: the browser names a
+  // locale this build actually ships, and it differs from the org default.
+  navigatorSays('id-ID')
+  await applyConfigLocales({ ...CONFIG, default_locale: 'en' })
+  await applySessionLocale({ locale: 'en', locale_preference: null })
+  const { preference } = useLocale()
+  // Still no preference — following the org default is the absence of a choice,
+  // and in that state precedence step 3 (the browser) beats step 4 (the org).
+  // Deliberate: the server resolves `locale` to the org default because it
+  // cannot see the browser, so applying it directly here would throw away the
+  // better signal and make a browser set to Indonesian unreachable without an
+  // account.
+  assert.equal(preference.value, null)
+  assert.equal(i18n.global.locale.value, 'id-ID')
+  // And nothing is stored: a negotiated guess is not a choice.
+  assert.equal(localStorage.getItem(STORAGE_KEY), null)
+})
+
 test('choosing a locale persists only the locale field', async (t) => {
   t.after(reset)
   const calls = []

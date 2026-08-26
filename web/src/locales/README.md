@@ -74,6 +74,32 @@ Indonesian has no grammatical plural and Portuguese shares English's two-form
 rule, so neither exercises this — which is exactly why it has to be built in
 now, rather than retrofitted when a locale with real plural rules arrives.
 
+## Enum groups
+
+`common.enum.<group>.<db_value>`, and the group name is not free-form:
+
+- **A group a backend notification interpolates is named after the param.** The
+  notification renderer resolves translatable params as
+  `common.enum.<param>.<value>` — so `severity`, `status`, `action` and
+  `suggestion_type` are group names because those are the param names emitted by
+  `internal/isms/api`. The `entity` param is the one exception: it resolves
+  through `common.entity.*`, because an entity name is a noun the whole app
+  reuses rather than a member of an enum.
+- **`status` is one flat group across every register**, not one group per table.
+  Status values are distinct app-wide (`draft`, `investigating`, `awaiting_approval`),
+  and `StatusBadge` receives a bare value with no family attached — the same
+  reason its colour table has always been flat. Its `group` prop names the family
+  for the few callers rendering something else (`classification`, `criticality`,
+  `audit_result`).
+- **Everything else is named after its column**: `suggestion_type` for
+  `suggestions.suggestion_type`, `audit_result` for `audit_items.result`.
+
+If a language ever needs two different translations for one status value —
+Portuguese gender agreement on *aberto* / *aberta*, for instance — splitting the
+flat group is purely additive: add `risk_status.*`, pass `group="risk_status"` at
+those call sites, and leave `status.*` for everyone else. No key is renamed, so
+no in-flight translation is invalidated.
+
 **Key renames are breaking.** They invalidate in-flight translation work across
 every locale. Adding a key is cheap; renaming one is not.
 

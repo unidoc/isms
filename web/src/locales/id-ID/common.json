@@ -12,7 +12,8 @@
   "state": {
     "loading": "Memuat…",
     "empty": "Belum ada apa pun di sini",
-    "error": "Terjadi kesalahan"
+    "error": "Terjadi kesalahan",
+    "unknown": "Tidak diketahui"
   },
   "validation": {
     "required": "Kolom ini wajib diisi"
@@ -21,9 +22,106 @@
     "label": "Bahasa",
     "org_default": "Bawaan organisasi"
   },
-  "entity": {},
+  "entity": {
+    "risk": "Risiko",
+    "supplier": "Pemasok",
+    "incident": "Insiden",
+    "legal_requirement": "Persyaratan hukum",
+    "change_request": "Permintaan perubahan",
+    "corrective_action": "Tindakan korektif",
+    "objective": "Sasaran",
+    "task": "Tugas",
+    "system": "Sistem",
+    "asset": "Aset",
+    "audit": "Audit",
+    "audit_finding": "Temuan audit",
+    "program": "Program",
+    "checkin": "Check-in",
+    "access_review": "Tinjauan akses"
+  },
   "field": {},
-  "enum": {},
+  "enum": {
+    "status": {
+      "draft": "Draf",
+      "open": "Terbuka",
+      "in_review": "Dalam tinjauan",
+      "approved": "Disetujui",
+      "changes_requested": "Perlu perubahan",
+      "proposed_revision": "Usulan revisi",
+      "merged": "Digabungkan",
+      "retired": "Tidak berlaku",
+      "pending": "Menunggu",
+      "accepted": "Diterima",
+      "applied": "Diterapkan",
+      "rejected": "Ditolak",
+      "withdrawn": "Ditarik",
+      "resolved": "Selesai ditangani",
+      "closed": "Ditutup",
+      "investigating": "Sedang diselidiki",
+      "contained": "Terkendali",
+      "todo": "Akan dikerjakan",
+      "in_progress": "Sedang berjalan",
+      "done": "Selesai",
+      "cancelled": "Dibatalkan",
+      "proposed": "Diusulkan",
+      "not_started": "Belum dimulai",
+      "implemented": "Sudah diimplementasikan",
+      "verified": "Terverifikasi",
+      "planned": "Direncanakan",
+      "completed": "Selesai",
+      "active": "Aktif",
+      "at_risk": "Berisiko",
+      "paused": "Dijeda",
+      "complete": "Tuntas",
+      "assessment": "Penilaian",
+      "awaiting_approval": "Menunggu persetujuan",
+      "implementation": "Implementasi",
+      "monitoring": "Pemantauan",
+      "under_review": "Sedang ditinjau",
+      "suspended": "Ditangguhkan",
+      "terminated": "Dihentikan",
+      "decommissioned": "Dinonaktifkan",
+      "archived": "Diarsipkan"
+    },
+    "severity": {
+      "critical": "Kritis",
+      "high": "Tinggi",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "criticality": {
+      "critical": "Kritis",
+      "high": "Tinggi",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "classification": {
+      "public": "Publik",
+      "internal": "Internal",
+      "confidential": "Rahasia",
+      "restricted": "Terbatas"
+    },
+    "audit_result": {
+      "not_assessed": "Belum dinilai",
+      "conforming": "Sesuai",
+      "minor_nc": "Ketidaksesuaian minor",
+      "major_nc": "Ketidaksesuaian mayor",
+      "observation": "Observasi",
+      "opportunity": "Peluang perbaikan"
+    },
+    "action": {
+      "applied": "diterapkan",
+      "rejected": "ditolak"
+    },
+    "suggestion_type": {
+      "create": "Buat",
+      "update": "Perbarui",
+      "reassess": "Nilai ulang",
+      "link": "Tautkan",
+      "review": "Tinjau",
+      "reading": "Bacaan"
+    }
+  },
   "error": {},
   "region": {
     "global": "Global",

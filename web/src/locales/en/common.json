@@ -12,7 +12,8 @@
   "state": {
     "loading": "Loading…",
     "empty": "Nothing here yet",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "unknown": "Unknown"
   },
   "validation": {
     "required": "This field is required"
@@ -21,9 +22,106 @@
     "label": "Language",
     "org_default": "Organization default"
   },
-  "entity": {},
+  "entity": {
+    "risk": "Risk",
+    "supplier": "Supplier",
+    "incident": "Incident",
+    "legal_requirement": "Legal requirement",
+    "change_request": "Change request",
+    "corrective_action": "Corrective action",
+    "objective": "Objective",
+    "task": "Task",
+    "system": "System",
+    "asset": "Asset",
+    "audit": "Audit",
+    "audit_finding": "Audit finding",
+    "program": "Program",
+    "checkin": "Check-in",
+    "access_review": "Access review"
+  },
   "field": {},
-  "enum": {},
+  "enum": {
+    "status": {
+      "draft": "Draft",
+      "open": "Open",
+      "in_review": "In review",
+      "approved": "Approved",
+      "changes_requested": "Changes requested",
+      "proposed_revision": "Proposed revision",
+      "merged": "Merged",
+      "retired": "Retired",
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "applied": "Applied",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "investigating": "Investigating",
+      "contained": "Contained",
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done",
+      "cancelled": "Cancelled",
+      "proposed": "Proposed",
+      "not_started": "Not started",
+      "implemented": "Implemented",
+      "verified": "Verified",
+      "planned": "Planned",
+      "completed": "Completed",
+      "active": "Active",
+      "at_risk": "At risk",
+      "paused": "Paused",
+      "complete": "Complete",
+      "assessment": "Assessment",
+      "awaiting_approval": "Awaiting approval",
+      "implementation": "Implementation",
+      "monitoring": "Monitoring",
+      "under_review": "Under review",
+      "suspended": "Suspended",
+      "terminated": "Terminated",
+      "decommissioned": "Decommissioned",
+      "archived": "Archived"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "criticality": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "classification": {
+      "public": "Public",
+      "internal": "Internal",
+      "confidential": "Confidential",
+      "restricted": "Restricted"
+    },
+    "audit_result": {
+      "not_assessed": "Not assessed",
+      "conforming": "Conforming",
+      "minor_nc": "Minor non-conformity",
+      "major_nc": "Major non-conformity",
+      "observation": "Observation",
+      "opportunity": "Opportunity for improvement"
+    },
+    "action": {
+      "applied": "applied",
+      "rejected": "rejected"
+    },
+    "suggestion_type": {
+      "create": "Create",
+      "update": "Update",
+      "reassess": "Reassess",
+      "link": "Link",
+      "review": "Review",
+      "reading": "Reading"
+    }
+  },
   "error": {},
   "region": {
     "global": "Global",

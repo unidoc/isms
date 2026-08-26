@@ -12,7 +12,9 @@ test('enum labels come from the catalogue, and de-slug only as a fallback', () =
   })
   assert.equal(enumLabel('status', 'in_review'), 'In review')
   // A member the catalogue has not caught up with must not render a raw key.
-  assert.equal(enumLabel('status', 'changes_requested'), 'Changes requested')
+  // Use a value no register defines: every real status is catalogued now, so a
+  // real one would exercise the lookup rather than the fallback.
+  assert.equal(enumLabel('status', 'awaiting_signoff'), 'Awaiting signoff')
   assert.equal(enumLabel('status', null), '')
   assert.equal(enumLabel('status', ''), '')
 })

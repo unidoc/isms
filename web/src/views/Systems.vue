@@ -156,7 +156,7 @@
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-slate-200">{{ sys.name }}</div>
               </td>
-              <td class="px-5 py-3.5"><StatusBadge :status="sys.classification" /></td>
+              <td class="px-5 py-3.5"><StatusBadge :status="sys.classification" group="classification" /></td>
               <td class="px-5 py-3.5">
                 <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium" :class="criticalityColor(sys.criticality)">{{ sys.criticality }}</span>
               </td>
@@ -296,7 +296,7 @@
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Classification</div>
-                          <StatusBadge :status="selectedItem.classification" />
+                          <StatusBadge :status="selectedItem.classification" group="classification" />
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Criticality</div>

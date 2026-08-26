@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { api, getCurrentUser, clearApiToken, setApiToken, setCurrentUser } from '../api'
+import { applyConfigLocales, applySessionLocale } from './useLocale'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
 const user = ref(getCurrentUser())
@@ -83,6 +84,9 @@ export function useSession() {
         }
       }
       currentUserData.value = me
+      // The authenticated half of the locale chain: an explicit choice stored
+      // on the account outranks localStorage and the browser's languages.
+      await applySessionLocale(me)
       if (currentUserData.value?.email) {
         user.value = currentUserData.value.email
       }
@@ -145,6 +149,9 @@ export function useSession() {
   async function loadBranding() {
     try {
       const cfg = await api.getConfig()
+      // Which locales exist, and the org default, both come from the server —
+      // never a hardcoded list.
+      await applyConfigLocales(cfg)
       // Branding settings override org defaults
       if (cfg.branding?.branding_name) {
         orgName.value = cfg.branding.branding_name

@@ -162,11 +162,16 @@
 
     <!-- Footer -->
     <footer class="relative z-10 border-t border-slate-800/50 px-8 py-8 mt-8">
-      <div class="max-w-6xl mx-auto flex items-center justify-between text-sm text-slate-500">
+      <div class="max-w-6xl mx-auto flex items-center justify-between gap-4 text-sm text-slate-500">
         <span>{{ brandFooter }}</span>
-        <span v-if="showPoweredBy">
-          Powered by <a href="https://isms.sh" target="_blank" rel="noopener" class="text-slate-400 hover:text-white transition-colors">isms.sh</a>
-        </span>
+        <div class="flex items-center gap-4">
+          <!-- Pre-login, so the choice is local only: there is no account to save
+               it against yet. -->
+          <LocalePicker :persist="false" compact class="shrink-0" />
+          <span v-if="showPoweredBy">
+            Powered by <a href="https://isms.sh" target="_blank" rel="noopener" class="text-slate-400 hover:text-white transition-colors">isms.sh</a>
+          </span>
+        </div>
       </div>
     </footer>
   </div>
@@ -175,6 +180,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { applyConfigLocales } from '../composables/useLocale'
+import LocalePicker from '../components/LocalePicker.vue'
 
 // Neutral seed so a self-hosted deployment doesn't flash "isms.sh" in the
 // top-left while /api/v1/config resolves the branded name — same fallback
@@ -211,6 +218,7 @@ const frameworks = [
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
+    await applyConfigLocales(cfg)
     if (cfg.branding?.branding_name) {
       brandName.value = cfg.branding.branding_name
     } else if (cfg.organization_name) {

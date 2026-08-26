@@ -17,6 +17,10 @@
   "validation": {
     "required": "Kolom ini wajib diisi"
   },
+  "locale": {
+    "label": "Bahasa",
+    "org_default": "Bawaan organisasi"
+  },
   "entity": {},
   "field": {},
   "enum": {},

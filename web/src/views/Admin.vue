@@ -570,6 +570,18 @@
                   <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                   <span class="ml-3 text-sm text-slate-400">{{ s.value === 'true' ? 'Enabled' : 'Disabled' }}</span>
                 </label>
+                <!-- Locale select. A free-text tag here is a trap: the server 400s an
+                     unrecognised one, and the admin has no way to know what it accepts. -->
+                <select v-else-if="settingType(s) === 'locale'" v-model="s.value"
+                  class="w-64 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                  <!-- Empty is a real, server-accepted value: no org default. -->
+                  <option value="">No default (English)</option>
+                  <option v-for="l in localeOptions" :key="l.tag" :value="l.tag">{{ l.name }}</option>
+                  <!-- A stored tag this build cannot render still has to be shown as the
+                       current value; a select with no matching option would silently
+                       display something other than what is saved. -->
+                  <option v-if="s.value && !localeOptions.some(l => l.tag === s.value)" :value="s.value">{{ s.value }}</option>
+                </select>
                 <!-- Number input -->
                 <input v-else-if="settingType(s) === 'number'" v-model="s.value" type="number" min="0"
                   class="w-32 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
@@ -691,6 +703,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
 import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { useLocale } from '../composables/useLocale'
 
 const route = useRoute()
 const router = useRouter()
@@ -788,6 +801,11 @@ const newProviderMsg = ref('')
 const newProviderError = ref(false)
 
 // Settings
+// Renamed on destructure: `options` is too generic for a 1000-line view. Already
+// seeded by useSession's loadBranding() -> applyConfigLocales on any org page, and
+// it is a ref, so a late /config fill-in reaches the select on its own.
+const { options: localeOptions } = useLocale()
+
 const settings = ref([])
 const settingsMsg = ref('')
 const settingsError = ref(false)
@@ -1104,6 +1122,7 @@ const BRANDING_SETTING_KEYS = new Set([
 const HIDDEN_SETTING_KEYS = new Set(['risk_categories'])
 
 const categoryLabels = {
+  localization: 'Localization',
   notifications: 'Notifications',
   review_cycles: 'Review Cycles',
   risk: 'Risk',
@@ -1122,8 +1141,11 @@ const settingsByCategory = computed(() => {
   return groups
 })
 
-// Infer widget type from setting metadata. Order matters: color > secret > boolean > number > text.
+// Infer widget type from setting metadata. Order matters: locale > color > secret >
+// boolean > number > text. The locale check is by key rather than by value shape —
+// the set of valid tags is known, so this is a choice, not free text.
 function settingType(s) {
+  if (s.key === 'default_locale') return 'locale'
   if (s.key.endsWith('_color')) return 'color'
   if (s.sensitive) return 'secret'
   const v = s.value || s.default_value || ''

@@ -196,6 +196,12 @@
         </div>
       </div>
       </template>
+
+      <!-- Pre-login language choice, so a user can read the app before they have
+           an account. Local only — nothing to persist against yet. -->
+      <div class="mt-8 flex justify-center">
+        <LocalePicker :persist="false" compact />
+      </div>
     </div>
     <div class="fixed bottom-4 left-0 right-0 text-center text-xs text-slate-600">
       <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">Privacy Policy</a>
@@ -213,6 +219,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { login, getApiToken, setApiToken } from '../api'
 import api from '../api'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, canHostSubdomain } from '../composables/useCurrentOrg'
+import { applyConfigLocales } from '../composables/useLocale'
+import LocalePicker from '../components/LocalePicker.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -476,6 +484,7 @@ onMounted(async () => {
   let configOrgSlug = ''
   try {
     const cfg = await api.getConfig()
+    await applyConfigLocales(cfg)
     if (cfg.organization?.name) orgName.value = cfg.organization.name
     if (cfg.organization_name) orgName.value = cfg.organization_name
     if (cfg.branding?.branding_name) orgName.value = cfg.branding.branding_name

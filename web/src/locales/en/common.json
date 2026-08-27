@@ -109,6 +109,12 @@
       "observation": "Observation",
       "opportunity": "Opportunity for improvement"
     },
+    "finding_type": {
+      "major_nc": "Major non-conformity",
+      "minor_nc": "Minor non-conformity",
+      "observation": "Observation",
+      "opportunity": "Opportunity for improvement"
+    },
     "action": {
       "applied": "applied",
       "rejected": "rejected"

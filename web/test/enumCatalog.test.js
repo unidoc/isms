@@ -32,6 +32,10 @@ const GROUPS = {
   criticality: ['critical', 'high', 'medium', 'low'],
   classification: ['public', 'internal', 'confidential', 'restricted'],
   audit_result: ['not_assessed', 'conforming', 'minor_nc', 'major_nc', 'observation', 'opportunity'],
+  // corrective_actions.severity and audit_findings.finding_type share this value
+  // set. It is NOT `severity`: that group is the incident/priority scale, and
+  // two tables happen to have named their column `severity`.
+  finding_type: ['major_nc', 'minor_nc', 'observation', 'opportunity'],
   action: ['applied', 'rejected'],
   suggestion_type: ['create', 'update', 'reassess', 'link', 'review', 'reading'],
 }
@@ -83,6 +87,10 @@ test('labels are looked up per group, so one value can differ by family', async 
   // have told these apart.
   assert.equal(enumLabel('suggestion_type', 'review'), 'Review')
   assert.equal(enumLabel('status', 'in_review'), 'In review')
+  // A column name is not enough to pick a group: `severity` is the incident
+  // scale, while corrective_actions.severity holds the finding taxonomy.
+  assert.equal(enumLabel('severity', 'critical'), 'Critical')
+  assert.equal(enumLabel('finding_type', 'major_nc'), 'Major non-conformity')
 })
 
 test('a lagging locale falls back to the English label, not to de-slugging', () => {

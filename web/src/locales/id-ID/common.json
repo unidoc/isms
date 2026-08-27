@@ -109,6 +109,12 @@
       "observation": "Observasi",
       "opportunity": "Peluang peningkatan"
     },
+    "finding_type": {
+      "major_nc": "Ketidaksesuaian mayor",
+      "minor_nc": "Ketidaksesuaian minor",
+      "observation": "Observasi",
+      "opportunity": "Peluang peningkatan"
+    },
     "action": {
       "applied": "diterapkan",
       "rejected": "ditolak"

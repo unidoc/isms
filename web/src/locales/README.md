@@ -93,6 +93,30 @@ now, rather than retrofitted when a locale with real plural rules arrives.
   `audit_result`).
 - **Everything else is named after its column**: `suggestion_type` for
   `suggestions.suggestion_type`, `audit_result` for `audit_items.result`.
+- **A group is really named after its value set, and the column name is just the
+  usual way to say that.** Where two columns share a name but not a value set,
+  the column name belongs to one of them and the other is named after its
+  taxonomy. There is one such collision today, and it is the trap to check for
+  before picking a group:
+
+  | Column | Value set | Group |
+  |---|---|---|
+  | `incidents.severity` | critical … low | `severity` |
+  | `corrective_actions.severity` | major_nc … opportunity | **`finding_type`** |
+  | `audit_findings.finding_type` | major_nc … opportunity | `finding_type` |
+  | `audit_items.result` | the four above plus `not_assessed`, `conforming` | `audit_result` |
+
+  Reaching for `severity` because the column says `severity` would render a
+  corrective action's `major_nc` against the incident scale, which has no such
+  member — so it would de-slug to "Major nc" in every language. `finding_type`
+  and `audit_result` deliberately overlap: a finding is always one of the four,
+  while an audit item may also be unassessed or conforming.
+- **One value may need two different renderings**, and that is an area-file job,
+  not a second enum group. `Audit.vue` and `CorrectiveActions.vue` show these
+  same four values as compact chips reading "Major NC" and "OFI", while a table
+  column has room for "Major non-conformity". The catalogue holds the full form;
+  an abbreviation is copy belonging to the view that needs it, and goes in that
+  view's area file when it is extracted.
 
 If a language ever needs two different translations for one status value —
 Portuguese gender agreement on *aberto* / *aberta*, for instance — splitting the
@@ -147,8 +171,8 @@ your subsection and fill the right-hand column.
 |---|---|---|
 | improvement | clause 10 heading | — |
 | continual improvement | clause 10.3 heading | — |
-| opportunity for improvement | clause 9.3.2 f, 10.1 a | `enum.audit_result.opportunity` |
-| nonconformity | clause 10.2 heading | `enum.audit_result.{minor_nc,major_nc}` |
+| opportunity for improvement | clause 9.3.2 f, 10.1 a | `enum.{audit_result,finding_type}.opportunity` |
+| nonconformity | clause 10.2 heading | `enum.{audit_result,finding_type}.{minor_nc,major_nc}` |
 | corrective action | clause 10.2 heading | `entity.corrective_action` |
 | conformity | throughout | `enum.audit_result.conforming` |
 | objective | clause 6.2 | `entity.objective`, `enum.status.*` |

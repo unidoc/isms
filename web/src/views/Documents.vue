@@ -1355,7 +1355,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { parseMd } from '../composables/useRenderMd'
+import { buildContentBlocks } from '../utils/contentBlocks.js'
 import DOMPurify from 'dompurify'
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style', 'data-ref-type', 'data-ref-id'] })
 
@@ -2216,69 +2216,7 @@ async function removeTemplate(id) {
 }
 
 // --- Paragraph-level content blocks ---
-const contentBlocks = computed(() => {
-  if (!rawContent.value) return []
-  const html = parseMd(rawContent.value)
-  const div = document.createElement('div')
-  div.innerHTML = html
-  const blocks = []
-
-  function addBlock(html, tag, text) {
-    blocks.push({ index: blocks.length, html, tag, text })
-  }
-
-  for (const child of div.children) {
-    const tag = child.tagName.toLowerCase()
-
-    // Split lists — each bullet is commentable
-    if ((tag === 'ul' || tag === 'ol') && child.children.length > 0) {
-      for (const li of child.children) {
-        if (li.tagName.toLowerCase() === 'li') {
-          addBlock('<' + tag + '>' + li.outerHTML + '</' + tag + '>', 'li', li.textContent || '')
-        }
-      }
-    }
-    // Tables — convert to grid-based rows so each gets a "+" button
-    else if (tag === 'table') {
-      const thead = child.querySelector('thead')
-      const tbody = child.querySelector('tbody')
-      const ths = thead ? Array.from(thead.querySelectorAll('th')) : []
-      const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : []
-      const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
-      const gridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
-
-      // Header as one block
-      if (ths.length > 0) {
-        const headerCells = ths.map(th => {
-          const styleAttr = th.getAttribute('style') || ''
-          return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
-        }).join('')
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', thead.textContent || '')
-      }
-
-      // Each body row as separate block — gets its own "+" button!
-      for (const tr of rows) {
-        const tds = Array.from(tr.querySelectorAll('td'))
-        const cells = tds.map(td => {
-          const styleAttr = td.getAttribute('style') || ''
-          return `<div class="tbl-cell" style="${styleAttr}">${td.innerHTML}</div>`
-        }).join('')
-        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '')
-      }
-    }
-    // Split blockquotes — each paragraph inside is commentable
-    else if (tag === 'blockquote' && child.children.length > 1) {
-      for (const bqChild of child.children) {
-        addBlock('<blockquote>' + bqChild.outerHTML + '</blockquote>', 'blockquote-p', bqChild.textContent || '')
-      }
-    }
-    // Everything else — headings, paragraphs, pre, hr — one block each
-    else {
-      addBlock(child.outerHTML, tag, child.textContent || '')
-    }
-  }
-  return blocks
-})
+const contentBlocks = computed(() => buildContentBlocks(rawContent.value))
 
 async function selectItem(folder, id, listItem) {
   activeId.value = id

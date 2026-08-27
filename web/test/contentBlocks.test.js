@@ -79,3 +79,46 @@ test('empty content produces no blocks', () => {
   assert.deepEqual(buildContentBlocks(''), [])
   assert.deepEqual(buildContentBlocks(null), [])
 })
+
+// The block's markup is not only rendered — useDocumentComments.blockHash
+// hashes it to anchor inline comments, and commentsForBlock hard-rejects on a
+// hash mismatch. So adding `start` to the wrapper must not change what gets
+// hashed, or every inline comment already stored against an ordered-list item
+// silently detaches. `raw` is what keeps the hashed string stable.
+test('ordered-list blocks hash the same as before start was threaded', () => {
+  // verbatim from web/src/composables/useDocumentComments.js:35-44
+  const blockHash = (block) => {
+    const text = block.raw || block.html || ''
+    let h = 5381
+    for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) & 0xffffffff
+    return h.toString(36)
+  }
+  const md = Array.from({ length: 14 }, (_, i) => `${i + 1}. Item ${i + 1}`).join('\n')
+  for (const b of buildContentBlocks(md)) {
+    // the pre-`start` wrapper shape, which is what the hash must still see
+    assert.match(b.raw, /^<ol><li>/)
+    assert.doesNotMatch(b.raw, /start=/)
+    assert.match(b.html, /^<ol start="\d+">/)
+    assert.equal(blockHash(b), blockHash({ html: b.raw }))
+  }
+})
+
+test('unordered-list blocks also carry a stable raw, unchanged from html', () => {
+  // ul's rendered html never gains `start`, so raw is redundant there — but
+  // still set (addBlock applies it uniformly), and it must equal html.
+  const md = '- First\n- Second\n'
+  for (const b of buildContentBlocks(md)) {
+    assert.equal(b.raw, b.html)
+  }
+})
+
+test('a list starting at 0 keeps 0 as its base, not 1', () => {
+  // parseInt('0', 10) is 0, which is falsy — a naive `|| 1` fallback would
+  // treat a deliberate "0." start the same as no start attribute at all.
+  const md = '0. Zeroth\n1. First\n2. Second\n'
+  const blocks = buildContentBlocks(md)
+  assert.deepEqual(
+    blocks.map((b) => b.html.match(/start="(\d+)"/)[1]),
+    ['0', '1', '2'],
+  )
+})

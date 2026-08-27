@@ -16,8 +16,15 @@ export function buildContentBlocks(rawContent) {
   div.innerHTML = html
   const blocks = []
 
-  function addBlock(html, tag, text) {
-    blocks.push({ index: blocks.length, html, tag, text })
+  function addBlock(html, tag, text, raw) {
+    const block = { index: blocks.length, html, tag, text }
+    // useDocumentComments.blockHash hashes `raw ?? html` to anchor inline
+    // comments; commentsForBlock hard-rejects on a hash mismatch, with no
+    // index fallback once a comment carries a hash. `raw` lets a block's
+    // rendered markup change (e.g. gaining `start=`) without re-hashing and
+    // silently detaching every comment already stored against it.
+    if (raw !== undefined) block.raw = raw
+    blocks.push(block)
   }
 
   for (const child of div.children) {
@@ -27,14 +34,17 @@ export function buildContentBlocks(rawContent) {
     // its own fresh <ol>, which resets an ordered list's visible number to 1
     // for every item — so the wrapper carries a `start` tracking this item's
     // real position in the original list, rather than a bare "<ol>" every
-    // time.
+    // time. `raw` keeps the hashed markup at the pre-`start` shape (see
+    // addBlock) so this doesn't detach comments already anchored to it.
     if ((tag === 'ul' || tag === 'ol') && child.children.length > 0) {
-      const start = tag === 'ol' ? (parseInt(child.getAttribute('start'), 10) || 1) : 1
+      const parsedStart = parseInt(child.getAttribute('start'), 10)
+      const start = tag === 'ol' && Number.isFinite(parsedStart) ? parsedStart : 1
       let position = 0
       for (const li of child.children) {
         if (li.tagName.toLowerCase() === 'li') {
           const openTag = tag === 'ol' ? `<ol start="${start + position}">` : '<ul>'
-          addBlock(openTag + li.outerHTML + '</' + tag + '>', 'li', li.textContent || '')
+          const rawWrapper = '<' + tag + '>' + li.outerHTML + '</' + tag + '>'
+          addBlock(openTag + li.outerHTML + '</' + tag + '>', 'li', li.textContent || '', rawWrapper)
           position++
         }
       }

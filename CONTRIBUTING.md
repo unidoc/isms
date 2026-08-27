@@ -52,6 +52,15 @@ reaches the picker — then copy `web/src/locales/en/`, translate the values, an
 add one loader line. [`docs/i18n.md`](docs/i18n.md#adding-a-locale) has the full
 steps.
 
+One part of a translation is not a matter of fluency: the ISO audit terms and the
+information-classification levels. Take those from your language's national
+adoption of ISO/IEC 27001 or 9001 rather than translating the English, and record
+what you took in
+[`web/src/locales/README.md`](web/src/locales/README.md#iso-terminology) — it
+carries the procedure, a term checklist keyed to the clauses of the standard, and
+the traps that recur across languages. A wrong choice here reads perfectly and
+still says the wrong thing, so a reviewer cannot catch it for you.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE).

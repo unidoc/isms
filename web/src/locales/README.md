@@ -113,13 +113,76 @@ diverge.
 ## ISO terminology
 
 The audit vocabulary is the part of this app most easily mistranslated, because
-the wrong choice is always fluent. ISO separates *correction* from *improvement*
-and *conformity* from *compliance*, and a translator who has not audited before
-will reasonably collapse them. Where a national adoption of the standard exists,
-it decides — not general fluency, and not this file.
+**the wrong choice is always fluent**. ISO separates *correction* from
+*improvement*, *conformity* from *compliance*, and a nonconformity from an
+observation. A translator who has not sat an audit will reasonably collapse
+those pairs, and nothing about the result looks wrong — which is why this cannot
+be caught by proofreading, and why the procedure below is not optional.
 
-**Indonesian.** Verified against the bilingual SNI ISO 9001:2015, whose clauses
-4–10 are the Annex SL structure that SNI ISO/IEC 27001:2022 shares verbatim:
+The rule for every language: **where a national adoption of the standard exists,
+it decides.** Not general fluency, not a dictionary, and not this file.
+
+### Procedure — do this before translating anything else
+
+1. **Find the national adoption of ISO/IEC 27001** in your language. If there is
+   none, ISO 9001 works just as well for this vocabulary: clauses 4–10 are the
+   Annex SL structure the two standards share verbatim, and every term in the
+   checklist below lives in those clauses. Many adoptions are published
+   bilingually, which gives you the term pairs directly.
+2. **Fill in the checklist** from that text, quoting the clause you took each
+   term from. Do not translate the English; copy what the standard prints.
+3. **Watch for the recurring traps** — the three below have bitten us or are
+   known to bite in more than one language.
+4. **Record your table** as a subsection here, with citations. That is what makes
+   the next contributor's job smaller than yours, and what lets a reviewer who
+   does not speak your language still check your work.
+
+### The checklist
+
+These are the terms the enum catalogue actually uses. The clause reference is
+the same in every adoption, so this table is language-independent — copy it into
+your subsection and fill the right-hand column.
+
+| English | Defined in | Used by |
+|---|---|---|
+| improvement | clause 10 heading | — |
+| continual improvement | clause 10.3 heading | — |
+| opportunity for improvement | clause 9.3.2 f, 10.1 a | `enum.audit_result.opportunity` |
+| nonconformity | clause 10.2 heading | `enum.audit_result.{minor_nc,major_nc}` |
+| corrective action | clause 10.2 heading | `entity.corrective_action` |
+| conformity | throughout | `enum.audit_result.conforming` |
+| objective | clause 6.2 | `entity.objective`, `enum.status.*` |
+| monitoring | clause 9.1 heading | `enum.status.monitoring` |
+| review (management) | clause 9.3 heading | `enum.status.{in_review,under_review}` |
+| internal audit | clause 9.2 heading | `entity.audit` |
+
+### Recurring traps
+
+**Correction is not improvement.** Most languages have distinct words, and ISO
+relies on the distinction: an opportunity for improvement is explicitly *not* a
+nonconformity requiring correction. Picking the correction word collapses the
+only thing that separates the two categories. Indonesian *perbaikan* vs
+*peningkatan*, Portuguese *correção* vs *melhoria*, Spanish *corrección* vs
+*mejora*, French *correction* vs *amélioration* — check which one your adoption
+uses in clause 10.1 before writing `enum.audit_result.opportunity`.
+
+**Classification levels follow your national ladder, not the English words.**
+`public` → `internal` → `confidential` → `restricted` is ordered by increasing
+sensitivity, and the badge colours say so. Many countries have a legally defined
+classification ladder whose terms do not line up word-for-word with the English.
+Translate the *position in the ladder*, not the label: a literal rendering that
+lands a reader on the wrong rung is worse than a loose one that preserves the
+order.
+
+**Nonconformity grading is not in the standard.** Major/minor/observation come
+from certification-body practice under ISO/IEC 17021, not from ISO 27001 or
+9001, so no adopted text can arbitrate them. Follow the usage of certification
+bodies operating in your language and say in your subsection that you did.
+
+### Worked example — Indonesian (`id-ID`)
+
+Verified against the bilingual SNI ISO 9001:2015, whose clauses 4–10 are the
+Annex SL structure SNI ISO/IEC 27001:2022 shares verbatim:
 
 | English | Indonesian | Where it comes from |
 |---|---|---|
@@ -136,27 +199,22 @@ it decides — not general fluency, and not this file.
 
 Note what the standard does **not** contain: the word *perbaikan* appears
 nowhere in it. *Perbaikan* is correction/repair; improvement is *peningkatan*.
-"Peluang perbaikan" for an opportunity for improvement therefore inverts the one
-distinction the category exists to draw, and was corrected to *peluang
-peningkatan* on that basis.
+"Peluang perbaikan" therefore inverted the distinction the category exists to
+draw, and was corrected on that basis — trap 1, found only by checking.
 
-Also absent: any grading of nonconformities. *Mayor* / *minor* / *observasi* come
-from certification-body practice under ISO/IEC 17021, not from the standard, so
-they follow Indonesian industry usage and no adopted text can arbitrate them.
+Classification follows ANRI Perka 7/2016 (and the ministry regulations adopting
+it), which orders the national ladder *Biasa/Terbuka → Terbatas → Rahasia →
+Sangat Rahasia* by increasing sensitivity. `restricted` is our most sensitive
+level, so it is *Sangat Rahasia*; the literal *Terbatas* put it below *Rahasia*
+in a reader's mind while the badge beside it was red — trap 2.
 
-**Information classification follows the national ladder**, not a literal
-translation. ANRI Perka 7/2016 (and the ministry regulations adopting it) order
-it *Biasa/Terbuka → Terbatas → Rahasia → Sangat Rahasia*, by increasing
-sensitivity. Our `restricted` is the most sensitive level, so it is
-*Sangat Rahasia*; rendering it *Terbatas* put it below *Rahasia* in a reader's
-mind and inverted the hierarchy the colours already communicate.
+*Mayor* / *minor* / *observasi* follow Indonesian certification-body usage —
+trap 3, not sourced from the standard.
 
-**When adding a locale**, find the national adoption of ISO/IEC 27001 (or 9001 —
-the shared clauses are identical) and take these terms from it before writing
-anything else. Portuguese has the same trap in the same place: *correção* is not
-*melhoria*.
+### Two keys may share a translation
 
-**Two keys may share a translation.** `suggestion_type.reassess` and
-`suggestion_type.reading` are both *Nilai ulang* because they are the same
-operation — `api_suggestions.go` registers one handler for both. Keep them as
-separate keys; the duplication is the honest encoding.
+That is fine, and sometimes it is the honest encoding.
+`suggestion_type.reassess` and `suggestion_type.reading` are both *Nilai ulang*
+in `id-ID` because they are the same operation — `api_suggestions.go` registers
+one handler for both. Keep them as separate keys anyway: the English distinction
+may matter to a future locale, and a key removed is a key renamed.

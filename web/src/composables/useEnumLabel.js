@@ -8,7 +8,7 @@
 // A value with no key falls back to the de-slugged form rather than rendering a
 // raw key, so a locale file that lags behind a new enum member degrades to
 // today's English-ish output instead of showing `common.enum.status.foo`.
-import { i18n } from '../i18n.js'
+import { FALLBACK, i18n } from '../i18n.js'
 
 // De-slug of last resort: `changes_requested` -> `Changes requested`.
 function humanize(value) {
@@ -21,7 +21,12 @@ function humanize(value) {
 export function enumLabel(group, value) {
   if (value === null || value === undefined || value === '') return ''
   const key = `common.enum.${group}.${value}`
-  return i18n.global.te(key) ? i18n.global.t(key) : humanize(value)
+  // te() checks one locale only and does not consult fallbackLocale, so probe
+  // the fallback catalogue: it is complete by contract, and a locale that lags
+  // behind then renders the English label through fallbackLocale rather than
+  // dropping to humanize(). The difference is visible — `major_nc` is "Major
+  // non-conformity", not "Major nc".
+  return i18n.global.te(key, FALLBACK) ? i18n.global.t(key) : humanize(value)
 }
 
 // Component-facing form. Deliberately thin: the implementation lives in

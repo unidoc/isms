@@ -4,18 +4,29 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
 const props = defineProps({
   status: String,
+  // The enum family the value belongs to. Almost every caller passes a status
+  // column, and status values are distinct across registers — the colour map
+  // below has always been one flat table for the same reason — so `status` is
+  // one shared group rather than one per register. The few callers rendering a
+  // different family (classification, criticality, an audit result) name it.
+  group: { type: String, default: 'status' },
 })
 
+const { t } = useI18n()
+const { enumLabel } = useEnumLabel()
+
 const label = computed(() => {
-  if (!props.status) return 'unknown'
-  return props.status.replace(/_/g, ' ')
+  if (!props.status) return t('common.state.unknown')
+  return enumLabel(props.group, props.status)
 })
 
 const classes = computed(() => {
-  const base = 'inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize'
+  const base = 'inline-block px-2 py-0.5 rounded text-xs font-semibold'
   const map = {
     // Document statuses
     draft: 'bg-slate-700 text-slate-300',

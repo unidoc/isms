@@ -181,7 +181,7 @@
             <tbody class="divide-y divide-slate-800">
               <tr v-for="sys in systemsList" :key="sys.id" class="hover:bg-slate-800/30 cursor-pointer" @click="router.push(orgPath('/systems'))">
                 <td class="px-4 py-2.5 text-sm text-slate-300">{{ sys.name }}</td>
-                <td class="px-4 py-2.5"><StatusBadge :status="sys.criticality" /></td>
+                <td class="px-4 py-2.5"><StatusBadge :status="sys.criticality" group="criticality" /></td>
                 <td class="px-4 py-2.5 text-sm text-slate-400">{{ sys.rpo_hours }}h</td>
                 <td class="px-4 py-2.5 text-sm text-slate-400">{{ sys.rto_hours }}h</td>
               </tr>
@@ -237,7 +237,7 @@
               <div class="text-sm font-medium text-slate-200">High &amp; critical risks</div>
               <div class="text-xs text-slate-500 mt-0.5">{{ highRiskCount }} risk{{ highRiskCount !== 1 ? 's' : '' }} requiring treatment or escalation</div>
             </div>
-            <StatusBadge status="critical" />
+            <StatusBadge status="critical" group="severity" />
             <span class="text-xs font-semibold bg-red-900/60 text-red-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ highRiskCount }}
             </span>

@@ -820,7 +820,7 @@
                           <option value="observation">Observation</option>
                           <option value="opportunity">Opportunity</option>
                         </select>
-                        <span v-else class="text-xs"><StatusBadge :status="item.result || 'not_assessed'" /></span>
+                        <span v-else class="text-xs"><StatusBadge :status="item.result || 'not_assessed'" group="audit_result" /></span>
                         <button v-if="canWrite && (item.result === 'minor_nc' || item.result === 'major_nc')"
                           @click="raiseFindingFromItem(item)"
                           class="text-[10px] text-amber-400 hover:text-amber-300 px-2 py-1 rounded border border-amber-800/50 bg-amber-900/20"

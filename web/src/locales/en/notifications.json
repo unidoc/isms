@@ -1,0 +1,57 @@
+{
+  "mention_comment": {
+    "title": "{actor} mentioned you in a comment"
+  },
+  "mention_review_comment": {
+    "title": "{actor} mentioned you in a review comment"
+  },
+  "mention_change_request": {
+    "title": "{actor} mentioned you in a change request"
+  },
+  "review_forwarded": {
+    "title": "Review forwarded: {title}",
+    "body": "{actor} forwarded review of {doc_id} ({title} v{version}) to you",
+    "body_with_note": "{actor} forwarded review of {doc_id} ({title} v{version}) to you\n\nNote: {note}"
+  },
+  "review_requested": {
+    "title": "Review: {title} v{version}",
+    "body": "{actor} wants to publish {title} v{version} and requested your review",
+    "body_with_note": "{actor} wants to publish {title} v{version} and requested your review\n\nNote: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Review resubmitted: {title}",
+    "body": "{actor} resubmitted {doc_id} ({title} v{version}) for review",
+    "body_with_note": "{actor} resubmitted {doc_id} ({title} v{version}) for review\n\nNote: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "AI review escalated",
+    "body": "AI review of {doc_id} reached round {round} without agreement. Please review and decide."
+  },
+  "ca_assigned": {
+    "title": "Corrective action assigned: {title}"
+  },
+  "ca_resolved": {
+    "title": "Corrective action resolved: {title}",
+    "body": "Corrective action #{id} has been resolved by {actor}"
+  },
+  "suggestion_new": {
+    "title": "New suggestion",
+    "body": "{actor} suggested: {title} ({suggestion_type} {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Suggestion {action}"
+  },
+  "suggestion_applied": {
+    "body": "Your suggestion \"{title}\" was applied by {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Your suggestion \"{title}\" was rejected by {actor}: {reason}"
+  },
+  "incident_new": {
+    "title": "New {severity} incident: {title}"
+  },
+  "incident_status": {
+    "title": "Incident {status}: {title}",
+    "body": "Incident #{id} has been {status}"
+  }
+}

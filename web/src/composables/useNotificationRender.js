@@ -17,7 +17,7 @@
 //   notifications.ca_resolved.body                -> unchanged
 //   notifications.review_forwarded.body_with_note -> unchanged
 import { FALLBACK, i18n } from '../i18n.js'
-import { enumLabel } from './useEnumLabel.js'
+import { enumLabelInline, entityLabel } from './useEnumLabel.js'
 
 // The closed set of params carrying an enum value, per plan 82. Each name is
 // also its `common.enum.*` group — that is why the groups were named after the
@@ -36,14 +36,17 @@ function catalogKey(wireKey) {
 // Translate the params that are enum values and pass everything else through
 // untouched: actor, title, doc_id, version, round, id, note and reason are
 // proper nouns, numbers or the user's own words.
+//
+// Every param here lands inside a sentence frame — that is what interpolation
+// means in this catalogue — so all of them take the inline form. There is no
+// notification key where an enum value stands on its own.
 function resolveParams(params) {
   const out = {}
   for (const [name, value] of Object.entries(params ?? {})) {
     if (ENUM_PARAMS.includes(name)) {
-      out[name] = enumLabel(name, value)
+      out[name] = enumLabelInline(name, value)
     } else if (name === ENTITY_PARAM) {
-      const key = `common.entity.${value}`
-      out[name] = i18n.global.te(key, FALLBACK) ? i18n.global.t(key) : value
+      out[name] = entityLabel(value, { inline: true })
     } else {
       out[name] = value
     }

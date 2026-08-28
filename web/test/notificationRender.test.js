@@ -89,11 +89,11 @@ test('the same keys all render in id-ID', () => {
 // in raw yields "Insiden resolved: …".
 test('enum params are translated before interpolation, not spliced raw', () => {
   const row = { title_key: 'notifications.incident_status', title: STORED, params: ROWS['notifications.incident_status'] }
-  assert.equal(notificationTitle(row), 'Incident Resolved: Phishing wave')
+  assert.equal(notificationTitle(row), 'Incident resolved: Phishing wave')
   withLocale('id-ID', () => {
     const out = notificationTitle(row)
     assert.ok(!out.includes('resolved'), `raw enum value survived into id-ID: ${out}`)
-    assert.ok(out.includes('Selesai'), `expected the id-ID status label, got: ${out}`)
+    assert.ok(out.includes('selesai ditangani'), `expected the id-ID status label, got: ${out}`)
   })
 })
 
@@ -104,7 +104,7 @@ test('the entity param resolves through common.entity.*', () => {
       body: STORED,
       params: BODY_ROWS['notifications.suggestion_applied.body'],
     })
-    assert.ok(out.includes('Risiko'), `entity was not translated: ${out}`)
+    assert.ok(out.includes('risiko'), `entity was not translated: ${out}`)
     assert.ok(!out.includes('risk'), `raw entity value survived: ${out}`)
   })
 })

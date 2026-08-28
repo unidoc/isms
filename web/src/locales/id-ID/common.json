@@ -39,6 +39,23 @@
     "checkin": "Check-in",
     "access_review": "Tinjauan akses"
   },
+  "entity_inline": {
+    "risk": "risiko",
+    "supplier": "pemasok",
+    "incident": "insiden",
+    "legal_requirement": "persyaratan hukum",
+    "change_request": "permintaan perubahan",
+    "corrective_action": "tindakan korektif",
+    "objective": "sasaran",
+    "task": "tugas",
+    "system": "sistem",
+    "asset": "aset",
+    "audit": "audit",
+    "audit_finding": "temuan audit",
+    "program": "program",
+    "checkin": "check-in",
+    "access_review": "tinjauan akses"
+  },
   "field": {},
   "enum": {
     "status": {
@@ -126,6 +143,34 @@
       "link": "Tautkan",
       "review": "Tinjau",
       "reading": "Nilai ulang"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "kritis",
+      "high": "tinggi",
+      "medium": "sedang",
+      "low": "rendah"
+    },
+    "status": {
+      "draft": "draf",
+      "open": "terbuka",
+      "investigating": "sedang diselidiki",
+      "contained": "terkendali",
+      "resolved": "selesai ditangani",
+      "closed": "ditutup"
+    },
+    "suggestion_type": {
+      "create": "buat",
+      "update": "perbarui",
+      "reassess": "nilai ulang",
+      "link": "tautkan",
+      "review": "tinjau",
+      "reading": "nilai ulang"
+    },
+    "action": {
+      "applied": "diterapkan",
+      "rejected": "ditolak"
     }
   },
   "error": {},

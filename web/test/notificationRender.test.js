@@ -75,14 +75,21 @@ test('every body key Go emits renders from the catalogue', () => {
   }
 })
 
+// vue-i18n falls back to `en` for a missing id-ID message, so "not the stored
+// English" is not enough here — an untranslated key would render the English
+// frame and pass. Comparing against the en render is what actually catches it.
 test('the same keys all render in id-ID', () => {
-  withLocale('id-ID', () => {
-    for (const [key, params] of Object.entries(ROWS)) {
-      const out = notificationTitle({ title_key: key, title: STORED, params })
-      assert.notEqual(out, STORED, `${key} has no id-ID message`)
-      assert.ok(!out.includes('{'), `${key} left a placeholder in id-ID: ${out}`)
-    }
-  })
+  const cases = [
+    ...Object.entries(ROWS).map(([key, params]) => [key, params, (p) => notificationTitle({ title_key: key, title: STORED, params: p })]),
+    ...Object.entries(BODY_ROWS).map(([key, params]) => [key, params, (p) => notificationBody({ body_key: key, body: STORED, params: p })]),
+  ]
+  for (const [key, params, render] of cases) {
+    const english = render(params)
+    const out = withLocale('id-ID', () => render(params))
+    assert.notEqual(out, STORED, `${key} has no id-ID message`)
+    assert.notEqual(out, english, `${key} rendered the English frame in id-ID — the message is missing`)
+    assert.ok(!out.includes('{'), `${key} left a placeholder in id-ID: ${out}`)
+  }
 })
 
 // The half-translated trap plan 82 was written to avoid: an enum param spliced

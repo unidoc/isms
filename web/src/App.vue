@@ -340,7 +340,7 @@
             :class="n.read ? 'opacity-50' : ''"
           >
             <div class="text-sm text-slate-300 flex items-center gap-1.5">
-              <span class="flex-1">{{ n.message || n.title }}</span>
+              <span class="flex-1">{{ notificationTitle(n) }}</span>
               <svg v-if="n.link" class="w-3 h-3 text-slate-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
@@ -514,6 +514,7 @@ const confirmDialog = useConfirm()
 import GlobalSearch from './components/GlobalSearch.vue'
 import { useSession } from './composables/useSession'
 import { useNotifications } from './composables/useNotifications'
+import { notificationTitle } from './composables/useNotificationRender'
 import { useCurrentOrg, currentOrgPath, registerRouter, isSubdomainMode, subdomainRouting } from './composables/useCurrentOrg'
 
 const { toasts, dismiss: dismissToast } = useToast()

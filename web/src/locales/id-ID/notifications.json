@@ -1,0 +1,57 @@
+{
+  "mention_comment": {
+    "title": "{actor} menyebut Anda dalam sebuah komentar"
+  },
+  "mention_review_comment": {
+    "title": "{actor} menyebut Anda dalam komentar tinjauan"
+  },
+  "mention_change_request": {
+    "title": "{actor} menyebut Anda dalam permintaan perubahan"
+  },
+  "review_forwarded": {
+    "title": "Tinjauan diteruskan: {title}",
+    "body": "{actor} meneruskan tinjauan {doc_id} ({title} v{version}) kepada Anda",
+    "body_with_note": "{actor} meneruskan tinjauan {doc_id} ({title} v{version}) kepada Anda\n\nCatatan: {note}"
+  },
+  "review_requested": {
+    "title": "Tinjauan: {title} v{version}",
+    "body": "{actor} ingin menerbitkan {title} v{version} dan meminta tinjauan Anda",
+    "body_with_note": "{actor} ingin menerbitkan {title} v{version} dan meminta tinjauan Anda\n\nCatatan: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Tinjauan diajukan ulang: {title}",
+    "body": "{actor} mengajukan ulang {doc_id} ({title} v{version}) untuk ditinjau",
+    "body_with_note": "{actor} mengajukan ulang {doc_id} ({title} v{version}) untuk ditinjau\n\nCatatan: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "Tinjauan AI dieskalasi",
+    "body": "Tinjauan AI atas {doc_id} mencapai putaran {round} tanpa kesepakatan. Mohon tinjau dan putuskan."
+  },
+  "ca_assigned": {
+    "title": "Tindakan korektif ditugaskan: {title}"
+  },
+  "ca_resolved": {
+    "title": "Tindakan korektif diselesaikan: {title}",
+    "body": "Tindakan korektif #{id} telah diselesaikan oleh {actor}"
+  },
+  "suggestion_new": {
+    "title": "Saran baru",
+    "body": "{actor} menyarankan: {title} ({suggestion_type} {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Saran {action}"
+  },
+  "suggestion_applied": {
+    "body": "Saran Anda \"{title}\" diterapkan oleh {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Saran Anda \"{title}\" ditolak oleh {actor}: {reason}"
+  },
+  "incident_new": {
+    "title": "Insiden {severity} baru: {title}"
+  },
+  "incident_status": {
+    "title": "Insiden {status}: {title}",
+    "body": "Insiden #{id} telah {status}"
+  }
+}

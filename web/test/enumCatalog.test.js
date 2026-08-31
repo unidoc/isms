@@ -5,7 +5,7 @@
 // which reads plausibly in English and is invisible in review.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { enumLabel } from '../src/composables/useEnumLabel.js'
+import { enumLabel, enumLabelInline } from '../src/composables/useEnumLabel.js'
 import { i18n } from '../src/i18n.js'
 import en from '../src/locales/en/index.js'
 import id from '../src/locales/id-ID/index.js'
@@ -105,4 +105,70 @@ test('a lagging locale falls back to the English label, not to de-slugging', () 
   } finally {
     i18n.global.locale.value = previous
   }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Inline forms. `common.enum.*` is the standalone label (badge, <option>);
+// a value interpolated into a sentence frame needs the mid-sentence form, or
+// notifications read "New Critical incident". The fallback in
+// enumLabelInline() is deliberately silent, so only a test can catch a new
+// enum member that reintroduces the bug.
+// ─────────────────────────────────────────────────────────────────────────
+
+// The closed set a notification param can actually carry. `status` is the six
+// incident values only: incident_status is the sole frame interpolating one.
+const INLINE_REQUIRED = {
+  severity: ['critical', 'high', 'medium', 'low'],
+  status: ['draft', 'open', 'investigating', 'contained', 'resolved', 'closed'],
+  suggestion_type: ['create', 'update', 'reassess', 'link', 'review', 'reading'],
+  action: ['applied', 'rejected'],
+}
+
+test('every notification-interpolated enum value has an inline form in en', () => {
+  for (const [group, values] of Object.entries(INLINE_REQUIRED)) {
+    for (const value of values) {
+      const inline = en.common.enum_inline?.[group]?.[value]
+      assert.equal(typeof inline, 'string', `common.enum_inline.${group}.${value} is missing in en`)
+      assert.ok(inline.length > 0, `common.enum_inline.${group}.${value} is empty in en`)
+    }
+  }
+})
+
+test('every entity name has an inline form in en', () => {
+  for (const name of Object.keys(en.common.entity)) {
+    const inline = en.common.entity_inline?.[name]
+    assert.equal(typeof inline, 'string', `common.entity_inline.${name} is missing in en`)
+  }
+})
+
+test('id-ID mirrors every inline form it needs', () => {
+  for (const [group, values] of Object.entries(INLINE_REQUIRED)) {
+    for (const value of values) {
+      assert.equal(typeof id.common.enum_inline?.[group]?.[value], 'string',
+        `common.enum_inline.${group}.${value} is missing in id-ID`)
+    }
+  }
+  for (const name of Object.keys(en.common.entity_inline)) {
+    assert.equal(typeof id.common.entity_inline?.[name], 'string',
+      `common.entity_inline.${name} is missing in id-ID`)
+  }
+})
+
+test('inline forms are used mid-sentence, so they do not lead with a capital', () => {
+  // en and id-ID both lowercase mid-sentence. A locale where that is false
+  // (German nouns) authors its own strings and this assertion moves with it.
+  for (const [group, values] of Object.entries(INLINE_REQUIRED)) {
+    for (const value of values) {
+      const inline = en.common.enum_inline[group][value]
+      assert.equal(inline, inline.toLowerCase(),
+        `en common.enum_inline.${group}.${value} should be lowercase mid-sentence`)
+    }
+  }
+})
+
+test('enumLabelInline falls back to the standalone label, not a raw key', () => {
+  // `criticality` has no inline group at all.
+  assert.equal(enumLabelInline('criticality', 'high'), enumLabel('criticality', 'high'))
+  // an unknown member still degrades through enumLabel's humanize()
+  assert.equal(enumLabelInline('severity', 'nonexistent'), 'Nonexistent')
 })

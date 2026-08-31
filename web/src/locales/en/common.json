@@ -39,6 +39,23 @@
     "checkin": "Check-in",
     "access_review": "Access review"
   },
+  "entity_inline": {
+    "risk": "risk",
+    "supplier": "supplier",
+    "incident": "incident",
+    "legal_requirement": "legal requirement",
+    "change_request": "change request",
+    "corrective_action": "corrective action",
+    "objective": "objective",
+    "task": "task",
+    "system": "system",
+    "asset": "asset",
+    "audit": "audit",
+    "audit_finding": "audit finding",
+    "program": "program",
+    "checkin": "check-in",
+    "access_review": "access review"
+  },
   "field": {},
   "enum": {
     "status": {
@@ -126,6 +143,34 @@
       "link": "Link",
       "review": "Review",
       "reading": "Reading"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "critical",
+      "high": "high",
+      "medium": "medium",
+      "low": "low"
+    },
+    "status": {
+      "draft": "draft",
+      "open": "open",
+      "investigating": "investigating",
+      "contained": "contained",
+      "resolved": "resolved",
+      "closed": "closed"
+    },
+    "suggestion_type": {
+      "create": "create",
+      "update": "update",
+      "reassess": "reassess",
+      "link": "link",
+      "review": "review",
+      "reading": "reading"
+    },
+    "action": {
+      "applied": "applied",
+      "rejected": "rejected"
     }
   },
   "error": {},

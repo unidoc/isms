@@ -20,23 +20,46 @@ function formatter(Ctor, kind, locale, options) {
   return f
 }
 
+// The app's English is British — every call site this seam replaces was
+// hardcoded to `en-GB`, and bare `en` resolves to US ordering ("Aug 24, 2026"
+// against "24 Aug 2026"). The message bundle is tagged `en` and stays that way;
+// only the Intl formatting tag is widened, so adopting the seam changes no
+// English user's date shape.
+const FORMAT_LOCALE = { en: 'en-GB' }
+
 function activeLocale() {
-  return i18n.global.locale.value
+  const tag = i18n.global.locale.value
+  return FORMAT_LOCALE[tag] ?? tag
 }
 
-// Accepts a Date, an epoch number, or an ISO string (the API's wire format).
-// Returns null for anything unparseable so callers render an em dash rather
-// than "Invalid Date".
+// Anything below this is read as epoch seconds, anything above as epoch
+// milliseconds. The API writes seconds (`created_at: 1756...`) while
+// `Date.now()` arithmetic produces milliseconds, and both reach these helpers.
+// 1e11 separates them with no ambiguity in practice: as milliseconds it is
+// 1973, as seconds it is the year 5138.
+const SECONDS_CEILING = 1e11
+
+// Accepts a Date, an epoch number (seconds or milliseconds, per above), or an
+// ISO string (the API's other wire format). Returns null for anything
+// unparseable so callers render an em dash rather than "Invalid Date".
 function toDate(value) {
   if (value === null || value === undefined || value === '') return null
-  const d = value instanceof Date ? value : new Date(value)
+  let d
+  if (value instanceof Date) d = value
+  else if (typeof value === 'number') d = new Date(Math.abs(value) < SECONDS_CEILING ? value * 1000 : value)
+  else d = new Date(value)
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+// `dateStyle` cannot drop the year, so the two year-less shapes the UI uses
+// (comment timelines, audit date ranges) are spelled out as component bags.
+// Component order is still the locale's, not the bag's.
 const DATE_STYLES = {
   short: { dateStyle: 'medium' }, // "24 Aug 2026" — the table default
   long: { dateStyle: 'long' },
   datetime: { dateStyle: 'medium', timeStyle: 'short' },
+  dayMonth: { day: 'numeric', month: 'short' }, // "24 Aug"
+  dayMonthTime: { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' },
 }
 
 export function formatDate(value, style = 'short') {

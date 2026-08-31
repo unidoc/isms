@@ -33,6 +33,25 @@ test('dates and numbers format through Intl, and reject unusable input', () => {
   assert.equal(formatNumber('12'), '')
 })
 
+test('epoch numbers are read as seconds or milliseconds by magnitude', () => {
+  const iso = '2026-08-24T10:30:00Z'
+  const ms = Date.parse(iso)
+  // The API writes seconds; Date.now() arithmetic produces milliseconds. Both
+  // reach these helpers and must land on the same instant.
+  assert.equal(formatDate(ms / 1000, 'datetime'), formatDate(ms, 'datetime'))
+  assert.equal(formatDate(ms / 1000), formatDate(iso))
+  // 0 is the epoch, not "no value" — the callers this replaced all special-cased
+  // it back in with `!d && d !== 0`.
+  assert.match(formatDate(0), /1970/)
+})
+
+test('English formats British, so adopting the seam keeps the shape the UI had', () => {
+  // The message bundle is tagged `en`; bare `en` would order dates US-style.
+  assert.equal(formatDate('2026-08-24T10:30:00Z'), '24 Aug 2026')
+  assert.equal(formatDate('2026-08-24T10:30:00Z', 'dayMonth'), '24 Aug')
+  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonthTime'), /^24 Aug, \d{2}:\d{2}$/)
+})
+
 test('relative time picks the largest fitting unit in both directions', () => {
   const now = Date.parse('2026-08-24T12:00:00Z')
   const at = (ms) => formatRelative(new Date(now + ms), now)

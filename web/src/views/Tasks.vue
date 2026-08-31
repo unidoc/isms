@@ -418,6 +418,7 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const { ask, confirm: confirmDialog } = useConfirm()
 const { success: showSaved, error: showError } = useToast()
@@ -516,12 +517,6 @@ function isOverdue(task) {
   if (!task.due_date || task.status === 'done' || task.status === 'cancelled') return false
   const d = typeof task.due_date === 'number' ? new Date(task.due_date * 1000) : new Date(task.due_date)
   return d < new Date()
-}
-
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function epochToDateStr(d) {

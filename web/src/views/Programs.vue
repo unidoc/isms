@@ -274,6 +274,7 @@ import HistoryPanel from '../components/HistoryPanel.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
 import RefreshButton from '../components/RefreshButton.vue'
+import { formatDate } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -340,12 +341,6 @@ const paged = computed(() => {
 })
 
 watch([searchQuery, pageSize], () => { page.value = 1 })
-
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
 
 async function loadAll() {
   loading.value = true

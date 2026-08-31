@@ -531,6 +531,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -690,12 +691,6 @@ function rtoColor(hours) {
   if (hours <= 12) return 'text-amber-400'
   if (hours <= 48) return 'text-blue-400'
   return 'text-slate-400'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function isOverdue(dateStr) {

@@ -99,6 +99,16 @@ export function formatRelative(value, now = Date.now()) {
   return rtf.format(Math.round(diff / 1000), 'second')
 }
 
+// Six components carried the same ladder by hand: relative wording for a recent
+// timestamp, an absolute date once it is old enough to be worth pinning down.
+// The threshold is a per-surface choice (a comment thread pins after a day, a
+// document list after a week), so it stays a parameter; the wording does not.
+export function formatRecent(value, { within = 7 * 24 * 60 * 60 * 1000, style = 'short' } = {}) {
+  const d = toDate(value)
+  if (!d) return ''
+  return Math.abs(Date.now() - d.getTime()) < within ? formatRelative(d) : formatDate(d, style)
+}
+
 export function useFormat() {
-  return { date: formatDate, number: formatNumber, relative: formatRelative }
+  return { date: formatDate, number: formatNumber, relative: formatRelative, recent: formatRecent }
 }

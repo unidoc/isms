@@ -86,6 +86,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
 import { useConfirm } from '../composables/useConfirm'
 import { useToast } from '../composables/useToast'
+import { formatDate as formatDateValue } from '../composables/useFormat.js'
 
 const { show: showError, success: showSuccess } = useToast()
 
@@ -231,11 +232,7 @@ function statusLabel(s) {
   }[s] || s.replace(/_/g, ' ')
 }
 
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
+const formatDate = (d) => formatDateValue(d, 'dayMonth')
 
 onMounted(load)
 watch(() => props.entityId, load)

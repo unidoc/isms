@@ -505,6 +505,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -630,12 +631,6 @@ function scoreColor(score) {
 }
 
 function formatLabel(s) { return (s || '').replace(/_/g, ' ') }
-
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
 
 function isOverdue(dateStr) {
   if (!dateStr) return false

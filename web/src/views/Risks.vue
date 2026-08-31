@@ -729,6 +729,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate as formatDateValue } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -959,10 +960,10 @@ function formatOrigin(o) {
   return o ? o.charAt(0).toUpperCase() + o.slice(1) : ''
 }
 
+// The table renders a dash for a missing date, where the shared seam returns
+// an empty string; only that choice stays local.
 function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return '-'
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDateValue(dateStr) || '-'
 }
 
 const ciaLabel = (v) => ['Not Assessed','Insignificant','Minor','Moderate','Major','Severe'][v] || 'N/A'

@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { enumLabel } from '../src/composables/useEnumLabel.js'
-import { formatDate, formatNumber, formatRelative, useFormat } from '../src/composables/useFormat.js'
+import { formatDate, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
 
 test('enum labels come from the catalogue, and de-slug only as a fallback', () => {
@@ -61,9 +61,20 @@ test('relative time picks the largest fitting unit in both directions', () => {
   assert.equal(formatRelative(null), '')
 })
 
+test('recent timestamps read as relative, older ones pin to a date', () => {
+  const DAY = 24 * 60 * 60 * 1000
+  assert.equal(formatRecent(Date.now() - 2 * 60 * 60 * 1000), '2 hours ago')
+  // Past the surface's threshold the wording gives way to an absolute date, so
+  // a year-old item does not read "12 months ago".
+  assert.equal(formatRecent('2020-08-24T10:30:00Z'), '24 Aug 2020')
+  assert.equal(formatRecent(Date.now() - 2 * DAY, { within: DAY }), formatDate(Date.now() - 2 * DAY))
+  assert.equal(formatRecent(null), '')
+})
+
 test('useFormat exposes the seam under the names the contract documents', () => {
-  const { date, number, relative } = useFormat()
+  const { date, number, relative, recent } = useFormat()
   assert.equal(typeof date, 'function')
   assert.equal(typeof number, 'function')
   assert.equal(typeof relative, 'function')
+  assert.equal(typeof recent, 'function')
 })

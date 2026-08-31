@@ -1153,6 +1153,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -1376,25 +1377,13 @@ function stripMd(text) {
   return String(text).replace(/[#*_`>\[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200)
 }
 
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function formatDateTime(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const formatDateTime = (d) => formatDate(d, 'datetime')
 
 function formatDateRange(planned, end) {
-  const sd = planned ? (typeof planned === 'number' ? new Date(planned * 1000) : new Date(planned)) : null
-  const ed = end ? (typeof end === 'number' ? new Date(end * 1000) : new Date(end)) : null
-  const s = sd ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
-  const e = ed ? ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+  const s = formatDate(planned, 'dayMonth')
+  const e = formatDate(end, 'dayMonth')
   if (s && e) return `${s} – ${e}`
-  return s || ''
+  return s
 }
 
 function isOverdue(dateStr) {

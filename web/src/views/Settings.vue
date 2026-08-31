@@ -231,8 +231,8 @@
               <span v-if="t.revoked_at" class="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">revoked</span>
             </div>
             <div class="text-xs text-slate-500 mt-0.5">
-              Created {{ t.created_at ? (typeof t.created_at === 'number' ? new Date(t.created_at * 1000) : new Date(t.created_at)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown' }}
-              <span v-if="t.last_used_at" class="ml-2">Last used {{ (typeof t.last_used_at === 'number' ? new Date(t.last_used_at * 1000) : new Date(t.last_used_at)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
+              Created {{ t.created_at ? formatDate(t.created_at) : 'Unknown' }}
+              <span v-if="t.last_used_at" class="ml-2">Last used {{ formatDate(t.last_used_at) }}</span>
               <span v-else class="ml-2">Never used</span>
             </div>
           </div>
@@ -279,8 +279,8 @@
                 </button>
               </div>
               <div class="text-xs text-slate-500 mt-0.5">
-                Added {{ pk.created_at ? (typeof pk.created_at === 'number' ? new Date(pk.created_at * 1000) : new Date(pk.created_at)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown' }}
-                <span v-if="pk.last_used_at" class="ml-2">Last used {{ (typeof pk.last_used_at === 'number' ? new Date(pk.last_used_at * 1000) : new Date(pk.last_used_at)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
+                Added {{ pk.created_at ? formatDate(pk.created_at) : 'Unknown' }}
+                <span v-if="pk.last_used_at" class="ml-2">Last used {{ formatDate(pk.last_used_at) }}</span>
               </div>
             </template>
           </div>
@@ -311,6 +311,7 @@ import { ref, nextTick, onMounted, computed } from 'vue'
 import QRCode from 'qrcode'
 import api from '../api.js'
 import LocalePicker from '../components/LocalePicker.vue'
+import { formatDate } from '../composables/useFormat.js'
 
 const user = ref(null)
 

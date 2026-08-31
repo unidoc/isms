@@ -126,6 +126,7 @@ import { tokenize, diffTokens, diffLines, escapeHtml } from '../composables/useW
 import { diffTables } from '../composables/useTableDiff'
 import DiffView from './DiffView.vue'
 import api from '../api'
+import { formatDate, formatRecent } from '../composables/useFormat.js'
 
 const emit = defineEmits(['comment'])
 
@@ -157,15 +158,7 @@ function outdatedCommentsForParagraph(idx) {
 const activeCommentCount = computed(() => props.comments.filter(c => !c.is_outdated).length)
 
 function formatTime(ts) {
-  if (!ts) return ''
-  try {
-    const d = new Date(typeof ts === 'number' ? ts * 1000 : ts)
-    const diff = Math.floor((Date.now() - d.getTime()) / 60000)
-    if (diff < 1) return 'just now'
-    if (diff < 60) return `${diff}m ago`
-    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-  } catch { return '' }
+  return formatRecent(ts, { within: 24 * 60 * 60 * 1000, style: 'dayMonth' })
 }
 
 function submitComment(paragraphIndex) {
@@ -262,23 +255,10 @@ watch([() => props.documentId, () => props.blameRef], async ([id]) => {
 
 function relTime(dateStr) {
   if (!dateStr) return ''
-  try {
-    const d = new Date(dateStr)
-    const diffH = Math.floor((new Date() - d) / 3600000)
-    if (diffH < 1) return 'just now'
-    if (diffH < 24) return `${diffH}h ago`
-    const diffD = Math.floor(diffH / 24)
-    if (diffD < 30) return `${diffD}d ago`
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-  } catch { return '' }
+  return formatRecent(dateStr, { within: 30 * 24 * 60 * 60 * 1000, style: 'dayMonth' })
 }
 
-function fullDate(dateStr) {
-  if (!dateStr) return ''
-  try {
-    return new Date(dateStr).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  } catch { return '' }
-}
+const fullDate = (dateStr) => formatDate(dateStr, 'datetime')
 
 function shortName(email) {
   if (!email) return ''

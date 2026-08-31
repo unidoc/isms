@@ -36,6 +36,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
+import { formatDate as formatDateValue } from '../composables/useFormat.js'
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -92,11 +93,7 @@ function groupTooltip(g) {
   return t
 }
 
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
+const formatDate = (d) => formatDateValue(d, 'dayMonthTime')
 
 function toEpoch(d) {
   return typeof d === 'number' ? d : new Date(d).getTime() / 1000

@@ -81,6 +81,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { api } from '../api'
+import { formatRecent } from '../composables/useFormat.js'
 
 const props = defineProps({
   supplierId: { type: Number, required: true },
@@ -125,14 +126,7 @@ async function submit() {
   }
 }
 
-function formatTime(ts) {
-  if (!ts) return ''
-  const d = new Date(typeof ts === 'number' ? ts * 1000 : ts)
-  const diff = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diff < 60) return `${diff}m ago`
-  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
+const formatTime = (ts) => formatRecent(ts, { within: 24 * 60 * 60 * 1000 })
 
 onMounted(load)
 watch(() => props.supplierId, load)

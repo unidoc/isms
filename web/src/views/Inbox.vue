@@ -725,6 +725,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate as formatDateValue } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -900,10 +901,10 @@ function resolveUserName(email) {
 }
 
 // ---------- Helpers ----------
+// The table renders a dash for a missing date, where the shared seam returns
+// an empty string; only that choice stays local.
 function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return '-'
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatDateValue(dateStr) || '-'
 }
 
 function isOverdue(task) {

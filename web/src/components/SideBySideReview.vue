@@ -139,6 +139,7 @@ import DOMPurify from 'dompurify'
 import DiffView from './DiffView.vue'
 import { parseMd } from '../composables/useRenderMd'
 import { diffTables, isTableBlock } from '../composables/useTableDiff'
+import { formatDate } from '../composables/useFormat.js'
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -177,11 +178,7 @@ const expandedBlock = ref(null)
 
 watch(expandedBlock, () => { commentBody.value = '' })
 
-function formatTime(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
+const formatTime = (d) => formatDate(d, 'dayMonthTime')
 
 const showOutdated = ref({})
 

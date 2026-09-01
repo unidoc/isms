@@ -425,6 +425,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 
@@ -516,12 +517,6 @@ function priorityClass(p) {
     case 'low': return 'bg-slate-500/15 text-slate-400'
     default: return 'bg-slate-500/15 text-slate-400'
   }
-}
-
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 async function selectChange(cr) {

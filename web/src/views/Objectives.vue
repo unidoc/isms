@@ -510,6 +510,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -605,17 +606,7 @@ function opSymbol(op) {
   return map[op] || op
 }
 
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function formatDateTime(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const formatDateTime = (d) => formatDate(d, 'datetime')
 
 function formatBytes(bytes) {
   if (!bytes) return ''

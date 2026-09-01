@@ -132,6 +132,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import DOMPurify from 'dompurify'
+import { formatRecent } from '../composables/useFormat.js'
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style'] })
 import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
@@ -220,16 +221,8 @@ async function submitReply() {
   }
 }
 
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const date = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  const now = new Date()
-  const diff = now - date
-  if (diff < 60000) return 'just now'
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
+// A comment thread pins to a date after a day, not a week.
+const formatDate = (d) => formatRecent(d, { within: 24 * 60 * 60 * 1000, style: 'dayMonth' })
 
 function renderBody(body) {
   if (!body) return ''

@@ -34,6 +34,7 @@ import { useMembers } from '../composables/useMembers'
 import { renderMention } from '../composables/useMention'
 import { useSession } from '../composables/useSession'
 import { useToast } from '../composables/useToast'
+import { formatDate } from '../composables/useFormat.js'
 
 const { show: showError } = useToast()
 
@@ -53,12 +54,6 @@ const props = defineProps({
 const comments = ref([])
 const loading = ref(false)
 const newComment = ref('')
-
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 async function loadComments() {
   loading.value = true

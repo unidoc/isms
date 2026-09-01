@@ -235,6 +235,7 @@ import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
 import { parseMd } from '../composables/useRenderMd'
+import { formatRecent } from '../composables/useFormat.js'
 
 const { members } = useMembers()
 
@@ -618,21 +619,7 @@ function toggleReviewBlock(index) {
 }
 
 // --- Format helpers ---
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  try {
-    const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-    const now = new Date()
-    const diff = now - d
-    if (diff < 60000) return 'just now'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch {
-    return dateStr
-  }
-}
+const formatDate = (dateStr) => formatRecent(dateStr)
 
 // --- Lifecycle ---
 watch(() => props.documentId, (newId) => {

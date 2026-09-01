@@ -536,6 +536,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 import HeatMap from '../components/HeatMap.vue'
 import OverdueItems from '../components/OverdueItems.vue'
 import { useCurrentOrg, orgEntryURL, isSubdomainMode } from '../composables/useCurrentOrg.js'
+import { formatDate } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -763,16 +764,6 @@ function typeStats(t) {
 }
 
 // --- Utilities ---
-
-function formatDate(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 // --- Data fetch ---
 

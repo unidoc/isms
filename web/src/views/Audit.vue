@@ -303,7 +303,7 @@
                 </td>
                 <td class="px-5 py-3.5 text-sm text-slate-500 truncate max-w-[160px]">{{ resolveUserName(f.owner) }}</td>
                 <td class="px-5 py-3.5 text-sm" :class="isOverdue(f.due_date) && f.status === 'open' ? 'text-red-400 font-medium' : 'text-slate-500'">
-                  {{ f.due_date ? formatDate(f.due_date) : '-' }}
+                  {{ f.due_date ? formatDay(f.due_date) : '-' }}
                 </td>
                 <td class="px-5 py-3.5"><StatusBadge :status="f.status" /></td>
               </tr>
@@ -882,7 +882,7 @@
                         <span class="text-sm font-medium text-slate-200 flex-1 truncate min-w-0">{{ f.title }}</span>
                         <span v-if="f.audit_item_id" class="text-[10px] text-slate-500 font-mono">item #{{ f.audit_item_id }}</span>
                         <span v-if="isOverdue(f.due_date) && f.status === 'open'" class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 font-semibold tracking-wider uppercase">Overdue</span>
-                        <span v-if="f.due_date" class="text-xs text-slate-500">{{ formatDate(f.due_date) }}</span>
+                        <span v-if="f.due_date" class="text-xs text-slate-500">{{ formatDay(f.due_date) }}</span>
                         <StatusBadge :status="f.status" />
                       </div>
                     </div>
@@ -1058,7 +1058,7 @@
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
                         <div class="text-sm" :class="isOverdue(selectedFinding.due_date) && selectedFinding.status === 'open' ? 'text-red-400 font-medium' : 'text-slate-300'">
-                          {{ selectedFinding.due_date ? formatDate(selectedFinding.due_date) : '—' }}
+                          {{ selectedFinding.due_date ? formatDay(selectedFinding.due_date) : '—' }}
                         </div>
                       </div>
                       <div v-if="selectedFinding.created_at">
@@ -1153,6 +1153,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -1376,25 +1377,13 @@ function stripMd(text) {
   return String(text).replace(/[#*_`>\[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200)
 }
 
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function formatDateTime(d) {
-  if (!d && d !== 0) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const formatDateTime = (d) => formatDate(d, 'datetime')
 
 function formatDateRange(planned, end) {
-  const sd = planned ? (typeof planned === 'number' ? new Date(planned * 1000) : new Date(planned)) : null
-  const ed = end ? (typeof end === 'number' ? new Date(end * 1000) : new Date(end)) : null
-  const s = sd ? sd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
-  const e = ed ? ed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+  const s = formatDay(planned, 'dayMonth')
+  const e = formatDay(end, 'dayMonth')
   if (s && e) return `${s} – ${e}`
-  return s || ''
+  return s
 }
 
 function isOverdue(dateStr) {

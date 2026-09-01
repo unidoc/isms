@@ -175,7 +175,7 @@
               </td>
               <td class="px-5 py-3.5 text-sm text-slate-400">{{ resolveUserName(sys.owner) }}</td>
               <td class="px-5 py-3.5 text-sm" :class="isOverdue(sys.next_review) ? 'text-amber-400 font-medium' : 'text-slate-500'">
-                {{ formatDate(sys.next_review) || '-' }}
+                {{ formatDay(sys.next_review) || '-' }}
               </td>
             </tr>
           </tbody>
@@ -347,7 +347,7 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDate(selectedItem.next_review) }}
+                    Review overdue since {{ formatDay(selectedItem.next_review) }}
                   </div>
 
                   <!-- CIA scores -->
@@ -373,8 +373,8 @@
                   </div>
 
                   <div class="flex gap-4 text-[10px] text-slate-500 flex-wrap">
-                    <span v-if="selectedItem.last_review">Last review: {{ formatDate(selectedItem.last_review) }}</span>
-                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDate(selectedItem.next_review) }}</span>
+                    <span v-if="selectedItem.last_review">Last review: {{ formatDay(selectedItem.last_review) }}</span>
+                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDay(selectedItem.next_review) }}</span>
                   </div>
 
                   <!-- Readings -->
@@ -531,6 +531,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -690,12 +691,6 @@ function rtoColor(hours) {
   if (hours <= 12) return 'text-amber-400'
   if (hours <= 48) return 'text-blue-400'
   return 'text-slate-400'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function isOverdue(dateStr) {

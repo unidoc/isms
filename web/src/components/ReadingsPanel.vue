@@ -202,6 +202,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
+import { formatRecent } from '../composables/useFormat.js'
 
 // Auto-recompute next_review when severity changes, unless user has manually edited it
 
@@ -371,14 +372,7 @@ function scoreColor(v) {
   return 'bg-emerald-900/40 text-emerald-300'
 }
 
-function relativeTime(ts) {
-  if (!ts) return ''
-  const d = new Date(typeof ts === 'number' ? ts * 1000 : ts)
-  const diff = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diff < 60) return `${diff}m ago`
-  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
+const relativeTime = (ts) => formatRecent(ts, { within: 24 * 60 * 60 * 1000 })
 
 function shortEmail(e) { return e ? e.split('@')[0] : '-' }
 

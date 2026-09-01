@@ -463,7 +463,7 @@
               <span v-if="activeDoc.status">{{ activeDoc.status }}</span>
               <span v-if="activeDoc.author"> &mdash; Author: {{ resolveUserName(activeDoc.author) || activeDoc.author }}</span>
               <span> &mdash; {{ activeId }}</span>
-              <span> &mdash; Printed {{ new Date().toLocaleDateString() }}</span>
+              <span> &mdash; Printed {{ formatDateValue(Date.now()) }}</span>
             </div>
           </div>
 
@@ -1357,6 +1357,7 @@ import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount, d
 import { useRoute, useRouter } from 'vue-router'
 import { buildContentBlocks } from '../utils/contentBlocks.js'
 import DOMPurify from 'dompurify'
+import { formatDate as formatDateValue, formatRecent } from '../composables/useFormat.js'
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style', 'data-ref-type', 'data-ref-id'] })
 
 // Render [[TYPE:ID|Title]] reference links as styled pills
@@ -1681,7 +1682,7 @@ const docNextReview = computed(() => {
   if (isNaN(approved.getTime())) return null
   const next = new Date(approved)
   next.setMonth(next.getMonth() + cycle)
-  return next.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatDateValue(next)
 })
 
 const docReviewOverdue = computed(() => {
@@ -2510,21 +2511,7 @@ async function resolveComment(id) {
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  try {
-    const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-    const now = new Date()
-    const diff = now - d
-    if (diff < 60000) return 'just now'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch {
-    return dateStr
-  }
-}
+const formatDate = (dateStr) => formatRecent(dateStr)
 
 // Reload review progress when content blocks change (new doc loaded)
 watch(() => [activeId.value, contentBlocks.value.length], () => {

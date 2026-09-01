@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { api } from '../api'
 import { isSubdomainMode } from './useCurrentOrg'
+import { formatDate } from './useFormat.js'
 
 const notifications = ref([])
 const unreadCount = ref(0)
@@ -49,11 +50,7 @@ export function useNotifications() {
     } catch { /* ignore */ }
   }
 
-  function formatNotifDate(dateStr) {
-    if (!dateStr && dateStr !== 0) return ''
-    const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-  }
+  const formatNotifDate = (dateStr) => formatDate(dateStr, 'dayMonthTime')
 
   // Listen for external notification changes (e.g. Inbox page marking all read)
   if (typeof window !== 'undefined') {

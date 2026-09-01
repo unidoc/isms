@@ -704,6 +704,7 @@ import api from '../api.js'
 import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useLocale } from '../composables/useLocale'
+import { formatDate } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -861,12 +862,6 @@ const showPoweredByToggle = computed({
 function switchTab(key) {
   activeTab.value = key
   router.replace(orgPath(`/admin/${key}`))
-}
-
-function formatDate(dateStr) {
-  if (!dateStr && dateStr !== 0) return ''
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function providerIconClass(name) {

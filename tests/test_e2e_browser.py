@@ -4,6 +4,7 @@ Requires: pip install playwright && playwright install chromium
 Run:      pytest tests/test_e2e_browser.py -v
 """
 import os, pytest, importlib
+import time
 import uuid
 import requests
 
@@ -69,6 +70,23 @@ def click_sidebar(page, label):
 
 def wait_for(page, text, timeout=8000):
     page.locator(f"text={text}").first.wait_for(state="visible", timeout=timeout)
+
+def wait_review_status(rid, token, status, timeout=15.0):
+    """Poll the API until a review reaches `status`.
+
+    Browser-driven approvals fire an async POST; a UI text assertion can pass
+    before the request lands (or while it is still in flight, in which case
+    closing the browser context cancels it server-side). Always gate a
+    follow-up API call on the real state, never on rendered copy.
+    """
+    deadline = time.time() + timeout
+    last = None
+    while time.time() < deadline:
+        last = api("get", f"/reviews/{rid}", token, expect_status=200).json().get("status")
+        if last == status:
+            return
+        time.sleep(0.25)
+    raise AssertionError(f"review {rid} never reached status {status!r} (last: {last!r})")
 
 # ── Fixtures ──
 
@@ -268,7 +286,10 @@ class TestReviewTwo:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            page.locator("text=/recorded|[Aa]pproved/").first.wait_for(state="visible", timeout=10000)
+            # Per-reviewer confirmation, rendered only once this user's own
+            # assignment status flips to approved. NOT the sidebar's static
+            # "Approved: n of m" label, which is on the page from first paint.
+            page.locator("text=You approved this round.").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
 
@@ -282,9 +303,18 @@ class TestReviewTwo:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            page.locator("text=/recorded|[Aa]pproved/").first.wait_for(state="visible", timeout=10000)
+            # R2 is the last reviewer, so their approval flips the review to
+            # `approved` and the reviewer panel is replaced by the approved
+            # branch — "You approved this round." never renders for them.
+            # Every "Ready to merge" in Reviews.vue is gated on that status
+            # (lines 414, 1495), so it cannot appear before this POST lands.
+            page.locator("text=Ready to merge").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
+
+        # Both approvals must have landed server-side before the merge step —
+        # closing the context above can cancel an approve POST still in flight.
+        wait_review_status(rid, t, "approved")
 
         # Merge — R2's approval may take a moment to propagate, so reload if needed
         ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
@@ -380,12 +410,14 @@ class TestReviewRoundUX:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            # Feedback message should mention Round 2 or show approval confirmation
-            page.locator("text=/Round 2|approved|Approved|recorded/").first.wait_for(state="visible", timeout=10000)
+            # Approval feedback. NOT "Round 2" — that badge is already in the
+            # header from step 1, so matching it would make this wait a no-op.
+            page.locator("text=/Ready to merge|has been recorded/").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
 
-        # Cleanup: merge via API
+        # Cleanup: merge via API — gate on real state, not on the rendered copy above.
+        wait_review_status(rid2, t, "approved")
         api("post", f"/reviews/{rid2}/merge", t, json={}, expect_status=200)
 
 # ── Suppliers (browser) ──

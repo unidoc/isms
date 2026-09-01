@@ -169,7 +169,7 @@
               </td>
               <td class="px-5 py-3.5 text-sm text-slate-400">{{ resolveUserName(supplier.owner) }}</td>
               <td class="px-5 py-3.5 text-sm" :class="isOverdue(supplier.next_review) ? 'text-amber-400 font-medium' : 'text-slate-500'">
-                {{ formatDate(supplier.next_review) || '-' }}
+                {{ formatDay(supplier.next_review) || '-' }}
               </td>
             </tr>
           </tbody>
@@ -302,7 +302,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Contract Expiry</div>
-                          <div class="text-sm text-slate-300">{{ formatDate(selectedItem.contract_expiry) || '—' }}</div>
+                          <div class="text-sm text-slate-300">{{ formatDay(selectedItem.contract_expiry) || '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Data Access</div>
@@ -344,7 +344,7 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDate(selectedItem.next_review) }}
+                    Review overdue since {{ formatDay(selectedItem.next_review) }}
                   </div>
 
                   <!-- CIA scores -->
@@ -370,8 +370,8 @@
                   </div>
 
                   <div class="flex gap-4 text-[10px] text-slate-500 flex-wrap">
-                    <span v-if="selectedItem.last_review">Last review: {{ formatDate(selectedItem.last_review) }}</span>
-                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDate(selectedItem.next_review) }}</span>
+                    <span v-if="selectedItem.last_review">Last review: {{ formatDay(selectedItem.last_review) }}</span>
+                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDay(selectedItem.next_review) }}</span>
                   </div>
 
                   <!-- Readings -->
@@ -485,7 +485,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()

@@ -161,7 +161,7 @@
             <span v-if="ca.assignee" class="text-xs text-slate-500 truncate max-w-[160px]">{{ resolveUserName(ca.assignee) }}</span>
             <!-- Due date -->
             <span v-if="ca.due_date" class="text-xs" :class="isOverdue(ca.due_date) && ca.status !== 'resolved' ? 'text-red-400' : 'text-slate-600'">
-              {{ formatDate(ca.due_date) }}
+              {{ formatDay(ca.due_date) }}
             </span>
             <!-- ID -->
             <span class="text-xs text-slate-600 font-mono">{{ ca.identifier }}</span>
@@ -285,7 +285,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
-                          <div class="text-sm" :class="selectedCA.due_date && isOverdue(selectedCA.due_date) && selectedCA.status !== 'resolved' ? 'text-red-400' : 'text-slate-300'">{{ selectedCA.due_date ? formatDate(selectedCA.due_date) : '—' }}</div>
+                          <div class="text-sm" :class="selectedCA.due_date && isOverdue(selectedCA.due_date) && selectedCA.status !== 'resolved' ? 'text-red-400' : 'text-slate-300'">{{ selectedCA.due_date ? formatDay(selectedCA.due_date) : '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
@@ -421,7 +421,7 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 

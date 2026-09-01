@@ -588,7 +588,7 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDate(selectedRisk.next_review) }}
+                    Review overdue since {{ formatDay(selectedRisk.next_review) }}
                   </div>
 
                   <!-- Score summary -->
@@ -612,8 +612,8 @@
                     </div>
                   </div>
                   <div class="flex gap-4 text-[10px] text-slate-500">
-                    <span v-if="selectedRisk.last_review">Last review: {{ formatDate(selectedRisk.last_review) }}</span>
-                    <span v-if="selectedRisk.next_review && !isOverdue(selectedRisk.next_review)">Next review: {{ formatDate(selectedRisk.next_review) }}</span>
+                    <span v-if="selectedRisk.last_review">Last review: {{ formatDay(selectedRisk.last_review) }}</span>
+                    <span v-if="selectedRisk.next_review && !isOverdue(selectedRisk.next_review)">Next review: {{ formatDay(selectedRisk.next_review) }}</span>
                   </div>
 
                   <!-- Readings panel -->
@@ -729,7 +729,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate as formatDateValue } from '../composables/useFormat.js'
+import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -964,6 +964,10 @@ function formatOrigin(o) {
 // an empty string; only that choice stays local.
 function formatDate(dateStr) {
   return formatDateValue(dateStr) || '-'
+}
+
+function formatDay(dateStr) {
+  return formatDayValue(dateStr) || '-'
 }
 
 const ciaLabel = (v) => ['Not Assessed','Insignificant','Minor','Moderate','Major','Severe'][v] || 'N/A'

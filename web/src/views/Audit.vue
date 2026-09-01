@@ -303,7 +303,7 @@
                 </td>
                 <td class="px-5 py-3.5 text-sm text-slate-500 truncate max-w-[160px]">{{ resolveUserName(f.owner) }}</td>
                 <td class="px-5 py-3.5 text-sm" :class="isOverdue(f.due_date) && f.status === 'open' ? 'text-red-400 font-medium' : 'text-slate-500'">
-                  {{ f.due_date ? formatDate(f.due_date) : '-' }}
+                  {{ f.due_date ? formatDay(f.due_date) : '-' }}
                 </td>
                 <td class="px-5 py-3.5"><StatusBadge :status="f.status" /></td>
               </tr>
@@ -882,7 +882,7 @@
                         <span class="text-sm font-medium text-slate-200 flex-1 truncate min-w-0">{{ f.title }}</span>
                         <span v-if="f.audit_item_id" class="text-[10px] text-slate-500 font-mono">item #{{ f.audit_item_id }}</span>
                         <span v-if="isOverdue(f.due_date) && f.status === 'open'" class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 font-semibold tracking-wider uppercase">Overdue</span>
-                        <span v-if="f.due_date" class="text-xs text-slate-500">{{ formatDate(f.due_date) }}</span>
+                        <span v-if="f.due_date" class="text-xs text-slate-500">{{ formatDay(f.due_date) }}</span>
                         <StatusBadge :status="f.status" />
                       </div>
                     </div>
@@ -1058,7 +1058,7 @@
                       <div>
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
                         <div class="text-sm" :class="isOverdue(selectedFinding.due_date) && selectedFinding.status === 'open' ? 'text-red-400 font-medium' : 'text-slate-300'">
-                          {{ selectedFinding.due_date ? formatDate(selectedFinding.due_date) : '—' }}
+                          {{ selectedFinding.due_date ? formatDay(selectedFinding.due_date) : '—' }}
                         </div>
                       </div>
                       <div v-if="selectedFinding.created_at">
@@ -1153,7 +1153,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -1380,8 +1380,8 @@ function stripMd(text) {
 const formatDateTime = (d) => formatDate(d, 'datetime')
 
 function formatDateRange(planned, end) {
-  const s = formatDate(planned, 'dayMonth')
-  const e = formatDate(end, 'dayMonth')
+  const s = formatDay(planned, 'dayMonth')
+  const e = formatDay(end, 'dayMonth')
   if (s && e) return `${s} – ${e}`
   return s
 }

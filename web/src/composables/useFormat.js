@@ -69,6 +69,20 @@ export function formatDate(value, style = 'short') {
   return formatter(Intl.DateTimeFormat, 'date', activeLocale(), options).format(d)
 }
 
+// A calendar date, not an instant. Postgres DATE columns (a due date, a next
+// review) come over the wire as epoch seconds at midnight UTC, so rendering
+// them in the viewer's zone moves the day backwards for everyone west of UTC —
+// a 5 Aug due date reads 4 Aug in Sao Paulo. Pinning the formatter to UTC keeps
+// the day the one that was entered, which is the only meaning a DATE has.
+// Use this for a DATE column and formatDate() for a timestamp; the wire format
+// is identical, so the distinction cannot be recovered from the value.
+export function formatDay(value, style = 'short') {
+  const d = toDate(value)
+  if (!d) return ''
+  const options = DATE_STYLES[style] ?? DATE_STYLES.short
+  return formatter(Intl.DateTimeFormat, 'date', activeLocale(), { ...options, timeZone: 'UTC' }).format(d)
+}
+
 export function formatNumber(value, options = {}) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return ''
   return formatter(Intl.NumberFormat, 'number', activeLocale(), options).format(value)
@@ -110,5 +124,5 @@ export function formatRecent(value, { within = 7 * 24 * 60 * 60 * 1000, style = 
 }
 
 export function useFormat() {
-  return { date: formatDate, number: formatNumber, relative: formatRelative, recent: formatRecent }
+  return { date: formatDate, day: formatDay, number: formatNumber, relative: formatRelative, recent: formatRecent }
 }

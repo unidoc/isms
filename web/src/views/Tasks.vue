@@ -147,7 +147,7 @@
               <div class="text-xs text-slate-500 mt-1">
                 <span v-if="task.assignee">{{ resolveUserName(task.assignee) }}</span>
                 <span v-if="task.due_date" class="ml-2" :class="isOverdue(task) ? 'text-red-400' : ''">
-                  Due {{ formatDate(task.due_date) }}
+                  Due {{ formatDay(task.due_date) }}
                   <span v-if="isOverdue(task)" class="text-red-400 font-semibold ml-1">OVERDUE</span>
                 </span>
                 <span v-if="task.created_by" class="ml-2 text-slate-600">by {{ resolveUserName(task.created_by) }}</span>
@@ -277,7 +277,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
-                          <div class="text-sm" :class="isOverdue(selectedTask) ? 'text-red-400' : 'text-slate-300'">{{ selectedTask.due_date ? formatDate(selectedTask.due_date) : '—' }}</div>
+                          <div class="text-sm" :class="isOverdue(selectedTask) ? 'text-red-400' : 'text-slate-300'">{{ selectedTask.due_date ? formatDay(selectedTask.due_date) : '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
@@ -418,7 +418,7 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 
 const { ask, confirm: confirmDialog } = useConfirm()
 const { success: showSaved, error: showError } = useToast()

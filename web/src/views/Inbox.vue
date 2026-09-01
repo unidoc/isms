@@ -355,7 +355,7 @@
               class="text-xs flex-shrink-0 w-24 text-right"
               :class="isOverdue(task) ? 'text-red-400 font-medium' : 'text-slate-500'"
             >
-              {{ formatDate(task.due_date) }}
+              {{ formatDay(task.due_date) }}
               <span v-if="isOverdue(task)" class="block text-[10px] text-red-500">OVERDUE</span>
             </span>
 
@@ -419,7 +419,7 @@
             <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">{{ (ca.severity || '').replace(/_/g, ' ') }}</span>
             <span class="text-xs text-slate-500 flex-shrink-0 capitalize w-32 truncate text-right">{{ (ca.source || '').replace(/_/g, ' ') }}</span>
             <span v-if="ca.due_date" class="text-xs flex-shrink-0 w-24 text-right" :class="isOverdue(ca) ? 'text-red-400 font-medium' : 'text-slate-500'">
-              {{ formatDate(ca.due_date) }}
+              {{ formatDay(ca.due_date) }}
               <span v-if="isOverdue(ca)" class="block text-[10px] text-red-500">OVERDUE</span>
             </span>
             <StatusBadge :status="ca.status" class="flex-shrink-0" />
@@ -725,7 +725,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate as formatDateValue } from '../composables/useFormat.js'
+import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -905,6 +905,10 @@ function resolveUserName(email) {
 // an empty string; only that choice stays local.
 function formatDate(dateStr) {
   return formatDateValue(dateStr) || '-'
+}
+
+function formatDay(dateStr) {
+  return formatDayValue(dateStr) || '-'
 }
 
 function isOverdue(task) {

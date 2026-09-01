@@ -117,8 +117,12 @@ See [Architecture](docs/architecture.md) for details on the core vs templates sp
 ### Build
 
 ```bash
-go build -o isms ./cmd/isms/
+just build
 ```
+
+This builds the Vue web UI and embeds it into the `isms` binary. `bin/isms` is the
+result. (A bare `go build ./cmd/isms/` will not work — the binary embeds the built
+web UI, so the frontend has to be built first.)
 
 ### Setup
 

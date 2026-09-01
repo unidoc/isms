@@ -286,7 +286,10 @@ class TestReviewTwo:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            page.locator("text=/recorded|[Aa]pproved/").first.wait_for(state="visible", timeout=10000)
+            # Per-reviewer confirmation, rendered only once this user's own
+            # assignment status flips to approved. NOT the sidebar's static
+            # "Approved: n of m" label, which is on the page from first paint.
+            page.locator("text=You approved this round.").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
 
@@ -300,7 +303,10 @@ class TestReviewTwo:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            page.locator("text=/recorded|[Aa]pproved/").first.wait_for(state="visible", timeout=10000)
+            # Per-reviewer confirmation, rendered only once this user's own
+            # assignment status flips to approved. NOT the sidebar's static
+            # "Approved: n of m" label, which is on the page from first paint.
+            page.locator("text=You approved this round.").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
 

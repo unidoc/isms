@@ -303,10 +303,12 @@ class TestReviewTwo:
             page.get_by_role("button", name="Approve").click()
             page.locator('button:has-text("Confirm Approve")').wait_for(state="visible", timeout=5000)
             page.locator('button:has-text("Confirm Approve")').click()
-            # Per-reviewer confirmation, rendered only once this user's own
-            # assignment status flips to approved. NOT the sidebar's static
-            # "Approved: n of m" label, which is on the page from first paint.
-            page.locator("text=You approved this round.").first.wait_for(state="visible", timeout=10000)
+            # R2 is the last reviewer, so their approval flips the review to
+            # `approved` and the reviewer panel is replaced by the approved
+            # branch — "You approved this round." never renders for them.
+            # Every "Ready to merge" in Reviews.vue is gated on that status
+            # (lines 414, 1495), so it cannot appear before this POST lands.
+            page.locator("text=Ready to merge").first.wait_for(state="visible", timeout=10000)
         finally:
             ctx.close()
 

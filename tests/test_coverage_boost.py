@@ -288,26 +288,69 @@ class TestAuth:
         assert r.status_code == 200
         return r.json()
 
+    # These use "en" rather than a second locale because the supported set is a
+    # compile-time catalog with a per-entry `enabled` flag, and id-ID currently
+    # ships disabled (its UI is not extracted yet — see docs/i18n.md). An
+    # integration test cannot flip that flag, so the write path is exercised with
+    # the one locale this build offers, and the disabled case is asserted
+    # directly below. Both are worth having: this is the only place either is
+    # checked over HTTP rather than as a unit test on i18n.Canonical.
+
     def test_update_profile_locale_only(self, api_url, admin_headers):
         """A locale-only payload is valid — name is optional, not required."""
         r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
-            "locale": "id-ID",
+            "locale": "en",
         })
         assert r.status_code == 200
-        assert self._profile(api_url, admin_headers)["locale_preference"] == "id-ID"
+        assert self._profile(api_url, admin_headers)["locale_preference"] == "en"
 
     def test_update_profile_locale_canonicalized(self, api_url, admin_headers):
-        """A non-canonical tag is stored in canonical form, not as sent."""
+        """A non-canonical tag is stored in canonical form, not as sent.
+
+        "EN-us" exercises both reductions at once: case is not part of a tag's
+        identity, and a region the catalog does not distinguish falls back to the
+        bare language.
+        """
         r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
-            "locale": "id-id",
+            "locale": "EN-us",
         })
         assert r.status_code == 200
-        assert self._profile(api_url, admin_headers)["locale_preference"] == "id-ID"
+        assert self._profile(api_url, admin_headers)["locale_preference"] == "en"
+
+    def test_update_profile_locale_rejects_disabled_locale(self, api_url, admin_headers):
+        """A locale in the catalog but not enabled is refused, not stored.
+
+        The release gate: id-ID is fully translated but its UI is unextracted, so
+        the build must not let anyone select it. Absent from GET /config (so the
+        picker hides) is only half of that — this is the write path, which has to
+        refuse it outright rather than accept a preference nothing will honour.
+        """
+        before = self._profile(api_url, admin_headers)["locale_preference"]
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": "id-ID",
+        })
+        assert r.status_code == 400, "a disabled locale must not be accepted"
+        assert self._profile(api_url, admin_headers)["locale_preference"] == before
+
+    def test_config_advertises_only_enabled_locales(self, api_url, admin_headers):
+        """GET /config lists exactly the enabled locales, so the picker collapses.
+
+        LocalePicker.vue renders only when it has more than one option, so a
+        single-locale list is what hides the control entirely.
+        """
+        r = requests.get(f"{api_url}/config", headers=admin_headers)
+        assert r.status_code == 200
+        cfg = r.json()
+        assert [l["tag"] for l in cfg["locales"]] == ["en"]
+        # Whatever the org default is stored as, it resolves to an enabled tag:
+        # i18n.Resolve re-validates every tier, so a value that stopped being
+        # supported degrades rather than reaching the client.
+        assert cfg["default_locale"] in [l["tag"] for l in cfg["locales"]]
 
     def test_update_profile_locale_cleared(self, api_url, admin_headers):
         """An explicit empty string clears the choice so the org default applies."""
         assert requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
-            "locale": "id-ID",
+            "locale": "en",
         }).status_code == 200
 
         r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={

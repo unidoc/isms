@@ -114,6 +114,12 @@ test('the scanner recognises what it should and ignores what it should not', asy
     'text:Shown',
   ])
 
+  // The marker is numbered against the template block, not the file, so it must
+  // still suppress when something precedes `<template`. Every component in the
+  // tree opens on line 1 today, which makes an offset bug invisible.
+  assert.deepEqual(kinds('<!-- a leading file comment -->\n\n<template>\n<!-- i18n-ignore -->\n<p>Skipped</p></template>'), [])
+  assert.deepEqual(kinds('<!-- a leading file comment -->\n\n<template>\n<p>Kept</p></template>'), ['text:Kept'])
+
   // Line numbers must survive the blanking, or the failure message points at
   // the wrong string.
   assert.deepEqual(scanSource('<template>\n\n\n  <p>Down here</p>\n</template>')[0].line, 4)

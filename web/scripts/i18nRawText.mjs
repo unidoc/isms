@@ -62,6 +62,13 @@ function templateBlock(src) {
 
 // Lines carrying an `i18n-ignore` marker, plus the line after each — so the
 // marker can sit above the offending line as well as on it.
+//
+// Takes the template block, not the whole SFC: findings are numbered relative to
+// the template, so numbering the markers against the file would offset the two
+// by however many lines precede `<template`. Today every component in the tree
+// opens on line 1, which would have made that a silent no-op — a suppression
+// that quietly fails to suppress, which is the failure class this whole check
+// exists to prevent.
 function ignoredLines(src) {
   const out = new Set()
   src.split('\n').forEach((line, i) => {
@@ -84,9 +91,10 @@ function blank(src, re) {
  * `kind` is 'text' for a template text node, or the attribute name.
  */
 export function scanSource(src) {
-  const skip = ignoredLines(src)
   let tpl = templateBlock(src)
   if (!tpl) return []
+  // Before the comments are blanked: the marker is itself a comment.
+  const skip = ignoredLines(tpl)
 
   // Order matters. Comments go first (they can contain anything). Mustaches and
   // `v-html` payloads are already-dynamic. `<pre>` and `<code>` hold document

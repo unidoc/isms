@@ -2,7 +2,38 @@ package i18n
 
 import "testing"
 
+// withAllLocales enables every catalog entry for the duration of one test.
+//
+// The resolution logic — region tolerance, deterministic matching when a
+// language has several supported regions, the malformed-tag rejections — can
+// only be exercised against a catalog holding more than one locale. Release
+// gating (`enabled: false`) is a shipping decision and must not silently delete
+// that coverage, so the tests that exercise the machinery opt the whole catalog
+// in, and the tests that assert what this build actually ships (below) read the
+// real flags.
+//
+// Mutating the package-level catalog means none of these tests may call
+// t.Parallel; the restore is registered before the mutation so it runs even if
+// the test fails partway.
+func withAllLocales(t *testing.T) {
+	t.Helper()
+	original := make(map[string]entry, len(supported))
+	for tag, e := range supported {
+		original[tag] = e
+	}
+	t.Cleanup(func() {
+		supported = original
+	})
+	next := make(map[string]entry, len(supported))
+	for tag, e := range original {
+		e.enabled = true
+		next[tag] = e
+	}
+	supported = next
+}
+
 func TestCanonical(t *testing.T) {
+	withAllLocales(t)
 	tests := []struct {
 		name string
 		in   string
@@ -55,6 +86,7 @@ func TestCanonical(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
+	withAllLocales(t)
 	tests := []struct {
 		name string
 		user string
@@ -80,6 +112,7 @@ func TestResolve(t *testing.T) {
 }
 
 func TestFromAcceptLanguage(t *testing.T) {
+	withAllLocales(t)
 	tests := []struct {
 		name string
 		in   string
@@ -133,6 +166,7 @@ func TestDefaultIsSupported(t *testing.T) {
 // rejects it. Without this, a new entry could be unreachable via every write
 // path while still appearing in the picker.
 func TestEverySupportedTagIsCanonical(t *testing.T) {
+	withAllLocales(t)
 	for _, l := range Supported() {
 		got, ok := Canonical(l.Tag)
 		if !ok || got != l.Tag {
@@ -144,6 +178,7 @@ func TestEverySupportedTagIsCanonical(t *testing.T) {
 // Supported() feeds a UI picker and an API response, so its order must be
 // stable and must lead with the fallback.
 func TestSupportedOrderingIsStable(t *testing.T) {
+	withAllLocales(t)
 	first := Supported()
 	if len(first) == 0 {
 		t.Fatal("Supported() returned nothing")
@@ -164,11 +199,85 @@ func TestSupportedOrderingIsStable(t *testing.T) {
 	}
 }
 
-// Every locale needs an endonym, since that is what a picker displays.
+// Every locale needs an endonym, since that is what a picker displays. Checked
+// across the whole catalog rather than Supported(), because a disabled locale
+// needs its name in place before it is enabled, not after.
 func TestEveryLocaleHasAName(t *testing.T) {
-	for _, l := range Supported() {
-		if l.Name == "" {
-			t.Errorf("locale %q has no display name", l.Tag)
+	for tag, e := range supported {
+		if e.name == "" {
+			t.Errorf("locale %q has no display name", tag)
+		}
+	}
+}
+
+// --- The release gate ---------------------------------------------------------
+//
+// These read the real `enabled` flags rather than opting the catalog in. They
+// are what fails if someone enables a locale before its UI is extracted, and
+// what must be updated — deliberately — when a locale is genuinely ready.
+
+// Default must be enabled, not merely present. Every resolution path ends here.
+func TestDefaultIsEnabled(t *testing.T) {
+	if e, ok := supported[Default]; !ok || !e.enabled {
+		t.Fatalf("Default %q must be an enabled catalog entry, got %+v (present=%v)", Default, e, ok)
+	}
+}
+
+// What this build ships. id-ID is complete as a bundle but the UI behind it is
+// not extracted, so shipping it would offer an Indonesian option that renders
+// an almost entirely English app. Update this list when that changes.
+func TestOnlyEnabledLocalesAreOffered(t *testing.T) {
+	want := []Locale{{Tag: "en", Name: "English"}}
+	got := Supported()
+	if len(got) != len(want) {
+		t.Fatalf("Supported() = %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("Supported()[%d] = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+// A disabled locale must be unselectable through every write path, not just
+// absent from the picker. PUT /auth/profile and PUT /admin/settings both
+// validate through Canonical, so this is what turns them into a 400.
+func TestDisabledLocaleIsNotCanonical(t *testing.T) {
+	// Every spelling that would have resolved while it was enabled.
+	for _, in := range []string{"id-ID", "ID-id", "id_ID", "id", "id-SG"} {
+		if tag, ok := Canonical(in); ok {
+			t.Errorf("Canonical(%q) = (%q, true), want rejected — id-ID is disabled", in, tag)
+		}
+	}
+	if IsSupported("id-ID") {
+		t.Error("IsSupported(\"id-ID\") = true, want false — id-ID is disabled")
+	}
+}
+
+// The migration path for rows written while the locale was enabled. Resolve
+// re-validates every tier precisely so that disabling a locale degrades a
+// stored preference to the default instead of rendering a locale the client can
+// no longer load.
+func TestDisabledLocaleDegradesToDefault(t *testing.T) {
+	cases := []struct{ user, org string }{
+		{"id-ID", ""},      // a user preference stored pre-gate
+		{"", "id-ID"},      // an org default stored pre-gate
+		{"id-ID", "id-ID"}, // both
+	}
+	for _, c := range cases {
+		if got := Resolve(c.user, c.org); got != Default {
+			t.Errorf("Resolve(%q, %q) = %q, want %q", c.user, c.org, got, Default)
+		}
+	}
+}
+
+// A disabled locale must not be negotiated from a browser header either — this
+// is the path that needs no picker and no stored preference, and so the one
+// that would otherwise reach a new user with nothing opted in.
+func TestDisabledLocaleIsNotNegotiated(t *testing.T) {
+	for _, header := range []string{"id-ID", "id", "id-ID,en;q=0.5", "id;q=0.9, en;q=0.5"} {
+		if tag, ok := FromAcceptLanguage(header); ok && tag != Default {
+			t.Errorf("FromAcceptLanguage(%q) = (%q, true), want no id-ID match", header, tag)
 		}
 	}
 }

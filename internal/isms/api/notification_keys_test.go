@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -165,15 +166,40 @@ func TestENNotificationFramesAreEmitted(t *testing.T) {
 	}
 }
 
-// Digits are included deliberately. vue-i18n also accepts positional slots
-// ({0}, {1}), which no call site here sends — so a frame acquiring one renders
-// it empty, and a name-only pattern would not even see it to complain.
-var placeholderRe = regexp.MustCompile(`\{([a-zA-Z0-9_]+)\}`)
+// Anything between braces counts, rather than a pattern that tries to describe
+// a valid slot.
+//
+// vue-i18n's own grammar is wider than it looks: @intlify/message-compiler
+// starts a named identifier on [a-zA-Z_] but continues it over [a-zA-Z0-9_$-],
+// and readNamedIdentifier skips surrounding spaces — so {actor-name}, {a$b} and
+// { actor } are all live slots that render, and it also accepts positional
+// slots ({0}, {1}) that no call site here sends. A pattern matching only
+// [a-zA-Z0-9_] misses every one of those, and missing them is not a false
+// negative in isolation: the slot is invisible to the closed-set check AND to
+// the fallback-placeholder check below, so a localised {pelaku-nama} renders
+// empty with the whole file green.
+//
+// Mirroring the compiler's character classes here would just be a third twin to
+// keep in sync. Capturing everything instead pushes the verdict onto the
+// closed-set check, where {actor-name}, {a$b} and {0} all come out as "not a
+// param the backend sends" — which is the right answer for each of them.
+var placeholderRe = regexp.MustCompile(`\{([^{}]*)\}`)
 
 func placeholdersIn(frame string) map[string]bool {
 	out := map[string]bool{}
 	for _, m := range placeholderRe.FindAllStringSubmatch(frame, -1) {
-		out[m[1]] = true
+		out[strings.TrimSpace(m[1])] = true
+	}
+	return out
+}
+
+// wireKeyForCatalogKey inverts catalogKey so a frame can be checked against the
+// params of the notification that writes it.
+func wireKeyForCatalogKey(t *testing.T) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	for _, wireKey := range NotificationKeys {
+		out[catalogKey(wireKey)] = wireKey
 	}
 	return out
 }
@@ -188,13 +214,7 @@ func placeholdersIn(frame string) map[string]bool {
 // unfilled slot; a call site sending a param no frame reads is dead weight or
 // a rename done on one side. Neither is visible in English.
 func TestNotificationPlaceholdersAreInClosedSet(t *testing.T) {
-	allowed := map[string]bool{db.NotificationEntityParam: true}
-	for _, n := range db.NotificationEnumParams {
-		allowed[n] = true
-	}
-	for _, n := range db.NotificationVerbatimParams {
-		allowed[n] = true
-	}
+	allowed := allowedParamNames()
 	for _, locale := range localesWithNotifications(t) {
 		for key, frame := range loadNotificationLeaves(t, locale) {
 			for name := range placeholdersIn(frame) {
@@ -312,5 +332,205 @@ func TestNotificationKeysIsExhaustive(t *testing.T) {
 		t.Errorf("NotificationKeys does not match the declared constants\n slice: %v\nconsts: %v\n"+
 			"Add the new constant to NotificationKeys, or it is exempt from every check in this file.",
 			inSlice, declared)
+	}
+}
+
+// TestNotificationKeyParamsIsExhaustive pins the per-key param table to the key
+// set, so a new notification cannot ship without declaring what it sends. A key
+// missing from the table would be exempt from the frame check below — the same
+// hole TestNotificationKeysIsExhaustive closes for the slice.
+func TestNotificationKeyParamsIsExhaustive(t *testing.T) {
+	declared := map[string]bool{}
+	for key := range NotificationKeyParams {
+		declared[key] = true
+	}
+	for _, wireKey := range NotificationKeys {
+		if !declared[wireKey] {
+			t.Errorf("wire key %q has no entry in NotificationKeyParams\n"+
+				"List the params its call sites send, or its frames are checked against nothing.", wireKey)
+		}
+		delete(declared, wireKey)
+	}
+	for key := range declared {
+		t.Errorf("NotificationKeyParams has an entry for %q, which is not in NotificationKeys\n"+
+			"The notification was renamed or removed and this entry is stale.", key)
+	}
+	allowed := allowedParamNames()
+	for key, names := range NotificationKeyParams {
+		for _, name := range names {
+			if !allowed[name] {
+				t.Errorf("NotificationKeyParams[%q] declares %q, which is not in the closed param set\n"+
+					"See the Notification*Params vars in internal/isms/db/notifications.go.", key, name)
+			}
+		}
+	}
+}
+
+// allowedParamNames is the package-wide vocabulary: every name the backend is
+// permitted to send, regardless of which notification sends it.
+func allowedParamNames() map[string]bool {
+	allowed := map[string]bool{db.NotificationEntityParam: true}
+	for _, n := range db.NotificationEnumParams {
+		allowed[n] = true
+	}
+	for _, n := range db.NotificationVerbatimParams {
+		allowed[n] = true
+	}
+	return allowed
+}
+
+// TestFramesOnlyUseTheirOwnKeysParams is the per-key half of the param guard.
+//
+// The closed-set check above asks whether a slot names a param the backend
+// knows; this asks whether it names one THIS notification sends. The difference
+// is the whole failure: {reason} added to the incident_status frame in every
+// locale is a name the vocabulary contains and a name that call site never
+// sends, so the closed-set check passes and the sentence renders with the
+// clause silently missing — in English too, which is the one thing that makes
+// this variant catchable at all, and only by someone who happens to look.
+//
+// Subset, not equality: a frame is free to spend fewer params than the call
+// site offers (the shared suggestion_resolved title uses only {action} out of
+// six), and a grammar may make a slot redundant in one language and not
+// another. Asking for a param nobody sends is the unambiguous error.
+func TestFramesOnlyUseTheirOwnKeysParams(t *testing.T) {
+	wireKeys := wireKeyForCatalogKey(t)
+	for _, locale := range localesWithNotifications(t) {
+		for key, frame := range loadNotificationLeaves(t, locale) {
+			wireKey, ok := wireKeys[key]
+			if !ok {
+				continue // stale frame; TestENNotificationFramesAreEmitted owns it
+			}
+			sent := map[string]bool{}
+			for _, name := range NotificationKeyParams[wireKey] {
+				sent[name] = true
+			}
+			for name := range placeholdersIn(frame) {
+				if !sent[name] {
+					t.Errorf("[%s] frame %q interpolates {%s}, which %q does not send\n"+
+						"  frame: %q\n  sends: %v\n"+
+						"The slot renders empty. Either the frame is wrong, or the call site "+
+						"gained a param and NotificationKeyParams was not updated.",
+						locale, key, name, wireKey, frame, NotificationKeyParams[wireKey])
+				}
+			}
+		}
+	}
+}
+
+// TestKeyedWritesUseDeclaredConstants closes the gap the exhaustiveness tests
+// cannot see: they prove the declared constants are all indexed and translated,
+// never that a notification write uses a declared constant at all.
+//
+// A call site can still write TitleKey: "notifications.foo" directly, or pass
+// that literal into notifyMentions or notifySuggestionResolved, which take the
+// key as a plain string parameter. Every check in this file stays green while
+// the notification ships with no frame in any language — which is precisely the
+// invisible failure the file exists to prevent, arriving through the one door
+// left open.
+//
+// So: no "notifications." string literal anywhere in the server source except
+// notification_keys.go, where the constants live. Scanning the whole of
+// internal/ and cmd/ rather than this package alone, because the next write site
+// need not land here — the MCP server writes notifications too.
+func TestKeyedWritesUseDeclaredConstants(t *testing.T) {
+	const declSite = "notification_keys.go"
+	scanned := 0
+	for _, root := range []string{"../../../internal", "../../../cmd"} {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() || !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			base := filepath.Base(path)
+			// Tests may name keys freely — they assert against them, and a
+			// literal in a test cannot reach a user's inbox.
+			if strings.HasSuffix(base, "_test.go") || base == declSite {
+				return nil
+			}
+			file, perr := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+			if perr != nil {
+				return fmt.Errorf("parsing %s: %w", path, perr)
+			}
+			scanned++
+			ast.Inspect(file, func(n ast.Node) bool {
+				lit, ok := n.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING {
+					return true
+				}
+				value, uerr := strconv.Unquote(lit.Value)
+				if uerr != nil || !strings.HasPrefix(value, "notifications.") {
+					return true
+				}
+				t.Errorf("%s contains the literal %q\n"+
+					"Notification wire keys must come from a NotifyKey* constant in %s. A literal "+
+					"is invisible to every check in this file, so the key ships untranslated.",
+					path, value, declSite)
+				return true
+			})
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walking %s: %v", root, err)
+		}
+	}
+	if scanned == 0 {
+		t.Fatal("scanned no Go files — the source layout changed and this test is now vacuous")
+	}
+}
+
+// Anchored on the exact declarations in useNotificationRender.js. A regex over
+// declarations is the fragility this file otherwise avoids, and it is the only
+// option here — there is no JS parser in the Go toolchain. The not-found path is
+// therefore fatal rather than a skip: a rename that moves these declarations out
+// of reach must fail loudly, not quietly stop checking.
+var (
+	jsEnumParamsRe = regexp.MustCompile(`(?m)^const ENUM_PARAMS = \[([^\]]*)\]`)
+	jsEntityRe     = regexp.MustCompile(`(?m)^const ENTITY_PARAM = '([^']*)'`)
+	jsStringRe     = regexp.MustCompile(`'([^']*)'`)
+)
+
+// TestClientParamClassificationMatchesGo keeps the two halves of the
+// translated/verbatim split in step.
+//
+// db.NotificationEnumParams decides which names the catalogue may translate;
+// ENUM_PARAMS in useNotificationRender.js decides which ones the client
+// actually resolves through common.enum.*. Nothing connected them. Adding an
+// enum param on the Go side alone passes every catalogue check here and then
+// splices the raw English value ("in_progress") into a translated sentence —
+// the half-translated output the split exists to prevent. Dropping one on the
+// client side alone does the same. Both are invisible in English.
+func TestClientParamClassificationMatchesGo(t *testing.T) {
+	const src = "../../../web/src/composables/useNotificationRender.js"
+	raw, err := os.ReadFile(filepath.Clean(src))
+	if err != nil {
+		t.Fatalf("reading %s: %v\nThis test compares the Go param split against that file; "+
+			"it cannot pass without it.", src, err)
+	}
+	m := jsEnumParamsRe.FindSubmatch(raw)
+	if m == nil {
+		t.Fatalf("no `const ENUM_PARAMS = [...]` declaration in %s\n"+
+			"It was renamed or reshaped; update this test rather than leaving the two lists unchecked.", src)
+	}
+	var jsEnum []string
+	for _, s := range jsStringRe.FindAllSubmatch(m[1], -1) {
+		jsEnum = append(jsEnum, string(s[1]))
+	}
+	goEnum := append([]string(nil), db.NotificationEnumParams...)
+	sort.Strings(jsEnum)
+	sort.Strings(goEnum)
+	if !reflect.DeepEqual(jsEnum, goEnum) {
+		t.Errorf("ENUM_PARAMS in %s does not match db.NotificationEnumParams\n    js: %v\n    go: %v\n"+
+			"A name in one list only is either an enum spliced in untranslated or a value "+
+			"translated with no group behind it.", src, jsEnum, goEnum)
+	}
+	e := jsEntityRe.FindSubmatch(raw)
+	if e == nil {
+		t.Fatalf("no `const ENTITY_PARAM = '...'` declaration in %s", src)
+	}
+	if got := string(e[1]); got != db.NotificationEntityParam {
+		t.Errorf("ENTITY_PARAM in %s is %q, db.NotificationEntityParam is %q", src, got, db.NotificationEntityParam)
 	}
 }

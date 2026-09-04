@@ -120,3 +120,67 @@ var NotificationKeys = []string{
 	NotifyKeyIncidentStatus,
 	NotifyKeyIncidentStatusBody,
 }
+
+// NotificationKeyParams is the set of param names each wire key's call sites
+// can send, declared per key rather than package-wide.
+//
+// The closed set in internal/isms/db is a vocabulary, not a contract: it says
+// `reason` is a name the backend knows, not that the incident_status frame is
+// ever handed one. Checking frames against the vocabulary alone lets a
+// translator (or a copy edit) add {reason} to incident_status in every locale
+// and pass every test, while the call site sends only status, title and id —
+// so the slot renders empty and the sentence quietly loses a clause. Checking
+// against this table instead asks the question that matters: is this slot
+// filled *for this notification*?
+//
+// A title and its body share one params map at the write site, so both are
+// listed from that same map. Where a key is written from several sites, the
+// entry is the union of what those sites can send — the with-note bodies get
+// `note` and the plain ones do not, because the call sites pick the variant by
+// whether a note exists.
+//
+// Hand-maintained, and deliberately so: params are inline map literals built
+// conditionally at each call site (`if req.Message != "" { params["note"] = … }`),
+// which no static extraction can enumerate. What keeps the table honest is
+// TestNotificationKeyParamsIsExhaustive — its key set is pinned to
+// NotificationKeys, so a new notification cannot ship without an entry. The
+// remaining risk is an entry that names more than its call site sends, which
+// is the direction that fails safe: it only widens what a frame may ask for.
+// The call-site half stays a runtime concern (see keyedColumns in
+// internal/isms/db/notifications.go, which logs an out-of-set param).
+var NotificationKeyParams = map[string][]string{
+	NotifyKeyMentionComment:       {"actor"},
+	NotifyKeyMentionReviewComment: {"actor"},
+	NotifyKeyMentionChangeRequest: {"actor"},
+
+	NotifyKeyReviewForwarded:             {"actor", "doc_id", "title", "version", "note"},
+	NotifyKeyReviewForwardedBody:         {"actor", "doc_id", "title", "version"},
+	NotifyKeyReviewForwardedBodyWithNote: {"actor", "doc_id", "title", "version", "note"},
+
+	NotifyKeyReviewRequested:             {"actor", "title", "version", "note"},
+	NotifyKeyReviewRequestedBody:         {"actor", "title", "version"},
+	NotifyKeyReviewRequestedBodyWithNote: {"actor", "title", "version", "note"},
+
+	NotifyKeyReviewResubmitted:             {"actor", "doc_id", "title", "version", "note"},
+	NotifyKeyReviewResubmittedBody:         {"actor", "doc_id", "title", "version"},
+	NotifyKeyReviewResubmittedBodyWithNote: {"actor", "doc_id", "title", "version", "note"},
+
+	NotifyKeyAIReviewEscalated:     {"doc_id", "round"},
+	NotifyKeyAIReviewEscalatedBody: {"doc_id", "round"},
+
+	NotifyKeyCAAssigned:     {"title"},
+	NotifyKeyCAResolved:     {"title", "id", "actor"},
+	NotifyKeyCAResolvedBody: {"title", "id", "actor"},
+
+	// suggestion_resolved is one title frame shared by the applied and
+	// rejected sites, so its entry is the union of both param maps.
+	NotifyKeySuggestionNew:          {"actor", "title", "suggestion_type", "entity"},
+	NotifyKeySuggestionNewBody:      {"actor", "title", "suggestion_type", "entity"},
+	NotifyKeySuggestionResolved:     {"action", "title", "actor", "entity", "id", "reason"},
+	NotifyKeySuggestionAppliedBody:  {"action", "title", "actor", "entity", "id"},
+	NotifyKeySuggestionRejectedBody: {"action", "title", "actor", "reason"},
+
+	NotifyKeyIncidentNew:        {"severity", "title"},
+	NotifyKeyIncidentStatus:     {"status", "title", "id"},
+	NotifyKeyIncidentStatusBody: {"status", "title", "id"},
+}

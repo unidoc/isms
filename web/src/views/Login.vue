@@ -265,6 +265,13 @@ function base64urlToBuffer(base64url) {
   return bytes.buffer
 }
 
+// route.query.redirect is a string, unless the URL repeats ?redirect=, in
+// which case vue-router gives an array — normalize to the first value.
+function firstRedirect(query) {
+  const r = query.redirect
+  return Array.isArray(r) ? r[0] : r
+}
+
 function getOrgSlug() {
   // 1. URL query param (?org=acme)
   const params = new URLSearchParams(window.location.search)
@@ -277,6 +284,17 @@ function getOrgSlug() {
   // 3. Route path (/acme/login → acme) — only used on apex/localhost
   const pathParts = window.location.pathname.split('/').filter(Boolean)
   if (pathParts.length >= 2 && pathParts[1] === 'login') return pathParts[0]
+
+  // 4. The org implied by a bounced destination (?redirect=/acme/documents).
+  //    The router guard sends deep links to the bare /login, so this is the
+  //    only place the org survives. Ask the router rather than splitting the
+  //    path: it is the authority on which routes are org-scoped, and in
+  //    subdomain mode none of them are.
+  const redirect = params.get('redirect')
+  if (redirect) {
+    const org = router.resolve(redirect).params.org
+    if (org) return org
+  }
 
   // No localStorage fallback — org context must come from URL/subdomain only.
   // Anything else leaks state between orgs (e.g. visiting isms.sh after being
@@ -292,7 +310,7 @@ function goToOrg() {
   // If the host can serve tenant subdomains (apex like isms.sh or already on a
   // subdomain), hop to <slug>.<apex>/login. Otherwise stay path-based.
   if (canHostSubdomain(window.location.hostname)) {
-    const redirectPath = route.query.redirect
+    const redirectPath = firstRedirect(route.query)
     const suffix = '/login' + (redirectPath ? `?redirect=${encodeURIComponent(redirectPath)}` : '')
     window.location.href = orgEntryURL(slug, suffix)
     return
@@ -303,7 +321,7 @@ function goToOrg() {
 
 async function redirectAfterLogin() {
   // Check for a redirect query param first
-  const redirectPath = route.query.redirect
+  const redirectPath = firstRedirect(route.query)
   if (redirectPath && redirectPath !== '/overview' && redirectPath.startsWith('/')) {
     router.push(redirectPath)
     return

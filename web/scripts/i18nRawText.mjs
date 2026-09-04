@@ -30,8 +30,9 @@ export const SRC_DIR = fileURLToPath(new URL('../src/', import.meta.url))
 // Attributes whose literal value is read out to a user. `alt` and `title` are
 // accessibility text; `label` covers both the HTML attribute and the prop that
 // several components in this repo take. Bound forms (`:placeholder="expr"`) are
-// skipped — the value is an expression, and one that resolves through `t()` is
-// exactly what extraction produces.
+// scanned too, but only for the string literals inside the expression: a bound
+// value that resolves through `t()` is exactly what extraction produces, while
+// `:title="'Delete item'"` is raw text wearing a binding.
 const TEXT_ATTRS = ['placeholder', 'title', 'aria-label', 'aria-description', 'alt', 'label']
 
 // A run of two or more letters. Anything shorter is punctuation, a symbol, a
@@ -39,6 +40,32 @@ const TEXT_ATTRS = ['placeholder', 'title', 'aria-label', 'aria-description', 'a
 const HAS_WORD = /[A-Za-z]{2,}/
 
 const IGNORE = /i18n-ignore/
+
+// String literals inside a JS expression — a mustache body or a bound attribute
+// value. A literal there is as user-visible as a text node: `{{ busy ? 'Saving'
+// : 'Save' }}` and `:title="'Delete item'"` both render English that no `t()`
+// will ever reach, and blanking every expression wholesale let a zero-baseline
+// component reintroduce copy without failing the ratchet.
+const EXPR_STRING = /'([^'\\]*)'|"([^"\\]*)"/g
+
+// A translation key, not prose: dotted lowercase, `common.locale.org_default`.
+// This is what keeps `{{ $t('common.locale.org_default') }}` out of the results,
+// and it holds where a `\$?t\(` lookbehind does not — `$t(cond ? 'a.b' : 'c.d')`
+// puts the call two tokens away from the literal it is keying.
+const TRANSLATION_KEY = /^[a-z0-9_]+(\.[a-z0-9_-]+)+$/
+
+// Literals in `expr` that look like user-visible copy, as `{offset, text}` where
+// offset is relative to the start of `expr`.
+function expressionLiterals(expr) {
+  const out = []
+  for (const m of expr.matchAll(EXPR_STRING)) {
+    const value = m[1] ?? m[2] ?? ''
+    if (!HAS_WORD.test(value)) continue
+    if (TRANSLATION_KEY.test(value.trim())) continue
+    out.push({ offset: m.index, text: value.trim() })
+  }
+  return out
+}
 
 function vueFiles(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -53,22 +80,28 @@ function vueFiles(dir, out = []) {
 // keeps nested `<template v-if>` blocks and excludes `<script>` and `<style>`
 // (they follow the template in every file here, but are also stripped below in
 // case one precedes it).
+//
+// Everything outside the block is blanked rather than sliced away, preserving
+// its newlines, so a finding's line number is the real *file* line. Slicing made
+// them template-relative, which is identical for every component in the tree
+// today (all open on line 1) and wrong the moment a script block or a licence
+// comment precedes the template — pointing `--list` at the wrong line.
 function templateBlock(src) {
   const open = src.indexOf('<template')
   const close = src.lastIndexOf('</template>')
   if (open === -1 || close === -1 || close < open) return ''
-  return src.slice(open, close)
+  return src.slice(0, open).replace(/[^\n]/g, ' ') + src.slice(open, close)
 }
 
 // Lines carrying an `i18n-ignore` marker, plus the line after each — so the
 // marker can sit above the offending line as well as on it.
 //
-// Takes the template block, not the whole SFC: findings are numbered relative to
-// the template, so numbering the markers against the file would offset the two
-// by however many lines precede `<template`. Today every component in the tree
-// opens on line 1, which would have made that a silent no-op — a suppression
-// that quietly fails to suppress, which is the failure class this whole check
-// exists to prevent.
+// Takes the blanked-prefix template block, so both markers and findings are
+// numbered against the file and stay aligned however many lines precede
+// `<template`. Getting the two onto different bases is a silent no-op on every
+// component in the tree today (all open on line 1) — a suppression that quietly
+// fails to suppress, which is the failure class this whole check exists to
+// prevent.
 function ignoredLines(src) {
   const out = new Set()
   src.split('\n').forEach((line, i) => {
@@ -100,6 +133,12 @@ export function scanSource(src) {
   // `v-html` payloads are already-dynamic. `<pre>` and `<code>` hold document
   // ids, commands and samples, which are not translatable prose.
   tpl = blank(tpl, /<!--[\s\S]*?-->/g)
+  // Mustache bodies are harvested for literals before being blanked; comments
+  // are already gone, so a commented-out interpolation does not count.
+  const mustaches = [...tpl.matchAll(/\{\{([\s\S]*?)\}\}/g)].map((m) => ({
+    index: m.index + 2,
+    expr: m[1],
+  }))
   tpl = blank(tpl, /\{\{[\s\S]*?\}\}/g)
   tpl = blank(tpl, /<pre\b[\s\S]*?<\/pre>/gi)
   tpl = blank(tpl, /<code\b[\s\S]*?<\/code>/gi)
@@ -138,6 +177,33 @@ export function scanSource(src) {
       const line = lineOf(m.index)
       if (skip.has(line)) continue
       findings.push({ line, kind: attr.toLowerCase(), text: value.trim() })
+    }
+  }
+
+  // Literals inside interpolations. `kind` stays 'text': what renders is a text
+  // node, and the author's fix is the same one.
+  for (const { index, expr } of mustaches) {
+    for (const lit of expressionLiterals(expr)) {
+      const line = lineOf(index + lit.offset)
+      if (skip.has(line)) continue
+      findings.push({ line, kind: 'text', text: lit.text })
+    }
+  }
+
+  // Bound text attributes. The value is an expression, so only its string
+  // literals count — `:title="t('a.b')"` is the extracted form and must stay
+  // silent, while `:title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"`
+  // is two pieces of raw copy.
+  for (const attr of TEXT_ATTRS) {
+    const re = new RegExp(`(?:^|[\\s{])(?::|v-bind:)${attr}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'gi')
+    for (const m of tpl.matchAll(re)) {
+      const expr = m[1] ?? m[2] ?? ''
+      const exprStart = m.index + m[0].length - expr.length - 1
+      for (const lit of expressionLiterals(expr)) {
+        const line = lineOf(exprStart + lit.offset)
+        if (skip.has(line)) continue
+        findings.push({ line, kind: attr.toLowerCase(), text: lit.text })
+      }
     }
   }
 
@@ -201,15 +267,41 @@ export function counts() {
 //
 // `npm run i18n:baseline` rewrites the committed baseline from the current tree.
 // Run it after extracting a view; the ratchet in rawText.test.js then holds the
-// new, lower number. With `--list <file>` it prints the findings for one file,
+// new, lower number. It refuses to raise a budget without `--force`. With `--list <file>` it prints the findings for one file,
 // which is the useful form while actually extracting.
 const BASELINE = fileURLToPath(new URL('../test/rawText.baseline.json', import.meta.url))
 
-function writeBaseline() {
+// The ratchet's downward direction cannot be enforced by the test, which sees
+// only one checkout: raise a budget, re-run this, and everything is green again.
+// So the guard lives here — a write that would *raise* any file's budget is
+// refused and names the files. `--force` still allows it (a scanner change that
+// legitimately finds more, as this one did), but it has to be typed, and the
+// raised numbers then stand out in the `rawText.baseline.json` diff for review.
+function writeBaseline(force) {
   const c = counts()
+  let previous = {}
+  try {
+    previous = JSON.parse(readFileSync(BASELINE, 'utf8'))
+  } catch {
+    // No baseline yet — the first write has nothing to ratchet against.
+  }
+  const raised = Object.keys(c)
+    .filter((f) => c[f] > (previous[f] ?? 0))
+    .map((f) => `  ${f}: ${previous[f] ?? 0} -> ${c[f]}`)
+  if (raised.length && !force) {
+    console.error(
+      `refusing to raise the baseline for ${raised.length} file(s) — budgets may only go down:\n` +
+        `${raised.join('\n')}\n\n` +
+        `Extract the new strings through t(), or mark false positives i18n-ignore. ` +
+        `If the scanner itself changed and legitimately sees more, re-run with --force ` +
+        `and call the raised numbers out in review.`,
+    )
+    process.exit(1)
+  }
   const total = Object.values(c).reduce((a, b) => a + b, 0)
   writeFileSync(BASELINE, `${JSON.stringify(c, null, 2)}\n`)
-  console.log(`wrote ${relative(process.cwd(), BASELINE)}: ${Object.keys(c).length} files, ${total} findings`)
+  const note = raised.length ? ` (${raised.length} raised under --force)` : ''
+  console.log(`wrote ${relative(process.cwd(), BASELINE)}: ${Object.keys(c).length} files, ${total} findings${note}`)
 }
 
 if (process.argv[1] && process.argv[1].endsWith('i18nRawText.mjs')) {
@@ -225,7 +317,7 @@ if (process.argv[1] && process.argv[1].endsWith('i18nRawText.mjs')) {
     console.log(`${key}: ${all[key].length} findings`)
     for (const f of all[key]) console.log(`  ${key}:${f.line}  [${f.kind}]  ${f.text}`)
   } else if (process.argv.includes('--write')) {
-    writeBaseline()
+    writeBaseline(process.argv.includes('--force'))
   } else {
     const c = counts()
     const total = Object.values(c).reduce((a, b) => a + b, 0)

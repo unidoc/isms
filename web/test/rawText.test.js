@@ -86,8 +86,16 @@ test('the scanner recognises what it should and ignores what it should not', asy
 
   assert.deepEqual(kinds('<template><p>Hello world</p></template>'), ['text:Hello world'])
 
-  // Already extracted: an interpolation is dynamic, whatever is inside it.
+  // An interpolation is dynamic, but a string literal inside one is not: it is
+  // English that no t() will ever reach. A translation key is excluded by its
+  // shape rather than by what precedes it, so a key chosen inside the expression
+  // is still recognised as a key.
   assert.deepEqual(kinds("<template><p>{{ $t('a.b') }}</p></template>"), [])
+  assert.deepEqual(kinds("<template><p>{{ $t(x ? 'a.b' : 'c.d') }}</p></template>"), [])
+  assert.deepEqual(kinds("<template><p>{{ ready ? 'Ready' : 'Loading' }}</p></template>"), [
+    'text:Ready',
+    'text:Loading',
+  ])
 
   // A '>' inside an attribute value must not end the tag and leak the rest of
   // the attributes out as text — this is what reported six findings in a fully
@@ -97,6 +105,14 @@ test('the scanner recognises what it should and ignores what it should not', asy
   // Unbound text attributes count; bound ones are expressions.
   assert.deepEqual(kinds('<template><input placeholder="Acme Corp"></template>'), ['placeholder:Acme Corp'])
   assert.deepEqual(kinds('<template><input :placeholder="t(\'a.b\')"></template>'), [])
+
+  // A bound attribute is an expression, so only its literals count — a binding
+  // is not on its own evidence that the value went through t().
+  assert.deepEqual(kinds('<template><b :title="\'Delete item\'"></b></template>'), ['title:Delete item'])
+  assert.deepEqual(kinds('<template><b :title="c ? \'Expand it\' : \'Collapse it\'"></b></template>'), [
+    'title:Expand it',
+    'title:Collapse it',
+  ])
 
   // Not prose: punctuation, numbers, single letters, and code/doc-id samples.
   assert.deepEqual(kinds('<template><span>—</span><span>42</span><span>%</span></template>'), [])
@@ -114,11 +130,15 @@ test('the scanner recognises what it should and ignores what it should not', asy
     'text:Shown',
   ])
 
-  // The marker is numbered against the template block, not the file, so it must
+  // Markers and findings are both numbered against the file, so the marker must
   // still suppress when something precedes `<template`. Every component in the
   // tree opens on line 1 today, which makes an offset bug invisible.
   assert.deepEqual(kinds('<!-- a leading file comment -->\n\n<template>\n<!-- i18n-ignore -->\n<p>Skipped</p></template>'), [])
   assert.deepEqual(kinds('<!-- a leading file comment -->\n\n<template>\n<p>Kept</p></template>'), ['text:Kept'])
+
+  // And the line number is the file's, not the template block's, so `--list`
+  // points at the line the author has to edit.
+  assert.equal(scanSource('<!-- a leading file comment -->\n\n<template>\n<p>Kept</p></template>')[0].line, 4)
 
   // Line numbers must survive the blanking, or the failure message points at
   // the wrong string.

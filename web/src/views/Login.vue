@@ -292,7 +292,9 @@ function goToOrg() {
   // If the host can serve tenant subdomains (apex like isms.sh or already on a
   // subdomain), hop to <slug>.<apex>/login. Otherwise stay path-based.
   if (canHostSubdomain(window.location.hostname)) {
-    window.location.href = orgEntryURL(slug, '/login')
+    const redirectPath = route.query.redirect
+    const suffix = '/login' + (redirectPath ? `?redirect=${encodeURIComponent(redirectPath)}` : '')
+    window.location.href = orgEntryURL(slug, suffix)
     return
   }
   // Path-based — set slug locally and re-render the login form in org context.
@@ -428,7 +430,7 @@ async function handleLogin() {
   error.value = ''
   loading.value = true
   try {
-    const res = await login(email.value, password.value, otpCode.value || undefined)
+    const res = await login(email.value, password.value, otpCode.value || undefined, orgSlug.value || undefined)
     if (res.otp_required) {
       // Backend wants a TOTP code — show the input and stop here.
       otpRequired.value = true

@@ -154,7 +154,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		// content rather than product copy, and must never be translated.
 		s.db.CreateNotificationContentByEmail(ctx, orgID, ca.Assignee, db.NotificationContent{
 			Title:    fmt.Sprintf("Corrective action assigned: %s", ca.Title),
-			TitleKey: "notifications.ca_assigned",
+			TitleKey: NotifyKeyCAAssigned,
 			Body:     ca.Description,
 			Params:   map[string]any{"title": ca.Title},
 			Link:     "/corrective-actions",
@@ -358,9 +358,9 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 		if err == nil {
 			s.db.CreateNotificationContentByEmail(ctx, orgID, ca.CreatedBy, db.NotificationContent{
 				Title:    fmt.Sprintf("Corrective action resolved: %s", ca.Title),
-				TitleKey: "notifications.ca_resolved",
+				TitleKey: NotifyKeyCAResolved,
 				Body:     fmt.Sprintf("Corrective action #%d has been resolved by %s", id, actor),
-				BodyKey:  "notifications.ca_resolved.body",
+				BodyKey:  NotifyKeyCAResolvedBody,
 				Params:   map[string]any{"title": ca.Title, "id": id, "actor": actor},
 				Link:     "/corrective-actions",
 			})

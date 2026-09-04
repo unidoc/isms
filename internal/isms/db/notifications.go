@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 // Notification represents an inbox item for a user.
@@ -52,6 +53,72 @@ type NotificationContent struct {
 	Link   string
 }
 
+// The closed set of interpolation param names, split by how the client must
+// treat each one before it reaches a translated frame.
+// Mirrors the `params` column comment on
+// migrations/20260824000000_v0.8.0.sql — that comment is the normative
+// statement of the split; this is its executable form.
+//
+// The split is load-bearing, not cosmetic: splicing an untranslated enum value
+// into a translated sentence yields half-translated output, so the translatable
+// names resolve through common.enum.* / common.entity.* BEFORE interpolation
+// (see resolveParams in web/src/composables/useNotificationRender.js, which
+// keys off these same names) while the verbatim ones are proper nouns, numbers
+// or the user's own words and pass through untouched.
+var (
+	// NotificationEnumParams resolve through common.enum.<param>.<value>. Each
+	// name IS its enum group — the groups were named after the params in #229
+	// precisely so there is no second mapping to keep in sync.
+	NotificationEnumParams = []string{"status", "severity", "action", "suggestion_type"}
+
+	// NotificationEntityParam is the one translatable param that is a noun the
+	// whole app reuses rather than an enum member, so it resolves through
+	// common.entity.* instead.
+	NotificationEntityParam = "entity"
+
+	// NotificationVerbatimParams interpolate as-is.
+	NotificationVerbatimParams = []string{"actor", "title", "doc_id", "version", "round", "id", "note", "reason"}
+)
+
+// notificationParamAllowed reports whether name is in the closed set.
+func notificationParamAllowed(name string) bool {
+	if name == NotificationEntityParam {
+		return true
+	}
+	for _, n := range NotificationEnumParams {
+		if n == name {
+			return true
+		}
+	}
+	for _, n := range NotificationVerbatimParams {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+// Validate reports an unknown param name.
+//
+// An unlisted name means one of two things, and both are silent in production:
+// an enum spliced into a frame with no group to translate it through, or a
+// param no frame interpolates at all (a typo, or a rename on one side only).
+// Neither produces an error, a warning, or a diff that reads wrong to an
+// English-speaking reviewer — the frame simply renders with the placeholder
+// unfilled or the value untranslated, and only for a non-English user.
+//
+// Note the closed set here is NOT the one plan 81 §1 defines for API errors
+// (entity/field/status/count). Different surface, different set; they are easy
+// to conflate.
+func (c NotificationContent) Validate() error {
+	for name := range c.Params {
+		if !notificationParamAllowed(name) {
+			return fmt.Errorf("notification param %q is not in the closed set (see the Notification*Params vars)", name)
+		}
+	}
+	return nil
+}
+
 // paramsJSON marshals Params for the JSONB column, returning nil (SQL NULL) for
 // an empty map. ok is false only when a non-empty map failed to marshal — the
 // caller must then store the row English-only (see keyedColumns): the params a
@@ -73,7 +140,30 @@ func (c NotificationContent) paramsJSON() (b []byte, ok bool) {
 // keys are dropped too, so the row is unambiguously English-only and the client
 // takes the Title/Body fallback instead of rendering a half-filled frame. A
 // lost translation beats a lost inbox item; a broken translation beats neither.
+//
+// A param outside the closed set degrades the same way, for the same reason.
+// Plan 82 step 7 proposed failing the write on an unknown name, to make the
+// guard a runtime guarantee as well as a test-time one — but a failed write
+// here IS a lost inbox item, which the line above already decided against, and
+// a param that fails validation is by definition one no frame renders
+// correctly anyway. So the row goes in English-only.
+//
+// But degrading quietly would make a call-site typo LESS visible than it was
+// before this check existed: an unknown param used to be stored, and the frame
+// then rendered with an unfilled slot that every user saw, English included.
+// Dropping the keys renders the English title perfectly and hides the bug from
+// exactly the reviewer most likely to catch it. So this branch logs, and that
+// log is the call-site half of the guarantee — the Go tests can only check the
+// catalogue side, because params are inline map literals at each call site and
+// no amount of constant-declaring makes them statically enumerable.
+//
+// The marshal branch below stays silent by contrast: a map[string]any failing
+// to marshal is not a realistic programmer error, while a param typo is.
 func (c NotificationContent) keyedColumns() (titleKey, bodyKey *string, params []byte) {
+	if err := c.Validate(); err != nil {
+		log.Printf("notification %q: %v (storing English-only)", c.TitleKey, err)
+		return nil, nil, nil
+	}
 	params, ok := c.paramsJSON()
 	if !ok {
 		return nil, nil, nil

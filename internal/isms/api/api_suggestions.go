@@ -530,7 +530,7 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	})
 	s.notifySuggestionResolved(ctx, orgID, sg, "applied",
 		fmt.Sprintf("Your suggestion \"%s\" was applied by %s → %s %s", sg.Title, actor, sg.EntityType, appliedEntityID),
-		"notifications.suggestion_applied.body",
+		NotifyKeySuggestionAppliedBody,
 		map[string]any{"title": sg.Title, "actor": actor, "entity": sg.EntityType, "id": appliedEntityID})
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -581,7 +581,7 @@ func (s *Server) handleRejectEntitySuggestion(c echo.Context) error {
 		// `reason` is the reviewer's own words — verbatim, like a review note.
 		s.notifySuggestionResolved(ctx, orgID, sg, "rejected",
 			fmt.Sprintf("Your suggestion \"%s\" was rejected by %s: %s", sg.Title, actor, body.Reason),
-			"notifications.suggestion_rejected.body",
+			NotifyKeySuggestionRejectedBody,
 			map[string]any{"title": sg.Title, "actor": actor, "reason": body.Reason})
 	}
 
@@ -646,9 +646,9 @@ func (s *Server) notifySuggestionCreated(ctx context.Context, orgID int, sg *db.
 		if (u.Role == "admin" || u.Role == "manager") && u.Email != sg.SuggestedBy {
 			_ = s.db.CreateNotificationContentByEmail(ctx, orgID, u.Email, db.NotificationContent{
 				Title:    "New suggestion",
-				TitleKey: "notifications.suggestion_new",
+				TitleKey: NotifyKeySuggestionNew,
 				Body:     body,
-				BodyKey:  "notifications.suggestion_new.body",
+				BodyKey:  NotifyKeySuggestionNewBody,
 				Params:   params,
 				Link:     link,
 			})
@@ -671,7 +671,7 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 	}
 	_ = s.db.CreateNotificationContentByEmail(ctx, orgID, sg.SuggestedBy, db.NotificationContent{
 		Title:    title,
-		TitleKey: "notifications.suggestion_resolved",
+		TitleKey: NotifyKeySuggestionResolved,
 		Body:     detail,
 		BodyKey:  bodyKey,
 		Params:   params,

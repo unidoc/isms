@@ -4,8 +4,9 @@
 //
 // This package is deliberately the ONLY place the supported-locale set is
 // declared. The web app reads it from GET /api/v1/config rather than keeping its
-// own list, so the two cannot drift — a locale added here becomes selectable in
-// the UI without a second edit.
+// own list, so the two cannot drift — a locale added and enabled here becomes
+// selectable in the UI without a second edit. The web bundle carries a loader
+// per locale it can render, but what is *offered* is decided here.
 //
 // Scope note: this package does not translate anything. The server owns a
 // translation catalog only for artifacts it pushes outward with no client
@@ -19,24 +20,55 @@ import (
 	"strings"
 )
 
-// Default is the fallback locale. It must always be a member of supported: it is
-// the last resort of every resolution path, and the locale the web bundle ships
-// resident rather than lazy-loading.
+// Default is the fallback locale. It must always be an *enabled* member of
+// supported: it is the last resort of every resolution path, and the locale the
+// web bundle ships resident rather than lazy-loading. TestDefaultIsEnabled
+// guards this.
 const Default = "en"
 
-// supported maps a canonical locale tag to its endonym — the language's name in
-// itself, which is what a locale picker should display. A user who has landed in
-// the wrong locale cannot read "Indonesian"; they can read "Bahasa Indonesia".
+// entry is one locale in the catalog: its endonym, and whether this build
+// actually offers it.
 //
-// Keys are canonical BCP 47 tags and are matched case-insensitively on input.
-// Adding a locale here is the entire server-side cost of supporting it.
+// The endonym is the language's name in itself, which is what a locale picker
+// should display. A user who has landed in the wrong locale cannot read
+// "Indonesian"; they can read "Bahasa Indonesia".
+type entry struct {
+	name    string
+	enabled bool
+}
+
+// supported is the locale catalog, keyed by canonical BCP 47 tag and matched
+// case-insensitively on input.
+//
+// `enabled` is a release gate, and it is deliberately a field rather than a
+// deleted map entry. A disabled locale stays in the catalog so that the
+// resolution logic below — region tolerance, deterministic multi-region
+// matching, the malformed-tag rejections — keeps its test coverage, which is
+// exactly the machinery that must still be trusted when the locale is turned
+// back on. Deleting the entry would leave only `en` and reduce most of
+// locale_test.go to asserting that nothing resolves.
+//
+// Disabled means invisible and unselectable, not merely hidden: it is absent
+// from Supported() (so /config does not advertise it and the picker collapses),
+// and Canonical() refuses it (so PUT /auth/profile and PUT /admin/settings
+// reject it with a 400). A preference stored while it was enabled degrades to
+// Default, because Resolve re-validates every tier — see Resolve's doc comment.
+//
+// Default must always be enabled: it is the last resort of every resolution
+// path.
+//
+// Why id-ID is disabled: the bundle is complete and validated in CI
+// (web/test/localeKeyset.test.js), but only ~5% of the UI is extracted, so
+// selecting it yields a near-entirely English app that claims to be Indonesian.
+// Enabling it is flipping this one flag once Phase 3 extraction lands — see
+// .claude/plans/79-issue-212-i18n-foundation.md.
 //
 // Indonesian is tagged id-ID rather than the barer id. Both are valid and the
 // canonicalization below treats them interchangeably (a browser sending either
 // resolves to the same entry), so this is a naming choice, not a functional one.
-var supported = map[string]string{
-	"en":    "English",
-	"id-ID": "Bahasa Indonesia",
+var supported = map[string]entry{
+	"en":    {name: "English", enabled: true},
+	"id-ID": {name: "Bahasa Indonesia", enabled: false},
 }
 
 // Locale is one selectable locale, as exposed to clients.
@@ -50,14 +82,14 @@ type Locale struct {
 // from it do not shuffle between requests.
 func Supported() []Locale {
 	out := make([]Locale, 0, len(supported))
-	for tag, name := range supported {
-		if tag == Default {
+	for tag, e := range supported {
+		if tag == Default || !e.enabled {
 			continue
 		}
-		out = append(out, Locale{Tag: tag, Name: name})
+		out = append(out, Locale{Tag: tag, Name: e.name})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Tag < out[j].Tag })
-	return append([]Locale{{Tag: Default, Name: supported[Default]}}, out...)
+	return append([]Locale{{Tag: Default, Name: supported[Default].name}}, out...)
 }
 
 // IsSupported reports whether tag names a supported locale, case-insensitively.
@@ -102,9 +134,15 @@ func Canonical(tag string) (string, bool) {
 		return "", false
 	}
 
-	// Exact match, case-insensitive.
-	for s := range supported {
+	// Exact match, case-insensitive. A disabled locale is not a match: an exact
+	// hit is the one path that does not go through Supported() below, so without
+	// this check a disabled tag would still be accepted verbatim by every write
+	// path that validates through Canonical.
+	for s, e := range supported {
 		if strings.EqualFold(s, tag) {
+			if !e.enabled {
+				return "", false
+			}
 			return s, true
 		}
 	}

@@ -10,7 +10,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test"
+    "test": "node --test",
+    "i18n:baseline": "node scripts/i18nRawText.mjs --write",
+    "i18n:raw": "node scripts/i18nRawText.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

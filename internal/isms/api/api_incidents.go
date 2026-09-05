@@ -236,7 +236,7 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 			s.db.CreateNotification(ctx, orgID, &db.Notification{
 				RecipientID: m.ID,
 				Title:       fmt.Sprintf("New %s incident: %s", inc.Severity, inc.Title),
-				TitleKey:    "notifications.incident_new",
+				TitleKey:    NotifyKeyIncidentNew,
 				Body:        inc.Description,
 				Params:      map[string]any{"severity": inc.Severity, "title": inc.Title},
 				Link:        "/incidents",
@@ -529,9 +529,9 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 			for _, r := range recipients {
 				s.db.CreateNotificationContentByEmail(ctx, orgID, r, db.NotificationContent{
 					Title:    fmt.Sprintf("Incident %s: %s", req.Status, inc.Title),
-					TitleKey: "notifications.incident_status",
+					TitleKey: NotifyKeyIncidentStatus,
 					Body:     fmt.Sprintf("Incident #%d has been %s", id, req.Status),
-					BodyKey:  "notifications.incident_status.body",
+					BodyKey:  NotifyKeyIncidentStatusBody,
 					Params:   map[string]any{"status": req.Status, "title": inc.Title, "id": id},
 					Link:     "/incidents",
 				})

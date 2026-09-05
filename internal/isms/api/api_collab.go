@@ -163,7 +163,7 @@ func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, tit
 func (s *Server) notifyReviewMentions(ctx context.Context, orgID, reviewID int, actor, body string) {
 	s.notifyMentions(ctx, orgID, actor, body,
 		fmt.Sprintf("%s mentioned you in a review comment", actor),
-		"notifications.mention_review_comment",
+		NotifyKeyMentionReviewComment,
 		fmt.Sprintf("/reviews/%d", reviewID))
 }
 
@@ -513,7 +513,7 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 		// frame that always carries it renders a dangling label when there is no
 		// note. `note` itself is the requester's own words and interpolates
 		// verbatim; it is passed only to the variant that has a slot for it.
-		bodyKey := "notifications.review_forwarded.body"
+		bodyKey := NotifyKeyReviewForwardedBody
 		params := map[string]any{
 			"actor":   actor,
 			"doc_id":  review.DocumentID,
@@ -522,12 +522,12 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 		}
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
-			bodyKey += "_with_note"
+			bodyKey = NotifyKeyReviewForwardedBodyWithNote
 			params["note"] = req.Message
 		}
 		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 			Title:    fmt.Sprintf("Review forwarded: %s", review.Title),
-			TitleKey: "notifications.review_forwarded",
+			TitleKey: NotifyKeyReviewForwarded,
 			Body:     notifBody,
 			BodyKey:  bodyKey,
 			Params:   params,
@@ -1202,9 +1202,9 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 					if doc, loadErr := st.LoadDocument(filePath); loadErr == nil && doc != nil && doc.Frontmatter.Owner != "" {
 						_ = s.db.CreateNotificationContentByEmail(ctx, orgID, doc.Frontmatter.Owner, db.NotificationContent{
 							Title:    "AI review escalated",
-							TitleKey: "notifications.ai_review_escalated",
+							TitleKey: NotifyKeyAIReviewEscalated,
 							Body:     fmt.Sprintf("AI review of %s reached round %d without agreement. Please review and decide.", review.DocumentID, review.Round),
-							BodyKey:  "notifications.ai_review_escalated.body",
+							BodyKey:  NotifyKeyAIReviewEscalatedBody,
 							Params:   map[string]any{"doc_id": review.DocumentID, "round": review.Round},
 							Link:     fmt.Sprintf("/reviews/%d", id),
 						})
@@ -2706,7 +2706,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	s.notifyMentions(ctx, orgID, cr.RequestedBy,
 		strings.Join([]string{cr.Description, cr.Justification, cr.Notes, cr.RollbackPlan}, "\n"),
 		fmt.Sprintf("%s mentioned you in a change request", cr.RequestedBy),
-		"notifications.mention_change_request",
+		NotifyKeyMentionChangeRequest,
 		entityLink("change_request", strconv.Itoa(cr.ID)))
 
 	return c.JSON(http.StatusCreated, cr)
@@ -3953,7 +3953,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 				notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
 				// Separate with-note frame — see handleForwardReview for why the
 				// label cannot be an optional interpolation.
-				bodyKey := "notifications.review_resubmitted.body"
+				bodyKey := NotifyKeyReviewResubmittedBody
 				params := map[string]any{
 					"actor":   actor,
 					"doc_id":  docID,
@@ -3962,12 +3962,12 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 				}
 				if req.Message != "" {
 					notifBody += "\n\nNote: " + req.Message
-					bodyKey += "_with_note"
+					bodyKey = NotifyKeyReviewResubmittedBodyWithNote
 					params["note"] = req.Message
 				}
 				s.db.CreateNotificationContentByEmail(ctx, orgID, a.Reviewer, db.NotificationContent{
 					Title:    fmt.Sprintf("Review resubmitted: %s", title),
-					TitleKey: "notifications.review_resubmitted",
+					TitleKey: NotifyKeyReviewResubmitted,
 					Body:     notifBody,
 					BodyKey:  bodyKey,
 					Params:   params,
@@ -4011,7 +4011,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			// so they share one key rather than duplicating a translation. That
 			// includes the with-note split: both sites pick the variant the same
 			// way, or the shared key stops being shared.
-			bodyKey := "notifications.review_requested.body"
+			bodyKey := NotifyKeyReviewRequestedBody
 			params := map[string]any{
 				"actor":   actor,
 				"title":   title,
@@ -4019,12 +4019,12 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			}
 			if req.Message != "" {
 				notifBody += "\n\nNote: " + req.Message
-				bodyKey += "_with_note"
+				bodyKey = NotifyKeyReviewRequestedBodyWithNote
 				params["note"] = req.Message
 			}
 			s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 				Title:    fmt.Sprintf("Review: %s v%s", title, version),
-				TitleKey: "notifications.review_requested",
+				TitleKey: NotifyKeyReviewRequested,
 				Body:     notifBody,
 				BodyKey:  bodyKey,
 				Params:   params,
@@ -4089,7 +4089,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	for _, reviewer := range req.Reviewers {
 		notifBody := fmt.Sprintf("%s wants to publish %s v%s and requested your review", actor, title, version)
 		// Same frame and same with-note split as the reviewers-added site above.
-		bodyKey := "notifications.review_requested.body"
+		bodyKey := NotifyKeyReviewRequestedBody
 		params := map[string]any{
 			"actor":   actor,
 			"title":   title,
@@ -4097,12 +4097,12 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		}
 		if req.Message != "" {
 			notifBody += "\n\nNote: " + req.Message
-			bodyKey += "_with_note"
+			bodyKey = NotifyKeyReviewRequestedBodyWithNote
 			params["note"] = req.Message
 		}
 		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 			Title:    fmt.Sprintf("Review: %s v%s", title, version),
-			TitleKey: "notifications.review_requested",
+			TitleKey: NotifyKeyReviewRequested,
 			Body:     notifBody,
 			BodyKey:  bodyKey,
 			Params:   params,

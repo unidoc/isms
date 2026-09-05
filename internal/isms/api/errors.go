@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -297,8 +298,31 @@ func apiError(status int, code string, params ...ErrorParam) *echo.HTTPError {
 		msg = strings.ReplaceAll(msg, "{"+param.Key+"}", humanizeParam(param))
 	}
 
+	// A slot the call site did not fill would otherwise ship to the reader
+	// verbatim — "{entity} not found" — in the message AND, because the
+	// client renders from the same param map, in the browser too. The type
+	// system cannot catch this: Entity and Field are both ErrorParam, so
+	// passing the wrong one, or none, compiles.
+	//
+	// TestCallSitesMatchTheirCodes catches it at build time. This is the
+	// runtime net for a path that test cannot see, and it follows the trade
+	// this codebase already settled for the same question in
+	// internal/isms/db/notifications.go: a degraded message beats a lost
+	// response. Dropping the slot leaves "not found", which is poor; leaving
+	// it renders punctuation at the reader.
+	if strings.ContainsRune(msg, '{') {
+		if leftover := placeholderRE.FindAllString(msg, -1); len(leftover) > 0 {
+			log.Printf("apiError: code %q left %v unfilled — the call site is missing a param; see errorMessages", code, leftover)
+			msg = strings.TrimSpace(collapseSpaces(placeholderRE.ReplaceAllString(msg, "")))
+		}
+	}
+
 	return echo.NewHTTPError(status, errorBody{Message: msg, Code: code, Params: p})
 }
+
+var spaceRE = regexp.MustCompile(`\s{2,}`)
+
+func collapseSpaces(s string) string { return spaceRE.ReplaceAllString(s, " ") }
 
 // humanizeParam turns a snake_case identifier into the English words the
 // message template expects. Raw params pass through untouched.

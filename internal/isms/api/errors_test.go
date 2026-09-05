@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -420,14 +421,16 @@ func TestOverridesMatchTheEnglishCatalogue(t *testing.T) {
 // TestParamValuesHaveCatalogueKeys cannot see these: the call sites pass
 // review.Status, not a literal.
 func TestErrorStatusValuesHaveInlineForms(t *testing.T) {
-	inline := enumInlineGroup(t, "en", "status")
-	if len(inline) == 0 {
-		t.Fatal("en common.enum_inline.status is empty")
-	}
-	for code, values := range errorStatusValues {
-		for _, v := range values {
-			if _, ok := inline[v]; !ok {
-				t.Errorf("%s can send status %q, which has no common.enum_inline.status.%s key in en — enumLabelInline falls back to the capitalised standalone label mid-sentence", code, v, v)
+	for _, locale := range localeDirs(t) {
+		inline := enumInlineGroup(t, locale, "status")
+		if len(inline) == 0 {
+			t.Fatalf("%s common.enum_inline.status is empty", locale)
+		}
+		for code, values := range errorStatusValues {
+			for _, v := range values {
+				if _, ok := inline[v]; !ok {
+					t.Errorf("%s can send status %q, which has no common.enum_inline.status.%s key in %s — enumLabelInline then falls back to the capitalised standalone label mid-sentence", code, v, v, locale)
+				}
 			}
 		}
 	}
@@ -497,7 +500,54 @@ func TestPlaceholdersMatchInEveryLocale(t *testing.T) {
 // exactly the param whose values are hardest to predict — that half is covered
 // by errorStatusValues and TestErrorStatusValuesHaveInlineForms, and the limit
 // is stated in docs/i18n.md rather than left for a reader to discover.
-func TestParamValuesHaveCatalogueKeys(t *testing.T) {
+// paramWrappers maps the convenience helpers onto the param kind they build.
+//
+// Without this the scan is blind to the exact spelling the documentation tells
+// people to use: inside errNotFound the constructor call is `Entity(entity)`,
+// a variable, so `errNotFound("widget")` — literal, wrong, and the main path —
+// sailed past. A check that only sees the form nobody writes is not a check.
+var paramWrappers = map[string]string{
+	"errNotFound":        ParamEntity,
+	"errInvalidEntityID": ParamEntity,
+	"errRequired":        ParamField,
+}
+
+// paramLiteral reports the param kind and literal value a call expression
+// supplies, for both the constructors and the wrappers above.
+func paramLiteral(call *ast.CallExpr) (kind, value string, ok bool) {
+	ident, isIdent := call.Fun.(*ast.Ident)
+	if !isIdent || len(call.Args) != 1 {
+		return "", "", false
+	}
+	switch ident.Name {
+	case "Entity":
+		kind = ParamEntity
+	case "Field":
+		kind = ParamField
+	case "Status":
+		kind = ParamStatus
+	default:
+		if k, isWrapper := paramWrappers[ident.Name]; isWrapper {
+			kind = k
+		} else {
+			return "", "", false
+		}
+	}
+	lit, isLit := call.Args[0].(*ast.BasicLit)
+	if !isLit || lit.Kind != token.STRING {
+		// A variable. Status is passed one at every real call site; those
+		// values are covered by errorStatusValues instead.
+		return "", "", false
+	}
+	v, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return "", "", false
+	}
+	return kind, v, true
+}
+
+func parsePackage(t *testing.T) (*token.FileSet, []*ast.File) {
+	t.Helper()
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, ".", func(fi os.FileInfo) bool {
 		return !strings.HasSuffix(fi.Name(), "_test.go")
@@ -505,49 +555,173 @@ func TestParamValuesHaveCatalogueKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing package: %v", err)
 	}
-
-	entities := commonGroup(t, "en", "entity_inline")
-	fields := commonGroup(t, "en", "field")
-	statuses := enumInlineGroup(t, "en", "status")
-
+	var files []*ast.File
 	for _, pkg := range pkgs {
-		for name, file := range pkg.Files {
+		for _, f := range pkg.Files {
+			files = append(files, f)
+		}
+	}
+	if len(files) == 0 {
+		t.Fatal("parsed no files — the scan would pass vacuously")
+	}
+	return fset, files
+}
+
+func TestParamValuesHaveCatalogueKeys(t *testing.T) {
+	fset, files := parsePackage(t)
+
+	// Checked in EVERY locale, not just en.
+	//
+	// The message-level policy is that a missing translation only warns:
+	// fallbackLocale renders the whole sentence in English, which is
+	// coherent, and a translation lagging a few keys must not block an
+	// unrelated PR. A missing *param* value is a different failure. The
+	// sentence around it still translates, so the reader gets one English
+	// word wedged into their own language — worse than either language on its
+	// own, and not something the fallback can rescue. The vocabulary is also
+	// tiny and shared across the whole UI, so requiring it costs a translator
+	// nothing.
+	for _, locale := range localeDirs(t) {
+		catalogues := map[string]map[string]string{
+			ParamEntity: commonGroup(t, locale, "entity_inline"),
+			ParamField:  commonGroup(t, locale, "field"),
+			ParamStatus: enumInlineGroup(t, locale, "status"),
+		}
+		paths := map[string]string{
+			ParamEntity: "common.entity_inline",
+			ParamField:  "common.field",
+			ParamStatus: "common.enum_inline.status",
+		}
+		for _, file := range files {
 			ast.Inspect(file, func(n ast.Node) bool {
 				call, ok := n.(*ast.CallExpr)
-				if !ok || len(call.Args) != 1 {
-					return true
-				}
-				ctor, ok := call.Fun.(*ast.Ident)
 				if !ok {
 					return true
 				}
-				lit, ok := call.Args[0].(*ast.BasicLit)
-				if !ok || lit.Kind != token.STRING {
-					// A variable, which is the common case for Status. Those
-					// values are covered by errorStatusValues instead.
+				kind, value, ok := paramLiteral(call)
+				if !ok {
 					return true
 				}
-				value, err := strconv.Unquote(lit.Value)
-				if err != nil {
-					return true
-				}
-				pos := fset.Position(lit.Pos())
-				switch ctor.Name {
-				case "Entity":
-					if _, ok := entities[value]; !ok {
-						t.Errorf("%s:%d: Entity(%q) has no common.entity_inline.%s key in en — it would render as the raw identifier mid-sentence", filepath.Base(name), pos.Line, value, value)
-					}
-				case "Field":
-					if _, ok := fields[value]; !ok {
-						t.Errorf("%s:%d: Field(%q) has no common.field.%s key in en", filepath.Base(name), pos.Line, value, value)
-					}
-				case "Status":
-					if _, ok := statuses[value]; !ok {
-						t.Errorf("%s:%d: Status(%q) has no common.enum_inline.status.%s key in en", filepath.Base(name), pos.Line, value, value)
-					}
+				if _, found := catalogues[kind][value]; !found {
+					pos := fset.Position(call.Pos())
+					t.Errorf("%s:%d: %s value %q has no %s.%s key in %s — it renders as an English word inside a %s sentence",
+						filepath.Base(pos.Filename), pos.Line, kind, value, paths[kind], value, locale, locale)
 				}
 				return true
 			})
+		}
+	}
+}
+
+// The params a call site passes must be exactly the ones its code's template
+// asks for. Nothing in the type system says so — Entity and Field are both
+// ErrorParam, so the wrong one, or none at all, compiles and ships a literal
+// "{entity} not found" to the reader.
+//
+// Vacuous until the first call site is converted, like the scan above.
+func TestCallSitesMatchTheirCodes(t *testing.T) {
+	fset, files := parsePackage(t)
+
+	for _, file := range files {
+		ast.Inspect(file, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			fn, ok := call.Fun.(*ast.Ident)
+			if !ok || fn.Name != "apiError" || len(call.Args) < 2 {
+				return true
+			}
+			pos := fset.Position(call.Pos())
+			where := fmt.Sprintf("%s:%d", filepath.Base(pos.Filename), pos.Line)
+
+			codeIdent, ok := call.Args[1].(*ast.Ident)
+			if !ok {
+				t.Errorf("%s: apiError code is not a Code* constant — a bare literal cannot be checked against the catalogue", where)
+				return true
+			}
+			code, known := codeConstants[codeIdent.Name]
+			if !known {
+				t.Errorf("%s: apiError code %s is not a declared constant", where, codeIdent.Name)
+				return true
+			}
+
+			var got []string
+			for _, arg := range call.Args[2:] {
+				argCall, ok := arg.(*ast.CallExpr)
+				if !ok {
+					return true // built elsewhere; out of this check's reach
+				}
+				ident, ok := argCall.Fun.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				switch ident.Name {
+				case "Entity":
+					got = append(got, ParamEntity)
+				case "Field":
+					got = append(got, ParamField)
+				case "Status":
+					got = append(got, ParamStatus)
+				case "Count":
+					got = append(got, ParamCount)
+				case "Value":
+					got = append(got, ParamValue)
+				default:
+					return true
+				}
+			}
+			sort.Strings(got)
+			want := ErrorCodeParams(code)
+			if len(got) == 0 {
+				got = nil
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: %s passes params %v but %q needs %v — an unfilled slot reaches the reader verbatim",
+					where, codeIdent.Name, got, errorMessages[code], want)
+			}
+			return true
+		})
+	}
+}
+
+// codeConstants maps constant name -> wire value, read out of the source for
+// the same reason TestEveryCodeConstantIsCatalogued does: Go cannot enumerate
+// its own constants at runtime.
+var codeConstants = func() map[string]string {
+	src, err := os.ReadFile("errors.go")
+	if err != nil {
+		panic(err)
+	}
+	out := map[string]string{}
+	for _, m := range regexp.MustCompile(`(?m)^\s*(Code[A-Za-z0-9]*)\s*=\s*"([^"]+)"`).FindAllStringSubmatch(string(src), -1) {
+		out[m[1]] = m[2]
+	}
+	return out
+}()
+
+// The param vocabulary must exist in every locale, whether or not a call site
+// uses it yet.
+//
+// The scan above only sees values some call site actually passes, so a key
+// added to `en` and forgotten in `id-ID` is invisible until conversion reaches
+// it — and by then it is a translated sentence with an English word in it,
+// found by a user rather than by CI. `common.entity_inline` already has this
+// mirror in enumCatalog.test.js; `common.field` had none.
+func TestParamVocabularyExistsInEveryLocale(t *testing.T) {
+	reference := commonGroup(t, "en", "field")
+	if len(reference) == 0 {
+		t.Fatal("en common.field is empty")
+	}
+	for _, locale := range localeDirs(t) {
+		if locale == "en" {
+			continue
+		}
+		have := commonGroup(t, locale, "field")
+		for name := range reference {
+			if _, ok := have[name]; !ok {
+				t.Errorf("common.field.%s is missing in %s — the sentence around it translates, so the reader gets one English word wedged into their own language", name, locale)
+			}
 		}
 	}
 }
@@ -558,13 +732,15 @@ func TestParamValuesHaveCatalogueKeys(t *testing.T) {
 // entity_inline into id-ID; this asserts the group errors depend on is not
 // empty, which is what would make the check above pass vacuously.
 func TestEntityInlineCatalogueIsPopulated(t *testing.T) {
-	inline := commonGroup(t, "en", "entity_inline")
-	if len(inline) == 0 {
-		t.Fatal("en common.entity_inline is empty")
-	}
-	for _, name := range []string{"risk", "review", "document", "user", "organization"} {
-		if _, ok := inline[name]; !ok {
-			t.Errorf("common.entity_inline.%s is missing in en — %q not found is unreachable", name, name)
+	for _, locale := range localeDirs(t) {
+		inline := commonGroup(t, locale, "entity_inline")
+		if len(inline) == 0 {
+			t.Fatalf("%s common.entity_inline is empty", locale)
+		}
+		for _, name := range []string{"risk", "review", "document", "user", "organization"} {
+			if _, ok := inline[name]; !ok {
+				t.Errorf("common.entity_inline.%s is missing in %s — %q not found is unreachable there", name, locale, name)
+			}
 		}
 	}
 }

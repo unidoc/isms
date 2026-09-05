@@ -149,9 +149,10 @@ async function uploadFile(url, file, extraFields = {}) {
 // enabled, the first call (without `otp`) returns `{otp_required: true}` with
 // an empty token — the caller must prompt for the code and call login again
 // with the otp argument.
-async function login(email, password, otp) {
+async function login(email, password, otp, organization) {
   const body = { email, password }
   if (otp) body.otp = otp
+  if (organization) body.organization = organization
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

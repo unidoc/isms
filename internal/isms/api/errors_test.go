@@ -30,13 +30,15 @@ import (
 
 // ---- locale catalogue loading -------------------------------------------
 
-func localesDir(t *testing.T) string {
+// requireLocalesDir returns the shared locale root declared in
+// notification_keys_test.go, failing if it is missing. A missing catalogue is
+// the failure these tests exist to report, so it must never skip.
+func requireLocalesDir(t *testing.T) string {
 	t.Helper()
-	dir := filepath.Join("..", "..", "..", "web", "src", "locales")
-	if _, err := os.Stat(dir); err != nil {
-		t.Fatalf("locales directory not found at %s: %v", dir, err)
+	if _, err := os.Stat(localesDir); err != nil {
+		t.Fatalf("locales directory not found at %s: %v", localesDir, err)
 	}
-	return dir
+	return localesDir
 }
 
 // commonErrors returns the `common.error` group of one locale, flattened to
@@ -45,7 +47,7 @@ func localesDir(t *testing.T) string {
 // rather than at render time.
 func commonErrors(t *testing.T, locale string) map[string]string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(localesDir(t), locale, "common.json"))
+	raw, err := os.ReadFile(filepath.Join(requireLocalesDir(t), locale, "common.json"))
 	if err != nil {
 		t.Fatalf("reading %s/common.json: %v", locale, err)
 	}
@@ -68,7 +70,7 @@ func commonErrors(t *testing.T, locale string) map[string]string {
 
 func commonGroup(t *testing.T, locale, group string) map[string]string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(localesDir(t), locale, "common.json"))
+	raw, err := os.ReadFile(filepath.Join(requireLocalesDir(t), locale, "common.json"))
 	if err != nil {
 		t.Fatalf("reading %s/common.json: %v", locale, err)
 	}
@@ -87,7 +89,7 @@ func commonGroup(t *testing.T, locale, group string) map[string]string {
 
 func enumInlineGroup(t *testing.T, locale, group string) map[string]string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(localesDir(t), locale, "common.json"))
+	raw, err := os.ReadFile(filepath.Join(requireLocalesDir(t), locale, "common.json"))
 	if err != nil {
 		t.Fatalf("reading %s/common.json: %v", locale, err)
 	}
@@ -102,7 +104,7 @@ func enumInlineGroup(t *testing.T, locale, group string) map[string]string {
 
 func localeDirs(t *testing.T) []string {
 	t.Helper()
-	entries, err := os.ReadDir(localesDir(t))
+	entries, err := os.ReadDir(requireLocalesDir(t))
 	if err != nil {
 		t.Fatalf("listing locales: %v", err)
 	}

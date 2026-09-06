@@ -48,9 +48,17 @@ test('epoch numbers are read as seconds or milliseconds by magnitude', () => {
 
 test('English formats British, so adopting the seam keeps the shape the UI had', () => {
   // The message bundle is tagged `en`; bare `en` would order dates US-style.
-  assert.equal(formatDate('2026-08-24T10:30:00Z'), '24 Aug 2026')
-  assert.equal(formatDate('2026-08-24T10:30:00Z', 'dayMonth'), '24 Aug')
-  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonthTime'), /^24 Aug, \d{2}:\d{2}$/)
+  //
+  // The day floats and the assertions do not name it. formatDate() renders an
+  // instant in the machine's zone, which is correct — only formatDay() pins to
+  // UTC, and the test below owns that. A fixed instant lands on a different
+  // calendar day either side of UTC (10:30Z is the 25th at UTC+14, the 23rd at
+  // UTC-12), so an exact-day expectation asserts the runner's timezone rather
+  // than the formatter. What matters here is the shape: day before month, short
+  // month name, four-digit year — "Aug 24, 2026" fails all three.
+  assert.match(formatDate('2026-08-24T10:30:00Z'), /^\d{1,2} Aug 2026$/)
+  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonth'), /^\d{1,2} Aug$/)
+  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonthTime'), /^\d{1,2} Aug, \d{2}:\d{2}$/)
 })
 
 test('relative time picks the largest fitting unit in both directions', () => {
@@ -67,7 +75,8 @@ test('recent timestamps read as relative, older ones pin to a date', () => {
   assert.equal(formatRecent(Date.now() - 2 * 60 * 60 * 1000), '2 hours ago')
   // Past the surface's threshold the wording gives way to an absolute date, so
   // a year-old item does not read "12 months ago".
-  assert.equal(formatRecent('2020-08-24T10:30:00Z'), '24 Aug 2020')
+  // Day omitted for the timezone reason given above; the year is the assertion.
+  assert.match(formatRecent('2020-08-24T10:30:00Z'), /^\d{1,2} Aug 2020$/)
   assert.equal(formatRecent(Date.now() - 2 * DAY, { within: DAY }), formatDate(Date.now() - 2 * DAY))
   assert.equal(formatRecent(null), '')
 })
@@ -95,9 +104,11 @@ test('the active locale drives every shape, not just the English fallback', asyn
   // Intl needs the tag, not the message bundle, so no loader is involved here.
   i18n.global.locale.value = 'id-ID'
   try {
-    assert.equal(formatDate('2026-08-05T14:30:00Z'), '5 Agu 2026')
+    // "Agu", not "Aug" — the locale is doing the work. Day omitted for the
+    // timezone reason given above; formatDay() below pins it and can assert it.
+    assert.match(formatDate('2026-08-05T14:30:00Z'), /^\d{1,2} Agu 2026$/)
     // Indonesian separates hours from minutes with a dot.
-    assert.match(formatDate('2026-08-05T14:30:00Z', 'datetime'), /5 Agu 2026, \d{2}\.\d{2}/)
+    assert.match(formatDate('2026-08-05T14:30:00Z', 'datetime'), /^\d{1,2} Agu 2026, \d{2}\.\d{2}$/)
     assert.equal(formatDay(Date.UTC(2026, 7, 5) / 1000), '5 Agu 2026')
     const now = Date.parse('2026-08-24T12:00:00Z')
     assert.equal(formatRelative(new Date(now - 5 * 60 * 1000), now), '5 menit yang lalu')
@@ -106,8 +117,9 @@ test('the active locale drives every shape, not just the English fallback', asyn
   } finally {
     i18n.global.locale.value = previous
   }
-  // …and the switch is not sticky.
-  assert.equal(formatDate('2026-08-05T14:30:00Z'), '5 Aug 2026')
+  // …and the switch is not sticky: "Aug" again, not "Agu". Day omitted for the
+  // timezone reason given above.
+  assert.match(formatDate('2026-08-05T14:30:00Z'), /^\d{1,2} Aug 2026$/)
 })
 
 test('useFormat exposes the seam under the names the contract documents', () => {

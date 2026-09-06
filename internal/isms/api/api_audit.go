@@ -112,7 +112,7 @@ func (s *Server) handleCreateAuditProgramme(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
 	if req.Year < 1900 || req.Year > 2200 {
 		return echo.NewHTTPError(http.StatusBadRequest, "year must be between 1900 and 2200")
@@ -121,7 +121,7 @@ func (s *Server) handleCreateAuditProgramme(c echo.Context) error {
 		req.Status = "active"
 	}
 	if !db.AuditProgrammeStatuses[req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(req.Status))
 	}
 	p := db.AuditProgramme{
 		Title:       req.Title,
@@ -169,7 +169,7 @@ func (s *Server) handleUpdateAuditProgramme(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.Status != nil && !db.AuditProgrammeStatuses[*req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+*req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
 	}
 	if err := s.db.UpdateAuditProgramme(c.Request().Context(), orgID, id, req.Title, req.Description, req.Notes, req.Status); err != nil {
 		return pgxHTTPError(err)
@@ -244,7 +244,7 @@ func (s *Server) handleCreateAudit(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
 	// Scope and auditor are optional at create time — fill via the edit modal.
 	// Schema permits null auditor_id and empty scope.
@@ -258,7 +258,7 @@ func (s *Server) handleCreateAudit(c echo.Context) error {
 		req.Status = "planned"
 	}
 	if !db.AuditStatuses[req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(req.Status))
 	}
 	if err := s.validateOrgMember(c, req.Auditor); err != nil {
 		return err
@@ -306,11 +306,11 @@ func (s *Server) handleGetAudit(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	audit, err := s.db.GetAudit(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	return c.JSON(http.StatusOK, audit)
 }
@@ -322,12 +322,12 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	ctx := c.Request().Context()
 	before, err := s.db.GetAudit(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 
 	var req auditUpdateRequest
@@ -338,7 +338,7 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit_type: "+*req.AuditType)
 	}
 	if req.Status != nil && !db.AuditStatuses[*req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+*req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
 	}
 	if req.Auditor != nil && *req.Auditor != "" {
 		if err := s.validateOrgMember(c, *req.Auditor); err != nil {
@@ -356,7 +356,7 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 	}
 	after, err := s.db.GetAudit(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("audit", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
@@ -377,7 +377,7 @@ func (s *Server) handleUpdateAuditStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	var req struct {
 		Status string `json:"status"`
@@ -386,12 +386,12 @@ func (s *Server) handleUpdateAuditStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if !db.AuditStatuses[req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(req.Status))
 	}
 	ctx := c.Request().Context()
 	before, err := s.db.GetAudit(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	if err := s.db.UpdateAuditStatus(ctx, orgID, id, req.Status); err != nil {
 		return pgxHTTPError(err)
@@ -470,12 +470,12 @@ func (s *Server) handleListAuditItems(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	if exists, err := s.db.AuditExists(c.Request().Context(), orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	} else if !exists {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	items, err := s.db.ListAuditItems(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -491,19 +491,19 @@ func (s *Server) handleCreateAuditItem(c echo.Context) error {
 	orgID := getOrgID(c)
 	auditID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	if exists, err := s.db.AuditExists(c.Request().Context(), orgID, auditID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	} else if !exists {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	var req auditItemCreateRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
 	if req.Result == "" {
 		req.Result = "not_assessed"
@@ -533,7 +533,7 @@ func (s *Server) handleDeleteAuditItem(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid item id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("item"))
 	}
 	if err := s.db.DeleteAuditItem(c.Request().Context(), orgID, id); err != nil {
 		return pgxHTTPError(err)
@@ -548,7 +548,7 @@ func (s *Server) handleUpdateAuditItem(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid item id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("item"))
 	}
 	var req auditItemUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -562,7 +562,7 @@ func (s *Server) handleUpdateAuditItem(c echo.Context) error {
 	}
 	out, err := s.db.GetAuditItem(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "item not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("item"))
 	}
 	if req.Result != nil {
 		s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
@@ -580,12 +580,12 @@ func (s *Server) handleListAuditFindingsForAudit(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid audit id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit"))
 	}
 	if exists, err := s.db.AuditExists(c.Request().Context(), orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	} else if !exists {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
 	findings, err := s.db.ListAuditFindings(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -643,11 +643,11 @@ func (s *Server) handleGetAuditFinding(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
 	f, err := s.db.GetAuditFinding(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "finding not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit_finding"))
 	}
 	return c.JSON(http.StatusOK, f)
 }
@@ -667,7 +667,7 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "audit_id is required")
 	}
 	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
 	// Description is optional at create time — fill via the edit modal.
 	if !db.AuditFindingTypes[req.FindingType] {
@@ -677,7 +677,7 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 	if exists, err := s.db.AuditExists(ctx, orgID, req.AuditID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	} else if !exists {
-		return echo.NewHTTPError(http.StatusNotFound, "audit not found in this organization")
+		return apiError(http.StatusNotFound, CodeNotFoundInOrg, Entity("audit"))
 	}
 	if req.Owner != "" {
 		if err := s.validateOrgMember(c, req.Owner); err != nil {
@@ -728,13 +728,13 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
 	ctx := c.Request().Context()
 
 	before, err := s.db.GetAuditFinding(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "finding not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit_finding"))
 	}
 
 	var req auditFindingUpdateRequest
@@ -742,7 +742,7 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.Status != nil && !db.AuditFindingStatuses[*req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+*req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
 	}
 	if req.Owner != nil && *req.Owner != "" {
 		if err := s.validateOrgMember(c, *req.Owner); err != nil {
@@ -793,7 +793,7 @@ func (s *Server) handleUpdateAuditFindingStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
 	var req struct {
 		Status string `json:"status"`
@@ -802,12 +802,12 @@ func (s *Server) handleUpdateAuditFindingStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if !db.AuditFindingStatuses[req.Status] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status: "+req.Status)
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(req.Status))
 	}
 	ctx := c.Request().Context()
 	before, err := s.db.GetAuditFinding(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "finding not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit_finding"))
 	}
 	actor := getUserEmail(c)
 	if err := s.db.SetAuditFindingStatus(ctx, orgID, id, req.Status, actor); err != nil {
@@ -835,11 +835,11 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
 	ctx := c.Request().Context()
 	if _, err := s.db.GetAuditFinding(ctx, orgID, id); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "finding not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit_finding"))
 	}
 	if err := s.db.SoftDeleteAuditFinding(ctx, orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusConflict, err.Error())

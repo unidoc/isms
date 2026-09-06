@@ -56,9 +56,13 @@ test('English formats British, so adopting the seam keeps the shape the UI had',
   // UTC-12), so an exact-day expectation asserts the runner's timezone rather
   // than the formatter. What matters here is the shape: day before month, short
   // month name, four-digit year — "Aug 24, 2026" fails all three.
-  assert.match(formatDate('2026-08-24T10:30:00Z'), /^\d{1,2} Aug 2026$/)
-  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonth'), /^\d{1,2} Aug$/)
-  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonthTime'), /^\d{1,2} Aug, \d{2}:\d{2}$/)
+  // The day is constrained, not dropped: 10:30Z is the 23rd at UTC-12 and the
+  // 25th at UTC+14, and nothing in between reaches any other date. A bare
+  // \d{1,2} would also accept "99 Aug 2026", so a regression shifting the
+  // instant by weeks would pass.
+  assert.match(formatDate('2026-08-24T10:30:00Z'), /^(?:23|24|25) Aug 2026$/)
+  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonth'), /^(?:23|24|25) Aug$/)
+  assert.match(formatDate('2026-08-24T10:30:00Z', 'dayMonthTime'), /^(?:23|24|25) Aug, \d{2}:\d{2}$/)
 })
 
 test('relative time picks the largest fitting unit in both directions', () => {
@@ -75,8 +79,8 @@ test('recent timestamps read as relative, older ones pin to a date', () => {
   assert.equal(formatRecent(Date.now() - 2 * 60 * 60 * 1000), '2 hours ago')
   // Past the surface's threshold the wording gives way to an absolute date, so
   // a year-old item does not read "12 months ago".
-  // Day omitted for the timezone reason given above; the year is the assertion.
-  assert.match(formatRecent('2020-08-24T10:30:00Z'), /^\d{1,2} Aug 2020$/)
+  // Same instant-of-day as above, so the same three possible dates.
+  assert.match(formatRecent('2020-08-24T10:30:00Z'), /^(?:23|24|25) Aug 2020$/)
   assert.equal(formatRecent(Date.now() - 2 * DAY, { within: DAY }), formatDate(Date.now() - 2 * DAY))
   assert.equal(formatRecent(null), '')
 })
@@ -104,11 +108,11 @@ test('the active locale drives every shape, not just the English fallback', asyn
   // Intl needs the tag, not the message bundle, so no loader is involved here.
   i18n.global.locale.value = 'id-ID'
   try {
-    // "Agu", not "Aug" — the locale is doing the work. Day omitted for the
-    // timezone reason given above; formatDay() below pins it and can assert it.
-    assert.match(formatDate('2026-08-05T14:30:00Z'), /^\d{1,2} Agu 2026$/)
+    // "Agu", not "Aug" — the locale is doing the work. 14:30Z is the 5th at
+    // UTC-12 and the 6th at UTC+14, so those are the only two possible days.
+    assert.match(formatDate('2026-08-05T14:30:00Z'), /^(?:5|6) Agu 2026$/)
     // Indonesian separates hours from minutes with a dot.
-    assert.match(formatDate('2026-08-05T14:30:00Z', 'datetime'), /^\d{1,2} Agu 2026, \d{2}\.\d{2}$/)
+    assert.match(formatDate('2026-08-05T14:30:00Z', 'datetime'), /^(?:5|6) Agu 2026, \d{2}\.\d{2}$/)
     assert.equal(formatDay(Date.UTC(2026, 7, 5) / 1000), '5 Agu 2026')
     const now = Date.parse('2026-08-24T12:00:00Z')
     assert.equal(formatRelative(new Date(now - 5 * 60 * 1000), now), '5 menit yang lalu')
@@ -117,9 +121,8 @@ test('the active locale drives every shape, not just the English fallback', asyn
   } finally {
     i18n.global.locale.value = previous
   }
-  // …and the switch is not sticky: "Aug" again, not "Agu". Day omitted for the
-  // timezone reason given above.
-  assert.match(formatDate('2026-08-05T14:30:00Z'), /^\d{1,2} Aug 2026$/)
+  // …and the switch is not sticky: "Aug" again, not "Agu".
+  assert.match(formatDate('2026-08-05T14:30:00Z'), /^(?:5|6) Aug 2026$/)
 })
 
 test('useFormat exposes the seam under the names the contract documents', () => {

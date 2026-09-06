@@ -51,11 +51,46 @@ async function fetchRaw(url) {
     throw err
   }
   if (!res.ok) {
-    const err = new Error(`${res.status} ${res.statusText}`)
-    err.status = res.status
-    throw err
+    // Reads the error body, which this helper did not do before: every GET in
+    // the app comes through here, so it was the one path that threw away the
+    // server's message and showed a bare "404 Not Found". Entity lookups are
+    // overwhelmingly GETs, so leaving it unparsed would have kept `code` off
+    // exactly the errors the catalogue exists for.
+    const body = await res.json().catch(() => null)
+    throw apiErrorFrom(res, body)
   }
   return await res.json()
+}
+
+// One shape for every HTTP error this module throws.
+//
+// Six fetch helpers each carried their own copy of
+// `body.message || body.error || status`, which is how `code` came to be
+// discarded six times over: the server has emitted a stable `code` and a param
+// map alongside the English `message` since the error-code work landed
+// (internal/isms/api/errors.go, plan 81 §1), and nothing here read them.
+//
+// `message` stays the thrown Error's message, unchanged. That is deliberate
+// and load-bearing: ~191 call sites render `err.message` directly and none of
+// them are touched here, so an unconverted server route and an untouched render
+// site behave exactly as they do today. Translating is opt-in per site, through
+// renderApiError() in composables/useApiError.js.
+//
+// `fallback` is a parameter rather than a constant because login's is
+// "Login failed (401)", which is friendlier than "401 Unauthorized" and is what
+// the login form has always shown.
+//
+// Exported for its tests: it is the join between the Go wire shape and
+// renderApiError(), and both sides of that join are pinned while the middle was
+// not. Nothing else imports it.
+export function apiErrorFrom(res, body, fallback) {
+  const err = new Error(body?.message || body?.error || fallback || `${res.status} ${res.statusText}`)
+  err.status = res.status
+  // Absent on a route that has not been converted yet, and on any non-JSON
+  // error body. renderApiError() falls back to err.message when so.
+  if (body?.code) err.code = body.code
+  if (body?.params) err.params = body.params
+  return err
 }
 
 async function fetchJSON(url) {
@@ -94,9 +129,7 @@ async function postJSON(url, data) {
   checkAuth(res)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const err = new Error(body.message || body.error || `${res.status} ${res.statusText}`)
-    err.status = res.status
-    throw err
+    throw apiErrorFrom(res, body)
   }
   return res.json()
 }
@@ -106,9 +139,7 @@ async function putJSON(url, data) {
   checkAuth(res)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const err = new Error(body.message || body.error || `${res.status} ${res.statusText}`)
-    err.status = res.status
-    throw err
+    throw apiErrorFrom(res, body)
   }
   return res.json()
 }
@@ -120,9 +151,7 @@ async function deleteJSON(url, data) {
   checkAuth(res)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const err = new Error(body.message || body.error || `${res.status} ${res.statusText}`)
-    err.status = res.status
-    throw err
+    throw apiErrorFrom(res, body)
   }
   return res.json()
 }
@@ -138,9 +167,7 @@ async function uploadFile(url, file, extraFields = {}) {
   checkAuth(res)
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    const err = new Error(body?.message || `${res.status} ${res.statusText}`)
-    err.status = res.status
-    throw err
+    throw apiErrorFrom(res, body)
   }
   return res.json()
 }
@@ -159,8 +186,13 @@ async function login(email, password, otp, organization) {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => null)
-    throw new Error(err?.error || err?.message || `Login failed (${res.status})`)
+    // `Login failed (401)` rather than the generic "401 Unauthorized" — the
+    // login form has always shown this and it is friendlier than the status
+    // line. The old `err.error || err.message` precedence is dropped, not
+    // preserved: the login route answers with echo.NewHTTPError, which emits
+    // `message` and never `error`, so the first branch was unreachable.
+    const body = await res.json().catch(() => null)
+    throw apiErrorFrom(res, body, `Login failed (${res.status})`)
   }
   const data = await res.json()
   if (data.token) {

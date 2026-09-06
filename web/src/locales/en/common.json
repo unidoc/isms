@@ -94,7 +94,9 @@
     "file": "file",
     "code": "code",
     "document_id": "document ID",
-    "new_email": "new email"
+    "new_email": "new email",
+    "entity_type": "entity type",
+    "suggestion_type": "suggestion type"
   },
   "enum": {
     "status": {

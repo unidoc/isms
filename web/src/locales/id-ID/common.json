@@ -94,7 +94,9 @@
     "file": "berkas",
     "code": "kode",
     "document_id": "ID dokumen",
-    "new_email": "email baru"
+    "new_email": "email baru",
+    "entity_type": "jenis entitas",
+    "suggestion_type": "jenis saran"
   },
   "enum": {
     "status": {

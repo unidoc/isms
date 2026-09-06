@@ -115,13 +115,13 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if sg.EntityType == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "entity_type is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("entity_type"))
 	}
 	if sg.SuggestionType == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "suggestion_type is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("suggestion_type"))
 	}
 	if sg.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
 
 	// Verify apply handler exists for this combination
@@ -232,16 +232,16 @@ func (s *Server) handleGetEntitySuggestion(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	sg, err := s.db.GetSuggestion(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("suggestion"))
 	}
 	// A suggestion on a private task is 404 for someone who can't see the task (#178).
 	if s.taskSuggestionHidden(c, orgID, sg) {
-		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("suggestion"))
 	}
 
 	// Attach stale info if entity has changed
@@ -287,12 +287,12 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	existing, err := s.db.GetSuggestion(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("suggestion"))
 	}
 
 	// RBAC: contributor can edit own open only, manager/admin can edit any open/in_review
@@ -355,12 +355,12 @@ func (s *Server) handleDeleteEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	existing, err := s.db.GetSuggestion(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("suggestion"))
 	}
 
 	// RBAC: author can delete own open/withdrawn, manager/admin can delete non-terminal
@@ -397,7 +397,7 @@ func (s *Server) handleClaimEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	newStatus, err := s.db.ClaimSuggestion(ctx, orgID, id, actor)
@@ -438,12 +438,12 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	sg, err := s.db.GetSuggestion(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "suggestion not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("suggestion"))
 	}
 	if sg.Status != "open" && sg.Status != "in_review" {
 		return echo.NewHTTPError(http.StatusConflict, "suggestion is in terminal state: "+sg.Status)
@@ -549,7 +549,7 @@ func (s *Server) handleRejectEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	var body struct {
@@ -559,7 +559,7 @@ func (s *Server) handleRejectEntitySuggestion(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if strings.TrimSpace(body.Reason) == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "reason is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("reason"))
 	}
 
 	if err := s.db.RejectEntitySuggestion(ctx, orgID, id, actor, body.Reason); err != nil {
@@ -595,7 +595,7 @@ func (s *Server) handleWithdrawEntitySuggestion(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	if err := s.db.WithdrawSuggestion(ctx, orgID, id, actor); err != nil {

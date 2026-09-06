@@ -79,7 +79,11 @@ async function fetchRaw(url) {
 // `fallback` is a parameter rather than a constant because login's is
 // "Login failed (401)", which is friendlier than "401 Unauthorized" and is what
 // the login form has always shown.
-function apiErrorFrom(res, body, fallback) {
+//
+// Exported for its tests: it is the join between the Go wire shape and
+// renderApiError(), and both sides of that join are pinned while the middle was
+// not. Nothing else imports it.
+export function apiErrorFrom(res, body, fallback) {
   const err = new Error(body?.message || body?.error || fallback || `${res.status} ${res.statusText}`)
   err.status = res.status
   // Absent on a route that has not been converted yet, and on any non-JSON

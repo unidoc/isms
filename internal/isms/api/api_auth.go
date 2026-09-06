@@ -52,10 +52,10 @@ type loginResponse struct {
 func (s *Server) handleLogin(c echo.Context) error {
 	var req loginRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" || req.Password == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email and password required")
+		return apiError(http.StatusBadRequest, CodeEmailAndPasswordNeeded)
 	}
 
 	ctx := c.Request().Context()
@@ -65,24 +65,24 @@ func (s *Server) handleLogin(c echo.Context) error {
 	if !rateLimitDisabled() {
 		count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
 		if count >= maxLoginAttempts {
-			return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+			return apiError(http.StatusTooManyRequests, CodeTooManyAttempts)
 		}
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
 	if err != nil || user == nil {
 		s.db.RecordLoginAttempt(ctx, req.Email, clientIP)
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 
 	if !user.Active || !user.HasPassword() {
 		s.db.RecordLoginAttempt(ctx, req.Email, clientIP)
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.Password)); err != nil {
 		s.db.RecordLoginAttempt(ctx, req.Email, clientIP)
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 
 	// Check OTP if enabled
@@ -91,7 +91,7 @@ func (s *Server) handleLogin(c echo.Context) error {
 			return c.JSON(http.StatusOK, loginResponse{OTPRequired: true})
 		}
 		if !verifyTOTP(*user.OTPSecret, req.OTP) {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid OTP code")
+			return apiError(http.StatusUnauthorized, CodeInvalidOTPCode)
 		}
 		// TOTP replay protection
 		alreadyUsed, err := s.db.CheckAndSetTOTPUsed(ctx, user.ID)
@@ -126,12 +126,12 @@ func (s *Server) handleLogin(c echo.Context) error {
 		// Explicit org slug provided — look it up
 		org, err := s.db.GetOrganizationBySlug(ctx, req.Organization)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "organization not found")
+			return apiError(http.StatusBadRequest, CodeNotFound, Entity("organization"))
 		}
 		// Verify user is a member
 		_, err = s.db.GetOrgMember(ctx, org.ID, user.ID)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+			return apiError(http.StatusForbidden, CodeNotOrgMember)
 		}
 		orgID = org.ID
 		orgName = org.Name
@@ -202,16 +202,16 @@ func (s *Server) handleSignup(c echo.Context) error {
 
 	var req signupRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" || req.Password == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email and password required")
+		return apiError(http.StatusBadRequest, CodeEmailAndPasswordNeeded)
 	}
 	if req.Name == "" {
 		req.Name = req.Email
 	}
 	if len(req.Password) < 7 {
-		return echo.NewHTTPError(http.StatusBadRequest, "password must be at least 7 characters")
+		return apiError(http.StatusBadRequest, CodePasswordTooShort, Count(7))
 	}
 
 	ctx := c.Request().Context()
@@ -291,7 +291,7 @@ func (s *Server) handleForgotPassword(c echo.Context) error {
 		Email string `json:"email"`
 	}
 	if err := c.Bind(&req); err != nil || req.Email == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 	ctx := c.Request().Context()
 
@@ -336,7 +336,7 @@ func (s *Server) handleForgotPassword(c echo.Context) error {
 func (s *Server) handleRefresh(c echo.Context) error {
 	email := getUserEmail(c)
 	if email == "" {
-		return echo.NewHTTPError(http.StatusUnauthorized, "not authenticated")
+		return apiError(http.StatusUnauthorized, CodeNotAuthenticated)
 	}
 
 	ctx := c.Request().Context()
@@ -388,7 +388,7 @@ func (s *Server) handleSwitchOrg(c echo.Context) error {
 		Slug string `json:"slug"`
 	}
 	if err := c.Bind(&req); err != nil || req.Slug == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "slug is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("slug"))
 	}
 
 	ctx := c.Request().Context()
@@ -396,18 +396,18 @@ func (s *Server) handleSwitchOrg(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	org, err := s.db.GetOrganizationBySlug(ctx, req.Slug)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("organization"))
 	}
 
 	// Verify membership
 	role, err := s.db.GetUserRole(ctx, org.ID, user.ID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+		return apiError(http.StatusForbidden, CodeNotOrgMember)
 	}
 
 	token, err := s.createSessionJWT(user, org.ID, role, org.Slug, org.Name)
@@ -435,26 +435,26 @@ type changePasswordRequest struct {
 func (s *Server) handleChangePassword(c echo.Context) error {
 	var req changePasswordRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.NewPassword == "" || len(req.NewPassword) < 7 {
-		return echo.NewHTTPError(http.StatusBadRequest, "password must be at least 7 characters")
+		return apiError(http.StatusBadRequest, CodePasswordTooShort, Count(7))
 	}
 
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	// If user already has a password, verify current one
 	if user.HasPassword() {
 		if req.CurrentPassword == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "current password required")
+			return apiError(http.StatusBadRequest, CodeCurrentPasswordNeeded)
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "current password is incorrect")
+			return apiError(http.StatusUnauthorized, CodeCurrentPasswordWrong)
 		}
 	}
 
@@ -486,12 +486,12 @@ type changeEmailRequest struct {
 func (s *Server) handleRequestEmailChange(c echo.Context) error {
 	var req changeEmailRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 
 	newEmail := strings.ToLower(strings.TrimSpace(req.NewEmail))
 	if newEmail == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "new_email is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("new_email"))
 	}
 	if addr, err := netmail.ParseAddress(newEmail); err != nil || addr.Address != newEmail {
 		return echo.NewHTTPError(http.StatusBadRequest, "new_email is not a valid email address")
@@ -500,7 +500,7 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	if newEmail == strings.ToLower(user.Email) {
@@ -518,7 +518,7 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 	// index on pending_email stops two concurrent requests to the same address,
 	// and the unique index on email is the final word at swap time.
 	if exists, _ := s.db.EmailExists(ctx, newEmail); exists {
-		return echo.NewHTTPError(http.StatusConflict, "that email address is already in use")
+		return apiError(http.StatusConflict, CodeEmailInUse)
 	}
 
 	// Fail before committing any state if mail can't be delivered — otherwise the
@@ -533,7 +533,7 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 
 	if err := s.db.SetPendingEmail(ctx, user.ID, newEmail); err != nil {
 		if err == db.ErrEmailTaken {
-			return echo.NewHTTPError(http.StatusConflict, "that email address is already in use")
+			return apiError(http.StatusConflict, CodeEmailInUse)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "recording email change: "+err.Error())
 	}
@@ -573,7 +573,7 @@ func (s *Server) handleCancelEmailChange(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 	if err := s.db.ClearPendingEmail(ctx, user.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "cancelling email change")
@@ -591,17 +591,17 @@ func (s *Server) handleVerifyEmailChange(c echo.Context) error {
 		Token string `json:"token"`
 	}
 	if err := c.Bind(&req); err != nil || req.Token == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "token is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("token"))
 	}
 
 	ctx := c.Request().Context()
 	hash := sha256.Sum256([]byte(req.Token))
 	verification, err := s.db.LookupEmailVerification(ctx, hex.EncodeToString(hash[:]))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid or expired confirmation link")
+		return apiError(http.StatusBadRequest, CodeInvalidConfirmLink)
 	}
 	if verification.Purpose != "email_change" {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid or expired confirmation link")
+		return apiError(http.StatusBadRequest, CodeInvalidConfirmLink)
 	}
 
 	// Consume the token before attempting the swap — a failed swap (address taken,
@@ -647,11 +647,11 @@ type updateProfileRequest struct {
 func (s *Server) handleUpdateProfile(c echo.Context) error {
 	var req updateProfileRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	// An empty name is still invalid; an absent one just means "not changing it".
 	if req.Name != nil && *req.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("name"))
 	}
 	// Require at least one field, so a caller cannot mistake an empty body for a
 	// successful update.
@@ -677,7 +677,7 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 	if req.Locale != nil && *req.Locale != "" {
 		tag, ok := i18n.Canonical(*req.Locale)
 		if !ok {
-			return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+			return apiError(http.StatusBadRequest, CodeUnsupportedLocale)
 		}
 		nextLocale = &tag
 	}
@@ -686,7 +686,7 @@ func (s *Server) handleUpdateProfile(c echo.Context) error {
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	if req.Name != nil {
@@ -722,7 +722,7 @@ func (s *Server) handleOTPSetup(c echo.Context) error {
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	// Generate random secret
@@ -761,17 +761,17 @@ type otpVerifyRequest struct {
 func (s *Server) handleOTPVerify(c echo.Context) error {
 	var req otpVerifyRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Code == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "code is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("code"))
 	}
 
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	if user.OTPSecret == nil || *user.OTPSecret == "" {
@@ -779,7 +779,7 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 	}
 
 	if !verifyTOTP(*user.OTPSecret, req.Code) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid OTP code")
+		return apiError(http.StatusUnauthorized, CodeInvalidOTPCode)
 	}
 
 	if err := s.db.VerifyOTP(ctx, user.ID); err != nil {
@@ -794,14 +794,14 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 func (s *Server) handleOTPDisable(c echo.Context) error {
 	var req otpVerifyRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	// Re-authenticate with the current OTP code before removing the second
@@ -813,7 +813,7 @@ func (s *Server) handleOTPDisable(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "current OTP code is required to disable OTP")
 	}
 	if !verifyTOTP(*user.OTPSecret, req.Code) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid OTP code")
+		return apiError(http.StatusUnauthorized, CodeInvalidOTPCode)
 	}
 
 	if err := s.db.ClearOTP(ctx, user.ID); err != nil {
@@ -838,10 +838,10 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	orgID := getOrgID(c)
 	var req inviteRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 	if req.Name == "" {
 		req.Name = req.Email
@@ -851,7 +851,7 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 	validRoles := map[string]bool{"admin": true, "manager": true, "contributor": true, "reader": true}
 	if !validRoles[req.Role] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid role")
+		return apiError(http.StatusBadRequest, CodeInvalidRole)
 	}
 
 	// Only admin can invite as admin or manager
@@ -920,19 +920,19 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 		Email string `json:"email"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("user"))
 	}
 	// Must be a member of this org — don't resend across organizations.
 	if _, err := s.db.GetOrgMember(ctx, orgID, user.ID); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "user is not a member of this organization")
+		return apiError(http.StatusNotFound, CodeNotOrgMember)
 	}
 	// Only pending invites can be resent; an active user has already accepted.
 	if user.Active {
@@ -984,13 +984,13 @@ type verifyEmailRequest struct {
 func (s *Server) handleVerifyEmail(c echo.Context) error {
 	var req verifyEmailRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Token == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "token is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("token"))
 	}
 	if req.Password == "" || len(req.Password) < 7 {
-		return echo.NewHTTPError(http.StatusBadRequest, "password must be at least 7 characters")
+		return apiError(http.StatusBadRequest, CodePasswordTooShort, Count(7))
 	}
 
 	ctx := c.Request().Context()
@@ -1007,7 +1007,7 @@ func (s *Server) handleVerifyEmail(c echo.Context) error {
 	// Get the user
 	user, err := s.db.GetUserByID(ctx, verification.UserID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	// Hash password and save
@@ -1069,7 +1069,7 @@ func (s *Server) handleListMyAPIKeys(c echo.Context) error {
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	keys, err := s.db.ListUserAPIKeys(ctx, user.ID)
@@ -1095,10 +1095,10 @@ func (s *Server) handleCreateMyAPIKey(c echo.Context) error {
 		Scope       string `json:"scope"` // "org" (default) or "global"
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("name"))
 	}
 	if req.Permissions == "" {
 		req.Permissions = "read-write"
@@ -1138,7 +1138,7 @@ func (s *Server) handleRevokeMyAPIKey(c echo.Context) error {
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	id, err := strconv.Atoi(c.Param("id"))
@@ -1174,7 +1174,7 @@ func (s *Server) handleLogout(c echo.Context) error {
 	// Parse to get expiry time
 	claims, err := validateSessionJWT(rawToken, s.secret)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid token")
+		return apiError(http.StatusBadRequest, CodeInvalidToken)
 	}
 
 	tokenHash := sha256Hash(rawToken)
@@ -1209,10 +1209,10 @@ func generateAPIKey() (string, string) {
 func reauthenticate(user *db.User, password, otp string) error {
 	if user.HasPassword() {
 		if password == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "current password required")
+			return apiError(http.StatusBadRequest, CodeCurrentPasswordNeeded)
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "current password is incorrect")
+			return apiError(http.StatusUnauthorized, CodeCurrentPasswordWrong)
 		}
 	}
 	if user.HasOTP() {

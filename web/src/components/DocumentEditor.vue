@@ -391,7 +391,9 @@ const editor = useEditor({
     TextStyle,
     Color,
     Link.configure({ openOnClick: false }),
-    Placeholder.configure({ placeholder: 'Start writing...' }),
+    // Function form, not a string: the editor is created once, so a string
+    // would freeze the placeholder in whatever locale was active at boot.
+    Placeholder.configure({ placeholder: () => t('components.editor.empty_placeholder') }),
   ],
   editorProps: {
     handleKeyDown: (view, event) => {

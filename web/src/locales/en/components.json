@@ -98,7 +98,8 @@
     "add_column_right": "Add column right",
     "delete_row": "Delete row",
     "delete_column": "Delete column",
-    "delete_table": "Delete table"
+    "delete_table": "Delete table",
+    "empty_placeholder": "Start writing..."
   },
   "slash": {
     "table": {
@@ -177,7 +178,8 @@
     "code_block": "Code block",
     "divider": "Divider",
     "link": "Link (Ctrl+K)",
-    "link_entity_button": "Link entity"
+    "link_entity_button": "Link entity",
+    "placeholder": "Type / for commands..."
   },
   "suggestions": {
     "empty": "No suggestions yet.",
@@ -328,12 +330,27 @@
     "hint_close": "close"
   },
   "heat_map": {
+    "title": "Risk Heat Map",
     "total_items": "{count} total item | {count} total items",
     "likelihood": "Likelihood",
     "impact": "Impact",
     "unnamed": "Unnamed",
     "more": "+{count} more",
-    "distribution_item": "{label}: {count}"
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Rare",
+      "unlikely": "Unlikely",
+      "possible": "Possible",
+      "likely": "Likely",
+      "almost_certain": "Almost Certain"
+    },
+    "impact_value": {
+      "negligible": "Negligible",
+      "minor": "Minor",
+      "moderate": "Moderate",
+      "major": "Major",
+      "severe": "Severe"
+    }
   },
   "history": {
     "empty": "No history yet.",
@@ -354,7 +371,8 @@
     }
   },
   "member_picker": {
-    "empty": "No members found"
+    "empty": "No members found",
+    "placeholder": "Select member..."
   },
   "pagination": {
     "showing": "Showing {start}–{end} of {total}",

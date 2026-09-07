@@ -179,7 +179,7 @@ async function submit() {
     // #167: a suggestion goes to managers for review rather than taking effect,
     // and it isn't shown on this list view — without this the submit felt like it
     // vanished. Confirm it landed and is pending review.
-    toastSuccess('Suggestion submitted — a manager will review it before it takes effect.')
+    toastSuccess(t('components.suggestions.created_toast'))
     emit('created')
   } catch (e) {
     error.value = renderApiError(e) || t('components.suggest_new.error_create')

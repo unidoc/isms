@@ -201,6 +201,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlock from '@tiptap/extension-code-block'
@@ -213,7 +214,7 @@ import { codeBlockMetadataAttributes } from './codeBlockAttributes.js'
 const props = defineProps({
   modelValue: { type: String, default: '' },
   rows: { type: Number, default: 3 },
-  placeholder: { type: String, default: 'Type / for commands...' },
+  placeholder: { type: String, default: '' },
   // selfType + selfId let the entity picker filter out the entity itself —
   // a Risk page's /risk picker shouldn't list the risk you're editing.
   selfType: { type: String, default: '' },
@@ -252,6 +253,8 @@ function tiptapAction(cmd) {
 
 // Slash commands available in the inline editor — same shared list as DocumentEditor,
 // minus the table command (no table extension is loaded for the compact variant).
+const { t } = useI18n()
+
 const slashCommandsList = computed(() => translatedSlashCommands().map(cmd => ({ ...cmd, action: tiptapAction(cmd) })))
 
 const entityCommands = computed(() => translatedSlashCommands().filter(c => c.picker))
@@ -273,7 +276,9 @@ const editor = useEditor({
       },
     }),
     Link.configure({ openOnClick: false }),
-    Placeholder.configure({ placeholder: props.placeholder }),
+    Placeholder.configure({
+      placeholder: () => props.placeholder || t('components.markdown_field.placeholder'),
+    }),
   ],
   editorProps: {
     handleKeyDown: (view, event) => {
@@ -556,7 +561,9 @@ watch(() => props.modelValue, (newVal) => {
 watch(() => props.placeholder, (val) => {
   const ext = editor.value?.extensionManager.extensions.find(e => e.name === 'placeholder')
   if (ext) {
-    ext.options.placeholder = val
+    // Keep the function form — assigning `val` here would drop the catalogue
+    // fallback and freeze the placeholder when the prop is empty.
+    ext.options.placeholder = () => val || t('components.markdown_field.placeholder')
     editor.value?.view.dispatch(editor.value.state.tr)
   }
 })

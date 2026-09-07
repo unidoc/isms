@@ -15,7 +15,7 @@
         </button>
       </template>
       <!-- Placeholder -->
-      <span v-else class="text-slate-600 flex-1">{{ placeholder }}</span>
+      <span v-else class="text-slate-600 flex-1">{{ placeholder || $t('components.member_picker.placeholder') }}</span>
       <svg class="w-3.5 h-3.5 text-slate-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
       </svg>
@@ -64,7 +64,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 const props = defineProps({
   modelValue: { type: String, default: '' },
   members: { type: Array, default: () => [] },
-  placeholder: { type: String, default: 'Select member...' },
+  placeholder: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:modelValue'])

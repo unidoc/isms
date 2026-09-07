@@ -1,7 +1,7 @@
 <template>
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 max-w-2xl">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold text-slate-200">{{ title }}</h2>
+      <h2 class="text-sm font-semibold text-slate-200">{{ title || $t('components.heat_map.title') }}</h2>
       <div class="text-xs text-slate-500">{{ $t('components.heat_map.total_items', items.length) }}</div>
     </div>
 
@@ -105,31 +105,37 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
-  title: { type: String, default: 'Risk Heat Map' },
+  title: { type: String, default: '' },
 })
 
 defineEmits(['cell-click'])
 
+const { t } = useI18n()
+
 const hoveredCell = ref(null)
 
-const likelihoodLabels = {
-  1: 'Rare',
-  2: 'Unlikely',
-  3: 'Possible',
-  4: 'Likely',
-  5: 'Almost Certain',
-}
+// Axis labels are this component's own copy, not props. They are computed
+// rather than plain objects for the usual reason: a module-level map is built
+// before the locale resolves and would stay English after a locale change.
+const likelihoodLabels = computed(() => ({
+  1: t('components.heat_map.likelihood_value.rare'),
+  2: t('components.heat_map.likelihood_value.unlikely'),
+  3: t('components.heat_map.likelihood_value.possible'),
+  4: t('components.heat_map.likelihood_value.likely'),
+  5: t('components.heat_map.likelihood_value.almost_certain'),
+}))
 
-const impactLabels = {
-  1: 'Negligible',
-  2: 'Minor',
-  3: 'Moderate',
-  4: 'Major',
-  5: 'Severe',
-}
+const impactLabels = computed(() => ({
+  1: t('components.heat_map.impact_value.negligible'),
+  2: t('components.heat_map.impact_value.minor'),
+  3: t('components.heat_map.impact_value.moderate'),
+  4: t('components.heat_map.impact_value.major'),
+  5: t('components.heat_map.impact_value.severe'),
+}))
 
 // Only include items with valid likelihood and impact (1-5)
 const validItems = computed(() =>

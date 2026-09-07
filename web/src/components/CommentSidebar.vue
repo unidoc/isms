@@ -142,7 +142,10 @@ const { members } = useMembers()
 
 const props = defineProps({
   documentId: { type: String, required: true },
-  placeholder: { type: String, default: 'Add a comment...' }
+  // Empty, not the English sentence: the template falls back to the
+  // catalogue with `placeholder || $t(...)`, and a truthy default would win
+  // that expression every time and never translate.
+  placeholder: { type: String, default: '' }
 })
 
 const comments = ref([])

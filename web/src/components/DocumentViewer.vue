@@ -495,6 +495,9 @@ async function submitInlineComment(blockIndex) {
     const comment = {
       document_id: props.documentId,
       author: getCurrentUser(),
+      // Not translated on purpose: this is the comment BODY sent to the server
+      // and read back by every other reviewer, so it must not carry the
+      // author's locale. Same reasoning as the default reject reason.
       body: isSuggestion ? 'Suggested replacement for this paragraph' : text,
       paragraph_index: blockIndex,
       paragraph_hash: hashBlock(blockIndex),

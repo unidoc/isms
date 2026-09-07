@@ -1,0 +1,50 @@
+{
+  "readings": {
+    "title": "Readings",
+    "submit": "Submit Reading",
+    "form_for": "Reading for {identifier}",
+    "impact_cia": "Impact (CIA)",
+    "cia_classification": "CIA Classification",
+    "confidentiality": "Confidentiality *",
+    "integrity": "Integrity *",
+    "availability": "Availability *",
+    "likelihood": "Likelihood *",
+    "impact": "Impact *",
+    "not_assessed": "Not assessed",
+    "select": "Select",
+    "risk_score": "Risk Score",
+    "score_hint": "Set CIA + Likelihood",
+    "next_review": "Next Review",
+    "notes": "Notes",
+    "notes_placeholder": "Assessment notes...",
+    "saving": "Saving...",
+    "save": "Save Reading",
+    "empty": "No readings yet.",
+    "error_save": "Failed to save reading",
+    "rating": {
+      "very_low": "Very Low (1)",
+      "low": "Low (2)",
+      "medium": "Medium (3)",
+      "high": "High (4)",
+      "very_high": "Very High (5)"
+    },
+    "cia": {
+      "insignificant": "Insignificant (1)",
+      "minor": "Minor (2)",
+      "moderate": "Moderate (3)",
+      "major": "Major (4)",
+      "severe": "Severe (5)"
+    },
+    "table": {
+      "date": "Date",
+      "assessor": "Assessor",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "A",
+      "likelihood": "L",
+      "impact": "Imp",
+      "score": "Score",
+      "notes": "Notes"
+    }
+  }
+}

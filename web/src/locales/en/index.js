@@ -13,6 +13,7 @@
 // in the bundler and under `node --test`.
 import auth from './auth.json' with { type: 'json' }
 import common from './common.json' with { type: 'json' }
+import components from './components.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
@@ -21,6 +22,7 @@ import shell from './shell.json' with { type: 'json' }
 export default {
   auth,
   common,
+  components,
   landing,
   notifications,
   organizations,

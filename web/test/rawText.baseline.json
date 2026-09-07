@@ -16,7 +16,6 @@
   "components/MemberPicker.vue": 2,
   "components/OverdueItems.vue": 6,
   "components/Pagination.vue": 2,
-  "components/ReadingsPanel.vue": 38,
   "components/ReferenceCollector.vue": 4,
   "components/ReferenceManager.vue": 7,
   "components/RefreshButton.vue": 3,

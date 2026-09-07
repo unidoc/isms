@@ -8,11 +8,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-white">{{ t('organizations.title') }}</h1>
+        <h1 class="text-2xl font-bold text-white">{{ $t('organizations.title') }}</h1>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="text-center text-slate-500 text-sm py-8">{{ t('common.state.loading') }}</div>
+      <div v-if="loading" class="text-center text-slate-500 text-sm py-8">{{ $t('common.state.loading') }}</div>
 
       <!-- Org list -->
       <div v-else>
@@ -36,7 +36,7 @@
         </div>
 
         <div v-else class="text-center py-8 mb-6">
-          <p class="text-slate-400 text-sm">{{ t('organizations.empty') }}</p>
+          <p class="text-slate-400 text-sm">{{ $t('organizations.empty') }}</p>
         </div>
 
         <!-- Create new -->
@@ -44,43 +44,43 @@
           <button @click="showCreate = true"
             class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            {{ t('organizations.create') }}
+            {{ $t('organizations.create') }}
           </button>
         </div>
 
         <!-- Create form -->
         <form v-else @submit.prevent="createOrg" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <h3 class="text-sm font-semibold text-white mb-3">{{ t('organizations.form.title') }}</h3>
+          <h3 class="text-sm font-semibold text-white mb-3">{{ $t('organizations.form.title') }}</h3>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.name_label') }}</label>
-            <input v-model="newOrg.name" @input="onNameInput" type="text" :placeholder="t('organizations.form.name_placeholder')" required autofocus
+            <label class="block text-xs text-slate-500 mb-1">{{ $t('organizations.form.name_label') }}</label>
+            <input v-model="newOrg.name" @input="onNameInput" type="text" :placeholder="$t('organizations.form.name_placeholder')" required autofocus
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.slug_label') }}</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ $t('organizations.form.slug_label') }}</label>
             <div class="flex items-center">
               <span class="px-3 py-2 bg-slate-950 border border-r-0 border-slate-700 rounded-l-lg text-sm text-slate-500">{{ baseDomain }}/</span>
-              <input v-model="newOrg.slug" @input="onSlugInput" type="text" :placeholder="t('organizations.form.slug_placeholder')" required
+              <input v-model="newOrg.slug" @input="onSlugInput" type="text" :placeholder="$t('organizations.form.slug_placeholder')" required
                 class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-r-lg text-sm text-white focus:outline-none focus:border-blue-500" />
             </div>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.template_label') }}</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ $t('organizations.form.template_label') }}</label>
             <select v-model="newOrg.template"
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="">{{ t('organizations.form.template_none') }}</option>
-              <option value="iso27001">{{ t('organizations.form.template_iso27001') }}</option>
-              <option value="soc2">{{ t('organizations.form.template_soc2') }}</option>
-              <option value="nis2">{{ t('organizations.form.template_nis2') }}</option>
+              <option value="">{{ $t('organizations.form.template_none') }}</option>
+              <option value="iso27001">{{ $t('organizations.form.template_iso27001') }}</option>
+              <option value="soc2">{{ $t('organizations.form.template_soc2') }}</option>
+              <option value="nis2">{{ $t('organizations.form.template_nis2') }}</option>
             </select>
-            <div class="text-[10px] text-slate-600 mt-1">{{ t('organizations.form.template_hint') }}</div>
+            <div class="text-[10px] text-slate-600 mt-1">{{ $t('organizations.form.template_hint') }}</div>
           </div>
           <div class="flex gap-2 pt-1">
             <button type="submit" :disabled="creating || !newOrg.name.trim() || !newOrg.slug.trim()"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {{ creating ? t('organizations.form.creating') : t('common.action.create') }}
+              {{ creating ? $t('organizations.form.creating') : $t('common.action.create') }}
             </button>
-            <button type="button" @click="showCreate = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
+            <button type="button" @click="showCreate = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">{{ $t('common.action.cancel') }}</button>
           </div>
           <div v-if="error" class="text-xs text-red-400">{{ error }}</div>
         </form>

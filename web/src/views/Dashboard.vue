@@ -211,7 +211,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.reviews.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.reviews.detail', openReviewCount, { count: openReviewCount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.reviews.detail', openReviewCount) }}</div>
             </div>
             <StatusBadge status="open" />
             <span class="text-xs font-semibold bg-amber-900/60 text-amber-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -235,7 +235,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.risks.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.risks.detail', highRiskCount, { count: highRiskCount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.risks.detail', highRiskCount) }}</div>
             </div>
             <StatusBadge status="critical" group="severity" />
             <span class="text-xs font-semibold bg-red-900/60 text-red-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -259,7 +259,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.overdue_documents.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.overdue_documents.detail', overdueCount, { count: overdueCount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.overdue_documents.detail', overdueCount) }}</div>
             </div>
             <StatusBadge status="in_review" />
             <span class="text-xs font-semibold bg-blue-900/60 text-blue-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -283,7 +283,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.incidents.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.incidents.detail', openIncidentCount, { count: openIncidentCount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.incidents.detail', openIncidentCount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-orange-900/60 text-orange-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ openIncidentCount }}
@@ -306,7 +306,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.changes.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.changes.detail', pendingChangeCount, { count: pendingChangeCount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.changes.detail', pendingChangeCount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-sky-900/60 text-sky-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ pendingChangeCount }}
@@ -329,7 +329,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.corrective_actions.title') }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.corrective_actions.detail', openCACount, { count: openCACount }) }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.corrective_actions.detail', openCACount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-pink-900/60 text-pink-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ openCACount }}

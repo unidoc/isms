@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { enumLabel } from '../src/composables/useEnumLabel.js'
-import { formatDate, formatDay, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
+import { formatDate, formatDay, formatMonthShort, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
 
 test('enum labels come from the catalogue, and de-slug only as a fallback', () => {
@@ -101,6 +101,19 @@ test('a DATE column keeps its calendar day in every timezone', () => {
   assert.equal(formatDay(null), '')
 })
 
+test('short month names come from Intl, and reject anything but a month index', () => {
+  // The annual-plan grid labels twelve columns with no date to format, so this
+  // is the one shape that takes an index rather than a value.
+  assert.equal(formatMonthShort(0), 'Jan')
+  assert.equal(formatMonthShort(11), 'Dec')
+  // Out of range, or not an index at all: an empty label, never "Invalid Date".
+  assert.equal(formatMonthShort(-1), '')
+  assert.equal(formatMonthShort(12), '')
+  assert.equal(formatMonthShort('x'), '')
+  assert.equal(formatMonthShort(null), '')
+  assert.equal(formatMonthShort(1.5), '')
+})
+
 test('the active locale drives every shape, not just the English fallback', async () => {
   // The point of the whole seam: switching locale must change the output. An
   // English-only assertion would still pass if the locale stopped being read.
@@ -118,6 +131,10 @@ test('the active locale drives every shape, not just the English fallback', asyn
     assert.equal(formatRelative(new Date(now - 5 * 60 * 1000), now), '5 menit yang lalu')
     assert.equal(formatRelative(new Date(now - 24 * 60 * 60 * 1000), now), 'kemarin')
     assert.equal(formatNumber(1234.5, { maximumFractionDigits: 1 }), '1.234,5')
+    // "Agu"/"Des", not "Aug"/"Dec" — month names are calendar data Intl
+    // carries, which is why none of them are translation keys.
+    assert.equal(formatMonthShort(7), 'Agu')
+    assert.equal(formatMonthShort(11), 'Des')
   } finally {
     i18n.global.locale.value = previous
   }
@@ -126,8 +143,9 @@ test('the active locale drives every shape, not just the English fallback', asyn
 })
 
 test('useFormat exposes the seam under the names the contract documents', () => {
-  const { date, day, number, relative, recent } = useFormat()
+  const { date, day, monthShort, number, relative, recent } = useFormat()
   assert.equal(typeof date, 'function')
+  assert.equal(typeof monthShort, 'function')
   assert.equal(typeof number, 'function')
   assert.equal(typeof relative, 'function')
   assert.equal(typeof day, 'function')

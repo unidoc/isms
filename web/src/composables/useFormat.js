@@ -92,8 +92,11 @@ export function formatDay(value, style = 'short') {
 // Reads the active locale on every call rather than caching the array, so a
 // `computed()` over it re-evaluates when the locale switches.
 export function formatMonthShort(monthIndex) {
-  const i = Number(monthIndex)
-  if (!Number.isInteger(i) || i < 0 || i > 11) return ''
+  // Deliberately not Number(monthIndex): `Number(null)` and `Number('')` are
+  // both 0, which would render an absent value as January rather than as the
+  // empty label every other helper here returns for unusable input.
+  if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return ''
+  const i = monthIndex
   // Any year works; 2021 is a non-leap year, so no month is a special case.
   return formatter(Intl.DateTimeFormat, 'date', activeLocale(), {
     month: 'short',

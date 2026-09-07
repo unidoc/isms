@@ -1,0 +1,20 @@
+{
+  "title": "Your organizations",
+  "empty": "You're not a member of any organization yet.",
+  "create": "Create organization",
+  "form": {
+    "title": "New organization",
+    "name_label": "Name",
+    "name_placeholder": "Acme Corp",
+    "slug_label": "URL slug",
+    "slug_placeholder": "acme",
+    "template_label": "Template (optional)",
+    "template_none": "None — I'll set up documents manually",
+    "template_iso27001": "ISO 27001 — full document set",
+    "template_soc2": "SOC 2 — Trust Services Criteria",
+    "template_nis2": "NIS2 — EU directive requirements",
+    "template_hint": "Scaffolds document templates in git. Can add more templates later.",
+    "creating": "Creating…",
+    "error_create": "Failed to create organization"
+  }
+}

@@ -159,6 +159,12 @@
       "confidential": "Confidential",
       "restricted": "Restricted"
     },
+    "role": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "contributor": "Contributor",
+      "reader": "Reader"
+    },
     "audit_result": {
       "not_assessed": "Not assessed",
       "conforming": "Conforming",

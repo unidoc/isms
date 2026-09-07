@@ -8,11 +8,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-white">Your organizations</h1>
+        <h1 class="text-2xl font-bold text-white">{{ t('organizations.title') }}</h1>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="text-center text-slate-500 text-sm py-8">Loading...</div>
+      <div v-if="loading" class="text-center text-slate-500 text-sm py-8">{{ t('common.state.loading') }}</div>
 
       <!-- Org list -->
       <div v-else>
@@ -26,7 +26,7 @@
             <div class="flex items-center gap-3">
               <span class="text-[10px] px-2 py-0.5 rounded-full font-medium"
                 :class="org.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : org.role === 'manager' ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-500/20 text-slate-400'">
-                {{ org.role }}
+                {{ roleLabel(org.role) }}
               </span>
               <svg class="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -36,7 +36,7 @@
         </div>
 
         <div v-else class="text-center py-8 mb-6">
-          <p class="text-slate-400 text-sm">You're not a member of any organization yet.</p>
+          <p class="text-slate-400 text-sm">{{ t('organizations.empty') }}</p>
         </div>
 
         <!-- Create new -->
@@ -44,43 +44,43 @@
           <button @click="showCreate = true"
             class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Create organization
+            {{ t('organizations.create') }}
           </button>
         </div>
 
         <!-- Create form -->
         <form v-else @submit.prevent="createOrg" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-          <h3 class="text-sm font-semibold text-white mb-3">New organization</h3>
+          <h3 class="text-sm font-semibold text-white mb-3">{{ t('organizations.form.title') }}</h3>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Name</label>
-            <input v-model="newOrg.name" @input="onNameInput" type="text" placeholder="Acme Corp" required autofocus
+            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.name_label') }}</label>
+            <input v-model="newOrg.name" @input="onNameInput" type="text" :placeholder="t('organizations.form.name_placeholder')" required autofocus
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">URL slug</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.slug_label') }}</label>
             <div class="flex items-center">
               <span class="px-3 py-2 bg-slate-950 border border-r-0 border-slate-700 rounded-l-lg text-sm text-slate-500">{{ baseDomain }}/</span>
-              <input v-model="newOrg.slug" @input="onSlugInput" type="text" placeholder="acme" required
+              <input v-model="newOrg.slug" @input="onSlugInput" type="text" :placeholder="t('organizations.form.slug_placeholder')" required
                 class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-r-lg text-sm text-white focus:outline-none focus:border-blue-500" />
             </div>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Template (optional)</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.template_label') }}</label>
             <select v-model="newOrg.template"
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="">None — I'll set up documents manually</option>
-              <option value="iso27001">ISO 27001 — full document set</option>
-              <option value="soc2">SOC 2 — Trust Services Criteria</option>
-              <option value="nis2">NIS2 — EU directive requirements</option>
+              <option value="">{{ t('organizations.form.template_none') }}</option>
+              <option value="iso27001">{{ t('organizations.form.template_iso27001') }}</option>
+              <option value="soc2">{{ t('organizations.form.template_soc2') }}</option>
+              <option value="nis2">{{ t('organizations.form.template_nis2') }}</option>
             </select>
-            <div class="text-[10px] text-slate-600 mt-1">Scaffolds document templates in git. Can add more templates later.</div>
+            <div class="text-[10px] text-slate-600 mt-1">{{ t('organizations.form.template_hint') }}</div>
           </div>
           <div class="flex gap-2 pt-1">
             <button type="submit" :disabled="creating || !newOrg.name.trim() || !newOrg.slug.trim()"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {{ creating ? 'Creating...' : 'Create' }}
+              {{ creating ? t('organizations.form.creating') : t('common.action.create') }}
             </button>
-            <button type="button" @click="showCreate = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">Cancel</button>
+            <button type="button" @click="showCreate = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
           </div>
           <div v-if="error" class="text-xs text-red-400">{{ error }}</div>
         </form>
@@ -95,6 +95,16 @@ import { useRouter } from 'vue-router'
 import api, { setApiToken } from '../api'
 import { orgEntryURL, ensureConfigLoaded } from '../composables/useCurrentOrg'
 import { useSession } from '../composables/useSession'
+import { useI18n } from 'vue-i18n'
+import { enumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
+
+// Wrapped rather than called inline: the enum group name is a literal, and the
+// raw-text scanner reads templates only, so keeping it in script keeps the
+// template free of string literals that look like copy.
+const roleLabel = (role) => enumLabel('role', role)
 
 const router = useRouter()
 
@@ -173,7 +183,7 @@ async function createOrg() {
       showCreate.value = false
     }
   } catch (e) {
-    error.value = e.message || 'Failed to create organization'
+    error.value = renderApiError(e) || t('organizations.form.error_create')
   } finally {
     creating.value = false
   }

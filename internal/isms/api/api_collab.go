@@ -319,7 +319,7 @@ func (s *Server) handleCreateReview(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if req.DocumentID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "document_id is required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("document_id"))
 	}
 
 	// Capture current HEAD as the snapshot the review is anchored to. Best-effort —
@@ -366,11 +366,11 @@ func (s *Server) handleGetReview(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	review, err := s.db.GetReview(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 	// Return flat review with author_is_agent enrichment
 	type reviewWithAgent struct {
@@ -387,7 +387,7 @@ func (s *Server) handleListReviewAssignments(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	assignments, err := s.db.ListAssignmentsForReview(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -416,7 +416,7 @@ func (s *Server) handleUpdateReviewStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	var req struct {
 		Status string `json:"status"`
@@ -436,10 +436,10 @@ func (s *Server) handleUpdateReviewStatus(c echo.Context) error {
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 	if review.Status == "closed" || review.Status == "merged" {
-		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("review is already %s", review.Status))
+		return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status(review.Status))
 	}
 
 	if err := s.db.UpdateReviewStatus(ctx, orgID, id, "closed"); err != nil {
@@ -466,7 +466,7 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	var req struct {
 		Reviewers []string `json:"reviewers"`
@@ -481,7 +481,7 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	// Add assignments + status update in a single transaction with RLS
@@ -568,7 +568,7 @@ func (s *Server) handleReviewTimeline(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 
@@ -687,13 +687,13 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	st, err := s.storeForOrg(ctx, orgID)
@@ -703,7 +703,7 @@ func (s *Server) handleReviewDiff(c echo.Context) error {
 
 	filePath := resolveDocPathFromStore(st, review.DocumentID)
 	if filePath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document file not found")
+		return apiError(http.StatusNotFound, CodeDocumentFileNotFound)
 	}
 
 	var diffText string
@@ -904,12 +904,12 @@ func (s *Server) isReviewParticipant(ctx context.Context, orgID int, review *db.
 func (s *Server) authorizeReviewComment(ctx context.Context, orgID int, reviewID int, actor, role string) (*db.Review, error) {
 	review, err := s.db.GetReview(ctx, orgID, reviewID)
 	if err != nil {
-		return nil, echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return nil, apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 	// A published or abandoned review is a closed record — nobody appends to it.
 	// Checked before the participant rule so the message names the real reason.
 	if review.Status == "merged" || review.Status == "closed" {
-		return nil, echo.NewHTTPError(http.StatusBadRequest, "review is "+review.Status)
+		return nil, apiError(http.StatusBadRequest, CodeReviewWrongStatus, Status(review.Status))
 	}
 	if role == "admin" || role == "manager" {
 		return review, nil
@@ -925,7 +925,7 @@ func (s *Server) handleAddReviewComment(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 
@@ -1005,13 +1005,13 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	var req struct {
@@ -1422,14 +1422,14 @@ func (s *Server) handleMergeReview(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	if review.Status != "approved" {
@@ -1489,14 +1489,14 @@ func (s *Server) handleAcceptAndMerge(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	// Only the author (requester) can accept a proposed revision
@@ -1580,7 +1580,7 @@ func (s *Server) handleUpdateReviewContent(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
@@ -1606,10 +1606,10 @@ func (s *Server) handleUpdateReviewContent(c echo.Context) error {
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 	if review.Status == "merged" || review.Status == "closed" {
-		return echo.NewHTTPError(http.StatusBadRequest, "review is already "+review.Status)
+		return apiError(http.StatusBadRequest, CodeReviewAlreadyStatus, Status(review.Status))
 	}
 
 	var req struct {
@@ -1626,7 +1626,7 @@ func (s *Server) handleUpdateReviewContent(c echo.Context) error {
 
 	docPath := resolveDocPathFromStore(st, review.DocumentID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document file not found")
+		return apiError(http.StatusNotFound, CodeDocumentFileNotFound)
 	}
 
 	// Preserve frontmatter — read from review branch first, fall back to main
@@ -1689,13 +1689,13 @@ func (s *Server) handleGetReviewContent(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	ctx := c.Request().Context()
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 
 	st, err := s.storeForOrg(ctx, orgID)
@@ -1705,7 +1705,7 @@ func (s *Server) handleGetReviewContent(c echo.Context) error {
 
 	docPath := resolveDocPathFromStore(st, review.DocumentID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document file not found")
+		return apiError(http.StatusNotFound, CodeDocumentFileNotFound)
 	}
 
 	relPath := strings.TrimPrefix(docPath, st.Root()+"/")
@@ -1826,7 +1826,7 @@ func (s *Server) handleResolveCommentDB(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid comment id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("comment"))
 	}
 	resolvedBy := getUserEmail(c) // always use authenticated user
 	ctx := c.Request().Context()
@@ -1837,7 +1837,7 @@ func (s *Server) handleResolveCommentDB(c echo.Context) error {
 	// reviewer feedback is the common case).
 	comment, err := s.db.GetComment(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "comment not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
 	}
 	role, _ := c.Get("user_role").(string)
 	if role != "admin" && role != "manager" && comment.Author != resolvedBy {
@@ -1872,14 +1872,14 @@ func (s *Server) handleAcceptSuggestion(c echo.Context) error {
 	orgID := getOrgID(c)
 	commentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid comment id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("comment"))
 	}
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
 	comment, err := s.db.GetComment(ctx, orgID, commentID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "comment not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
 	}
 	if comment.SuggestionBody == nil || *comment.SuggestionBody == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "comment is not a suggestion")
@@ -1893,10 +1893,10 @@ func (s *Server) handleAcceptSuggestion(c echo.Context) error {
 
 	review, err := s.db.GetReview(ctx, orgID, *comment.ReviewID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
 	if review.Status == "merged" || review.Status == "closed" {
-		return echo.NewHTTPError(http.StatusBadRequest, "review is "+review.Status)
+		return apiError(http.StatusBadRequest, CodeReviewWrongStatus, Status(review.Status))
 	}
 
 	// Auth: only review author or admin/manager can accept suggestions
@@ -1911,7 +1911,7 @@ func (s *Server) handleAcceptSuggestion(c echo.Context) error {
 	}
 	docPath := resolveDocPathFromStore(st, review.DocumentID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("document"))
 	}
 
 	// Read from review branch or HEAD
@@ -2001,14 +2001,14 @@ func (s *Server) handleRejectSuggestion(c echo.Context) error {
 	orgID := getOrgID(c)
 	commentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid comment id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("comment"))
 	}
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
 	comment, err := s.db.GetComment(ctx, orgID, commentID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "comment not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
 	}
 	if comment.SuggestionBody == nil || comment.SuggestionStatus == nil || *comment.SuggestionStatus != "pending" {
 		return echo.NewHTTPError(http.StatusBadRequest, "not a pending suggestion")
@@ -2019,7 +2019,7 @@ func (s *Server) handleRejectSuggestion(c echo.Context) error {
 		review, _ := s.db.GetReview(ctx, orgID, *comment.ReviewID)
 		if review != nil {
 			if review.Status == "merged" || review.Status == "closed" {
-				return echo.NewHTTPError(http.StatusBadRequest, "review is "+review.Status)
+				return apiError(http.StatusBadRequest, CodeReviewWrongStatus, Status(review.Status))
 			}
 			role, _ := c.Get("user_role").(string)
 			if role != "admin" && role != "manager" && review.RequestedBy != actor {
@@ -2047,7 +2047,7 @@ func (s *Server) handleListSuggestions(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	comments, err := s.db.CommentsForReview(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -2128,7 +2128,7 @@ func (s *Server) handleListReviewDecisions(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("review"))
 	}
 	records, err := s.db.GetReviewDecisions(c.Request().Context(), orgID, id)
 	if err != nil {
@@ -2282,9 +2282,9 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 	var req struct {
 		Status string `json:"status"`
@@ -2297,7 +2297,7 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	}
 	before, err := s.db.GetTask(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 	// Ownership: a contributor may advance the status of a task assigned to them
 	// (doing their own work), but not other people's tasks. Managers/admins may
@@ -2328,16 +2328,16 @@ func (s *Server) handleGetTask(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 	task, err := s.db.GetTask(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 	if !canViewTask(c, task) {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 	return c.JSON(http.StatusOK, task)
 }
@@ -2350,14 +2350,14 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 
 	old, err := s.db.GetTask(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 
 	var req taskUpdateRequest
@@ -2459,14 +2459,14 @@ func (s *Server) handleDeleteTask(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 
 	task, err := s.db.GetTask(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "task not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
 
 	if err := s.db.DeleteTask(ctx, orgID, id); err != nil {
@@ -2609,11 +2609,11 @@ func (s *Server) handleGetChange(c echo.Context) error {
 	// off-page items too (#166 review). resolveChangeID returns int64 → cast.
 	id, err := s.resolveChangeID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 	cr, err := s.db.GetChangeRequest(c.Request().Context(), orgID, int(id))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 	return c.JSON(http.StatusOK, cr)
 }
@@ -2720,12 +2720,12 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid change id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
 	}
 
 	old, err := s.db.GetChangeRequest(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 	oldMap := old.ToChangeMap()
 
@@ -2814,7 +2814,7 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	}
 	updated, _ := s.db.GetChangeRequest(ctx, orgID, id)
 	if updated == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 
 	actor := getUserEmail(c)
@@ -2848,7 +2848,7 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid change request id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
 	}
 
 	old, _ := s.db.GetChangeRequest(ctx, orgID, id)
@@ -2873,7 +2873,7 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	}
 	updated, _ := s.db.GetChangeRequest(ctx, orgID, id)
 	if updated == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 
 	actor := getUserEmail(c)
@@ -2957,12 +2957,12 @@ func (s *Server) handleDeleteChange(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid change request id")
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
 	}
 
 	cr, err := s.db.GetChangeRequest(ctx, orgID, id)
 	if err != nil || cr == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "change request not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("change_request"))
 	}
 
 	if err := s.db.DeleteChangeRequest(ctx, orgID, id); err != nil {
@@ -3334,7 +3334,7 @@ func (s *Server) handleListNotifications(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "user not found")
+		return apiError(http.StatusBadRequest, CodeNotFound, Entity("user"))
 	}
 	unreadOnly := c.QueryParam("unread") == "true"
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
@@ -3358,7 +3358,7 @@ func (s *Server) handleMarkRead(c echo.Context) error {
 	email := getUserEmail(c)
 	user, userErr := s.db.GetUserByEmail(c.Request().Context(), email)
 	if userErr != nil || user == nil {
-		return echo.NewHTTPError(http.StatusForbidden, "user not found")
+		return apiError(http.StatusForbidden, CodeNotFound, Entity("user"))
 	}
 	if err := s.db.MarkRead(c.Request().Context(), orgID, id, user.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -3371,7 +3371,7 @@ func (s *Server) handleMarkAllRead(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "user not found")
+		return apiError(http.StatusBadRequest, CodeNotFound, Entity("user"))
 	}
 	if err := s.db.MarkAllRead(ctx, orgID, user.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -3384,7 +3384,7 @@ func (s *Server) handleUnreadCount(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "user not found")
+		return apiError(http.StatusBadRequest, CodeNotFound, Entity("user"))
 	}
 	count, err := s.db.UnreadCount(ctx, orgID, user.ID)
 	if err != nil {
@@ -3440,7 +3440,7 @@ func (s *Server) handleInbox(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 	if actor == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "user email required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 
 	var items []inboxItem
@@ -3503,7 +3503,7 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 	if actor == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "user email required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 
 	type replyInfo struct {
@@ -3730,7 +3730,7 @@ func (s *Server) handleConfirmDocumentReview(c echo.Context) error {
 
 	filePath := resolveDocPathFromStore(st, docID)
 	if filePath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("document"))
 	}
 
 	doc, err := st.LoadDocument(filePath)
@@ -3875,7 +3875,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	docID := c.Param("docId")
 	actor := getUserEmail(c)
 	if actor == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "user email required")
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 
 	var req struct {

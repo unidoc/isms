@@ -70,7 +70,7 @@ func (s *Server) handleDocumentDiff(c echo.Context) error {
 	// Get file path.
 	filePath := resolveDocPathFromStore(st, docID)
 	if filePath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return errNotFound("document")
 	}
 
 	// Compute diff using go-git.

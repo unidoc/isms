@@ -28,13 +28,13 @@ func (s *Server) handleCreateAssetReview(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 
 	// Verify asset exists in this org (cross-org safety).
 	asset, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "asset not found")
+		return errNotFound("asset")
 	}
 
 	var req assetReviewCreateRequest
@@ -71,7 +71,7 @@ func (s *Server) handleListAssetReviews(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 
 	reviews, err := s.db.ListAssetReviews(c.Request().Context(), orgID, id)

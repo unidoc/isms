@@ -58,10 +58,12 @@ type entry struct {
 // path.
 //
 // Why id-ID is disabled: the bundle is complete and validated in CI
-// (web/test/localeKeyset.test.js), but only ~5% of the UI is extracted, so
-// selecting it yields a near-entirely English app that claims to be Indonesian.
-// Enabling it is flipping this one flag once Phase 3 extraction lands — see
-// .claude/plans/79-issue-212-i18n-foundation.md.
+// (web/test/localeKeyset.test.js), but most of the UI still holds hardcoded
+// English, so selecting it yields a near-entirely English app that claims to be
+// Indonesian. Enabling it is flipping this one flag once string extraction has
+// progressed far enough; TestSecondLocaleRequiresExtraction asserts that
+// threshold against the web raw-text baseline, so it fails if the flag is
+// flipped too early. Tracking issue: #212.
 //
 // Indonesian is tagged id-ID rather than the barer id. Both are valid and the
 // canonicalization below treats them interchangeably (a browser sending either

@@ -107,11 +107,11 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 								// Enforce org scope: if the token is scoped to a specific org,
 								// reject requests targeting a different org.
 								if tok.OrganizationID != nil && *tok.OrganizationID != resolvedOrgID {
-									return echo.NewHTTPError(http.StatusForbidden, "API key is not authorized for this organization")
+									return apiError(http.StatusForbidden, CodeAPIKeyWrongOrg)
 								}
 								role, err := cfg.DB.GetUserRole(c.Request().Context(), resolvedOrgID, tok.UserID)
 								if err != nil {
-									return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+									return apiError(http.StatusForbidden, CodeNotOrgMember)
 								}
 								c.Set("user_role", role)
 							} else if orgUUID := c.Request().Header.Get("X-Organization-UUID"); orgUUID != "" {
@@ -120,7 +120,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 									// Enforce org scope: if the token is scoped to a specific org,
 									// reject requests targeting a different org.
 									if tok.OrganizationID != nil && *tok.OrganizationID != org.ID {
-										return echo.NewHTTPError(http.StatusForbidden, "API key is not authorized for this organization")
+										return apiError(http.StatusForbidden, CodeAPIKeyWrongOrg)
 									}
 									if role, err := cfg.DB.GetUserRole(c.Request().Context(), org.ID, tok.UserID); err == nil {
 										c.Set("org_id", org.ID)
@@ -143,7 +143,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 								if cfg.DB.IsUserAgent(c.Request().Context(), tok.UserEmail) {
 									aiEnabled, _ := cfg.DB.GetOrgSetting(c.Request().Context(), resolvedOrgID, "ai_enabled")
 									if aiEnabled == "false" {
-										return echo.NewHTTPError(http.StatusForbidden, "AI features are disabled for this organization")
+										return apiError(http.StatusForbidden, CodeAIDisabled)
 									}
 								}
 							}
@@ -193,7 +193,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 								if jwtUser.IsAgent {
 									aiEnabled, _ := cfg.DB.GetOrgSetting(c.Request().Context(), claims.OrganizationID, "ai_enabled")
 									if aiEnabled == "false" {
-										return echo.NewHTTPError(http.StatusForbidden, "AI features are disabled for this organization")
+										return apiError(http.StatusForbidden, CodeAIDisabled)
 									}
 								}
 							}
@@ -205,7 +205,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 					}
 				}
 
-				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+				return apiError(http.StatusUnauthorized, CodeInvalidToken)
 			}
 
 			// For git paths: challenge with WWW-Authenticate so git client sends credentials
@@ -217,12 +217,12 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			// 2. Cloudflare Zero Trust JWT
 			email := c.Request().Header.Get("Cf-Access-Authenticated-User-Email")
 			if email == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "API key required. Use: isms server api-key create")
+				return apiError(http.StatusUnauthorized, CodeAPIKeyRequired)
 			}
 
 			// CF headers are only trusted when Cloudflare is configured
 			if keyCache == nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, "API key required. Use: isms server api-key create")
+				return apiError(http.StatusUnauthorized, CodeAPIKeyRequired)
 			}
 
 			cfName := ""
@@ -236,7 +236,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 					return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("invalid token: %v", err))
 				}
 				if claims.Email != "" && !strings.EqualFold(claims.Email, email) {
-					return echo.NewHTTPError(http.StatusUnauthorized, "token email mismatch")
+					return apiError(http.StatusUnauthorized, CodeTokenEmailMismatch)
 				}
 				cfName = claims.Name
 			}
@@ -249,7 +249,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				if errors.Is(err, errProvisionFailed) {
 					return echo.NewHTTPError(http.StatusInternalServerError, "auto-provision failed")
 				}
-				return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+				return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 			}
 			if created {
 				log.Printf("[cf-access] auto-provisioned user %s", email)
@@ -260,7 +260,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			if resolvedOrgID, ok := c.Get("org_id").(int); ok && resolvedOrgID > 0 {
 				member, err := cfg.DB.GetOrgMember(ctx, resolvedOrgID, user.ID)
 				if err != nil {
-					return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+					return apiError(http.StatusForbidden, CodeNotOrgMember)
 				}
 				c.Set("org_id", resolvedOrgID)
 				c.Set("user_role", member.Role)
@@ -269,7 +269,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				if user.IsAgent {
 					aiEnabled, _ := cfg.DB.GetOrgSetting(ctx, resolvedOrgID, "ai_enabled")
 					if aiEnabled == "false" {
-						return echo.NewHTTPError(http.StatusForbidden, "AI features are disabled for this organization")
+						return apiError(http.StatusForbidden, CodeAIDisabled)
 					}
 				}
 
@@ -282,7 +282,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				var err error
 				org, err = cfg.DB.GetOrganizationByUUID(ctx, orgUUID)
 				if err != nil {
-					return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+					return errNotFound("organization")
 				}
 			}
 
@@ -290,7 +290,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			if org != nil {
 				member, err := cfg.DB.GetOrgMember(ctx, org.ID, user.ID)
 				if err != nil {
-					return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+					return apiError(http.StatusForbidden, CodeNotOrgMember)
 				}
 				c.Set("org_id", org.ID)
 				c.Set("user_role", member.Role)
@@ -306,7 +306,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				}
 				member, err := cfg.DB.GetOrgMember(ctx, orgs[0].ID, user.ID)
 				if err != nil {
-					return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+					return apiError(http.StatusForbidden, CodeNotOrgMember)
 				}
 				c.Set("org_id", orgs[0].ID)
 				c.Set("user_role", member.Role)
@@ -317,7 +317,7 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			if resolvedOrgID > 0 && user.IsAgent {
 				aiEnabled, _ := cfg.DB.GetOrgSetting(ctx, resolvedOrgID, "ai_enabled")
 				if aiEnabled == "false" {
-					return echo.NewHTTPError(http.StatusForbidden, "AI features are disabled for this organization")
+					return apiError(http.StatusForbidden, CodeAIDisabled)
 				}
 			}
 

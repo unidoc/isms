@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "product_name": "ISMS"
+  },
   "action": {
     "save": "Save",
     "cancel": "Cancel",
@@ -265,5 +268,10 @@
     "eu": "EU",
     "eea": "EEA",
     "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "powered_by": "Powered by isms.sh"
   }
 }

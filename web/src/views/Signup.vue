@@ -12,7 +12,7 @@
           </div>
         </router-link>
         <h1 class="text-xl font-bold text-white">{{ $t('auth.signup.title') }}</h1>
-        <p class="text-sm text-slate-500 mt-1">{{ $t('auth.signup.join', { org: orgName || $t('auth.product_name') }) }}</p>
+        <p class="text-sm text-slate-500 mt-1">{{ $t('auth.signup.join', { org: orgName || $t('common.brand.product_name') }) }}</p>
       </div>
 
       <!-- Success state -->
@@ -49,11 +49,11 @@
       </form>
     </div>
     <div class="fixed bottom-4 left-0 right-0 text-center text-xs text-slate-600">
-      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.privacy') }}</a>
+      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('common.footer.privacy') }}</a>
       <span v-if="termsUrl && privacyUrl" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
-      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.terms') }}</a>
+      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('common.footer.terms') }}</a>
       <span v-if="showPoweredBy && (termsUrl || privacyUrl)" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
-      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.powered_by') }}</a>
+      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">{{ $t('common.footer.powered_by') }}</a>
     </div>
   </div>
 </template>

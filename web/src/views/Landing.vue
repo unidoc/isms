@@ -193,7 +193,7 @@ const { t } = useI18n()
 // Neutral seed so a self-hosted deployment doesn't flash "isms.sh" in the
 // top-left while /api/v1/config resolves the branded name — same fallback
 // App.vue's sidebar already uses for orgName.
-const brandName = ref('ISMS')
+const brandName = ref(t('common.brand.product_name'))
 const brandFooter = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)

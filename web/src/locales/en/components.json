@@ -49,10 +49,6 @@
   "viewer": {
     "mark_reviewed": "Mark as reviewed",
     "mark_unreviewed": "Mark as unreviewed",
-    "comment_count": "{count} comment | {count} comments",
-    "add_comment": "Add comment",
-    "resolved": "Resolved",
-    "resolve": "Resolve",
     "resolved_by": "Resolved by {name} {date}",
     "unknown_user": "unknown",
     "suggested_edit": "Suggested edit",
@@ -62,9 +58,7 @@
     "reject": "Reject",
     "awaiting_author": "Awaiting author decision",
     "suggestion_resolved_by": "{status} by {name}",
-    "reply": "Reply",
     "reply_placeholder": "Reply... (type {'@'} to mention)",
-    "comment": "Comment",
     "suggest_edit": "Suggest edit",
     "suggest": "Suggest",
     "suggestion_placeholder": "Suggest replacement text for this paragraph...",
@@ -249,5 +243,16 @@
     "certs_verified_short": "Certs verified",
     "sla_not_met": "SLA not met",
     "error_save": "Failed to save review"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} changed paragraph | {count} changed paragraphs",
+    "no_changes": "No changes",
+    "document_view": "Document view",
+    "advanced_diff": "Advanced diff",
+    "previous": "Previous",
+    "current": "Current",
+    "no_previous_version": "No previous version",
+    "outdated_from_previous_round": "{count} comment from previous round | {count} comments from previous round",
+    "comment_placeholder": "Add a comment..."
   }
 }

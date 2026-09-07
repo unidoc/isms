@@ -10,7 +10,11 @@
     "create": "Create",
     "edit": "Edit",
     "delete": "Delete",
-    "search": "Search"
+    "search": "Search",
+    "add_comment": "Add comment",
+    "comment": "Comment",
+    "reply": "Reply",
+    "resolve": "Resolve"
   },
   "state": {
     "loading": "Loading…",
@@ -18,6 +22,9 @@
     "empty": "Nothing here yet",
     "error": "Something went wrong",
     "unknown": "Unknown",
+    "outdated": "Outdated",
+    "outdated_inline": "outdated",
+    "resolved": "Resolved",
     "copied": "Copied"
   },
   "validation": {
@@ -275,5 +282,9 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "powered_by": "Powered by isms.sh"
+  },
+  "count": {
+    "comments": "{count} comment | {count} comments",
+    "outdated_comments": "{count} outdated comment | {count} outdated comments"
   }
 }

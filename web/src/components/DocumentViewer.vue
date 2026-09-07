@@ -43,7 +43,7 @@
           v-if="showComments && hasOpenComments(block.index)"
           @click="toggleBlockComments(block.index)"
           class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30"
-          :title="$t('components.viewer.comment_count', commentCountForBlock(block.index))"
+          :title="$t('common.count.comments', commentCountForBlock(block.index))"
         >
           {{ commentCountForBlock(block.index) }}
         </div>
@@ -53,7 +53,7 @@
           v-if="showComments && !hasOpenComments(block.index)"
           @click.stop="startInlineComment(block.index)"
           class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-900/30 hover:scale-110"
-          :title="$t('components.viewer.add_comment')"
+          :title="$t('common.action.add_comment')"
         >
           +
         </button>
@@ -82,13 +82,13 @@
                   <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span class="text-[10px] text-emerald-500 font-medium">{{ $t('components.viewer.resolved') }}</span>
+                  <span class="text-[10px] text-emerald-500 font-medium">{{ $t('common.state.resolved') }}</span>
                 </div>
                 <button
                   v-else-if="canResolveComment(comment)"
                   @click="doResolveComment(comment.id)"
                   class="ml-auto text-[10px] text-slate-500 hover:text-emerald-400 transition-colors"
-                >{{ $t('components.viewer.resolve') }}</button>
+                >{{ $t('common.action.resolve') }}</button>
               </div>
               <!-- Resolved: collapsed -->
               <template v-if="comment.status === 'resolved'">
@@ -153,7 +153,7 @@
                   v-if="replyingTo !== comment.id"
                   @click="replyingTo = comment.id; replyText = ''"
                   class="text-[10px] text-slate-600 hover:text-blue-400 transition-colors"
-                >{{ $t('components.viewer.reply') }}</button>
+                >{{ $t('common.action.reply') }}</button>
                 <div v-else class="mt-1">
                   <MentionTextarea
                     v-model="replyText"
@@ -167,7 +167,7 @@
                   <div class="flex justify-end gap-2 mt-1">
                     <button @click="replyingTo = null" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors cursor-pointer">{{ $t('common.action.cancel') }}</button>
                     <button @click="submitReply(comment.id)" :disabled="!replyText.trim() || submittingReply" class="text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-1 rounded font-medium transition-colors cursor-pointer">
-                      {{ submittingReply ? $t('common.state.saving') : $t('components.viewer.reply') }}
+                      {{ submittingReply ? $t('common.state.saving') : $t('common.action.reply') }}
                     </button>
                   </div>
                 </div>
@@ -181,7 +181,7 @@
                 <button @click="inlineMode = 'comment'"
                   class="text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors"
                   :class="inlineMode === 'comment' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'">
-                  {{ $t('components.viewer.comment') }}
+                  {{ $t('common.action.comment') }}
                 </button>
                 <button v-if="props.reviewId" @click="inlineMode = 'suggestion'"
                   class="text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors"
@@ -211,7 +211,7 @@
                     :disabled="!inlineCommentText.trim() || submittingInline"
                     class="text-xs text-white px-3 py-1 rounded font-medium transition-colors cursor-pointer disabled:bg-slate-700 disabled:text-slate-500"
                     :class="inlineMode === 'suggestion' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'"
-                  >{{ submittingInline ? $t('common.state.saving') : isSuggestionMode ? $t('components.viewer.suggest') : $t('components.viewer.comment') }}
+                  >{{ submittingInline ? $t('common.state.saving') : isSuggestionMode ? $t('components.viewer.suggest') : $t('common.action.comment') }}
                   </button>
                 </div>
               </div>

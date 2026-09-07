@@ -173,13 +173,13 @@ func (s *Server) handleGetCorrectiveAction(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+		return errInvalidEntityID("corrective_action")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 	ca, err := s.db.GetCorrectiveAction(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 	return c.JSON(http.StatusOK, ca)
 }
@@ -191,15 +191,15 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+		return errInvalidEntityID("corrective_action")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 
 	ctx := c.Request().Context()
 	existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 	prevStatus := existing.Status
 
@@ -308,9 +308,9 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+		return errInvalidEntityID("corrective_action")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 
 	var req struct {
@@ -330,7 +330,7 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	if req.Status == "resolved" {
 		existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
 		if err != nil || existing == nil {
-			return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+			return errNotFound("corrective_action")
 		}
 		// An empty identifier is corrupt data — the open-task query can't
 		// match anything, so skipping would silently disable enforcement.
@@ -377,9 +377,9 @@ func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid corrective action id")
+		return errInvalidEntityID("corrective_action")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "corrective action not found")
+		return errNotFound("corrective_action")
 	}
 
 	ctx := c.Request().Context()

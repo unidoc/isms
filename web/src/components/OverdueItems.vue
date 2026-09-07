@@ -1,7 +1,7 @@
 <template>
   <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
     <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-slate-200">Overdue Reviews</h3>
+      <h3 class="text-sm font-semibold text-slate-200">{{ $t('components.overdue.title') }}</h3>
       <div class="flex items-center gap-2">
         <span v-if="totalCount > 0" class="text-xs font-semibold bg-red-900/60 text-red-300 px-2.5 py-0.5 rounded-full tabular-nums">
           {{ totalCount }}
@@ -12,14 +12,14 @@
           :disabled="creating"
           class="text-xs px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50"
         >
-          {{ creating ? 'Creating...' : 'Create Tasks' }}
+          {{ creating ? $t('components.overdue.creating') : $t('components.overdue.create_tasks') }}
         </button>
       </div>
     </div>
 
     <!-- Task creation result -->
     <div v-if="taskResult" class="px-5 py-2.5 bg-emerald-950/30 border-b border-slate-800 text-xs text-emerald-300">
-      Created {{ taskResult.created?.length || 0 }} tasks{{ taskResult.skipped > 0 ? `, ${taskResult.skipped} skipped (already exist)` : '' }}
+      {{ $t('components.overdue.created', taskResult.created?.length || 0) }}{{ taskResult.skipped > 0 ? $t('components.overdue.created_skipped', { count: taskResult.skipped }) : '' }}
     </div>
 
     <div v-if="allItems.length > 0" class="divide-y divide-slate-800/50 max-h-[400px] overflow-y-auto">
@@ -58,13 +58,13 @@
 
         <!-- Days overdue -->
         <div class="text-right flex-shrink-0">
-          <div class="text-sm font-bold tabular-nums" :class="daysColor(item.days_late)">{{ item.days_late }}d</div>
-          <div class="text-[10px] text-slate-600">overdue</div>
+          <div class="text-sm font-bold tabular-nums" :class="daysColor(item.days_late)">{{ $t('components.overdue.days_late', { count: item.days_late }) }}</div>
+          <div class="text-[10px] text-slate-600">{{ $t('components.overdue.overdue') }}</div>
         </div>
       </div>
     </div>
     <div v-else class="p-8 text-center">
-      <div class="text-sm text-emerald-400 font-medium">All reviews on schedule</div>
+      <div class="text-sm text-emerald-400 font-medium">{{ $t('components.overdue.all_on_schedule') }}</div>
     </div>
   </div>
 </template>

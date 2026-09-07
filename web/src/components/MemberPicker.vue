@@ -31,13 +31,13 @@
           ref="searchInput"
           v-model="search"
           type="text"
-          placeholder="Search..."
+          :placeholder="$t('common.placeholder.search')"
           class="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
           @keydown.escape="open = false"
         />
       </div>
       <div class="max-h-48 overflow-y-auto">
-        <div v-if="filtered.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">No members found</div>
+        <div v-if="filtered.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.member_picker.empty') }}</div>
         <button
           v-for="member in filtered"
           :key="member.email"

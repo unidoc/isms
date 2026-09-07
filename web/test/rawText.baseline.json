@@ -1,7 +1,4 @@
 {
-  "components/MemberPicker.vue": 2,
-  "components/OverdueItems.vue": 6,
-  "components/Pagination.vue": 2,
   "components/SuggestNewButton.vue": 11,
   "views/Admin.vue": 169,
   "views/Assets.vue": 68,

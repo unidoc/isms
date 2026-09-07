@@ -310,5 +310,8 @@
   "count": {
     "comments": "{count} comment | {count} comments",
     "outdated_comments": "{count} outdated comment | {count} outdated comments"
+  },
+  "placeholder": {
+    "search": "Search..."
   }
 }

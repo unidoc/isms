@@ -89,7 +89,6 @@
     "insert_table": "Insert table",
     "insert_block": "Insert block",
     "no_commands": "No matching commands",
-    "search_placeholder": "Search...",
     "no_results": "No results",
     "cell_color_open": "Cell color...",
     "cell_color": "Cell color",
@@ -351,5 +350,22 @@
       "to": "To: {value}",
       "reason": "Reason: {value}"
     }
+  },
+  "member_picker": {
+    "empty": "No members found"
+  },
+  "pagination": {
+    "showing": "Showing {start}–{end} of {total}",
+    "per_page": "Per page"
+  },
+  "overdue": {
+    "title": "Overdue Reviews",
+    "creating": "Creating...",
+    "create_tasks": "Create Tasks",
+    "created": "Created {count} task | Created {count} tasks",
+    "created_skipped": ", {count} skipped (already exist)",
+    "days_late": "{count}d",
+    "overdue": "overdue",
+    "all_on_schedule": "All reviews on schedule"
   }
 }

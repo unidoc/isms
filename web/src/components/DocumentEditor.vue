@@ -185,7 +185,7 @@
             v-model="entityPicker.search"
             @keydown.stop="onEntityPickerKeydown"
             class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            :placeholder="$t('components.editor.search_placeholder')"
+            :placeholder="$t('common.placeholder.search')"
             autofocus
           />
         </div>

@@ -52,7 +52,7 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "entity_type and entity_id are required")
 	}
 	if req.Body == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "body is required")
+		return errRequired("body")
 	}
 
 	comment := &db.EntityComment{
@@ -89,7 +89,7 @@ func (s *Server) handleResolveEntityComment(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 	if err := s.db.ResolveEntityComment(c.Request().Context(), orgID, id, getUserEmail(c)); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -104,7 +104,7 @@ func (s *Server) handleDeleteEntityComment(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 	if err := s.db.DeleteEntityComment(c.Request().Context(), orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

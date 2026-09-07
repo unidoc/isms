@@ -38,7 +38,7 @@ func (s *Server) handleMe(c echo.Context) error {
 	// Find existing user — never auto-create
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 	// Update last_seen
 	s.db.TouchUser(ctx, email, user.Name)
@@ -152,7 +152,7 @@ func (s *Server) handleUpsertUser(c echo.Context) error {
 	}
 	validRoles := map[string]bool{"admin": true, "manager": true, "contributor": true, "reader": true}
 	if !validRoles[req.Role] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid role")
+		return apiError(http.StatusBadRequest, CodeInvalidRole)
 	}
 
 	// Only admin can assign admin or manager roles
@@ -189,7 +189,7 @@ func (s *Server) handleMyOrganizations(c echo.Context) error {
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 	orgs, err := s.db.ListUserOrgs(ctx, user.ID)
 	if err != nil {
@@ -219,7 +219,7 @@ func (s *Server) handleCreateOrganization(c echo.Context) error {
 		Template string `json:"template"` // optional: iso27001, soc2, nis2
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Name == "" || req.Slug == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "name and slug are required")
@@ -233,7 +233,7 @@ func (s *Server) handleCreateOrganization(c echo.Context) error {
 	email := getUserEmail(c)
 	existingUser, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 	existingOrgs, err := s.db.ListUserOrgs(ctx, existingUser.ID)
 	if err != nil {
@@ -373,7 +373,7 @@ func (s *Server) handleAddTemplate(c echo.Context) error {
 		Template string `json:"template"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if !scaffold.IsValidTemplate(req.Template) {
 		available, _ := scaffold.ListTemplates()
@@ -398,7 +398,7 @@ func (s *Server) handleAddTemplate(c echo.Context) error {
 	}
 
 	if _, err := s.db.GetOrganization(ctx, orgID); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+		return errNotFound("organization")
 	}
 
 	if err := scaffold.ScaffoldToRepo(st, req.Template, authorName, email); err != nil {
@@ -439,7 +439,7 @@ func (s *Server) handleRemoveTemplate(c echo.Context) error {
 
 	org, err := s.db.GetOrganization(ctx, orgID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+		return errNotFound("organization")
 	}
 
 	st, err := s.storeForOrg(ctx, orgID)

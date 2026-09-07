@@ -350,6 +350,7 @@ func humanizeParam(p ErrorParam) string {
 // locale file agree, which TestOverridesMatchTheEnglishCatalogue checks rather
 // than assumes.
 var paramMessageOverrides = map[string]string{
+	"checkin":       "check-in",
 	"oidc_provider": "OIDC provider",
 	"api_key":       "API key",
 	"document_id":   "document ID",

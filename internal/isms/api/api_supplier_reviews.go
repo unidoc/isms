@@ -29,13 +29,13 @@ func (s *Server) handleCreateSupplierReview(c echo.Context) error {
 
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 
 	// Verify supplier exists in this org (cross-org safety).
 	sup, err := s.db.GetSupplier(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "supplier not found")
+		return errNotFound("supplier")
 	}
 
 	var req supplierReviewCreateRequest
@@ -73,7 +73,7 @@ func (s *Server) handleListSupplierReviews(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 
 	reviews, err := s.db.ListSupplierReviews(c.Request().Context(), orgID, id)

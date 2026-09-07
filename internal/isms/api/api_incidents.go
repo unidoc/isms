@@ -258,13 +258,13 @@ func (s *Server) handleGetIncident(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
+		return errInvalidEntityID("incident")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 	inc, err := s.db.GetIncident(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 	return c.JSON(http.StatusOK, inc)
 }
@@ -276,16 +276,16 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
+		return errInvalidEntityID("incident")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 
 	// Get existing incident first
 	ctx := c.Request().Context()
 	existing, err := s.db.GetIncident(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 	prevStatus := existing.Status
 
@@ -458,9 +458,9 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
+		return errInvalidEntityID("incident")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 
 	var req struct {
@@ -482,7 +482,7 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 	if req.Status == "closed" || req.Status == "resolved" {
 		existing, err := s.db.GetIncident(ctx, orgID, id)
 		if err != nil || existing == nil {
-			return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+			return errNotFound("incident")
 		}
 		if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, existing.Identifier); err == nil && n > 0 {
 			return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", statusVerb(req.Status), n))
@@ -559,14 +559,14 @@ func (s *Server) handleDeleteIncident(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid incident id")
+		return errInvalidEntityID("incident")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 
 	inc, err := s.db.GetIncident(ctx, orgID, id)
 	if err != nil || inc == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "incident not found")
+		return errNotFound("incident")
 	}
 
 	if err := s.db.DeleteIncident(ctx, orgID, id); err != nil {

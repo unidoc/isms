@@ -37,10 +37,10 @@ func (s *Server) handleAdminCreatePolicy(c echo.Context) error {
 	p.ID = 0
 	p.OrganizationID = orgID
 	if p.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+		return errRequired("name")
 	}
 	if p.PathPattern == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "path_pattern is required")
+		return errRequired("path_pattern")
 	}
 	p.Active = true // new policies are always active
 	if p.MinApprovals < 1 {
@@ -73,12 +73,12 @@ func (s *Server) handleAdminUpdatePolicy(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid policy id")
+		return errInvalidEntityID("policy")
 	}
 
 	existing, err := s.db.GetApprovalPolicy(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "policy not found")
+		return errNotFound("policy")
 	}
 
 	// Start from existing policy to preserve bool fields not sent in request
@@ -91,10 +91,10 @@ func (s *Server) handleAdminUpdatePolicy(c echo.Context) error {
 	p.ID = existing.ID
 	p.OrganizationID = orgID
 	if p.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+		return errRequired("name")
 	}
 	if p.PathPattern == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "path_pattern is required")
+		return errRequired("path_pattern")
 	}
 	if p.MinApprovals < 1 {
 		p.MinApprovals = 1
@@ -126,12 +126,12 @@ func (s *Server) handleAdminDeletePolicy(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid policy id")
+		return errInvalidEntityID("policy")
 	}
 
 	existing, err := s.db.GetApprovalPolicy(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "policy not found")
+		return errNotFound("policy")
 	}
 
 	if err := s.db.DeleteApprovalPolicy(ctx, orgID, id); err != nil {
@@ -168,12 +168,12 @@ func (s *Server) handleReviewPolicyStatus(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid review id")
+		return errInvalidEntityID("review")
 	}
 
 	review, err := s.db.GetReview(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "review not found")
+		return errNotFound("review")
 	}
 
 	// Get the document path for policy matching

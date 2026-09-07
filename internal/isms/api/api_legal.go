@@ -160,13 +160,13 @@ func (s *Server) handleGetLegal(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+		return errInvalidEntityID("legal_requirement")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
+		return errNotFound("legal_requirement")
 	}
 	lr, err := s.db.GetLegalRequirement(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
+		return errNotFound("legal_requirement")
 	}
 	return c.JSON(http.StatusOK, lr)
 }
@@ -178,15 +178,15 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+		return errInvalidEntityID("legal_requirement")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
+		return errNotFound("legal_requirement")
 	}
 
 	ctx := c.Request().Context()
 	existing, err := s.db.GetLegalRequirement(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
+		return errNotFound("legal_requirement")
 	}
 
 	var req legalUpdateRequest
@@ -308,9 +308,9 @@ func (s *Server) handleDeleteLegal(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveLegalID(c.Request().Context(), orgID, c.Param("id"))
 	if errors.Is(err, errInvalidID) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal requirement id")
+		return errInvalidEntityID("legal_requirement")
 	} else if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "legal requirement not found")
+		return errNotFound("legal_requirement")
 	}
 
 	ctx := c.Request().Context()

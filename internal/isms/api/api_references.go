@@ -94,7 +94,7 @@ func (s *Server) handleCreateReference(c echo.Context) error {
 		TargetID   string `json:"target_id"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.SourceType == "" || req.SourceID == "" || req.TargetType == "" || req.TargetID == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "source_type, source_id, target_type, target_id required")
@@ -140,7 +140,7 @@ func (s *Server) handleDeleteReference(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	ctx := c.Request().Context()

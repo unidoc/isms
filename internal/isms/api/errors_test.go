@@ -230,8 +230,9 @@ func TestApiErrorRendering(t *testing.T) {
 		},
 		{
 			// field is humanised the same way entity is, so a snake_case JSON
-			// field name reads as prose in the CLI: today's literal at this
-			// call site says "path_pattern is required".
+			// field name reads as prose in the CLI. The two policy call sites
+			// used to spell the identifier ("path_pattern is required"); since
+			// they were converted they read "path pattern is required".
 			name:   "required wrapper humanises the field name",
 			err:    errRequired("path_pattern"),
 			msg:    "path pattern is required",
@@ -400,6 +401,36 @@ func TestEnglishCatalogueMatchesTheGoTemplates(t *testing.T) {
 // An override claims Go and the en locale agree on an identifier's English
 // prose. Checking it means the CLI and the browser cannot disagree the way
 // they would have for "oidc provider" / "OIDC provider".
+// TestCatalogueValuesMatchGoProse is TestOverridesMatchTheEnglishCatalogue run
+// the other way round. That one checks the exceptions: every declared override
+// equals what the catalogue says. This one checks the rule: every catalogue
+// value equals what Go would actually render, whether it gets there through an
+// override or through the underscore de-slug.
+//
+// The distinction is not academic. `checkin` has no underscore, so the de-slug
+// returned it unchanged while `common.entity_inline.checkin` said "check-in" —
+// one code, one language, two texts, which is the exact failure the
+// oidc_provider override exists to prevent. Nothing caught it, because a test
+// that pins the declared exceptions is not a test that pins the rule.
+//
+// It walks the catalogue rather than the call sites on purpose. The AST scan
+// sees only what Go emits today, so a checkin-shaped key that no call site uses
+// yet would stay invisible until some later conversion reached it — the same
+// reasoning that made the common.field.* mirror wholesale rather than
+// call-site-driven.
+func TestCatalogueValuesMatchGoProse(t *testing.T) {
+	for _, group := range []string{"entity_inline", "field"} {
+		for value, catalogued := range commonGroup(t, "en", group) {
+			got := humanizeParam(ErrorParam{Key: ParamEntity, Value: value})
+			if got != catalogued {
+				t.Errorf("common.%s.%s: the en catalogue says %q but Go renders %q — "+
+					"add a paramMessageOverrides entry so the wire message and the browser agree",
+					group, value, catalogued, got)
+			}
+		}
+	}
+}
+
 func TestOverridesMatchTheEnglishCatalogue(t *testing.T) {
 	entities := commonGroup(t, "en", "entity_inline")
 	fields := commonGroup(t, "en", "field")

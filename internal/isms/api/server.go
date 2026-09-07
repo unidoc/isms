@@ -1182,7 +1182,7 @@ func (s *Server) handleGetDocument(c echo.Context) error {
 	})
 
 	if found == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return errNotFound("document")
 	}
 
 	raw, _ := st.ReadFile(found.Path)
@@ -1352,7 +1352,7 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 	// Only manager/admin can update document metadata
 	role, _ := c.Get("user_role").(string)
 	if role != "manager" && role != "admin" {
-		return echo.NewHTTPError(http.StatusForbidden, "requires manager or admin role")
+		return apiError(http.StatusForbidden, CodeManagerOrAdminRequired)
 	}
 
 	var req struct {
@@ -1391,7 +1391,7 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 
 	docPath := st.FindDocumentByID(docID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return errNotFound("document")
 	}
 
 	email := getUserEmail(c)
@@ -1404,7 +1404,7 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 	commitHash, err := st.UpdateDocumentMetadataMulti(docPath, req.Fields, authorName, email)
 	if err != nil {
 		if err == store.ErrConflict {
-			return echo.NewHTTPError(http.StatusConflict, "the document was modified by another user — please refresh and try again")
+			return apiError(http.StatusConflict, CodeDocumentModified)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating document: "+err.Error())
 	}
@@ -1562,7 +1562,7 @@ func (s *Server) handleDeleteDocument(c echo.Context) error {
 
 	docPath := st.FindDocumentByID(docID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return errNotFound("document")
 	}
 
 	email := getUserEmail(c)
@@ -1617,7 +1617,7 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 	// Only manager/admin can update document content
 	role, _ := c.Get("user_role").(string)
 	if role != "manager" && role != "admin" {
-		return echo.NewHTTPError(http.StatusForbidden, "requires manager or admin role")
+		return apiError(http.StatusForbidden, CodeManagerOrAdminRequired)
 	}
 
 	var req struct {
@@ -1637,7 +1637,7 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 
 	docPath := st.FindDocumentByID(docID)
 	if docPath == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+		return errNotFound("document")
 	}
 
 	// Load current document to get frontmatter
@@ -1693,7 +1693,7 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 	commitHash, err := st.CommitFile(docPath, []byte(newContent), authorName, email, message, expectedHead)
 	if err != nil {
 		if err == store.ErrConflict {
-			return echo.NewHTTPError(http.StatusConflict, "the document was modified by another user — please refresh and try again")
+			return apiError(http.StatusConflict, CodeDocumentModified)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "saving document: "+err.Error())
 	}
@@ -1909,11 +1909,11 @@ func (s *Server) handleGetAsset(c echo.Context) error {
 	// off-page items too (#166 review).
 	id, err := s.resolveAssetID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "asset not found")
+		return errNotFound("asset")
 	}
 	a, err := s.db.GetAsset(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "asset not found")
+		return errNotFound("asset")
 	}
 	return c.JSON(http.StatusOK, a)
 }
@@ -1972,7 +1972,7 @@ func (s *Server) handleDeleteAsset(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 	old, _ := s.db.GetAsset(ctx, orgID, id)
 	if err := s.db.DeleteAsset(ctx, orgID, id); err != nil {
@@ -2039,11 +2039,11 @@ func (s *Server) handleGetSystem(c echo.Context) error {
 	// identifier is SYSTEM-5, not row id 5, if the per-org seq has drifted (#166 review).
 	id, err := s.resolveSystemID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "system not found")
+		return errNotFound("system")
 	}
 	sys, err := s.db.GetSystem(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "system not found")
+		return errNotFound("system")
 	}
 	return c.JSON(http.StatusOK, sys)
 }
@@ -2083,7 +2083,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 	// Verify supplier belongs to this org if referenced.
 	if sys.SupplierID != nil && *sys.SupplierID > 0 {
 		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "supplier not found in this organization")
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
 	if err := s.db.CreateSystem(ctx, orgID, &sys); err != nil {
@@ -2111,11 +2111,11 @@ func (s *Server) handleGetRisk(c echo.Context) error {
 	// off-page items too (#166 review).
 	id, err := s.resolveRiskID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
+		return errNotFound("risk")
 	}
 	r, err := s.db.GetRisk(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
+		return errNotFound("risk")
 	}
 	return c.JSON(http.StatusOK, r)
 }
@@ -2316,12 +2316,12 @@ func (s *Server) handleRiskAdvisories(c echo.Context) error {
 
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return errInvalidEntityID("risk")
 	}
 
 	risk, err := s.db.GetRisk(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
+		return errNotFound("risk")
 	}
 
 	// Find linked assets via entity_references (both directions). References
@@ -2415,7 +2415,7 @@ func (s *Server) handleDeleteRisk(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return errInvalidEntityID("risk")
 	}
 	old, _ := s.db.GetRisk(ctx, orgID, id)
 	if err := s.db.DeleteRisk(ctx, orgID, id); err != nil {
@@ -2480,11 +2480,11 @@ func (s *Server) handleGetSupplier(c echo.Context) error {
 	// even if the per-org seq has drifted from the primary key (#166 review).
 	id, err := s.resolveSupplierID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "supplier not found")
+		return errNotFound("supplier")
 	}
 	sup, err := s.db.GetSupplier(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "supplier not found")
+		return errNotFound("supplier")
 	}
 	return c.JSON(http.StatusOK, sup)
 }
@@ -2547,11 +2547,11 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 	old, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "asset not found")
+		return errNotFound("asset")
 	}
 	var req assetUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -2640,11 +2640,11 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return errInvalidEntityID("risk")
 	}
 	old, err := s.db.GetRisk(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "risk not found")
+		return errNotFound("risk")
 	}
 	var req riskUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -2807,11 +2807,11 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 	old, err := s.db.GetSystem(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "system not found")
+		return errNotFound("system")
 	}
 	var req systemUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -2834,7 +2834,7 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	}
 	if req.SupplierID != nil && *req.SupplierID != nil && **req.SupplierID > 0 {
 		if _, err := s.db.GetSupplier(ctx, orgID, **req.SupplierID); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "supplier not found in this organization")
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
@@ -2922,7 +2922,7 @@ func (s *Server) handleDeleteSystem(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 	old, _ := s.db.GetSystem(ctx, orgID, id)
 	if err := s.db.DeleteSystem(ctx, orgID, id); err != nil {
@@ -2945,7 +2945,7 @@ func (s *Server) handleListAccessReviews(c echo.Context) error {
 	ctx := c.Request().Context()
 	systemID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 	reviews, err := s.db.ListAccessReviews(ctx, orgID, systemID)
 	if err != nil {
@@ -2965,7 +2965,7 @@ func (s *Server) handleCreateAccessReview(c echo.Context) error {
 	ctx := c.Request().Context()
 	systemID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 	var ar db.AccessReview
 	if err := c.Bind(&ar); err != nil {
@@ -2973,7 +2973,7 @@ func (s *Server) handleCreateAccessReview(c echo.Context) error {
 	}
 	// Verify the system belongs to this org before creating an access review.
 	if _, err := s.db.GetSystem(ctx, orgID, systemID); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "system not found in this organization")
+		return apiError(http.StatusNotFound, CodeNotFoundInOrg, Entity("system"))
 	}
 	ar.SystemID = systemID
 	if ar.ReviewedBy == "" {
@@ -3002,7 +3002,7 @@ func (s *Server) handleDeleteAccessReview(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid access review id")
+		return errInvalidEntityID("access_review")
 	}
 	if err := s.db.DeleteAccessReview(ctx, orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -3018,11 +3018,11 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 	old, err := s.db.GetSupplier(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "supplier not found")
+		return errNotFound("supplier")
 	}
 	var req supplierUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -3125,7 +3125,7 @@ func (s *Server) handleDeleteSupplier(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 	old, _ := s.db.GetSupplier(ctx, orgID, id)
 	if err := s.db.DeleteSupplier(ctx, orgID, id); err != nil {

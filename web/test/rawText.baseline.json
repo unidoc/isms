@@ -1,7 +1,6 @@
 {
   "components/CodeBlockView.vue": 4,
   "components/ColorPicker.vue": 2,
-  "components/CommentSidebar.vue": 14,
   "components/CommentsPanel.vue": 3,
   "components/CopyLinkButton.vue": 4,
   "components/DiffView.vue": 11,

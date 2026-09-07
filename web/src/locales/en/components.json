@@ -254,5 +254,14 @@
     "no_previous_version": "No previous version",
     "outdated_from_previous_round": "{count} comment from previous round | {count} comments from previous round",
     "comment_placeholder": "Add a comment..."
+  },
+  "comment_sidebar": {
+    "title": "Comments",
+    "resolved_count": "{count} resolved",
+    "comment_placeholder": "Add a comment... (type {'@'} to mention)",
+    "name_placeholder": "Your name",
+    "send": "Send",
+    "empty": "No comments yet",
+    "reply_placeholder": "Write a reply... (type {'@'} to mention)"
   }
 }

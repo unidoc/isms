@@ -11,6 +11,7 @@
     "create": "Create",
     "edit": "Edit",
     "delete": "Delete",
+    "copy": "Copy",
     "search": "Search",
     "add_comment": "Add comment",
     "comment": "Comment",
@@ -226,6 +227,11 @@
       "program": "PROG",
       "audit": "AUDIT",
       "audit_finding": "FINDING"
+    },
+    "permissions": {
+      "read-write": "Read & Write",
+      "read": "Read only",
+      "write": "Write only"
     }
   },
   "enum_inline": {

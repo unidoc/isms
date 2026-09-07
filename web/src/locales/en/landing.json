@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Docs",
+    "sign_in": "Sign in"
+  },
+  "hero": {
+    "badge": "Open source · Apache 2.0",
+    "title_line1": "The Intelligent",
+    "title_line2": "Management System",
+    "subtitle": "Living documents, tracked reviews, and operational cadence in one auditable platform. Pick a framework or bring your own. AI helps with the work. Humans stay in control.",
+    "cta_cloud": "Start in cloud",
+    "cta_selfhost": "Self-host",
+    "cta_docs": "Read the docs"
+  },
+  "why": {
+    "heading": "Why another management system?",
+    "p1": "Because the ones we have are complex, opaque, and treated as a compliance exercise — relevant for the audit, irrelevant the day after. And the stakes keep rising: as AI adoption accelerates and threat surfaces widen, a management system that doesn't stay alive is worse than useless.",
+    "p2": "It doesn't have to work this way. Security done right starts at the root — genuinely understanding and managing your risks, not papering over them. Built AI-first, with real discipline in how it's designed and used, a management system should be a living part of how you operate, not a burden bolted on top.",
+    "p3": "That's why it's open source — built for organizations of every size, and finally a credible option for smaller ones, who've never had a management system that's simple, stays current, and doesn't fight them. We built this to change that."
+  },
+  "pillars": {
+    "documents_title": "Documents are operational assets",
+    "documents_desc": "Policies live in git as markdown. Every edit is a commit. Every version recoverable. Documents drive your ISMS, not sit in a folder.",
+    "reviews_title": "Reviews are tracked decisions",
+    "reviews_desc": "Round-based review with inline comments. Approve, request changes, or propose a revision. Every decision is an immutable record with a SHA-256 hash.",
+    "tasks_title": "Tasks run the year",
+    "tasks_desc": "Annual plan distributes reviews, audits, and risk assessments across the calendar. Dashboard shows what needs attention this month. Your ISMS never goes stale."
+  },
+  "how": {
+    "heading": "Five minutes, not five meetings",
+    "subtitle": "From event to updated policy to approved document. The platform handles the busywork.",
+    "step1_title": "Something happens",
+    "step1_desc": "An incident, a new supplier, a regulation change, an audit finding. Any event that affects your security posture.",
+    "step2_title": "Create or update",
+    "step2_desc": "Log it in the right register. AI can suggest risk updates, policy changes, and corrective actions. You review each suggestion.",
+    "step3_title": "Documents update on a branch",
+    "step3_desc": "Policy changes land on a review branch with full diff. No mystery edits. Five documents in five minutes.",
+    "step4_title": "Review rounds",
+    "step4_desc": "Reviewers get notified. Approve or request changes. After edits, resubmit as a new round. Each round shows only what changed since last feedback.",
+    "step5_title": "Publish",
+    "step5_desc": "Merge to main. Version incremented. Decision record created. Evidence stored. Done."
+  },
+  "features": {
+    "heading": "Built different",
+    "subtitle": "Not a document editor with compliance plugins. A purpose-built management system where everything connects.",
+    "git_title": "Git-native documents",
+    "git_desc": "Policies are markdown files in a git repo. Every change is a commit with full diff. Branch for review, merge to publish. No proprietary formats, no lock-in.",
+    "review_title": "Round-based review",
+    "review_desc": "Send a document for review. Reviewers approve, request changes, or propose a revision with inline comments. Resubmit as a new round — reviewers see only what changed.",
+    "registers_title": "Registers that connect",
+    "registers_desc": "Risks link to assets and controls. Incidents create corrective actions. Legal requirements link to policies. Change one thing, see the ripple everywhere.",
+    "ai_title": "AI suggests, you approve",
+    "ai_desc": "AI agents draft policies, assess risks, and propose register updates through the same review workflow. 22-tool MCP server. Full agent identity and audit trail. Not autopilot — a capable assistant.",
+    "cadence_title": "Annual plan and cadence",
+    "cadence_desc": "Dashboard shows what needs attention this month. Distribute reviews, audits, and risk assessments across the year. Tasks track execution. Your ISMS stays alive.",
+    "audit_title": "Auditor-ready from day one",
+    "audit_desc": "Every review approval and document publish creates an immutable decision record with SHA-256 content hash. Timestamped, attributable, cryptographically verifiable."
+  },
+  "frameworks": {
+    "heading": "Any framework. Your templates.",
+    "subtitle": "11 built-in frameworks. Or bring your own templates — a folder of markdown files is all it takes. Run multiple standards on the same platform."
+  },
+  "deploy": {
+    "cloud_title": "Managed cloud",
+    "cloud_desc": "Sign up, pick your framework, start working. We handle infrastructure, backups, and updates. Multi-tenant with row-level data isolation.",
+    "cloud_cta": "Start free",
+    "cloud_cta_signin": "Sign in",
+    "selfhost_title": "Self-hosted",
+    "selfhost_desc": "One Go binary. PostgreSQL and a data directory. Deploy anywhere — your infrastructure, your data. Apache 2.0, no artificial limits, no open-core tricks.",
+    "selfhost_cta": "View on GitHub"
+  },
+  "cta": {
+    "heading": "Your auditor will thank you",
+    "subtitle": "Full version history. Immutable approval records. Cryptographically verifiable decisions. Complete audit trail from day one."
+  },
+  "footer": {
+    "powered_by": "Powered by {link}"
+  }
+}

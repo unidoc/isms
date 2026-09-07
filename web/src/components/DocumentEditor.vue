@@ -4,13 +4,13 @@
     <div class="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 px-3 py-2 bg-slate-900 border-b border-slate-800 rounded-t-xl">
       <!-- History -->
       <button @click="editor?.chain().focus().undo().run()" :disabled="!editor?.can().undo()"
-        class="toolbar-btn" title="Undo (Ctrl+Z)">
+        class="toolbar-btn" :title="$t('components.editor.undo')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
         </svg>
       </button>
       <button @click="editor?.chain().focus().redo().run()" :disabled="!editor?.can().redo()"
-        class="toolbar-btn" title="Redo (Ctrl+Shift+Z)">
+        class="toolbar-btn" :title="$t('components.editor.redo')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
         </svg>
@@ -20,26 +20,26 @@
 
       <!-- Text formatting -->
       <button @click="editor?.chain().focus().toggleBold().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('bold') }" class="toolbar-btn" title="Bold (Ctrl+B)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('bold') }" class="toolbar-btn" :title="$t('components.editor.bold')">
         <span class="font-bold text-sm">B</span>
       </button>
       <button @click="editor?.chain().focus().toggleItalic().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('italic') }" class="toolbar-btn" title="Italic (Ctrl+I)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('italic') }" class="toolbar-btn" :title="$t('components.editor.italic')">
         <span class="italic text-sm">I</span>
       </button>
       <button @click="editor?.chain().focus().toggleStrike().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('strike') }" class="toolbar-btn" title="Strikethrough (Ctrl+Shift+X)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('strike') }" class="toolbar-btn" :title="$t('components.editor.strikethrough')">
         <span class="line-through text-sm">S</span>
       </button>
 
       <!-- Text color -->
       <div class="relative">
-        <button @click="showTextColorPicker = !showTextColorPicker" class="toolbar-btn" title="Text color">
+        <button @click="showTextColorPicker = !showTextColorPicker" class="toolbar-btn" :title="$t('components.editor.text_color')">
           <span class="text-sm font-bold leading-none">A</span>
           <span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-4 h-1 rounded-sm" :style="{ backgroundColor: currentTextColor || '#94a3b8' }"></span>
         </button>
         <div v-if="showTextColorPicker" class="absolute top-full left-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl">
-          <div class="px-2 pt-2 text-[9px] text-slate-500 uppercase tracking-wider">Text color</div>
+          <div class="px-2 pt-2 text-[9px] text-slate-500 uppercase tracking-wider">{{ $t('components.editor.text_color') }}</div>
           <ColorPicker :modelValue="currentTextColor || '#94a3b8'" @update:modelValue="applyTextColor" @apply="showTextColorPicker = false" />
         </div>
       </div>
@@ -51,7 +51,7 @@
       <button v-for="level in [1,2,3,4]" :key="level"
         @click="editor?.chain().focus().toggleHeading({ level }).run()"
         :class="{ 'toolbar-btn-active': editor?.isActive('heading', { level }) }"
-        class="toolbar-btn" :title="'Heading ' + level + ' (Ctrl+Alt+' + level + ')'">
+        class="toolbar-btn" :title="$t('components.editor.heading', { level })">
         <span class="text-xs font-bold">H{{ level }}</span>
       </button>
 
@@ -59,13 +59,13 @@
 
       <!-- Lists -->
       <button @click="editor?.chain().focus().toggleBulletList().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('bulletList') }" class="toolbar-btn" title="Bullet list (Ctrl+Shift+8)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('bulletList') }" class="toolbar-btn" :title="$t('components.editor.bullet_list')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
         </svg>
       </button>
       <button @click="editor?.chain().focus().toggleOrderedList().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('orderedList') }" class="toolbar-btn" title="Ordered list (Ctrl+Shift+7)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('orderedList') }" class="toolbar-btn" :title="$t('components.editor.ordered_list')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3.5 6l1-1v4M3 18h3m-3-2l2.286-2.286" />
         </svg>
@@ -73,7 +73,7 @@
 
       <!-- Blockquote -->
       <button @click="editor?.chain().focus().toggleBlockquote().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('blockquote') }" class="toolbar-btn" title="Blockquote (Ctrl+Shift+B)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('blockquote') }" class="toolbar-btn" :title="$t('components.editor.blockquote')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
         </svg>
@@ -81,12 +81,12 @@
 
       <!-- Code block + HR -->
       <button @click="editor?.chain().focus().toggleCodeBlock().run()"
-        :class="{ 'toolbar-btn-active': editor?.isActive('codeBlock') }" class="toolbar-btn" title="Code block (Ctrl+Alt+C)">
+        :class="{ 'toolbar-btn-active': editor?.isActive('codeBlock') }" class="toolbar-btn" :title="$t('components.editor.code_block')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
         </svg>
       </button>
-      <button @click="editor?.chain().focus().setHorizontalRule().run()" class="toolbar-btn" title="Horizontal rule">
+      <button @click="editor?.chain().focus().setHorizontalRule().run()" class="toolbar-btn" :title="$t('components.editor.horizontal_rule')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18" />
         </svg>
@@ -95,7 +95,7 @@
       <div class="w-px h-5 bg-slate-700 mx-1" />
 
       <!-- Link -->
-      <button @click="setLink" :class="{ 'toolbar-btn-active': editor?.isActive('link') }" class="toolbar-btn" title="Link (Ctrl+K)">
+      <button @click="setLink" :class="{ 'toolbar-btn-active': editor?.isActive('link') }" class="toolbar-btn" :title="$t('components.editor.link')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.193-9.193a4.5 4.5 0 016.364 6.364l-4.5 4.5a4.5 4.5 0 01-7.244-1.242" />
         </svg>
@@ -103,15 +103,15 @@
       <div v-if="showLinkInput" class="flex items-center gap-1 ml-1">
         <input v-model="linkUrl" @keydown.enter="confirmLink" @keydown.escape="cancelLink"
           class="link-url-input w-48 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          placeholder="https://..." />
-        <button @click="confirmLink" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">OK</button>
+          :placeholder="$t('components.editor.link_placeholder')" />
+        <button @click="confirmLink" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('common.action.ok') }}</button>
         <button @click="cancelLink" class="px-1 py-1 text-xs text-slate-500 hover:text-white">&#x2715;</button>
       </div>
 
       <div class="w-px h-5 bg-slate-700 mx-1" />
 
       <!-- Insert table -->
-      <button @click="insertTable" class="toolbar-btn" title="Insert table">
+      <button @click="insertTable" class="toolbar-btn" :title="$t('components.editor.insert_table')">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M12 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M3.375 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" />
         </svg>
@@ -126,7 +126,7 @@
       <div v-if="slashMenu.show" ref="slashMenuRef"
         class="fixed z-[100] bg-slate-800 border border-slate-700 rounded-lg shadow-2xl py-1 min-w-[260px] max-h-[280px] overflow-y-auto"
         :style="{ bottom: slashMenu.above ? ('calc(100vh - ' + slashMenu.y + 'px)') : undefined, top: slashMenu.above ? undefined : (slashMenu.y + 'px'), left: slashMenu.x + 'px' }">
-        <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider">Insert block</div>
+        <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider">{{ $t('components.editor.insert_block') }}</div>
         <button v-for="(cmd, idx) in filteredSlashCommands" :key="cmd.id"
           @click="executeSlashCommand(cmd)"
           @mouseenter="slashSelectedIdx = idx"
@@ -164,7 +164,7 @@
             <div class="text-[10px] text-slate-500 truncate">{{ cmd.desc }}</div>
           </div>
         </button>
-        <div v-if="filteredSlashCommands.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">No matching commands</div>
+        <div v-if="filteredSlashCommands.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.editor.no_commands') }}</div>
       </div>
       <!-- Click-away for slash menu -->
       <div v-if="slashMenu.show" class="fixed inset-0 z-30" @click="slashMenu.show = false" />
@@ -174,7 +174,7 @@
         class="absolute z-40 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl py-1 min-w-[320px] max-h-[320px] overflow-hidden flex flex-col"
         :style="{ bottom: entityPicker.above ? ('calc(100% - ' + entityPicker.y + 'px)') : undefined, top: entityPicker.above ? undefined : (entityPicker.y + 'px'), left: entityPicker.x + 'px' }">
         <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider flex items-center gap-2">
-          <span>Link {{ entityPicker.typeLabel }}</span>
+          <span>{{ $t('components.editor.link_entity', { type: entityPicker.typeLabel }) }}</span>
           <button @click="entityPicker.show = false" class="ml-auto text-slate-600 hover:text-slate-400">
             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -185,12 +185,12 @@
             v-model="entityPicker.search"
             @keydown.stop="onEntityPickerKeydown"
             class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Search..."
+            :placeholder="$t('common.placeholder.search')"
             autofocus
           />
         </div>
         <div class="overflow-y-auto flex-1">
-          <div v-if="entityPicker.loading" class="px-3 py-3 text-xs text-slate-500 text-center">Loading...</div>
+          <div v-if="entityPicker.loading" class="px-3 py-3 text-xs text-slate-500 text-center">{{ $t('common.state.loading') }}</div>
           <button v-else v-for="(item, idx) in filteredEntities" :key="item.id"
             @click="selectEntity(item)"
             @mouseenter="entityPicker.selectedIdx = idx"
@@ -199,7 +199,7 @@
             <span class="text-[10px] font-mono text-slate-500 flex-shrink-0">{{ item.identifier || item.document_id || '' }}</span>
             <span class="text-xs truncate">{{ item.title || item.name || '' }}</span>
           </button>
-          <div v-if="!entityPicker.loading && filteredEntities.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">No results</div>
+          <div v-if="!entityPicker.loading && filteredEntities.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.editor.no_results') }}</div>
         </div>
       </div>
       <div v-if="entityPicker.show" class="fixed inset-0 z-30" @click="entityPicker.show = false" />
@@ -209,17 +209,17 @@
         :style="{ top: cellMenu.y + 'px', left: cellMenu.x + 'px' }">
         <button @click="cellMenu.colorOpen = true" class="ctx-menu-item flex items-center gap-2">
           <div class="w-3.5 h-3.5 rounded-sm border border-slate-600" :style="{ backgroundColor: currentCellColor || 'transparent' }" />
-          Cell color...
+          {{ $t('components.editor.cell_color_open') }}
         </button>
         <div class="border-t border-slate-700 my-1" />
-        <button @click="editor?.chain().focus().addRowBefore().run(); cellMenu.show = false" class="ctx-menu-item">Add row above</button>
-        <button @click="editor?.chain().focus().addRowAfter().run(); cellMenu.show = false" class="ctx-menu-item">Add row below</button>
-        <button @click="editor?.chain().focus().addColumnBefore().run(); cellMenu.show = false" class="ctx-menu-item">Add column left</button>
-        <button @click="editor?.chain().focus().addColumnAfter().run(); cellMenu.show = false" class="ctx-menu-item">Add column right</button>
+        <button @click="editor?.chain().focus().addRowBefore().run(); cellMenu.show = false" class="ctx-menu-item">{{ $t('components.editor.add_row_above') }}</button>
+        <button @click="editor?.chain().focus().addRowAfter().run(); cellMenu.show = false" class="ctx-menu-item">{{ $t('components.editor.add_row_below') }}</button>
+        <button @click="editor?.chain().focus().addColumnBefore().run(); cellMenu.show = false" class="ctx-menu-item">{{ $t('components.editor.add_column_left') }}</button>
+        <button @click="editor?.chain().focus().addColumnAfter().run(); cellMenu.show = false" class="ctx-menu-item">{{ $t('components.editor.add_column_right') }}</button>
         <div class="border-t border-slate-700 my-1" />
-        <button @click="editor?.chain().focus().deleteRow().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">Delete row</button>
-        <button @click="editor?.chain().focus().deleteColumn().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">Delete column</button>
-        <button @click="editor?.chain().focus().deleteTable().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">Delete table</button>
+        <button @click="editor?.chain().focus().deleteRow().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">{{ $t('components.editor.delete_row') }}</button>
+        <button @click="editor?.chain().focus().deleteColumn().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">{{ $t('components.editor.delete_column') }}</button>
+        <button @click="editor?.chain().focus().deleteTable().run(); cellMenu.show = false" class="ctx-menu-item text-red-400">{{ $t('components.editor.delete_table') }}</button>
       </div>
 
       <!-- Cell color picker (separate panel) -->
@@ -231,7 +231,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <span class="text-[10px] text-slate-400 font-medium">Cell color</span>
+          <span class="text-[10px] text-slate-400 font-medium">{{ $t('components.editor.cell_color') }}</span>
         </div>
         <ColorPicker :modelValue="currentCellColor || '#3b82f6'" @update:modelValue="setCellColor" @apply="cellMenu.show = false; cellMenu.colorOpen = false" />
       </div>
@@ -244,6 +244,7 @@
 
 <script setup>
 import { ref, reactive, watch, onBeforeUnmount, onMounted, computed, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -258,7 +259,7 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import ColorPicker from './ColorPicker.vue'
 import { api } from '../api.js'
-import { slashCommands as sharedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
+import { translatedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
 
 const props = defineProps({
@@ -269,24 +270,10 @@ const props = defineProps({
   selfId: { type: String, default: '' },
 })
 
+const { t } = useI18n()
+
 const emit = defineEmits(['update:modelValue', 'save'])
 const editorRoot = ref(null)
-
-// --- Color presets ---
-const presetColors = [
-  { label: 'None', value: null },
-  { label: 'Red', value: '#ef4444' },
-  { label: 'Red light', value: '#fca5a5' },
-  { label: 'Amber', value: '#f59e0b' },
-  { label: 'Amber light', value: '#fcd34d' },
-  { label: 'Green', value: '#22c55e' },
-  { label: 'Green light', value: '#86efac' },
-  { label: 'Blue', value: '#3b82f6' },
-  { label: 'Blue light', value: '#93c5fd' },
-  { label: 'Purple', value: '#8b5cf6' },
-  { label: 'Gray', value: '#6b7280' },
-  { label: 'Gray light', value: '#d1d5db' },
-]
 
 const showTextColorPicker = ref(false)
 
@@ -404,7 +391,9 @@ const editor = useEditor({
     TextStyle,
     Color,
     Link.configure({ openOnClick: false }),
-    Placeholder.configure({ placeholder: 'Start writing...' }),
+    // Function form, not a string: the editor is created once, so a string
+    // would freeze the placeholder in whatever locale was active at boot.
+    Placeholder.configure({ placeholder: () => t('components.editor.empty_placeholder') }),
   ],
   editorProps: {
     handleKeyDown: (view, event) => {
@@ -459,16 +448,17 @@ function tiptapAction(cmd) {
 }
 
 // Slash commands available in the rich editor: table (editor-only) plus the shared list.
-const slashCommands = [
-  { id: 'table', label: 'Table', shorthand: null, desc: 'Insert a 3x3 table', icon: 'table',
+const slashCommands = computed(() => [
+  { id: 'table', label: t('components.slash.table.label'), shorthand: null,
+    desc: t('components.slash.table.desc'), icon: 'table',
     action: (ed) => ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  ...sharedSlashCommands.map(cmd => ({ ...cmd, action: tiptapAction(cmd) })),
-]
+  ...translatedSlashCommands().map(cmd => ({ ...cmd, action: tiptapAction(cmd) })),
+])
 
 const filteredSlashCommands = computed(() => {
   const q = slashMenu.query.toLowerCase()
-  if (!q) return slashCommands
-  return slashCommands.filter(c =>
+  if (!q) return slashCommands.value
+  return slashCommands.value.filter(c =>
     c.label.toLowerCase().includes(q) ||
     c.id.includes(q) ||
     c.desc.toLowerCase().includes(q) ||

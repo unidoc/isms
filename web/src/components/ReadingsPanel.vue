@@ -6,55 +6,55 @@
         <svg class="w-3 h-3 transition-transform" :class="expanded ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
         </svg>
-        Readings
+        {{ $t('components.readings.title') }}
         <span v-if="readings.length > 0" class="px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-semibold normal-case">{{ readings.length }}</span>
       </button>
       <button v-if="canWrite" @click="openForm"
         class="ml-auto text-[10px] px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors">
-        {{ showForm ? 'Cancel' : 'Submit Reading' }}
+        {{ showForm ? $t('common.action.cancel') : $t('components.readings.submit') }}
       </button>
     </div>
 
     <!-- Submit Reading form -->
     <form v-if="showForm" @submit.prevent="submitReading" class="bg-slate-800/50 border border-blue-500/20 rounded-lg px-4 py-3 space-y-3">
-      <div class="text-[10px] text-slate-500 uppercase tracking-wider">Reading for {{ identifier }}</div>
+      <div class="text-[10px] text-slate-500 uppercase tracking-wider">{{ $t('components.readings.form_for', { identifier }) }}</div>
 
       <!-- Risk fields -->
       <template v-if="entityType === 'risk'">
-        <div class="text-[10px] text-slate-500 mb-1">Impact (CIA)</div>
+        <div class="text-[10px] text-slate-500 mb-1">{{ $t('components.readings.impact_cia') }}</div>
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Confidentiality *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.confidentiality') }}</label>
             <select v-model.number="form.confidentiality" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Integrity *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.integrity') }}</label>
             <select v-model.number="form.integrity" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Availability *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.availability') }}</label>
             <select v-model.number="form.availability" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mt-2">
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Likelihood *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.likelihood') }}</label>
             <select v-model.number="form.current_likelihood" required class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0" disabled>Select</option>
+              <option :value="0" disabled>{{ $t('components.readings.select') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ratingLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Risk Score</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.risk_score') }}</label>
             <div class="h-[30px] flex items-center">
               <span v-if="computedImpact > 0 && form.current_likelihood > 0"
                 class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-bold"
@@ -62,7 +62,7 @@
                 {{ form.current_likelihood * computedImpact }}
                 ({{ scoreLevelLabel(form.current_likelihood * computedImpact) }})
               </span>
-              <span v-else class="text-[11px] text-slate-600">Set CIA + Likelihood</span>
+              <span v-else class="text-[11px] text-slate-600">{{ $t('components.readings.score_hint') }}</span>
             </div>
           </div>
         </div>
@@ -70,26 +70,26 @@
 
       <!-- Asset / Supplier / System fields (CIA classification) -->
       <template v-if="entityType === 'asset' || entityType === 'supplier' || entityType === 'system'">
-        <div class="text-[10px] text-slate-500 mb-1">CIA Classification</div>
+        <div class="text-[10px] text-slate-500 mb-1">{{ $t('components.readings.cia_classification') }}</div>
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Confidentiality *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.confidentiality') }}</label>
             <select v-model.number="form.confidentiality" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Integrity *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.integrity') }}</label>
             <select v-model.number="form.integrity" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Availability *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.availability') }}</label>
             <select v-model.number="form.availability" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0">Not assessed</option>
+              <option :value="0">{{ $t('components.readings.not_assessed') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ciaLabel(n) }}</option>
             </select>
           </div>
@@ -100,16 +100,16 @@
       <template v-if="entityType === 'legal_requirement'">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Likelihood *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.likelihood') }}</label>
             <select v-model.number="form.current_likelihood" required class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0" disabled>Select</option>
+              <option :value="0" disabled>{{ $t('components.readings.select') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ratingLabel(n) }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-600 mb-1">Impact *</label>
+            <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.impact') }}</label>
             <select v-model.number="form.current_impact" required class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500">
-              <option :value="0" disabled>Select</option>
+              <option :value="0" disabled>{{ $t('components.readings.select') }}</option>
               <option v-for="n in 5" :key="n" :value="n">{{ ratingLabel(n) }}</option>
             </select>
           </div>
@@ -119,16 +119,16 @@
       <!-- Next review date -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-[10px] text-slate-600 mb-1">Next Review</label>
+          <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.next_review') }}</label>
           <input v-model="form.next_review" type="date"
             @change="nextReviewManuallyEdited = true"
             class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500" />
         </div>
         <div>
-          <label class="block text-[10px] text-slate-600 mb-1">Notes</label>
+          <label class="block text-[10px] text-slate-600 mb-1">{{ $t('components.readings.notes') }}</label>
           <textarea v-model="form.notes" rows="1"
             class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-blue-500 resize-none"
-            placeholder="Assessment notes..." />
+            :placeholder="$t('components.readings.notes_placeholder')" />
         </div>
       </div>
 
@@ -137,29 +137,29 @@
       <div class="flex gap-2">
         <button type="submit" :disabled="!isFormValid || submitting"
           class="text-[10px] px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">
-          {{ submitting ? 'Saving...' : 'Save Reading' }}
+          {{ submitting ? $t('common.state.saving') : $t('components.readings.save') }}
         </button>
-        <button type="button" @click="showForm = false" class="text-[10px] text-slate-500 hover:text-slate-300">Cancel</button>
+        <button type="button" @click="showForm = false" class="text-[10px] text-slate-500 hover:text-slate-300">{{ $t('common.action.cancel') }}</button>
       </div>
     </form>
 
     <!-- Reading history -->
     <div v-if="expanded" class="space-y-1">
       <div v-if="loadingReadings" class="h-8 bg-slate-800 rounded animate-pulse" />
-      <div v-else-if="readings.length === 0" class="text-[11px] text-slate-600 italic py-2">No readings yet.</div>
+      <div v-else-if="readings.length === 0" class="text-[11px] text-slate-600 italic py-2">{{ $t('components.readings.empty') }}</div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-[11px]">
           <thead>
             <tr class="text-slate-600 text-left">
-              <th class="pb-1.5 pr-3 font-medium">Date</th>
-              <th class="pb-1.5 pr-3 font-medium">Assessor</th>
-              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">C</th>
-              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">I</th>
-              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">A</th>
-              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">L</th>
-              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">Imp</th>
-              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">Score</th>
-              <th class="pb-1.5 font-medium">Notes</th>
+              <th class="pb-1.5 pr-3 font-medium">{{ $t('components.readings.table.date') }}</th>
+              <th class="pb-1.5 pr-3 font-medium">{{ $t('components.readings.table.assessor') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.confidentiality') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.integrity') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.availability') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.likelihood') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.impact') }}</th>
+              <th v-if="entityType === 'risk' || entityType === 'legal_requirement'" class="pb-1.5 pr-2 font-medium">{{ $t('components.readings.table.score') }}</th>
+              <th class="pb-1.5 font-medium">{{ $t('components.readings.table.notes') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -201,8 +201,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { formatRecent } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 // Auto-recompute next_review when severity changes, unless user has manually edited it
 
@@ -281,17 +285,33 @@ function openForm() {
   showForm.value = true
 }
 
-// Labels
-const ratingLabels = { 1: 'Very Low (1)', 2: 'Low (2)', 3: 'Medium (3)', 4: 'High (4)', 5: 'Very High (5)' }
-const ciaLabels = { 1: 'Insignificant (1)', 2: 'Minor (2)', 3: 'Moderate (3)', 4: 'Major (4)', 5: 'Severe (5)' }
-function ratingLabel(n) { return ratingLabels[n] || n }
-function ciaLabel(n) { return ciaLabels[n] || n }
+// Labels. Both maps are computed rather than module-level constants: a plain
+// object is built once at module evaluation, before the locale resolves, so a
+// locale switch would leave these five options in English while the labels
+// beside them translated. The keys are spelled out rather than built from `n`
+// — runtime key concatenation defeats keyset extraction.
+const ratingLabels = computed(() => ({
+  1: t('components.readings.rating.very_low'),
+  2: t('components.readings.rating.low'),
+  3: t('components.readings.rating.medium'),
+  4: t('components.readings.rating.high'),
+  5: t('components.readings.rating.very_high'),
+}))
+const ciaLabels = computed(() => ({
+  1: t('components.readings.cia.insignificant'),
+  2: t('components.readings.cia.minor'),
+  3: t('components.readings.cia.moderate'),
+  4: t('components.readings.cia.major'),
+  5: t('components.readings.cia.severe'),
+}))
+function ratingLabel(n) { return ratingLabels.value[n] || n }
+function ciaLabel(n) { return ciaLabels.value[n] || n }
 
 function scoreLevelLabel(score) {
-  if (score >= 16) return 'Critical'
-  if (score >= 10) return 'High'
-  if (score >= 5) return 'Medium'
-  return 'Low'
+  if (score >= 16) return t('common.enum.severity.critical')
+  if (score >= 10) return t('common.enum.severity.high')
+  if (score >= 5) return t('common.enum.severity.medium')
+  return t('common.enum.severity.low')
 }
 
 function scoreLevelColor(score) {
@@ -359,7 +379,7 @@ async function submitReading() {
     await loadReadings()
     emit('saved')
   } catch (e) {
-    submitError.value = e.message || 'Failed to save reading'
+    submitError.value = renderApiError(e) || t('components.readings.error_save')
   } finally {
     submitting.value = false
   }

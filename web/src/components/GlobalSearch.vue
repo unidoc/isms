@@ -11,25 +11,25 @@
           </svg>
           <input ref="inputEl" v-model="query" type="text"
             class="flex-1 bg-transparent text-sm text-white py-3 outline-none placeholder-slate-500"
-            placeholder="Search documents, risks, suppliers, incidents..."
+            :placeholder="$t('components.global_search.placeholder')"
             @input="onInput"
             @keydown.down.prevent="moveSelection(1)"
             @keydown.up.prevent="moveSelection(-1)"
             @keydown.enter.prevent="selectCurrent"
             @keydown.escape="close" />
-          <kbd class="text-[10px] text-slate-600 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 font-mono">ESC</kbd>
+          <kbd class="text-[10px] text-slate-600 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 font-mono">ESC</kbd> <!-- i18n-ignore: keycap label, matches the physical key -->
         </div>
 
         <!-- Results -->
         <div class="max-h-[50vh] overflow-y-auto" ref="resultsEl">
           <!-- Loading -->
           <div v-if="loading && results.length === 0" class="px-4 py-8 text-center text-xs text-slate-600">
-            Searching...
+            {{ $t('components.global_search.searching') }}
           </div>
 
           <!-- No results -->
           <div v-else-if="searched && results.length === 0 && query.length > 0" class="px-4 py-8 text-center text-xs text-slate-600">
-            No results for "{{ query }}"
+            {{ $t('components.global_search.no_results', { query }) }}
           </div>
 
           <!-- Results list -->
@@ -50,20 +50,20 @@
 
           <!-- Empty state (no query) -->
           <div v-else class="px-4 py-6 text-center text-xs text-slate-600">
-            Type to search across all entities
+            {{ $t('components.global_search.empty_state') }}
           </div>
         </div>
 
         <!-- Footer hint -->
         <div v-if="results.length > 0" class="px-4 py-2 border-t border-slate-800 flex items-center gap-4 text-[10px] text-slate-600">
           <span class="flex items-center gap-1">
-            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">↑↓</kbd> navigate
+            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">↑↓</kbd> {{ $t('components.global_search.hint_navigate') }}
           </span>
           <span class="flex items-center gap-1">
-            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">↵</kbd> open
+            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">↵</kbd> {{ $t('components.global_search.hint_open') }}
           </span>
           <span class="flex items-center gap-1">
-            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">esc</kbd> close
+            <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono">esc</kbd> {{ $t('components.global_search.hint_close') }} <!-- i18n-ignore: keycap label, matches the physical key -->
           </span>
         </div>
       </div>

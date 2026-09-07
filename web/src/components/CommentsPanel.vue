@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <!-- List -->
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
-    <div v-else-if="comments.length === 0" class="text-sm text-slate-600 italic py-2">No comments yet.</div>
+    <div v-else-if="comments.length === 0" class="text-sm text-slate-600 italic py-2">{{ $t('components.comments_panel.empty') }}</div>
     <div v-else class="space-y-3">
       <div v-for="c in comments" :key="c.id" class="bg-slate-800/40 border border-slate-700/40 rounded-lg px-4 py-3">
         <div class="text-sm text-slate-300" v-html="renderMention(c.body)"></div>
@@ -14,13 +14,13 @@
     <div v-if="canComment" class="border-t border-slate-800 pt-4 space-y-2">
       <MentionTextarea v-model="newComment" :members="members"
         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 resize-none"
-        placeholder="Add a comment... (type @ to mention)"
+        :placeholder="$t('components.comments_panel.placeholder')"
         rows="3"
         @keydown.meta.enter="addComment"
         @keydown.ctrl.enter="addComment" />
       <div class="flex justify-end">
         <button @click="addComment" :disabled="!newComment.trim()"
-          class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">Post</button>
+          class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">{{ $t('components.comments_panel.post') }}</button>
       </div>
     </div>
   </div>
@@ -35,6 +35,11 @@ import { renderMention } from '../composables/useMention'
 import { useSession } from '../composables/useSession'
 import { useToast } from '../composables/useToast'
 import { formatDate } from '../composables/useFormat.js'
+import { useI18n } from 'vue-i18n'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
+
 
 const { show: showError } = useToast()
 
@@ -75,7 +80,7 @@ async function addComment() {
     newComment.value = ''
     await loadComments()
   } catch (e) {
-    showError('Failed to add comment: ' + (e.message || 'unknown error'))
+    showError(t('components.comments_panel.error_add', { message: renderApiError(e) || t('common.state.unknown') }))
   }
 }
 

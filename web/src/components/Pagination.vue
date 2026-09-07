@@ -1,7 +1,7 @@
 <template>
   <div v-if="totalPages > 1" class="flex items-center justify-between gap-3 px-2 py-2">
     <div class="text-xs text-slate-500 tabular-nums">
-      Showing {{ rangeStart }}–{{ rangeEnd }} of {{ total }}
+      {{ $t('components.pagination.showing', { start: rangeStart, end: rangeEnd, total }) }}
     </div>
     <div class="flex items-center gap-1">
       <button
@@ -38,7 +38,7 @@
       >»</button>
     </div>
     <div class="flex items-center gap-2 text-xs text-slate-500">
-      <span>Per page</span>
+      <span>{{ $t('components.pagination.per_page') }}</span>
       <select
         :value="pageSize"
         @change="$emit('update:pageSize', Number($event.target.value))"

@@ -1,6 +1,6 @@
 <template>
   <div v-if="refs.length > 0" class="mt-3">
-    <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Referenced in</div>
+    <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{{ $t('components.references.referenced_in') }}</div>
     <div class="flex flex-wrap gap-1.5">
       <router-link
         v-for="r in refs"
@@ -22,6 +22,16 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+
+// Type badges resolve through the shared abbreviation catalogue. Three
+// components carried near-identical private maps of these, which had already
+// drifted apart; `enumLabel` is the sanctioned dynamic lookup and falls back
+// to the de-slugged value for a type with no key.
+function typeAbbr(type) {
+  return enumLabel('entity_abbr', type)
+}
+
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -66,23 +76,6 @@ const typeColors = {
   task: 'bg-lime-900/40 text-lime-300 border-lime-800/50',
 }
 
-const typeLabels = {
-  risk: 'RISK',
-  legal: 'LEGAL',
-  document: 'DOC',
-  asset: 'ASSET',
-  supplier: 'SUPPLIER',
-  system: 'SYSTEM',
-  incident: 'INCIDENT',
-  change: 'CHANGE',
-  audit: 'AUDIT',
-  audit_finding: 'FINDING',
-  corrective_action: 'CA',
-  control: 'CTRL',
-  objective: 'OBJ',
-  program: 'PROG',
-  task: 'TASK',
-}
 
 const typeRoutes = {
   risk: 'risks',
@@ -111,7 +104,7 @@ function otherSide(r) {
 
 function refLabel(r) {
   const other = otherSide(r)
-  return typeLabels[other.type] || other.type.toUpperCase()
+  return typeAbbr(other.type)
 }
 
 function refId(r) {

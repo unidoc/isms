@@ -3,14 +3,14 @@
     <!-- Summary bar -->
     <div class="flex items-center justify-between px-6 py-3 bg-slate-900 border border-slate-800 rounded-t-xl">
       <div class="flex items-center gap-4 text-xs">
-        <span v-if="changedCount > 0" class="text-amber-400">{{ changedCount }} changed paragraph{{ changedCount !== 1 ? 's' : '' }}</span>
-        <span v-else class="text-emerald-400">No changes</span>
-        <span v-if="commentCount > 0" class="text-blue-400">{{ commentCount }} comment{{ commentCount !== 1 ? 's' : '' }}</span>
+        <span v-if="changedCount > 0" class="text-amber-400">{{ $t('components.side_by_side.changed_paragraphs', changedCount) }}</span>
+        <span v-else class="text-emerald-400">{{ $t('components.side_by_side.no_changes') }}</span>
+        <span v-if="commentCount > 0" class="text-blue-400">{{ $t('common.count.comments', commentCount) }}</span>
         <span class="text-slate-600">{{ reviewStatus }}</span>
       </div>
       <button @click="showAdvanced = !showAdvanced"
         class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-        {{ showAdvanced ? 'Document view' : 'Advanced diff' }}
+        {{ showAdvanced ? $t('components.side_by_side.document_view') : $t('components.side_by_side.advanced_diff') }}
       </button>
     </div>
 
@@ -24,7 +24,7 @@
       <!-- Left: Previous version — stacks above the new version on narrow screens -->
       <div ref="leftPane" data-pane="previous" @scroll="syncScroll('left')" class="flex-1 min-w-0 border-b md:border-b-0 md:border-r border-slate-800 overflow-y-auto max-h-[40vh] md:max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
-          <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Previous</span>
+          <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{{ $t('components.side_by_side.previous') }}</span>
         </div>
         <div class="px-6 py-4">
           <template v-for="(block, i) in leftBlocks" :key="'l-' + i">
@@ -32,13 +32,13 @@
               <div v-mermaid class="doc-prose" v-html="block.html"></div>
             </div>
           </template>
-          <div v-if="!oldBody" class="py-8 text-center text-sm text-slate-600">No previous version</div>
+          <div v-if="!oldBody" class="py-8 text-center text-sm text-slate-600">{{ $t('components.side_by_side.no_previous_version') }}</div>
         </div>
       </div>
       <!-- Right: New version -->
       <div ref="rightPane" data-pane="current" @scroll="syncScroll('right')" class="flex-1 min-w-0 overflow-y-auto max-h-[40vh] md:max-h-[80vh]">
         <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 sticky top-0 z-10">
-          <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Current</span>
+          <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{{ $t('components.side_by_side.current') }}</span>
         </div>
         <div class="px-6 py-4">
           <div class="pr-14 relative">
@@ -51,14 +51,14 @@
                 <div v-if="activeCommentsForParagraph(i).length > 0"
                   @click="expandedBlock = expandedBlock === i ? null : i"
                   class="absolute -right-12 top-1 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30"
-                  :title="activeCommentsForParagraph(i).length + ' comment' + (activeCommentsForParagraph(i).length === 1 ? '' : 's')">
+                  :title="$t('common.count.comments', activeCommentsForParagraph(i).length)">
                   {{ activeCommentsForParagraph(i).length }}
                 </div>
                 <!-- Outdated comment indicator -->
                 <div v-else-if="outdatedCommentsForParagraph(i).length > 0"
                   @click="expandedBlock = expandedBlock === i ? null : i"
                   class="absolute -right-12 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-500 text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-slate-600 transition-colors"
-                  :title="outdatedCommentsForParagraph(i).length + ' outdated comment' + (outdatedCommentsForParagraph(i).length === 1 ? '' : 's')">
+                  :title="$t('common.count.outdated_comments', outdatedCommentsForParagraph(i).length)">
                   {{ outdatedCommentsForParagraph(i).length }}
                 </div>
 
@@ -66,7 +66,7 @@
                 <button v-if="!readonly && activeCommentsForParagraph(i).length === 0 && outdatedCommentsForParagraph(i).length === 0"
                   @click.stop="expandedBlock = i; commentingIndex = i"
                   class="absolute -right-12 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-pointer opacity-0 group-hover/para:opacity-100 transition-all duration-200 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-900/30 hover:scale-110"
-                  title="Add comment">
+                  :title="$t('common.action.add_comment')">
                   +
                 </button>
               </div>
@@ -87,15 +87,15 @@
                       <svg class="w-3 h-3 transition-transform" :class="showOutdated[i] ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
-                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 font-medium">Outdated</span>
-                      {{ outdatedCommentsForParagraph(i).length }} comment{{ outdatedCommentsForParagraph(i).length === 1 ? '' : 's' }} from previous round
+                      <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 font-medium">{{ $t('common.state.outdated') }}</span>
+                      {{ $t('components.side_by_side.outdated_from_previous_round', outdatedCommentsForParagraph(i).length) }}
                     </button>
                     <div v-if="showOutdated[i]" class="mt-2 opacity-50">
                       <div v-for="c in outdatedCommentsForParagraph(i)" :key="c.id" class="mb-2">
                         <div class="flex items-center gap-2 text-[11px]">
                           <span class="font-medium text-slate-500">{{ c.author?.split('@')[0] }}</span>
                           <span class="text-slate-700 text-[10px]">{{ formatTime(c.created_at) }}</span>
-                          <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">outdated</span>
+                          <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">{{ $t('common.state.outdated_inline') }}</span>
                         </div>
                         <div class="text-sm text-slate-600 mt-0.5 line-through decoration-slate-700">{{ c.body }}</div>
                       </div>
@@ -113,14 +113,14 @@
 
                   <!-- Comment input (hidden on readonly/merged reviews) -->
                   <div v-if="!readonly" class="mt-2">
-                    <textarea v-model="commentBody" rows="2" placeholder="Add a comment..."
+                    <textarea v-model="commentBody" rows="2" :placeholder="$t('components.side_by_side.comment_placeholder')"
                       class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                       @keydown.meta.enter.prevent="submitComment(i, block.text)"
                       @keydown.ctrl.enter.prevent="submitComment(i, block.text)"></textarea>
                     <div class="flex gap-2 mt-1.5">
                       <button @click="submitComment(i, block.text)" :disabled="!commentBody.trim()"
-                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">Comment</button>
-                      <button @click="expandedBlock = null; commentBody = ''" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300">Cancel</button>
+                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">{{ $t('common.action.comment') }}</button>
+                      <button @click="expandedBlock = null; commentBody = ''" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300">{{ $t('common.action.cancel') }}</button>
                     </div>
                   </div>
                 </div>

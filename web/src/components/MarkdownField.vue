@@ -5,17 +5,17 @@
       <!-- Inline formatting -->
       <button type="button" @click="editor?.chain().focus().toggleBold().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('bold') }"
-        class="md-toolbar-btn" title="Bold (Ctrl+B)">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.bold')">
         <span class="font-bold text-[11px]">B</span>
       </button>
       <button type="button" @click="editor?.chain().focus().toggleItalic().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('italic') }"
-        class="md-toolbar-btn" title="Italic (Ctrl+I)">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.italic')">
         <span class="italic text-[11px]">I</span>
       </button>
       <button type="button" @click="editor?.chain().focus().toggleStrike().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('strike') }"
-        class="md-toolbar-btn" title="Strikethrough">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.strikethrough')">
         <span class="line-through text-[11px]">S</span>
       </button>
 
@@ -25,7 +25,7 @@
       <button v-for="level in [1,2,3]" :key="level" type="button"
         @click="editor?.chain().focus().toggleHeading({ level }).run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('heading', { level }) }"
-        class="md-toolbar-btn" :title="'Heading ' + level">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.heading', { level })">
         <span class="text-[10px] font-bold">H{{ level }}</span>
       </button>
 
@@ -34,34 +34,34 @@
       <!-- Lists / blocks -->
       <button type="button" @click="editor?.chain().focus().toggleBulletList().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('bulletList') }"
-        class="md-toolbar-btn" title="Bullet list">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.bullet_list')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
         </svg>
       </button>
       <button type="button" @click="editor?.chain().focus().toggleOrderedList().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('orderedList') }"
-        class="md-toolbar-btn" title="Numbered list">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.numbered_list')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3.5 6l1-1v4M3 18h3m-3-2l2.286-2.286" />
         </svg>
       </button>
       <button type="button" @click="editor?.chain().focus().toggleBlockquote().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('blockquote') }"
-        class="md-toolbar-btn" title="Blockquote">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.blockquote')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076" />
         </svg>
       </button>
       <button type="button" @click="editor?.chain().focus().toggleCodeBlock().run()"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('codeBlock') }"
-        class="md-toolbar-btn" title="Code block">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.code_block')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25" />
         </svg>
       </button>
       <button type="button" @click="editor?.chain().focus().setHorizontalRule().run()"
-        class="md-toolbar-btn" title="Divider">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.divider')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18" />
         </svg>
@@ -72,7 +72,7 @@
       <!-- Link -->
       <button type="button" @click="onLinkClick"
         :class="{ 'md-toolbar-btn-active': editor?.isActive('link') }"
-        class="md-toolbar-btn" title="Link (Ctrl+K)">
+        class="md-toolbar-btn" :title="$t('components.markdown_field.link')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.193-9.193a4.5 4.5 0 016.364 6.364l-4.5 4.5a4.5 4.5 0 01-7.244-1.242" />
         </svg>
@@ -81,7 +81,7 @@
       <div class="w-px h-4 bg-slate-700 mx-0.5" />
 
       <!-- Entity link picker (uses existing slash picker) -->
-      <button type="button" @click="toggleEntityMenu" class="md-toolbar-btn flex items-center gap-0.5 !w-auto px-1.5" title="Link entity">
+      <button type="button" @click="toggleEntityMenu" class="md-toolbar-btn flex items-center gap-0.5 !w-auto px-1.5" :title="$t('components.markdown_field.link_entity_button')">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
@@ -98,8 +98,8 @@
           @keydown.enter.prevent="confirmLink"
           @keydown.escape.prevent="cancelLink"
           class="link-url-input w-40 px-1.5 py-0.5 bg-slate-900 border border-slate-600 rounded text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          placeholder="https://..." />
-        <button type="button" @mousedown.prevent="confirmLink" class="px-1.5 py-0.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded">OK</button>
+          :placeholder="$t('components.editor.link_placeholder')" />
+        <button type="button" @mousedown.prevent="confirmLink" class="px-1.5 py-0.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('common.action.ok') }}</button>
         <button type="button" @mousedown.prevent="cancelLink" class="px-1 py-0.5 text-[10px] text-slate-500 hover:text-white">&#x2715;</button>
       </div>
 
@@ -124,7 +124,7 @@
     <div v-if="slashMenu.show"
       class="fixed z-[100] bg-slate-800 border border-slate-700 rounded-lg shadow-2xl py-1 min-w-[260px] max-h-[280px] overflow-y-auto"
       :style="{ top: slashMenu.y + 'px', left: slashMenu.x + 'px' }">
-      <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider">Insert block</div>
+      <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider">{{ $t('components.editor.insert_block') }}</div>
       <button v-for="(cmd, idx) in filteredSlashCommands" :key="cmd.id"
         @mousedown.prevent="executeSlashCommand(cmd)"
         @mouseenter="slashSelectedIdx = idx"
@@ -159,7 +159,7 @@
           <div class="text-[10px] text-slate-500 truncate">{{ cmd.desc }}</div>
         </div>
       </button>
-      <div v-if="filteredSlashCommands.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">No matching commands</div>
+      <div v-if="filteredSlashCommands.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.editor.no_commands') }}</div>
     </div>
     <div v-if="slashMenu.show" class="fixed inset-0 z-30" @mousedown="slashMenu.show = false" />
 
@@ -168,7 +168,7 @@
       class="fixed z-[100] bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-[320px] overflow-hidden flex flex-col min-w-[320px]"
       :style="{ top: entityPicker.y + 'px', left: entityPicker.x + 'px' }">
       <div class="px-3 py-1.5 text-[9px] text-slate-500 uppercase tracking-wider flex items-center gap-2">
-        <span>Link {{ entityPicker.label }}</span>
+        <span>{{ $t('components.editor.link_entity', { type: entityPicker.label }) }}</span>
         <button @mousedown.prevent="closePicker" class="ml-auto text-slate-600 hover:text-slate-400">
           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -179,11 +179,11 @@
           v-model="entityPicker.search"
           @keydown.stop="onPickerKeydown"
           class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="Search..."
+          :placeholder="$t('common.placeholder.search')"
         />
       </div>
       <div class="overflow-y-auto flex-1">
-        <div v-if="entityPicker.loading" class="px-3 py-3 text-xs text-slate-500 text-center">Loading...</div>
+        <div v-if="entityPicker.loading" class="px-3 py-3 text-xs text-slate-500 text-center">{{ $t('common.state.loading') }}</div>
         <button v-else v-for="(item, idx) in filteredPickerItems" :key="resolveItem(item).id"
           @mousedown.prevent="selectPickerItem(item)"
           @mouseenter="entityPicker.selectedIdx = idx"
@@ -192,7 +192,7 @@
           <span class="text-[10px] font-mono text-slate-500 flex-shrink-0">{{ resolveItem(item).id }}</span>
           <span class="text-xs truncate">{{ resolveItem(item).name }}</span>
         </button>
-        <div v-if="!entityPicker.loading && filteredPickerItems.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">No results</div>
+        <div v-if="!entityPicker.loading && filteredPickerItems.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.editor.no_results') }}</div>
       </div>
     </div>
     <div v-if="entityPicker.show" class="fixed inset-0 z-30" @mousedown="closePicker" />
@@ -201,19 +201,20 @@
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlock from '@tiptap/extension-code-block'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import { slashCommands as sharedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
+import { translatedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
 import { codeBlockMetadataAttributes } from './codeBlockAttributes.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
   rows: { type: Number, default: 3 },
-  placeholder: { type: String, default: 'Type / for commands...' },
+  placeholder: { type: String, default: '' },
   // selfType + selfId let the entity picker filter out the entity itself —
   // a Risk page's /risk picker shouldn't list the risk you're editing.
   selfType: { type: String, default: '' },
@@ -252,9 +253,11 @@ function tiptapAction(cmd) {
 
 // Slash commands available in the inline editor — same shared list as DocumentEditor,
 // minus the table command (no table extension is loaded for the compact variant).
-const slashCommandsList = sharedSlashCommands.map(cmd => ({ ...cmd, action: tiptapAction(cmd) }))
+const { t } = useI18n()
 
-const entityCommands = computed(() => sharedSlashCommands.filter(c => c.picker))
+const slashCommandsList = computed(() => translatedSlashCommands().map(cmd => ({ ...cmd, action: tiptapAction(cmd) })))
+
+const entityCommands = computed(() => translatedSlashCommands().filter(c => c.picker))
 
 // --- Editor instance ---
 const editor = useEditor({
@@ -273,7 +276,9 @@ const editor = useEditor({
       },
     }),
     Link.configure({ openOnClick: false }),
-    Placeholder.configure({ placeholder: props.placeholder }),
+    Placeholder.configure({
+      placeholder: () => props.placeholder || t('components.markdown_field.placeholder'),
+    }),
   ],
   editorProps: {
     handleKeyDown: (view, event) => {
@@ -310,8 +315,8 @@ const slashSelectedIdx = ref(0)
 
 const filteredSlashCommands = computed(() => {
   const q = slashMenu.query.toLowerCase()
-  if (!q) return slashCommandsList
-  return slashCommandsList.filter(c =>
+  if (!q) return slashCommandsList.value
+  return slashCommandsList.value.filter(c =>
     c.label.toLowerCase().includes(q) ||
     c.id.includes(q) ||
     c.desc.toLowerCase().includes(q) ||
@@ -556,7 +561,9 @@ watch(() => props.modelValue, (newVal) => {
 watch(() => props.placeholder, (val) => {
   const ext = editor.value?.extensionManager.extensions.find(e => e.name === 'placeholder')
   if (ext) {
-    ext.options.placeholder = val
+    // Keep the function form — assigning `val` here would drop the catalogue
+    // fallback and freeze the placeholder when the prop is empty.
+    ext.options.placeholder = () => val || t('components.markdown_field.placeholder')
     editor.value?.view.dispatch(editor.value.state.tr)
   }
 })

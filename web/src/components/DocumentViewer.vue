@@ -28,7 +28,7 @@
           :class="reviewedBlocks.has(block.index)
             ? 'bg-emerald-500 text-white scale-100 shadow-md shadow-emerald-900/40'
             : 'border border-slate-700 text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-slate-500'"
-          :title="reviewedBlocks.has(block.index) ? 'Mark as unreviewed' : 'Mark as reviewed'"
+          :title="reviewedBlocks.has(block.index) ? $t('components.viewer.mark_unreviewed') : $t('components.viewer.mark_reviewed')"
         >
           <svg class="w-3 h-3 transition-transform duration-300" :class="reviewedBlocks.has(block.index) ? 'scale-100' : 'scale-0'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -43,7 +43,7 @@
           v-if="showComments && hasOpenComments(block.index)"
           @click="toggleBlockComments(block.index)"
           class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30"
-          :title="commentCountForBlock(block.index) + ' comment' + (commentCountForBlock(block.index) === 1 ? '' : 's')"
+          :title="$t('common.count.comments', commentCountForBlock(block.index))"
         >
           {{ commentCountForBlock(block.index) }}
         </div>
@@ -53,7 +53,7 @@
           v-if="showComments && !hasOpenComments(block.index)"
           @click.stop="startInlineComment(block.index)"
           class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-900/30 hover:scale-110"
-          title="Add comment"
+          :title="$t('common.action.add_comment')"
         >
           +
         </button>
@@ -82,18 +82,18 @@
                   <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span class="text-[10px] text-emerald-500 font-medium">Resolved</span>
+                  <span class="text-[10px] text-emerald-500 font-medium">{{ $t('common.state.resolved') }}</span>
                 </div>
                 <button
                   v-else-if="canResolveComment(comment)"
                   @click="doResolveComment(comment.id)"
                   class="ml-auto text-[10px] text-slate-500 hover:text-emerald-400 transition-colors"
-                >Resolve</button>
+                >{{ $t('common.action.resolve') }}</button>
               </div>
               <!-- Resolved: collapsed -->
               <template v-if="comment.status === 'resolved'">
                 <div class="text-[10px] text-emerald-500/70 flex items-center gap-1 mb-1">
-                  Resolved by {{ comment.resolved_by || 'unknown' }} {{ formatDate(comment.resolved_at) }}
+                  {{ $t('components.viewer.resolved_by', { name: comment.resolved_by || $t('components.viewer.unknown_user'), date: formatDate(comment.resolved_at) }) }}
                 </div>
                 <div
                   v-if="!expandedResolved.has(comment.id)"
@@ -117,19 +117,19 @@
                       'text-emerald-300 bg-emerald-800/40': comment.suggestion_status === 'accepted',
                       'text-red-300 bg-red-800/40': comment.suggestion_status === 'rejected',
                     }">
-                    {{ comment.suggestion_status === 'pending' ? 'Suggested edit' : comment.suggestion_status === 'accepted' ? 'Accepted' : 'Rejected' }}
+                    {{ suggestionBadgeLabel(comment.suggestion_status) }}
                   </span>
                   <div class="rounded bg-slate-950 border border-slate-800 p-2 text-xs font-mono">
                     <div v-if="comment.quote" class="text-red-400/60 line-through mb-1 pb-1 border-b border-slate-800">{{ comment.quote }}</div>
                     <div class="text-emerald-400/80">{{ comment.suggestion_body }}</div>
                   </div>
                   <div v-if="comment.suggestion_status === 'pending' && props.canAcceptSuggestions" class="flex gap-2">
-                    <button @click="acceptSuggestion(comment.id)" class="text-[10px] px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">Accept</button>
-                    <button @click="rejectSuggestion(comment.id)" class="text-[10px] px-2.5 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">Reject</button>
+                    <button @click="acceptSuggestion(comment.id)" class="text-[10px] px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ $t('components.viewer.accept') }}</button>
+                    <button @click="rejectSuggestion(comment.id)" class="text-[10px] px-2.5 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">{{ $t('components.viewer.reject') }}</button>
                   </div>
-                  <div v-else-if="comment.suggestion_status === 'pending'" class="text-[10px] text-amber-400/70">Awaiting author decision</div>
+                  <div v-else-if="comment.suggestion_status === 'pending'" class="text-[10px] text-amber-400/70">{{ $t('components.viewer.awaiting_author') }}</div>
                   <div v-else class="text-[10px] text-slate-600">
-                    {{ comment.suggestion_status }} by {{ comment.suggestion_resolved_by || 'unknown' }}
+                    {{ $t('components.viewer.suggestion_resolved_by', { status: suggestionStatusLabel(comment.suggestion_status), name: comment.suggestion_resolved_by || $t('components.viewer.unknown_user') }) }}
                   </div>
                 </div>
                 <!-- Regular comment body -->
@@ -153,21 +153,21 @@
                   v-if="replyingTo !== comment.id"
                   @click="replyingTo = comment.id; replyText = ''"
                   class="text-[10px] text-slate-600 hover:text-blue-400 transition-colors"
-                >Reply</button>
+                >{{ $t('common.action.reply') }}</button>
                 <div v-else class="mt-1">
                   <MentionTextarea
                     v-model="replyText"
                     :members="members"
-                    placeholder="Reply... (type @ to mention)"
+                    :placeholder="$t('components.viewer.reply_placeholder')"
                     class="w-full bg-transparent border border-slate-700 rounded-md p-2 text-sm text-slate-300 placeholder-slate-600 resize-none focus:outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500/30"
                     rows="2"
                     @keydown.meta.enter="submitReply(comment.id)"
                     @keydown.ctrl.enter="submitReply(comment.id)"
                   />
                   <div class="flex justify-end gap-2 mt-1">
-                    <button @click="replyingTo = null" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors cursor-pointer">Cancel</button>
+                    <button @click="replyingTo = null" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors cursor-pointer">{{ $t('common.action.cancel') }}</button>
                     <button @click="submitReply(comment.id)" :disabled="!replyText.trim() || submittingReply" class="text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-1 rounded font-medium transition-colors cursor-pointer">
-                      {{ submittingReply ? 'Saving...' : 'Reply' }}
+                      {{ submittingReply ? $t('common.state.saving') : $t('common.action.reply') }}
                     </button>
                   </div>
                 </div>
@@ -181,19 +181,19 @@
                 <button @click="inlineMode = 'comment'"
                   class="text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors"
                   :class="inlineMode === 'comment' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'">
-                  Comment
+                  {{ $t('common.action.comment') }}
                 </button>
                 <button v-if="props.reviewId" @click="inlineMode = 'suggestion'"
                   class="text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors"
                   :class="inlineMode === 'suggestion' ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'">
-                  Suggest edit
+                  {{ $t('components.viewer.suggest_edit') }}
                 </button>
               </div>
               <MentionTextarea
                 ref="inlineTextareaRef"
                 v-model="inlineCommentText"
                 :members="members"
-                :placeholder="inlineMode === 'suggestion' ? 'Suggest replacement text for this paragraph...' : 'Add a comment... (type @ to mention)'"
+                :placeholder="isSuggestionMode ? $t('components.viewer.suggestion_placeholder') : $t('components.viewer.comment_placeholder')"
                 class="w-full bg-transparent border rounded-md p-2 text-sm text-slate-300 placeholder-slate-600 resize-none focus:outline-none focus:ring-1"
                 :class="inlineMode === 'suggestion' ? 'border-amber-700/50 focus:border-amber-500 focus:ring-amber-500/30' : 'border-slate-700 focus:border-blue-500 focus:ring-blue-500/30'"
                 rows="3"
@@ -205,13 +205,13 @@
                   <button
                     @click="expandedBlock = null; inlineCommentText = ''; inlineMode = 'comment'"
                     class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors cursor-pointer"
-                  >Cancel</button>
+                  >{{ $t('common.action.cancel') }}</button>
                   <button
                     @click="submitInlineComment(expandedBlock)"
                     :disabled="!inlineCommentText.trim() || submittingInline"
                     class="text-xs text-white px-3 py-1 rounded font-medium transition-colors cursor-pointer disabled:bg-slate-700 disabled:text-slate-500"
                     :class="inlineMode === 'suggestion' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'"
-                  >{{ submittingInline ? 'Saving...' : inlineMode === 'suggestion' ? 'Suggest' : 'Comment' }}
+                  >{{ submittingInline ? $t('common.state.saving') : isSuggestionMode ? $t('components.viewer.suggest') : $t('common.action.comment') }}
                   </button>
                 </div>
               </div>
@@ -223,19 +223,37 @@
 
     <!-- No content -->
     <div v-else class="py-8 text-center text-sm text-slate-600">
-      No content available.
+      {{ $t('components.viewer.no_content') }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, watch, nextTick, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
 import { parseMd } from '../composables/useRenderMd'
 import { formatRecent } from '../composables/useFormat.js'
+
+const { t } = useI18n()
+
+// The suggestion status renders mid-sentence ("accepted by …"), so it needs the
+// lower-case inline form. Spelled out rather than keyed off the value: a
+// runtime-built key is invisible to keyset extraction.
+function suggestionBadgeLabel(status) {
+  if (status === 'accepted') return t('components.viewer.suggestion_accepted')
+  if (status === 'rejected') return t('components.viewer.suggestion_rejected')
+  return t('components.viewer.suggested_edit')
+}
+
+function suggestionStatusLabel(status) {
+  if (status === 'accepted') return t('components.viewer.status_inline.accepted')
+  if (status === 'rejected') return t('components.viewer.status_inline.rejected')
+  return t('components.viewer.status_inline.pending')
+}
 
 const { members } = useMembers()
 
@@ -335,6 +353,7 @@ const loadingComments = ref(false)
 const expandedBlock = ref(null)
 const inlineCommentText = ref('')
 const inlineMode = ref('comment') // 'comment' | 'suggestion'
+const isSuggestionMode = computed(() => inlineMode.value === 'suggestion')
 
 // Autosave inline draft to localStorage
 watch(inlineCommentText, (val) => {
@@ -476,6 +495,9 @@ async function submitInlineComment(blockIndex) {
     const comment = {
       document_id: props.documentId,
       author: getCurrentUser(),
+      // Not translated on purpose: this is the comment BODY sent to the server
+      // and read back by every other reviewer, so it must not carry the
+      // author's locale. Same reasoning as the default reject reason.
       body: isSuggestion ? 'Suggested replacement for this paragraph' : text,
       paragraph_index: blockIndex,
       paragraph_hash: hashBlock(blockIndex),

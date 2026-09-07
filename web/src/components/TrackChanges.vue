@@ -3,13 +3,13 @@
     <!-- Stats bar -->
     <div v-if="hasChanges" class="flex items-center justify-between px-8 pt-4 pb-2">
       <div class="flex items-center gap-3 text-xs text-slate-500">
-        <span class="text-emerald-400">+{{ stats.added }} added</span>
-        <span class="text-red-400">-{{ stats.removed }} removed</span>
-        <span v-if="activeCommentCount > 0" class="text-blue-400">{{ activeCommentCount }} comment{{ activeCommentCount !== 1 ? 's' : '' }}</span>
+        <span class="text-emerald-400">{{ $t('components.track_changes.added', { count: stats.added }) }}</span>
+        <span class="text-red-400">{{ $t('components.track_changes.removed', { count: stats.removed }) }}</span>
+        <span v-if="activeCommentCount > 0" class="text-blue-400">{{ $t('common.count.comments', activeCommentCount) }}</span>
       </div>
       <button @click="showRaw = !showRaw"
         class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-        {{ showRaw ? 'Normal' : 'Advanced' }}
+        {{ showRaw ? $t('components.track_changes.normal') : $t('components.track_changes.advanced') }}
       </button>
     </div>
     <!-- Advanced: code diff -->
@@ -50,19 +50,19 @@
             <div v-if="activeCommentsForParagraph(para.paragraphIndex).length > 0"
               @click="expandedParagraph = expandedParagraph === para.paragraphIndex ? null : para.paragraphIndex"
               class="absolute right-4 top-1 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30 z-10"
-              :title="activeCommentsForParagraph(para.paragraphIndex).length + ' comment(s)'">
+              :title="$t('common.count.comments', activeCommentsForParagraph(para.paragraphIndex).length)">
               {{ activeCommentsForParagraph(para.paragraphIndex).length }}
             </div>
             <div v-else-if="outdatedCommentsForParagraph(para.paragraphIndex).length > 0"
               @click="expandedParagraph = expandedParagraph === para.paragraphIndex ? null : para.paragraphIndex"
               class="absolute right-4 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-500 text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-slate-600 transition-colors z-10"
-              :title="outdatedCommentsForParagraph(para.paragraphIndex).length + ' outdated'">
+              :title="$t('common.count.outdated_comments', outdatedCommentsForParagraph(para.paragraphIndex).length)">
               {{ outdatedCommentsForParagraph(para.paragraphIndex).length }}
             </div>
             <button v-else-if="!readonly"
               @click.stop="expandedParagraph = para.paragraphIndex"
               class="absolute right-4 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-pointer opacity-0 group-hover/para:opacity-100 transition-all duration-200 hover:bg-blue-600 hover:text-white hover:shadow-lg z-10"
-              title="Add comment">+</button>
+              :title="$t('common.action.add_comment')">+</button>
           </template>
         </div>
 
@@ -77,15 +77,15 @@
                 <svg class="w-3 h-3 transition-transform" :class="showOutdated[para.paragraphIndex] ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 font-medium">Outdated</span>
-                {{ outdatedCommentsForParagraph(para.paragraphIndex).length }} comment{{ outdatedCommentsForParagraph(para.paragraphIndex).length === 1 ? '' : 's' }}
+                <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 font-medium">{{ $t('common.state.outdated') }}</span>
+                {{ $t('common.count.comments', outdatedCommentsForParagraph(para.paragraphIndex).length) }}
               </button>
               <div v-if="showOutdated[para.paragraphIndex]" class="mt-2 opacity-50">
                 <div v-for="c in outdatedCommentsForParagraph(para.paragraphIndex)" :key="c.id" class="mb-2">
                   <div class="flex items-center gap-2 text-[11px]">
                     <span class="font-medium text-slate-500">{{ c.author?.split('@')[0] }}</span>
                     <span class="text-slate-700 text-[10px]">{{ formatTime(c.created_at) }}</span>
-                    <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">outdated</span>
+                    <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">{{ $t('common.state.outdated_inline') }}</span>
                   </div>
                   <div class="text-sm text-slate-600 mt-0.5 line-through decoration-slate-700">{{ c.body }}</div>
                 </div>
@@ -101,14 +101,14 @@
             </div>
             <!-- Comment input -->
             <div v-if="!readonly" class="mt-2">
-              <textarea v-model="commentBody" rows="2" placeholder="Add a comment..."
+              <textarea v-model="commentBody" rows="2" :placeholder="$t('components.track_changes.comment_placeholder')"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                 @keydown.meta.enter.prevent="submitComment(para.paragraphIndex)"
                 @keydown.ctrl.enter.prevent="submitComment(para.paragraphIndex)"></textarea>
               <div class="flex gap-2 mt-1.5">
                 <button @click="submitComment(para.paragraphIndex)" :disabled="!commentBody.trim()"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">Comment</button>
-                <button @click="expandedParagraph = null; commentBody = ''" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300">Cancel</button>
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">{{ $t('common.action.comment') }}</button>
+                <button @click="expandedParagraph = null; commentBody = ''" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300">{{ $t('common.action.cancel') }}</button>
               </div>
             </div>
           </div>

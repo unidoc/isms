@@ -6,17 +6,26 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "ok": "OK",
     "close": "Close",
     "create": "Create",
     "edit": "Edit",
     "delete": "Delete",
-    "search": "Search"
+    "search": "Search",
+    "add_comment": "Add comment",
+    "comment": "Comment",
+    "reply": "Reply",
+    "resolve": "Resolve"
   },
   "state": {
     "loading": "Loading…",
+    "saving": "Saving...",
     "empty": "Nothing here yet",
     "error": "Something went wrong",
     "unknown": "Unknown",
+    "outdated": "Outdated",
+    "outdated_inline": "outdated",
+    "resolved": "Resolved",
     "copied": "Copied"
   },
   "validation": {
@@ -194,6 +203,29 @@
       "link": "Link",
       "review": "Review",
       "reading": "Reading"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
     }
   },
   "enum_inline": {
@@ -274,5 +306,12 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "powered_by": "Powered by isms.sh"
+  },
+  "count": {
+    "comments": "{count} comment | {count} comments",
+    "outdated_comments": "{count} outdated comment | {count} outdated comments"
+  },
+  "placeholder": {
+    "search": "Search..."
   }
 }

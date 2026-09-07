@@ -1,0 +1,430 @@
+{
+  "readings": {
+    "title": "Readings",
+    "submit": "Submit Reading",
+    "form_for": "Reading for {identifier}",
+    "impact_cia": "Impact (CIA)",
+    "cia_classification": "CIA Classification",
+    "confidentiality": "Confidentiality *",
+    "integrity": "Integrity *",
+    "availability": "Availability *",
+    "likelihood": "Likelihood *",
+    "impact": "Impact *",
+    "not_assessed": "Not assessed",
+    "select": "Select",
+    "risk_score": "Risk Score",
+    "score_hint": "Set CIA + Likelihood",
+    "next_review": "Next Review",
+    "notes": "Notes",
+    "notes_placeholder": "Assessment notes...",
+    "save": "Save Reading",
+    "empty": "No readings yet.",
+    "error_save": "Failed to save reading",
+    "rating": {
+      "very_low": "Very Low (1)",
+      "low": "Low (2)",
+      "medium": "Medium (3)",
+      "high": "High (4)",
+      "very_high": "Very High (5)"
+    },
+    "cia": {
+      "insignificant": "Insignificant (1)",
+      "minor": "Minor (2)",
+      "moderate": "Moderate (3)",
+      "major": "Major (4)",
+      "severe": "Severe (5)"
+    },
+    "table": {
+      "date": "Date",
+      "assessor": "Assessor",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "A",
+      "likelihood": "L",
+      "impact": "Imp",
+      "score": "Score",
+      "notes": "Notes"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Mark as reviewed",
+    "mark_unreviewed": "Mark as unreviewed",
+    "resolved_by": "Resolved by {name} {date}",
+    "unknown_user": "unknown",
+    "suggested_edit": "Suggested edit",
+    "suggestion_accepted": "Accepted",
+    "suggestion_rejected": "Rejected",
+    "accept": "Accept",
+    "reject": "Reject",
+    "awaiting_author": "Awaiting author decision",
+    "suggestion_resolved_by": "{status} by {name}",
+    "reply_placeholder": "Reply... (type {'@'} to mention)",
+    "suggest_edit": "Suggest edit",
+    "suggest": "Suggest",
+    "suggestion_placeholder": "Suggest replacement text for this paragraph...",
+    "comment_placeholder": "Add a comment... (type {'@'} to mention)",
+    "no_content": "No content available.",
+    "status_inline": {
+      "pending": "pending",
+      "accepted": "accepted",
+      "rejected": "rejected"
+    }
+  },
+  "editor": {
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Shift+Z)",
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "strikethrough": "Strikethrough (Ctrl+Shift+X)",
+    "text_color": "Text color",
+    "heading": "Heading {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Bullet list (Ctrl+Shift+8)",
+    "ordered_list": "Ordered list (Ctrl+Shift+7)",
+    "blockquote": "Blockquote (Ctrl+Shift+B)",
+    "code_block": "Code block (Ctrl+Alt+C)",
+    "horizontal_rule": "Horizontal rule",
+    "link": "Link (Ctrl+K)",
+    "link_entity": "Link {type}",
+    "link_placeholder": "https://...",
+    "insert_table": "Insert table",
+    "insert_block": "Insert block",
+    "no_commands": "No matching commands",
+    "no_results": "No results",
+    "cell_color_open": "Cell color...",
+    "cell_color": "Cell color",
+    "add_row_above": "Add row above",
+    "add_row_below": "Add row below",
+    "add_column_left": "Add column left",
+    "add_column_right": "Add column right",
+    "delete_row": "Delete row",
+    "delete_column": "Delete column",
+    "delete_table": "Delete table",
+    "empty_placeholder": "Start writing..."
+  },
+  "slash": {
+    "table": {
+      "label": "Table",
+      "desc": "Insert a 3x3 table"
+    },
+    "h1": {
+      "label": "Heading 1",
+      "desc": "Large section heading"
+    },
+    "h2": {
+      "label": "Heading 2",
+      "desc": "Medium section heading"
+    },
+    "h3": {
+      "label": "Heading 3",
+      "desc": "Small section heading"
+    },
+    "bullet": {
+      "label": "Bullet List",
+      "desc": "Unordered list"
+    },
+    "ordered": {
+      "label": "Numbered List",
+      "desc": "Ordered list"
+    },
+    "quote": {
+      "label": "Blockquote",
+      "desc": "Indented quote block"
+    },
+    "code": {
+      "label": "Code Block",
+      "desc": "Fenced code block"
+    },
+    "hr": {
+      "label": "Divider",
+      "desc": "Horizontal rule"
+    },
+    "risk": {
+      "label": "Risk",
+      "desc": "Link to risk register"
+    },
+    "legal": {
+      "label": "Legal",
+      "desc": "Link to legal requirement"
+    },
+    "asset": {
+      "label": "Asset",
+      "desc": "Link to asset register"
+    },
+    "supplier": {
+      "label": "Supplier",
+      "desc": "Link to supplier"
+    },
+    "system": {
+      "label": "System",
+      "desc": "Link to IT system"
+    },
+    "doc": {
+      "label": "Document",
+      "desc": "Link to document"
+    },
+    "incident": {
+      "label": "Incident",
+      "desc": "Link to incident"
+    }
+  },
+  "markdown_field": {
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "strikethrough": "Strikethrough",
+    "heading": "Heading {level}",
+    "bullet_list": "Bullet list",
+    "numbered_list": "Numbered list",
+    "blockquote": "Blockquote",
+    "code_block": "Code block",
+    "divider": "Divider",
+    "link": "Link (Ctrl+K)",
+    "link_entity_button": "Link entity",
+    "placeholder": "Type / for commands..."
+  },
+  "suggestions": {
+    "empty": "No suggestions yet.",
+    "pending_notice": "Proposals pending — these changes take effect only once a manager applies them.",
+    "agent_badge": "AI",
+    "suggested_by": "Suggested by {name}",
+    "agent_suffix": "(AI)",
+    "apply": "Apply",
+    "reject": "Reject",
+    "reason_placeholder": "Reason...",
+    "rejected_with_reason": "Rejected: {reason}",
+    "applied_entity": "Applied {identifier}",
+    "type": "Type",
+    "title": "Title",
+    "title_placeholder": "Short description...",
+    "rationale": "Rationale",
+    "rationale_placeholder": "Why is this change needed?",
+    "creating": "Creating...",
+    "submit": "Submit",
+    "suggest": "Suggest",
+    "created_toast": "Suggestion submitted — a manager will review it before it takes effect.",
+    "stale_confirm": "Entity has changed since this suggestion was created. Apply anyway?",
+    "stale_confirm_action": "Apply anyway",
+    "error_create": "Failed to create suggestion",
+    "error_apply": "Apply failed",
+    "error_reject": "Reject failed",
+    "error_claim": "Failed to claim suggestion: {message}",
+    "status": {
+      "open": "Awaiting review",
+      "in_review": "Under review",
+      "applied": "Applied",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "action": {
+      "update": "Update fields",
+      "reassess_rating": "Reassess rating",
+      "reassess_criticality": "Reassess criticality",
+      "link_entities": "Link to other entities",
+      "link_risks_systems": "Link to risks/systems",
+      "request_review": "Request review",
+      "request_access_review": "Request access review"
+    }
+  },
+  "supplier_review": {
+    "title": "Supplier Reviews",
+    "submit": "Submit Review",
+    "outcome": "Outcome",
+    "outcome_value": {
+      "satisfactory": "Satisfactory",
+      "concerns": "Concerns identified",
+      "unsatisfactory": "Unsatisfactory"
+    },
+    "certifications_verified": "Certifications verified",
+    "data_handling_verified": "Data handling verified",
+    "sla_met": "SLA met",
+    "notes": "Review notes",
+    "notes_placeholder": "Describe what was reviewed and confirmed. This is the audit evidence for this review cycle.",
+    "save": "Save Review",
+    "empty": "No reviews yet.",
+    "certs_verified_short": "Certs verified",
+    "sla_not_met": "SLA not met",
+    "error_save": "Failed to save review"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} changed paragraph | {count} changed paragraphs",
+    "no_changes": "No changes",
+    "document_view": "Document view",
+    "advanced_diff": "Advanced diff",
+    "previous": "Previous",
+    "current": "Current",
+    "no_previous_version": "No previous version",
+    "outdated_from_previous_round": "{count} comment from previous round | {count} comments from previous round",
+    "comment_placeholder": "Add a comment..."
+  },
+  "comment_sidebar": {
+    "title": "Comments",
+    "resolved_count": "{count} resolved",
+    "comment_placeholder": "Add a comment... (type {'@'} to mention)",
+    "name_placeholder": "Your name",
+    "send": "Send",
+    "empty": "No comments yet",
+    "reply_placeholder": "Write a reply... (type {'@'} to mention)"
+  },
+  "track_changes": {
+    "added": "+{count} added",
+    "removed": "-{count} removed",
+    "normal": "Normal",
+    "advanced": "Advanced",
+    "comment_placeholder": "Add a comment..."
+  },
+  "references": {
+    "links": "Links",
+    "referenced_in": "Referenced in",
+    "add_link": "+ Add link",
+    "search_placeholder": "Search documents, risks, incidents...",
+    "searching": "Searching...",
+    "no_matches": "No matches",
+    "no_linked_items": "No linked items",
+    "error_search": "Search failed: {message}",
+    "error_add": "Failed to add reference: {message}",
+    "error_remove": "Failed to remove reference: {message}",
+    "error_load": "Failed to load references: {message}"
+  },
+  "code_block": {
+    "plain_text": "Plain text",
+    "enable_wrap": "Enable word wrap",
+    "disable_wrap": "Disable word wrap",
+    "wrap": "Wrap",
+    "copy": "Copy",
+    "copy_aria": "Copy code"
+  },
+  "color_picker": {
+    "remove_color": "Remove color"
+  },
+  "comments_panel": {
+    "empty": "No comments yet.",
+    "placeholder": "Add a comment... (type {'@'} to mention)",
+    "post": "Post",
+    "error_add": "Failed to add comment: {message}"
+  },
+  "copy_link": {
+    "copied": "Link copied",
+    "copy": "Copy link to this item"
+  },
+  "doc_tree": {
+    "review_required": "Review required"
+  },
+  "refresh": {
+    "refreshing": "Refreshing…",
+    "refresh": "Refresh"
+  },
+  "diff": {
+    "removed": "- {count} removed",
+    "added": "+ {count} added",
+    "split": "Split",
+    "unified": "Unified",
+    "before": "Before",
+    "after": "After"
+  },
+  "global_search": {
+    "placeholder": "Search documents, risks, suppliers, incidents...",
+    "searching": "Searching...",
+    "no_results": "No results for \"{query}\"",
+    "empty_state": "Type to search across all entities",
+    "hint_navigate": "navigate",
+    "hint_open": "open",
+    "hint_close": "close"
+  },
+  "heat_map": {
+    "title": "Risk Heat Map",
+    "total_items": "{count} total item | {count} total items",
+    "likelihood": "Likelihood",
+    "impact": "Impact",
+    "unnamed": "Unnamed",
+    "more": "+{count} more",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Rare",
+      "unlikely": "Unlikely",
+      "possible": "Possible",
+      "likely": "Likely",
+      "almost_certain": "Almost Certain"
+    },
+    "impact_value": {
+      "negligible": "Negligible",
+      "minor": "Minor",
+      "moderate": "Moderate",
+      "major": "Major",
+      "severe": "Severe"
+    }
+  },
+  "history": {
+    "empty": "No history yet.",
+    "field_count": "{count} field | {count} fields",
+    "showing_limit": "Showing 50 of {total}",
+    "more": "+{count} more",
+    "action": {
+      "create": "Created",
+      "update": "Changed",
+      "delete": "Deleted",
+      "reading": "Reading",
+      "suggestion_applied": "Applied suggestion"
+    },
+    "tooltip": {
+      "from": "From: {value}",
+      "to": "To: {value}",
+      "reason": "Reason: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "No members found",
+    "placeholder": "Select member..."
+  },
+  "pagination": {
+    "showing": "Showing {start}–{end} of {total}",
+    "per_page": "Per page"
+  },
+  "overdue": {
+    "title": "Overdue Reviews",
+    "creating": "Creating...",
+    "create_tasks": "Create Tasks",
+    "created": "Created {count} task | Created {count} tasks",
+    "created_skipped": ", {count} skipped (already exist)",
+    "days_late": "{count}d",
+    "overdue": "overdue",
+    "all_on_schedule": "All reviews on schedule"
+  },
+  "suggest_new": {
+    "button": "Suggest",
+    "close": "Close",
+    "action": "Action",
+    "title": "Title",
+    "description": "Description",
+    "description_placeholder": "Description of the new entity...",
+    "rationale": "Why is this needed?",
+    "rationale_placeholder": "Rationale for this suggestion...",
+    "submitting": "Submitting...",
+    "submit": "Submit",
+    "form_title_new": "Suggest new {entity}",
+    "form_title_change": "Suggest change to {entity}",
+    "placeholder_new": "Describe the new {entity}...",
+    "placeholder_reassess": "Reassessment rationale...",
+    "placeholder_link": "What should be linked and why...",
+    "placeholder_review": "Why should this be reviewed...",
+    "placeholder_update": "What should change...",
+    "error_create": "Failed to create suggestion",
+    "type": {
+      "edit_risk": "Edit risk",
+      "reassess_risk": "Reassess risk rating",
+      "edit_incident": "Edit incident",
+      "link_entities": "Link to other entities",
+      "edit_supplier": "Edit supplier",
+      "reassess_supplier": "Reassess supplier",
+      "edit_requirement": "Edit requirement",
+      "edit_change_request": "Edit change request",
+      "edit_corrective_action": "Edit corrective action",
+      "edit_task": "Edit task",
+      "edit_objective": "Edit objective",
+      "request_review": "Request review",
+      "edit_system": "Edit system",
+      "request_access_review": "Request access review",
+      "edit_asset": "Edit asset",
+      "request_asset_review": "Request asset review",
+      "edit_entity": "Edit {entity}"
+    }
+  }
+}

@@ -1,10 +1,4 @@
 {
-  "components/CommentsPanel.vue": 1,
-  "components/ReadingsPanel.vue": 1,
-  "components/ReferenceManager.vue": 4,
-  "components/SuggestNewButton.vue": 1,
-  "components/SuggestionPanel.vue": 4,
-  "components/SupplierReviewPanel.vue": 1,
   "composables/useDocumentEditor.js": 1,
   "views/Admin.vue": 16,
   "views/Assets.vue": 6,

@@ -1,10 +1,10 @@
 <template>
   <div class="space-y-2">
     <div class="flex items-center justify-between">
-      <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Links</span>
+      <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{{ $t('components.references.links') }}</span>
       <button v-if="editable" @click="showAdd = !showAdd"
         class="text-[10px] text-blue-400 hover:text-blue-300 transition-colors">
-        {{ showAdd ? 'Cancel' : '+ Add link' }}
+        {{ showAdd ? $t('common.action.cancel') : $t('components.references.add_link') }}
       </button>
     </div>
 
@@ -12,7 +12,7 @@
     <div v-if="showAdd" class="relative">
       <input v-model="searchQuery" type="text" ref="searchInput"
         class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-        placeholder="Search documents, risks, incidents..."
+        :placeholder="$t('components.references.search_placeholder')"
         @input="doSearch"
         @focus="doSearch"
         @blur="hideDropdown"
@@ -28,23 +28,23 @@
           class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-2"
           :class="i === selectedIdx ? 'bg-blue-600/30 text-white' : 'text-slate-300 hover:bg-slate-700'">
           <span class="px-1 py-0.5 rounded text-[9px] font-semibold flex-shrink-0"
-            :class="typeColors[s.type] || 'bg-slate-800 text-slate-400'">{{ typeLabels[s.type] || s.type }}</span>
+            :class="typeColors[s.type] || 'bg-slate-800 text-slate-400'">{{ typeAbbr(s.type) }}</span>
           <span class="text-slate-500 font-mono text-[10px] flex-shrink-0">{{ s.id }}</span>
           <span class="truncate">{{ s.title }}</span>
         </button>
       </div>
-      <div v-if="showDropdown && searching" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">Searching...</div>
-      <div v-if="showDropdown && !searching && searchResults.length === 0 && searched" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">No matches</div>
+      <div v-if="showDropdown && searching" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">{{ $t('components.references.searching') }}</div>
+      <div v-if="showDropdown && !searching && searchResults.length === 0 && searched" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">{{ $t('components.references.no_matches') }}</div>
     </div>
 
     <!-- Existing references -->
-    <div v-if="refs.length === 0 && !showAdd" class="text-xs text-slate-600">No linked items</div>
+    <div v-if="refs.length === 0 && !showAdd" class="text-xs text-slate-600">{{ $t('components.references.no_linked_items') }}</div>
     <div v-else class="space-y-1">
       <div v-for="r in refs" :key="r.id" class="flex items-center gap-1.5 group">
         <router-link :to="refRoute(r)"
           class="flex-1 inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-medium no-underline transition-colors hover:brightness-125"
           :class="refColors(r)">
-          <span class="opacity-60">{{ typeLabels[otherSide(r).type] || otherSide(r).type }}</span>
+          <span class="opacity-60">{{ typeAbbr(otherSide(r).type) }}</span>
           <span class="truncate max-w-[180px]">{{ r.title || otherSide(r).id }}</span>
         </router-link>
         <button v-if="editable" @click="removeReference(r.id)"
@@ -64,6 +64,21 @@ import { useRoute } from 'vue-router'
 import { api } from '../api.js'
 import { useToast } from '../composables/useToast'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+import { useI18n } from 'vue-i18n'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
+
+
+// Type badges resolve through the shared abbreviation catalogue. Three
+// components carried near-identical private maps of these, which had already
+// drifted apart; `enumLabel` is the sanctioned dynamic lookup and falls back
+// to the de-slugged value for a type with no key.
+function typeAbbr(type) {
+  return enumLabel('entity_abbr', type)
+}
+
 
 const { show: showError } = useToast()
 
@@ -86,13 +101,6 @@ const selectedIdx = ref(0)
 const searchInput = ref(null)
 let searchTimer = null
 
-const typeLabels = {
-  document: 'DOC', control: 'CTRL', policy: 'POL', procedure: 'PROC',
-  clause: 'CLS', requirement: 'REQ', record: 'REC', guideline: 'GUIDE',
-  risk: 'RISK', legal: 'LEGAL', asset: 'ASSET',
-  supplier: 'SUP', system: 'SYS', incident: 'INC', change: 'CR',
-  corrective_action: 'CA', audit: 'AUDIT', objective: 'OBJ', task: 'TASK', program: 'PROG',
-}
 
 const typeColors = {
   document: 'bg-blue-900/40 text-blue-300 border-blue-800/50',
@@ -162,7 +170,7 @@ async function doSearch() {
       selectedIdx.value = 0
     } catch (e) {
       searchResults.value = []
-      showError('Search failed: ' + (e.message || 'unknown error'))
+      showError(t('components.references.error_search', { message: renderApiError(e) || t('common.state.unknown') }))
     }
     searching.value = false
     searched.value = true
@@ -191,7 +199,7 @@ async function pickResult(item) {
     showAdd.value = false
     await loadRefs()
   } catch (e) {
-    showError('Failed to add reference: ' + (e.message || 'unknown error'))
+    showError(t('components.references.error_add', { message: renderApiError(e) || t('common.state.unknown') }))
   }
 }
 
@@ -200,7 +208,7 @@ async function removeReference(id) {
     await api.deleteReference(id)
     await loadRefs()
   } catch (e) {
-    showError('Failed to remove reference: ' + (e.message || 'unknown error'))
+    showError(t('components.references.error_remove', { message: renderApiError(e) || t('common.state.unknown') }))
   }
 }
 
@@ -210,7 +218,7 @@ async function loadRefs() {
     refs.value = data || []
   } catch (e) {
     refs.value = []
-    showError('Failed to load references: ' + (e.message || 'unknown error'))
+    showError(t('components.references.error_load', { message: renderApiError(e) || t('common.state.unknown') }))
   }
 }
 

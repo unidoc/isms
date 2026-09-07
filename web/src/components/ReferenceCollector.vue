@@ -1,15 +1,15 @@
 <template>
   <div class="space-y-2">
-    <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Links</label>
+    <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{{ $t('components.references.links') }}</label>
 
     <!-- Collected references (chips) -->
     <div v-if="collected.length > 0" class="flex flex-wrap gap-1.5">
       <span v-for="(r, i) in collected" :key="i"
         class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium"
         :class="typeColors[r.type] || 'bg-slate-800 text-slate-400'">
-        <span class="opacity-60 text-[9px]">{{ typeLabels[r.type] || r.type }}</span>
+        <span class="opacity-60 text-[9px]">{{ typeAbbr(r.type) }}</span>
         {{ r.title || r.id }}
-        <button @click="remove(i)" class="hover:text-red-300 ml-0.5">&times;</button>
+        <button @click="remove(i)" class="hover:text-red-300 ml-0.5" :aria-label="$t('common.action.delete')">&times;</button> <!-- i18n-ignore: typographic multiplication sign -->
       </span>
     </div>
 
@@ -17,7 +17,7 @@
     <div class="relative">
       <input v-model="searchQuery" type="text"
         class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-        placeholder="Search documents, risks, incidents..."
+        :placeholder="$t('components.references.search_placeholder')"
         @input="doSearch"
         @focus="doSearch"
         @blur="hideDropdown"
@@ -33,12 +33,12 @@
           class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-2"
           :class="i === selectedIdx ? 'bg-blue-600/30 text-white' : 'text-slate-300 hover:bg-slate-700'">
           <span class="px-1 py-0.5 rounded text-[9px] font-semibold flex-shrink-0"
-            :class="typeColors[s.type] || 'bg-slate-800 text-slate-400'">{{ typeLabels[s.type] || s.type }}</span>
+            :class="typeColors[s.type] || 'bg-slate-800 text-slate-400'">{{ typeAbbr(s.type) }}</span>
           <span class="text-slate-500 font-mono text-[10px] flex-shrink-0">{{ s.id }}</span>
           <span class="truncate">{{ s.title }}</span>
         </button>
       </div>
-      <div v-if="showDropdown && searching" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">Searching...</div>
+      <div v-if="showDropdown && searching" class="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-500">{{ $t('components.references.searching') }}</div>
     </div>
   </div>
 </template>
@@ -46,6 +46,16 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { api } from '../api.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+
+// Type badges resolve through the shared abbreviation catalogue. Three
+// components carried near-identical private maps of these, which had already
+// drifted apart; `enumLabel` is the sanctioned dynamic lookup and falls back
+// to the de-slugged value for a type with no key.
+function typeAbbr(type) {
+  return enumLabel('entity_abbr', type)
+}
+
 
 const props = defineProps({
   excludeType: { type: String, default: '' },
@@ -66,13 +76,6 @@ const showDropdown = ref(false)
 const selectedIdx = ref(0)
 let searchTimer = null
 
-const typeLabels = {
-  document: 'DOC', control: 'CTRL', policy: 'POL', procedure: 'PROC',
-  clause: 'CLS', requirement: 'REQ', record: 'REC', guideline: 'GUIDE',
-  risk: 'RISK', legal: 'LEGAL', asset: 'ASSET',
-  supplier: 'SUP', system: 'SYS', incident: 'INC', change: 'CR',
-  corrective_action: 'CA', objective: 'OBJ', task: 'TASK', program: 'PROG',
-}
 
 const typeColors = {
   document: 'bg-blue-900/40 text-blue-300',

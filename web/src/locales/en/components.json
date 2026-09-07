@@ -270,5 +270,18 @@
     "normal": "Normal",
     "advanced": "Advanced",
     "comment_placeholder": "Add a comment..."
+  },
+  "references": {
+    "links": "Links",
+    "referenced_in": "Referenced in",
+    "add_link": "+ Add link",
+    "search_placeholder": "Search documents, risks, incidents...",
+    "searching": "Searching...",
+    "no_matches": "No matches",
+    "no_linked_items": "No linked items",
+    "error_search": "Search failed: {message}",
+    "error_add": "Failed to add reference: {message}",
+    "error_remove": "Failed to remove reference: {message}",
+    "error_load": "Failed to load references: {message}"
   }
 }

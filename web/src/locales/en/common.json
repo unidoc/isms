@@ -202,6 +202,29 @@
       "link": "Link",
       "review": "Review",
       "reading": "Reading"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
     }
   },
   "enum_inline": {

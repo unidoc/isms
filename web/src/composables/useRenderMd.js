@@ -2,6 +2,7 @@ import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/common'
 import { escapeHtml } from '../utils/html.js'
+import { t } from '../i18n.js'
 
 /**
  * Canonical markdown renderer for entity descriptions, treatment plans,
@@ -63,7 +64,12 @@ display.use({
       return (
         `<div class="${blockClass}">` +
         langBadge +
-        '<button class="copy-code-btn" type="button" aria-label="Copy code">Copy</button>' +
+        // `t` comes from the global scope: this is a plain module with no
+        // component instance. The label is read at render time rather than
+        // captured once, so markdown re-rendered after a locale change picks
+        // up the new text. Already-rendered HTML keeps the old label until it
+        // re-renders; nothing caches it, so that window is a single tick.
+        `<button class="copy-code-btn" type="button" aria-label="${escapeHtml(t('components.code_block.copy_aria'))}">${escapeHtml(t('components.code_block.copy'))}</button>` +
         `<pre>${gutter}<code class="hljs${langClass}">${body}</code></pre>` +
         '</div>'
       )

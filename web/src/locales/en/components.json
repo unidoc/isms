@@ -286,7 +286,9 @@
     "plain_text": "Plain text",
     "enable_wrap": "Enable word wrap",
     "disable_wrap": "Disable word wrap",
-    "wrap": "Wrap"
+    "wrap": "Wrap",
+    "copy": "Copy",
+    "copy_aria": "Copy code"
   },
   "color_picker": {
     "remove_color": "Remove color"

@@ -20,7 +20,7 @@
                 </template>
                 <template v-else>
                   <span class="font-medium">{{ groupLabel(g) }}</span>
-                  <span class="text-slate-500"> {{ $t('components.history.field_count', g.entries.length) }}</span>
+                  <span class="text-slate-500">&nbsp;{{ $t('components.history.field_count', g.entries.length) }}</span> <!-- i18n-ignore: non-breaking space entity, not copy -->
                   <span class="text-slate-600"> ({{ fieldSummary(g) }})</span>
                 </template>
               </div>

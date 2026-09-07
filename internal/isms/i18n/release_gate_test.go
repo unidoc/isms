@@ -15,11 +15,14 @@ const rawTextBaseline = "../../../web/test/rawText.baseline.json"
 // as extracted for the purpose of offering a second language.
 //
 // It is not zero, and it should not be. The scanner over-reports — brand names,
-// punctuation, and CSS-ish attribute values it cannot distinguish from copy —
-// so a fully extracted tree still carries a residue. 100 is roughly that
-// residue, an order of magnitude below where the tree sits mid-extraction, and
-// three orders below its 2488 starting point. The number is a judgement; the
-// coupling it enforces is not.
+// punctuation, and attribute values it cannot distinguish from copy — so a
+// fully extracted tree still carries a residue, and 100 is an estimate of it.
+//
+// For scale: that is about 25x below where the tree sits today (2415) and about
+// 25x below where it started (2488). Those two numbers are nearly identical,
+// which is the honest summary of how far extraction has got. The estimate wants
+// revisiting once a mostly-extracted tree shows what the residue actually is —
+// the threshold is a judgement, and says so. The coupling it enforces is not.
 const extractionGateThreshold = 100
 
 // TestSecondLocaleRequiresExtraction is a release gate, not a unit test.

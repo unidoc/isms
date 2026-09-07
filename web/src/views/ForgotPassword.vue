@@ -11,33 +11,35 @@
             </svg>
           </div>
         </router-link>
-        <h1 class="text-xl font-bold text-white">Reset your password</h1>
-        <p class="text-sm text-slate-500 mt-1">We'll send a link to your email.</p>
+        <h1 class="text-xl font-bold text-white">{{ $t('auth.forgot_password.title') }}</h1>
+        <p class="text-sm text-slate-500 mt-1">{{ $t('auth.forgot_password.subtitle') }}</p>
       </div>
 
       <!-- Success state -->
       <div v-if="sent" class="space-y-4">
         <div class="rounded-lg px-4 py-3 text-sm bg-emerald-950/50 border border-emerald-900/60 text-emerald-300">
-          <div class="font-semibold mb-1">Check your email</div>
-          <div class="text-emerald-400/80">If an account exists for <span class="font-mono">{{ submittedEmail }}</span>, we've sent a reset link. Click it to set a new password. The link is valid for 1 hour.</div>
+          <div class="font-semibold mb-1">{{ $t('auth.check_email') }}</div>
+          <i18n-t keypath="auth.forgot_password.sent" tag="div" class="text-emerald-400/80" scope="global">
+            <template #email><span class="font-mono">{{ submittedEmail }}</span></template>
+          </i18n-t>
         </div>
         <router-link to="/login" class="block text-center text-sm text-slate-400 hover:text-white transition-colors">
-          ← Back to sign in
+          {{ $t('auth.back_to_sign_in') }}
         </router-link>
       </div>
 
       <!-- Form -->
       <form v-else @submit.prevent="doRequest" class="space-y-3">
-        <input v-model="email" type="email" placeholder="Email" required autofocus
+        <input v-model="email" type="email" :placeholder="$t('auth.forgot_password.email_placeholder')" required autofocus
           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors" />
         <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         <button type="submit" :disabled="loading || !email"
           class="w-full text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed brand-btn">
-          {{ loading ? 'Sending...' : 'Send reset link' }}
+          {{ loading ? $t('auth.forgot_password.submitting') : $t('auth.forgot_password.submit') }}
         </button>
         <div class="text-center pt-2">
           <router-link to="/login" class="text-sm text-slate-500 brand-text-hover transition-colors">
-            Remember your password? <span class="brand-text">Sign in</span>
+            {{ $t('auth.forgot_password.remember_password') }} <span class="brand-text">{{ $t('auth.sign_in') }}</span>
           </router-link>
         </div>
       </form>
@@ -47,7 +49,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '../api'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 const email = ref('')
 const error = ref('')
@@ -66,7 +72,7 @@ async function doRequest() {
     submittedEmail.value = email.value
     sent.value = true
   } catch (e) {
-    error.value = e.message || 'Request failed'
+    error.value = renderApiError(e) || t('auth.forgot_password.error_failed')
   } finally {
     loading.value = false
   }

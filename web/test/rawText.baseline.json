@@ -33,22 +33,17 @@
   "views/CorrectiveActions.vue": 90,
   "views/Dashboard.vue": 69,
   "views/Documents.vue": 186,
-  "views/ForgotPassword.vue": 11,
   "views/Inbox.vue": 90,
   "views/Incidents.vue": 120,
   "views/Landing.vue": 39,
   "views/Legal.vue": 90,
-  "views/Login.vue": 27,
   "views/Objectives.vue": 98,
   "views/Organizations.vue": 18,
   "views/Programs.vue": 36,
   "views/Reviews.vue": 146,
   "views/Risks.vue": 167,
   "views/Settings.vue": 73,
-  "views/Signup.vue": 19,
   "views/Suppliers.vue": 80,
   "views/Systems.vue": 92,
-  "views/Tasks.vue": 105,
-  "views/VerifyEmail.vue": 9,
-  "views/VerifyEmailChange.vue": 7
+  "views/Tasks.vue": 105
 }

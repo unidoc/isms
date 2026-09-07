@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "test": "node --test",
     "i18n:baseline": "node scripts/i18nRawText.mjs --write",
-    "i18n:raw": "node scripts/i18nRawText.mjs"
+    "i18n:raw": "node scripts/i18nRawText.mjs",
+    "i18n:error-baseline": "node scripts/i18nErrorRender.mjs --write",
+    "i18n:error-raw": "node scripts/i18nErrorRender.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

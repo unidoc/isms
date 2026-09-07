@@ -1,4 +1,4 @@
-// Task 1.3 of plan 81 §1: the server's stable `code` becomes translated text.
+// The server's stable `code` becomes translated text.
 //
 // The contract runs across two languages — Go composes the code and params,
 // the locale files carry the sentence — and every mismatch is silent, because

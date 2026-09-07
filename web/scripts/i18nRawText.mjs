@@ -1,7 +1,7 @@
-// Raw-text scanner — plan 80 §6 option B, the grep-based check.
+// Raw-text scanner — the grep-based check on unextracted UI strings.
 //
 // Finds user-visible English literals still hardcoded in `.vue` templates, so
-// that Phase 3 extraction cannot silently regress behind itself. Option A
+// that string extraction cannot silently regress behind itself. Option A
 // (`eslint-plugin-vue-i18n`'s `@intlify/no-raw-text`) is the durable answer and
 // is precise where this is crude, but the repo has no ESLint at all; introducing
 // it mid-extraction means fighting lint noise and translation churn at once.

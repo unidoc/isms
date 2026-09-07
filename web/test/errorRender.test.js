@@ -1,4 +1,4 @@
-// The render-site ratchet — plan 81 task 1.7.
+// The render-site ratchet.
 //
 // The server now sends a stable `code` on its errors and `renderApiError`
 // translates it, but a component that assigns a caught error's `.message`

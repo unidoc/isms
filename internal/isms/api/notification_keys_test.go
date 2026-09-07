@@ -18,7 +18,8 @@ import (
 	"isms.sh/internal/isms/db"
 )
 
-// The guard for plan 82 step 7: the keys this package emits and the frames
+// The guard on the notification-key contract: the keys this package emits and
+// the frames
 // web/src/locales/en/notifications.json provides must be the same set, in both
 // directions, and every placeholder in those frames must be a param name the
 // backend is allowed to send.

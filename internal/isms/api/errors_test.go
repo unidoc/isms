@@ -515,13 +515,13 @@ func TestPlaceholdersMatchInEveryLocale(t *testing.T) {
 
 // ---- param values resolve to catalogue keys -----------------------------
 
-// The seam most likely to leak English silently (plan 81 task 1.6): the client
+// The seam most likely to leak English silently: the client
 // translates an `entity` param through common.entity_inline.* and a `field`
 // through common.field.*, so a value with no key there is spliced in as the
 // raw snake_case identifier — inside an otherwise translated sentence.
 //
 // The values are literals at the call site, so they can be read off the
-// source. This passes vacuously until task 1.5 converts the first call site,
+// source. This passes vacuously until the first call site is converted,
 // which is the point: it starts working the moment there is anything to check.
 //
 // Parsed rather than grepped: a regex over the source also matches the

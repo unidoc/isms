@@ -103,7 +103,7 @@ export function negotiate(tag, available = loadableLocales()) {
   return available.find((a) => a.toLowerCase().split('-')[0] === base) ?? null
 }
 
-// Precedence, highest first (plan 80 §5):
+// Precedence, highest first:
 //   1. the user's explicit choice, from the DB (survives a device change)
 //   2. localStorage, for pre-login and anonymous pages
 //   3. navigator.languages, in the browser's own order of preference

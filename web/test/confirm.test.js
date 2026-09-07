@@ -1,4 +1,4 @@
-// Plan 80 task 1.7: the confirm dialog's two buttons come from the catalogue.
+// The confirm dialog's two buttons come from the catalogue.
 //
 // Small surface, but the failure is invisible in English: the defaults were the
 // literals 'Confirm'/'Cancel', which render correctly for the one locale that

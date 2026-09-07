@@ -14,7 +14,7 @@ import (
 
 // Stable error codes for HTTP responses, and the helper that emits them.
 //
-// The governing rule (plan 81 §1): the server never owns a translation
+// The governing rule: the server never owns a translation
 // catalogue for anything a client can render. An error response is read by a
 // browser that has the locale files loaded, so the server emits a stable
 // `code` plus a closed set of `params` and the browser renders the sentence
@@ -49,8 +49,8 @@ import (
 // # Migration
 //
 // apiError and echo.NewHTTPError coexist. Nothing is converted in one go;
-// call sites move per module (plan 81 task 1.5), and an unconverted site is
-// indistinguishable to old clients from a converted one.
+// call sites move one module at a time (issue #212), and an unconverted site
+// is indistinguishable to old clients from a converted one.
 
 // Codes. Declared as constants so the catalogue is greppable and a typo is a
 // compile error rather than a code the client has no message for.
@@ -123,7 +123,8 @@ const (
 //
 // Only codes appearing at two or more call sites are catalogued here. That
 // boundary is deliberate: a code invented for a single sentence nobody has
-// converted yet is a guess about wording that task 1.5 will revise. Converting
+// converted yet is a guess about wording that converting its module will
+// revise. Converting
 // a single-occurrence literal means adding its code and its `common.error.*`
 // key in the same commit, which the parity test enforces.
 var errorMessages = map[string]string{

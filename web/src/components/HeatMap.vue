@@ -2,14 +2,14 @@
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 max-w-2xl">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold text-slate-200">{{ title }}</h2>
-      <div class="text-xs text-slate-500">{{ items.length }} total items</div>
+      <div class="text-xs text-slate-500">{{ $t('components.heat_map.total_items', items.length) }}</div>
     </div>
 
     <!-- Grid -->
     <div class="flex gap-3">
       <!-- Y-axis label -->
       <div class="flex flex-col items-center justify-center">
-        <span class="text-[10px] font-medium text-slate-500 tracking-wider uppercase writing-mode-vertical" style="writing-mode: vertical-rl; transform: rotate(180deg);">Likelihood</span>
+        <span class="text-[10px] font-medium text-slate-500 tracking-wider uppercase writing-mode-vertical" style="writing-mode: vertical-rl; transform: rotate(180deg);">{{ $t('components.heat_map.likelihood') }}</span>
       </div>
 
       <div class="flex-1">
@@ -49,10 +49,10 @@
                       :key="item.id || item.risk_id || item.title"
                       class="text-xs text-slate-300 truncate"
                     >
-                      {{ item.title || item.risk_id || item.name || 'Unnamed' }}
+                      {{ item.title || item.risk_id || item.name || $t('components.heat_map.unnamed') }}
                     </div>
                     <div v-if="cellItems(x, y).length > 8" class="text-[10px] text-slate-500">
-                      +{{ cellItems(x, y).length - 8 }} more
+                      {{ $t('components.heat_map.more', { count: cellItems(x, y).length - 8 }) }}
                     </div>
                   </div>
                   <!-- Arrow -->
@@ -76,7 +76,7 @@
         </div>
         <!-- X-axis title -->
         <div class="text-center mt-1.5">
-          <span class="text-[10px] font-medium text-slate-500 tracking-wider uppercase">Impact</span>
+          <span class="text-[10px] font-medium text-slate-500 tracking-wider uppercase">{{ $t('components.heat_map.impact') }}</span>
         </div>
       </div>
     </div>
@@ -85,19 +85,19 @@
     <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-800">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded" style="background-color: rgba(34, 197, 94, 0.6)"></span>
-        <span class="text-[11px] text-slate-400">Low: {{ distribution.low }}</span>
+        <span class="text-[11px] text-slate-400">{{ $t('components.heat_map.distribution_item', { label: $t('common.enum.severity.low'), count: distribution.low }) }}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded" style="background-color: rgba(245, 158, 11, 0.6)"></span>
-        <span class="text-[11px] text-slate-400">Medium: {{ distribution.medium }}</span>
+        <span class="text-[11px] text-slate-400">{{ $t('components.heat_map.distribution_item', { label: $t('common.enum.severity.medium'), count: distribution.medium }) }}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded" style="background-color: rgba(249, 115, 22, 0.6)"></span>
-        <span class="text-[11px] text-slate-400">High: {{ distribution.high }}</span>
+        <span class="text-[11px] text-slate-400">{{ $t('components.heat_map.distribution_item', { label: $t('common.enum.severity.high'), count: distribution.high }) }}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded" style="background-color: rgba(239, 68, 68, 0.6)"></span>
-        <span class="text-[11px] text-slate-400">Critical: {{ distribution.critical }}</span>
+        <span class="text-[11px] text-slate-400">{{ $t('components.heat_map.distribution_item', { label: $t('common.enum.severity.critical'), count: distribution.critical }) }}</span>
       </div>
     </div>
   </div>

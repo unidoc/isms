@@ -325,5 +325,13 @@
     "hint_navigate": "navigate",
     "hint_open": "open",
     "hint_close": "close"
+  },
+  "heat_map": {
+    "total_items": "{count} total item | {count} total items",
+    "likelihood": "Likelihood",
+    "impact": "Impact",
+    "unnamed": "Unnamed",
+    "more": "+{count} more",
+    "distribution_item": "{label}: {count}"
   }
 }

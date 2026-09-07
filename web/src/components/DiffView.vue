@@ -3,17 +3,17 @@
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
       <div class="flex items-center gap-4">
-        <span class="text-red-400">- {{ removedCount }} removed</span>
-        <span class="text-emerald-400">+ {{ addedCount }} added</span>
+        <span class="text-red-400">{{ $t('components.diff.removed', { count: removedCount }) }}</span>
+        <span class="text-emerald-400">{{ $t('components.diff.added', { count: addedCount }) }}</span>
       </div>
       <div class="flex items-center gap-1">
         <button @click="mode = 'split'" class="px-2 py-1 rounded text-[10px] font-medium transition-colors"
           :class="mode === 'split' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'">
-          Split
+          {{ $t('components.diff.split') }}
         </button>
         <button @click="mode = 'unified'" class="px-2 py-1 rounded text-[10px] font-medium transition-colors"
           :class="mode === 'unified' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'">
-          Unified
+          {{ $t('components.diff.unified') }}
         </button>
       </div>
     </div>
@@ -22,7 +22,7 @@
     <div v-if="mode === 'split'" class="flex max-h-[500px] overflow-y-auto">
       <!-- Left (old / removed) -->
       <div class="flex-1 border-r border-slate-800 min-w-0">
-        <div class="px-2 py-1 bg-slate-900/50 border-b border-slate-800 text-[10px] text-slate-500 sticky top-0">Before</div>
+        <div class="px-2 py-1 bg-slate-900/50 border-b border-slate-800 text-[10px] text-slate-500 sticky top-0">{{ $t('components.diff.before') }}</div>
         <table class="w-full">
           <tr v-for="(row, i) in splitRows" :key="'l-' + i"
             :class="row.type === 'remove' || row.type === 'change' ? 'bg-red-950/30' : row.type === 'add' ? 'bg-slate-900/20' : ''">
@@ -35,14 +35,14 @@
               </template>
             </td>
             <td v-else class="pr-2 py-px whitespace-pre-wrap break-all" :class="row.type === 'remove' ? 'text-red-300' : row.type === 'add' ? 'invisible' : 'text-slate-500'">
-              {{ row.type === 'add' ? '' : row.left }}
+              {{ leftText(row) }}
             </td>
           </tr>
         </table>
       </div>
       <!-- Right (new / added) -->
       <div class="flex-1 min-w-0">
-        <div class="px-2 py-1 bg-slate-900/50 border-b border-slate-800 text-[10px] text-slate-500 sticky top-0">After</div>
+        <div class="px-2 py-1 bg-slate-900/50 border-b border-slate-800 text-[10px] text-slate-500 sticky top-0">{{ $t('components.diff.after') }}</div>
         <table class="w-full">
           <tr v-for="(row, i) in splitRows" :key="'r-' + i"
             :class="row.type === 'add' || row.type === 'change' ? 'bg-emerald-950/30' : row.type === 'remove' ? 'bg-slate-900/20' : ''">
@@ -55,7 +55,7 @@
               </template>
             </td>
             <td v-else class="pr-2 py-px whitespace-pre-wrap break-all" :class="row.type === 'add' ? 'text-emerald-300' : row.type === 'remove' ? 'invisible' : 'text-slate-500'">
-              {{ row.type === 'remove' ? '' : row.right }}
+              {{ rightText(row) }}
             </td>
           </tr>
         </table>
@@ -74,7 +74,7 @@
           <td class="w-8 text-right pr-2 text-slate-700 select-none align-top py-px text-[10px]">{{ line.newNum || '' }}</td>
           <td class="w-4 text-center select-none align-top py-px"
             :class="{ 'text-red-500': line.type === 'remove', 'text-emerald-500': line.type === 'add', 'text-slate-700': line.type === 'context', 'text-blue-500': line.type === 'header' }">
-            {{ line.type === 'remove' ? '-' : line.type === 'add' ? '+' : line.type === 'header' ? '@' : ' ' }}
+            {{ gutterMark(line.type) }}
           </td>
           <td class="pr-2 py-px whitespace-pre-wrap break-all"
             :class="{
@@ -91,6 +91,25 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+
+// These three read a row's kind, which is data, not copy. They live in script
+// so the template carries no bare string literal for the scanner to flag —
+// an `i18n-ignore` marker cannot sit inside a multi-line opening tag anyway.
+function leftText(row) {
+  return row.type === 'add' ? '' : row.left
+}
+
+function rightText(row) {
+  return row.type === 'remove' ? '' : row.right
+}
+
+function gutterMark(type) {
+  if (type === 'remove') return '-'
+  if (type === 'add') return '+'
+  if (type === 'header') return '@'
+  return ' '
+}
+
 
 const props = defineProps({
   diff: { type: String, default: '' }, // unified diff text

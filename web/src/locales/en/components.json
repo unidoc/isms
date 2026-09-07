@@ -308,5 +308,13 @@
   "refresh": {
     "refreshing": "Refreshing…",
     "refresh": "Refresh"
+  },
+  "diff": {
+    "removed": "- {count} removed",
+    "added": "+ {count} added",
+    "split": "Split",
+    "unified": "Unified",
+    "before": "Before",
+    "after": "After"
   }
 }

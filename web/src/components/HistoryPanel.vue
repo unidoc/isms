@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
-    <div v-else-if="grouped.length === 0" class="text-sm text-slate-600 italic py-2">No history yet.</div>
+    <div v-else-if="grouped.length === 0" class="text-sm text-slate-600 italic py-2">{{ $t('components.history.empty') }}</div>
     <div v-else class="max-h-[50vh] overflow-y-auto">
       <table class="w-full text-xs">
         <tbody>
@@ -20,7 +20,7 @@
                 </template>
                 <template v-else>
                   <span class="font-medium">{{ groupLabel(g) }}</span>
-                  <span class="text-slate-500"> {{ g.entries.length }} fields</span>
+                  <span class="text-slate-500"> {{ $t('components.history.field_count', g.entries.length) }}</span>
                   <span class="text-slate-600"> ({{ fieldSummary(g) }})</span>
                 </template>
               </div>
@@ -28,7 +28,7 @@
           </tr>
         </tbody>
       </table>
-      <div v-if="grouped.length > 50" class="text-[10px] text-slate-600 pt-2">Showing 50 of {{ grouped.length }}</div>
+      <div v-if="grouped.length > 50" class="text-[10px] text-slate-600 pt-2">{{ $t('components.history.showing_limit', { total: grouped.length }) }}</div>
     </div>
   </div>
 </template>
@@ -37,6 +37,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -47,7 +50,13 @@ const history = ref([])
 const loading = ref(false)
 
 function shortAction(e) {
-  const m = { create: 'Created', update: 'Changed', delete: 'Deleted', reading: 'Reading', suggestion_applied: 'Applied suggestion' }
+  const m = {
+    create: t('components.history.action.create'),
+    update: t('components.history.action.update'),
+    delete: t('components.history.action.delete'),
+    reading: t('components.history.action.reading'),
+    suggestion_applied: t('components.history.action.suggestion_applied'),
+  }
   return m[e.action] || e.detail || e.action
 }
 
@@ -59,7 +68,7 @@ function fieldSummary(g, max = 4) {
   const names = g.entries.filter(e => e.field).map(e => e.field.replace(/_/g, ' '))
   if (names.length === 0) return ''
   if (names.length <= max) return names.join(', ')
-  return names.slice(0, max).join(', ') + ` +${names.length - max} more`
+  return names.slice(0, max).join(', ') + ' ' + t('components.history.more', { count: names.length - max })
 }
 
 function trunc(v, n = 30) {
@@ -71,26 +80,26 @@ function trunc(v, n = 30) {
 function groupTooltip(g) {
   if (g.entries.length === 1) {
     const e = g.entries[0]
-    let t = `${g.changed_by} — ${e.action}`
-    if (e.field) t += ` ${e.field}`
-    if (e.old_value) t += `\nFrom: ${e.old_value}`
-    if (e.new_value) t += `\nTo: ${e.new_value}`
-    if (e.reason) t += `\nReason: ${e.reason}`
-    return t
+    let text = `${g.changed_by} — ${e.action}`
+    if (e.field) text += ` ${e.field}`
+    if (e.old_value) text += '\n' + t('components.history.tooltip.from', { value: e.old_value })
+    if (e.new_value) text += '\n' + t('components.history.tooltip.to', { value: e.new_value })
+    if (e.reason) text += '\n' + t('components.history.tooltip.reason', { value: e.reason })
+    return text
   }
-  let t = `${g.changed_by} — ${shortAction(g.entries[0])} ${g.entries.length} fields`
+  let text = `${g.changed_by} — ${shortAction(g.entries[0])} ${t('components.history.field_count', g.entries.length)}`
   for (const e of g.entries) {
     if (!e.field) continue
     const fieldName = e.field.replace(/_/g, ' ')
     if (e.old_value && e.new_value) {
-      t += `\n• ${fieldName}: ${trunc(e.old_value, 20)} → ${trunc(e.new_value, 20)}`
+      text += `\n• ${fieldName}: ${trunc(e.old_value, 20)} → ${trunc(e.new_value, 20)}`
     } else if (e.new_value) {
-      t += `\n• ${fieldName}: ${trunc(e.new_value, 30)}`
+      text += `\n• ${fieldName}: ${trunc(e.new_value, 30)}`
     } else {
-      t += `\n• ${fieldName}`
+      text += `\n• ${fieldName}`
     }
   }
-  return t
+  return text
 }
 
 const formatDate = (d) => formatDateValue(d, 'dayMonthTime')

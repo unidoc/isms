@@ -333,5 +333,23 @@
     "unnamed": "Unnamed",
     "more": "+{count} more",
     "distribution_item": "{label}: {count}"
+  },
+  "history": {
+    "empty": "No history yet.",
+    "field_count": "{count} field | {count} fields",
+    "showing_limit": "Showing 50 of {total}",
+    "more": "+{count} more",
+    "action": {
+      "create": "Created",
+      "update": "Changed",
+      "delete": "Deleted",
+      "reading": "Reading",
+      "suggestion_applied": "Applied suggestion"
+    },
+    "tooltip": {
+      "from": "From: {value}",
+      "to": "To: {value}",
+      "reason": "Reason: {value}"
+    }
   }
 }

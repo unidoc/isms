@@ -1,5 +1,4 @@
 {
-  "App.vue": 63,
   "components/CodeBlockView.vue": 4,
   "components/ColorPicker.vue": 2,
   "components/CommentSidebar.vue": 14,
@@ -35,10 +34,8 @@
   "views/Documents.vue": 186,
   "views/Inbox.vue": 90,
   "views/Incidents.vue": 120,
-  "views/Landing.vue": 39,
   "views/Legal.vue": 90,
   "views/Objectives.vue": 98,
-  "views/Organizations.vue": 18,
   "views/Programs.vue": 36,
   "views/Reviews.vue": 146,
   "views/Risks.vue": 167,

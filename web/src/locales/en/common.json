@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "product_name": "ISMS"
+  },
   "action": {
     "save": "Save",
     "cancel": "Cancel",
@@ -13,7 +16,8 @@
     "loading": "Loading…",
     "empty": "Nothing here yet",
     "error": "Something went wrong",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "copied": "Copied"
   },
   "validation": {
     "required": "This field is required"
@@ -159,6 +163,12 @@
       "confidential": "Confidential",
       "restricted": "Restricted"
     },
+    "role": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "contributor": "Contributor",
+      "reader": "Reader"
+    },
     "audit_result": {
       "not_assessed": "Not assessed",
       "conforming": "Conforming",
@@ -259,5 +269,10 @@
     "eu": "EU",
     "eea": "EEA",
     "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "powered_by": "Powered by isms.sh"
   }
 }

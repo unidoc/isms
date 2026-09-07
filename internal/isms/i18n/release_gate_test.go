@@ -80,7 +80,8 @@ func TestSecondLocaleRequiresExtraction(t *testing.T) {
 			"%d locales are enabled (%v) but the UI is not extracted: the raw-text baseline "+
 				"totals %d across %d files, over the %d threshold.\n\n"+
 				"Offering a language the app cannot actually speak is worse than offering none. "+
-				"Finish extraction (plan 79 Phase 3) so the ratchet falls, then enable the locale.\n"+
+				"Finish extracting the remaining views (issue #212) so the ratchet falls, then "+
+				"enable the locale.\n"+
 				"If the threshold is what is wrong, change extractionGateThreshold and say why in "+
 				"the commit message.",
 			len(enabled), enabled, total, len(budgets), extractionGateThreshold,

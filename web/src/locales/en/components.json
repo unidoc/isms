@@ -86,7 +86,6 @@
     "link": "Link (Ctrl+K)",
     "link_entity": "Link {type}",
     "link_placeholder": "https://...",
-    "link_ok": "OK",
     "insert_table": "Insert table",
     "insert_block": "Insert block",
     "no_commands": "No matching commands",
@@ -289,5 +288,8 @@
     "enable_wrap": "Enable word wrap",
     "disable_wrap": "Disable word wrap",
     "wrap": "Wrap"
+  },
+  "color_picker": {
+    "remove_color": "Remove color"
   }
 }

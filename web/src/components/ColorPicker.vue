@@ -43,7 +43,7 @@
       <button
         @click="setFromHex(''); $emit('update:modelValue', '')"
         class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center hover:scale-110 transition-all"
-        title="Remove color"
+        :title="$t('components.color_picker.remove_color')"
       >
         <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -53,7 +53,7 @@
 
     <!-- OK button -->
     <button @click="$emit('apply')" class="w-full mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded transition-colors">
-      OK
+      {{ $t('common.action.ok') }}
     </button>
   </div>
 </template>

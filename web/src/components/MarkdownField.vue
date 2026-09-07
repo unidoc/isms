@@ -99,7 +99,7 @@
           @keydown.escape.prevent="cancelLink"
           class="link-url-input w-40 px-1.5 py-0.5 bg-slate-900 border border-slate-600 rounded text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           :placeholder="$t('components.editor.link_placeholder')" />
-        <button type="button" @mousedown.prevent="confirmLink" class="px-1.5 py-0.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('components.editor.link_ok') }}</button>
+        <button type="button" @mousedown.prevent="confirmLink" class="px-1.5 py-0.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('common.action.ok') }}</button>
         <button type="button" @mousedown.prevent="cancelLink" class="px-1 py-0.5 text-[10px] text-slate-500 hover:text-white">&#x2715;</button>
       </div>
 

@@ -104,7 +104,7 @@
         <input v-model="linkUrl" @keydown.enter="confirmLink" @keydown.escape="cancelLink"
           class="link-url-input w-48 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           :placeholder="$t('components.editor.link_placeholder')" />
-        <button @click="confirmLink" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('components.editor.link_ok') }}</button>
+        <button @click="confirmLink" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">{{ $t('common.action.ok') }}</button>
         <button @click="cancelLink" class="px-1 py-1 text-xs text-slate-500 hover:text-white">&#x2715;</button>
       </div>
 

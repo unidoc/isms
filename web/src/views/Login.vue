@@ -11,13 +11,13 @@
             </svg>
           </div>
         </router-link>
-        <h1 class="text-xl font-bold text-white mb-1">Sign in to ISMS</h1>
-        <p class="text-sm text-slate-500 mb-6">Enter your organization to continue</p>
+        <h1 class="text-xl font-bold text-white mb-1">{{ $t('auth.sign_in_to', { org: $t('auth.product_name') }) }}</h1>
+        <p class="text-sm text-slate-500 mb-6">{{ $t('auth.org_discovery.subtitle') }}</p>
         <form @submit.prevent="goToOrg" class="space-y-3">
           <input
             v-model="orgDiscoveryInput"
             type="text"
-            placeholder="Organization name, e.g. acme"
+            :placeholder="$t('auth.org_discovery.placeholder')"
             autocomplete="off"
             spellcheck="false"
             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors"
@@ -28,12 +28,12 @@
             :disabled="!orgDiscoveryInput.trim()"
             class="w-full text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed brand-btn"
           >
-            Continue
+            {{ $t('auth.org_discovery.submit') }}
           </button>
         </form>
         <div v-if="signupEnabled" class="text-sm text-slate-500 mt-6">
-          Don't have an account?
-          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Get started</router-link>
+          {{ $t('auth.login.no_account') }}
+          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">{{ $t('auth.login.get_started') }}</router-link>
         </div>
       </div>
 
@@ -49,7 +49,7 @@
             </svg>
           </div>
         </router-link>
-        <h1 class="text-xl font-bold text-white">Sign in to {{ orgName || 'ISMS' }}</h1>
+        <h1 class="text-xl font-bold text-white">{{ $t('auth.sign_in_to', { org: orgName || $t('auth.product_name') }) }}</h1>
         <p v-if="orgSlug" class="text-sm text-slate-500 mt-1">{{ orgSlug }}</p>
       </div>
 
@@ -80,7 +80,7 @@
           <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
           </svg>
-          Sign in with {{ provider.display_name || provider.provider_name }}
+          {{ $t('auth.login.oidc_button', { provider: provider.display_name || provider.provider_name }) }}
         </button>
 
         <!-- Divider -->
@@ -89,7 +89,7 @@
             <div class="w-full border-t border-slate-800"></div>
           </div>
           <div class="relative flex justify-center text-xs">
-            <span class="px-3 bg-slate-950 text-slate-600">or sign in with email</span>
+            <span class="px-3 bg-slate-950 text-slate-600">{{ $t('auth.login.email_divider') }}</span>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
+          <label for="email" class="block text-sm font-medium text-slate-400 mb-1.5">{{ $t('auth.login.email_label') }}</label>
           <input
             id="email"
             v-model="email"
@@ -106,12 +106,12 @@
             autocomplete="email"
             :disabled="loading"
             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors disabled:opacity-50"
-            placeholder="you@company.com"
+            :placeholder="$t('auth.login.email_placeholder')"
           />
         </div>
 
         <div>
-          <label for="password" class="block text-sm font-medium text-slate-400 mb-1.5">Password</label>
+          <label for="password" class="block text-sm font-medium text-slate-400 mb-1.5">{{ $t('auth.login.password_label') }}</label>
           <div class="flex gap-2">
             <input
               id="password"
@@ -121,7 +121,7 @@
               autocomplete="current-password"
               :disabled="loading || passkeyMode"
               class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors disabled:opacity-50"
-              placeholder="Password"
+              :placeholder="$t('auth.login.password_placeholder')"
             />
             <button
               v-if="email && passkeyAvailable"
@@ -133,14 +133,14 @@
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
               </svg>
-              Passkey
+              {{ $t('auth.login.passkey_button') }}
             </button>
           </div>
         </div>
 
         <!-- OTP code (shown after password if account has TOTP enabled) -->
         <div v-if="otpRequired">
-          <label for="otp" class="block text-sm font-medium text-slate-400 mb-1.5">Authenticator code</label>
+          <label for="otp" class="block text-sm font-medium text-slate-400 mb-1.5">{{ $t('auth.login.otp_label') }}</label>
           <input
             id="otp"
             v-model="otpCode"
@@ -153,7 +153,7 @@
             autofocus
             :disabled="loading"
             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors disabled:opacity-50 font-mono tracking-widest text-center"
-            placeholder="6-digit code"
+            :placeholder="$t('auth.login.otp_placeholder')"
           />
         </div>
 
@@ -177,9 +177,9 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Signing in...
+            {{ $t('auth.login.submitting') }}
           </span>
-          <span v-else>Sign in</span>
+          <span v-else>{{ $t('auth.login.submit') }}</span>
         </button>
       </form>
 
@@ -187,12 +187,12 @@
       <div class="mt-6 text-center space-y-2">
         <div>
           <router-link to="/forgot-password" class="text-sm brand-text hover:brightness-125 transition-colors">
-            Forgot password?
+            {{ $t('auth.login.forgot_password') }}
           </router-link>
         </div>
         <div v-if="signupEnabled" class="text-sm text-slate-500">
-          Don't have an account?
-          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">Sign up</router-link>
+          {{ $t('auth.login.no_account') }}
+          <router-link to="/signup" class="brand-text hover:brightness-125 transition-colors">{{ $t('auth.login.sign_up') }}</router-link>
         </div>
       </div>
       </template>
@@ -204,23 +204,27 @@
       </div>
     </div>
     <div class="fixed bottom-4 left-0 right-0 text-center text-xs text-slate-600">
-      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">Privacy Policy</a>
-      <span v-if="termsUrl && privacyUrl" class="mx-2">&middot;</span>
-      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">Terms of Service</a>
-      <span v-if="showPoweredBy && (termsUrl || privacyUrl)" class="mx-2">&middot;</span>
-      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">Powered by isms.sh</a>
+      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.privacy') }}</a>
+      <span v-if="termsUrl && privacyUrl" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
+      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.terms') }}</a>
+      <span v-if="showPoweredBy && (termsUrl || privacyUrl)" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
+      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.powered_by') }}</a>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { login, getApiToken, setApiToken } from '../api'
 import api from '../api'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, canHostSubdomain } from '../composables/useCurrentOrg'
 import { applyConfigLocales } from '../composables/useLocale'
 import LocalePicker from '../components/LocalePicker.vue'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()
@@ -374,7 +378,7 @@ function oidcLogin(provider) {
 
 async function passkeyLogin() {
   if (!email.value) {
-    error.value = 'Enter your email first'
+    error.value = t('auth.login.error_email_first')
     return
   }
   error.value = ''
@@ -433,9 +437,9 @@ async function passkeyLogin() {
     await redirectAfterLogin()
   } catch (e) {
     if (e.name === 'NotAllowedError') {
-      error.value = 'Passkey authentication was cancelled'
+      error.value = t('auth.login.error_passkey_cancelled')
     } else {
-      error.value = e.message || 'Passkey authentication failed'
+      error.value = renderApiError(e) || t('auth.login.error_passkey_failed')
     }
     passkeyMode.value = false
     passkeyStatus.value = ''
@@ -456,7 +460,7 @@ async function handleLogin() {
     }
     await redirectAfterLogin()
   } catch (e) {
-    error.value = e.message || 'Login failed'
+    error.value = renderApiError(e) || t('auth.login.error_failed')
     // Wrong OTP — let the user try again without re-entering password.
     if (otpRequired.value) otpCode.value = ''
   } finally {

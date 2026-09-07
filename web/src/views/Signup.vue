@@ -11,55 +11,61 @@
             </svg>
           </div>
         </router-link>
-        <h1 class="text-xl font-bold text-white">Create account</h1>
-        <p class="text-sm text-slate-500 mt-1">Join {{ orgName || 'ISMS' }}</p>
+        <h1 class="text-xl font-bold text-white">{{ $t('auth.signup.title') }}</h1>
+        <p class="text-sm text-slate-500 mt-1">{{ $t('auth.signup.join', { org: orgName || $t('auth.product_name') }) }}</p>
       </div>
 
       <!-- Success state -->
       <div v-if="sent" class="space-y-4">
         <div class="rounded-lg px-4 py-3 text-sm bg-emerald-950/50 border border-emerald-900/60 text-emerald-300">
-          <div class="font-semibold mb-1">Check your email</div>
-          <div class="text-emerald-400/80">We've sent a verification link to <span class="font-mono">{{ submittedEmail }}</span>. Click the link to activate your account.</div>
+          <div class="font-semibold mb-1">{{ $t('auth.check_email') }}</div>
+          <i18n-t keypath="auth.signup.sent" tag="div" class="text-emerald-400/80" scope="global">
+            <template #email><span class="font-mono">{{ submittedEmail }}</span></template>
+          </i18n-t>
         </div>
         <router-link to="/login" class="block text-center text-sm text-slate-400 hover:text-white transition-colors">
-          ← Back to sign in
+          {{ $t('auth.back_to_sign_in') }}
         </router-link>
       </div>
 
       <!-- Form -->
       <form v-else @submit.prevent="doSignup" class="space-y-3">
-        <input v-model="name" type="text" placeholder="Full name" required autofocus
+        <input v-model="name" type="text" :placeholder="$t('auth.signup.name_placeholder')" required autofocus
           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors" />
-        <input v-model="email" type="email" placeholder="Email" required
+        <input v-model="email" type="email" :placeholder="$t('auth.signup.email_placeholder')" required
           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors" />
-        <input v-model="password" type="password" placeholder="Password (min 7 characters)" required minlength="7"
+        <input v-model="password" type="password" :placeholder="$t('auth.signup.password_placeholder')" required minlength="7"
           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none brand-focus transition-colors" />
         <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         <button type="submit" :disabled="loading || !email || !password"
           class="w-full text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed brand-btn">
-          {{ loading ? 'Creating...' : 'Create account' }}
+          {{ loading ? $t('auth.signup.submitting') : $t('auth.signup.submit') }}
         </button>
         <div class="text-center pt-2">
           <router-link to="/login" class="text-sm text-slate-500 brand-text-hover transition-colors">
-            Already have an account? <span class="brand-text">Sign in</span>
+            {{ $t('auth.signup.have_account') }} <span class="brand-text">{{ $t('auth.sign_in') }}</span>
           </router-link>
         </div>
       </form>
     </div>
     <div class="fixed bottom-4 left-0 right-0 text-center text-xs text-slate-600">
-      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">Privacy Policy</a>
-      <span v-if="termsUrl && privacyUrl" class="mx-2">&middot;</span>
-      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">Terms of Service</a>
-      <span v-if="showPoweredBy && (termsUrl || privacyUrl)" class="mx-2">&middot;</span>
-      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">Powered by isms.sh</a>
+      <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.privacy') }}</a>
+      <span v-if="termsUrl && privacyUrl" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
+      <a v-if="termsUrl" :href="termsUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.terms') }}</a>
+      <span v-if="showPoweredBy && (termsUrl || privacyUrl)" class="mx-2">&middot;</span> <!-- i18n-ignore: typographic separator -->
+      <a v-if="showPoweredBy" href="https://isms.sh" target="_blank" rel="noopener" class="hover:text-slate-400 transition-colors">{{ $t('auth.footer.powered_by') }}</a>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import api from '../api'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 const router = useRouter()
 
@@ -91,7 +97,7 @@ async function doSignup() {
     submittedEmail.value = email.value
     sent.value = true
   } catch (e) {
-    error.value = e.message || 'Signup failed'
+    error.value = renderApiError(e) || t('auth.signup.error_failed')
   } finally {
     loading.value = false
   }

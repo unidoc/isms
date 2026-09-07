@@ -11,21 +11,25 @@
             </svg>
           </div>
         </router-link>
-        <h1 class="text-xl font-bold text-white">Confirm email change</h1>
+        <h1 class="text-xl font-bold text-white">{{ $t('auth.verify_email_change.title') }}</h1>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="text-center text-sm text-slate-400">Confirming…</div>
+      <div v-if="loading" class="text-center text-sm text-slate-400">{{ $t('auth.verify_email_change.confirming') }}</div>
 
       <!-- Success -->
       <div v-else-if="!error" class="space-y-4 text-center">
         <div class="rounded-lg px-4 py-3 text-sm bg-emerald-950/50 border border-emerald-900/60 text-emerald-300">
-          Your email has been changed<span v-if="newEmail"> to <strong>{{ newEmail }}</strong></span>.
-          Please sign in again with your new address.
+          <template v-if="newEmail">
+            <i18n-t keypath="auth.verify_email_change.changed_to" scope="global">
+              <template #email><strong>{{ newEmail }}</strong></template>
+            </i18n-t>
+          </template>
+          <template v-else>{{ $t('auth.verify_email_change.changed') }}</template>
         </div>
         <router-link to="/login"
           class="inline-block w-full text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors brand-btn">
-          Go to sign in
+          {{ $t('auth.verify_email_change.go_to_sign_in') }}
         </router-link>
       </div>
 
@@ -36,7 +40,7 @@
         </div>
         <div class="text-center">
           <router-link to="/login" class="text-sm text-slate-500 brand-text-hover transition-colors">
-            ← Back to sign in
+            {{ $t('auth.back_to_sign_in') }}
           </router-link>
         </div>
       </div>
@@ -46,8 +50,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import api from '../api'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const token = computed(() => String(route.query.token || ''))
@@ -67,7 +75,7 @@ onMounted(async () => {
   } catch { /* ignore */ }
 
   if (!token.value) {
-    error.value = 'Missing or invalid confirmation link.'
+    error.value = t('auth.verify_email_change.error_missing_link')
     loading.value = false
     return
   }
@@ -75,7 +83,7 @@ onMounted(async () => {
     const res = await api.postJSON('/api/v1/auth/verify-email-change', { token: token.value })
     newEmail.value = res.email || ''
   } catch (e) {
-    error.value = e.message || 'This confirmation link is invalid or has expired.'
+    error.value = renderApiError(e) || t('auth.verify_email_change.error_failed')
   } finally {
     loading.value = false
   }

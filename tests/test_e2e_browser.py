@@ -1568,6 +1568,17 @@ class TestTaskEditStatusPersists:
             status_select = page.locator('label:has-text("Status") + select').first
             status_select.wait_for(state="visible", timeout=5000)
             status_select.select_option("done")
+            # Pin the selection before saving. This test failed once in CI with
+            # the server still holding 'open' after a save that visibly
+            # succeeded, and "did not persist" cannot distinguish the two
+            # candidate causes: the form never took the selection (an in-flight
+            # openTaskFromRoute resolving late calls startEdit and resets
+            # editForm from server state), or the save dropped it (the original
+            # #78 bug this test was written for). Asserting here splits them, so
+            # the next occurrence names its own cause instead of repeating the
+            # ambiguous failure. expect() polls, so it also absorbs the flush of
+            # the select's change event into v-model.
+            expect(status_select).to_have_value("done", timeout=5000)
             page.get_by_role("button", name="Save", exact=True).click()
             # Save closes the editor (footer is v-if="editingSection").
             expect(page.get_by_role("button", name="Save", exact=True)).to_have_count(0, timeout=8000)

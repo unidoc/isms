@@ -17,6 +17,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useLocale } from '../composables/useLocale'
+import { renderApiError } from '../composables/useApiError.js'
 
 const props = defineProps({
   // false on login / landing, where there is no session to save against.
@@ -45,7 +46,7 @@ async function onChange(e) {
   } catch (err) {
     // Put the control back where it was; the locale did not change.
     e.target.value = selected.value
-    emit('error', err?.message || String(err))
+    emit('error', renderApiError(err) || String(err))
   } finally {
     saving.value = false
   }

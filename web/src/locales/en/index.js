@@ -11,10 +11,12 @@
 // Import attributes (`with { type: 'json' }`) are required by Node for JSON
 // modules, and understood by Vite/Rollup — the same file therefore loads both
 // in the bundler and under `node --test`.
+import auth from './auth.json' with { type: 'json' }
 import common from './common.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 
 export default {
+  auth,
   common,
   notifications,
 }

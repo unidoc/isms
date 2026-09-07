@@ -90,7 +90,6 @@
     "code_block": "Code block (Ctrl+Alt+C)",
     "horizontal_rule": "Horizontal rule",
     "link": "Link (Ctrl+K)",
-    "link_label": "Link",
     "link_entity": "Link {type}",
     "link_placeholder": "https://...",
     "link_ok": "OK",
@@ -108,5 +107,84 @@
     "delete_row": "Delete row",
     "delete_column": "Delete column",
     "delete_table": "Delete table"
+  },
+  "slash": {
+    "table": {
+      "label": "Table",
+      "desc": "Insert a 3x3 table"
+    },
+    "h1": {
+      "label": "Heading 1",
+      "desc": "Large section heading"
+    },
+    "h2": {
+      "label": "Heading 2",
+      "desc": "Medium section heading"
+    },
+    "h3": {
+      "label": "Heading 3",
+      "desc": "Small section heading"
+    },
+    "bullet": {
+      "label": "Bullet List",
+      "desc": "Unordered list"
+    },
+    "ordered": {
+      "label": "Numbered List",
+      "desc": "Ordered list"
+    },
+    "quote": {
+      "label": "Blockquote",
+      "desc": "Indented quote block"
+    },
+    "code": {
+      "label": "Code Block",
+      "desc": "Fenced code block"
+    },
+    "hr": {
+      "label": "Divider",
+      "desc": "Horizontal rule"
+    },
+    "risk": {
+      "label": "Risk",
+      "desc": "Link to risk register"
+    },
+    "legal": {
+      "label": "Legal",
+      "desc": "Link to legal requirement"
+    },
+    "asset": {
+      "label": "Asset",
+      "desc": "Link to asset register"
+    },
+    "supplier": {
+      "label": "Supplier",
+      "desc": "Link to supplier"
+    },
+    "system": {
+      "label": "System",
+      "desc": "Link to IT system"
+    },
+    "doc": {
+      "label": "Document",
+      "desc": "Link to document"
+    },
+    "incident": {
+      "label": "Incident",
+      "desc": "Link to incident"
+    }
+  },
+  "markdown_field": {
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "strikethrough": "Strikethrough",
+    "heading": "Heading {level}",
+    "bullet_list": "Bullet list",
+    "numbered_list": "Numbered list",
+    "blockquote": "Blockquote",
+    "code_block": "Code block",
+    "divider": "Divider",
+    "link": "Link (Ctrl+K)",
+    "link_entity_button": "Link entity"
   }
 }

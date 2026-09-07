@@ -244,6 +244,7 @@
 
 <script setup>
 import { ref, reactive, watch, onBeforeUnmount, onMounted, computed, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -258,7 +259,7 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import ColorPicker from './ColorPicker.vue'
 import { api } from '../api.js'
-import { slashCommands as sharedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
+import { translatedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
 
 const props = defineProps({
@@ -268,6 +269,8 @@ const props = defineProps({
   selfType: { type: String, default: '' },
   selfId: { type: String, default: '' },
 })
+
+const { t } = useI18n()
 
 const emit = defineEmits(['update:modelValue', 'save'])
 const editorRoot = ref(null)
@@ -443,16 +446,17 @@ function tiptapAction(cmd) {
 }
 
 // Slash commands available in the rich editor: table (editor-only) plus the shared list.
-const slashCommands = [
-  { id: 'table', label: 'Table', shorthand: null, desc: 'Insert a 3x3 table', icon: 'table',
+const slashCommands = computed(() => [
+  { id: 'table', label: t('components.slash.table.label'), shorthand: null,
+    desc: t('components.slash.table.desc'), icon: 'table',
     action: (ed) => ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-  ...sharedSlashCommands.map(cmd => ({ ...cmd, action: tiptapAction(cmd) })),
-]
+  ...translatedSlashCommands().map(cmd => ({ ...cmd, action: tiptapAction(cmd) })),
+])
 
 const filteredSlashCommands = computed(() => {
   const q = slashMenu.query.toLowerCase()
-  if (!q) return slashCommands
-  return slashCommands.filter(c =>
+  if (!q) return slashCommands.value
+  return slashCommands.value.filter(c =>
     c.label.toLowerCase().includes(q) ||
     c.id.includes(q) ||
     c.desc.toLowerCase().includes(q) ||

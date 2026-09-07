@@ -186,5 +186,48 @@
     "divider": "Divider",
     "link": "Link (Ctrl+K)",
     "link_entity_button": "Link entity"
+  },
+  "suggestions": {
+    "empty": "No suggestions yet.",
+    "pending_notice": "Proposals pending — these changes take effect only once a manager applies them.",
+    "agent_badge": "AI",
+    "suggested_by": "Suggested by {name}",
+    "agent_suffix": "(AI)",
+    "apply": "Apply",
+    "reject": "Reject",
+    "reason_placeholder": "Reason...",
+    "rejected_with_reason": "Rejected: {reason}",
+    "applied_entity": "Applied {identifier}",
+    "type": "Type",
+    "title": "Title",
+    "title_placeholder": "Short description...",
+    "rationale": "Rationale",
+    "rationale_placeholder": "Why is this change needed?",
+    "creating": "Creating...",
+    "submit": "Submit",
+    "suggest": "Suggest",
+    "created_toast": "Suggestion submitted — a manager will review it before it takes effect.",
+    "stale_confirm": "Entity has changed since this suggestion was created. Apply anyway?",
+    "stale_confirm_action": "Apply anyway",
+    "error_create": "Failed to create suggestion",
+    "error_apply": "Apply failed",
+    "error_reject": "Reject failed",
+    "error_claim": "Failed to claim suggestion: {message}",
+    "status": {
+      "open": "Awaiting review",
+      "in_review": "Under review",
+      "applied": "Applied",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "action": {
+      "update": "Update fields",
+      "reassess_rating": "Reassess rating",
+      "reassess_criticality": "Reassess criticality",
+      "link_entities": "Link to other entities",
+      "link_risks_systems": "Link to risks/systems",
+      "request_review": "Request review",
+      "request_access_review": "Request access review"
+    }
   }
 }

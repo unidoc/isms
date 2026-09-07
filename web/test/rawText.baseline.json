@@ -18,7 +18,6 @@
   "components/RefreshButton.vue": 3,
   "components/SideBySideReview.vue": 17,
   "components/SuggestNewButton.vue": 11,
-  "components/SuggestionPanel.vue": 21,
   "components/SupplierReviewPanel.vue": 20,
   "components/TrackChanges.vue": 14,
   "views/Admin.vue": 169,

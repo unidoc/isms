@@ -1,5 +1,4 @@
 {
-  "components/CommentsPanel.vue": 1,
   "components/SuggestNewButton.vue": 1,
   "composables/useDocumentEditor.js": 1,
   "views/Admin.vue": 16,

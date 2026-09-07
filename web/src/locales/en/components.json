@@ -291,5 +291,11 @@
   },
   "color_picker": {
     "remove_color": "Remove color"
+  },
+  "comments_panel": {
+    "empty": "No comments yet.",
+    "placeholder": "Add a comment... (type {'@'} to mention)",
+    "post": "Post",
+    "error_add": "Failed to add comment: {message}"
   }
 }

@@ -16,6 +16,7 @@ import common from './common.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
+import shell from './shell.json' with { type: 'json' }
 
 export default {
   auth,
@@ -23,4 +24,5 @@ export default {
   landing,
   notifications,
   organizations,
+  shell,
 }

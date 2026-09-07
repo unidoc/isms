@@ -16,7 +16,8 @@
     "loading": "Loading…",
     "empty": "Nothing here yet",
     "error": "Something went wrong",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "copied": "Copied"
   },
   "validation": {
     "required": "This field is required"

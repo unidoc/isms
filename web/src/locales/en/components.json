@@ -283,5 +283,11 @@
     "error_add": "Failed to add reference: {message}",
     "error_remove": "Failed to remove reference: {message}",
     "error_load": "Failed to load references: {message}"
+  },
+  "code_block": {
+    "plain_text": "Plain text",
+    "enable_wrap": "Enable word wrap",
+    "disable_wrap": "Disable word wrap",
+    "wrap": "Wrap"
   }
 }

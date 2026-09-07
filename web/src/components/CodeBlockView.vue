@@ -6,16 +6,16 @@
         :value="displayLang"
         @change="onChange"
       >
-        <option value="plaintext">Plain text</option>
+        <option value="plaintext">{{ $t('components.code_block.plain_text') }}</option>
         <option v-for="l in languages" :key="l.id" :value="l.id">{{ l.label }}</option>
       </select>
       <button
         class="code-wrap-btn"
         type="button"
         :class="{ active: node.attrs.wrapped }"
-        :title="node.attrs.wrapped ? 'Disable word wrap' : 'Enable word wrap'"
+        :title="node.attrs.wrapped ? $t('components.code_block.disable_wrap') : $t('components.code_block.enable_wrap')"
         @click="toggleWrap"
-      >Wrap</button>
+      >{{ $t('components.code_block.wrap') }}</button>
     </div>
     <pre><span class="code-gutter" contenteditable="false" aria-hidden="true">{{ lineNumbers }}</span><node-view-content as="code" /></pre>
   </node-view-wrapper>

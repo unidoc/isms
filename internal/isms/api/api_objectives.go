@@ -119,10 +119,10 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	}
 
 	if p.Key == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "key is required")
+		return errRequired("key")
 	}
 	if p.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return errRequired("title")
 	}
 
 	if err := s.db.CreateProgram(ctx, orgID, &p); err != nil {
@@ -164,11 +164,11 @@ func (s *Server) handleGetProgram(c echo.Context) error {
 	orgID := getOrgID(c)
 	id, err := s.resolveProgramID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "program not found")
+		return errNotFound("program")
 	}
 	p, err := s.db.GetProgram(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "program not found")
+		return errNotFound("program")
 	}
 	return c.JSON(http.StatusOK, p)
 }
@@ -181,12 +181,12 @@ func (s *Server) handleUpdateProgram(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveProgramID(ctx, orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "program not found")
+		return errNotFound("program")
 	}
 
 	old, err := s.db.GetProgram(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "program not found")
+		return errNotFound("program")
 	}
 
 	var req programUpdateRequest
@@ -198,7 +198,7 @@ func (s *Server) handleUpdateProgram(c echo.Context) error {
 	p.ID = id
 	if req.Title != nil {
 		if *req.Title == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "title cannot be empty")
+			return apiError(http.StatusBadRequest, CodeFieldEmpty, Field("title"))
 		}
 		p.Title = *req.Title
 	}
@@ -235,7 +235,7 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := s.resolveProgramID(ctx, orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "program not found")
+		return errNotFound("program")
 	}
 
 	if err := s.db.DeleteProgram(ctx, orgID, id); err != nil {
@@ -323,11 +323,11 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "program_id is required")
 	}
 	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "title is required")
+		return errRequired("title")
 	}
 	// Cross-org parent guard: confirm the program belongs to this org.
 	if _, err := s.db.GetProgram(ctx, orgID, req.ProgramID); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "program not found in this organization")
+		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
 	}
 	o := db.Objective{
 		ProgramID:         req.ProgramID,
@@ -379,11 +379,11 @@ func (s *Server) handleGetObjective(c echo.Context) error {
 	// deep-links resolve for off-page objectives too (#166).
 	id, err := s.resolveObjectiveID(c.Request().Context(), orgID, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "objective not found")
+		return errNotFound("objective")
 	}
 	o, err := s.db.GetObjective(c.Request().Context(), orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "objective not found")
+		return errNotFound("objective")
 	}
 	return c.JSON(http.StatusOK, o)
 }
@@ -396,12 +396,12 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	old, err := s.db.GetObjective(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "objective not found")
+		return errNotFound("objective")
 	}
 
 	var req objectiveUpdateRequest
@@ -423,7 +423,7 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	o.ID = id
 	if req.Title != nil {
 		if *req.Title == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "title cannot be empty")
+			return apiError(http.StatusBadRequest, CodeFieldEmpty, Field("title"))
 		}
 		o.Title = *req.Title
 	}
@@ -490,7 +490,7 @@ func (s *Server) handleDeleteObjective(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	if err := s.db.DeleteObjective(ctx, orgID, id); err != nil {
@@ -521,7 +521,7 @@ func (s *Server) handleArchiveObjective(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	before, _ := s.db.GetObjective(ctx, orgID, id)
@@ -562,7 +562,7 @@ func (s *Server) handleUnarchiveObjective(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	before, _ := s.db.GetObjective(ctx, orgID, id)
@@ -607,7 +607,7 @@ func (s *Server) handleListCheckins(c echo.Context) error {
 	orgID := getOrgID(c)
 	objectiveID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid objective id")
+		return errInvalidEntityID("objective")
 	}
 
 	limit := 50
@@ -638,7 +638,7 @@ func (s *Server) handleCreateCheckin(c echo.Context) error {
 	ctx := c.Request().Context()
 	objectiveID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid objective id")
+		return errInvalidEntityID("objective")
 	}
 
 	var req checkinCreateRequest
@@ -647,7 +647,7 @@ func (s *Server) handleCreateCheckin(c echo.Context) error {
 	}
 	// Verify the objective belongs to this org before creating a checkin against it.
 	if _, err := s.db.GetObjective(ctx, orgID, objectiveID); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "objective not found in this organization")
+		return apiError(http.StatusNotFound, CodeNotFoundInOrg, Entity("objective"))
 	}
 	ci := db.Checkin{
 		ObjectiveID:  objectiveID,
@@ -705,12 +705,12 @@ func (s *Server) handleUpdateCheckin(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	existing, err := s.db.GetCheckin(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "checkin not found")
+		return errNotFound("checkin")
 	}
 
 	var req checkinUpdateRequest
@@ -771,7 +771,7 @@ func (s *Server) handleDeleteCheckin(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	if err := s.db.DeleteCheckin(ctx, orgID, id); err != nil {
@@ -801,13 +801,13 @@ func (s *Server) handleUploadEvidence(c echo.Context) error {
 	ctx := c.Request().Context()
 	checkinID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid checkin id")
+		return errInvalidEntityID("checkin")
 	}
 
 	// Verify checkin exists and belongs to org
 	_, err = s.db.GetCheckin(ctx, orgID, checkinID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "checkin not found")
+		return errNotFound("checkin")
 	}
 
 	// Get org UUID for S3 key
@@ -818,7 +818,7 @@ func (s *Server) handleUploadEvidence(c echo.Context) error {
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "file is required")
+		return errRequired("file")
 	}
 
 	title := c.FormValue("title")
@@ -881,7 +881,7 @@ func (s *Server) handleListEvidence(c echo.Context) error {
 	orgID := getOrgID(c)
 	checkinID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid checkin id")
+		return errInvalidEntityID("checkin")
 	}
 
 	evidence, err := s.db.ListEvidence(c.Request().Context(), orgID, checkinID)
@@ -896,7 +896,7 @@ func (s *Server) handleDownloadEvidence(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	org, err := s.db.GetOrganization(ctx, orgID)
@@ -906,7 +906,7 @@ func (s *Server) handleDownloadEvidence(c echo.Context) error {
 
 	ev, err := s.db.GetEvidence(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "evidence not found")
+		return errNotFound("evidence")
 	}
 
 	// S3 backend: return presigned URL. Local backend: serve file directly.
@@ -941,7 +941,7 @@ func (s *Server) handleDeleteEvidence(c echo.Context) error {
 	ctx := c.Request().Context()
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	org, err := s.db.GetOrganization(ctx, orgID)
@@ -951,7 +951,7 @@ func (s *Server) handleDeleteEvidence(c echo.Context) error {
 
 	ev, err := s.db.GetEvidence(ctx, orgID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "evidence not found")
+		return errNotFound("evidence")
 	}
 
 	_ = s.blobs.Delete(ctx, org.UUID, ev.ObjectKey)

@@ -75,5 +75,38 @@
       "accepted": "accepted",
       "rejected": "rejected"
     }
+  },
+  "editor": {
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Shift+Z)",
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "strikethrough": "Strikethrough (Ctrl+Shift+X)",
+    "text_color": "Text color",
+    "heading": "Heading {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Bullet list (Ctrl+Shift+8)",
+    "ordered_list": "Ordered list (Ctrl+Shift+7)",
+    "blockquote": "Blockquote (Ctrl+Shift+B)",
+    "code_block": "Code block (Ctrl+Alt+C)",
+    "horizontal_rule": "Horizontal rule",
+    "link": "Link (Ctrl+K)",
+    "link_label": "Link",
+    "link_entity": "Link {type}",
+    "link_placeholder": "https://...",
+    "link_ok": "OK",
+    "insert_table": "Insert table",
+    "insert_block": "Insert block",
+    "no_commands": "No matching commands",
+    "search_placeholder": "Search...",
+    "no_results": "No results",
+    "cell_color_open": "Cell color...",
+    "cell_color": "Cell color",
+    "add_row_above": "Add row above",
+    "add_row_below": "Add row below",
+    "add_column_left": "Add column left",
+    "add_column_right": "Add column right",
+    "delete_row": "Delete row",
+    "delete_column": "Delete column",
+    "delete_table": "Delete table"
   }
 }

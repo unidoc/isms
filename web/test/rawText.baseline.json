@@ -6,7 +6,6 @@
   "components/CopyLinkButton.vue": 4,
   "components/DiffView.vue": 11,
   "components/DocTreeNode.vue": 1,
-  "components/DocumentEditor.vue": 33,
   "components/EntityReferences.vue": 1,
   "components/GlobalSearch.vue": 9,
   "components/HeatMap.vue": 9,

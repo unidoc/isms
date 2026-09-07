@@ -54,22 +54,22 @@ func (s *Server) handleAdminUpdateRole(c echo.Context) error {
 
 	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid user ID")
+		return errInvalidEntityID("user")
 	}
 
 	var req struct {
 		Role string `json:"role"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Role == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "role is required")
+		return errRequired("role")
 	}
 
 	validRoles := map[string]bool{"admin": true, "manager": true, "contributor": true, "reader": true}
 	if !validRoles[req.Role] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid role")
+		return apiError(http.StatusBadRequest, CodeInvalidRole)
 	}
 
 	// Prevent self-downgrade if last admin
@@ -91,7 +91,7 @@ func (s *Server) handleAdminUpdateRole(c echo.Context) error {
 
 	// Verify user is already a member before updating role
 	if _, err := s.db.GetOrgMember(ctx, orgID, userID); err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "user is not a member of this organization")
+		return apiError(http.StatusNotFound, CodeNotOrgMember)
 	}
 	if err := s.db.AddOrgMember(ctx, orgID, userID, req.Role); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating role: "+err.Error())
@@ -114,7 +114,7 @@ func (s *Server) handleAdminRemoveMember(c echo.Context) error {
 
 	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid user ID")
+		return errInvalidEntityID("user")
 	}
 
 	// Prevent removing yourself
@@ -188,7 +188,7 @@ func (s *Server) handleAdminCreateOIDC(c echo.Context) error {
 
 	var p db.OIDCProvider
 	if err := c.Bind(&p); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	p.OrganizationID = orgID
 
@@ -222,21 +222,21 @@ func (s *Server) handleAdminUpdateOIDC(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid provider ID")
+		return errInvalidEntityID("oidc_provider")
 	}
 
 	// Fetch existing to verify ownership
 	existing, err := s.db.GetOIDCProviderByID(ctx, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "OIDC provider not found")
+		return errNotFound("oidc_provider")
 	}
 	if existing.OrganizationID != orgID {
-		return echo.NewHTTPError(http.StatusForbidden, "provider belongs to another organization")
+		return apiError(http.StatusForbidden, CodeProviderOtherOrg)
 	}
 
 	var p db.OIDCProvider
 	if err := c.Bind(&p); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	p.ID = id
 	p.OrganizationID = orgID
@@ -268,16 +268,16 @@ func (s *Server) handleAdminDeleteOIDC(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid provider ID")
+		return errInvalidEntityID("oidc_provider")
 	}
 
 	// Verify ownership
 	existing, err := s.db.GetOIDCProviderByID(ctx, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "OIDC provider not found")
+		return errNotFound("oidc_provider")
 	}
 	if existing.OrganizationID != orgID {
-		return echo.NewHTTPError(http.StatusForbidden, "provider belongs to another organization")
+		return apiError(http.StatusForbidden, CodeProviderOtherOrg)
 	}
 
 	if err := s.db.DeleteOIDCProvider(ctx, orgID, id); err != nil {
@@ -301,15 +301,15 @@ func (s *Server) handleAdminTestOIDC(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid provider ID")
+		return errInvalidEntityID("oidc_provider")
 	}
 
 	provider, err := s.db.GetOIDCProviderByID(ctx, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "OIDC provider not found")
+		return errNotFound("oidc_provider")
 	}
 	if provider.OrganizationID != orgID {
-		return echo.NewHTTPError(http.StatusForbidden, "provider belongs to another organization")
+		return apiError(http.StatusForbidden, CodeProviderOtherOrg)
 	}
 
 	// Test OIDC discovery
@@ -359,10 +359,10 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 		Value string `json:"value"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Key == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "key is required")
+		return errRequired("key")
 	}
 
 	// Validate the org default locale against the supported set. Resolve() would
@@ -373,7 +373,7 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 	if req.Key == "default_locale" && req.Value != "" {
 		tag, ok := i18n.Canonical(req.Value)
 		if !ok {
-			return echo.NewHTTPError(http.StatusBadRequest, "unsupported locale")
+			return apiError(http.StatusBadRequest, CodeUnsupportedLocale)
 		}
 		req.Value = tag // store the canonical form, not whatever casing was sent
 	}
@@ -438,7 +438,7 @@ func (s *Server) handleBrandingUpload(c echo.Context) error {
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "file required")
+		return errRequired("file")
 	}
 
 	if file.Size > 2*1024*1024 {

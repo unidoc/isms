@@ -57,6 +57,7 @@ import { useSession } from '../composables/useSession'
 import { useToast } from '../composables/useToast.js'
 import { useI18n } from 'vue-i18n'
 import { renderApiError } from '../composables/useApiError.js'
+import { entityLabel } from '../composables/useEnumLabel.js'
 
 const { t } = useI18n()
 
@@ -86,10 +87,18 @@ const isDetail = computed(() => !!props.entityId)
 // The entity name is interpolated whole. It used to be lower-cased for the
 // "new" variant, which is locale-blind — German capitalises every noun — so
 // the casing now belongs to whatever the caller passes.
+// Mid-sentence ("Suggest new risk") wants the inline entity name, which
+// `common.entity_inline.*` authors per locale — the old code lower-cased
+// `typeLabel`, which is locale-blind. Falls back to the prop for an entity
+// type with no catalogue entry.
+const inlineEntity = computed(
+  () => entityLabel(props.entityType, { inline: true }) || props.typeLabel,
+)
+
 const formTitle = computed(() =>
   isDetail.value
     ? t('components.suggest_new.form_title_change', { entity: props.typeLabel })
-    : t('components.suggest_new.form_title_new', { entity: props.typeLabel }),
+    : t('components.suggest_new.form_title_new', { entity: inlineEntity.value }),
 )
 
 // Detail-only types (list always uses 'create', no picker needed)
@@ -118,7 +127,7 @@ const typeOptions = computed(() => {
 })
 
 const titlePlaceholder = computed(() => {
-  if (!isDetail.value) return t('components.suggest_new.placeholder_new', { entity: props.typeLabel })
+  if (!isDetail.value) return t('components.suggest_new.placeholder_new', { entity: inlineEntity.value })
   const kind = form.value.suggestion_type
   if (kind === 'reassess') return t('components.suggest_new.placeholder_reassess')
   if (kind === 'link') return t('components.suggest_new.placeholder_link')

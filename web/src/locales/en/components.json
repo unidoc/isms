@@ -263,5 +263,12 @@
     "send": "Send",
     "empty": "No comments yet",
     "reply_placeholder": "Write a reply... (type {'@'} to mention)"
+  },
+  "track_changes": {
+    "added": "+{count} added",
+    "removed": "-{count} removed",
+    "normal": "Normal",
+    "advanced": "Advanced",
+    "comment_placeholder": "Add a comment..."
   }
 }

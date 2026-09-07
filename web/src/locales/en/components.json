@@ -316,5 +316,14 @@
     "unified": "Unified",
     "before": "Before",
     "after": "After"
+  },
+  "global_search": {
+    "placeholder": "Search documents, risks, suppliers, incidents...",
+    "searching": "Searching...",
+    "no_results": "No results for \"{query}\"",
+    "empty_state": "Type to search across all entities",
+    "hint_navigate": "navigate",
+    "hint_open": "open",
+    "hint_close": "close"
   }
 }

@@ -68,7 +68,7 @@
         <span class="block text-[13px]">{{ formatFileTitle(node.file) }}</span>
         <span v-if="node.file.title" class="block text-[10px] text-slate-600 font-mono">{{ formatFileName(node.file) }}</span>
       </span>
-      <span v-if="needsReview(node.file)" class="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" title="Review required" />
+      <span v-if="needsReview(node.file)" class="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" :title="$t('components.doc_tree.review_required')" />
     </button>
   </template>
 </template>

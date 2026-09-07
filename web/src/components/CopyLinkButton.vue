@@ -2,8 +2,8 @@
   <button
     type="button"
     @click="copy"
-    :title="copied ? 'Link copied' : 'Copy link to this item'"
-    :aria-label="copied ? 'Link copied' : 'Copy link to this item'"
+    :title="copied ? $t('components.copy_link.copied') : $t('components.copy_link.copy')"
+    :aria-label="copied ? $t('components.copy_link.copied') : $t('components.copy_link.copy')"
     class="p-1 rounded-lg transition-colors"
     :class="copied ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'"
   >

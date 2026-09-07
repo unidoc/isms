@@ -297,5 +297,16 @@
     "placeholder": "Add a comment... (type {'@'} to mention)",
     "post": "Post",
     "error_add": "Failed to add comment: {message}"
+  },
+  "copy_link": {
+    "copied": "Link copied",
+    "copy": "Copy link to this item"
+  },
+  "doc_tree": {
+    "review_required": "Review required"
+  },
+  "refresh": {
+    "refreshing": "Refreshing…",
+    "refresh": "Refresh"
   }
 }

@@ -69,7 +69,7 @@ func (s *Server) handlePasskeyRegisterBegin(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	// Load existing credentials so the authenticator can exclude them.
@@ -113,7 +113,7 @@ func (s *Server) handlePasskeyRegisterComplete(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	raw, ok := s.passkeyRegistrations.LoadAndDelete(email)
@@ -184,10 +184,10 @@ func (s *Server) handlePasskeyLoginBegin(c echo.Context) error {
 
 	var req passkeyLoginBeginRequest
 	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+		return errRequired("email")
 	}
 
 	ctx := c.Request().Context()
@@ -198,18 +198,18 @@ func (s *Server) handlePasskeyLoginBegin(c echo.Context) error {
 	if !rateLimitDisabled() {
 		count, _ := s.db.CountRecentLoginAttempts(ctx, req.Email)
 		if count >= maxLoginAttempts {
-			return echo.NewHTTPError(http.StatusTooManyRequests, "too many attempts, try again later")
+			return apiError(http.StatusTooManyRequests, CodeTooManyAttempts)
 		}
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
 	if err != nil || user == nil {
 		s.db.RecordLoginAttempt(ctx, req.Email, clientIP)
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 	if !user.Active {
 		s.db.RecordLoginAttempt(ctx, req.Email, clientIP)
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 
 	dbCreds, err := s.db.ListWebAuthnCredentials(ctx, user.ID)
@@ -250,7 +250,7 @@ func (s *Server) handlePasskeyLoginComplete(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+		return apiError(http.StatusUnauthorized, CodeInvalidCredentials)
 	}
 
 	raw, ok := s.passkeyLogins.LoadAndDelete(email)
@@ -292,11 +292,11 @@ func (s *Server) handlePasskeyLoginComplete(c echo.Context) error {
 	if orgSlug != "" {
 		org, err := s.db.GetOrganizationBySlug(ctx, orgSlug)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "organization not found")
+			return apiError(http.StatusBadRequest, CodeNotFound, Entity("organization"))
 		}
 		_, err = s.db.GetOrgMember(ctx, org.ID, user.ID)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+			return apiError(http.StatusForbidden, CodeNotOrgMember)
 		}
 		orgID = org.ID
 		orgName = org.Name
@@ -362,7 +362,7 @@ func (s *Server) handleListPasskeys(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	creds, err := s.db.ListWebAuthnCredentials(ctx, user.ID)
@@ -392,12 +392,12 @@ type renamePasskeyRequest struct {
 func (s *Server) handleRenamePasskey(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	var req renamePasskeyRequest
 	if err := c.Bind(&req); err != nil || req.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "name is required")
+		return errRequired("name")
 	}
 
 	ctx := c.Request().Context()
@@ -406,15 +406,15 @@ func (s *Server) handleRenamePasskey(c echo.Context) error {
 	// Verify ownership.
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	cred, err := s.db.GetWebAuthnCredentialByID(ctx, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "passkey not found")
+		return errNotFound("passkey")
 	}
 	if cred.UserID != user.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "not your passkey")
+		return apiError(http.StatusForbidden, CodeNotYourPasskey)
 	}
 
 	if err := s.db.RenameWebAuthnCredential(ctx, id, user.ID, req.Name); err != nil {
@@ -429,7 +429,7 @@ func (s *Server) handleRenamePasskey(c echo.Context) error {
 func (s *Server) handleDeletePasskey(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
 
 	ctx := c.Request().Context()
@@ -437,15 +437,15 @@ func (s *Server) handleDeletePasskey(c echo.Context) error {
 
 	user, err := s.db.GetUserByEmail(ctx, email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 
 	cred, err := s.db.GetWebAuthnCredentialByID(ctx, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "passkey not found")
+		return errNotFound("passkey")
 	}
 	if cred.UserID != user.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "not your passkey")
+		return apiError(http.StatusForbidden, CodeNotYourPasskey)
 	}
 
 	if err := s.db.DeleteWebAuthnCredential(ctx, id, user.ID); err != nil {

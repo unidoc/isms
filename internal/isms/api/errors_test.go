@@ -230,8 +230,9 @@ func TestApiErrorRendering(t *testing.T) {
 		},
 		{
 			// field is humanised the same way entity is, so a snake_case JSON
-			// field name reads as prose in the CLI: today's literal at this
-			// call site says "path_pattern is required".
+			// field name reads as prose in the CLI. The two policy call sites
+			// used to spell the identifier ("path_pattern is required"); since
+			// they were converted they read "path pattern is required".
 			name:   "required wrapper humanises the field name",
 			err:    errRequired("path_pattern"),
 			msg:    "path pattern is required",

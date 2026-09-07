@@ -20,7 +20,7 @@ func (s *Server) handleListRiskReadings(c echo.Context) error {
 	ctx := c.Request().Context()
 	riskID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return errInvalidEntityID("risk")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "risk", riskID)
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *Server) handleCreateRiskReading(c echo.Context) error {
 	ctx := c.Request().Context()
 	riskID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid risk id")
+		return errInvalidEntityID("risk")
 	}
 
 	var req struct {
@@ -164,7 +164,7 @@ func (s *Server) handleListAssetReadings(c echo.Context) error {
 	ctx := c.Request().Context()
 	assetID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "asset", assetID)
 	if err != nil {
@@ -184,7 +184,7 @@ func (s *Server) handleCreateAssetReading(c echo.Context) error {
 	ctx := c.Request().Context()
 	assetID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid asset id")
+		return errInvalidEntityID("asset")
 	}
 
 	var req struct {
@@ -287,7 +287,7 @@ func (s *Server) handleListLegalReadings(c echo.Context) error {
 	ctx := c.Request().Context()
 	legalID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal id")
+		return errInvalidEntityID("legal_requirement")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "legal_requirement", legalID)
 	if err != nil {
@@ -307,7 +307,7 @@ func (s *Server) handleCreateLegalReading(c echo.Context) error {
 	ctx := c.Request().Context()
 	legalID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid legal id")
+		return errInvalidEntityID("legal_requirement")
 	}
 
 	var req struct {
@@ -391,7 +391,7 @@ func (s *Server) handleListSupplierReadings(c echo.Context) error {
 	ctx := c.Request().Context()
 	supplierID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "supplier", supplierID)
 	if err != nil {
@@ -411,7 +411,7 @@ func (s *Server) handleCreateSupplierReading(c echo.Context) error {
 	ctx := c.Request().Context()
 	supplierID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid supplier id")
+		return errInvalidEntityID("supplier")
 	}
 
 	var req struct {
@@ -491,7 +491,7 @@ func (s *Server) handleListSystemReadings(c echo.Context) error {
 	ctx := c.Request().Context()
 	systemID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "system", systemID)
 	if err != nil {
@@ -511,7 +511,7 @@ func (s *Server) handleCreateSystemReading(c echo.Context) error {
 	ctx := c.Request().Context()
 	systemID, err := parseID(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid system id")
+		return errInvalidEntityID("system")
 	}
 
 	var req struct {

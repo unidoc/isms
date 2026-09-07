@@ -88,7 +88,7 @@ func (s *Server) handleCFSession(c echo.Context) error {
 	email := claims.Email
 	if hdr := c.Request().Header.Get("Cf-Access-Authenticated-User-Email"); hdr != "" {
 		if email != "" && !strings.EqualFold(email, hdr) {
-			return echo.NewHTTPError(http.StatusUnauthorized, "token email mismatch")
+			return apiError(http.StatusUnauthorized, CodeTokenEmailMismatch)
 		}
 		if email == "" {
 			email = hdr
@@ -105,7 +105,7 @@ func (s *Server) handleCFSession(c echo.Context) error {
 			log.Printf("[cf-access] auto-provision failed for %s: %v", email, err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "auto-provision failed")
 		}
-		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
 	}
 	if created {
 		log.Printf("[cf-access] auto-provisioned user %s", email)
@@ -118,7 +118,7 @@ func (s *Server) handleCFSession(c echo.Context) error {
 	if slug, ok := c.Get("org_slug").(string); ok && slug != "" {
 		org, oerr := s.db.GetOrganizationBySlug(ctx, slug)
 		if oerr != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "organization not found")
+			return apiError(http.StatusBadRequest, CodeNotFound, Entity("organization"))
 		}
 		if _, merr := s.db.GetOrgMember(ctx, org.ID, user.ID); merr != nil {
 			// JIT-provisioned but not yet a member — an admin must add them.

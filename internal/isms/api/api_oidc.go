@@ -27,7 +27,7 @@ func (s *Server) handleOIDCProviders(c echo.Context) error {
 	ctx := c.Request().Context()
 	org, err := s.db.GetOrganizationBySlug(ctx, slug)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+		return errNotFound("organization")
 	}
 
 	providers, err := s.db.ListEnabledOIDCProviders(ctx, org.ID)
@@ -54,12 +54,12 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 	ctx := c.Request().Context()
 	org, err := s.db.GetOrganizationBySlug(ctx, slug)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "organization not found")
+		return errNotFound("organization")
 	}
 
 	provider, err := s.db.GetOIDCProvider(ctx, org.ID, providerName)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "OIDC provider not found")
+		return errNotFound("oidc_provider")
 	}
 	if !provider.Enabled {
 		return echo.NewHTTPError(http.StatusBadRequest, "OIDC provider is disabled")

@@ -14,6 +14,7 @@
   },
   "state": {
     "loading": "Loading…",
+    "saving": "Saving...",
     "empty": "Nothing here yet",
     "error": "Something went wrong",
     "unknown": "Unknown",

@@ -137,7 +137,7 @@
       <div class="flex gap-2">
         <button type="submit" :disabled="!isFormValid || submitting"
           class="text-[10px] px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors">
-          {{ submitting ? $t('components.readings.saving') : $t('components.readings.save') }}
+          {{ submitting ? $t('common.state.saving') : $t('components.readings.save') }}
         </button>
         <button type="button" @click="showForm = false" class="text-[10px] text-slate-500 hover:text-slate-300">{{ $t('common.action.cancel') }}</button>
       </div>

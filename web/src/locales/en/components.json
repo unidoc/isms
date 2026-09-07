@@ -17,7 +17,6 @@
     "next_review": "Next Review",
     "notes": "Notes",
     "notes_placeholder": "Assessment notes...",
-    "saving": "Saving...",
     "save": "Save Reading",
     "empty": "No readings yet.",
     "error_save": "Failed to save reading",
@@ -45,6 +44,36 @@
       "impact": "Imp",
       "score": "Score",
       "notes": "Notes"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Mark as reviewed",
+    "mark_unreviewed": "Mark as unreviewed",
+    "comment_count": "{count} comment | {count} comments",
+    "add_comment": "Add comment",
+    "resolved": "Resolved",
+    "resolve": "Resolve",
+    "resolved_by": "Resolved by {name} {date}",
+    "unknown_user": "unknown",
+    "suggested_edit": "Suggested edit",
+    "suggestion_accepted": "Accepted",
+    "suggestion_rejected": "Rejected",
+    "accept": "Accept",
+    "reject": "Reject",
+    "awaiting_author": "Awaiting author decision",
+    "suggestion_resolved_by": "{status} by {name}",
+    "reply": "Reply",
+    "reply_placeholder": "Reply... (type {'@'} to mention)",
+    "comment": "Comment",
+    "suggest_edit": "Suggest edit",
+    "suggest": "Suggest",
+    "suggestion_placeholder": "Suggest replacement text for this paragraph...",
+    "comment_placeholder": "Add a comment... (type {'@'} to mention)",
+    "no_content": "No content available.",
+    "status_inline": {
+      "pending": "pending",
+      "accepted": "accepted",
+      "rejected": "rejected"
     }
   }
 }

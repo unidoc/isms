@@ -83,6 +83,24 @@ export function formatDay(value, style = 'short') {
   return formatter(Intl.DateTimeFormat, 'date', activeLocale(), { ...options, timeZone: 'UTC' }).format(d)
 }
 
+// Short month names for the annual-plan grid, which labels twelve columns with
+// no date to format — so `formatDate` cannot serve it. Intl supplies the names,
+// which is why no `dashboard.month.jan` keys exist: month names are calendar
+// data every locale already carries, not copy anyone should be asked to
+// translate.
+//
+// Reads the active locale on every call rather than caching the array, so a
+// `computed()` over it re-evaluates when the locale switches.
+export function formatMonthShort(monthIndex) {
+  const i = Number(monthIndex)
+  if (!Number.isInteger(i) || i < 0 || i > 11) return ''
+  // Any year works; 2021 is a non-leap year, so no month is a special case.
+  return formatter(Intl.DateTimeFormat, 'date', activeLocale(), {
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(Date.UTC(2021, i, 1))
+}
+
 export function formatNumber(value, options = {}) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return ''
   return formatter(Intl.NumberFormat, 'number', activeLocale(), options).format(value)
@@ -124,5 +142,12 @@ export function formatRecent(value, { within = 7 * 24 * 60 * 60 * 1000, style = 
 }
 
 export function useFormat() {
-  return { date: formatDate, day: formatDay, number: formatNumber, relative: formatRelative, recent: formatRecent }
+  return {
+    date: formatDate,
+    day: formatDay,
+    monthShort: formatMonthShort,
+    number: formatNumber,
+    relative: formatRelative,
+    recent: formatRecent,
+  }
 }

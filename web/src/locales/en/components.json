@@ -229,5 +229,25 @@
       "request_review": "Request review",
       "request_access_review": "Request access review"
     }
+  },
+  "supplier_review": {
+    "title": "Supplier Reviews",
+    "submit": "Submit Review",
+    "outcome": "Outcome",
+    "outcome_value": {
+      "satisfactory": "Satisfactory",
+      "concerns": "Concerns identified",
+      "unsatisfactory": "Unsatisfactory"
+    },
+    "certifications_verified": "Certifications verified",
+    "data_handling_verified": "Data handling verified",
+    "sla_met": "SLA met",
+    "notes": "Review notes",
+    "notes_placeholder": "Describe what was reviewed and confirmed. This is the audit evidence for this review cycle.",
+    "save": "Save Review",
+    "empty": "No reviews yet.",
+    "certs_verified_short": "Certs verified",
+    "sla_not_met": "SLA not met",
+    "error_save": "Failed to save review"
   }
 }

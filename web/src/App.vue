@@ -711,6 +711,16 @@ onMounted(() => {
     e.preventDefault()
     router.push(resolved.fullPath)
   })
+  // Per-button copy state for the delegate below: the button's resting label,
+  // and the timer that restores it. Keyed on the element and weakly held, so a
+  // re-rendered markdown block does not leak its old buttons.
+  //
+  // The resting label has to be remembered rather than re-read on each click.
+  // Reading `textContent` at click time works once, but a second click inside
+  // the 1.5s window reads "Copied" — and that click's timer then restores
+  // "Copied", leaving the button stuck on it for good.
+  const copyState = new WeakMap()
+
   // Global click delegate for the copy buttons on rendered code blocks
   // (emitted by the shared markdown renderer in useRenderMd). Copies the raw
   // <code> textContent so the clipboard gets clean source, not span markup.
@@ -725,10 +735,19 @@ onMounted(() => {
       // Restore the label the markdown renderer wrote, rather than hardcoding
       // "Copy" back: the two live in different files, and a hardcoded reset
       // would silently desync the moment the renderer's label is translated.
-      const idle = btn.textContent
+      // Captured on the first click only — see copyState above.
+      let state = copyState.get(btn)
+      if (!state) {
+        state = { idle: btn.textContent, timer: 0 }
+        copyState.set(btn, state)
+      }
+      clearTimeout(state.timer)
       btn.classList.add('copied')
       btn.textContent = t('common.state.copied')
-      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = idle }, 1500)
+      state.timer = setTimeout(() => {
+        btn.classList.remove('copied')
+        btn.textContent = state.idle
+      }, 1500)
     }
     // Clipboard API needs a secure context (https / localhost). Self-hosted
     // deployments on plain http (e.g. a LAN box) don't have it, so fall back

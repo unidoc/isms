@@ -24,7 +24,7 @@ const STATUS = [
   'terminated', 'decommissioned', 'archived',
 ]
 
-// The translatable notification params (plan 82's closed set) and the groups the
+// The translatable notification params (the closed set) and the groups the
 // four non-status StatusBadge call sites name explicitly.
 const GROUPS = {
   status: STATUS,

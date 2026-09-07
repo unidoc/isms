@@ -2,7 +2,7 @@
 //
 // `notifications.title` / `body` are written pre-rendered in English and can
 // never be retranslated, so the backend also stores `title_key`, `body_key` and
-// a flat `params` object (plan 82 / PR #220). The stored English text stays the
+// a flat `params` object (PR #220). The stored English text stays the
 // fallback — for rows written before the keys existed, for agent-actionable
 // rows that are deliberately English, and for any key this bundle has no
 // message for.
@@ -19,7 +19,7 @@
 import { FALLBACK, i18n } from '../i18n.js'
 import { enumLabelInline, entityLabel } from './useEnumLabel.js'
 
-// The closed set of params carrying an enum value, per plan 82. Each name is
+// The closed set of params carrying an enum value. Each name is
 // also its `common.enum.*` group — that is why the groups were named after the
 // params in #229, so there is no second mapping to keep in sync.
 const ENUM_PARAMS = ['status', 'severity', 'action', 'suggestion_type']

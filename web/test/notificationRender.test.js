@@ -1,4 +1,4 @@
-// Step 6 of plan 82: the stored key+params become translated text.
+// The stored key+params become translated text.
 //
 // The contract these pin is split across two repos' worth of code — Go writes
 // the wire keys, the locale files carry the frames — and a mismatch is silent:
@@ -92,7 +92,8 @@ test('the same keys all render in id-ID', () => {
   }
 })
 
-// The half-translated trap plan 82 was written to avoid: an enum param spliced
+// The half-translated trap the notification keying was built to avoid: an enum
+// param spliced
 // in raw yields "Insiden resolved: …".
 test('enum params are translated before interpolation, not spliced raw', () => {
   const row = { title_key: 'notifications.incident_status', title: STORED, params: ROWS['notifications.incident_status'] }

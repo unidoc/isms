@@ -193,8 +193,8 @@ func TestNotificationContentValidate(t *testing.T) {
 	})
 
 	t.Run("an API-error param name is rejected", func(t *testing.T) {
-		// `field` belongs to plan 81 §1's closed set for API errors, not this
-		// one. The two sets are easy to conflate, so pin the boundary.
+		// `field` belongs to the API-error closed set in internal/isms/api/errors.go,
+		// not this one. The two are easy to conflate, so pin the boundary.
 		if err := (NotificationContent{Params: map[string]any{"field": "title"}}).Validate(); err == nil {
 			t.Error("`field` is the API-error set, not the notification set — want an error")
 		}

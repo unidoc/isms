@@ -1,9 +1,9 @@
-// The raw-text ratchet — plan 80 §6 option B, and task 1.9's outstanding half.
+// The raw-text ratchet — the CI half of the grep-based raw-text check.
 //
-// Phase 3 extraction is ~21 PRs by one maintainer over weeks. The keyset test
-// already stops a translation from diverging from `en`; nothing stopped a new
-// PR from reintroducing a hardcoded literal into a view that had already been
-// converted, which is the regression this exists to catch.
+// String extraction runs as many PRs by one maintainer over weeks. The keyset
+// test already stops a translation from diverging from `en`; nothing stopped a
+// new PR from reintroducing a hardcoded literal into a view that had already
+// been converted, which is the regression this exists to catch.
 //
 // It is a ratchet, not a gate: each file carries a committed budget in
 // rawText.baseline.json, and the budget may only go down. That is what lets the

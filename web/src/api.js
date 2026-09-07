@@ -68,7 +68,7 @@ async function fetchRaw(url) {
 // `body.message || body.error || status`, which is how `code` came to be
 // discarded six times over: the server has emitted a stable `code` and a param
 // map alongside the English `message` since the error-code work landed
-// (internal/isms/api/errors.go, plan 81 §1), and nothing here read them.
+// (internal/isms/api/errors.go), and nothing here read them.
 //
 // `message` stays the thrown Error's message, unchanged. That is deliberate
 // and load-bearing: ~191 call sites render `err.message` directly and none of

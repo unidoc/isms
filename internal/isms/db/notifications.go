@@ -107,7 +107,7 @@ func notificationParamAllowed(name string) bool {
 // English-speaking reviewer — the frame simply renders with the placeholder
 // unfilled or the value untranslated, and only for a non-English user.
 //
-// Note the closed set here is NOT the one plan 81 §1 defines for API errors
+// Note the closed set here is NOT the one errors.go defines for API errors
 // (entity/field/status/count). Different surface, different set; they are easy
 // to conflate.
 func (c NotificationContent) Validate() error {
@@ -142,8 +142,8 @@ func (c NotificationContent) paramsJSON() (b []byte, ok bool) {
 // lost translation beats a lost inbox item; a broken translation beats neither.
 //
 // A param outside the closed set degrades the same way, for the same reason.
-// Plan 82 step 7 proposed failing the write on an unknown name, to make the
-// guard a runtime guarantee as well as a test-time one — but a failed write
+// Failing the write on an unknown name was considered, to make the guard a
+// runtime guarantee as well as a test-time one — but a failed write
 // here IS a lost inbox item, which the line above already decided against, and
 // a param that fails validation is by definition one no frame renders
 // correctly anyway. So the row goes in English-only.

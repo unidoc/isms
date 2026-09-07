@@ -7,7 +7,7 @@ package api
 // key set enumerable, which is what NotificationKeys and its test need to
 // exist at all.
 //
-// Why enumerable matters here (plan 82 step 7): useNotificationRender.js falls
+// Why enumerable matters here: useNotificationRender.js falls
 // back to the stored English title when the catalogue has no message for a
 // key. That fallback is what keeps legacy rows, agent rows and a lagging
 // locale safe, and it is also what makes a MISSING translation look exactly

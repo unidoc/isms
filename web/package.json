@@ -14,6 +14,8 @@
     "i18n:baseline": "node scripts/i18nRawText.mjs --write",
     "i18n:raw": "node scripts/i18nRawText.mjs",
     "i18n:error-baseline": "node scripts/i18nErrorRender.mjs --write",
+    "i18n:keyset": "node scripts/i18nKeyset.mjs --write",
+    "i18n:keyset-diff": "node scripts/i18nKeyset.mjs",
     "i18n:error-raw": "node scripts/i18nErrorRender.mjs"
   },
   "dependencies": {

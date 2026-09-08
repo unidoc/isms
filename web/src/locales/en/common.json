@@ -17,7 +17,10 @@
     "add_comment": "Add comment",
     "comment": "Comment",
     "reply": "Reply",
-    "resolve": "Resolve"
+    "resolve": "Resolve",
+    "approve": "Approve",
+    "add": "Add",
+    "discard_draft": "Discard draft"
   },
   "state": {
     "loading": "Loading…",
@@ -31,7 +34,9 @@
     "copied": "Copied",
     "saved": "Saved",
     "overdue": "OVERDUE",
-    "no_notes": "No notes yet."
+    "no_notes": "No notes yet.",
+    "sending": "Sending...",
+    "creating": "Creating..."
   },
   "validation": {
     "required": "This field is required"
@@ -494,6 +499,14 @@
   "heading": {
     "quick_actions": "Quick actions",
     "danger_zone": "Danger zone"
+  },
+  "label": {
+    "version": "Version",
+    "version_number": "Version {version}",
+    "round": "Round {round}",
+    "round_paren": "(Round {round})",
+    "reviewers": "Reviewers",
+    "approved_prefix": "Approved:"
   },
   "read_only": {
     "actions": "Read-only — actions require manager or admin role."

@@ -38,7 +38,8 @@ loader — see [`docs/i18n.md`](../../../docs/i18n.md).
 | Enum values | `common.enum.<enum>.<db_value>` → `common.enum.status.changes_requested` |
 | Validation messages | `common.validation.required` |
 | Entity names | `common.entity.risk` |
-| Field names | `common.field.title` |
+| Field names, lowercase, for splicing into a sentence | `common.field.title` → "title is required" |
+| Shared standalone labels, capitalised | `common.label.version` |
 | API error codes | `common.error.not_found` |
 | Group by UI structure, not by phrasing | `risks.table.header.likelihood` |
 | Keys are `snake_case`, and enum keys mirror the DB value verbatim | `changes_requested`, never `changesRequested` |
@@ -133,6 +134,28 @@ Copy reused across two or more areas, plus the four cross-cutting groups
 (`enum`, `entity`, `field`, `error`). Everything else belongs to its area, even
 if the English happens to read the same in two places — the translations may
 diverge.
+
+### `field.*` vs `label.*` vs `<area>.table.header.*`
+
+Three groups hold what looks like the same word, and the difference is where the
+word is used, not what it says.
+
+- **`common.field.*` is lowercase** because it is never rendered alone.
+  `renderApiError` splices it into a frame — `common.error.required` is
+  `"{field} is required"` — so the value has to read as a noun mid-sentence. A
+  language that capitalises differently mid-sentence changes the value here, and
+  the frame stays untouched.
+- **`common.label.*` is capitalised** and stands on its own: a form label above
+  an input, a badge, an inline caption. It earns its place in `common.json` only
+  when two or more areas show the same label; `version`, `round` and `reviewers`
+  are there because the document, review and inbox surfaces all show them.
+- **`<area>.table.header.*` stays in the area** even when the English matches
+  another area's, which it very often does — "Status", "Type", "Owner". A column
+  header is abbreviated to fit a column, and how far a language can abbreviate a
+  word differs per table. Do not lift these into `common.label.*`.
+
+The test for a new `common.label.*` key is the second area, not the second call
+site: the same label twice inside one view belongs to that view.
 
 ## ISO terminology
 

@@ -150,17 +150,6 @@
     "comments": "Comments",
     "open_comments": "Open"
   },
-  "stat": {
-    "open": "Open",
-    "approved": "Approved",
-    "changes_requested": "Changes Requested",
-    "closed": "Closed",
-    "merged": "Merged"
-  },
-  "filter": {
-    "open": "Open",
-    "closed": "Closed"
-  },
   "list": {
     "empty_open": "No open reviews",
     "empty_closed": "No closed reviews",

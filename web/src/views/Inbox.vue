@@ -408,7 +408,7 @@
               <div class="text-sm font-medium text-slate-200 truncate">{{ ca.title }}</div>
               <div v-if="ca.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ ca.description }}</div>
             </div>
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">{{ severityLabel(ca.severity) }}</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">{{ caSeverityLabel(ca.severity) }}</span>
             <span class="text-xs text-slate-500 flex-shrink-0 w-32 truncate text-right">{{ sourceLabel(ca.source) }}</span>
             <span v-if="ca.due_date" class="text-xs flex-shrink-0 w-24 text-right" :class="isOverdue(ca) ? 'text-red-400 font-medium' : 'text-slate-500'">
               {{ formatDay(ca.due_date) }}
@@ -897,7 +897,13 @@ const tabs = computed(() => [
 // quoted word the raw-text scanner counts, and rightly.
 const taskTypeLabel = (v) => enumLabel('task_type', v)
 const priorityLabel = (v) => enumLabel('priority', v)
+// Incidents and corrective actions both call their column "severity" and they
+// are NOT the same value set: an incident is critical/high/medium/low, a
+// corrective action is major_nc/minor_nc/observation/opportunity — the audit
+// finding vocabulary, which the catalogue keys as `finding_type`. Mapping both
+// to `severity` renders a CA as the raw "Major Nc". Two helpers, deliberately.
 const severityLabel = (v) => enumLabel('severity', v)
+const caSeverityLabel = (v) => enumLabel('finding_type', v)
 const sourceLabel = (v) => enumLabel('source', v)
 const suggestionStatusLabel = (v) => enumLabel('status', v)
 

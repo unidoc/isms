@@ -713,23 +713,23 @@
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="text-2xl font-bold text-blue-400 tabular-nums">{{ reviewStats.open || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ t('reviews.stat.open') }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ statOpen }}</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="text-2xl font-bold text-emerald-400 tabular-nums">{{ reviewStats.approved || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ t('reviews.stat.approved') }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ statApproved }}</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="text-2xl font-bold text-amber-400 tabular-nums">{{ reviewStats.changes_requested || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ t('reviews.stat.changes_requested') }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ statChangesRequested }}</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="text-2xl font-bold text-slate-400 tabular-nums">{{ reviewStats.closed || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ t('reviews.stat.closed') }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ statClosed }}</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div class="text-2xl font-bold text-purple-400 tabular-nums">{{ reviewStats.merged || 0 }}</div>
-          <div class="text-xs text-slate-500 mt-1">{{ t('reviews.stat.merged') }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ statMerged }}</div>
         </div>
       </div>
 
@@ -738,7 +738,7 @@
         <button @click="statusFilter = 'open'"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors"
           :class="statusFilter === 'open' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'">
-          {{ t('reviews.filter.open') }}
+          {{ statOpen }}
           <span v-if="openCount > 0" class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-semibold rounded-full"
             :class="statusFilter === 'open' ? 'bg-slate-700 text-slate-200' : 'bg-slate-800 text-slate-400'">
             {{ openCount }}
@@ -747,7 +747,7 @@
         <button @click="statusFilter = 'closed'"
           class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors"
           :class="statusFilter === 'closed' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'">
-          {{ t('reviews.filter.closed') }}
+          {{ statClosed }}
           <span v-if="closedCount > 0" class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-semibold rounded-full"
             :class="statusFilter === 'closed' ? 'bg-slate-700 text-slate-200' : 'bg-slate-800 text-slate-400'">
             {{ closedCount }}
@@ -950,6 +950,16 @@ const publishButtonLabel = computed(() => {
 const publishNote = computed(() => review.value?.version
   ? t('reviews.actions.publish_note', { version: review.value.version })
   : t('reviews.actions.publish_note_this_version'))
+
+// The five stat tiles and the two filter tabs name review statuses, so they
+// read the same catalogue the badge beside them does. Keeping their own copies
+// is what let one screen show "Changes Requested" on the tile and "Changes
+// requested" on the badge two inches away.
+const statOpen = computed(() => statusLabel('open'))
+const statApproved = computed(() => statusLabel('approved'))
+const statChangesRequested = computed(() => statusLabel('changes_requested'))
+const statClosed = computed(() => statusLabel('closed'))
+const statMerged = computed(() => statusLabel('merged'))
 
 const emptyListLabel = computed(() => statusFilter.value === 'closed'
   ? t('reviews.list.empty_closed')

@@ -12,25 +12,37 @@
 // modules, and understood by Vite/Rollup — the same file therefore loads both
 // in the bundler and under `node --test`.
 import admin from './admin.json' with { type: 'json' }
+import assets from './assets.json' with { type: 'json' }
 import auth from './auth.json' with { type: 'json' }
 import common from './common.json' with { type: 'json' }
 import dashboard from './dashboard.json' with { type: 'json' }
 import components from './components.json' with { type: 'json' }
+import incidents from './incidents.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
+import legal from './legal.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
+import risks from './risks.json' with { type: 'json' }
 import settings from './settings.json' with { type: 'json' }
 import shell from './shell.json' with { type: 'json' }
+import suppliers from './suppliers.json' with { type: 'json' }
+import systems from './systems.json' with { type: 'json' }
 
 export default {
   admin,
+  assets,
   auth,
   common,
   components,
   dashboard,
+  incidents,
   landing,
+  legal,
   notifications,
   organizations,
+  risks,
   settings,
   shell,
+  suppliers,
+  systems,
 }

@@ -40,6 +40,48 @@ const GROUPS = {
   suggestion_type: ['create', 'update', 'reassess', 'link', 'review', 'reading'],
 }
 
+// The register groups added by the 3.5 extraction. Pinned against `en` like
+// every other group, but deliberately NOT in the id-ID mirror below: their
+// values are hardcoded English literals in the views today, so an untranslated
+// key is not a regression, while an unreviewed Indonesian ISO term is one.
+// Risk treatment in particular is clause 6.1.3 vocabulary — the category
+// web/src/locales/README.md records as having shipped wrong twice because the
+// wrong choice reads fluently. They join the mirror when a speaker works the
+// procedure in that README.
+//
+// Members mirror the CHECK constraints in migrations/ verbatim.
+const PENDING_TRANSLATION = {
+  treatment: ['mitigate', 'accept', 'transfer', 'avoid'],
+  risk_type: ['threat', 'opportunity'],
+  // risks.origin and incidents.source share one value set under two column
+  // names. Named for the value set, which also leaves `source` free for
+  // corrective_actions.source — a different set entirely.
+  origin: ['internal', 'external', 'internal and external'],
+  incident_type: ['incident', 'event', 'weakness'],
+  gdpr_role: ['controller', 'processor'],
+  // incidents.authority_notified and incidents.subjects_notified.
+  notification_status: ['not_required', 'pending', 'notified'],
+  supplier_type: [
+    'cloud', 'saas', 'consulting', 'hosting', 'infrastructure', 'software',
+    'contractor', 'other',
+  ],
+  asset_type: [
+    'infrastructure', 'processing_devices', 'software', 'system', 'network',
+    'service', 'financial_info', 'personal_data', 'ipr', 'sales_marketing',
+    'processing_facility', 'products_services', 'supply_chain', 'other',
+  ],
+  // The five the server accepts (db.LegalCategories) plus the seven Legal.vue
+  // has always offered. The view's list does not match the server's and six of
+  // its options are rejected on save (#269) — a pre-existing bug, not an
+  // extraction's to fix. Both sets carry labels so a stored value renders
+  // whichever list produced it.
+  legal_category: [
+    'privacy', 'security', 'sector', 'contractual', 'other',
+    'data_protection', 'employment', 'regulatory', 'intellectual_property',
+    'financial', 'environmental', 'corporate',
+  ],
+}
+
 // The suggestion `entity` param, resolved through common.entity.* rather than
 // common.enum.* — an entity name is a noun the whole app reuses, not an enum
 // member. Matches the entity_type CHECK on `suggestions`.
@@ -50,7 +92,7 @@ const ENTITIES = [
 ]
 
 test('every enum member a register can store has a label', () => {
-  for (const [group, values] of Object.entries(GROUPS)) {
+  for (const [group, values] of Object.entries({ ...GROUPS, ...PENDING_TRANSLATION })) {
     for (const value of values) {
       assert.ok(
         en.common.enum[group]?.[value],

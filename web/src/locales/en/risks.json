@@ -1,0 +1,98 @@
+{
+  "title": "Risk Register",
+  "subtitle": "Information security risk assessment and treatment",
+  "error": {
+    "load": "Failed to load risks. {message}",
+    "save": "Failed to save: {message}",
+    "create": "Failed to create risk: {message}",
+    "delete": "Failed to delete risk: {message}"
+  },
+  "action": {
+    "add": "Add Risk",
+    "cancel": "Cancel"
+  },
+  "create": {
+    "heading": "Add Risk",
+    "title_label": "Title *",
+    "title_placeholder": "e.g. Ransomware attack on production systems",
+    "category_label": "Category",
+    "deselect_hint": "Click to deselect",
+    "fill_in_later": "You can add description, consequences, treatment, owner and more after creating.",
+    "submit": "Add"
+  },
+  "map": {
+    "heading": "Risk Map"
+  },
+  "stat": {
+    "total": "Total Risks"
+  },
+  "filter": {
+    "empty": "No risks match your filter.",
+    "none_yet": "No risks yet — click Add to create your first one."
+  },
+  "table": {
+    "header": {
+      "risk": "Risk",
+      "type": "Type",
+      "score": "Score",
+      "cia": "C/I/A",
+      "owner": "Owner",
+      "treatment": "Treatment",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "was_score": "was {score}",
+    "cia_title": {
+      "confidentiality": "Confidentiality: {level}",
+      "integrity": "Integrity: {level}",
+      "availability": "Availability: {level}"
+    },
+    "advisory_badge": "Review",
+    "advisory_title": "CIA mismatch with linked assets — reassessment needed"
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "status": "Status",
+    "owner": "Owner",
+    "category": "Category",
+    "risk_type": "Risk Type",
+    "origin": "Origin",
+    "treatment": "Treatment",
+    "treatment_plan": "Treatment Plan",
+    "created": "Created",
+    "created_by": "Created by",
+    "notes": "Notes"
+  },
+  "placeholder": {
+    "description": "Describe the risk...",
+    "treatment_plan": "How are we addressing this risk?",
+    "notes": "Add notes, observations, meeting minutes, references..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "treatment": "Treatment",
+    "notes": "Notes"
+  },
+  "assessment": {
+    "inherent": "Inherent",
+    "current": "Current"
+  },
+  "links": {
+    "linked_assets": "Linked Assets"
+  },
+  "actions": {
+    "create_task": "Create Implementation Task",
+    "create_task_desc": "Spawn a task to action the treatment plan; auto-linked back to this risk."
+  },
+  "danger": {
+    "warning": "Deleting this risk is permanent and cannot be undone. History, comments, and linked references will be lost.",
+    "delete": "Delete risk",
+    "confirm": "Delete this risk? This cannot be undone."
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  }
+}

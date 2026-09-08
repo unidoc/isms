@@ -19,15 +19,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Supplier Register</h1>
-          <p class="text-sm text-slate-500 mt-1">Third-party suppliers, criticality, and assessment</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('suppliers.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('suppliers.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite" @click="showCreateForm = !showCreateForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            {{ showCreateForm ? 'Cancel' : 'Add Supplier' }}
+            {{ showCreateForm ? t('common.action.cancel') : t('suppliers.action.add') }}
           </button>
-          <SuggestNewButton entityType="supplier" typeLabel="Supplier" />
+          <SuggestNewButton entityType="supplier" :typeLabel="entityLabel('supplier')" />
         </div>
       </div>
 
@@ -38,7 +38,7 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-semibold text-slate-200">Add Supplier</h2>
+            <h2 class="text-sm font-semibold text-slate-200">{{ t('suppliers.create.heading') }}</h2>
             <button @click="showCreateForm = false" class="text-slate-500 hover:text-slate-300">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -47,37 +47,37 @@
           </div>
           <div class="space-y-3">
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Name *</label>
-              <input v-model="newItem.name" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. AWS, Office 365" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.create.name_label') }}</label>
+              <input v-model="newItem.name" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.create.name_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.create.type_label') }}</label>
               <div class="flex flex-wrap gap-1.5">
-                <button v-for="t in supplierTypes" :key="t.key"
-                  @click="newItem.supplier_type = newItem.supplier_type === t.key ? '' : t.key"
+                <button v-for="o in typeOptions" :key="o.value"
+                  @click="newItem.supplier_type = newItem.supplier_type === o.value ? '' : o.value"
                   class="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors"
-                  :class="newItem.supplier_type === t.key ? 'bg-blue-600/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'">
-                  {{ t.label }}
+                  :class="newItem.supplier_type === o.value ? 'bg-blue-600/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'">
+                  {{ o.label }}
                 </button>
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Criticality</label>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.create.criticality_label') }}</label>
               <div class="flex flex-wrap gap-1.5">
-                <button v-for="c in criticalityLevels" :key="c.key"
-                  @click="newItem.criticality = newItem.criticality === c.key ? '' : c.key"
+                <button v-for="c in criticalityOptions" :key="c.value"
+                  @click="newItem.criticality = newItem.criticality === c.value ? '' : c.value"
                   class="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors"
-                  :class="newItem.criticality === c.key ? criticalityChipColor(c.key) : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'">
+                  :class="newItem.criticality === c.value ? criticalityChipColor(c.value) : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'">
                   {{ c.label }}
                 </button>
               </div>
             </div>
           </div>
-          <div class="text-[10px] text-slate-600 mt-1">You can add CIA classification, owner, contract details after creating.</div>
+          <div class="text-[10px] text-slate-600 mt-1">{{ t('suppliers.create.fill_in_later') }}</div>
           <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
-            <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+            <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
             <button @click="createItem" :disabled="!newItem.name" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
-              Add
+              {{ t('suppliers.create.submit') }}
             </button>
           </div>
         </div>
@@ -96,38 +96,35 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <input v-model="searchQuery" type="text" placeholder="Search..."
+            <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
               class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
           </div>
           <select v-model="filterType" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All types</option>
-            <option v-for="t in supplierTypes" :key="t.key" :value="t.key">{{ t.label }}</option>
+            <option value="">{{ t('common.filter.all_types') }}</option>
+            <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <select v-model="filterCriticality" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All criticality</option>
-            <option v-for="c in criticalityLevels" :key="c.key" :value="c.key">{{ c.label }}</option>
+            <option value="">{{ t('common.filter.all_criticality') }}</option>
+            <option v-for="c in criticalityOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
           </select>
           <select v-model="filterStatus" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="under_review">Under Review</option>
-            <option value="suspended">Suspended</option>
-            <option value="terminated">Terminated</option>
+            <option value="">{{ t('common.filter.all_statuses') }}</option>
+            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <button v-if="filterType || filterCriticality || filterStatus || searchQuery"
             @click="filterType = ''; filterCriticality = ''; filterStatus = ''; searchQuery = ''"
             class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-            Clear
+            {{ t('common.action.clear') }}
           </button>
           <div class="ml-auto text-xs text-slate-500 tabular-nums">
-            {{ total }} total
+            {{ t('common.count.total', { count: total }) }}
           </div>
         </div>
       </div>
 
       <!-- Empty state -->
       <div v-if="suppliers.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-        <div class="text-sm text-slate-500">No suppliers found</div>
+        <div class="text-sm text-slate-500">{{ t('suppliers.filter.empty') }}</div>
       </div>
 
       <!-- Table -->
@@ -135,13 +132,13 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-slate-800">
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Supplier</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Criticality</th>
-              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">C/I/A</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Next Review</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.supplier') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.type') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.criticality') }}</th>
+              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.cia') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.status') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.owner') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('suppliers.table.header.next_review') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/50">
@@ -152,15 +149,15 @@
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-slate-200">{{ supplier.name }}</div>
               </td>
-              <td class="px-5 py-3.5 text-sm text-slate-400 capitalize">{{ formatLabel(supplier.supplier_type) }}</td>
+              <td class="px-5 py-3.5 text-sm text-slate-400">{{ typeLabel(supplier.supplier_type) || '—' }}</td>
               <td class="px-5 py-3.5">
-                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium" :class="criticalityColor(supplier.criticality)">{{ supplier.criticality }}</span>
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium" :class="criticalityColor(supplier.criticality)">{{ criticalityLabel(supplier.criticality) }}</span>
               </td>
               <td class="px-5 py-3.5 text-center">
                 <div class="flex gap-0.5 justify-center">
-                  <span v-if="supplier.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.confidentiality)" :title="'Confidentiality: ' + ciaLabel(supplier.confidentiality)">C{{ supplier.confidentiality }}</span>
-                  <span v-if="supplier.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.integrity)" :title="'Integrity: ' + ciaLabel(supplier.integrity)">I{{ supplier.integrity }}</span>
-                  <span v-if="supplier.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.availability)" :title="'Availability: ' + ciaLabel(supplier.availability)">A{{ supplier.availability }}</span>
+                  <span v-if="supplier.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.confidentiality)" :title="t('suppliers.table.cia_title.confidentiality', { level: ciaLabel(supplier.confidentiality) })">{{ t('common.cia_abbr.c') }}{{ supplier.confidentiality }}</span>
+                  <span v-if="supplier.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.integrity)" :title="t('suppliers.table.cia_title.integrity', { level: ciaLabel(supplier.integrity) })">{{ t('common.cia_abbr.i') }}{{ supplier.integrity }}</span>
+                  <span v-if="supplier.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.availability)" :title="t('suppliers.table.cia_title.availability', { level: ciaLabel(supplier.availability) })">{{ t('common.cia_abbr.a') }}{{ supplier.availability }}</span>
                   <span v-if="!supplier.confidentiality && !supplier.integrity && !supplier.availability" class="text-slate-600 text-xs">-</span>
                 </div>
               </td>
@@ -205,10 +202,10 @@
             <!-- Left nav -->
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -220,56 +217,53 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('suppliers.detail.overview') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Name</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.name') }}</label>
                         <input v-model="editForm.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.type') }}</label>
                         <select v-model="editForm.supplier_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="">None</option>
-                          <option v-for="t in supplierTypes" :key="t.key" :value="t.key">{{ t.label }}</option>
+                          <option value="">{{ t('common.option.none') }}</option>
+                          <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Criticality</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.criticality') }}</label>
                         <select v-model="editForm.criticality" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option v-for="c in criticalityLevels" :key="c.key" :value="c.key">{{ c.label }}</option>
+                          <option v-for="c in criticalityOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="active">Active</option>
-                          <option value="under_review">Under Review</option>
-                          <option value="suspended">Suspended</option>
-                          <option value="terminated">Terminated</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                        <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.owner') }}</label>
+                        <MemberPicker v-model="editForm.owner" :members="orgMembers" :placeholder="t('common.placeholder.select_owner')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Contact</label>
-                        <input v-model="editForm.contact" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="contact@supplier.com" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.contact') }}</label>
+                        <input v-model="editForm.contact" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.placeholder.contact')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Contract Reference</label>
-                        <input v-model="editForm.contract_ref" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="DPA / contract URL" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.contract_ref') }}</label>
+                        <input v-model="editForm.contract_ref" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.placeholder.contract_ref')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Contract Expiry</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.contract_expiry') }}</label>
                         <input v-model="editForm.contract_expiry" type="date" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="flex items-center gap-2 sm:col-span-2 pt-1">
                         <input id="data_access" type="checkbox" v-model="editForm.data_access" class="w-4 h-4 bg-slate-800 border-slate-700 rounded focus:ring-blue-500" />
-                        <label for="data_access" class="text-xs text-slate-400">Supplier has access to our data</label>
+                        <label for="data_access" class="text-xs text-slate-400">{{ t('suppliers.data_access.checkbox') }}</label>
                       </div>
                     </div>
                   </template>
@@ -277,43 +271,43 @@
                     <div class="space-y-4">
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ formatLabel(selectedItem.supplier_type) }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.type') }}</div>
+                          <div class="text-sm text-slate-300">{{ typeLabel(selectedItem.supplier_type) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Criticality</div>
-                          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium" :class="criticalityColor(selectedItem.criticality)">{{ selectedItem.criticality }}</span>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.criticality') }}</div>
+                          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium" :class="criticalityColor(selectedItem.criticality)">{{ criticalityLabel(selectedItem.criticality) }}</span>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Status</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.status') }}</div>
                           <StatusBadge :status="selectedItem.status" />
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Owner</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.owner') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedItem.owner) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Contact</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.contact') }}</div>
                           <div class="text-sm text-slate-300">{{ selectedItem.contact || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Contract Reference</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.contract_ref') }}</div>
                           <div class="text-sm text-slate-300">{{ selectedItem.contract_ref || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Contract Expiry</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.contract_expiry') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDay(selectedItem.contract_expiry) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Data Access</div>
-                          <div class="text-sm text-slate-300">{{ selectedItem.data_access ? 'Yes' : 'No' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.data_access') }}</div>
+                          <div class="text-sm text-slate-300">{{ selectedItem.data_access ? t('suppliers.data_access.yes') : t('suppliers.data_access.no') }}</div>
                         </div>
                         <div v-if="selectedItem.created_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedItem.created_at) }}</div>
                         </div>
                         <div v-if="selectedItem.created_by">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedItem.created_by) }}</div>
                         </div>
                       </div>
@@ -321,7 +315,7 @@
                       <!-- Linked systems (reverse direction: systems.supplier_id -> this supplier) -->
                       <div v-if="linkedSystems.length" class="border-t border-slate-800 pt-4">
                         <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
-                          Linked systems ({{ linkedSystems.length }})
+                          {{ t('suppliers.linked_systems.heading', linkedSystems.length) }}
                         </div>
                         <div class="space-y-1">
                           <router-link v-for="sys in linkedSystems" :key="sys.id" :to="orgPath(`/systems/${sys.id}`)"
@@ -344,25 +338,25 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDay(selectedItem.next_review) }}
+                    {{ t('common.review.overdue_since', { date: formatDay(selectedItem.next_review) }) }}
                   </div>
 
                   <!-- CIA scores -->
                   <div class="grid grid-cols-3 gap-4">
                     <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg px-5 py-4 text-center">
-                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">Confidentiality</div>
+                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">{{ t('suppliers.assessment.confidentiality') }}</div>
                       <div v-if="selectedItem.confidentiality" class="text-2xl font-bold tabular-nums mt-1.5" :class="ciaColorText(selectedItem.confidentiality)">{{ selectedItem.confidentiality }}</div>
                       <div v-else class="text-2xl text-slate-700 mt-1.5">—</div>
                       <div v-if="selectedItem.confidentiality" class="text-[10px] text-slate-500 mt-0.5">{{ ciaLabel(selectedItem.confidentiality) }}</div>
                     </div>
                     <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg px-5 py-4 text-center">
-                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">Integrity</div>
+                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">{{ t('suppliers.assessment.integrity') }}</div>
                       <div v-if="selectedItem.integrity" class="text-2xl font-bold tabular-nums mt-1.5" :class="ciaColorText(selectedItem.integrity)">{{ selectedItem.integrity }}</div>
                       <div v-else class="text-2xl text-slate-700 mt-1.5">—</div>
                       <div v-if="selectedItem.integrity" class="text-[10px] text-slate-500 mt-0.5">{{ ciaLabel(selectedItem.integrity) }}</div>
                     </div>
                     <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg px-5 py-4 text-center">
-                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">Availability</div>
+                      <div class="text-[10px] text-slate-500 uppercase tracking-wider">{{ t('suppliers.assessment.availability') }}</div>
                       <div v-if="selectedItem.availability" class="text-2xl font-bold tabular-nums mt-1.5" :class="ciaColorText(selectedItem.availability)">{{ selectedItem.availability }}</div>
                       <div v-else class="text-2xl text-slate-700 mt-1.5">—</div>
                       <div v-if="selectedItem.availability" class="text-[10px] text-slate-500 mt-0.5">{{ ciaLabel(selectedItem.availability) }}</div>
@@ -370,8 +364,8 @@
                   </div>
 
                   <div class="flex gap-4 text-[10px] text-slate-500 flex-wrap">
-                    <span v-if="selectedItem.last_review">Last review: {{ formatDay(selectedItem.last_review) }}</span>
-                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDay(selectedItem.next_review) }}</span>
+                    <span v-if="selectedItem.last_review">{{ t('common.review.last', { date: formatDay(selectedItem.last_review) }) }}</span>
+                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">{{ t('common.review.next', { date: formatDay(selectedItem.next_review) }) }}</span>
                   </div>
 
                   <!-- Readings -->
@@ -394,15 +388,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('suppliers.detail.notes') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'supplier'" :self-id="selectedItem?.identifier || ''" :rows="12" placeholder="Additional notes... Type /doc to link a document" />
+                    <MarkdownField v-model="editForm.notes" :self-type="'supplier'" :self-id="selectedItem?.identifier || ''" :rows="12" :placeholder="t('suppliers.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedItem.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -433,10 +427,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="supplier" :entityId="String(selectedItem.id)" />
                   <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this supplier is permanent and cannot be undone. History, comments, reviews and linked references will be lost.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('suppliers.danger.warning') }}</div>
                     <button @click="deleteSelectedItem" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete supplier
+                      {{ t('suppliers.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -447,8 +441,8 @@
 
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -463,6 +457,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -486,7 +481,11 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate, formatDay } from '../composables/useFormat.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
+const { t } = useI18n()
+const { enumLabel, entityLabel } = useEnumLabel()
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
 
@@ -507,7 +506,7 @@ async function reload() {
   try {
     await loadSuppliers()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -518,11 +517,13 @@ const orgMembers = ref([])
 const saving = ref(false)
 const stats = ref({ total: 0, active: 0, under_review: 0, suspended: 0, terminated: 0, critical: 0, high: 0, medium: 0, low: 0 })
 const statusStats = computed(() => [
-  { key: '', label: 'Total', count: stats.value.total, color: 'text-slate-100' },
-  { key: 'active', label: 'Active', count: stats.value.active, color: 'text-emerald-400' },
-  { key: 'under_review', label: 'Under Review', count: stats.value.under_review, color: 'text-amber-400' },
-  { key: 'suspended', label: 'Suspended', count: stats.value.suspended || 0, color: 'text-orange-400' },
-  { key: 'critical', label: 'Critical', count: stats.value.critical, color: stats.value.critical > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+  { key: '', label: t('common.stat.total'), count: stats.value.total, color: 'text-slate-100' },
+  { key: 'active', label: statusLabel('active'), count: stats.value.active, color: 'text-emerald-400' },
+  { key: 'under_review', label: statusLabel('under_review'), count: stats.value.under_review, color: 'text-amber-400' },
+  { key: 'suspended', label: statusLabel('suspended'), count: stats.value.suspended || 0, color: 'text-orange-400' },
+  // `critical` here counts criticality, not status — a different family, so a
+  // different group.
+  { key: 'critical', label: criticalityLabel('critical'), count: stats.value.critical, color: stats.value.critical > 0 ? 'text-red-400' : 'text-slate-100', static: true },
 ])
 
 const selectedItem = ref(null)
@@ -537,7 +538,10 @@ async function loadLinkedSystems() {
   if (!selectedItem.value) { linkedSystems.value = []; return }
   try {
     const res = await api.listSystemsLinked({ supplier_id: String(selectedItem.value.id), limit: '100' })
-    linkedSystems.value = Array.isArray(res?.data) ? res.data : []
+    // fetchJSON unwraps a {data: [...]} body and hands back the array itself, so
+    // reading `res.data` here always yielded undefined and the block never
+    // rendered. Same shape Systems.vue's loadAccessReviews already uses.
+    linkedSystems.value = Array.isArray(res) ? res : (res?.data || [])
   } catch { linkedSystems.value = [] }
 }
 watch(() => selectedItem.value?.id, loadLinkedSystems, { immediate: true })
@@ -553,34 +557,43 @@ const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
 
-const supplierTypes = [
-  { key: 'cloud', label: 'Cloud' },
-  { key: 'saas', label: 'SaaS' },
-  { key: 'consulting', label: 'Consulting' },
-  { key: 'hosting', label: 'Hosting' },
-  { key: 'infrastructure', label: 'Infrastructure' },
-  { key: 'software', label: 'Software' },
-  { key: 'contractor', label: 'Contractor' },
-  { key: 'other', label: 'Other' },
+// The members each picker offers, matching the supplier_type CHECK widened by
+// migrations/20260713000000_v0.7.1.sql. Only the label comes from the shared
+// catalogue.
+const SUPPLIER_TYPES = [
+  'cloud', 'saas', 'consulting', 'hosting', 'infrastructure', 'software',
+  'contractor', 'other',
 ]
+const CRITICALITIES = ['critical', 'high', 'medium', 'low']
+const STATUSES = ['active', 'under_review', 'suspended', 'terminated']
 
-const criticalityLevels = [
-  { key: 'critical', label: 'Critical' },
-  { key: 'high', label: 'High' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'low', label: 'Low' },
+// Message keys, not labels: a module-scope array of translated strings freezes
+// the tab bar in whichever locale was active when this module first evaluated.
+// `reviews` is this view's own copy — "Reviews", where Systems says "Access
+// Reviews" — so it is not a common.tab.* entry.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'assessment', label: 'common.tab.assessment' },
+  { key: 'reviews', label: 'suppliers.tab.reviews' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'assessment', label: 'Assessment' },
-  { key: 'reviews', label: 'Reviews' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
-]
+// Lookups and option lists live here rather than in the template: a group name
+// is a stored identifier, and the raw-text scanner reads a bare quoted word in
+// a mustache as unextracted copy.
+const statusLabel = (v) => enumLabel('status', v)
+const typeLabel = (v) => enumLabel('supplier_type', v)
+const criticalityLabel = (v) => enumLabel('criticality', v)
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const typeOptions = options(SUPPLIER_TYPES, typeLabel)
+const criticalityOptions = options(CRITICALITIES, criticalityLabel)
 
 useModalEscape(showCreateForm)
 useModalEscape(computed(() => !!selectedItem.value), closeDetail)
@@ -596,7 +609,17 @@ watch([filterType, filterCriticality, filterStatus], () => {
 })
 watch([page, pageSize], () => loadSuppliers())
 
-const ciaLabel = (v) => ['Not Assessed','Insignificant','Minor','Moderate','Major','Severe'][v] || 'N/A'
+// Keys written out rather than built from the index: a runtime-composed key
+// defeats keyset extraction, which is why the convention forbids it.
+const CIA_KEYS = [
+  'common.cia.not_assessed',
+  'common.cia.insignificant',
+  'common.cia.minor',
+  'common.cia.moderate',
+  'common.cia.major',
+  'common.cia.severe',
+]
+const ciaLabel = (v) => (CIA_KEYS[v] ? t(CIA_KEYS[v]) : t('common.cia.na'))
 
 function ciaColor(v) {
   switch (v) {
@@ -640,10 +663,6 @@ function criticalityChipColor(c) {
   }
 }
 
-function formatLabel(s) {
-  return (s || '').replace(/_/g, ' ')
-}
-
 function isOverdue(dateStr) {
   if (!dateStr) return false
   const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
@@ -670,7 +689,7 @@ async function loadSuppliers() {
     total.value = res?.total || 0
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -725,24 +744,11 @@ async function saveSection() {
     await api.putJSON(`/api/v1/suppliers/${selectedItem.value.id}`, { ...editForm.value })
     await refreshSelectedItem()
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('suppliers.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
-  }
-}
-
-async function changeSupplierStatus(newStatus) {
-  if (!selectedItem.value) return
-  try {
-    await api.putJSON(`/api/v1/suppliers/${selectedItem.value.id}`, { status: newStatus })
-    selectedItem.value.status = newStatus
-    await refreshSelectedItem()
-    await loadStats()
-    showSaved('Status updated')
-  } catch (e) {
-    showError('Failed to update status: ' + (e.message || 'unknown error'))
   }
 }
 
@@ -768,9 +774,9 @@ async function openItemFromRoute(id) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('suppliers.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('suppliers.dirty.discard'),
     })
     if (!ok) return
   }
@@ -781,9 +787,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('suppliers.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('suppliers.dirty.discard'),
     })
     if (!ok) return
   }
@@ -812,20 +818,20 @@ async function createItem() {
       router.push(orgPath(`/suppliers/${fresh.id}`))
     }
   } catch (e) {
-    showError('Failed to create supplier: ' + e.message)
+    showError(t('suppliers.error.create', { message: renderApiError(e) }))
   }
 }
 
 async function deleteSelectedItem() {
   if (!selectedItem.value) return
-  const ok = await confirmDialog({ message: 'Delete this supplier? This cannot be undone.', variant: 'danger', confirmLabel: 'Delete' })
+  const ok = await confirmDialog({ message: t('suppliers.danger.confirm'), variant: 'danger', confirmLabel: t('common.action.delete') })
   if (!ok) return
   try {
     await api.deleteJSON(`/api/v1/suppliers/${selectedItem.value.id}`)
     closeDetail()
     await loadSuppliers()
   } catch (e) {
-    showError('Failed to delete: ' + e.message)
+    showError(t('suppliers.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -838,7 +844,7 @@ onMounted(async () => {
     ])
     orgMembers.value = users || []
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }

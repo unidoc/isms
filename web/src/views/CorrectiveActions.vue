@@ -822,14 +822,16 @@ const SOURCES = ['internal_audit', 'external_audit', 'risk_assessment', 'securit
 
 const statusLabel = (v) => enumLabel('status', v)
 const severityLabel = (v) => enumLabelAbbr('finding_type', v)
-const sourceLabel = (v) => enumLabel('source', v)
+// The badge and the read view have always shown the form's longer wording
+// ("Internal Audit Finding"); only the filter shows the catalogue's.
+const sourceLabel = (v) => t(`corrective_actions.source_option.${v}`)
 
 const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
 const statusOptions = options(STATUSES, statusLabel)
 const severityAbbrOptions = options(SEVERITIES, severityLabel)
 const severityOptions = options(SEVERITIES, (v) => enumLabel('finding_type', v))
-const sourceOptions = options(SOURCES, sourceLabel)
-const sourceFormOptions = options(SOURCES, (v) => t(`corrective_actions.source_option.${v}`))
+const sourceOptions = options(SOURCES, (v) => enumLabel('source', v))
+const sourceFormOptions = options(SOURCES, sourceLabel)
 
 function severityClass(sev) {
   switch (sev) {

@@ -25,6 +25,28 @@ Adding a **locale**: register the tag server-side in
 `internal/isms/i18n/locale.go`, copy `en/`, translate the values, register the
 loader — see [`docs/i18n.md`](../../../docs/i18n.md).
 
+## The keyset is frozen
+
+`en` is pinned to `../../test/keyset.snapshot.json` — the exact set of keys, as
+of the freeze. **This is a translator's contract, not a restriction on features.**
+
+If you are **translating**: the snapshot is the set to translate against, and it
+is the same set both release gates measure your bundle by. You need 90% coverage
+before the locale can be enabled — a lower number renders the rest in English,
+which is worse for you than for anyone.
+
+If you are **adding a feature** and the keyset test fails, that is expected. Run
+`npm run i18n:keyset` to record the new keys; `npm run i18n:keyset-diff` shows
+what changed first, removals before additions.
+
+**One rule beyond that.** Adding a key costs a translator nothing — an
+untranslated key renders in English. **Removing or renaming one costs them work
+they already did**, and nothing in CI will stop you: a key missing from a
+translation is only a warning. So before recording a removal, check whether a
+translation in flight carries it, and prefer add-then-remove over a single rename.
+[`docs/i18n.md`](../../../docs/i18n.md) has the reasoning under "The frozen
+keyset".
+
 ## Key convention
 
 ```

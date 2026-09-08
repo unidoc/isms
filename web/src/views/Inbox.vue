@@ -697,7 +697,7 @@
             <div v-if="sg.reject_reason" class="text-xs text-red-400/80">{{ t('inbox.suggestions.rejected_reason', { reason: sg.reject_reason }) }}</div>
 
             <!-- Applied result -->
-            <div v-if="sg.applied_entity_id" class="text-xs text-emerald-400/80">{{ t('inbox.suggestions.applied_result', { entity: entityLabel(sg.entity_type), id: sg.applied_entity_id }) }}</div>
+            <div v-if="sg.applied_entity_id" class="text-xs text-emerald-400/80">{{ t('inbox.suggestions.applied_result', { entity: entityLabel(sg.entity_type, { inline: true }), id: sg.applied_entity_id }) }}</div>
           </div>
         </div>
       </template>

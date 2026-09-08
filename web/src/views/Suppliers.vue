@@ -538,7 +538,10 @@ async function loadLinkedSystems() {
   if (!selectedItem.value) { linkedSystems.value = []; return }
   try {
     const res = await api.listSystemsLinked({ supplier_id: String(selectedItem.value.id), limit: '100' })
-    linkedSystems.value = Array.isArray(res?.data) ? res.data : []
+    // fetchJSON unwraps a {data: [...]} body and hands back the array itself, so
+    // reading `res.data` here always yielded undefined and the block never
+    // rendered. Same shape Systems.vue's loadAccessReviews already uses.
+    linkedSystems.value = Array.isArray(res) ? res : (res?.data || [])
   } catch { linkedSystems.value = [] }
 }
 watch(() => selectedItem.value?.id, loadLinkedSystems, { immediate: true })

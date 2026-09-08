@@ -163,11 +163,13 @@
   "settings": {
     "empty": "No settings configured",
     "category": {
+      "ai": "AI",
+      "branding": "Branding",
       "localization": "Localization",
       "notifications": "Notifications",
       "review_cycles": "Review Cycles",
       "risk": "Risk",
-      "ai": "AI",
+      "tasks": "Tasks",
       "other": "Other"
     },
     "enabled": "Enabled",

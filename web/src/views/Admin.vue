@@ -1133,12 +1133,18 @@ const HIDDEN_SETTING_KEYS = new Set(['risk_categories'])
 // A closed set of categories the server groups settings by, each with its own
 // message key. An unknown category falls back to its own name rather than
 // rendering blank — the same shape as enumLabel's de-slug fallback.
+// Every category the server groups settings by, confirmed against
+// GET /admin/settings rather than guessed: ai, branding, localization,
+// notifications, review_cycles, risk, tasks — plus the 'other' bucket
+// settingsByCategory falls back to for a setting with no category.
 const SETTING_CATEGORY_KEYS = {
+  ai: 'admin.settings.category.ai',
+  branding: 'admin.settings.category.branding',
   localization: 'admin.settings.category.localization',
   notifications: 'admin.settings.category.notifications',
   review_cycles: 'admin.settings.category.review_cycles',
   risk: 'admin.settings.category.risk',
-  ai: 'admin.settings.category.ai',
+  tasks: 'admin.settings.category.tasks',
   other: 'admin.settings.category.other',
 }
 

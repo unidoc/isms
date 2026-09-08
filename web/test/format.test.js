@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { enumLabel } from '../src/composables/useEnumLabel.js'
-import { formatDate, formatDay, formatHours, formatMonthShort, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
+import { formatDate, formatDay, formatHours, formatMonthLong, formatMonthShort, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
 
 test('enum labels come from the catalogue, and de-slug only as a fallback', () => {
@@ -110,6 +110,12 @@ test('short month names come from Intl, and reject anything but a month index', 
   assert.equal(formatMonthShort(-1), '')
   assert.equal(formatMonthShort(12), '')
   assert.equal(formatMonthShort('x'), '')
+  // The spelled-out form rejects the same unusable input.
+  assert.equal(formatMonthLong(0), 'January')
+  assert.equal(formatMonthLong(11), 'December')
+  assert.equal(formatMonthLong(-1), '')
+  assert.equal(formatMonthLong(12), '')
+  assert.equal(formatMonthLong('x'), '')
   assert.equal(formatMonthShort(null), '')
   assert.equal(formatMonthShort(1.5), '')
 })

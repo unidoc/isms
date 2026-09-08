@@ -19,15 +19,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Objectives</h1>
-          <p class="text-sm text-slate-500 mt-1">Track measurable ISMS objectives and KPI performance</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('objectives.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('objectives.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite" @click="showCreateObjective = !showCreateObjective"
             class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Objective
+            {{ t('objectives.action.add') }}
           </button>
-          <SuggestNewButton entityType="objective" typeLabel="Objective" />
+          <SuggestNewButton entityType="objective" :typeLabel="entityLabel('objective')" />
         </div>
       </div>
 
@@ -43,26 +43,22 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <input v-model="searchQuery" type="text" placeholder="Search..."
+            <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
               class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
           </div>
           <select v-model="filterProgramId"
             class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All programs</option>
+            <option value="">{{ t('objectives.filter.all_programs') }}</option>
             <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.key }}: {{ p.title }}</option>
           </select>
           <select v-model="filterStatus"
             class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="at_risk">At Risk</option>
-            <option value="paused">Paused</option>
-            <option value="complete">Complete</option>
+            <option value="">{{ t('common.filter.all_statuses') }}</option>
+            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
-          <input v-model="filterOwner" type="text" placeholder="Owner..."
+          <input v-model="filterOwner" type="text" :placeholder="t('objectives.filter.owner_placeholder')"
             class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 placeholder-slate-600 focus:outline-none focus:border-blue-500 w-40" />
-          <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ total }} total</div>
+          <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: total }) }}</div>
         </div>
 
         <!-- Create objective form (modal) -->
@@ -71,34 +67,34 @@
         <div v-if="showCreateObjective" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4">
           <div class="absolute inset-0 bg-black/60" @click="showCreateObjective = false" />
           <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
-          <h3 class="text-sm font-semibold text-slate-300">Add Objective</h3>
+          <h3 class="text-sm font-semibold text-slate-300">{{ t('objectives.create.heading') }}</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Program *</label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.create.program_label') }}</label>
               <select v-model="newObjective.program_id"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="">Select program...</option>
+                <option value="">{{ t('objectives.create.program_placeholder') }}</option>
                 <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.key }}: {{ p.title }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Owner</label>
-              <MemberPicker v-model="newObjective.owner" :members="orgMembers" placeholder="Select owner..." />
+              <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.create.owner_label') }}</label>
+              <MemberPicker v-model="newObjective.owner" :members="orgMembers" :placeholder="t('objectives.placeholder.owner')" />
             </div>
             <div class="md:col-span-2">
-              <label class="block text-xs text-slate-500 mb-1">Title *</label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.create.title_label') }}</label>
               <input v-model="newObjective.title"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Monthly phishing test completion rate" />
+                :placeholder="t('objectives.create.title_placeholder')" />
             </div>
           </div>
-          <div class="text-[10px] text-slate-600 mt-1">You can add target value, source, measurement method, description and notes after creating.</div>
+          <div class="text-[10px] text-slate-600 mt-1">{{ t('objectives.create.fill_in_later') }}</div>
           <div class="flex justify-end gap-2">
             <button @click="showCreateObjective = false"
-              class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+              class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
             <button @click="createObjective" :disabled="!newObjective.program_id || !newObjective.title"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm rounded-lg transition-colors">
-              Add
+              {{ t('objectives.create.submit') }}
             </button>
           </div>
           </div>
@@ -111,11 +107,11 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-800">
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Target</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('objectives.table.header.id') }}</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('objectives.table.header.title') }}</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('objectives.table.header.target') }}</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('objectives.table.header.status') }}</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('objectives.table.header.owner') }}</th>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20"></th>
               </tr>
             </thead>
@@ -141,17 +137,13 @@
                     <select @change="quickStatusChange(o, $event.target.value); $event.target.value = ''"
                       class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-400 focus:outline-none focus:border-blue-500 cursor-pointer">
                       <option value="" disabled selected>{{ statusLabel(o.status) }}</option>
-                      <option value="draft">Draft</option>
-                      <option value="active">Active</option>
-                      <option value="at_risk">At Risk</option>
-                      <option value="paused">Paused</option>
-                      <option value="complete">Complete</option>
+                      <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
                     </select>
                   </div>
                 </td>
               </tr>
               <tr v-if="objectives.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-slate-600 text-sm">No objectives found</td>
+                <td colspan="6" class="px-4 py-8 text-center text-slate-600 text-sm">{{ t('objectives.filter.empty') }}</td>
               </tr>
             </tbody>
           </table>
@@ -189,10 +181,10 @@
           <!-- Sidebar nav -->
           <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
             <div class="space-y-0.5">
-              <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+              <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                 class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                {{ t.label }}
+                :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                {{ tab.label }}
               </button>
             </div>
           </nav>
@@ -204,57 +196,53 @@
             <template v-if="detailTab === 'overview'">
               <div class="px-6 py-5 space-y-5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                  <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('objectives.detail.overview') }}</div>
+                  <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                 </div>
                 <template v-if="editingSection === 'overview'">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.title') }}</label>
                       <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                      <MarkdownField v-model="editForm.description" :self-type="'objective'" :self-id="selectedObjective?.display_id || String(selectedObjective?.id || '')" :rows="3" placeholder="What is this objective?" />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.description') }}</label>
+                      <MarkdownField v-model="editForm.description" :self-type="'objective'" :self-id="selectedObjective?.display_id || String(selectedObjective?.id || '')" :rows="3" :placeholder="t('objectives.placeholder.description')" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                      <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.owner') }}</label>
+                      <MemberPicker v-model="editForm.owner" :members="orgMembers" :placeholder="t('objectives.placeholder.owner')" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Source</label>
-                      <input v-model="editForm.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="ISO 27001 6.2, etc." />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.source') }}</label>
+                      <input v-model="editForm.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('objectives.placeholder.source')" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.status') }}</label>
                       <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="draft">Draft</option>
-                        <option value="active">Active</option>
-                        <option value="at_risk">At Risk</option>
-                        <option value="paused">Paused</option>
-                        <option value="complete">Complete</option>
+                        <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                       </select>
                     </div>
                     <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Measurement method</label>
-                      <input v-model="editForm.measurement_method" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="How is this measured?" />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.measurement_method') }}</label>
+                      <input v-model="editForm.measurement_method" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('objectives.placeholder.measurement_method')" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Operator</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.operator') }}</label>
                       <select v-model="editForm.target_operator" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="gte">≥</option><option value="lte">≤</option><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option>
+                        <option v-for="o in operatorOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                       </select>
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Target value</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.target_value') }}</label>
                       <input v-model.number="editForm.target_value" type="number" step="any" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Unit</label>
-                      <input v-model="editForm.unit" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="%, count, hours..." />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.unit') }}</label>
+                      <input v-model="editForm.unit" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('objectives.placeholder.unit')" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Check-in cycle (months)</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('objectives.field.checkin_cycle_months') }}</label>
                       <input v-model.number="editForm.checkin_cycle" type="number" min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                   </div>
@@ -262,22 +250,22 @@
                 <template v-else>
                   <div class="space-y-4">
                     <div>
-                      <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                      <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('objectives.field.description') }}</div>
                       <div v-if="selectedObjective.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedObjective.description)"></div>
                       <div v-else class="text-sm text-slate-600">—</div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Owner</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.owner') }}</div>
                         <div class="text-sm text-slate-300">{{ resolveUserName(selectedObjective.owner) }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Source</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.source') }}</div>
                         <div class="text-sm text-slate-300">{{ selectedObjective.source || '—' }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Target</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.target') }}</div>
                         <div class="text-sm text-slate-300 font-mono">
                           <template v-if="selectedObjective.target_value != null">
                             {{ opSymbol(selectedObjective.target_operator) }} {{ selectedObjective.target_value }} {{ selectedObjective.unit }}
@@ -286,25 +274,25 @@
                         </div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Measurement</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.measurement') }}</div>
                         <div class="text-sm text-slate-300">{{ selectedObjective.measurement_method || '—' }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Check-in cycle</div>
-                        <div class="text-sm text-slate-300">{{ selectedObjective.checkin_cycle || 12 }} months</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.checkin_cycle') }}</div>
+                        <div class="text-sm text-slate-300">{{ t('objectives.field.months', { count: selectedObjective.checkin_cycle || 12 }, selectedObjective.checkin_cycle || 12) }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Last check-in</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.last_checkin') }}</div>
                         <div class="text-sm" :class="latestCheckinIsPass ? 'text-emerald-400' : (latestCheckinIsFail ? 'text-red-400' : 'text-slate-300')">
                           {{ checkins.length > 0 ? formatDate(checkins[0].occurred_at) : '—' }}
                         </div>
                       </div>
                       <div v-if="selectedObjective.created_at">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.created') }}</div>
                         <div class="text-sm text-slate-300">{{ formatDate(selectedObjective.created_at) }}</div>
                       </div>
                       <div v-if="selectedObjective.created_by">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('objectives.field.created_by') }}</div>
                         <div class="text-sm text-slate-300">{{ resolveUserName(selectedObjective.created_by) }}</div>
                       </div>
                     </div>
@@ -317,52 +305,52 @@
             <template v-if="detailTab === 'checkins'">
               <div class="px-6 py-5 space-y-5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Check-ins</div>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('objectives.checkin.heading') }}</div>
                   <div v-if="checkins.length > 0" class="text-[11px] text-slate-500">
-                    {{ passCount }} pass · {{ failCount }} fail · {{ checkins.length }} total
+                    {{ t('objectives.checkin.summary', { pass: passCount, fail: failCount, total: checkins.length }) }}
                   </div>
                 </div>
 
                 <!-- Add checkin form -->
                 <div v-if="canWrite" class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4 space-y-3">
-                  <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Record check-in</div>
+                  <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{{ t('objectives.checkin.record_heading') }}</div>
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <label class="block text-xs text-slate-500 mb-1">Value</label>
+                      <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.checkin.value_label') }}</label>
                       <input v-model.number="newCheckin.value_numeric" type="number" step="any"
                         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="97.5" />
+                        :placeholder="t('objectives.checkin.value_placeholder')" />
                     </div>
                     <div>
-                      <label class="block text-xs text-slate-500 mb-1">Result</label>
+                      <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.checkin.result_label') }}</label>
                       <select v-model="newCheckin.success"
                         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option :value="null">Unspecified</option>
-                        <option :value="true">Pass</option>
-                        <option :value="false">Fail</option>
+                        <option :value="null">{{ t('objectives.checkin.result.unspecified') }}</option>
+                        <option :value="true">{{ t('objectives.checkin.result.pass') }}</option>
+                        <option :value="false">{{ t('objectives.checkin.result.fail') }}</option>
                       </select>
                     </div>
                     <div class="md:col-span-2">
-                      <label class="block text-xs text-slate-500 mb-1">Internal note</label>
+                      <label class="block text-xs text-slate-500 mb-1">{{ t('objectives.checkin.message_label') }}</label>
                       <input v-model="newCheckin.message"
                         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Internal context..." />
+                        :placeholder="t('objectives.checkin.message_placeholder')" />
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
                     <input v-model="newCheckin.public_note"
                       class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Public-facing note (visible to stakeholders)" />
+                      :placeholder="t('objectives.checkin.public_note_placeholder')" />
                     <button @click="createCheckin"
                       class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
-                      Record
+                      {{ t('objectives.checkin.submit') }}
                     </button>
                   </div>
                 </div>
 
                 <!-- Checkins timeline -->
                 <div v-if="checkins.length === 0" class="text-center text-slate-600 text-sm py-12 border border-dashed border-slate-800 rounded-lg">
-                  No check-ins recorded yet
+                  {{ t('objectives.checkin.empty') }}
                 </div>
                 <div v-else class="space-y-2">
                   <div v-for="ci in checkins" :key="ci.id"
@@ -371,19 +359,19 @@
                     <div class="flex items-start justify-between gap-3">
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-xs text-slate-500 font-mono">{{ formatDate(ci.occurred_at) }}</span>
-                        <span v-if="ci.success === true" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">PASS</span>
-                        <span v-else-if="ci.success === false" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300">FAIL</span>
+                        <span v-if="ci.success === true" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">{{ t('objectives.checkin.pass_badge') }}</span>
+                        <span v-else-if="ci.success === false" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300">{{ t('objectives.checkin.fail_badge') }}</span>
                         <span v-if="ci.value_numeric != null" class="text-sm font-mono text-slate-200">
                           {{ ci.value_numeric }}{{ selectedObjective?.unit ? ' ' + selectedObjective.unit : '' }}
                         </span>
                       </div>
                       <div class="flex items-center gap-2 flex-shrink-0">
                         <span class="text-[10px] text-slate-600">{{ resolveUserName(ci.created_by) }}</span>
-                        <button v-if="canWrite" @click="deleteCheckin(ci)" class="text-[10px] text-red-400/60 hover:text-red-400">Delete</button>
+                        <button v-if="canWrite" @click="deleteCheckin(ci)" class="text-[10px] text-red-400/60 hover:text-red-400">{{ t('common.action.delete') }}</button>
                       </div>
                     </div>
                     <div v-if="ci.message" class="text-sm text-slate-300 mt-2">{{ ci.message }}</div>
-                    <div v-if="ci.public_note" class="text-sm text-blue-300/80 mt-1 italic">Public: {{ ci.public_note }}</div>
+                    <div v-if="ci.public_note" class="text-sm text-blue-300/80 mt-1 italic">{{ t('objectives.checkin.public', { note: ci.public_note }) }}</div>
 
                     <!-- Evidence -->
                     <div class="mt-3 space-y-1">
@@ -398,8 +386,8 @@
                           <span v-if="ev.size_bytes" class="text-slate-600 flex-shrink-0">{{ formatBytes(ev.size_bytes) }}</span>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                          <button @click="downloadEv(ev)" class="text-blue-400 hover:text-blue-300">Download</button>
-                          <button v-if="canWrite" @click="deleteEv(ev)" class="text-red-400/60 hover:text-red-400">Delete</button>
+                          <button @click="downloadEv(ev)" class="text-blue-400 hover:text-blue-300">{{ t('objectives.evidence.download') }}</button>
+                          <button v-if="canWrite" @click="deleteEv(ev)" class="text-red-400/60 hover:text-red-400">{{ t('common.action.delete') }}</button>
                         </div>
                       </div>
                       <div v-if="canWrite" class="flex items-center gap-2">
@@ -409,7 +397,7 @@
                           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
-                          Attach evidence
+                          {{ t('objectives.evidence.attach') }}
                         </label>
                       </div>
                     </div>
@@ -422,15 +410,15 @@
             <template v-if="detailTab === 'notes'">
               <div class="px-6 py-5 space-y-5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                  <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('objectives.detail.notes') }}</div>
+                  <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                 </div>
                 <template v-if="editingSection === 'notes'">
-                  <MarkdownField v-model="editForm.notes" :self-type="'objective'" :self-id="selectedObjective?.display_id || String(selectedObjective?.id || '')" :rows="12" placeholder="Add notes..." />
+                  <MarkdownField v-model="editForm.notes" :self-type="'objective'" :self-id="selectedObjective?.display_id || String(selectedObjective?.id || '')" :rows="12" :placeholder="t('objectives.placeholder.notes')" />
                 </template>
                 <template v-else>
                   <div v-if="selectedObjective.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedObjective.notes)"></div>
-                  <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                  <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                 </template>
               </div>
             </template>
@@ -461,10 +449,10 @@
               <div class="px-6 py-5 space-y-6">
                 <HistoryPanel entityType="objective" :entityId="String(selectedObjective.id)" />
                 <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                  <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                  <div class="text-xs text-slate-400">Deleting this objective is permanent and cannot be undone.</div>
+                  <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                  <div class="text-xs text-slate-400">{{ t('objectives.danger.warning') }}</div>
                   <button @click="deleteSelectedObjective" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                    Delete objective
+                    {{ t('objectives.danger.delete') }}
                   </button>
                 </div>
               </div>
@@ -475,8 +463,8 @@
 
         <!-- Footer action bar (edit mode only) -->
         <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-          <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-          <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+          <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+          <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
         </div>
       </div>
     </div>
@@ -492,7 +480,8 @@ import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm.js'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, getCurrentUser } from '../api'
+import { useI18n } from 'vue-i18n'
+import { api } from '../api'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import MemberPicker from '../components/MemberPicker.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -510,11 +499,14 @@ import StatusBadge from '../components/StatusBadge.vue'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatNumber } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { orgSlug, orgPath } = useCurrentOrg()
+const { orgPath } = useCurrentOrg()
 const { success: showSaved, error: showError } = useToast()
 const { ask: confirmAsk, confirm: confirmDialog } = useConfirm()
 
@@ -529,7 +521,7 @@ async function reload() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -552,15 +544,18 @@ const editForm = ref({})
 const { capture: captureEditSnapshot, isDirty } = useDirtyEdit(editForm)
 const saving = ref(false)
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'checkins', label: 'Check-ins' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Tab labels are keys, resolved in a computed: an array built at module load
+// freezes its labels in whatever locale was active when the file was imported.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'checkins', label: 'objectives.checkin.heading' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
 
 const passCount = computed(() => checkins.value.filter(c => c.success === true).length)
 const failCount = computed(() => checkins.value.filter(c => c.success === false).length)
@@ -575,13 +570,19 @@ const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
 const stats = ref({ total: 0, draft: 0, active: 0, at_risk: 0, paused: 0, complete: 0, archived: 0 })
-const statusStats = computed(() => [
-  { key: '', label: 'Total', count: stats.value.total || 0, color: 'text-slate-100' },
-  { key: 'active', label: 'Active', count: stats.value.active || 0, color: 'text-emerald-400' },
-  { key: 'at_risk', label: 'At Risk', count: stats.value.at_risk || 0, color: 'text-red-400' },
-  { key: 'paused', label: 'Paused', count: stats.value.paused || 0, color: 'text-amber-400' },
-  { key: 'complete', label: 'Complete', count: stats.value.complete || 0, color: 'text-blue-400' },
-])
+const STATUS_STATS = [
+  { key: '', field: 'total', color: 'text-slate-100' },
+  { key: 'active', field: 'active', color: 'text-emerald-400' },
+  { key: 'at_risk', field: 'at_risk', color: 'text-red-400' },
+  { key: 'paused', field: 'paused', color: 'text-amber-400' },
+  { key: 'complete', field: 'complete', color: 'text-blue-400' },
+]
+const statusStats = computed(() => STATUS_STATS.map(({ key, field, color }) => ({
+  key,
+  color,
+  label: key ? statusLabel(key) : t('common.stat.total'),
+  count: stats.value[field] || 0,
+})))
 const orgMembers = ref([])
 
 const newObjective = reactive({
@@ -596,23 +597,29 @@ const newCheckin = reactive({
   public_note: '',
 })
 
-function statusLabel(status) {
-  const map = { draft: 'Draft', active: 'Active', at_risk: 'At Risk', paused: 'Paused', complete: 'Complete' }
-  return map[status] || status
-}
+// Lookups and option lists live here rather than in the template: a group name
+// is a stored identifier, and the raw-text scanner reads a bare quoted word in
+// a mustache as unextracted copy.
+const STATUSES = ['draft', 'active', 'at_risk', 'paused', 'complete']
+const OPERATORS = ['gte', 'lte', 'eq', 'gt', 'lt']
 
-function opSymbol(op) {
-  const map = { gte: '\u2265', lte: '\u2264', eq: '=', gt: '>', lt: '<' }
-  return map[op] || op
-}
+const statusLabel = (v) => enumLabel('status', v)
+const opSymbol = (v) => enumLabel('target_operator', v)
 
-const formatDateTime = (d) => formatDate(d, 'datetime')
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const operatorOptions = options(OPERATORS, opSymbol)
 
+// The unit is a word, not a suffix: it comes from the catalogue, and the
+// number goes through Intl so a locale that groups or decimalises differently
+// is not handed a JavaScript-formatted string.
 function formatBytes(bytes) {
   if (!bytes) return ''
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  if (bytes < 1024) return t('common.bytes.b', { value: formatNumber(bytes) })
+  if (bytes < 1024 * 1024) {
+    return t('common.bytes.kb', { value: formatNumber(bytes / 1024, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) })
+  }
+  return t('common.bytes.mb', { value: formatNumber(bytes / (1024 * 1024), { maximumFractionDigits: 1, minimumFractionDigits: 1 }) })
 }
 
 const renderMd = renderMarkdown
@@ -623,7 +630,7 @@ async function loadAll() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }
@@ -651,7 +658,7 @@ async function loadObjectives() {
     total.value = res?.total || 0
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -705,9 +712,9 @@ async function selectObjective(o) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -718,9 +725,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -786,9 +793,9 @@ async function saveSection() {
       } catch { /* ignore */ }
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('objectives.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
@@ -796,13 +803,14 @@ async function saveSection() {
 
 async function deleteSelectedObjective() {
   if (!selectedObjective.value) return
-  if (!await confirmAsk(`Delete objective "${selectedObjective.value.title}"? This cannot be undone.`, { confirm: 'Delete', variant: 'danger' })) return
+  const question = t('objectives.danger.confirm', { title: selectedObjective.value.title })
+  if (!await confirmAsk(question, { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteObjective(selectedObjective.value.id)
     closeDetail()
     await loadObjectives()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -836,7 +844,7 @@ async function createObjective() {
       router.push(orgPath(`/objectives/${fresh.id}`))
     }
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -846,13 +854,8 @@ async function quickStatusChange(obj, newStatus) {
     obj.status = newStatus
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
-}
-
-async function saveObjField(field, value) {
-  if (!selectedObjective.value) return
-  try { await api.updateObjective(selectedObjective.value.id, { [field]: value }) } catch { /* silent */ }
 }
 
 async function createCheckin() {
@@ -867,17 +870,17 @@ async function createCheckin() {
     Object.assign(newCheckin, { value_numeric: null, success: null, message: '', public_note: '' })
     await loadCheckins()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
 async function deleteCheckin(ci) {
-  if (!await confirmAsk('Delete this checkin?', { confirm: 'Delete', variant: 'danger' })) return
+  if (!await confirmAsk(t('objectives.checkin.confirm_delete'), { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteCheckin(ci.id)
     await loadCheckins()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -889,7 +892,7 @@ async function uploadEvidence(checkinId, event) {
     event.target.value = ''
     await loadCheckins()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -910,20 +913,21 @@ async function downloadEv(ev) {
       a.remove()
       URL.revokeObjectURL(objUrl)
     } else {
-      error.value = 'Download failed: unexpected response from server'
+      error.value = t('objectives.error.download')
     }
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
 async function deleteEv(ev) {
-  if (!await confirmAsk(`Delete evidence "${ev.title}"?`, { confirm: 'Delete', variant: 'danger' })) return
+  const question = t('objectives.evidence.confirm_delete', { title: ev.title })
+  if (!await confirmAsk(question, { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteEvidence(ev.id)
     await loadCheckins()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 

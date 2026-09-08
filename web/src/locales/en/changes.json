@@ -1,0 +1,65 @@
+{
+  "title": "Change Management",
+  "subtitle": "Track and approve changes to your management system.",
+  "error": {
+    "load": "Failed to load changes: {message}",
+    "create": "Failed to create change request: {message}",
+    "save": "Failed to save: {message}",
+    "delete": "Failed to delete change request: {message}"
+  },
+  "action": {
+    "add": "Add Change Request"
+  },
+  "create": {
+    "heading": "Add Change Request",
+    "type_label": "Type",
+    "title_label": "Title",
+    "title_placeholder": "e.g. Migrate authentication to OIDC",
+    "priority_label": "Priority",
+    "category_label": "Category",
+    "fill_in_later": "You can add description, justification, planned date, risk level, assignee, rollback plan and notes after creating.",
+    "submitting": "Creating...",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No change requests found"
+  },
+  "list": {
+    "requested_by": "Requested by {name}",
+    "assigned_to": "Assigned to {name}",
+    "risk": "Risk: {level}"
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "type": "Type",
+    "priority": "Priority",
+    "category": "Category",
+    "risk_level": "Risk Level",
+    "status": "Status",
+    "assigned_to": "Assigned to",
+    "assignee": "Assignee",
+    "planned_for": "Planned for",
+    "justification": "Justification",
+    "rollback_plan": "Rollback Plan",
+    "requested_by": "Requested by",
+    "created": "Created"
+  },
+  "placeholder": {
+    "description": "Describe the change...",
+    "assignee": "Select...",
+    "justification": "Why is this change needed?",
+    "rollback_plan": "How to revert?",
+    "notes": "Add notes..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes",
+    "progress": "Progress"
+  },
+  "danger": {
+    "warning": "Deleting this change request is permanent and cannot be undone.",
+    "delete": "Delete change request",
+    "confirm": "Delete this change request? This cannot be undone."
+  }
+}

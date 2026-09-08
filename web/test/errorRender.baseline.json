@@ -1,12 +1,6 @@
 {
   "composables/useDocumentEditor.js": 1,
-  "views/Audit.vue": 19,
-  "views/Changes.vue": 4,
-  "views/CorrectiveActions.vue": 7,
   "views/Documents.vue": 15,
   "views/Inbox.vue": 21,
-  "views/Objectives.vue": 12,
-  "views/Programs.vue": 5,
-  "views/Reviews.vue": 12,
-  "views/Tasks.vue": 4
+  "views/Reviews.vue": 12
 }

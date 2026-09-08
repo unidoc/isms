@@ -19,15 +19,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Program Register</h1>
-          <p class="text-sm text-slate-500 mt-1">Group ISMS objectives into programs of work</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('programs.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('programs.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite" @click="showCreateForm = !showCreateForm"
             class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Program
+            {{ t('programs.action.add') }}
           </button>
-          <SuggestNewButton entityType="program" typeLabel="Program" />
+          <SuggestNewButton entityType="program" :typeLabel="entityLabel('program')" />
         </div>
       </div>
 
@@ -38,10 +38,10 @@
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..."
+          <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
             class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
         </div>
-        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ filtered.length }} total</div>
+        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: filtered.length }) }}</div>
       </div>
 
       <!-- Create program form (modal) -->
@@ -50,27 +50,27 @@
       <div v-if="showCreateForm" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4">
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
-          <h3 class="text-sm font-semibold text-slate-300">Add Program</h3>
+          <h3 class="text-sm font-semibold text-slate-300">{{ t('programs.create.heading') }}</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Key (uppercase) *</label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('programs.create.key_label') }}</label>
               <input v-model="newProgram.key" @input="newProgram.key = newProgram.key.toUpperCase().replace(/[^A-Z0-9]/g, '')"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
-                placeholder="AWARE" />
+                :placeholder="t('programs.create.key_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Title *</label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('programs.create.title_label') }}</label>
               <input v-model="newProgram.title"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Security Awareness" />
+                :placeholder="t('programs.create.title_placeholder')" />
             </div>
           </div>
-          <div class="text-[10px] text-slate-600 mt-1">You can add description and notes after creating.</div>
+          <div class="text-[10px] text-slate-600 mt-1">{{ t('programs.create.fill_in_later') }}</div>
           <div class="flex justify-end gap-2 pt-2">
-            <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+            <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">{{ t('common.action.cancel') }}</button>
             <button @click="createProgram" :disabled="!newProgram.key || !newProgram.title"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors">
-              Add
+              {{ t('programs.create.submit') }}
             </button>
           </div>
         </div>
@@ -83,9 +83,9 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-slate-800">
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Key</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('programs.table.header.key') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('programs.table.header.title') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('programs.table.header.description') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/50">
@@ -98,7 +98,7 @@
               <td class="px-4 py-3 text-slate-500 truncate max-w-md">{{ p.description || '—' }}</td>
             </tr>
             <tr v-if="filtered.length === 0">
-              <td colspan="3" class="px-4 py-8 text-center text-slate-600 text-sm">No programs yet</td>
+              <td colspan="3" class="px-4 py-8 text-center text-slate-600 text-sm">{{ t('programs.filter.empty') }}</td>
             </tr>
           </tbody>
         </table>
@@ -132,10 +132,10 @@
         <div class="flex flex-1 min-h-0">
           <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
             <div class="space-y-0.5">
-              <button v-for="t in detailTabs" :key="t.key" @click="detailTab = t.key"
+              <button v-for="tab in detailTabs" :key="tab.key" @click="detailTab = tab.key"
                 class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                {{ t.label }}
+                :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                {{ tab.label }}
               </button>
             </div>
           </nav>
@@ -145,40 +145,40 @@
             <template v-if="detailTab === 'overview'">
               <div class="px-6 py-5 space-y-5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                  <button v-if="canWrite && !editing" @click="startEdit" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('programs.detail.overview') }}</div>
+                  <button v-if="canWrite && !editing" @click="startEdit" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                 </div>
                 <template v-if="editing">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Key</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('programs.field.key') }}</label>
                       <input v-model="editForm.key" @input="editForm.key = editForm.key.toUpperCase().replace(/[^A-Z0-9]/g, '')"
                         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase" />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('programs.field.title') }}</label>
                       <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
                     <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                      <MarkdownField v-model="editForm.description" :rows="3" placeholder="What is this program?" />
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('programs.field.description') }}</label>
+                      <MarkdownField v-model="editForm.description" :rows="3" :placeholder="t('programs.placeholder.description')" />
                     </div>
                   </div>
                 </template>
                 <template v-else>
                   <div class="space-y-4">
                     <div>
-                      <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                      <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('programs.field.description') }}</div>
                       <div v-if="selected.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selected.description)"></div>
                       <div v-else class="text-sm text-slate-600">—</div>
                     </div>
                     <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Key</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('programs.field.key') }}</div>
                         <div class="text-sm text-slate-300 font-mono">{{ selected.key }}</div>
                       </div>
                       <div v-if="selected.created_at">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('programs.field.created') }}</div>
                         <div class="text-sm text-slate-300">{{ formatDate(selected.created_at) }}</div>
                       </div>
                     </div>
@@ -191,15 +191,15 @@
             <template v-if="detailTab === 'notes'">
               <div class="px-6 py-5 space-y-5">
                 <div class="flex items-center justify-between">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                  <button v-if="canWrite && !editing" @click="startEdit" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('programs.detail.notes') }}</div>
+                  <button v-if="canWrite && !editing" @click="startEdit" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                 </div>
                 <template v-if="editing">
-                  <MarkdownField v-model="editForm.notes" :rows="12" placeholder="Add notes..." />
+                  <MarkdownField v-model="editForm.notes" :rows="12" :placeholder="t('programs.placeholder.notes')" />
                 </template>
                 <template v-else>
                   <div v-if="selected.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selected.notes)"></div>
-                  <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                  <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                 </template>
               </div>
             </template>
@@ -230,10 +230,10 @@
               <div class="px-6 py-5 space-y-6">
                 <HistoryPanel entityType="program" :entityId="String(selected.id)" />
                 <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                  <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                  <div class="text-xs text-slate-400">Deleting this program also deletes all objectives under it. This cannot be undone.</div>
+                  <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                  <div class="text-xs text-slate-400">{{ t('programs.danger.warning') }}</div>
                   <button @click="deleteSelected" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                    Delete program
+                    {{ t('programs.danger.delete') }}
                   </button>
                 </div>
               </div>
@@ -243,8 +243,8 @@
 
         <!-- Footer (edit mode) -->
         <div v-if="editing" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-          <button @click="cancelEdit" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-          <button @click="saveEdit" :disabled="saving || !editForm.key || !editForm.title" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+          <button @click="cancelEdit" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+          <button @click="saveEdit" :disabled="saving || !editForm.key || !editForm.title" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
         </div>
       </div>
     </div>
@@ -258,6 +258,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { useToast } from '../composables/useToast'
@@ -275,7 +276,10 @@ import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
 import RefreshButton from '../components/RefreshButton.vue'
 import { formatDate } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+import { entityLabel } from '../composables/useEnumLabel.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { orgPath } = useCurrentOrg()
@@ -293,7 +297,7 @@ async function reload() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -315,14 +319,17 @@ const newProgram = reactive({ key: '', title: '' })
 useModalEscape(showCreateForm)
 useModalEscape(computed(() => !!selected.value), () => closeDetail())
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Tab labels are keys, resolved in a computed: an array built at module load
+// freezes its labels in whatever locale was active when the file was imported.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
 
 const renderMd = renderMarkdown
 
@@ -348,7 +355,7 @@ async function loadAll() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }
@@ -412,9 +419,9 @@ async function saveEdit() {
     const fresh = programs.value.find(p => p.id === selected.value.id)
     if (fresh) selected.value = fresh
     editing.value = false
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('programs.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
@@ -439,19 +446,20 @@ async function createProgram() {
       router.push(orgPath(`/programs/${created.id}`))
     }
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
 async function deleteSelected() {
   if (!selected.value) return
-  if (!await confirmAsk(`Delete program "${selected.value.key}"? All objectives under it will also be deleted.`, { confirm: 'Delete', variant: 'danger' })) return
+  const question = t('programs.danger.confirm', { key: selected.value.key })
+  if (!await confirmAsk(question, { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteProgram(selected.value.id)
     closeDetail()
     await loadAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 

@@ -18,9 +18,9 @@ const rawTextBaseline = "../../../web/test/rawText.baseline.json"
 // punctuation, and attribute values it cannot distinguish from copy — so a
 // fully extracted tree still carries a residue, and 100 is an estimate of it.
 //
-// For scale: the tree started at 2488 and sits at 1075 now that the auth,
-// shell, component, admin and register surfaces are extracted — so roughly 10x
-// above the threshold, with the workflow and document views left. The estimate
+// For scale: the tree started at 2488 and sits at 422 now that the auth,
+// shell, component, admin, register and workflow surfaces are extracted — so
+// roughly 4x above the threshold, with only the document views left. The estimate
 // still wants revisiting once a fully extracted tree shows what the residue
 // actually is; the threshold is a judgement, and says so. The coupling it
 // enforces is not.

@@ -1,0 +1,69 @@
+{
+  "title": "Tasks",
+  "subtitle": "Review tasks, follow-ups, and operational work items.",
+  "error": {
+    "create": "Failed to create task: {message}",
+    "save": "Failed to save: {message}",
+    "delete": "Failed to delete task: {message}"
+  },
+  "action": {
+    "add": "Add Task"
+  },
+  "create": {
+    "heading": "Add Task",
+    "title_label": "Title",
+    "title_placeholder": "e.g. Review risk register",
+    "priority_label": "Priority",
+    "type_label": "Type",
+    "visibility_label": "Visibility",
+    "fill_in_later": "You can add description, assignee, due date and notes after creating.",
+    "submitting": "Creating...",
+    "submit": "Add"
+  },
+  "visibility": {
+    "public": "Public — everyone in the org",
+    "private": "Private — assignee, creator & managers",
+    "private_badge": "Private",
+    "private_title": "Private — visible to assignee, creator & managers"
+  },
+  "filter": {
+    "assignee_placeholder": "Any assignee",
+    "empty": "No tasks match your filter.",
+    "empty_all": "No tasks yet — click Add to create your first one.",
+    "empty_hint": "Tasks are also generated automatically from overdue review cycles."
+  },
+  "list": {
+    "due": "Due {date}",
+    "created_by": "by {name}"
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "assignee": "Assignee",
+    "priority": "Priority",
+    "status": "Status",
+    "due_date": "Due date",
+    "type": "Type",
+    "created": "Created",
+    "created_by": "Created by",
+    "completed": "Completed"
+  },
+  "placeholder": {
+    "description": "Describe the task...",
+    "assignee": "Select assignee...",
+    "notes": "Add notes..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes",
+    "progress": "Progress"
+  },
+  "stat": {
+    "active": "Active"
+  },
+  "danger": {
+    "warning": "Deleting this task is permanent and cannot be undone.",
+    "delete": "Delete task",
+    "confirm": "Delete task \"{title}\"?"
+  }
+}

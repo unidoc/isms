@@ -400,7 +400,10 @@ export const api = {
   updateAuditProgramme: (id, data) => putJSON(`${API}/audit/programmes/${id}`, data),
   deleteAuditProgramme: (id) => deleteJSON(`${API}/audit/programmes/${id}`),
   getAuditCalendar: (year) => fetchJSON(`${API}/audit/calendar?year=${year || new Date().getFullYear()}`),
-  getAuditFindingsPaginated: (params) => fetchJSON(`${API}/audit/findings?${new URLSearchParams(params || {})}`),
+  // fetchRaw, not fetchJSON: the caller reads `.data` and `.total` off the
+  // envelope, and fetchJSON unwraps `{data: [...]}` to a bare array — which
+  // left the audit Findings tab and its four counters permanently at zero.
+  getAuditFindingsPaginated: (params) => fetchRaw(`${API}/audit/findings?${new URLSearchParams(params || {})}`),
   listAuditFindings: (params) => fetchJSON(`${API}/audit/findings?${new URLSearchParams(params || {})}`),
   getAudits: (programmeId) => fetchJSON(`${API}/audits${programmeId ? '?programme_id=' + programmeId : ''}`),
   listAudits: (params) => fetchJSON(`${API}/audits?${new URLSearchParams(params || {})}`),

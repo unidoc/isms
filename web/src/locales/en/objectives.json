@@ -1,0 +1,98 @@
+{
+  "title": "Objectives",
+  "subtitle": "Track measurable ISMS objectives and KPI performance",
+  "error": {
+    "save": "Failed to save: {message}",
+    "download": "Download failed: unexpected response from server"
+  },
+  "action": {
+    "add": "Add Objective"
+  },
+  "filter": {
+    "all_programs": "All programs",
+    "owner_placeholder": "Owner...",
+    "empty": "No objectives found"
+  },
+  "create": {
+    "heading": "Add Objective",
+    "program_label": "Program *",
+    "program_placeholder": "Select program...",
+    "owner_label": "Owner",
+    "title_label": "Title *",
+    "title_placeholder": "Monthly phishing test completion rate",
+    "fill_in_later": "You can add target value, source, measurement method, description and notes after creating.",
+    "submit": "Add"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Title",
+      "target": "Target",
+      "status": "Status",
+      "owner": "Owner"
+    }
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "owner": "Owner",
+    "source": "Source",
+    "status": "Status",
+    "measurement_method": "Measurement method",
+    "measurement": "Measurement",
+    "operator": "Operator",
+    "target_value": "Target value",
+    "target": "Target",
+    "unit": "Unit",
+    "checkin_cycle_months": "Check-in cycle (months)",
+    "checkin_cycle": "Check-in cycle",
+    "last_checkin": "Last check-in",
+    "created": "Created",
+    "created_by": "Created by",
+    "months": "{count} month | {count} months"
+  },
+  "placeholder": {
+    "description": "What is this objective?",
+    "owner": "Select owner...",
+    "source": "ISO 27001 6.2, etc.",
+    "measurement_method": "How is this measured?",
+    "unit": "%, count, hours...",
+    "notes": "Add notes..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "checkin": {
+    "heading": "Check-ins",
+    "summary": "{pass} pass · {fail} fail · {total} total",
+    "record_heading": "Record check-in",
+    "value_label": "Value",
+    "value_placeholder": "97.5",
+    "result_label": "Result",
+    "result": {
+      "unspecified": "Unspecified",
+      "pass": "Pass",
+      "fail": "Fail"
+    },
+    "message_label": "Internal note",
+    "message_placeholder": "Internal context...",
+    "public_note_placeholder": "Public-facing note (visible to stakeholders)",
+    "submit": "Record",
+    "empty": "No check-ins recorded yet",
+    "pass_badge": "PASS",
+    "fail_badge": "FAIL",
+    "public": "Public: {note}",
+    "confirm_delete": "Delete this checkin?"
+  },
+  "evidence": {
+    "download": "Download",
+    "attach": "Attach evidence",
+    "confirm_delete": "Delete evidence \"{title}\"?"
+  },
+  "danger": {
+    "warning": "Deleting this objective is permanent and cannot be undone.",
+    "delete": "Delete objective",
+    "confirm": "Delete objective \"{title}\"? This cannot be undone."
+  }
+}

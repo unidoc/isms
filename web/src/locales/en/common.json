@@ -305,6 +305,70 @@
       "financial": "Financial regulation",
       "environmental": "Environmental",
       "corporate": "Corporate governance"
+    },
+    "audit_type": {
+      "internal": "Internal",
+      "external": "External",
+      "surveillance": "Surveillance",
+      "certification": "Certification",
+      "recertification": "Recertification"
+    },
+    "change_category": {
+      "process": "Process",
+      "technology": "Technology",
+      "people": "People",
+      "documentation": "Documentation",
+      "infrastructure": "Infrastructure",
+      "other": "Other"
+    },
+    "task_type": {
+      "general": "General",
+      "review": "Review",
+      "incident_followup": "Incident follow-up",
+      "audit_followup": "Audit follow-up",
+      "ca_followup": "Corrective action follow-up",
+      "change_followup": "Change follow-up",
+      "onboarding": "Onboarding",
+      "offboarding": "Offboarding",
+      "training": "Training",
+      "other": "Other"
+    },
+    "source": {
+      "internal_audit": "Internal audit",
+      "external_audit": "External audit",
+      "risk_assessment": "Risk assessment",
+      "security_incident": "Security incident",
+      "objective": "Objective",
+      "feedback": "Feedback",
+      "other": "Other"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "outcome": {
+      "satisfactory": "Satisfactory",
+      "concerns": "Concerns",
+      "unsatisfactory": "Unsatisfactory"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "Change",
+      "access_request": "Access request"
+    },
+    "risk_level": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     }
   },
   "enum_inline": {
@@ -389,7 +453,8 @@
   "count": {
     "total": "{count} total",
     "comments": "{count} comment | {count} comments",
-    "outdated_comments": "{count} outdated comment | {count} outdated comments"
+    "outdated_comments": "{count} outdated comment | {count} outdated comments",
+    "of": "{shown} of {total}"
   },
   "placeholder": {
     "search": "Search...",
@@ -412,14 +477,19 @@
     "all_levels": "All levels",
     "all_criticality": "All criticality",
     "all_categories": "All categories",
-    "all_severities": "All severities"
+    "all_severities": "All severities",
+    "all_priorities": "All priorities",
+    "all_sources": "All sources",
+    "all_programs": "All programs",
+    "all_owners": "All owners"
   },
   "option": {
     "none": "None",
     "not_decided": "Not decided"
   },
   "stat": {
-    "total": "Total"
+    "total": "Total",
+    "overdue": "Overdue"
   },
   "heading": {
     "quick_actions": "Quick actions",
@@ -446,5 +516,42 @@
     "major": "Major",
     "severe": "Severe",
     "na": "N/A"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "Major NC",
+      "minor_nc": "Minor NC",
+      "observation": "Observation",
+      "opportunity": "OFI"
+    },
+    "audit_result": {
+      "not_assessed": "Not assessed",
+      "conforming": "Conforming",
+      "minor_nc": "Minor NC",
+      "major_nc": "Major NC",
+      "observation": "Observation",
+      "opportunity": "Opportunity"
+    }
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Created from [{label}]({link})",
+    "created_from_audit_finding": "Created from audit finding {label}"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "by {name}"
   }
 }

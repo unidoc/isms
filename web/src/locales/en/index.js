@@ -22,6 +22,7 @@ import incidents from './incidents.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
 import legal from './legal.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
+import objectives from './objectives.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
 import programs from './programs.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
@@ -42,6 +43,7 @@ export default {
   landing,
   legal,
   notifications,
+  objectives,
   organizations,
   programs,
   risks,

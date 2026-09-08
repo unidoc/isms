@@ -58,6 +58,9 @@ keyset".
 | The area is the filename | `risks.*` lives in `risks.json` |
 | Copy used in more than one area goes in `common.*` | `common.action.save` |
 | Enum values | `common.enum.<enum>.<db_value>` → `common.enum.status.changes_requested` |
+| Enum values, mid-sentence (authored, not lowercased) | `common.enum_inline.status.changes_requested` |
+| Enum values, abbreviated for a narrow control (authored, not truncated) | `common.enum_abbr.finding_type.opportunity` → "OFI" |
+| Entity names, mid-sentence | `common.entity_inline.risk` → "risk not found" |
 | Validation messages | `common.validation.required` |
 | Entity names | `common.entity.risk` |
 | Field names, lowercase, for splicing into a sentence | `common.field.title` → "title is required" |
@@ -83,9 +86,22 @@ t('risks.detail.owner') + ' ' + name            // ❌ unreachable in most langu
 **Interpolated entity and field names must themselves be translated.** An API
 error arrives as `{code: 'not_found', params: {entity: 'risk'}}`. Splicing the
 English `"risk"` into an Indonesian sentence produces neither language. The
-render helper resolves `entity` and `field` params through `common.entity.*` and
-`common.field.*` first — which is why those two groups exist and why every
-`entity` value the server emits must have a key here.
+render helper resolves the params *before* interpolating, and each param name has
+exactly one lookup path:
+
+| Param | Resolved through |
+|---|---|
+| `entity` | `common.entity_inline.*` |
+| `field` | `common.field.*` |
+| `status` | `common.enum_inline.status.*` |
+| `count`, `value` | spliced raw — a number, and the caller's own echoed input |
+
+**The `_inline` groups, not the standalone ones.** An error sentence puts the
+noun mid-sentence ("risk not found"), and which words a language capitalises
+mid-sentence is a property of that language — so the inline form is separately
+authored rather than a lowercasing of `common.entity.*`, which is for the badge
+and the page heading. Every `entity` and `status` value the server can emit needs
+a key in the inline group, and CI checks exactly that.
 
 **Use vue-i18n pluralization, not a `count === 1` branch.**
 
@@ -103,11 +119,17 @@ now, rather than retrofitted when a locale with real plural rules arrives.
 
 - **A group a backend notification interpolates is named after the param.** The
   notification renderer resolves translatable params as
-  `common.enum.<param>.<value>` — so `severity`, `status`, `action` and
+  `common.enum_inline.<param>.<value>` — so `severity`, `status`, `action` and
   `suggestion_type` are group names because those are the param names emitted by
   `internal/isms/api`. The `entity` param is the one exception: it resolves
-  through `common.entity.*`, because an entity name is a noun the whole app
-  reuses rather than a member of an enum.
+  through `common.entity_inline.*`, because an entity name is a noun the whole
+  app reuses rather than a member of an enum.
+  **The inline group, for the same reason as the error seam above**: a
+  notification title interpolates the value mid-sentence. So a group a
+  notification touches needs entries in *both* `common.enum.*` (the standalone
+  label a badge or table cell shows) and `common.enum_inline.*` — they are
+  separate authored strings, and `enumCatalog.test.js` requires the inline form
+  for every value a notification can interpolate.
 - **`status` is one flat group across every register**, not one group per table.
   Status values are distinct app-wide (`draft`, `investigating`, `awaiting_approval`),
   and `StatusBadge` receives a bare value with no family attached — the same
@@ -134,12 +156,24 @@ now, rather than retrofitted when a locale with real plural rules arrives.
   member — so it would de-slug to "Major nc" in every language. `finding_type`
   and `audit_result` deliberately overlap: a finding is always one of the four,
   while an audit item may also be unassessed or conforming.
-- **One value may need two different renderings**, and that is an area-file job,
-  not a second enum group. `Audit.vue` and `CorrectiveActions.vue` show these
-  same four values as compact chips reading "Major NC" and "OFI", while a table
-  column has room for "Major non-conformity". The catalogue holds the full form;
-  an abbreviation is copy belonging to the view that needs it, and goes in that
-  view's area file when it is extracted.
+- **One value may need two or three different renderings, and all of them live in
+  the catalogue.** `common.enum.*` is the standalone label, `common.enum_inline.*`
+  the mid-sentence form, and `common.enum_abbr.*` the short form for a control too
+  narrow to hold the full label — an `<option>` in a filter bar, a chip in a dense
+  table. `useEnumLabel()` exposes one function per form: `enumLabel`,
+  `enumLabelInline`, `enumLabelAbbr`. The abbreviated and inline forms fall back to
+  the standalone label, so a group with neither authored still renders.
+
+  All three are **authored per language, never derived**. "OFI" is an English
+  initialism and truncating "Major non-conformity" to fit a chip is a decision only
+  a speaker of the language can make.
+
+  **Do not put an abbreviation in an area file.** An earlier version of this
+  document said to, and following it produced per-view duplicates of catalogue
+  entries — six copies of one string in one case, deleted again later. If two
+  views abbreviate the same value set, that is one `common.enum_abbr.*` group;
+  if one view needs wording no other view wants, that is area copy and it is not
+  an abbreviation of an enum.
 
 If a language ever needs two different translations for one status value —
 Portuguese gender agreement on *aberto* / *aberta*, for instance — splitting the
@@ -152,10 +186,19 @@ every locale. Adding a key is cheap; renaming one is not.
 
 ## What belongs in `common.json`
 
-Copy reused across two or more areas, plus the four cross-cutting groups
-(`enum`, `entity`, `field`, `error`). Everything else belongs to its area, even
-if the English happens to read the same in two places — the translations may
-diverge.
+Copy reused across two or more areas, plus the cross-cutting groups — the ones
+that exist because a *seam* reads them rather than because two views happened to
+share a word:
+
+- `enum`, `enum_inline`, `enum_abbr` — read by `useEnumLabel`
+- `entity`, `entity_inline` — the same, for entity nouns
+- `field` — read by `renderApiError`
+- `error` — the API error catalogue, one key per code
+
+Everything else belongs to its area, even if the English happens to read the same
+in two places — the translations may diverge. `common.json` holds 30-odd
+top-level groups today; the four-group version of this paragraph predated the
+inline and abbreviated forms.
 
 ### `field.*` vs `label.*` vs `<area>.table.header.*`
 

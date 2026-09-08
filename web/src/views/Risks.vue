@@ -9,7 +9,7 @@
     <!-- Error -->
     <div v-else-if="error" class="max-w-5xl mx-auto px-8 py-12">
       <div class="bg-red-950/40 border border-red-900/50 rounded-lg p-6 text-red-300 text-sm flex items-center justify-between gap-4">
-        <span>Failed to load risks. {{ error }}</span>
+        <span>{{ t('risks.error.load', { message: error }) }}</span>
         <RefreshButton :loading="refreshing" @refresh="reload" />
       </div>
     </div>
@@ -19,17 +19,17 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Risk Register</h1>
-          <p class="text-sm text-slate-500 mt-1">Information security risk assessment and treatment</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('risks.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('risks.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite"
             @click="showCreateForm = !showCreateForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            {{ showCreateForm ? 'Cancel' : 'Add Risk' }}
+            {{ showCreateForm ? t('common.action.cancel') : t('risks.action.add') }}
           </button>
-          <SuggestNewButton entityType="risk" typeLabel="Risk" />
+          <SuggestNewButton entityType="risk" :typeLabel="entityLabel('risk')" />
         </div>
       </div>
 
@@ -40,7 +40,7 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold text-slate-200">Add Risk</h2>
+          <h2 class="text-sm font-semibold text-slate-200">{{ t('risks.create.heading') }}</h2>
           <button @click="showCreateForm = false" class="text-slate-500 hover:text-slate-300">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -49,29 +49,29 @@
         </div>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Title *</label>
-            <input v-model="newRisk.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. Ransomware attack on production systems" />
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.create.title_label') }}</label>
+            <input v-model="newRisk.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('risks.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.create.category_label') }}</label>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="cat in riskCategories" :key="cat.key"
                 @click="newRisk.category = newRisk.category === cat.key ? '' : cat.key"
                 class="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors"
                 :class="newRisk.category === cat.key ? 'bg-blue-600/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'"
-                :title="newRisk.category === cat.key ? 'Click to deselect' : ''">
+                :title="newRisk.category === cat.key ? t('risks.create.deselect_hint') : ''">
                 {{ cat.label }}
               </button>
             </div>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add description, consequences, treatment, owner and more after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('risks.create.fill_in_later') }}</div>
 
         <!-- Footer -->
         <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
           <button @click="createRisk" :disabled="!newRisk.title" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
-            Add
+            {{ t('risks.create.submit') }}
           </button>
         </div>
       </div>
@@ -89,10 +89,10 @@
           <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
-          Risk Map
+          {{ t('risks.map.heading') }}
         </summary>
         <div class="mt-3">
-          <HeatMap :items="allRisksForMap" title="Risk Map" @cell-click="onHeatMapClick" />
+          <HeatMap :items="allRisksForMap" :title="t('risks.map.heading')" @cell-click="onHeatMapClick" />
         </div>
       </details>
 
@@ -104,33 +104,28 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <input v-model="searchQuery" type="text" placeholder="Search..."
+            <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
               class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
           </div>
           <select v-model="filterLevel" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All levels</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="">{{ t('common.filter.all_levels') }}</option>
+            <option v-for="o in levelOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <select v-model="filterCategory" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All categories</option>
+            <option value="">{{ t('common.filter.all_categories') }}</option>
             <option v-for="cat in riskCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
           </select>
           <select v-model="filterStatus" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
+            <option value="">{{ t('common.filter.all_statuses') }}</option>
+            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <button v-if="filterLevel || filterCategory || filterStatus || searchQuery"
             @click="filterLevel = ''; filterCategory = ''; filterStatus = ''; searchQuery = ''"
             class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-            Clear
+            {{ t('common.action.clear') }}
           </button>
           <div class="ml-auto text-xs text-slate-500 tabular-nums">
-            {{ total }} total
+            {{ t('common.count.total', { count: total }) }}
           </div>
         </div>
       </div>
@@ -138,10 +133,10 @@
       <!-- Empty state -->
       <div v-if="risks.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
         <div v-if="filterLevel || filterCategory || filterStatus || searchQuery" class="text-sm text-slate-500">
-          No risks match your filter.
+          {{ t('risks.filter.empty') }}
         </div>
         <div v-else class="text-sm text-slate-500">
-          No risks yet — click Add to create your first one.
+          {{ t('risks.filter.none_yet') }}
         </div>
       </div>
 
@@ -150,14 +145,14 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-slate-800">
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Risk</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
-              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">C/I/A</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Treatment</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-              <th class="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.risk') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.type') }}</th>
+              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.score') }}</th>
+              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.cia') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.owner') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.treatment') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.status') }}</th>
+              <th class="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('risks.table.header.actions') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/50">
@@ -169,7 +164,7 @@
                 <td class="px-5 py-3.5">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-slate-200">{{ risk.title || risk.risk_id }}</span>
-                    <span v-if="isOverdue(risk.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">OVERDUE</span>
+                    <span v-if="isOverdue(risk.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
                   </div>
                   <div v-if="risk.category" class="text-[10px] text-slate-600 mt-0.5">{{ categoryLabel(risk.category) }}</div>
                   <div v-if="risk.description" class="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{{ stripMd(risk.description) }}</div>
@@ -177,7 +172,7 @@
                 <td class="px-5 py-3.5">
                   <span v-if="risk.risk_type" class="inline-block px-2 py-0.5 rounded text-xs font-medium"
                     :class="risk.risk_type === 'opportunity' ? 'bg-emerald-900/40 text-emerald-400' : 'bg-red-900/40 text-red-400'">
-                    {{ risk.risk_type }}
+                    {{ riskTypeLabel(risk.risk_type) }}
                   </span>
                   <span v-else class="text-slate-600 text-xs">-</span>
                 </td>
@@ -189,29 +184,29 @@
                     >
                       {{ risk.current_score ?? '-' }}
                     </span>
-                    <span v-if="risk.inherent_score" class="text-[9px] text-slate-600">was {{ risk.inherent_score }}</span>
+                    <span v-if="risk.inherent_score" class="text-[9px] text-slate-600">{{ t('risks.table.was_score', { score: risk.inherent_score }) }}</span>
                   </div>
                 </td>
                 <td class="px-5 py-3.5 text-center">
                   <div class="flex gap-0.5 justify-center">
-                    <span v-if="risk.confidentiality_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.confidentiality_impact)" :title="'Confidentiality: ' + ciaLabel(risk.confidentiality_impact)">C{{ risk.confidentiality_impact }}</span>
-                    <span v-if="risk.integrity_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.integrity_impact)" :title="'Integrity: ' + ciaLabel(risk.integrity_impact)">I{{ risk.integrity_impact }}</span>
-                    <span v-if="risk.availability_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.availability_impact)" :title="'Availability: ' + ciaLabel(risk.availability_impact)">A{{ risk.availability_impact }}</span>
+                    <span v-if="risk.confidentiality_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.confidentiality_impact)" :title="t('risks.table.cia_title.confidentiality', { level: ciaLabel(risk.confidentiality_impact) })">C{{ risk.confidentiality_impact }}</span>
+                    <span v-if="risk.integrity_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.integrity_impact)" :title="t('risks.table.cia_title.integrity', { level: ciaLabel(risk.integrity_impact) })">I{{ risk.integrity_impact }}</span>
+                    <span v-if="risk.availability_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.availability_impact)" :title="t('risks.table.cia_title.availability', { level: ciaLabel(risk.availability_impact) })">A{{ risk.availability_impact }}</span>
                     <span v-if="!risk.confidentiality_impact && !risk.integrity_impact && !risk.availability_impact" class="text-slate-600 text-xs">-</span>
                   </div>
                 </td>
                 <td class="px-5 py-3.5 text-sm text-slate-400">{{ resolveUserName(risk.owner) }}</td>
-                <td class="px-5 py-3.5 text-sm text-slate-400 capitalize">{{ (risk.treatment || '-').replace(/_/g, ' ') }}</td>
+                <td class="px-5 py-3.5 text-sm text-slate-400">{{ treatmentLabel(risk.treatment) || '-' }}</td>
                 <td class="px-5 py-3.5">
                   <StatusBadge :status="risk.status" />
                 </td>
                 <td class="px-5 py-3.5 text-right">
                   <div class="flex items-center justify-end gap-2">
-                    <span v-if="riskAdvisories[risk.id]?.length" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-900/40 text-amber-400 border border-amber-800/40" title="CIA mismatch with linked assets — reassessment needed">
+                    <span v-if="riskAdvisories[risk.id]?.length" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-900/40 text-amber-400 border border-amber-800/40" :title="t('risks.table.advisory_title')">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      Review
+                      {{ t('risks.table.advisory_badge') }}
                     </span>
                   </div>
                 </td>
@@ -251,10 +246,10 @@
             <!-- Primary nav -->
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -266,48 +261,48 @@
                 <div class="px-6 py-5 space-y-5">
                   <!-- Section header -->
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('risks.detail.overview') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <!-- Edit mode -->
                     <div class="space-y-4">
                       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="sm:col-span-2">
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.title') }}</label>
                           <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                         </div>
                         <div class="sm:col-span-2">
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                          <MarkdownField v-model="editForm.description" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="3" placeholder="Describe the risk..." />
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.description') }}</label>
+                          <MarkdownField v-model="editForm.description" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="3" :placeholder="t('risks.placeholder.description')" />
                         </div>
                         <div>
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.status') }}</label>
                           <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option>
+                            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                           </select>
                         </div>
                         <div>
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                          <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.owner') }}</label>
+                          <MemberPicker v-model="editForm.owner" :members="orgMembers" :placeholder="t('common.placeholder.select_owner')" />
                         </div>
                         <div>
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.category') }}</label>
                           <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="">None</option>
+                            <option value="">{{ t('common.option.none') }}</option>
                             <option v-for="cat in riskCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
                           </select>
                         </div>
                         <div>
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Risk Type</label>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.risk_type') }}</label>
                           <select v-model="editForm.risk_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="threat">Threat</option><option value="opportunity">Opportunity</option>
+                            <option v-for="o in riskTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                           </select>
                         </div>
                         <div>
-                          <label class="block text-xs font-medium text-slate-500 mb-1">Origin</label>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.origin') }}</label>
                           <select v-model="editForm.origin" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="internal">Internal</option><option value="external">External</option><option value="internal and external">Internal &amp; External</option>
+                            <option v-for="o in originOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                           </select>
                         </div>
                       </div>
@@ -318,13 +313,13 @@
                     <div class="space-y-4">
                       <!-- Title -->
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Title</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.title') }}</div>
                         <div class="text-sm text-slate-200 font-medium">{{ selectedRisk.title }}</div>
                       </div>
 
                       <!-- Description -->
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.description') }}</div>
                         <div v-if="selectedRisk.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedRisk.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
@@ -332,31 +327,31 @@
                       <!-- 2-column metadata -->
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Status</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.status') }}</div>
                           <StatusBadge :status="selectedRisk.status" />
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Owner</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.owner') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedRisk.owner) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Category</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.category') }}</div>
                           <div class="text-sm text-slate-300">{{ categoryLabel(selectedRisk.category) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Risk Type</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ selectedRisk.risk_type || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.risk_type') }}</div>
+                          <div class="text-sm text-slate-300">{{ riskTypeLabel(selectedRisk.risk_type) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Origin</div>
-                          <div class="text-sm text-slate-300">{{ formatOrigin(selectedRisk.origin) || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.origin') }}</div>
+                          <div class="text-sm text-slate-300">{{ originLabel(selectedRisk.origin) || '—' }}</div>
                         </div>
                         <div v-if="selectedRisk.created_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedRisk.created_at) }}</div>
                         </div>
                         <div v-if="selectedRisk.created_by">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedRisk.created_by) }}</div>
                         </div>
                       </div>
@@ -370,32 +365,33 @@
               <template v-if="detailTab === 'treatment'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Treatment</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('treatment')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('risks.detail.treatment') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('treatment')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'treatment'">
                     <div class="space-y-4">
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Treatment</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.treatment') }}</label>
                         <select v-model="editForm.treatment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="">Not decided</option><option value="mitigate">Mitigate</option><option value="accept">Accept</option><option value="transfer">Transfer</option><option value="avoid">Avoid</option>
+                          <option value="">{{ t('common.option.not_decided') }}</option>
+                          <option v-for="o in treatmentOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Treatment Plan</label>
-                        <MarkdownField v-model="editForm.treatment_plan" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="4" placeholder="How are we addressing this risk?" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.treatment_plan') }}</label>
+                        <MarkdownField v-model="editForm.treatment_plan" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="4" :placeholder="t('risks.placeholder.treatment_plan')" />
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Treatment</div>
-                        <div class="text-sm text-slate-300 capitalize">{{ selectedRisk.treatment || '—' }}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.treatment') }}</div>
+                        <div class="text-sm text-slate-300">{{ treatmentLabel(selectedRisk.treatment) || '—' }}</div>
                       </div>
 
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Treatment Plan</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.treatment_plan') }}</div>
                         <div v-if="selectedRisk.treatment_plan" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedRisk.treatment_plan)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
@@ -407,155 +403,16 @@
               <!-- ═══ ACTIONS ═══ -->
               <template v-if="detailTab === 'actions'">
                 <div class="px-6 py-5 space-y-4">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick actions</div>
-                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">Read-only — actions require manager or admin role.</div>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('common.heading.quick_actions') }}</div>
+                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">{{ t('common.read_only.actions') }}</div>
                   <div v-else class="flex flex-col gap-3 max-w-md">
                     <button @click="createLinkedTask"
                       class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors text-left">
                       <div>
-                        <div class="text-sm font-medium text-slate-200">Create Implementation Task</div>
-                        <div class="text-xs text-slate-500 mt-0.5">Spawn a task to action the treatment plan; auto-linked back to this risk.</div>
+                        <div class="text-sm font-medium text-slate-200">{{ t('risks.actions.create_task') }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">{{ t('risks.actions.create_task_desc') }}</div>
                       </div>
                       <span class="text-slate-500 text-lg">→</span>
-                    </button>
-                  </div>
-                </div>
-              </template>
-
-              <!-- ═══ EDIT (full form, hidden — kept for backwards compat) ═══ -->
-              <template v-if="detailTab === 'edit'">
-                <div class="px-6 py-5 space-y-4">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
-                      <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                      <MarkdownField v-model="editForm.description" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="3" placeholder="Describe the risk..." />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-                      <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                      <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
-                      <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">None</option>
-                        <option v-for="cat in riskCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Risk Type</label>
-                      <select v-model="editForm.risk_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="threat">Threat</option><option value="opportunity">Opportunity</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Origin</label>
-                      <select v-model="editForm.origin" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="internal">Internal</option><option value="external">External</option><option value="internal and external">Internal &amp; External</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Treatment</label>
-                      <select v-model="editForm.treatment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">Not decided</option><option value="mitigate">Mitigate</option><option value="accept">Accept</option><option value="transfer">Transfer</option><option value="avoid">Avoid</option>
-                      </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Treatment Plan</label>
-                      <MarkdownField v-model="editForm.treatment_plan" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="2" placeholder="Treatment plan..." />
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
-                      <MarkdownField v-model="editForm.notes" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="2" placeholder="Additional notes..." />
-                    </div>
-                  </div>
-                  <div class="flex justify-end gap-3 pt-2 border-t border-slate-800">
-                    <button @click="cancelSection(); detailTab = 'overview'" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
-                    <button @click="saveSection().then(() => { detailTab = 'overview' })" :disabled="riskSaving" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg">
-                      {{ riskSaving ? 'Saving...' : 'Save' }}
-                    </button>
-                  </div>
-                </div>
-              </template>
-
-              <!-- ═══ EDIT (shown when editing from overview) ═══ -->
-              <template v-if="detailTab === 'edit'">
-                <div class="px-6 py-5 space-y-4">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
-                      <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                      <textarea v-model="editForm.description" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Risk scenario..."></textarea>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-                      <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="draft">Draft</option>
-                        <option value="open">Open</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                      <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
-                      <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">None</option>
-                        <option v-for="cat in riskCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Risk Type</label>
-                      <select v-model="editForm.risk_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="threat">Threat</option>
-                        <option value="opportunity">Opportunity</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Origin</label>
-                      <select v-model="editForm.origin" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="internal">Internal</option>
-                        <option value="external">External</option>
-                        <option value="internal and external">Internal &amp; External</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Treatment</label>
-                      <select v-model="editForm.treatment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">Not decided</option>
-                        <option value="mitigate">Mitigate</option>
-                        <option value="accept">Accept</option>
-                        <option value="transfer">Transfer</option>
-                        <option value="avoid">Avoid</option>
-                      </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Treatment Plan</label>
-                      <MarkdownField v-model="editForm.treatment_plan" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="2" placeholder="Treatment plan..." />
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
-                      <MarkdownField v-model="editForm.notes" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="2" placeholder="Additional notes..." />
-                    </div>
-                  </div>
-                  <div class="flex justify-end gap-3 pt-2 border-t border-slate-800">
-                    <button @click="cancelSection(); detailTab = 'overview'" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-                    <button @click="saveSection().then(() => { detailTab = 'overview' })" :disabled="riskSaving" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors">
-                      {{ riskSaving ? 'Saving...' : 'Save' }}
                     </button>
                   </div>
                 </div>
@@ -565,17 +422,17 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('risks.detail.notes') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
                     <div>
-                      <MarkdownField v-model="editForm.notes" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="12" placeholder="Add notes, observations, meeting minutes, references..." />
+                      <MarkdownField v-model="editForm.notes" :self-type="'risk'" :self-id="selectedRisk?.identifier || ''" :rows="12" :placeholder="t('risks.placeholder.notes')" />
                     </div>
                   </template>
                   <template v-else>
                     <div v-if="selectedRisk.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedRisk.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -588,19 +445,19 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDay(selectedRisk.next_review) }}
+                    {{ t('common.review.overdue_since', { date: formatDay(selectedRisk.next_review) }) }}
                   </div>
 
                   <!-- Score summary -->
                   <div class="flex items-center gap-4">
                     <div class="flex gap-3 flex-1">
                       <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg px-5 py-3 text-center min-w-[90px]">
-                        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Inherent</div>
+                        <div class="text-[9px] text-slate-500 uppercase tracking-wider">{{ t('risks.assessment.inherent') }}</div>
                         <div v-if="selectedRisk.inherent_score" class="text-xl font-bold tabular-nums mt-1" :class="scoreColor(selectedRisk.inherent_score)">{{ selectedRisk.inherent_score }}</div>
                         <div v-else class="text-xl text-slate-700 mt-1">—</div>
                       </div>
                       <div class="bg-slate-800/60 border border-slate-600/50 rounded-lg px-5 py-3 text-center min-w-[90px] ring-1 ring-slate-600/20">
-                        <div class="text-[9px] text-slate-400 uppercase tracking-wider">Current</div>
+                        <div class="text-[9px] text-slate-400 uppercase tracking-wider">{{ t('risks.assessment.current') }}</div>
                         <div v-if="selectedRisk.current_score" class="text-xl font-bold tabular-nums mt-1" :class="scoreColor(selectedRisk.current_score)">{{ selectedRisk.current_score }}</div>
                         <div v-else class="text-xl text-slate-700 mt-1">—</div>
                       </div>
@@ -612,8 +469,8 @@
                     </div>
                   </div>
                   <div class="flex gap-4 text-[10px] text-slate-500">
-                    <span v-if="selectedRisk.last_review">Last review: {{ formatDay(selectedRisk.last_review) }}</span>
-                    <span v-if="selectedRisk.next_review && !isOverdue(selectedRisk.next_review)">Next review: {{ formatDay(selectedRisk.next_review) }}</span>
+                    <span v-if="selectedRisk.last_review">{{ t('common.review.last', { date: formatDay(selectedRisk.last_review) }) }}</span>
+                    <span v-if="selectedRisk.next_review && !isOverdue(selectedRisk.next_review)">{{ t('common.review.next', { date: formatDay(selectedRisk.next_review) }) }}</span>
                   </div>
 
                   <!-- Readings panel -->
@@ -632,7 +489,7 @@
 
                   <!-- Linked Assets -->
                   <div v-if="riskLinkedAssets[selectedRisk.id]?.length" class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 space-y-1.5">
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Linked Assets</div>
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{{ t('risks.links.linked_assets') }}</div>
                     <div v-for="asset in riskLinkedAssets[selectedRisk.id]" :key="asset.id" class="flex items-center gap-3 px-3 py-1.5 bg-slate-900/60 rounded">
                       <span class="text-sm text-slate-200 truncate flex-1">{{ asset.name }}</span>
                       <span v-if="asset.confidentiality > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.confidentiality)">C{{ asset.confidentiality }}</span>
@@ -677,10 +534,10 @@
 
                   <!-- Danger zone -->
                   <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this risk is permanent and cannot be undone. History, comments, and linked references will be lost.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('risks.danger.warning') }}</div>
                     <button @click="deleteSelectedRisk" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete risk
+                      {{ t('risks.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -690,8 +547,8 @@
           </div>
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="riskSaving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ riskSaving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="riskSaving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ riskSaving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -706,6 +563,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { DEFAULT_RISK_CATEGORIES, categoryLabel as resolveCategoryLabel } from '../riskCategories'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -730,7 +588,11 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
+const { t } = useI18n()
+const { enumLabel, entityLabel } = useEnumLabel()
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
 
@@ -770,7 +632,7 @@ async function reload() {
   try {
     await loadRisks()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -799,17 +661,48 @@ const editingSection = ref('') // which section is being edited: 'core', 'classi
 
 // orgPath is provided by useCurrentOrg() — see top of script.
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'treatment', label: 'Treatment' },
-  { key: 'assessment', label: 'Assessment' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'actions', label: 'Actions' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// The members each <select> offers. The set is this view's own choice — a
+// risk is only ever draft/open/closed, though `status` catalogues forty
+// values — so the list stays here and only the label comes from the shared
+// catalogue.
+const STATUSES = ['draft', 'open', 'closed']
+const LEVELS = ['critical', 'high', 'medium', 'low']
+const RISK_TYPES = ['threat', 'opportunity']
+const ORIGINS = ['internal', 'external', 'internal and external']
+const TREATMENTS = ['mitigate', 'accept', 'transfer', 'avoid']
+
+// Message keys, not labels: a module-scope array of translated strings would
+// freeze the tab bar in whichever locale was active when this module first
+// evaluated. Resolved per render in the computed below.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'treatment', label: 'common.tab.treatment' },
+  { key: 'assessment', label: 'common.tab.assessment' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'actions', label: 'common.tab.actions' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
+
+// Per-value lookups and option lists, both resolved here rather than in the
+// template. A group name is a stored identifier, and the raw-text scanner reads
+// a bare quoted word in a mustache as unextracted copy — correctly, since that
+// is what one usually is.
+const statusLabel = (v) => enumLabel('status', v)
+const riskTypeLabel = (v) => enumLabel('risk_type', v)
+const originLabel = (v) => enumLabel('origin', v)
+const treatmentLabel = (v) => enumLabel('treatment', v)
+const levelLabel = (v) => enumLabel('severity', v)
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const levelOptions = options(LEVELS, levelLabel)
+const riskTypeOptions = options(RISK_TYPES, riskTypeLabel)
+const originOptions = options(ORIGINS, originLabel)
+const treatmentOptions = options(TREATMENTS, treatmentLabel)
 
 function editSection(section) {
   startEdit(selectedRisk.value)
@@ -834,9 +727,9 @@ async function saveSection() {
       startEdit(updated) // refresh editForm with saved data
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('risks.error.save', { message: renderApiError(e) }))
   } finally {
     riskSaving.value = false
   }
@@ -845,9 +738,9 @@ async function saveSection() {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('risks.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('risks.dirty.discard'),
     })
     if (!ok) return
   }
@@ -858,9 +751,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('risks.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('risks.dirty.discard'),
     })
     if (!ok) return
   }
@@ -899,14 +792,6 @@ function isOverdue(dateStr) {
   return d < new Date()
 }
 
-const levelOptions = [
-  { value: '', label: 'All' },
-  { value: 'critical', label: 'Critical' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
-]
-
 const stats = ref({ total: 0, critical: 0, high: 0, medium: 0, low: 0, open: 0, closed: 0, draft: 0 })
 const criticalCount = computed(() => stats.value.critical)
 const highCount = computed(() => stats.value.high)
@@ -915,10 +800,10 @@ const treatedCount = computed(() => stats.value.closed)
 // dimensions), so they render as static StatStrip chips — the tall stat-card
 // grid was reclaimed for the list; the Risk Map stays in its collapsible "More".
 const summaryStats = computed(() => [
-  { key: 'total', label: 'Total Risks', count: risks.value.length, color: 'text-slate-100', static: true },
-  { key: 'critical', label: 'Critical', count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
-  { key: 'high', label: 'High', count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
-  { key: 'closed', label: 'Closed', count: treatedCount.value, color: 'text-emerald-400', static: true },
+  { key: 'total', label: t('risks.stat.total'), count: risks.value.length, color: 'text-slate-100', static: true },
+  { key: 'critical', label: levelLabel('critical'), count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+  { key: 'high', label: levelLabel('high'), count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
+  { key: 'closed', label: statusLabel('closed'), count: treatedCount.value, color: 'text-emerald-400', static: true },
 ])
 
 // Refetch on filter/search/page change
@@ -943,21 +828,10 @@ function resolveUserName(email) {
   return u?.name || email
 }
 
-function formatLabel(s) {
-  return (s || '').replace(/_/g, ' ')
-}
-
 // Display name for a stored category key — see src/riskCategories.js for the
 // resolution rules (configured label, de-slugged key for orphans).
 function categoryLabel(key) {
   return resolveCategoryLabel(key, riskCategories.value)
-}
-
-function formatOrigin(o) {
-  if (o === 'internal and external') return 'Internal & External'
-  if (o === 'internal') return 'Internal'
-  if (o === 'external') return 'External'
-  return o ? o.charAt(0).toUpperCase() + o.slice(1) : ''
 }
 
 // The table renders a dash for a missing date, where the shared seam returns
@@ -970,7 +844,17 @@ function formatDay(dateStr) {
   return formatDayValue(dateStr) || '-'
 }
 
-const ciaLabel = (v) => ['Not Assessed','Insignificant','Minor','Moderate','Major','Severe'][v] || 'N/A'
+// Keys written out rather than built from the index: a runtime-composed key
+// defeats keyset extraction, which is why the convention forbids it.
+const CIA_KEYS = [
+  'common.cia.not_assessed',
+  'common.cia.insignificant',
+  'common.cia.minor',
+  'common.cia.moderate',
+  'common.cia.major',
+  'common.cia.severe',
+]
+const ciaLabel = (v) => (CIA_KEYS[v] ? t(CIA_KEYS[v]) : t('common.cia.na'))
 
 function ciaColor(v) {
   switch (v) {
@@ -1000,7 +884,7 @@ async function loadRisks() {
     loadAllAdvisories()
     loadAllRisksForMap()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -1111,50 +995,6 @@ function startEdit(risk) {
   captureEditSnapshot()
 }
 
-async function saveRiskField(risk, field, value) {
-  try {
-    const id = risk.risk_id || risk.id || risk.document_id
-    await api.putJSON(`/api/v1/risks/${id}`, { [field]: value })
-  } catch (e) {
-    showError('Failed to save: ' + (e.message || 'unknown error'))
-  }
-}
-
-async function changeRiskStatus(risk, status) {
-  try {
-    const id = risk.risk_id || risk.id || risk.document_id
-    await api.putJSON(`/api/v1/risks/${id}`, { status })
-    risk.status = status
-    if (selectedRisk.value?.id === risk.id) {
-      selectedRisk.value = { ...selectedRisk.value, status }
-    }
-  } catch (e) {
-    showError('Failed to update status: ' + e.message)
-  }
-}
-
-const canEdit = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
-
-async function saveRisk() {
-  riskSaving.value = true
-  try {
-    const id = selectedRisk.value.risk_id || selectedRisk.value.id || selectedRisk.value.document_id
-    const payload = { ...editForm.value }
-    await api.putJSON(`/api/v1/risks/${id}`, payload)
-    await loadRisks()
-    if (selectedRisk.value) {
-      const updated = risks.value.find(r => r.id === selectedRisk.value.id)
-      if (updated) selectedRisk.value = updated
-    }
-    // Re-populate editForm with fresh data
-    if (selectedRisk.value) startEdit(selectedRisk.value)
-  } catch (e) {
-    showError('Failed to save risk: ' + e.message)
-  } finally {
-    riskSaving.value = false
-  }
-}
-
 async function createRisk() {
   try {
     const payload = { ...newRisk.value }
@@ -1183,7 +1023,7 @@ async function createRisk() {
       router.push(orgPath(`/risks/${fresh.id}`))
     }
   } catch (e) {
-    showError('Failed to create risk: ' + e.message)
+    showError(t('risks.error.create', { message: renderApiError(e) }))
   }
 }
 
@@ -1202,7 +1042,7 @@ function createLinkedTask() {
 
 async function deleteSelectedRisk() {
   if (!selectedRisk.value) return
-  const ok = await confirmDialog({ message: 'Delete this risk? This cannot be undone.', variant: 'danger', confirmLabel: 'Delete' })
+  const ok = await confirmDialog({ message: t('risks.danger.confirm'), variant: 'danger', confirmLabel: t('common.action.delete') })
   if (!ok) return
   showOverflow.value = false
   try {
@@ -1211,7 +1051,7 @@ async function deleteSelectedRisk() {
     selectedRisk.value = null
     await loadRisks()
   } catch (e) {
-    showError('Failed to delete risk: ' + e.message)
+    showError(t('risks.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -1233,7 +1073,7 @@ onMounted(async () => {
     await loadRisks()
     loadAllAdvisories()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }

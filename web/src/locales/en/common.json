@@ -359,6 +359,16 @@
       "eq": "=",
       "gt": ">",
       "lt": "<"
+    },
+    "change_type": {
+      "change": "Change",
+      "access_request": "Access request"
+    },
+    "risk_level": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     }
   },
   "enum_inline": {
@@ -527,5 +537,8 @@
   "seed": {
     "created_from": "Created from [{label}]({link})",
     "created_from_audit_finding": "Created from audit finding {label}"
+  },
+  "separator": {
+    "dot": "·"
   }
 }

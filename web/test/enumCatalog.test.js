@@ -106,6 +106,13 @@ const PENDING_TRANSLATION = {
   // objectives.target_operator. The members are mathematical symbols today, but
   // they are still authored copy — a locale may prefer spelled-out comparators.
   target_operator: ['gte', 'lte', 'eq', 'gt', 'lt'],
+  // changes.type. Extend alongside db.ChangeTypes and the DB CHECK.
+  change_type: ['change', 'access_request'],
+  // changes.risk_level. A fourth column with the low/medium/high/critical
+  // members, and a fourth family: severity, criticality, priority and risk
+  // level are four different judgements that English happens to score with
+  // one set of words.
+  risk_level: ['critical', 'high', 'medium', 'low'],
 }
 
 // The suggestion `entity` param, resolved through common.entity.* rather than

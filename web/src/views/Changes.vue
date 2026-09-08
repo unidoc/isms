@@ -4,15 +4,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Change Management</h1>
-          <p class="text-sm text-slate-500 mt-1">Track and approve changes to your management system.</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('changes.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('changes.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canCreate" @click="showCreate = !showCreate"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Change Request
+            {{ t('changes.action.add') }}
           </button>
-          <SuggestNewButton entityType="change_request" typeLabel="Change Request" />
+          <SuggestNewButton entityType="change_request" :typeLabel="entityLabel('change_request')" />
         </div>
       </div>
 
@@ -23,48 +23,40 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreate = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <form @submit.prevent="create" class="space-y-4">
-        <h2 class="text-sm font-semibold text-slate-300">Add Change Request</h2>
+        <h2 class="text-sm font-semibold text-slate-300">{{ t('changes.create.heading') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Type</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('changes.create.type_label') }}</label>
             <select v-model="form.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option v-for="t in CHANGE_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+              <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Title <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('changes.create.title_label') }} <span class="text-red-400">*</span></label>
             <input v-model="form.title" type="text" required autofocus
               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-              placeholder="e.g. Migrate authentication to OIDC" />
+              :placeholder="t('changes.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Priority</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('changes.create.priority_label') }}</label>
             <select v-model="form.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option v-for="o in priorityAscOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Category</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('changes.create.category_label') }}</label>
             <select v-model="form.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="process">Process</option>
-              <option value="technology">Technology</option>
-              <option value="people">People</option>
-              <option value="documentation">Documentation</option>
-              <option value="infrastructure">Infrastructure</option>
-              <option value="other">Other</option>
+              <option v-for="o in categoryOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add description, justification, planned date, risk level, assignee, rollback plan and notes after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('changes.create.fill_in_later') }}</div>
         <div class="flex gap-2 pt-2">
           <button type="submit" :disabled="creating || !form.title"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-            {{ creating ? 'Creating...' : 'Add' }}
+            {{ creating ? t('changes.create.submitting') : t('changes.create.submit') }}
           </button>
-          <button type="button" @click="showCreate = false" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+          <button type="button" @click="showCreate = false" class="px-4 py-2 text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
         </div>
         </form>
         </div>
@@ -82,32 +74,24 @@
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..."
+          <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
             class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
         </div>
         <select v-model="filterPriority" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All priorities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="">{{ t('common.filter.all_priorities') }}</option>
+          <option v-for="o in priorityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <select v-model="filterCategory" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All categories</option>
-          <option value="process">Process</option>
-          <option value="technology">Technology</option>
-          <option value="people">People</option>
-          <option value="documentation">Documentation</option>
-          <option value="infrastructure">Infrastructure</option>
-          <option value="other">Other</option>
+          <option value="">{{ t('common.filter.all_categories') }}</option>
+          <option v-for="o in categoryOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
-        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ total }} total</div>
+        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: total }) }}</div>
       </div>
 
       <!-- List -->
       <ListSkeleton v-if="loading" :rows="5" />
       <div v-else-if="changes.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-        <div class="text-slate-500 text-sm">No change requests found</div>
+        <div class="text-slate-500 text-sm">{{ t('changes.filter.empty') }}</div>
       </div>
       <div v-else class="space-y-2">
         <div v-for="cr in changes" :key="cr.id"
@@ -119,13 +103,14 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm font-medium text-slate-200">{{ cr.title }}</span>
                 <StatusBadge :status="cr.status" />
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(cr.priority)">{{ cr.priority }}</span>
-                <span class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ cr.category }}</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(cr.priority)">{{ priorityLabel(cr.priority) }}</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ categoryLabel(cr.category) }}</span>
               </div>
               <div class="text-xs text-slate-500 mt-1">
-                Requested by {{ resolveUserName(cr.requested_by) }}<span v-if="cr.assigned_to"> &middot; Assigned to {{ resolveUserName(cr.assigned_to) }}</span>
-                <span v-if="cr.risk_level && cr.risk_level !== 'low'"> &middot; Risk: <span :class="cr.risk_level === 'critical' ? 'text-red-400' : cr.risk_level === 'high' ? 'text-amber-400' : 'text-slate-400'">{{ cr.risk_level }}</span></span>
-                &middot; {{ formatDate(cr.created_at) }}
+                <span>{{ t('changes.list.requested_by', { name: resolveUserName(cr.requested_by) }) }}</span>
+                <span v-if="cr.assigned_to"> {{ dot }} {{ t('changes.list.assigned_to', { name: resolveUserName(cr.assigned_to) }) }}</span>
+                <span v-if="cr.risk_level && cr.risk_level !== 'low'" :class="riskLevelClass(cr.risk_level)"> {{ dot }} {{ t('changes.list.risk', { level: riskLevelLabel(cr.risk_level) }) }}</span>
+                <span> {{ dot }} {{ formatDate(cr.created_at) }}</span>
               </div>
             </div>
           </div>
@@ -160,10 +145,10 @@
           <div class="flex flex-1 min-h-0">
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -174,159 +159,149 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canCreate && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('changes.detail.overview') }}</div>
+                    <button v-if="canCreate && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                        <MarkdownField v-model="editForm.description" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" placeholder="Describe the change..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.description') }}</label>
+                        <MarkdownField v-model="editForm.description" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" :placeholder="t('changes.placeholder.description')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.type') }}</label>
                         <select v-model="editForm.type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option v-for="t in CHANGE_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+                          <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.priority') }}</label>
                         <select v-model="editForm.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+                          <option v-for="o in priorityAscOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.category') }}</label>
                         <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="process">Process</option>
-                          <option value="technology">Technology</option>
-                          <option value="people">People</option>
-                          <option value="documentation">Documentation</option>
-                          <option value="infrastructure">Infrastructure</option>
-                          <option value="other">Other</option>
+                          <option v-for="o in categoryOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Risk Level</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.risk_level') }}</label>
                         <select v-model="editForm.risk_level" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+                          <option v-for="o in riskLevelAscOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div v-if="canWrite">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="proposed">Proposed</option>
-                          <option value="approved">Approved</option>
-                          <option value="rejected">Rejected</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="implemented">Implemented</option>
-                          <option value="closed">Closed</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Assigned to</label>
-                        <MemberPicker v-model="editForm.assigned_to" :members="orgMembers" placeholder="Select..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.assigned_to') }}</label>
+                        <MemberPicker v-model="editForm.assigned_to" :members="orgMembers" :placeholder="t('changes.placeholder.assignee')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Planned for</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.planned_for') }}</label>
                         <input v-model="editForm.planned_at_str" type="date"
                           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Justification</label>
-                        <MarkdownField v-model="editForm.justification" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" placeholder="Why is this change needed?" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.justification') }}</label>
+                        <MarkdownField v-model="editForm.justification" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" :placeholder="t('changes.placeholder.justification')" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Rollback Plan</label>
-                        <MarkdownField v-model="editForm.rollback_plan" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" placeholder="How to revert?" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('changes.field.rollback_plan') }}</label>
+                        <MarkdownField v-model="editForm.rollback_plan" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="3" :placeholder="t('changes.placeholder.rollback_plan')" />
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('changes.field.description') }}</div>
                         <div v-if="selectedChange.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedChange.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
 
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.type') }}</div>
                           <div class="text-sm text-slate-300">{{ typeLabel(selectedChange.type) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Priority</div>
-                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedChange.priority)">{{ selectedChange.priority }}</span>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.priority') }}</div>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedChange.priority)">{{ priorityLabel(selectedChange.priority) }}</span>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Category</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ selectedChange.category || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.category') }}</div>
+                          <div class="text-sm text-slate-300">{{ categoryLabel(selectedChange.category) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Risk Level</div>
-                          <div class="text-sm font-medium" :class="selectedChange.risk_level === 'critical' ? 'text-red-400' : selectedChange.risk_level === 'high' ? 'text-amber-400' : 'text-slate-300'">{{ selectedChange.risk_level || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.risk_level') }}</div>
+                          <div class="text-sm font-medium" :class="riskLevelClass(selectedChange.risk_level, 'text-slate-300')">{{ riskLevelLabel(selectedChange.risk_level) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Requested by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.requested_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedChange.requested_by) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Assignee</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.assignee') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedChange.assigned_to) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedChange.created_at) }}</div>
                         </div>
                         <div v-if="selectedChange.planned_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Planned for</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.planned_for') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedChange.planned_at) }}</div>
                         </div>
                       </div>
 
                       <div class="border-t border-slate-800 pt-4 space-y-3">
                         <div v-if="selectedChange.justification">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Justification</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('changes.field.justification') }}</div>
                           <div class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedChange.justification)"></div>
                         </div>
                         <div v-if="selectedChange.rollback_plan">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Rollback Plan</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('changes.field.rollback_plan') }}</div>
                           <div class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedChange.rollback_plan)"></div>
                         </div>
                       </div>
 
                       <!-- Implementation timeline -->
                       <div class="border-t border-slate-800 pt-4">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">Progress</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">{{ t('changes.detail.progress') }}</div>
                         <div class="flex items-center gap-3 text-xs text-slate-500">
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="selectedChange.status !== 'proposed' ? 'bg-blue-400' : 'bg-slate-600'"></span>
-                            <span :class="selectedChange.status !== 'proposed' ? 'text-slate-300' : ''">Proposed</span>
+                            <span :class="selectedChange.status !== 'proposed' ? 'text-slate-300' : ''">{{ stepLabel.proposed }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="['approved','in_progress','implemented','closed'].includes(selectedChange.status) ? 'bg-emerald-400' : 'bg-slate-600'"></span>
-                            <span :class="['approved','in_progress','implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">Approved</span>
+                            <span :class="['approved','in_progress','implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">{{ stepLabel.approved }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="['in_progress','implemented','closed'].includes(selectedChange.status) ? 'bg-amber-400' : 'bg-slate-600'"></span>
-                            <span :class="['in_progress','implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">In Progress</span>
+                            <span :class="['in_progress','implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">{{ stepLabel.in_progress }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="['implemented','closed'].includes(selectedChange.status) ? 'bg-purple-400' : 'bg-slate-600'"></span>
-                            <span :class="['implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">Implemented</span>
+                            <span :class="['implemented','closed'].includes(selectedChange.status) ? 'text-slate-300' : ''">{{ stepLabel.implemented }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="selectedChange.status === 'closed' ? 'bg-slate-400' : 'bg-slate-600'"></span>
-                            <span :class="selectedChange.status === 'closed' ? 'text-slate-300' : ''">Closed</span>
+                            <span :class="selectedChange.status === 'closed' ? 'text-slate-300' : ''">{{ stepLabel.closed }}</span>
                           </div>
                         </div>
                       </div>
@@ -339,15 +314,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canCreate && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('changes.detail.notes') }}</div>
+                    <button v-if="canCreate && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="12" placeholder="Add notes..." />
+                    <MarkdownField v-model="editForm.notes" :self-type="'change_request'" :self-id="selectedChange?.identifier || ''" :rows="12" :placeholder="t('changes.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedChange.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedChange.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -378,10 +353,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="change_request" :entityId="String(selectedChange.id)" />
                   <div v-if="canCreate" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this change request is permanent and cannot be undone.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('changes.danger.warning') }}</div>
                     <button @click="confirmDeleteChange(selectedChange)" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete change request
+                      {{ t('changes.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -391,8 +366,8 @@
           </div>
 
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -405,6 +380,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -426,12 +402,15 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
 const { confirm: confirmDialog } = useConfirm()
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { orgSlug, orgPath } = useCurrentOrg()
+const { orgPath } = useCurrentOrg()
 const { success: showSaved, show: showError } = useToast()
 
 const renderMd = renderMarkdown
@@ -468,14 +447,17 @@ const editForm = ref({})
 const { capture: captureEditSnapshot, isDirty } = useDirtyEdit(editForm)
 const saving = ref(false)
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Tab labels are keys, resolved in a computed: an array built at module load
+// freezes its labels in whatever locale was active when the file was imported.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
 
 useModalEscape(showCreate)
 useModalEscape(computed(() => !!selectedChange.value), () => closeDetail())
@@ -486,28 +468,59 @@ const canCreate = computed(() => ['admin', 'manager', 'contributor'].includes(us
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 const pendingRefs = ref([])
 
-// Change-request types — single source for the create/edit selects and the
-// read-view label. Extend here (+ db.ChangeTypes + the DB CHECK) to add a kind.
-const CHANGE_TYPES = [
-  { value: 'change', label: 'Change' },
-  { value: 'access_request', label: 'Access request' },
-]
-function typeLabel(t) {
-  return (CHANGE_TYPES.find((x) => x.value === t) || CHANGE_TYPES[0]).label
+// Lookups and option lists live here rather than in the template: a group name
+// — and a bare enum value — is a stored identifier, and the raw-text scanner
+// reads a quoted word in a mustache as unextracted copy.
+//
+// Change-request types are the single source for the create/edit selects and
+// the read-view label. Extend here (+ db.ChangeTypes + the DB CHECK) to add a
+// kind; the labels live in common.enum.change_type.
+const CHANGE_TYPES = ['change', 'access_request']
+const STATUSES = ['proposed', 'approved', 'rejected', 'in_progress', 'implemented', 'closed']
+const PRIORITIES = ['critical', 'high', 'medium', 'low']
+const CATEGORIES = ['process', 'technology', 'people', 'documentation', 'infrastructure', 'other']
+const RISK_LEVELS = ['critical', 'high', 'medium', 'low']
+
+const statusLabel = (v) => enumLabel('status', v)
+const priorityLabel = (v) => enumLabel('priority', v)
+const categoryLabel = (v) => enumLabel('change_category', v)
+const riskLevelLabel = (v) => enumLabel('risk_level', v)
+const typeLabel = (v) => enumLabel('change_type', CHANGE_TYPES.includes(v) ? v : CHANGE_TYPES[0])
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const typeOptions = options(CHANGE_TYPES, typeLabel)
+const statusOptions = options(STATUSES, statusLabel)
+const priorityOptions = options(PRIORITIES, priorityLabel)
+const priorityAscOptions = options([...PRIORITIES].reverse(), priorityLabel)
+const categoryOptions = options(CATEGORIES, categoryLabel)
+const riskLevelAscOptions = options([...RISK_LEVELS].reverse(), riskLevelLabel)
+
+// The five progress steps are fixed statuses, not the request's own.
+const stepLabel = computed(() => Object.fromEntries(
+  ['proposed', 'approved', 'in_progress', 'implemented', 'closed'].map((v) => [v, statusLabel(v)]),
+))
+
+const dot = computed(() => t('common.separator.dot'))
+
+function riskLevelClass(level, fallback = 'text-slate-400') {
+  if (level === 'critical') return 'text-red-400'
+  if (level === 'high') return 'text-amber-400'
+  return fallback
 }
 
 const form = ref({ type: 'change', title: '', priority: 'medium', category: 'process' })
 
-const statusStats = computed(() => {
-  return [
-    { key: 'proposed', label: 'Proposed', count: stats.value.proposed || 0, color: 'text-blue-400' },
-    { key: 'approved', label: 'Approved', count: stats.value.approved || 0, color: 'text-emerald-400' },
-    { key: 'in_progress', label: 'In Progress', count: stats.value.in_progress || 0, color: 'text-amber-400' },
-    { key: 'implemented', label: 'Implemented', count: stats.value.implemented || 0, color: 'text-purple-400' },
-    { key: 'rejected', label: 'Rejected', count: stats.value.rejected || 0, color: 'text-red-400' },
-    { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-500' },
-  ]
-})
+const STATUS_STATS = [
+  { key: 'proposed', color: 'text-blue-400' },
+  { key: 'approved', color: 'text-emerald-400' },
+  { key: 'in_progress', color: 'text-amber-400' },
+  { key: 'implemented', color: 'text-purple-400' },
+  { key: 'rejected', color: 'text-red-400' },
+  { key: 'closed', color: 'text-slate-500' },
+]
+const statusStats = computed(() => STATUS_STATS.map(({ key, color }) => ({
+  key, color, label: statusLabel(key), count: stats.value[key] || 0,
+})))
 
 function priorityClass(p) {
   switch (p) {
@@ -530,9 +543,9 @@ async function selectChange(cr) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -543,9 +556,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -553,14 +566,18 @@ async function closeDetail() {
 }
 
 async function confirmDeleteChange(cr) {
-  const ok = await confirmDialog({ message: 'Delete this change request? This cannot be undone.', variant: 'danger', confirmLabel: 'Delete' })
+  const ok = await confirmDialog({
+    message: t('changes.danger.confirm'),
+    variant: 'danger',
+    confirmLabel: t('common.action.delete'),
+  })
   if (!ok) return
   try {
     await api.deleteJSON(`/api/v1/changes/${cr.id}`)
     closeDetail()
     await loadChanges()
   } catch (e) {
-    console.error('Failed to delete change request:', e)
+    showError(t('changes.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -579,7 +596,7 @@ async function loadChanges() {
     loadStats()
   } catch (e) {
     changes.value = []
-    showError(e.message || 'Failed to load changes')
+    showError(t('changes.error.load', { message: renderApiError(e) }))
   }
 }
 
@@ -632,22 +649,9 @@ async function create() {
       router.push(orgPath(`/changes/${fresh.id}`))
     }
   } catch (e) {
-    showError(e.message || 'Failed to create change request')
+    showError(t('changes.error.create', { message: renderApiError(e) }))
   } finally {
     creating.value = false
-  }
-}
-
-async function changeStatus(id, status) {
-  try {
-    await api.updateChangeStatus(id, status)
-    await loadChanges()
-    if (selectedChange.value?.id === id) {
-      const updated = changes.value.find(c => c.id === id)
-      if (updated) selectedChange.value = updated
-    }
-  } catch (e) {
-    showError(e.message || 'Status change failed')
   }
 }
 
@@ -705,9 +709,9 @@ async function saveSection() {
       startEdit(fresh)
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('changes.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }

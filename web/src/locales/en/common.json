@@ -375,6 +375,16 @@
       "high": "High",
       "medium": "Medium",
       "low": "Low"
+    },
+    "document_type": {
+      "document": "Document",
+      "policy": "Policy",
+      "procedure": "Procedure",
+      "control": "Control",
+      "guideline": "Guideline",
+      "record": "Record",
+      "clause": "Clause",
+      "requirement": "Requirement"
     }
   },
   "enum_inline": {

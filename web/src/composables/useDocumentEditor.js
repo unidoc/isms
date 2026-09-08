@@ -1,4 +1,10 @@
 import { ref, onBeforeUnmount } from 'vue'
+// `t` from the module, not useI18n(): a composable called from setup could use
+// either, but this one is also reachable outside a component instance, and the
+// module export is the seam every plain .js module in the tree already uses
+// (useApiError.js says the same about its own import).
+import { t } from '../i18n.js'
+import { renderApiError } from './useApiError.js'
 
 /**
  * Composable for document editing state and draft autosave.
@@ -148,7 +154,7 @@ export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent,
       loadNeedsReview()
       setTimeout(() => { editSaveMsg.value = '' }, 3000)
     } catch (e) {
-      editSaveMsg.value = 'Failed to save: ' + e.message
+      editSaveMsg.value = t('documents.error.save', { message: renderApiError(e) })
       editSaveError.value = true
     } finally {
       savingEdit.value = false

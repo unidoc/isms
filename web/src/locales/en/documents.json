@@ -1,0 +1,216 @@
+{
+  "tree": {
+    "heading": "Documents",
+    "new": "New",
+    "new_folder": "New Folder",
+    "new_document": "New Document",
+    "empty": "No documents yet",
+    "import_template": "Import template",
+    "new_folder_placeholder": "new folder name...",
+    "folder_name_placeholder": "folder name...",
+    "hide": "Hide tree",
+    "show": "Show tree"
+  },
+  "empty": {
+    "heading": "No documents yet",
+    "body": "Import a template to scaffold your document structure, then use the tree menu to add documents and folders.",
+    "import_template": "Import template"
+  },
+  "dash": {
+    "tab": {
+      "review": "Needs Review",
+      "recent": "Recently Changed",
+      "search": "Search",
+      "templates": "Templates"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Include never approved ({count})",
+    "up_to_date": "All documents are up to date.",
+    "never_approved": "Never approved",
+    "changed": "Changed",
+    "current": "Current: {commit} ({time})",
+    "approved": "Approved: {commit}",
+    "review": "Review",
+    "diff": "Diff"
+  },
+  "recent": {
+    "refresh": "Refresh",
+    "empty": "No recent changes.",
+    "meta": "{time} by {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Search all documents...",
+    "hint": "Type at least 2 characters to search across all documents.",
+    "searching": "Searching...",
+    "no_results": "No results for \"{query}\""
+  },
+  "templates": {
+    "heading": "Templates",
+    "subtitle": "Add or remove document scaffolding for standards.",
+    "installed": "Installed",
+    "add": "Add",
+    "remove": "Remove",
+    "remove_heading": "Remove Template",
+    "remove_body": "Are you sure you want to remove {name}? This will delete all documents under {path} from the repository.",
+    "picker_heading": "Import template",
+    "picker_subtitle": "Choose a standard to scaffold your document structure.",
+    "picker_placeholder": "Search templates...",
+    "picker_empty": "No templates found.",
+    "import": "Import",
+    "added": "{name} template added successfully.",
+    "removed": "{name} template removed.",
+    "add_failed": "Failed to add template: {message}",
+    "remove_failed": "Failed to remove template: {message}"
+  },
+  "toolbar": {
+    "edit": "Edit",
+    "save": "Save",
+    "send_for_review": "Send for review",
+    "version_history": "Version history",
+    "comments": "Comments",
+    "print": "Print document",
+    "delete": "Delete document"
+  },
+  "print": {
+    "version": "Version {version}",
+    "author": "Author: {name}",
+    "printed": "Printed {date}"
+  },
+  "tab": {
+    "content": "Content",
+    "info": "Info",
+    "versions": "Versions",
+    "links": "Links",
+    "discussion": "Discussion",
+    "history": "History"
+  },
+  "meta": {
+    "status": "Status",
+    "go_to_active_review": "Go to active review",
+    "go_to_reviews": "Go to reviews",
+    "type": "Type",
+    "author": "Author",
+    "author_placeholder": "Set author...",
+    "version": "Version",
+    "owner": "Owner",
+    "not_set": "Not set",
+    "review_cycle": "Review Cycle",
+    "review_cycle_months": "Every {count} month | Every {count} months",
+    "last_approved": "Last Approved",
+    "approved_version": "Approved Version",
+    "next_review": "Next Review",
+    "due_soon": "DUE SOON"
+  },
+  "banner": {
+    "round_complete": "Round {round} complete — changes requested",
+    "pending_suggestions": "{count} pending suggestion to address. | {count} pending suggestions to address.",
+    "feedback_waiting": "Reviewer feedback is waiting on the conversation.",
+    "then_resubmit": "Address the feedback, then resubmit for the next round.",
+    "open_review": "Open review",
+    "in_review": "This document is in review.",
+    "in_review_round": "This document is in review (Round {round}).",
+    "view_review": "View review →",
+    "retired": "This document is retired.",
+    "never_approved": "This document has never been approved.",
+    "send_for_review": "Send for review →",
+    "changed_since_approval": "Changed since last approval",
+    "last_approved": "— last approved",
+    "last_approved_version": "— last approved {version}",
+    "last_approved_on": "— last approved on {date}",
+    "last_approved_version_on": "— last approved {version} on {date}",
+    "hide_diff": "Hide diff",
+    "view_diff": "View diff"
+  },
+  "versions": {
+    "heading": "Version History",
+    "empty": "No version history available",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Document discussion",
+    "changelog": "Document changelog"
+  },
+  "content": {
+    "inline_comment_count": "{count} inline comment on this document | {count} inline comments on this document",
+    "draft_recovered": "Unsaved draft recovered",
+    "mark_unreviewed": "Mark as unreviewed",
+    "mark_reviewed": "Mark as reviewed",
+    "comment_count": "{count} comment | {count} comments",
+    "add_comment": "Add comment",
+    "resolved": "Resolved",
+    "resolved_by": "Resolved by {name} {date}",
+    "resolved_by_unknown": "unknown",
+    "inline_placeholder": "Add a comment on this paragraph... (type {'@'} to mention)",
+    "no_users": "No users found",
+    "empty": "No content available for this document."
+  },
+  "comments": {
+    "no_document": "Select a document to view comments",
+    "heading": "Comments",
+    "resolved_count": "{count} resolved",
+    "general_placeholder": "Add a general comment... (type {'@'} to mention)",
+    "author_placeholder": "Your name",
+    "send": "Send",
+    "inline_label": "Inline comment",
+    "inline_label_short": "Inline",
+    "document_label": "Document comment",
+    "quote": "— \"{quote}\"",
+    "reply": "Reply",
+    "reply_placeholder": "Write a reply...",
+    "resolved_toggle": "{count} resolved comment | {count} resolved comments",
+    "empty": "No comments yet"
+  },
+  "review_modal": {
+    "heading": "Send for review",
+    "reviewers": "Reviewers",
+    "search_members": "Search members...",
+    "version_note": "Version note",
+    "version_note_placeholder": "e.g. Updated risk assessment criteria. Added data classification table.",
+    "version_note_hint": "This becomes part of the document's permanent version history after approval.",
+    "send": "Send to {count} reviewer | Send to {count} reviewers"
+  },
+  "new_doc": {
+    "heading": "New Document",
+    "title": "Title",
+    "title_placeholder": "e.g. Data Classification Policy",
+    "type": "Type",
+    "no_folder": "No folder selected",
+    "change_folder": "change",
+    "pick_folder": "pick folder",
+    "folder_placeholder": "Type or select folder",
+    "show_advanced": "Show advanced options",
+    "hide_advanced": "Hide advanced options",
+    "document_id": "Document ID",
+    "document_id_placeholder": "auto from title",
+    "document_id_exists": "This ID already exists",
+    "filename": "Filename",
+    "filename_placeholder": "auto from ID",
+    "author": "Author",
+    "author_placeholder": "Select author...",
+    "create": "Create Document"
+  },
+  "confirm": {
+    "embedded_html_title": "Embedded HTML will be lost",
+    "embedded_html_body": "This document contains embedded HTML/SVG the editor can't preserve — editing here will drop it on save. Edit the source via the CLI to keep it. Edit anyway?",
+    "delete_title": "Delete Document",
+    "delete_body": "Delete \"{name}\"? This cannot be undone."
+  },
+  "error": {
+    "load_diff": "Failed to load diff",
+    "set_author": "Failed to set author: {message}",
+    "set_type": "Failed to set type: {message}",
+    "set_version": "Failed to set version: {message}",
+    "create_folder": "Failed to create folder: {message}",
+    "create_document": "Failed to create document: {message}",
+    "delete": "Failed to delete: {message}",
+    "send_for_review": "Failed to send for review: {message}",
+    "load_content": "**Error loading content:** {message}",
+    "submit_reply": "Failed to submit reply: {message}",
+    "submit_comment": "Failed to submit comment: {message}",
+    "resolve_comment": "Failed to resolve comment: {message}",
+    "load_documents": "Failed to load documents: {message}",
+    "save": "Failed to save: {message}"
+  }
+}

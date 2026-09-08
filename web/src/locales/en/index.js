@@ -20,6 +20,7 @@ import common from './common.json' with { type: 'json' }
 import correctiveActions from './corrective_actions.json' with { type: 'json' }
 import dashboard from './dashboard.json' with { type: 'json' }
 import components from './components.json' with { type: 'json' }
+import documents from './documents.json' with { type: 'json' }
 import incidents from './incidents.json' with { type: 'json' }
 import inbox from './inbox.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
@@ -46,6 +47,7 @@ export default {
   corrective_actions: correctiveActions,
   components,
   dashboard,
+  documents,
   inbox,
   incidents,
   landing,

@@ -16,14 +16,15 @@ const rawTextBaseline = "../../../web/test/rawText.baseline.json"
 //
 // It is not zero, and it should not be. The scanner over-reports — brand names,
 // punctuation, and attribute values it cannot distinguish from copy — so a
-// fully extracted tree still carries a residue, and 100 is an estimate of it.
+// fully extracted tree may still carry a residue, and 100 was an estimate of it.
 //
-// For scale: the tree started at 2488 and sits at 422 now that the auth,
-// shell, component, admin, register and workflow surfaces are extracted — so
-// roughly 4x above the threshold, with only the document views left. The estimate
-// still wants revisiting once a fully extracted tree shows what the residue
-// actually is; the threshold is a judgement, and says so. The coupling it
-// enforces is not.
+// For scale: the tree started at 2488 and sits at 0, every surface — auth,
+// shell, component, admin, register, workflow and document — now extracted. So
+// the residue this threshold estimates turned out to be nothing the scanner can
+// still see: 100 is now headroom for a future unextracted view rather than an
+// estimate of an unmeasured remainder. Revisiting the number is therefore a
+// judgement about how much new raw text a release may carry, and says so. The
+// coupling it enforces is not.
 const extractionGateThreshold = 100
 
 // TestSecondLocaleRequiresExtraction is a release gate, not a unit test.

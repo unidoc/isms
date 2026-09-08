@@ -14,7 +14,7 @@
     "step_decide": "Approve or request changes"
   },
   "tab": {
-    "changes": "Changes ({round})",
+    "changes": "Changes (Round {round})",
     "document": "Document",
     "conversation": "Conversation"
   },

@@ -13,6 +13,7 @@
 // in the bundler and under `node --test`.
 import admin from './admin.json' with { type: 'json' }
 import assets from './assets.json' with { type: 'json' }
+import audit from './audit.json' with { type: 'json' }
 import auth from './auth.json' with { type: 'json' }
 import changes from './changes.json' with { type: 'json' }
 import common from './common.json' with { type: 'json' }
@@ -36,6 +37,7 @@ import tasks from './tasks.json' with { type: 'json' }
 export default {
   admin,
   assets,
+  audit,
   auth,
   changes,
   common,

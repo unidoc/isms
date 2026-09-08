@@ -453,7 +453,8 @@
   "count": {
     "total": "{count} total",
     "comments": "{count} comment | {count} comments",
-    "outdated_comments": "{count} outdated comment | {count} outdated comments"
+    "outdated_comments": "{count} outdated comment | {count} outdated comments",
+    "of": "{shown} of {total}"
   },
   "placeholder": {
     "search": "Search...",
@@ -522,6 +523,14 @@
       "minor_nc": "Minor NC",
       "observation": "Observation",
       "opportunity": "OFI"
+    },
+    "audit_result": {
+      "not_assessed": "Not assessed",
+      "conforming": "Conforming",
+      "minor_nc": "Minor NC",
+      "major_nc": "Major NC",
+      "observation": "Observation",
+      "opportunity": "Opportunity"
     }
   },
   "dirty": {
@@ -540,5 +549,9 @@
   },
   "separator": {
     "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "by {name}"
   }
 }

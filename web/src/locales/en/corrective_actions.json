@@ -49,9 +49,7 @@
   },
   "detail": {
     "overview": "Overview",
-    "notes": "Notes",
-    "resolved_by": "{datetime} {by}",
-    "by": "by {name}"
+    "notes": "Notes"
   },
   "actions": {
     "create_task": "Create Implementation Task",

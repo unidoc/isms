@@ -104,6 +104,17 @@ export function formatMonthShort(monthIndex) {
   }).format(Date.UTC(2021, i, 1))
 }
 
+// The same, spelled out — the audit calendar heads each month section with a
+// full name. The server sends one too, in English; this reads the active
+// locale instead.
+export function formatMonthLong(monthIndex) {
+  if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return ''
+  return formatter(Intl.DateTimeFormat, 'date', activeLocale(), {
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(Date.UTC(2021, monthIndex, 1))
+}
+
 // A duration in whole hours, for the RPO/RTO columns. Same reasoning as the
 // date shapes: the unit is locale-specific ("4h" in English, "4 j" in French),
 // so Intl supplies it and no unit letter lands in a translation file. Narrow
@@ -162,6 +173,7 @@ export function useFormat() {
     date: formatDate,
     day: formatDay,
     monthShort: formatMonthShort,
+    monthLong: formatMonthLong,
     hours: formatHours,
     number: formatNumber,
     relative: formatRelative,

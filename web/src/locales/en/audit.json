@@ -1,0 +1,232 @@
+{
+  "title": "Internal Audit",
+  "subtitle": "Audit programmes, schedule, and findings",
+  "error": {
+    "load": "Failed to load audit module. {message}",
+    "load_programmes": "Failed to load programmes: {message}",
+    "load_audits": "Failed to load audits: {message}",
+    "load_calendar": "Failed to load calendar: {message}",
+    "load_findings": "Failed to load findings: {message}",
+    "load_audit_detail": "Failed to load audit details: {message}",
+    "create_programme": "Failed to create programme: {message}",
+    "save_programme": "Failed to save programme: {message}",
+    "delete_programme": "Failed to delete programme: {message}",
+    "create_audit": "Failed to create audit: {message}",
+    "save_audit": "Failed to save audit: {message}",
+    "save_report": "Failed to save report: {message}",
+    "add_item": "Failed to add item: {message}",
+    "save_item": "Failed to save: {message}",
+    "remove_item": "Failed to remove: {message}",
+    "create_finding": "Failed to add finding: {message}",
+    "save_finding": "Failed to save finding: {message}",
+    "delete_finding": "Failed to delete finding: {message}"
+  },
+  "toast": {
+    "programme_added": "Programme added",
+    "programme_deleted": "Programme deleted",
+    "audit_added": "Audit added",
+    "report_saved": "Report saved",
+    "item_added": "Item added",
+    "item_removed": "Item removed",
+    "finding_added": "Finding added",
+    "finding_deleted": "Finding deleted"
+  },
+  "tab": {
+    "calendar": "Calendar",
+    "programmes": "Programmes",
+    "findings": "Findings",
+    "audits": "Audits",
+    "items": "Items",
+    "report": "Report",
+    "discussion": "Discussion",
+    "linked": "Linked CAs"
+  },
+  "action": {
+    "add_programme": "Add Programme",
+    "add_finding": "Add Finding",
+    "add_audit": "Add Audit"
+  },
+  "calendar": {
+    "loading": "Loading calendar...",
+    "audit_count": "{count} audit | {count} audits",
+    "month_empty": "No audits planned this month",
+    "unscheduled": "Unscheduled",
+    "unscheduled_count": "{count} audit without planned date | {count} audits without planned date",
+    "unscheduled_range": "unscheduled",
+    "empty": "No audits in {year}. Add an audit from a programme to see it here."
+  },
+  "programme": {
+    "search_placeholder": "Search programmes...",
+    "all_years": "All years",
+    "empty_filtered": "No programmes match your filter.",
+    "empty": "No audit programmes yet — click Add Programme to create one.",
+    "table": {
+      "id": "ID",
+      "title": "Title",
+      "year": "Year",
+      "audits": "Audits",
+      "findings": "Findings",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Add Programme",
+      "title_label": "Title *",
+      "title_placeholder": "e.g. 2026 Annual Audit Programme",
+      "year_label": "Year *",
+      "fill_in_later": "You can add description, status and audits after creating.",
+      "submitting": "Adding...",
+      "submit": "Add"
+    },
+    "field": {
+      "title": "Title",
+      "year": "Year",
+      "status": "Status",
+      "description": "Description",
+      "notes": "Notes",
+      "audits": "Audits",
+      "created_by": "Created by",
+      "created": "Created"
+    },
+    "placeholder": {
+      "description": "Programme objectives and scope...",
+      "notes": "Internal notes..."
+    },
+    "audits_heading": "Audits in this programme",
+    "add_audit": "+ Add Audit",
+    "audits_empty": "No audits in this programme yet.",
+    "open_findings": "{count} open",
+    "danger": {
+      "warning": "Programmes with audits cannot be deleted. Remove all audits first.",
+      "delete": "Delete programme",
+      "confirm": "Delete programme \"{title}\"? This cannot be undone."
+    }
+  },
+  "audit": {
+    "loading_detail": "Loading audit details...",
+    "create": {
+      "heading": "Add Audit",
+      "title_label": "Title *",
+      "title_placeholder": "Audit title",
+      "programme_label": "Programme",
+      "no_programme": "No programme (ad-hoc)",
+      "type_label": "Audit Type",
+      "fill_in_later": "You can add scope, auditor, dates and items after creating.",
+      "submitting": "Adding...",
+      "submit": "Add"
+    },
+    "field": {
+      "title": "Title",
+      "scope": "Scope",
+      "type": "Audit Type",
+      "status": "Status",
+      "auditor": "Auditor",
+      "programme": "Programme",
+      "planned_date": "Planned Date",
+      "end_date": "End Date",
+      "planned": "Planned",
+      "started": "Started",
+      "completed": "Completed",
+      "items": "Items",
+      "findings": "Findings",
+      "notes": "Notes"
+    },
+    "placeholder": {
+      "scope": "Scope description. Type /doc to link controls or clauses...",
+      "auditor": "Select auditor...",
+      "notes": "Internal audit notes..."
+    },
+    "open_count": "({count} open)",
+    "danger": {
+      "warning": "Audits cannot currently be deleted from the UI. Manage destructive actions via CLI."
+    }
+  },
+  "items": {
+    "heading": "Audit Items ({count})",
+    "add": "+ Add Item",
+    "search_placeholder": "Search documents, controls, clauses, risks, assets...",
+    "searching": "Searching...",
+    "no_matches": "No matches.",
+    "empty": "No items yet — add controls, clauses, risks or other items to assess.",
+    "raise_finding": "Raise finding",
+    "raise_finding_title": "Create a finding from this item",
+    "delete_title": "Delete item",
+    "evidence": "Evidence",
+    "evidence_placeholder": "Evidence reference, link or description...",
+    "notes": "Notes",
+    "notes_empty": "Notes (empty)",
+    "notes_placeholder": "Inline notes for this item...",
+    "save_notes": "Save notes",
+    "confirm_remove": "Remove \"{title}\" from this audit?",
+    "remove": "Remove"
+  },
+  "findings": {
+    "search_placeholder": "Search findings...",
+    "all_audits": "All audits",
+    "overdue_toggle_title": "Toggle: Overdue only",
+    "overdue_only": "Overdue only",
+    "overdue": "Overdue",
+    "empty_filtered": "No findings match your filter.",
+    "empty": "No findings recorded yet.",
+    "heading_count": "Findings ({count})",
+    "add": "+ Add Finding",
+    "audit_empty": "No findings recorded for this audit yet.",
+    "table": {
+      "id": "ID",
+      "title": "Title",
+      "audit": "Audit",
+      "type": "Type",
+      "owner": "Owner",
+      "due": "Due",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Add Finding",
+      "title_label": "Title *",
+      "title_placeholder": "Finding title",
+      "audit_label": "Audit *",
+      "audit_placeholder": "Select audit...",
+      "type_label": "Type",
+      "fill_in_later": "You can add description, owner, due date and corrective action links after creating.",
+      "submitting": "Adding...",
+      "submit": "Add"
+    },
+    "field": {
+      "title": "Title",
+      "description": "Description",
+      "type": "Type",
+      "status": "Status",
+      "owner": "Owner",
+      "due_date": "Due Date",
+      "due_date_read": "Due date",
+      "audit": "Audit",
+      "audit_item": "Audit Item",
+      "created": "Created",
+      "closed": "Closed"
+    },
+    "placeholder": {
+      "description": "Detailed finding description, evidence, root cause analysis...",
+      "owner": "Select owner..."
+    },
+    "item_ref": "item #{id}",
+    "quick_action": "Quick action",
+    "create_ca": "Create Corrective Action from finding",
+    "create_ca_hint": "Spawn a CA pre-filled with this finding's title and severity.",
+    "danger": {
+      "warning": "Deleting this finding is permanent. Linked corrective actions stay but lose this back-reference.",
+      "delete": "Delete finding",
+      "confirm": "Delete this finding? This cannot be undone."
+    }
+  },
+  "report": {
+    "heading": "Audit Report",
+    "placeholder": "Auditor's final report — observations, conclusions, recommendations. Use slash commands to link controls, clauses, evidence...",
+    "empty": "No report written yet."
+  },
+  "dirty": {
+    "report_switch_tab": "You have unsaved report changes. Discard and switch tab?",
+    "report_close": "You have unsaved report changes. Discard and close?"
+  },
+  "detail": {
+    "overview": "Overview"
+  }
+}

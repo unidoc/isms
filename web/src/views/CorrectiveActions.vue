@@ -270,10 +270,10 @@
                         <div v-if="selectedCA.resolved_at">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.resolved') }}</div>
                           <div class="text-sm text-emerald-400">
-                            <i18n-t keypath="corrective_actions.detail.resolved_by" scope="global">
+                            <i18n-t keypath="common.detail.at_by" scope="global">
                               <template #datetime>{{ formatDateTime(selectedCA.resolved_at) }}</template>
                               <template #by>
-                                <span v-if="selectedCA.resolved_by" class="text-slate-500">{{ t('corrective_actions.detail.by', { name: resolveUserName(selectedCA.resolved_by) }) }}</span>
+                                <span v-if="selectedCA.resolved_by" class="text-slate-500">{{ t('common.detail.by', { name: resolveUserName(selectedCA.resolved_by) }) }}</span>
                               </template>
                             </i18n-t>
                           </div>

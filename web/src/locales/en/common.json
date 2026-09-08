@@ -477,7 +477,8 @@
     "not_decided": "Not decided"
   },
   "stat": {
-    "total": "Total"
+    "total": "Total",
+    "overdue": "Overdue"
   },
   "heading": {
     "quick_actions": "Quick actions",
@@ -522,5 +523,9 @@
     "b": "{value} B",
     "kb": "{value} KB",
     "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Created from [{label}]({link})",
+    "created_from_audit_finding": "Created from audit finding {label}"
   }
 }

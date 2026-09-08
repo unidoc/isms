@@ -61,10 +61,5 @@
     "warning": "Deleting this corrective action is permanent and cannot be undone.",
     "delete": "Delete corrective action",
     "confirm": "Delete this corrective action? This cannot be undone."
-  },
-  "seed": {
-    "from_incident": "Created from [{label}]({link})",
-    "from_audit_finding": "Created from audit finding {label}",
-    "from_risk": "Created from [{label}]({link})"
   }
 }

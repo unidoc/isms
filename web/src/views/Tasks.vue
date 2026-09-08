@@ -4,15 +4,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Tasks</h1>
-          <p class="text-sm text-slate-500 mt-1">Review tasks, follow-ups, and operational work items.</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('tasks.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('tasks.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canCreate" @click="form = defaultForm(); showCreate = !showCreate"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Task
+            {{ t('tasks.action.add') }}
           </button>
-          <SuggestNewButton entityType="task" typeLabel="Task" />
+          <SuggestNewButton entityType="task" :typeLabel="entityLabel('task')" />
         </div>
       </div>
 
@@ -23,51 +23,43 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreate = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <form @submit.prevent="create" class="space-y-4">
-        <h2 class="text-sm font-semibold text-slate-300">Add Task</h2>
+        <h2 class="text-sm font-semibold text-slate-300">{{ t('tasks.create.heading') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="sm:col-span-2">
-            <label class="block text-xs text-slate-500 mb-1">Title <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('tasks.create.title_label') }} <span class="text-red-400">*</span></label>
             <input v-model="form.title" type="text" required autofocus
               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-              placeholder="e.g. Review risk register" />
+              :placeholder="t('tasks.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Priority</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('tasks.create.priority_label') }}</label>
             <select v-model="form.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option v-for="o in priorityAscOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Type</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('tasks.create.type_label') }}</label>
             <select v-model="form.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
               <!-- Manual task types only. The *_followup types are created
                    automatically by the system, not chosen here (#32). -->
-              <option value="general">General</option>
-              <option value="review">Review</option>
-              <option value="onboarding">Onboarding</option>
-              <option value="offboarding">Offboarding</option>
-              <option value="training">Training</option>
-              <option value="other">Other</option>
+              <option v-for="o in manualTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Visibility</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('tasks.create.visibility_label') }}</label>
             <select v-model="form.private" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option :value="false">Public — everyone in the org</option>
-              <option :value="true">Private — assignee, creator &amp; managers</option>
+              <option :value="false">{{ t('tasks.visibility.public') }}</option>
+              <option :value="true">{{ t('tasks.visibility.private') }}</option>
             </select>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add description, assignee, due date and notes after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('tasks.create.fill_in_later') }}</div>
         <div class="flex gap-2 pt-2">
           <button type="submit" :disabled="creating || !form.title"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-            {{ creating ? 'Creating...' : 'Add' }}
+            {{ creating ? t('tasks.create.submitting') : t('tasks.create.submit') }}
           </button>
-          <button type="button" @click="showCreate = false" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+          <button type="button" @click="showCreate = false" class="px-4 py-2 text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
         </div>
         </form>
         </div>
@@ -85,33 +77,21 @@
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..."
+          <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
             class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
         </div>
         <select v-model="filterPriority" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All priorities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="">{{ t('common.filter.all_priorities') }}</option>
+          <option v-for="o in priorityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <select v-model="filterTaskType" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All types</option>
-          <option value="general">General</option>
-          <option value="review">Review</option>
-          <option value="incident_followup">Incident follow-up</option>
-          <option value="audit_followup">Audit follow-up</option>
-          <option value="ca_followup">Corrective action follow-up</option>
-          <option value="change_followup">Change follow-up</option>
-          <option value="onboarding">Onboarding</option>
-          <option value="offboarding">Offboarding</option>
-          <option value="training">Training</option>
-          <option value="other">Other</option>
+          <option value="">{{ t('common.filter.all_types') }}</option>
+          <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <div class="w-48">
-          <MemberPicker v-model="filterAssignee" :members="orgMembers" placeholder="Any assignee" />
+          <MemberPicker v-model="filterAssignee" :members="orgMembers" :placeholder="t('tasks.filter.assignee_placeholder')" />
         </div>
-        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ total }} total</div>
+        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: total }) }}</div>
       </div>
 
       <!-- Loading -->
@@ -120,11 +100,11 @@
       <!-- Empty -->
       <div v-else-if="tasks.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
         <div v-if="filterStatus || filterPriority || filterTaskType || filterAssignee || searchQuery" class="text-slate-500 text-sm">
-          No tasks match your filter.
+          {{ t('tasks.filter.empty') }}
         </div>
         <template v-else>
-          <div class="text-slate-500 text-sm">No tasks yet — click Add to create your first one.</div>
-          <div class="text-xs text-slate-600 mt-2">Tasks are also generated automatically from overdue review cycles.</div>
+          <div class="text-slate-500 text-sm">{{ t('tasks.filter.empty_all') }}</div>
+          <div class="text-xs text-slate-600 mt-2">{{ t('tasks.filter.empty_hint') }}</div>
         </template>
       </div>
 
@@ -140,17 +120,17 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm font-medium text-slate-200">{{ task.title }}</span>
                 <StatusBadge :status="task.status" />
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(task.priority)">{{ task.priority }}</span>
-                <span v-if="task.task_type && task.task_type !== 'general'" class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ task.task_type.replace(/_/g, ' ') }}</span>
-                <span v-if="task.private" class="px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-300 bg-amber-500/10" title="Private — visible to assignee, creator &amp; managers">Private</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(task.priority)">{{ priorityLabel(task.priority) }}</span>
+                <span v-if="task.task_type && task.task_type !== 'general'" class="px-1.5 py-0.5 rounded text-[10px] text-slate-500 bg-slate-800">{{ typeLabel(task.task_type) }}</span>
+                <span v-if="task.private" class="px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-300 bg-amber-500/10" :title="t('tasks.visibility.private_title')">{{ t('tasks.visibility.private_badge') }}</span>
               </div>
               <div class="text-xs text-slate-500 mt-1">
                 <span v-if="task.assignee">{{ resolveUserName(task.assignee) }}</span>
                 <span v-if="task.due_date" class="ml-2" :class="isOverdue(task) ? 'text-red-400' : ''">
-                  Due {{ formatDay(task.due_date) }}
-                  <span v-if="isOverdue(task)" class="text-red-400 font-semibold ml-1">OVERDUE</span>
+                  {{ t('tasks.list.due', { date: formatDay(task.due_date) }) }}
+                  <span v-if="isOverdue(task)" class="text-red-400 font-semibold ml-1">{{ t('common.state.overdue') }}</span>
                 </span>
-                <span v-if="task.created_by" class="ml-2 text-slate-600">by {{ resolveUserName(task.created_by) }}</span>
+                <span v-if="task.created_by" class="ml-2 text-slate-600">{{ t('tasks.list.created_by', { name: resolveUserName(task.created_by) }) }}</span>
               </div>
             </div>
           </div>
@@ -186,10 +166,10 @@
             <!-- Sidebar nav -->
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -201,58 +181,46 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canCreate && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('tasks.detail.overview') }}</div>
+                    <button v-if="canCreate && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                        <MarkdownField v-model="editForm.description" :self-type="'task'" :self-id="selectedTask?.identifier || ''" :rows="3" placeholder="Describe the task..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.description') }}</label>
+                        <MarkdownField v-model="editForm.description" :self-type="'task'" :self-id="selectedTask?.identifier || ''" :rows="3" :placeholder="t('tasks.placeholder.description')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Assignee</label>
-                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" placeholder="Select assignee..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.assignee') }}</label>
+                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" :placeholder="t('tasks.placeholder.assignee')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.priority') }}</label>
                         <select v-model="editForm.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+                          <option v-for="o in priorityAscOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="open">Open</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="done">Done</option>
-                          <option value="cancelled">Cancelled</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Due date</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.due_date') }}</label>
                         <input v-model="editForm.due_date_str" type="date"
                           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('tasks.field.type') }}</label>
                         <select v-model="editForm.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <!-- All real task types, so an auto-generated task's
                                type is representable when editing (#32). -->
-                          <option value="general">General</option>
-                          <option value="review">Review</option>
-                          <option value="incident_followup">Incident follow-up</option>
-                          <option value="audit_followup">Audit follow-up</option>
-                          <option value="ca_followup">Corrective action follow-up</option>
-                          <option value="change_followup">Change follow-up</option>
-                          <option value="onboarding">Onboarding</option>
-                          <option value="offboarding">Offboarding</option>
-                          <option value="training">Training</option>
-                          <option value="other">Other</option>
+                          <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                     </div>
@@ -260,7 +228,7 @@
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('tasks.field.description') }}</div>
                         <div v-if="selectedTask.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedTask.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
@@ -268,52 +236,52 @@
                       <!-- 2-column metadata -->
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Assignee</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.assignee') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedTask.assignee) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Priority</div>
-                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedTask.priority)">{{ selectedTask.priority }}</span>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.priority') }}</div>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="priorityClass(selectedTask.priority)">{{ priorityLabel(selectedTask.priority) }}</span>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.due_date') }}</div>
                           <div class="text-sm" :class="isOverdue(selectedTask) ? 'text-red-400' : 'text-slate-300'">{{ selectedTask.due_date ? formatDay(selectedTask.due_date) : '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ (selectedTask.task_type || 'general').replace(/_/g, ' ') }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.type') }}</div>
+                          <div class="text-sm text-slate-300">{{ taskTypeLabel(selectedTask) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedTask.created_at) }}</div>
                         </div>
                         <div v-if="selectedTask.created_by">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedTask.created_by) }}</div>
                         </div>
                         <div v-if="selectedTask.completed_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Completed</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('tasks.field.completed') }}</div>
                           <div class="text-sm text-emerald-400">{{ formatDate(selectedTask.completed_at) }}</div>
                         </div>
                       </div>
 
                       <!-- Status timeline -->
                       <div class="border-t border-slate-800 pt-4">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">Progress</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">{{ t('tasks.detail.progress') }}</div>
                         <div class="flex items-center gap-4 text-xs text-slate-500">
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="selectedTask.status !== 'cancelled' ? 'bg-blue-400' : 'bg-slate-600'"></span>
-                            <span :class="selectedTask.status !== 'cancelled' ? 'text-slate-300' : ''">Open</span>
+                            <span :class="selectedTask.status !== 'cancelled' ? 'text-slate-300' : ''">{{ stepOpenLabel }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="selectedTask.status === 'in_progress' || selectedTask.status === 'done' ? 'bg-amber-400' : 'bg-slate-600'"></span>
-                            <span :class="selectedTask.status === 'in_progress' || selectedTask.status === 'done' ? 'text-slate-300' : ''">In progress</span>
+                            <span :class="selectedTask.status === 'in_progress' || selectedTask.status === 'done' ? 'text-slate-300' : ''">{{ stepInProgressLabel }}</span>
                           </div>
                           <div class="h-px flex-1 bg-slate-800"></div>
                           <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full" :class="selectedTask.status === 'done' ? 'bg-emerald-400' : 'bg-slate-600'"></span>
-                            <span :class="selectedTask.status === 'done' ? 'text-slate-300' : ''">Done</span>
+                            <span :class="selectedTask.status === 'done' ? 'text-slate-300' : ''">{{ stepDoneLabel }}</span>
                           </div>
                         </div>
                       </div>
@@ -326,15 +294,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canCreate && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('tasks.detail.notes') }}</div>
+                    <button v-if="canCreate && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'task'" :self-id="selectedTask?.identifier || ''" :rows="12" placeholder="Add notes..." />
+                    <MarkdownField v-model="editForm.notes" :self-type="'task'" :self-id="selectedTask?.identifier || ''" :rows="12" :placeholder="t('tasks.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedTask.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedTask.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -365,10 +333,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="task" :entityId="String(selectedTask.id)" />
                   <div v-if="canCreate" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this task is permanent and cannot be undone.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('tasks.danger.warning') }}</div>
                     <button @click="confirmDelete(selectedTask)" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete task
+                      {{ t('tasks.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -379,18 +347,13 @@
 
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
       </Transition>
       </Teleport>
-
-      <!-- Generation result -->
-      <div v-if="genResult" class="mt-4 px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-xs text-emerald-400">
-        Generated {{ genResult.created?.length || 0 }} tasks ({{ genResult.skipped || 0 }} already existed).
-      </div>
     </div>
   </div>
 </template>
@@ -398,6 +361,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -419,13 +383,16 @@ import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { formatDate, formatDay } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
 const { ask, confirm: confirmDialog } = useConfirm()
 const { success: showSaved, error: showError } = useToast()
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { orgSlug, orgPath } = useCurrentOrg()
+const { orgPath } = useCurrentOrg()
 
 const renderMd = renderMarkdown
 
@@ -459,8 +426,6 @@ const selectedTask = ref(null)
 const orgMembers = ref([])
 const showCreate = ref(false)
 const creating = ref(false)
-const generating = ref(false)
-const genResult = ref(null)
 const userRole = ref('')
 // Org default for a new task's visibility (task_default_private) — seeds the
 // create form's Public/Private control so a privacy-by-default org gets it right.
@@ -475,43 +440,70 @@ const saving = ref(false)
 
 // orgPath is provided by useCurrentOrg() above.
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Tab labels are keys, resolved in a computed: an array built at module load
+// freezes its labels in whatever locale was active when the file was imported.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
+
+// Lookups and option lists live here rather than in the template: a group name
+// — and a bare enum value like 'in_progress' — is a stored identifier, and the
+// raw-text scanner reads a quoted word in a mustache as unextracted copy.
+const STATUSES = ['open', 'in_progress', 'done', 'cancelled']
+const PRIORITIES = ['critical', 'high', 'medium', 'low']
+const TASK_TYPES = [
+  'general', 'review', 'incident_followup', 'audit_followup', 'ca_followup',
+  'change_followup', 'onboarding', 'offboarding', 'training', 'other',
+]
+// The create form offers manual types only; the *_followup ones are set by the
+// system, not chosen here (#32). Editing still offers all ten, so an
+// auto-generated task's type stays representable.
+const MANUAL_TASK_TYPES = ['general', 'review', 'onboarding', 'offboarding', 'training', 'other']
+
+const statusLabel = (v) => enumLabel('status', v)
+const priorityLabel = (v) => enumLabel('priority', v)
+const typeLabel = (v) => enumLabel('task_type', v)
+const taskTypeLabel = (task) => typeLabel(task?.task_type || 'general')
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const priorityOptions = options(PRIORITIES, priorityLabel)
+const priorityAscOptions = options([...PRIORITIES].reverse(), priorityLabel)
+const typeOptions = options(TASK_TYPES, typeLabel)
+const manualTypeOptions = options(MANUAL_TASK_TYPES, typeLabel)
+
+// The three progress steps are fixed statuses, not the task's own.
+const stepOpenLabel = computed(() => statusLabel('open'))
+const stepInProgressLabel = computed(() => statusLabel('in_progress'))
+const stepDoneLabel = computed(() => statusLabel('done'))
 
 const canCreate = computed(() => ['admin', 'manager'].includes(userRole.value))
-const canAdvance = computed(() => ['admin', 'manager', 'contributor'].includes(userRole.value))
 const pendingRefs = ref([])
 
 useModalEscape(showCreate)
 useModalEscape(computed(() => !!selectedTask.value), () => closeDetail())
 
-const currentUserEmail = ref('')
-function defaultDueDate() {
-  const d = new Date()
-  d.setDate(d.getDate() + 7)
-  return d.toISOString().slice(0, 10)
-}
 function defaultForm() {
   return { title: '', priority: 'medium', task_type: 'general', private: orgDefaultPrivate.value }
 }
 const form = ref(defaultForm())
 
-const statusStats = computed(() => {
-  return [
-    { key: 'active', label: 'Active', count: (stats.value.open || 0) + (stats.value.in_progress || 0), color: 'text-indigo-400' },
-    { key: '', label: 'Total', count: stats.value.total || 0, color: 'text-slate-100' },
-    { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-blue-400' },
-    { key: 'in_progress', label: 'In Progress', count: stats.value.in_progress || 0, color: 'text-amber-400' },
-    { key: 'overdue', label: 'Overdue', count: stats.value.overdue || 0, color: 'text-red-400' },
-    { key: 'done', label: 'Done', count: stats.value.done || 0, color: 'text-emerald-400' },
-  ]
-})
+// 'active' and 'overdue' are filter pseudo-statuses, not stored values, so
+// they carry their own labels; the other three come from the catalogue.
+const statusStats = computed(() => [
+  { key: 'active', label: t('tasks.stat.active'), count: (stats.value.open || 0) + (stats.value.in_progress || 0), color: 'text-indigo-400' },
+  { key: '', label: t('common.stat.total'), count: stats.value.total || 0, color: 'text-slate-100' },
+  { key: 'open', label: statusLabel('open'), count: stats.value.open || 0, color: 'text-blue-400' },
+  { key: 'in_progress', label: statusLabel('in_progress'), count: stats.value.in_progress || 0, color: 'text-amber-400' },
+  { key: 'overdue', label: t('common.stat.overdue'), count: stats.value.overdue || 0, color: 'text-red-400' },
+  { key: 'done', label: statusLabel('done'), count: stats.value.done || 0, color: 'text-emerald-400' },
+])
 
 function isOverdue(task) {
   if (!task.due_date || task.status === 'done' || task.status === 'cancelled') return false
@@ -550,9 +542,9 @@ async function selectTask(task) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -563,9 +555,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -635,31 +627,31 @@ async function create() {
       const id = String(route.query.from_ca)
       sourceLinks.push({ type: 'corrective_action', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/corrective-actions/${id})`)
+      seedLines.push(t('common.seed.created_from', { label, link: `/corrective-actions/${id}` }))
     }
     if (route.query.from_risk) {
       const id = String(route.query.from_risk)
       sourceLinks.push({ type: 'risk', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/risks/${id})`)
+      seedLines.push(t('common.seed.created_from', { label, link: `/risks/${id}` }))
     }
     if (route.query.from_incident) {
       const id = 'INC-' + String(route.query.from_incident)
       sourceLinks.push({ type: 'incident', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/incidents/${id})`)
+      seedLines.push(t('common.seed.created_from', { label, link: `/incidents/${id}` }))
     }
     if (route.query.from_audit_finding) {
       const id = 'FIND-' + String(route.query.from_audit_finding)
       sourceLinks.push({ type: 'audit_finding', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from audit finding ${label}`)
+      seedLines.push(t('common.seed.created_from_audit_finding', { label }))
     }
     if (route.query.from_document) {
       const id = String(route.query.from_document)
       sourceLinks.push({ type: 'document', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/documents/${id})`)
+      seedLines.push(t('common.seed.created_from', { label, link: `/documents/${id}` }))
     }
     if (seedLines.length > 0) {
       payload.notes = seedLines.join('\n')
@@ -689,23 +681,9 @@ async function create() {
     }
   } catch (e) {
     console.error('Failed to create task:', e)
-    showError('Failed to create task: ' + (e.message || 'unknown error'))
+    showError(t('tasks.error.create', { message: renderApiError(e) }))
   } finally {
     creating.value = false
-  }
-}
-
-async function advanceStatus(task, status) {
-  if (!status) return
-  try {
-    await api.updateTaskStatus(task.id, status)
-    task.status = status
-    if (status === 'done') task.completed_at = Date.now() / 1000
-    if (selectedTask.value?.id === task.id) {
-      selectedTask.value = { ...task }
-    }
-  } catch (e) {
-    showError('Failed to update status: ' + (e.message || 'unknown error'))
   }
 }
 
@@ -759,33 +737,24 @@ async function saveSection() {
       startEdit(fresh)
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('tasks.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
 }
 
 async function confirmDelete(task) {
-  if (!await ask(`Delete task "${task.title}"?`, { confirm: 'Delete', variant: 'danger' })) return
+  const question = t('tasks.danger.confirm', { title: task.title })
+  if (!await ask(question, { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteTask(task.id)
     closeDetail()
     await loadTasks()
   } catch (e) {
-    showError('Failed to delete task: ' + (e.message || 'unknown error'))
+    showError(t('tasks.error.delete', { message: renderApiError(e) }))
   }
-}
-
-async function generateOverdueTasks() {
-  generating.value = true
-  genResult.value = null
-  try {
-    genResult.value = await api.postJSON('/api/v1/overdue/tasks', {})
-    await loadTasks()
-  } catch { /* ignore */ }
-  generating.value = false
 }
 
 async function openTaskFromRoute(id) {
@@ -816,7 +785,6 @@ onMounted(async () => {
   try {
     const me = await api.getMe()
     userRole.value = me?.role || ''
-    currentUserEmail.value = me?.email || ''
   } catch {}
   try { orgMembers.value = await api.getUsers() || [] } catch { orgMembers.value = [] }
   try { const cfg = await api.getConfig(); orgDefaultPrivate.value = !!cfg?.task_default_private } catch { /* keep public default */ }

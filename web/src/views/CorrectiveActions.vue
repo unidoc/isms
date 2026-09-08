@@ -637,19 +637,19 @@ async function createCA() {
       const id = 'INC-' + String(route.query.from_incident)
       sourceLinks.push({ type: 'incident', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(t('corrective_actions.seed.from_incident', { label, link: `/incidents/${id}` }))
+      seedLines.push(t('common.seed.created_from', { label, link: `/incidents/${id}` }))
     }
     if (route.query.from_audit_finding) {
       const id = 'FIND-' + String(route.query.from_audit_finding)
       sourceLinks.push({ type: 'audit_finding', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(t('corrective_actions.seed.from_audit_finding', { label }))
+      seedLines.push(t('common.seed.created_from_audit_finding', { label }))
     }
     if (route.query.from_risk) {
       const id = String(route.query.from_risk)
       sourceLinks.push({ type: 'risk', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(t('corrective_actions.seed.from_risk', { label, link: `/risks/${id}` }))
+      seedLines.push(t('common.seed.created_from', { label, link: `/risks/${id}` }))
     }
     if (seedLines.length > 0) {
       payload.notes = seedLines.join('\n') + (payload.notes ? '\n\n' + payload.notes : '')

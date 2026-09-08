@@ -23,6 +23,7 @@ import organizations from './organizations.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
 import settings from './settings.json' with { type: 'json' }
 import shell from './shell.json' with { type: 'json' }
+import systems from './systems.json' with { type: 'json' }
 
 export default {
   admin,
@@ -37,4 +38,5 @@ export default {
   risks,
   settings,
   shell,
+  systems,
 }

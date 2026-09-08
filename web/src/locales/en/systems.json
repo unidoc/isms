@@ -1,0 +1,106 @@
+{
+  "title": "Systems Register",
+  "subtitle": "IT systems, recovery objectives, access control, and supplier links",
+  "error": {
+    "save": "Failed to save: {message}",
+    "create": "Failed to create system: {message}",
+    "delete": "Failed to delete: {message}",
+    "record_review": "Failed to record review: {message}"
+  },
+  "action": {
+    "add": "Add System"
+  },
+  "create": {
+    "heading": "Add System",
+    "name_label": "Name *",
+    "name_placeholder": "e.g. Production ERP",
+    "classification_label": "Classification",
+    "criticality_label": "Criticality",
+    "supplier_label": "Supplier",
+    "fill_in_later": "You can add CIA classification, RPO/RTO, and owner after creating.",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No systems found"
+  },
+  "option": {
+    "no_supplier": "— None —"
+  },
+  "table": {
+    "header": {
+      "system": "System",
+      "classification": "Classification",
+      "criticality": "Criticality",
+      "cia": "C/I/A",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Status",
+      "owner": "Owner",
+      "next_review": "Next Review"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentiality: {level}",
+      "integrity": "Integrity: {level}",
+      "availability": "Availability: {level}"
+    },
+    "hours": "{count}h"
+  },
+  "field": {
+    "name": "Name",
+    "description": "Description",
+    "classification": "Classification",
+    "criticality": "Criticality",
+    "status": "Status",
+    "owner": "Owner",
+    "department": "Department",
+    "supplier": "Supplier",
+    "rpo": "RPO (hours)",
+    "rto": "RTO (hours)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Created",
+    "created_by": "Created by"
+  },
+  "hint": {
+    "rpo": "Max acceptable data loss (hours)",
+    "rto": "Max acceptable downtime (hours)"
+  },
+  "placeholder": {
+    "description": "Describe the system...",
+    "department": "IT, Engineering, Marketing...",
+    "notes": "Additional notes... Type /doc to link a document"
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "tab": {
+    "reviews": "Access Reviews"
+  },
+  "assessment": {
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability"
+  },
+  "reviews": {
+    "heading": "Access Reviews",
+    "add": "+ Record review",
+    "users_added": "Users Added",
+    "users_removed": "Users Removed",
+    "notes_label": "Notes",
+    "notes_placeholder": "Removed former employees...",
+    "submit": "Record Review",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "reviewed",
+    "empty": "No access reviews recorded."
+  },
+  "danger": {
+    "warning": "Deleting this system is permanent and cannot be undone. History, comments, access reviews and linked references will be lost.",
+    "delete": "Delete system",
+    "confirm": "Delete this system? This cannot be undone."
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  }
+}

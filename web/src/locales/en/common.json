@@ -305,6 +305,60 @@
       "financial": "Financial regulation",
       "environmental": "Environmental",
       "corporate": "Corporate governance"
+    },
+    "audit_type": {
+      "internal": "Internal",
+      "external": "External",
+      "surveillance": "Surveillance",
+      "certification": "Certification",
+      "recertification": "Recertification"
+    },
+    "change_category": {
+      "process": "Process",
+      "technology": "Technology",
+      "people": "People",
+      "documentation": "Documentation",
+      "infrastructure": "Infrastructure",
+      "other": "Other"
+    },
+    "task_type": {
+      "general": "General",
+      "review": "Review",
+      "incident_followup": "Incident follow-up",
+      "audit_followup": "Audit follow-up",
+      "ca_followup": "Corrective action follow-up",
+      "change_followup": "Change follow-up",
+      "onboarding": "Onboarding",
+      "offboarding": "Offboarding",
+      "training": "Training",
+      "other": "Other"
+    },
+    "source": {
+      "internal_audit": "Internal audit",
+      "external_audit": "External audit",
+      "risk_assessment": "Risk assessment",
+      "security_incident": "Security incident",
+      "objective": "Objective",
+      "feedback": "Feedback",
+      "other": "Other"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "outcome": {
+      "satisfactory": "Satisfactory",
+      "concerns": "Concerns",
+      "unsatisfactory": "Unsatisfactory"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
     }
   },
   "enum_inline": {
@@ -412,7 +466,11 @@
     "all_levels": "All levels",
     "all_criticality": "All criticality",
     "all_categories": "All categories",
-    "all_severities": "All severities"
+    "all_severities": "All severities",
+    "all_priorities": "All priorities",
+    "all_sources": "All sources",
+    "all_programs": "All programs",
+    "all_owners": "All owners"
   },
   "option": {
     "none": "None",
@@ -446,5 +504,13 @@
     "major": "Major",
     "severe": "Severe",
     "na": "N/A"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "Major NC",
+      "minor_nc": "Minor NC",
+      "observation": "Observation",
+      "opportunity": "OFI"
+    }
   }
 }

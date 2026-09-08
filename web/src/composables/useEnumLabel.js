@@ -47,6 +47,19 @@ export function enumLabelInline(group, value) {
   return i18n.global.te(key, FALLBACK) ? i18n.global.t(key) : enumLabel(group, value)
 }
 
+// Abbreviated form, for a control too narrow to hold the full label — an
+// <option> in a filter bar, a badge in a dense table. Like the inline form it
+// is authored, not derived: which abbreviation a language uses ("OFI" is an
+// English initialism) is a property of that language.
+//
+// Falls back to the standalone label, so a group with no abbreviations
+// authored still renders.
+export function enumLabelAbbr(group, value) {
+  if (value === null || value === undefined || value === '') return ''
+  const key = `common.enum_abbr.${group}.${value}`
+  return i18n.global.te(key, FALLBACK) ? i18n.global.t(key) : enumLabel(group, value)
+}
+
 // Entity names run through common.entity.* rather than common.enum.*, and need
 // the same two forms for the same reason.
 export function entityLabel(value, { inline = false } = {}) {
@@ -63,5 +76,5 @@ export function entityLabel(value, { inline = false } = {}) {
 // enumLabel() so plain .js modules can use the same seam without a component
 // instance, exactly as `t` is exported from @/i18n for the same reason.
 export function useEnumLabel() {
-  return { enumLabel, enumLabelInline, entityLabel }
+  return { enumLabel, enumLabelInline, enumLabelAbbr, entityLabel }
 }

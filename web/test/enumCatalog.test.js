@@ -5,7 +5,7 @@
 // which reads plausibly in English and is invisible in review.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { enumLabel, enumLabelInline } from '../src/composables/useEnumLabel.js'
+import { enumLabel, enumLabelAbbr, enumLabelInline } from '../src/composables/useEnumLabel.js'
 import { i18n } from '../src/i18n.js'
 import en from '../src/locales/en/index.js'
 import id from '../src/locales/id-ID/index.js'
@@ -80,6 +80,32 @@ const PENDING_TRANSLATION = {
     'data_protection', 'employment', 'regulatory', 'intellectual_property',
     'financial', 'environmental', 'corporate',
   ],
+  // ── added by the 3.6 (workflow) extraction ──
+  audit_type: ['internal', 'external', 'surveillance', 'certification', 'recertification'],
+  // changes.category. Named for the table, because `category` alone already
+  // means three different value sets across the schema.
+  change_category: [
+    'process', 'technology', 'people', 'documentation', 'infrastructure', 'other',
+  ],
+  task_type: [
+    'general', 'review', 'incident_followup', 'audit_followup', 'ca_followup',
+    'change_followup', 'onboarding', 'offboarding', 'training', 'other',
+  ],
+  // corrective_actions.source — the set `origin` deliberately left this name
+  // free for. Not the internal/external pair risks.origin holds.
+  source: [
+    'internal_audit', 'external_audit', 'risk_assessment', 'security_incident',
+    'objective', 'feedback', 'other',
+  ],
+  // tasks.priority and changes.priority. Same members as `severity`, different
+  // family: a task is not more or less severe, it is more or less urgent, and a
+  // language need not use one word for both.
+  priority: ['critical', 'high', 'medium', 'low'],
+  // checkins.outcome, rendered by the audit programme view.
+  outcome: ['satisfactory', 'concerns', 'unsatisfactory'],
+  // objectives.target_operator. The members are mathematical symbols today, but
+  // they are still authored copy — a locale may prefer spelled-out comparators.
+  target_operator: ['gte', 'lte', 'eq', 'gt', 'lt'],
 }
 
 // The suggestion `entity` param, resolved through common.entity.* rather than
@@ -147,6 +173,26 @@ test('a lagging locale falls back to the English label, not to de-slugging', () 
   } finally {
     i18n.global.locale.value = previous
   }
+})
+
+// Abbreviated forms. A filter <option> and a dense table badge cannot hold
+// "Opportunity for improvement"; `common.enum_abbr.*` is the short authored
+// form, not a truncation. enumLabelAbbr() falls back to the standalone label,
+// so only a test catches a group that lost its abbreviations.
+
+test('the finding taxonomy has an abbreviated form for every member', () => {
+  for (const value of GROUPS.finding_type) {
+    const abbr = en.common.enum_abbr?.finding_type?.[value]
+    assert.equal(typeof abbr, 'string', `common.enum_abbr.finding_type.${value} is missing in en`)
+    assert.ok(abbr.length > 0, `common.enum_abbr.finding_type.${value} is empty in en`)
+  }
+})
+
+test('an abbreviated form falls back to the standalone label, never to a raw key', () => {
+  assert.equal(enumLabelAbbr('finding_type', 'opportunity'), 'OFI')
+  // No abbreviations authored for this group: the full label stands in.
+  assert.equal(enumLabelAbbr('audit_result', 'conforming'), 'Conforming')
+  assert.equal(enumLabelAbbr('finding_type', ''), '')
 })
 
 // ─────────────────────────────────────────────────────────────────────────

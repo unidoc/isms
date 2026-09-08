@@ -106,12 +106,15 @@ const localesDir = "../../../web/src/locales"
 //
 // This gate exists because the extraction gate above was necessary and not
 // sufficient, and the gap was invisible for exactly as long as extraction was
-// the binding constraint. Extraction finished, `extractionGateThreshold` went to
-// zero, and `id-ID` — 244 of 2448 keys, 10% — became one flag away from being
-// offered, which is the precise failure the other gate's comment describes:
-// "the picker offers a language, and the app answers in mostly English". The
-// gate cannot see that, because it measures the *app*, not the *bundle*. This
-// one measures the bundle.
+// the binding constraint. Extraction finished, so the raw-text *baseline* fell
+// to zero — `extractionGateThreshold` itself is unchanged at 100, and the two
+// are easy to conflate: the threshold is the budget, the baseline is the
+// measurement. With the measurement at zero the gate is satisfied, and `id-ID`
+// — 244 of 2448 keys, just under 10% — became one flag away from being offered.
+// That is the precise failure the other gate's comment describes: "the picker
+// offers a language, and the app answers in mostly English". It cannot see it,
+// because it measures the *app*, not the *bundle*. This one measures the
+// bundle.
 //
 // 90 rather than 100 because `localeKeyset.test.js` deliberately lets a
 // translation lag: a missing key renders in English through fallbackLocale, and
@@ -122,11 +125,18 @@ const localesDir = "../../../web/src/locales"
 // that says why — not adjusted to make a red build green.
 const translationGateThreshold = 90
 
-// leafKeys flattens a message bundle to dotted paths, matching leafKeys() in
-// web/test/localeKeyset.test.js and web/scripts/i18nKeyset.mjs — including the
-// treatment of an empty object as a leaf in its own right, since `common.enum`
-// is a reserved-but-unfilled group in some bundles. The three must agree, or the
-// counts drift by a handful and nothing says why.
+// leafKeys flattens a message bundle to dotted paths. It must match the walk in
+// web/scripts/i18nKeyset.mjs, which is the single JS implementation — the web
+// test imports it rather than keeping a copy, so there are two walkers in the
+// repo and not three.
+//
+// Including the treatment of an empty object as a leaf in its own right. No
+// bundle contains one today (`common.enum` shipped empty in #217 and was filled
+// in #229, which is where the rule came from), so this branch is currently
+// defensive rather than exercised. It stays because the two walkers diverging is
+// the failure mode: the snapshot would count a reserved group and this gate
+// would not, quietly changing a locale's measured coverage in the direction of
+// passing.
 func leafKeys(v any, prefix string, out *[]string) {
 	obj, ok := v.(map[string]any)
 	if !ok || len(obj) == 0 {

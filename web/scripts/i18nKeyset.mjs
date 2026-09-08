@@ -26,11 +26,16 @@ import { fileURLToPath } from 'node:url'
 
 const SNAPSHOT = fileURLToPath(new URL('../test/keyset.snapshot.json', import.meta.url))
 
-// Flatten to dotted leaf paths, matching leafKeys() in localeKeyset.test.js
-// exactly — including its treatment of an empty object as a leaf in its own
-// right (`common.enum` is a reserved-but-unfilled group). The two must agree or
-// the counts drift by a handful and no one can tell why. The Go release gate
-// reads this same file rather than reimplementing the walk a third time.
+// Flatten to dotted leaf paths. Exported because localeKeyset.test.js walks the
+// same bundles for its relative checks and must not do it differently — the
+// snapshot and those checks disagreeing is a failure no test would explain.
+//
+// An empty object counts as a leaf in its own right. No bundle contains one
+// today; `common.enum` shipped empty in #217 and was filled in #229, which is
+// where this rule came from. It is kept because a group reserved ahead of its
+// members is a reasonable thing to commit, and because the equivalent walk in
+// internal/isms/i18n/release_gate_test.go has to match this one key for key —
+// a divergence there would silently change a locale's measured coverage.
 export function leafKeys(obj, prefix = '') {
   const out = []
   for (const [k, v] of Object.entries(obj)) {

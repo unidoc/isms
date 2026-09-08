@@ -22,28 +22,18 @@ import { readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { FALLBACK } from '../src/i18n.js'
-import { currentKeyset, readSnapshot } from '../scripts/i18nKeyset.mjs'
+// leafKeys comes from the snapshot writer rather than being defined twice. It
+// used to live here, and the freeze is exactly what made a second copy
+// dangerous: the relative checks below and the snapshot check must walk the
+// bundle identically, or `en` can satisfy the snapshot while a locale is
+// measured against a different key set, and the numbers disagree with no test
+// to say why.
+import { currentKeyset, leafKeys, readSnapshot } from '../scripts/i18nKeyset.mjs'
 
 const LOCALES_DIR = fileURLToPath(new URL('../src/locales/', import.meta.url))
 
 function localeDirs() {
   return readdirSync(LOCALES_DIR).filter((e) => statSync(join(LOCALES_DIR, e)).isDirectory())
-}
-
-// Flatten to dotted leaf paths. An empty object is a leaf in its own right:
-// `common.enum` is a reserved-but-unfilled group in `en`, and a locale that
-// fills it is adding keys under it, not diverging from the contract.
-function leafKeys(obj, prefix = '') {
-  const out = []
-  for (const [k, v] of Object.entries(obj)) {
-    const path = prefix ? `${prefix}.${k}` : k
-    if (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0) {
-      out.push(...leafKeys(v, path))
-    } else {
-      out.push(path)
-    }
-  }
-  return out
 }
 
 async function load(locale) {

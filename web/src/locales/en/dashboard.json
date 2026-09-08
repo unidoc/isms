@@ -1,0 +1,115 @@
+{
+  "loading": "Loading dashboard…",
+  "title": "Overview",
+  "subtitle": "ISO 27001 ISMS compliance and implementation overview",
+  "org_picker": {
+    "title": "Select an organization",
+    "subtitle": "Choose which organization to work in.",
+    "create_toggle": "+ Create a new organization"
+  },
+  "no_org": {
+    "title": "You're not in any organization",
+    "subtitle": "Create your organization to get started, or wait for an invite."
+  },
+  "compliance": {
+    "title": "Overall Compliance",
+    "approved_of_total": "{approved} of {total} documents approved",
+    "draft": "{count} draft",
+    "in_review": "{count} in review",
+    "approved": "{count} approved"
+  },
+  "modules": {
+    "title": "Module Overview",
+    "documents": "Documents",
+    "risks": "Risks",
+    "incidents": "Incidents",
+    "changes": "Changes",
+    "corrective_actions": "Corrective Actions",
+    "suppliers": "Suppliers",
+    "assets": "Assets",
+    "legal": "Legal",
+    "systems": "Systems",
+    "alert": {
+      "draft": "{count} draft",
+      "high_critical": "{count} high/critical",
+      "open": "{count} open",
+      "pending": "{count} pending"
+    }
+  },
+  "bia": {
+    "title": "Business Impact Analysis",
+    "header": {
+      "system": "System",
+      "criticality": "Criticality",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Needs Your Attention",
+    "reviews": {
+      "title": "Open reviews",
+      "detail": "{count} review awaiting response | {count} reviews awaiting response"
+    },
+    "risks": {
+      "title": "High & critical risks",
+      "detail": "{count} risk requiring treatment or escalation | {count} risks requiring treatment or escalation"
+    },
+    "overdue_documents": {
+      "title": "Overdue documents",
+      "detail": "{count} policy past review date | {count} policies past review date"
+    },
+    "incidents": {
+      "title": "Open incidents",
+      "detail": "{count} incident needs investigation | {count} incidents need investigation"
+    },
+    "changes": {
+      "title": "Changes awaiting approval",
+      "detail": "{count} change proposed | {count} changes proposed"
+    },
+    "corrective_actions": {
+      "title": "Open corrective actions",
+      "detail": "{count} corrective action in progress | {count} corrective actions in progress"
+    }
+  },
+  "stats": {
+    "title": "Quick Stats",
+    "documents": "Documents",
+    "documents_detail": "{count} need review",
+    "risks": "Risks",
+    "risks_detail": "{count} high/critical",
+    "risks_none": "All within tolerance",
+    "incidents": "Incidents",
+    "incidents_detail": "open incidents",
+    "corrective_actions": "CAs",
+    "corrective_actions_detail": "open actions",
+    "changes": "Changes",
+    "changes_detail": "awaiting approval",
+    "changes_none": "none pending",
+    "overdue": "Overdue",
+    "overdue_detail": "items past due",
+    "overdue_none": "all on track"
+  },
+  "heatmap_title": "Risk Map",
+  "calendar": {
+    "title": "Annual Plan",
+    "previous_year": "Previous year",
+    "next_year": "Next year",
+    "category": {
+      "audit": "Audits",
+      "risk": "Risk Reviews",
+      "supplier": "Supplier Reviews",
+      "legal": "Legal Reviews",
+      "task": "Tasks"
+    },
+    "untitled_audit": "Audit"
+  },
+  "activity": {
+    "title": "Recent Activity",
+    "empty": "Activity will appear as the team works"
+  },
+  "error": {
+    "create_org": "Failed to create organization",
+    "load": "Failed to load the dashboard"
+  }
+}

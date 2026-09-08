@@ -1,10 +1,8 @@
 {
-  "views/Admin.vue": 169,
   "views/Assets.vue": 68,
   "views/Audit.vue": 218,
   "views/Changes.vue": 106,
   "views/CorrectiveActions.vue": 90,
-  "views/Dashboard.vue": 69,
   "views/Documents.vue": 186,
   "views/Inbox.vue": 90,
   "views/Incidents.vue": 120,
@@ -13,7 +11,6 @@
   "views/Programs.vue": 36,
   "views/Reviews.vue": 146,
   "views/Risks.vue": 167,
-  "views/Settings.vue": 73,
   "views/Suppliers.vue": 80,
   "views/Systems.vue": 92,
   "views/Tasks.vue": 105

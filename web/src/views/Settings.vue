@@ -1,23 +1,23 @@
 <template>
   <div class="max-w-2xl mx-auto px-6 py-8 space-y-8">
-    <h1 class="text-xl font-bold text-white">Settings</h1>
+    <h1 class="text-xl font-bold text-white">{{ t('settings.title') }}</h1>
 
     <!-- Profile -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Profile</h2>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.profile.title') }}</h2>
       <div class="space-y-4">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Email</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.profile.email') }}</label>
           <div class="text-sm text-slate-300">{{ user?.email }}</div>
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Name</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.profile.name') }}</label>
           <div class="flex gap-2 items-center">
             <input v-model="profileName" type="text"
               class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
             <button @click="saveName" :disabled="savingName"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-              {{ savingName ? 'Saving...' : 'Save' }}
+              {{ savingName ? t('common.state.saving') : t('common.action.save') }}
             </button>
           </div>
           <div v-if="nameMsg" class="text-xs mt-1" :class="nameError ? 'text-red-400' : 'text-emerald-400'">{{ nameMsg }}</div>
@@ -28,12 +28,12 @@
           <div v-if="localeMsg" class="text-xs mt-1 text-red-400">{{ localeMsg }}</div>
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Role</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.profile.role') }}</label>
           <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full"
             :class="user?.role === 'admin' ? 'bg-purple-500/20 text-purple-300' :
                      user?.role === 'manager' ? 'bg-blue-500/20 text-blue-300' :
                      'bg-slate-500/20 text-slate-400'">
-            {{ user?.role }}
+            {{ roleLabel(user?.role) }}
           </span>
         </div>
       </div>
@@ -41,21 +41,21 @@
 
     <!-- Change Password (only for local login users) -->
     <section v-if="user?.has_password" class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Password</h2>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.password.title') }}</h2>
       <div class="space-y-3">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Current password</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.password.current') }}</label>
           <input v-model="currentPassword" type="password"
             class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">New password (min 7 characters)</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.password.new') }}</label>
           <input v-model="newPassword" type="password"
             class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         <button @click="changePassword" :disabled="changingPw"
           class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-          {{ changingPw ? 'Changing...' : 'Change password' }}
+          {{ changingPw ? t('settings.password.changing') : t('settings.password.submit') }}
         </button>
         <div v-if="pwMsg" class="text-xs" :class="pwError ? 'text-red-400' : 'text-emerald-400'">{{ pwMsg }}</div>
       </div>
@@ -63,69 +63,71 @@
 
     <!-- Change Email -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Email</h2>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.email.title') }}</h2>
       <div class="space-y-3">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Current email</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.email.current') }}</label>
           <div class="text-sm text-slate-300">{{ user?.email }}</div>
         </div>
 
         <div v-if="user?.pending_email"
           class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
           <div>
-            Change to <strong>{{ user.pending_email }}</strong> is pending — check that inbox for a confirmation link.
-            Your current email stays active until you confirm.
+            <i18n-t keypath="settings.email.pending" tag="span" scope="global">
+              <template #email><strong>{{ user.pending_email }}</strong></template>
+            </i18n-t>
+            {{ t('settings.email.pending_note') }}
           </div>
           <button @click="cancelEmailChange" :disabled="cancellingEmail"
             class="mt-2 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-md border border-amber-500/40 transition-colors disabled:opacity-50">
-            {{ cancellingEmail ? 'Cancelling…' : 'Cancel pending change' }}
+            {{ cancellingEmail ? t('settings.email.cancelling') : t('settings.email.cancel_pending') }}
           </button>
         </div>
 
         <div>
-          <label class="block text-xs text-slate-500 mb-1">New email</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.email.new') }}</label>
           <input v-model="newEmail" type="email" autocomplete="email"
             class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         <div v-if="user?.has_password">
-          <label class="block text-xs text-slate-500 mb-1">Current password</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.password.current') }}</label>
           <input v-model="emailCurrentPassword" type="password" autocomplete="current-password"
             class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         <div v-if="user?.otp_enabled">
-          <label class="block text-xs text-slate-500 mb-1">Authenticator code</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('settings.email.otp') }}</label>
           <input v-model="emailOtp" type="text" maxlength="6" inputmode="numeric" placeholder="000000"
             @input="emailOtp = emailOtp.replace(/\D/g, '').slice(0, 6)"
             class="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white tracking-widest text-center focus:outline-none focus:border-blue-500" />
         </div>
         <button @click="changeEmail" :disabled="changingEmail || !newEmail"
           class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-          {{ changingEmail ? 'Sending...' : 'Change email' }}
+          {{ changingEmail ? t('settings.email.sending') : t('settings.email.submit') }}
         </button>
-        <p class="text-xs text-slate-500">We'll send a confirmation link to the new address. The change takes effect only after you click it.</p>
+        <p class="text-xs text-slate-500">{{ t('settings.email.note') }}</p>
         <div v-if="emailMsg" class="text-xs" :class="emailError ? 'text-red-400' : 'text-emerald-400'">{{ emailMsg }}</div>
       </div>
     </section>
 
     <!-- Two-Factor Authentication -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Two-Factor Authentication (OTP)</h2>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.otp.title') }}</h2>
 
       <!-- OTP enabled -->
       <div v-if="otpEnabled" class="space-y-3">
         <div class="flex items-center gap-2">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span class="text-sm text-emerald-400">OTP is enabled</span>
+          <span class="text-sm text-emerald-400">{{ t('settings.otp.enabled') }}</span>
         </div>
-        <p class="text-xs text-slate-500">Your account is protected with a time-based one-time password.</p>
-        <p class="text-xs text-slate-500">Enter a current code from your authenticator to turn it off.</p>
+        <p class="text-xs text-slate-500">{{ t('settings.otp.enabled_note') }}</p>
+        <p class="text-xs text-slate-500">{{ t('settings.otp.disable_note') }}</p>
         <div class="flex items-center gap-2">
           <input v-model="disableCode" type="text" maxlength="6" inputmode="numeric" placeholder="000000"
             @input="disableCode = disableCode.replace(/\D/g, '').slice(0, 6)"
             class="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white tracking-widest text-center focus:outline-none focus:border-red-500" />
           <button @click="disableOTP" :disabled="disablingOTP || disableCode.length !== 6"
             class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded-lg border border-red-600/30 transition-colors disabled:opacity-50">
-            {{ disablingOTP ? 'Disabling...' : 'Disable OTP' }}
+            {{ disablingOTP ? t('settings.otp.disabling') : t('settings.otp.disable') }}
           </button>
         </div>
       </div>
@@ -133,16 +135,16 @@
       <!-- OTP setup flow -->
       <div v-else class="space-y-4">
         <div v-if="!otpSecret" class="space-y-3">
-          <p class="text-sm text-slate-400">Add an extra layer of security to your account with a TOTP authenticator app.</p>
+          <p class="text-sm text-slate-400">{{ t('settings.otp.setup_note') }}</p>
           <button @click="setupOTP" :disabled="settingUpOTP"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-            {{ settingUpOTP ? 'Setting up...' : 'Enable OTP' }}
+            {{ settingUpOTP ? t('settings.otp.setting_up') : t('settings.otp.enable') }}
           </button>
         </div>
 
         <!-- Step 2: Show QR + secret + verify -->
         <div v-else class="space-y-4">
-          <p class="text-sm text-slate-400">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):</p>
+          <p class="text-sm text-slate-400">{{ t('settings.otp.scan') }}</p>
 
           <!-- QR Code -->
           <div class="flex justify-center">
@@ -153,33 +155,33 @@
 
           <!-- Secret for manual entry -->
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Or enter this key manually</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('settings.otp.manual_key') }}</label>
             <div class="flex items-center gap-2">
               <code class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-amber-300 font-mono tracking-wider select-all">
                 {{ otpSecret }}
               </code>
               <button @click="copySecret"
                 class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors">
-                {{ copied ? 'Copied' : 'Copy' }}
+                {{ copied ? t('common.state.copied') : t('common.action.copy') }}
               </button>
             </div>
           </div>
 
           <!-- Verify code -->
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Enter the 6-digit code from your app to verify</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('settings.otp.verify_label') }}</label>
             <div class="flex gap-2 items-center">
               <input v-model="otpCode" type="text" maxlength="6" placeholder="000000"
                 class="w-32 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white font-mono tracking-widest text-center focus:outline-none focus:border-blue-500"
                 @keyup.enter="verifyOTP" />
               <button @click="verifyOTP" :disabled="verifyingOTP"
                 class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-                {{ verifyingOTP ? 'Verifying...' : 'Verify & Enable' }}
+                {{ verifyingOTP ? t('settings.otp.verifying') : t('settings.otp.verify') }}
               </button>
             </div>
           </div>
 
-          <button @click="cancelOTPSetup" class="text-xs text-slate-500 hover:text-slate-400">Cancel</button>
+          <button @click="cancelOTPSetup" class="text-xs text-slate-500 hover:text-slate-400">{{ t('common.action.cancel') }}</button>
         </div>
       </div>
 
@@ -188,33 +190,31 @@
 
     <!-- Personal Access Tokens -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Personal Access Tokens</h2>
-      <p class="text-sm text-slate-400 mb-4">Tokens authenticate CLI tools and AI agents. They work across all your organizations.</p>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.tokens.title') }}</h2>
+      <p class="text-sm text-slate-400 mb-4">{{ t('settings.tokens.description') }}</p>
 
       <!-- Create token form -->
       <div class="space-y-3 mb-6">
         <div class="flex gap-2 items-end">
           <div class="flex-1">
-            <label class="block text-xs text-slate-500 mb-1">Token name</label>
-            <input v-model="tokenName" type="text" placeholder="e.g. claude-agent"
+            <label class="block text-xs text-slate-500 mb-1">{{ t('settings.tokens.name') }}</label>
+            <input v-model="tokenName" type="text" :placeholder="t('settings.tokens.name_placeholder')"
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Permissions</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('settings.tokens.permissions') }}</label>
             <select v-model="tokenPermissions"
               class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="read-write">Read & Write</option>
-              <option value="read">Read only</option>
-              <option value="write">Write only</option>
+              <option v-for="p in tokenPermissionOptions" :key="p.value" :value="p.value">{{ p.label }}</option>
             </select>
           </div>
           <button @click="createToken" :disabled="creatingToken || !tokenName"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-            {{ creatingToken ? 'Creating...' : 'Create token' }}
+            {{ creatingToken ? t('settings.tokens.creating') : t('settings.tokens.create') }}
           </button>
         </div>
         <div v-if="newTokenValue" class="p-3 bg-emerald-950/40 border border-emerald-900/50 rounded-lg">
-          <p class="text-xs text-emerald-400 mb-1">Token created. Copy it now -- you won't see it again.</p>
+          <p class="text-xs text-emerald-400 mb-1">{{ t('settings.tokens.created_warning') }}</p>
           <code class="block text-sm text-emerald-300 font-mono break-all select-all">{{ newTokenValue }}</code>
         </div>
         <div v-if="tokenMsg" class="text-xs" :class="tokenError ? 'text-red-400' : 'text-emerald-400'">{{ tokenMsg }}</div>
@@ -222,33 +222,33 @@
 
       <!-- Token list -->
       <div v-if="tokens.length > 0" class="space-y-2">
-        <div v-for="t in tokens" :key="t.id"
+        <div v-for="tok in tokens" :key="tok.id"
           class="flex items-center gap-3 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-slate-200">{{ t.name }}</span>
-              <span class="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{{ t.permissions || 'read-write' }}</span>
-              <span v-if="t.revoked_at" class="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">revoked</span>
+              <span class="text-sm font-medium text-slate-200">{{ tok.name }}</span>
+              <span class="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{{ permissionLabel(tok.permissions) }}</span>
+              <span v-if="tok.revoked_at" class="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">{{ t('settings.tokens.revoked_badge') }}</span>
             </div>
             <div class="text-xs text-slate-500 mt-0.5">
-              Created {{ t.created_at ? formatDate(t.created_at) : 'Unknown' }}
-              <span v-if="t.last_used_at" class="ml-2">Last used {{ formatDate(t.last_used_at) }}</span>
-              <span v-else class="ml-2">Never used</span>
+              {{ t('settings.tokens.created_at', { date: tok.created_at ? formatDate(tok.created_at) : t('common.state.unknown') }) }}
+              <span v-if="tok.last_used_at" class="ml-2">{{ t('settings.tokens.last_used', { date: formatDate(tok.last_used_at) }) }}</span>
+              <span v-else class="ml-2">{{ t('settings.tokens.never_used') }}</span>
             </div>
           </div>
-          <button v-if="!t.revoked_at" @click="revokeToken(t)"
+          <button v-if="!tok.revoked_at" @click="revokeToken(tok)"
             class="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors flex-shrink-0">
-            Revoke
+            {{ t('settings.tokens.revoke') }}
           </button>
         </div>
       </div>
-      <div v-else class="text-sm text-slate-600">No tokens yet.</div>
+      <div v-else class="text-sm text-slate-600">{{ t('settings.tokens.empty') }}</div>
     </section>
 
     <!-- Passkeys -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Passkeys</h2>
-      <p class="text-sm text-slate-400 mb-4">Use a fingerprint, face, or security key instead of a password.</p>
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.passkeys.title') }}</h2>
+      <p class="text-sm text-slate-400 mb-4">{{ t('settings.passkeys.description') }}</p>
 
       <!-- Existing passkeys -->
       <div v-if="passkeys.length > 0" class="space-y-2 mb-4">
@@ -264,14 +264,14 @@
                   @keydown.enter="savePasskeyName(pk)"
                   @keydown.escape="pk._editing = false"
                   class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
-                <button @click="savePasskeyName(pk)" class="text-xs text-blue-400 hover:text-blue-300">Save</button>
-                <button @click="pk._editing = false" class="text-xs text-slate-500 hover:text-slate-400">Cancel</button>
+                <button @click="savePasskeyName(pk)" class="text-xs text-blue-400 hover:text-blue-300">{{ t('common.action.save') }}</button>
+                <button @click="pk._editing = false" class="text-xs text-slate-500 hover:text-slate-400">{{ t('common.action.cancel') }}</button>
               </div>
             </template>
             <template v-else>
               <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-slate-200">{{ pk.name || 'Passkey' }}</span>
-                <button @click="pk._editing = true; pk._editName = pk.name || 'Passkey'"
+                <span class="text-sm font-medium text-slate-200">{{ pk.name || t('settings.passkeys.default_name') }}</span>
+                <button @click="startPasskeyRename(pk)" :aria-label="t('settings.passkeys.rename')"
                   class="text-slate-600 hover:text-slate-400 transition-colors">
                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -279,25 +279,25 @@
                 </button>
               </div>
               <div class="text-xs text-slate-500 mt-0.5">
-                Added {{ pk.created_at ? formatDate(pk.created_at) : 'Unknown' }}
-                <span v-if="pk.last_used_at" class="ml-2">Last used {{ formatDate(pk.last_used_at) }}</span>
+                {{ t('settings.passkeys.added', { date: pk.created_at ? formatDate(pk.created_at) : t('common.state.unknown') }) }}
+                <span v-if="pk.last_used_at" class="ml-2">{{ t('settings.passkeys.last_used', { date: formatDate(pk.last_used_at) }) }}</span>
               </div>
             </template>
           </div>
           <button @click="deletePasskey(pk)"
             class="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors flex-shrink-0">
-            Remove
+            {{ t('settings.passkeys.remove') }}
           </button>
         </div>
       </div>
 
       <div v-if="!passkeyAvailable" class="text-xs text-amber-400 mb-3">
-        Passkeys are not supported by this browser.
+        {{ t('settings.passkeys.unsupported') }}
       </div>
 
       <button v-else @click="addPasskey" :disabled="addingPasskey"
         class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
-        {{ addingPasskey ? 'Registering...' : 'Add passkey' }}
+        {{ addingPasskey ? t('settings.passkeys.registering') : t('settings.passkeys.add') }}
       </button>
 
       <div v-if="passkeyMsg" class="text-xs mt-2" :class="passkeyError ? 'text-red-400' : 'text-emerald-400'">{{ passkeyMsg }}</div>
@@ -308,17 +308,32 @@
 <script setup>
 import { useConfirm } from '../composables/useConfirm'
 import { ref, nextTick, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import QRCode from 'qrcode'
 import api from '../api.js'
 import LocalePicker from '../components/LocalePicker.vue'
 import { formatDate } from '../composables/useFormat.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
+
+const { t } = useI18n()
 
 const user = ref(null)
+
+// Both are stored enums the template used to render raw — display text no
+// template scanner can see, and untranslatable as stored.
+const roleLabel = (role) => enumLabel('role', role)
+const permissionLabel = (perm) => enumLabel('permissions', perm || 'read-write')
 
 // Personal Access Tokens
 const tokens = ref([])
 const tokenName = ref('')
 const tokenPermissions = ref('read-write')
+// The <option> labels are the stored values' catalogue entries, resolved in a
+// computed so switching locale relabels the open select.
+const tokenPermissionOptions = computed(() =>
+  ['read-write', 'read', 'write'].map((value) => ({ value, label: enumLabel('permissions', value) })),
+)
 const creatingToken = ref(false)
 const newTokenValue = ref('')
 const tokenMsg = ref('')
@@ -382,10 +397,10 @@ async function saveName() {
   nameMsg.value = ''
   try {
     await api.putJSON('/api/v1/auth/profile', { name: profileName.value })
-    nameMsg.value = 'Name updated'
+    nameMsg.value = t('settings.profile.name_updated')
     nameError.value = false
   } catch (e) {
-    nameMsg.value = e.message
+    nameMsg.value = renderApiError(e)
     nameError.value = true
   } finally {
     savingName.value = false
@@ -400,12 +415,12 @@ async function changePassword() {
       current_password: currentPassword.value,
       new_password: newPassword.value,
     })
-    pwMsg.value = 'Password changed'
+    pwMsg.value = t('settings.password.changed')
     pwError.value = false
     currentPassword.value = ''
     newPassword.value = ''
   } catch (e) {
-    pwMsg.value = e.message
+    pwMsg.value = renderApiError(e)
     pwError.value = true
   } finally {
     changingPw.value = false
@@ -421,7 +436,7 @@ async function changeEmail() {
       current_password: emailCurrentPassword.value,
       otp: emailOtp.value,
     })
-    emailMsg.value = res.message || 'Confirmation sent — check your new inbox.'
+    emailMsg.value = t('settings.email.sent')
     emailError.value = false
     emailCurrentPassword.value = ''
     emailOtp.value = ''
@@ -429,7 +444,7 @@ async function changeEmail() {
     user.value = await api.getMe()
     newEmail.value = ''
   } catch (e) {
-    emailMsg.value = e.message
+    emailMsg.value = renderApiError(e)
     emailError.value = true
   } finally {
     changingEmail.value = false
@@ -442,10 +457,10 @@ async function cancelEmailChange() {
   try {
     await api.deleteJSON('/api/v1/auth/email')
     user.value = await api.getMe()
-    emailMsg.value = 'Pending email change cancelled.'
+    emailMsg.value = t('settings.email.cancelled')
     emailError.value = false
   } catch (e) {
-    emailMsg.value = e.message
+    emailMsg.value = renderApiError(e)
     emailError.value = true
   } finally {
     cancellingEmail.value = false
@@ -464,7 +479,7 @@ async function setupOTP() {
       QRCode.toCanvas(qrCanvas.value, res.uri, { width: 200, margin: 0 })
     }
   } catch (e) {
-    otpMsg.value = e.message
+    otpMsg.value = renderApiError(e)
     otpError.value = true
   } finally {
     settingUpOTP.value = false
@@ -480,10 +495,10 @@ async function verifyOTP() {
     otpSecret.value = ''
     otpURI.value = ''
     otpCode.value = ''
-    otpMsg.value = 'OTP enabled successfully'
+    otpMsg.value = t('settings.otp.enabled_message')
     otpError.value = false
   } catch (e) {
-    otpMsg.value = e.message
+    otpMsg.value = renderApiError(e)
     otpError.value = true
   } finally {
     verifyingOTP.value = false
@@ -497,10 +512,10 @@ async function disableOTP() {
     await api.deleteJSON('/api/v1/auth/otp', { code: disableCode.value })
     otpEnabled.value = false
     disableCode.value = ''
-    otpMsg.value = 'OTP disabled'
+    otpMsg.value = t('settings.otp.disabled_message')
     otpError.value = false
   } catch (e) {
-    otpMsg.value = e.message
+    otpMsg.value = renderApiError(e)
     otpError.value = true
   } finally {
     disablingOTP.value = false
@@ -535,28 +550,28 @@ async function createToken() {
   try {
     const result = await api.createMyAPIKey({ name: tokenName.value, permissions: tokenPermissions.value })
     newTokenValue.value = result.token || ''
-    tokenMsg.value = 'Token created'
+    tokenMsg.value = t('settings.tokens.created')
     tokenError.value = false
     tokenName.value = ''
     await loadTokens()
   } catch (e) {
-    tokenMsg.value = e.message
+    tokenMsg.value = renderApiError(e)
     tokenError.value = true
   } finally {
     creatingToken.value = false
   }
 }
 
-async function revokeToken(t) {
-  if (!await useConfirm().ask(`Revoke token "${t.name}"?`, 'Confirm')) return
+async function revokeToken(tok) {
+  if (!await useConfirm().ask(t('settings.tokens.revoke_confirm', { name: tok.name }))) return
   tokenMsg.value = ''
   try {
-    await api.revokeMyAPIKey(t.id)
+    await api.revokeMyAPIKey(tok.id)
     await loadTokens()
-    tokenMsg.value = 'Token revoked'
+    tokenMsg.value = t('settings.tokens.revoked_message')
     tokenError.value = false
   } catch (e) {
-    tokenMsg.value = e.message
+    tokenMsg.value = renderApiError(e)
     tokenError.value = true
   }
 }
@@ -627,14 +642,14 @@ async function addPasskey() {
     // Step 4: Complete registration
     await api.passkeyRegisterComplete(credentialData)
 
-    passkeyMsg.value = 'Passkey added successfully'
+    passkeyMsg.value = t('settings.passkeys.added_message')
     passkeyError.value = false
     await loadPasskeys()
   } catch (e) {
     if (e.name === 'NotAllowedError') {
-      passkeyMsg.value = 'Passkey registration was cancelled'
+      passkeyMsg.value = t('settings.passkeys.cancelled')
     } else {
-      passkeyMsg.value = e.message || 'Failed to add passkey'
+      passkeyMsg.value = renderApiError(e) || t('settings.passkeys.error_add')
     }
     passkeyError.value = true
   } finally {
@@ -643,17 +658,22 @@ async function addPasskey() {
 }
 
 async function deletePasskey(pk) {
-  if (!await useConfirm().ask('Remove this passkey?', 'Confirm')) return
+  if (!await useConfirm().ask(t('settings.passkeys.remove_confirm'))) return
   passkeyMsg.value = ''
   try {
     await api.deletePasskey(pk.id)
     passkeys.value = passkeys.value.filter(p => p.id !== pk.id)
-    passkeyMsg.value = 'Passkey removed'
+    passkeyMsg.value = t('settings.passkeys.removed')
     passkeyError.value = false
   } catch (e) {
-    passkeyMsg.value = e.message
+    passkeyMsg.value = renderApiError(e)
     passkeyError.value = true
   }
+}
+
+function startPasskeyRename(pk) {
+  pk._editing = true
+  pk._editName = pk.name || t('settings.passkeys.default_name')
 }
 
 async function savePasskeyName(pk) {
@@ -662,7 +682,7 @@ async function savePasskeyName(pk) {
     pk.name = pk._editName
     pk._editing = false
   } catch (e) {
-    passkeyMsg.value = e.message
+    passkeyMsg.value = renderApiError(e)
     passkeyError.value = true
   }
 }

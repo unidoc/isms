@@ -2,7 +2,7 @@
   <div class="min-h-full">
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center justify-center h-96">
-      <div class="text-slate-400 text-sm">Loading dashboard...</div>
+      <div class="text-slate-400 text-sm">{{ t('dashboard.loading') }}</div>
     </div>
 
     <!-- Has orgs but none selected — org picker -->
@@ -12,8 +12,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       </div>
-      <h2 class="text-xl font-bold text-white mb-2">Select an organization</h2>
-      <p class="text-slate-400 mb-8">Choose which organization to work in.</p>
+      <h2 class="text-xl font-bold text-white mb-2">{{ t('dashboard.org_picker.title') }}</h2>
+      <p class="text-slate-400 mb-8">{{ t('dashboard.org_picker.subtitle') }}</p>
 
       <div class="space-y-2">
         <button v-for="org in myOrgs" :key="org.slug" @click="selectOrg(org)"
@@ -22,34 +22,34 @@
             <div class="text-sm font-medium text-white">{{ org.name }}</div>
             <div class="text-xs text-slate-500">{{ org.slug }}</div>
           </div>
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="org.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-500/20 text-slate-400'">{{ org.role }}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="org.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-500/20 text-slate-400'">{{ roleLabel(org.role) }}</span>
         </button>
       </div>
 
       <div class="mt-6 pt-6 border-t border-slate-800">
         <button @click="showCreateForm = true" v-if="!showCreateForm" class="text-sm text-slate-400 hover:text-white transition-colors">
-          + Create a new organization
+          {{ t('dashboard.org_picker.create_toggle') }}
         </button>
         <form v-if="showCreateForm" @submit.prevent="createOrg" class="text-left space-y-3">
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Organization name</label>
-            <input v-model="newOrg.name" @input="onNameInput" type="text" placeholder="Acme Corp" required
+            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.name_label') }}</label>
+            <input v-model="newOrg.name" @input="onNameInput" type="text" :placeholder="t('organizations.form.name_placeholder')" required
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">URL slug</label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.slug_label') }}</label>
             <div class="flex items-center gap-0">
               <span class="px-3 py-2 bg-slate-900 border border-r-0 border-slate-700 rounded-l-lg text-sm text-slate-500">{{ baseDomain }}/</span>
-              <input v-model="newOrg.slug" @input="onSlugInput" type="text" placeholder="acme" required
+              <input v-model="newOrg.slug" @input="onSlugInput" type="text" :placeholder="t('organizations.form.slug_placeholder')" required
                 class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-r-lg text-sm text-white focus:outline-none focus:border-blue-500" />
             </div>
           </div>
           <div class="flex gap-2">
             <button type="submit" :disabled="creatingOrg || !newOrg.name.trim() || !newOrg.slug.trim()"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {{ creatingOrg ? 'Creating...' : 'Create organization' }}
+              {{ creatingOrg ? t('organizations.form.creating') : t('organizations.create') }}
             </button>
-            <button type="button" @click="showCreateForm = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
+            <button type="button" @click="showCreateForm = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors">{{ t('common.action.cancel') }}</button>
           </div>
           <div v-if="orgError" class="text-xs text-red-400">{{ orgError }}</div>
         </form>
@@ -63,26 +63,26 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       </div>
-      <h2 class="text-xl font-bold text-white mb-2">You're not in any organization</h2>
-      <p class="text-slate-400 mb-6">Create your organization to get started, or wait for an invite.</p>
+      <h2 class="text-xl font-bold text-white mb-2">{{ t('dashboard.no_org.title') }}</h2>
+      <p class="text-slate-400 mb-6">{{ t('dashboard.no_org.subtitle') }}</p>
 
       <form @submit.prevent="createOrg" class="text-left space-y-3 mt-8">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">Organization name</label>
-          <input v-model="newOrg.name" @input="onNameInput" type="text" placeholder="Acme Corp" required
+          <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.name_label') }}</label>
+          <input v-model="newOrg.name" @input="onNameInput" type="text" :placeholder="t('organizations.form.name_placeholder')" required
             class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">URL slug</label>
+          <label class="block text-xs text-slate-500 mb-1">{{ t('organizations.form.slug_label') }}</label>
           <div class="flex items-center gap-0">
             <span class="px-3 py-2 bg-slate-900 border border-r-0 border-slate-700 rounded-l-lg text-sm text-slate-500">{{ baseDomain }}/</span>
-            <input v-model="newOrg.slug" @input="onSlugInput" type="text" placeholder="acme" required
+            <input v-model="newOrg.slug" @input="onSlugInput" type="text" :placeholder="t('organizations.form.slug_placeholder')" required
               class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-r-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
         </div>
         <button type="submit" :disabled="creatingOrg || !newOrg.name.trim() || !newOrg.slug.trim()"
           class="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-          {{ creatingOrg ? 'Creating...' : 'Create organization' }}
+          {{ creatingOrg ? t('organizations.form.creating') : t('organizations.create') }}
         </button>
         <div v-if="orgError" class="text-xs text-red-400">{{ orgError }}</div>
       </form>
@@ -99,8 +99,8 @@
     <div v-else class="max-w-6xl mx-auto px-8 py-10 space-y-10">
       <!-- Page header -->
       <div>
-        <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Overview</h1>
-        <p class="text-sm text-slate-500 mt-1">ISO 27001 ISMS compliance and implementation overview</p>
+        <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('dashboard.title') }}</h1>
+        <p class="text-sm text-slate-500 mt-1">{{ t('dashboard.subtitle') }}</p>
       </div>
 
       <!-- ============================================ -->
@@ -110,14 +110,14 @@
         <!-- Left: Overall compliance -->
         <router-link :to="orgPath('/documents')" class="bg-slate-900 border border-slate-800 rounded-xl p-6 block hover:border-slate-700 transition-colors">
           <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-4">
-            Overall Compliance
+            {{ t('dashboard.compliance.title') }}
           </div>
           <div class="flex items-end gap-3 mb-4">
             <span class="text-5xl font-bold tabular-nums" :class="complianceColor">
               {{ compliancePercent }}%
             </span>
             <span class="text-sm text-slate-500 mb-1.5">
-              {{ approvedDocs }} of {{ totalDocs }} documents approved
+              {{ t('dashboard.compliance.approved_of_total', { approved: approvedDocs, total: totalDocs }) }}
             </span>
           </div>
           <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -130,15 +130,15 @@
           <div class="flex justify-between mt-3 text-xs text-slate-500">
             <span class="flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
-              {{ draftDocs }} draft
+              {{ t('dashboard.compliance.draft', { count: draftDocs }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              {{ inReviewDocs }} in review
+              {{ t('dashboard.compliance.in_review', { count: inReviewDocs }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {{ approvedDocs }} approved
+              {{ t('dashboard.compliance.approved', { count: approvedDocs }) }}
             </span>
           </div>
         </router-link>
@@ -146,7 +146,7 @@
         <!-- Right: Module overview -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
           <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-4">
-            Module Overview
+            {{ t('dashboard.modules.title') }}
           </div>
           <div class="space-y-2.5">
             <router-link v-for="m in moduleOverview" :key="m.route" :to="orgPath(m.route)"
@@ -166,24 +166,24 @@
       <!-- ============================================ -->
       <div v-if="systemsList.length > 0">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Business Impact Analysis</h2>
+          <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">{{ t('dashboard.bia.title') }}</h2>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
           <table class="w-full">
             <thead>
               <tr class="border-b border-slate-800">
-                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">System</th>
-                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">Criticality</th>
-                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">RPO</th>
-                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">RTO</th>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">{{ t('dashboard.bia.header.system') }}</th>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">{{ t('dashboard.bia.header.criticality') }}</th>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">{{ t('dashboard.bia.header.rpo') }}</th>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase">{{ t('dashboard.bia.header.rto') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
               <tr v-for="sys in systemsList" :key="sys.id" class="hover:bg-slate-800/30 cursor-pointer" @click="router.push(orgPath('/systems'))">
                 <td class="px-4 py-2.5 text-sm text-slate-300">{{ sys.name }}</td>
                 <td class="px-4 py-2.5"><StatusBadge :status="sys.criticality" group="criticality" /></td>
-                <td class="px-4 py-2.5 text-sm text-slate-400">{{ sys.rpo_hours }}h</td>
-                <td class="px-4 py-2.5 text-sm text-slate-400">{{ sys.rto_hours }}h</td>
+                <td class="px-4 py-2.5 text-sm text-slate-400">{{ formatHours(sys.rpo_hours) }}</td>
+                <td class="px-4 py-2.5 text-sm text-slate-400">{{ formatHours(sys.rto_hours) }}</td>
               </tr>
             </tbody>
           </table>
@@ -195,7 +195,7 @@
       <!-- ============================================ -->
       <div v-if="hasActionItems">
         <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Needs Your Attention
+          {{ t('dashboard.attention.title') }}
         </h2>
         <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 overflow-hidden">
           <!-- Open reviews -->
@@ -210,8 +210,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">Open reviews</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ openReviewCount }} review{{ openReviewCount !== 1 ? 's' : '' }} awaiting response</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.reviews.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.reviews.detail', openReviewCount) }}</div>
             </div>
             <StatusBadge status="open" />
             <span class="text-xs font-semibold bg-amber-900/60 text-amber-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -234,8 +234,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">High &amp; critical risks</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ highRiskCount }} risk{{ highRiskCount !== 1 ? 's' : '' }} requiring treatment or escalation</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.risks.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.risks.detail', highRiskCount) }}</div>
             </div>
             <StatusBadge status="critical" group="severity" />
             <span class="text-xs font-semibold bg-red-900/60 text-red-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -258,8 +258,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">Overdue documents</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ overdueCount }} polic{{ overdueCount !== 1 ? 'ies' : 'y' }} past review date</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.overdue_documents.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.overdue_documents.detail', overdueCount) }}</div>
             </div>
             <StatusBadge status="in_review" />
             <span class="text-xs font-semibold bg-blue-900/60 text-blue-300 px-2.5 py-0.5 rounded-full tabular-nums">
@@ -282,8 +282,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">Open incidents</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ openIncidentCount }} incident{{ openIncidentCount !== 1 ? 's' : '' }} need investigation</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.incidents.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.incidents.detail', openIncidentCount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-orange-900/60 text-orange-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ openIncidentCount }}
@@ -305,8 +305,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">Changes awaiting approval</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ pendingChangeCount }} change{{ pendingChangeCount !== 1 ? 's' : '' }} proposed</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.changes.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.changes.detail', pendingChangeCount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-sky-900/60 text-sky-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ pendingChangeCount }}
@@ -328,8 +328,8 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">Open corrective actions</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ openCACount }} corrective action{{ openCACount !== 1 ? 's' : '' }} in progress</div>
+              <div class="text-sm font-medium text-slate-200">{{ t('dashboard.attention.corrective_actions.title') }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ t('dashboard.attention.corrective_actions.detail', openCACount) }}</div>
             </div>
             <span class="text-xs font-semibold bg-pink-900/60 text-pink-300 px-2.5 py-0.5 rounded-full tabular-nums">
               {{ openCACount }}
@@ -346,7 +346,7 @@
       <!-- ============================================ -->
       <div>
         <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Quick Stats
+          {{ t('dashboard.stats.title') }}
         </h2>
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <!-- Documents -->
@@ -357,10 +357,10 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Documents</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.documents') }}</div>
             </div>
             <div class="text-3xl font-bold text-slate-100 tabular-nums">{{ totalDocs }}</div>
-            <div class="text-xs text-slate-600 mt-1">{{ needsReviewCount }} need review</div>
+            <div class="text-xs text-slate-600 mt-1">{{ t('dashboard.stats.documents_detail', { count: needsReviewCount }) }}</div>
           </router-link>
 
           <!-- Risks -->
@@ -371,13 +371,13 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Risks</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.risks') }}</div>
             </div>
             <div class="text-3xl font-bold tabular-nums" :class="highRiskCount > 0 ? 'text-orange-400' : 'text-slate-100'">
               {{ risks.length }}
             </div>
             <div class="text-xs mt-1" :class="highRiskCount > 0 ? 'text-orange-500/70' : 'text-slate-600'">
-              {{ highRiskCount > 0 ? highRiskCount + ' high/critical' : 'All within tolerance' }}
+              {{ highRiskCount > 0 ? t('dashboard.stats.risks_detail', { count: highRiskCount }) : t('dashboard.stats.risks_none') }}
             </div>
           </router-link>
 
@@ -389,12 +389,12 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Incidents</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.incidents') }}</div>
             </div>
             <div class="text-3xl font-bold tabular-nums" :class="openIncidentCount > 0 ? 'text-red-400' : 'text-slate-100'">
               {{ openIncidentCount }}
             </div>
-            <div class="text-xs text-slate-600 mt-1">open incidents</div>
+            <div class="text-xs text-slate-600 mt-1">{{ t('dashboard.stats.incidents_detail') }}</div>
           </router-link>
 
           <!-- Corrective Actions -->
@@ -405,12 +405,12 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">CAs</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.corrective_actions') }}</div>
             </div>
             <div class="text-3xl font-bold tabular-nums" :class="openCACount > 0 ? 'text-amber-400' : 'text-slate-100'">
               {{ openCACount }}
             </div>
-            <div class="text-xs text-slate-600 mt-1">open actions</div>
+            <div class="text-xs text-slate-600 mt-1">{{ t('dashboard.stats.corrective_actions_detail') }}</div>
           </router-link>
 
           <!-- Changes -->
@@ -421,12 +421,12 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Changes</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.changes') }}</div>
             </div>
             <div class="text-3xl font-bold tabular-nums" :class="pendingChangeCount > 0 ? 'text-sky-400' : 'text-slate-100'">
               {{ pendingChangeCount }}
             </div>
-            <div class="text-xs text-slate-600 mt-1">{{ pendingChangeCount > 0 ? 'awaiting approval' : 'none pending' }}</div>
+            <div class="text-xs text-slate-600 mt-1">{{ pendingChangeCount > 0 ? t('dashboard.stats.changes_detail') : t('dashboard.stats.changes_none') }}</div>
           </router-link>
 
           <!-- Overdue -->
@@ -437,12 +437,12 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Overdue</div>
+              <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.overdue') }}</div>
             </div>
             <div class="text-3xl font-bold tabular-nums" :class="totalOverdueCount > 0 ? 'text-red-400' : 'text-emerald-400'">
               {{ totalOverdueCount }}
             </div>
-            <div class="text-xs text-slate-600 mt-1">{{ totalOverdueCount > 0 ? 'items past due' : 'all on track' }}</div>
+            <div class="text-xs text-slate-600 mt-1">{{ totalOverdueCount > 0 ? t('dashboard.stats.overdue_detail') : t('dashboard.stats.overdue_none') }}</div>
           </router-link>
         </div>
       </div>
@@ -451,7 +451,7 @@
       <!-- 3b. RISK HEAT MAP                            -->
       <!-- ============================================ -->
       <div v-if="risks.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HeatMap :items="risks" title="Risk Map" />
+        <HeatMap :items="risks" :title="t('dashboard.heatmap_title')" />
         <OverdueItems :is-admin="isAdmin" @updated="refreshTasks" />
       </div>
 
@@ -461,12 +461,12 @@
       <div>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-            Annual Plan
+            {{ t('dashboard.calendar.title') }}
           </h2>
           <div class="flex items-center gap-2">
-            <button @click="calendarYear--" class="text-xs text-slate-500 hover:text-slate-300 px-1.5 py-0.5 rounded hover:bg-slate-800">&larr;</button>
+            <button @click="calendarYear--" :aria-label="t('dashboard.calendar.previous_year')" class="text-xs text-slate-500 hover:text-slate-300 px-1.5 py-0.5 rounded hover:bg-slate-800">&larr;</button> <!-- i18n-ignore -->
             <span class="text-sm font-bold text-slate-300 tabular-nums">{{ calendarYear }}</span>
-            <button @click="calendarYear++" class="text-xs text-slate-500 hover:text-slate-300 px-1.5 py-0.5 rounded hover:bg-slate-800">&rarr;</button>
+            <button @click="calendarYear++" :aria-label="t('dashboard.calendar.next_year')" class="text-xs text-slate-500 hover:text-slate-300 px-1.5 py-0.5 rounded hover:bg-slate-800">&rarr;</button> <!-- i18n-ignore -->
           </div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -507,7 +507,7 @@
       <!-- ============================================ -->
       <div>
         <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Recent Activity
+          {{ t('dashboard.activity.title') }}
         </h2>
         <div v-if="activity.length" class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 overflow-hidden">
           <div v-for="a in activity" :key="a.id" class="flex items-start gap-3 px-5 py-3.5">
@@ -515,13 +515,14 @@
             <div class="flex-1 min-w-0">
               <div class="text-sm text-slate-300 leading-snug">{{ a.detail || a.action }}</div>
               <div class="text-xs text-slate-600 mt-0.5">
+                <!-- i18n-ignore -->
                 {{ a.actor }} &middot; {{ formatDate(a.created_at) }}
               </div>
             </div>
           </div>
         </div>
         <div v-else class="bg-slate-900 border border-slate-800 rounded-xl p-10 text-center">
-          <div class="text-sm text-slate-500">Activity will appear as the team works</div>
+          <div class="text-sm text-slate-500">{{ t('dashboard.activity.empty') }}</div>
         </div>
       </div>
     </div>
@@ -530,14 +531,18 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import HeatMap from '../components/HeatMap.vue'
 import OverdueItems from '../components/OverdueItems.vue'
 import { useCurrentOrg, orgEntryURL, isSubdomainMode } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatHours, formatMonthShort } from '../composables/useFormat.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { orgSlug: currentOrgSlug, orgPath } = useCurrentOrg()
@@ -562,6 +567,11 @@ const legal = ref([])
 const assets = ref([])
 
 // --- Compliance computeds ---
+
+// The org picker shows the caller's role in each org. It is a stored enum, so
+// it renders through the shared catalogue rather than the raw column value —
+// the raw form is invisible to the raw-text scanner and untranslatable.
+const roleLabel = (role) => enumLabel('role', role)
 
 const asArray = (v) => Array.isArray(v) ? v : []
 const allDocs = computed(() => asArray(documents.value))
@@ -638,7 +648,7 @@ const totalOverdueCount = computed(() => {
   count += asArray(risks.value).filter(r => checkDate(r.review_date)).length
   count += asArray(suppliers.value).filter(s => checkDate(s.next_review)).length
   count += asArray(legal.value).filter(l => checkDate(l.next_review)).length
-  count += asArray(tasks.value).filter(t => t.status !== 'done' && t.status !== 'cancelled' && checkDate(t.due_date)).length
+  count += asArray(tasks.value).filter((task) => task.status !== 'done' && task.status !== 'cancelled' && checkDate(task.due_date)).length
   return count
 })
 
@@ -653,16 +663,31 @@ const hasActionItems = computed(() =>
 )
 
 // ---- Annual Calendar ----
-const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+// Month names come from Intl via the format seam, not from a hardcoded array
+// and not from translation keys — every locale already carries them. A computed
+// so switching locale re-labels the twelve columns.
+const monthNames = computed(() => Array.from({ length: 12 }, (_, i) => formatMonthShort(i)))
 const currentMonth = new Date().getMonth()
 
-const calendarCategories = [
-  { key: 'audit', label: 'Audits', color: 'bg-purple-900/40 text-purple-300', dot: 'bg-purple-400' },
-  { key: 'risk', label: 'Risk Reviews', color: 'bg-red-900/40 text-red-300', dot: 'bg-red-400' },
-  { key: 'supplier', label: 'Supplier Reviews', color: 'bg-emerald-900/40 text-emerald-300', dot: 'bg-emerald-400' },
-  { key: 'legal', label: 'Legal Reviews', color: 'bg-purple-900/40 text-purple-300', dot: 'bg-purple-400' },
-  { key: 'task', label: 'Tasks', color: 'bg-blue-900/40 text-blue-300', dot: 'bg-blue-400' },
+// Keys and colours are static; the label is resolved in a computed so it is
+// reactive. A module-level array holding literal labels would freeze them in
+// whichever locale happened to be active when this module first evaluated.
+// Each entry names its message key in full rather than deriving it from `key`:
+// a concatenated key is unreachable to keyset extraction and unused-key
+// detection, which is why the locale README forbids building one at runtime.
+const CALENDAR_CATEGORIES = [
+  { key: 'audit', label: 'dashboard.calendar.category.audit', color: 'bg-purple-900/40 text-purple-300', dot: 'bg-purple-400' },
+  { key: 'risk', label: 'dashboard.calendar.category.risk', color: 'bg-red-900/40 text-red-300', dot: 'bg-red-400' },
+  { key: 'supplier', label: 'dashboard.calendar.category.supplier', color: 'bg-emerald-900/40 text-emerald-300', dot: 'bg-emerald-400' },
+  { key: 'legal', label: 'dashboard.calendar.category.legal', color: 'bg-purple-900/40 text-purple-300', dot: 'bg-purple-400' },
+  { key: 'task', label: 'dashboard.calendar.category.task', color: 'bg-blue-900/40 text-blue-300', dot: 'bg-blue-400' },
 ]
+
+// Resolved in a computed, not at module scope: a literal label array would
+// freeze in whichever locale was active when this module first evaluated.
+const calendarCategories = computed(() =>
+  CALENDAR_CATEGORIES.map((c) => ({ ...c, label: t(c.label) })),
+)
 
 const calendarYear = ref(new Date().getFullYear())
 
@@ -680,7 +705,7 @@ const calendarData = computed(() => {
   // Audits
   for (const a of asArray(audits.value)) {
     const m = parseMonth(a.planned_date)
-    if (m >= 0) items.push({ key: 'audit', month: m, id: 'a-' + a.id, label: a.title, short: a.title?.substring(0, 12) || 'Audit', overdue: m < currentMonth && a.status !== 'completed' })
+    if (m >= 0) items.push({ key: 'audit', month: m, id: 'a-' + a.id, label: a.title, short: a.title?.substring(0, 12) || t('dashboard.calendar.untitled_audit'), overdue: m < currentMonth && a.status !== 'completed' })
   }
   // Risk reviews
   for (const r of asArray(risks.value)) {
@@ -719,48 +744,22 @@ const audits = ref([])
 const moduleOverview = computed(() => {
   const mods = []
   const docCount = allDocs.value.length
-  const approvedDocs = allDocs.value.filter(d => d.status === 'approved').length
-  mods.push({ label: 'Documents', route: '/documents', total: docCount, alert: docCount > 0 && approvedDocs < docCount ? `${docCount - approvedDocs} draft` : '', alertClass: 'bg-amber-500/20 text-amber-300' })
-  mods.push({ label: 'Risks', route: '/risks', total: asArray(risks.value).length, alert: highRiskCount.value > 0 ? `${highRiskCount.value} high/critical` : '', alertClass: 'bg-red-500/20 text-red-300' })
-  mods.push({ label: 'Incidents', route: '/incidents', total: asArray(incidents.value).length, alert: openIncidentCount.value > 0 ? `${openIncidentCount.value} open` : '', alertClass: 'bg-orange-500/20 text-orange-300' })
-  mods.push({ label: 'Changes', route: '/changes', total: asArray(changes.value).length, alert: pendingChangeCount.value > 0 ? `${pendingChangeCount.value} pending` : '', alertClass: 'bg-sky-500/20 text-sky-300' })
-  mods.push({ label: 'Corrective Actions', route: '/corrective-actions', total: asArray(correctiveActions.value).length, alert: openCACount.value > 0 ? `${openCACount.value} open` : '', alertClass: 'bg-pink-500/20 text-pink-300' })
-  mods.push({ label: 'Suppliers', route: '/suppliers', total: asArray(suppliers.value).length, alert: '', alertClass: '' })
-  mods.push({ label: 'Assets', route: '/assets', total: asArray(assets.value).length, alert: '', alertClass: '' })
-  mods.push({ label: 'Legal', route: '/legal', total: asArray(legal.value).length, alert: '', alertClass: '' })
-  mods.push({ label: 'Systems', route: '/systems', total: asArray(systemsList.value).length, alert: '', alertClass: '' })
+  const approved = allDocs.value.filter(d => d.status === 'approved').length
+  const draftCount = docCount - approved
+  mods.push({ label: t('dashboard.modules.documents'), route: '/documents', total: docCount, alert: docCount > 0 && approved < docCount ? t('dashboard.modules.alert.draft', { count: draftCount }) : '', alertClass: 'bg-amber-500/20 text-amber-300' })
+  mods.push({ label: t('dashboard.modules.risks'), route: '/risks', total: asArray(risks.value).length, alert: highRiskCount.value > 0 ? t('dashboard.modules.alert.high_critical', { count: highRiskCount.value }) : '', alertClass: 'bg-red-500/20 text-red-300' })
+  mods.push({ label: t('dashboard.modules.incidents'), route: '/incidents', total: asArray(incidents.value).length, alert: openIncidentCount.value > 0 ? t('dashboard.modules.alert.open', { count: openIncidentCount.value }) : '', alertClass: 'bg-orange-500/20 text-orange-300' })
+  mods.push({ label: t('dashboard.modules.changes'), route: '/changes', total: asArray(changes.value).length, alert: pendingChangeCount.value > 0 ? t('dashboard.modules.alert.pending', { count: pendingChangeCount.value }) : '', alertClass: 'bg-sky-500/20 text-sky-300' })
+  mods.push({ label: t('dashboard.modules.corrective_actions'), route: '/corrective-actions', total: asArray(correctiveActions.value).length, alert: openCACount.value > 0 ? t('dashboard.modules.alert.open', { count: openCACount.value }) : '', alertClass: 'bg-pink-500/20 text-pink-300' })
+  mods.push({ label: t('dashboard.modules.suppliers'), route: '/suppliers', total: asArray(suppliers.value).length, alert: '', alertClass: '' })
+  mods.push({ label: t('dashboard.modules.assets'), route: '/assets', total: asArray(assets.value).length, alert: '', alertClass: '' })
+  mods.push({ label: t('dashboard.modules.legal'), route: '/legal', total: asArray(legal.value).length, alert: '', alertClass: '' })
+  mods.push({ label: t('dashboard.modules.systems'), route: '/systems', total: asArray(systemsList.value).length, alert: '', alertClass: '' })
   return mods
 })
 
 async function refreshTasks() {
   tasks.value = await api.getTasks('', 'open').catch(() => [])
-}
-
-// --- Implementation progress ---
-
-const progressTypes = computed(() => {
-  if (!progress.value || !progress.value.by_type) {
-    return [
-      { key: 'document', label: 'Documents', total: asArray(documents.value).length, implemented: 0, pct: 0 },
-    ]
-  }
-  const bt = progress.value.by_type
-  // Dynamically iterate over whatever folder types exist in by_type
-  return Object.keys(bt).map(key => ({
-    key,
-    label: key.charAt(0).toUpperCase() + key.slice(1) + 's',
-    ...typeStats(bt[key]),
-  }))
-})
-
-function typeStats(t) {
-  if (!t) return { total: 0, implemented: 0, pct: 0 }
-  const impl = (t.implemented || 0) + (t.verified || 0)
-  return {
-    total: t.total || 0,
-    implemented: impl,
-    pct: t.total ? Math.round((impl / t.total) * 100) : 0,
-  }
 }
 
 // --- Utilities ---
@@ -808,7 +807,7 @@ async function createOrg() {
     const slug = result.slug || newOrg.value.slug.trim()
     router.push('/' + slug + '/overview')
   } catch (e) {
-    orgError.value = e.message || 'Failed to create organization'
+    orgError.value = renderApiError(e) || t('dashboard.error.create_org')
   } finally {
     creatingOrg.value = false
   }
@@ -854,7 +853,7 @@ onMounted(async () => {
     }
 
     me.value = meCheck
-    const [allDocFolders, r, rev, t, sup, prog, act, sys, inc, ca, chg, aud, leg, ast, od] = await Promise.all([
+    const [allDocFolders, r, rev, tsk, sup, prog, act, sys, inc, ca, chg, aud, leg, ast, od] = await Promise.all([
       api.getAllDocuments().catch(() => []),
       api.getRisks().catch(() => []),
       api.getReviews('').catch(() => []),
@@ -883,7 +882,7 @@ onMounted(async () => {
     documents.value = flatDocs
     risks.value = r || []
     reviews.value = rev || []
-    tasks.value = t || []
+    tasks.value = tsk || []
     suppliers.value = sup || []
     progress.value = prog
     activity.value = act || []
@@ -896,7 +895,7 @@ onMounted(async () => {
     assets.value = Array.isArray(ast) ? ast : []
     overdueSummary.value = od
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e) || t('dashboard.error.load')
   } finally {
     loading.value = false
   }

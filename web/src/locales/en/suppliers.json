@@ -1,0 +1,88 @@
+{
+  "title": "Supplier Register",
+  "subtitle": "Third-party suppliers, criticality, and assessment",
+  "error": {
+    "save": "Failed to save: {message}",
+    "create": "Failed to create supplier: {message}",
+    "delete": "Failed to delete: {message}"
+  },
+  "action": {
+    "add": "Add Supplier"
+  },
+  "create": {
+    "heading": "Add Supplier",
+    "name_label": "Name *",
+    "name_placeholder": "e.g. AWS, Office 365",
+    "type_label": "Type",
+    "criticality_label": "Criticality",
+    "fill_in_later": "You can add CIA classification, owner, contract details after creating.",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No suppliers found"
+  },
+  "table": {
+    "header": {
+      "supplier": "Supplier",
+      "type": "Type",
+      "criticality": "Criticality",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Owner",
+      "next_review": "Next Review"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentiality: {level}",
+      "integrity": "Integrity: {level}",
+      "availability": "Availability: {level}"
+    }
+  },
+  "field": {
+    "name": "Name",
+    "type": "Type",
+    "criticality": "Criticality",
+    "status": "Status",
+    "owner": "Owner",
+    "contact": "Contact",
+    "contract_ref": "Contract Reference",
+    "contract_expiry": "Contract Expiry",
+    "data_access": "Data Access",
+    "created": "Created",
+    "created_by": "Created by"
+  },
+  "placeholder": {
+    "contact": "contact{'@'}supplier.com",
+    "contract_ref": "DPA / contract URL",
+    "notes": "Additional notes... Type /doc to link a document"
+  },
+  "data_access": {
+    "checkbox": "Supplier has access to our data",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "tab": {
+    "reviews": "Reviews"
+  },
+  "assessment": {
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability"
+  },
+  "linked_systems": {
+    "heading": "no linked systems | Linked system ({count}) | Linked systems ({count})"
+  },
+  "danger": {
+    "warning": "Deleting this supplier is permanent and cannot be undone. History, comments, reviews and linked references will be lost.",
+    "delete": "Delete supplier",
+    "confirm": "Delete this supplier? This cannot be undone."
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  }
+}

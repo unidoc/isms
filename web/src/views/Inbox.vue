@@ -719,7 +719,7 @@ import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
-import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
+import { enumLabel, enumLabelAbbr, entityLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
 const { t } = useI18n()
@@ -903,7 +903,9 @@ const priorityLabel = (v) => enumLabel('priority', v)
 // finding vocabulary, which the catalogue keys as `finding_type`. Mapping both
 // to `severity` renders a CA as the raw "Major Nc". Two helpers, deliberately.
 const severityLabel = (v) => enumLabel('severity', v)
-const caSeverityLabel = (v) => enumLabel('finding_type', v)
+// The abbreviated form: this chip is the same width as the incident severity
+// badge beside it, and the full "Major non-conformity" does not fit.
+const caSeverityLabel = (v) => enumLabelAbbr('finding_type', v)
 const sourceLabel = (v) => enumLabel('source', v)
 const suggestionStatusLabel = (v) => enumLabel('status', v)
 

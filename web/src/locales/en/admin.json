@@ -97,6 +97,7 @@
     "error_tenant_required": "Tenant ID is required for Microsoft 365",
     "error_okta_required": "Okta domain is required",
     "error_test": "Test failed",
+    "error_test_detail": "Test failed: {detail}",
     "error_provider_name_required": "Provider name (slug) is required",
     "error_client_id_required": "Client ID is required",
     "error_issuer_required": "Issuer URL is required"

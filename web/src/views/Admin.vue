@@ -475,7 +475,7 @@
                   <div class="text-xs text-slate-500 font-mono mt-0.5">{{ p.path_pattern }}</div>
                   <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
                     <span>{{ t('admin.policies.approvals_required', p.min_approvals) }}</span>
-                    <span v-if="p.required_roles?.length">{{ t('admin.policies.roles', { roles: p.required_roles.join(', ') }) }}</span>
+                    <span v-if="p.required_roles?.length">{{ t('admin.policies.roles', { roles: policyRoles(p) }) }}</span>
                     <span v-if="p.required_users?.length">{{ t('admin.policies.users', { users: p.required_users.join(', ') }) }}</span>
                     <span v-if="p.require_human" class="text-amber-400">{{ t('admin.policies.human_required') }}</span>
                     <span v-if="p.auto_merge" class="text-emerald-400">{{ t('admin.policies.auto_merge') }}</span>
@@ -768,6 +768,12 @@ const oidcRoleOptions = roleOptionsFor(['reader', 'contributor', 'manager'])
 // The audit table rendered the stored permission string raw.
 const permissionLabel = (perm) => enumLabel('permissions', perm || 'read-write')
 
+// A policy's required roles are the same stored enum as the dropdowns above,
+// so they resolve through the same catalogue. required_users are email
+// addresses, not enum members, and stay verbatim.
+const policyRoles = (policy) =>
+  (policy.required_roles ?? []).map((role) => enumLabel('role', role)).join(', ')
+
 const activeTab = ref('members')
 
 // Message keys, not labels: a module-scope array of literals would freeze the
@@ -1057,8 +1063,18 @@ async function testProvider(provider) {
   provider._msg = ''
   try {
     const result = await api.postJSON(`/api/v1/admin/oidc/${provider.id}/test`, {})
-    provider._msg = t('admin.oidc.test_ok')
-    provider._error = false
+    // The endpoint answers 200 for a failed discovery too, carrying
+    // {success: false, error}. Reading only the status code reported every
+    // broken provider as reachable.
+    if (result?.success === false) {
+      provider._msg = result.error
+        ? t('admin.oidc.error_test_detail', { detail: result.error })
+        : t('admin.oidc.error_test')
+      provider._error = true
+    } else {
+      provider._msg = t('admin.oidc.test_ok')
+      provider._error = false
+    }
   } catch (e) {
     provider._msg = renderApiError(e) || t('admin.oidc.error_test')
     provider._error = true

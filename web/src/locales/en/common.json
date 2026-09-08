@@ -232,6 +232,75 @@
       "read-write": "Read & Write",
       "read": "Read only",
       "write": "Write only"
+    },
+    "treatment": {
+      "mitigate": "Mitigate",
+      "accept": "Accept",
+      "transfer": "Transfer",
+      "avoid": "Avoid"
+    },
+    "risk_type": {
+      "threat": "Threat",
+      "opportunity": "Opportunity"
+    },
+    "origin": {
+      "internal": "Internal",
+      "external": "External",
+      "internal and external": "Internal & external"
+    },
+    "incident_type": {
+      "incident": "Incident",
+      "event": "Event",
+      "weakness": "Weakness"
+    },
+    "gdpr_role": {
+      "controller": "Controller",
+      "processor": "Processor"
+    },
+    "notification_status": {
+      "not_required": "Not required",
+      "pending": "Pending",
+      "notified": "Notified"
+    },
+    "supplier_type": {
+      "cloud": "Cloud",
+      "saas": "SaaS",
+      "consulting": "Consulting",
+      "hosting": "Hosting",
+      "infrastructure": "Infrastructure",
+      "software": "Software",
+      "contractor": "Contractor",
+      "other": "Other"
+    },
+    "asset_type": {
+      "infrastructure": "Infrastructure",
+      "processing_devices": "Processing devices",
+      "software": "Software",
+      "system": "System",
+      "network": "Network",
+      "service": "Service",
+      "financial_info": "Financial info",
+      "personal_data": "Personal data",
+      "ipr": "Intellectual property",
+      "sales_marketing": "Sales & marketing",
+      "processing_facility": "Processing facility",
+      "products_services": "Products & services",
+      "supply_chain": "Supply chain",
+      "other": "Other"
+    },
+    "legal_category": {
+      "privacy": "Privacy",
+      "security": "Security",
+      "sector": "Sector",
+      "contractual": "Contractual",
+      "other": "Other",
+      "data_protection": "Data protection",
+      "employment": "Employment law",
+      "regulatory": "Regulatory compliance",
+      "intellectual_property": "Intellectual property",
+      "financial": "Financial regulation",
+      "environmental": "Environmental",
+      "corporate": "Corporate governance"
     }
   },
   "enum_inline": {
@@ -319,5 +388,31 @@
   },
   "placeholder": {
     "search": "Search..."
+  },
+  "tab": {
+    "overview": "Overview",
+    "treatment": "Treatment",
+    "assessment": "Assessment",
+    "notes": "Notes",
+    "links": "Links",
+    "actions": "Actions",
+    "suggestions": "Suggestions",
+    "comments": "Comments",
+    "history": "History"
+  },
+  "filter": {
+    "all_statuses": "All statuses",
+    "all_types": "All types",
+    "all_levels": "All levels",
+    "all_criticality": "All criticality",
+    "all_categories": "All categories",
+    "all_severities": "All severities"
+  },
+  "option": {
+    "none": "None",
+    "not_decided": "Not decided"
+  },
+  "stat": {
+    "total": "Total"
   }
 }

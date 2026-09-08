@@ -1,0 +1,98 @@
+{
+  "title": "Incident Management",
+  "subtitle": "Track, respond to, and learn from security incidents",
+  "error": {
+    "create": "Failed to create incident: {message}",
+    "save": "Failed to save: {message}",
+    "delete": "Failed to delete incident: {message}"
+  },
+  "action": {
+    "add": "Add Incident"
+  },
+  "create": {
+    "heading": "Add Incident",
+    "title_label": "Title *",
+    "title_placeholder": "Brief incident title",
+    "severity_label": "Severity",
+    "type_label": "Type",
+    "fill_in_later": "You can add description, classification, origin, assignee, GDPR details and notes after creating.",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No incidents found"
+  },
+  "list": {
+    "source": "Source: {value}",
+    "reporter": "Reporter: {name}",
+    "assignee": "Assignee: {name}"
+  },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "A"
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "severity": "Severity",
+    "type": "Type",
+    "origin": "Origin",
+    "classification": "Classification",
+    "status": "Status",
+    "assignee": "Assignee",
+    "reporter": "Reporter",
+    "root_cause": "Root Cause",
+    "lessons_learned": "Lessons Learned",
+    "created": "Created",
+    "created_by": "Created by"
+  },
+  "placeholder": {
+    "description": "Describe the incident...",
+    "root_cause": "Root cause analysis...",
+    "lessons_learned": "What can we improve?",
+    "assignee": "Select assignee...",
+    "notes": "Add notes..."
+  },
+  "classification": {
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability"
+  },
+  "data_breach_checkbox": "This is a personal data breach (GDPR)",
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "tab": {
+    "data_breach": "Data Breach"
+  },
+  "timeline": {
+    "heading": "Timeline",
+    "detected": "Detected:",
+    "contained": "Contained:",
+    "resolved": "Resolved:",
+    "closed": "Closed:"
+  },
+  "actions": {
+    "create_ca": "Create Corrective Action",
+    "create_ca_desc": "Spawn a corrective action linked back to this incident."
+  },
+  "breach": {
+    "heading": "Personal Data Breach (GDPR)",
+    "gdpr_role": "GDPR Role",
+    "authority_notification": "Authority Notification",
+    "subjects_notification": "Data Subjects Notification",
+    "authority": "Authority",
+    "subjects": "Data Subjects"
+  },
+  "danger": {
+    "warning": "Deleting this incident is permanent and cannot be undone.",
+    "delete": "Delete incident",
+    "confirm": "Delete incident \"{title}\"? This cannot be undone."
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  }
+}

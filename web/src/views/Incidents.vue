@@ -18,16 +18,16 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Incident Management</h1>
-          <p class="text-sm text-slate-500 mt-1">Track, respond to, and learn from security incidents</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('incidents.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('incidents.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canReport"
             @click="showCreateForm = !showCreateForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Incident
+            {{ t('incidents.action.add') }}
           </button>
-          <SuggestNewButton entityType="incident" typeLabel="Incident" />
+          <SuggestNewButton entityType="incident" :typeLabel="entityLabel('incident')" />
         </div>
       </div>
 
@@ -41,26 +41,18 @@
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..."
+          <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
             class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
         </div>
         <select v-model="filterStatus" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="open">Open</option>
-          <option value="investigating">Investigating</option>
-          <option value="contained">Contained</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
+          <option value="">{{ t('common.filter.all_statuses') }}</option>
+          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <select v-model="filterSeverity" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All severities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="">{{ t('common.filter.all_severities') }}</option>
+          <option v-for="o in severityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
-        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ total }} total</div>
+        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: total }) }}</div>
       </div>
 
       <!-- Create form -->
@@ -70,7 +62,7 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold text-slate-200">Add Incident</h2>
+          <h2 class="text-sm font-semibold text-slate-200">{{ t('incidents.create.heading') }}</h2>
           <button @click="showCreateForm = false" class="text-slate-500 hover:text-slate-300">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -79,32 +71,27 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="sm:col-span-2">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Title *</label>
-            <input v-model="newIncident.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Brief incident title" />
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.create.title_label') }}</label>
+            <input v-model="newIncident.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('incidents.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Severity</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.create.severity_label') }}</label>
             <select v-model="newIncident.severity" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option v-for="o in severityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.create.type_label') }}</label>
             <select v-model="newIncident.incident_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="incident">Incident</option>
-              <option value="event">Event</option>
-              <option value="weakness">Weakness</option>
+              <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add description, classification, origin, assignee, GDPR details and notes after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('incidents.create.fill_in_later') }}</div>
         <div class="flex justify-end gap-3 pt-2">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
           <button @click="createIncident" :disabled="!newIncident.title" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
-            Add
+            {{ t('incidents.create.submit') }}
           </button>
         </div>
         </div>
@@ -114,7 +101,7 @@
 
       <!-- Incident list -->
       <div v-if="incidents.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
-        <div class="text-slate-500 text-sm">No incidents found</div>
+        <div class="text-slate-500 text-sm">{{ t('incidents.filter.empty') }}</div>
       </div>
 
       <div v-else class="space-y-2">
@@ -124,11 +111,11 @@
           <div class="flex items-center gap-3">
             <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full uppercase tracking-wider"
               :class="severityClass(inc.severity)">
-              {{ inc.severity }}
+              {{ severityLabel(inc.severity) }}
             </span>
             <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full"
               :class="typeClass(inc.incident_type)">
-              {{ inc.incident_type }}
+              {{ typeLabel(inc.incident_type) }}
             </span>
             <StatusBadge :status="inc.status" />
             <span class="text-sm font-medium text-slate-200 flex-1 truncate">{{ inc.title }}</span>
@@ -137,9 +124,9 @@
           </div>
           <div class="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
             <span v-if="classificationLabel(inc)">{{ classificationLabel(inc) }}</span>
-            <span>Source: {{ inc.source }}</span>
-            <span>Reporter: {{ resolveUserName(inc.reporter) }}</span>
-            <span v-if="inc.assignee">Assignee: {{ resolveUserName(inc.assignee) }}</span>
+            <span>{{ t('incidents.list.source', { value: originLabel(inc.source) }) }}</span>
+            <span>{{ t('incidents.list.reporter', { name: resolveUserName(inc.reporter) }) }}</span>
+            <span v-if="inc.assignee">{{ t('incidents.list.assignee', { name: resolveUserName(inc.assignee) }) }}</span>
           </div>
         </div>
         <Pagination :page="page" :pageSize="pageSize" :total="total" @update:page="page = $event" @update:pageSize="pageSize = $event" />
@@ -161,7 +148,7 @@
               <CopyLinkButton />
               <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider"
                 :class="severityClass(selectedIncident.severity)">
-                {{ selectedIncident.severity }}
+                {{ severityLabel(selectedIncident.severity) }}
               </span>
               <StatusBadge :status="selectedIncident.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
@@ -176,10 +163,10 @@
           <div class="flex flex-1 min-h-0">
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -190,88 +177,76 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('incidents.detail.overview') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                        <MarkdownField v-model="editForm.description" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" placeholder="Describe the incident..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.description') }}</label>
+                        <MarkdownField v-model="editForm.description" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" :placeholder="t('incidents.placeholder.description')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Severity</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.severity') }}</label>
                         <select v-model="editForm.severity" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="critical">Critical</option>
-                          <option value="high">High</option>
-                          <option value="medium">Medium</option>
-                          <option value="low">Low</option>
+                          <option v-for="o in severityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.type') }}</label>
                         <select v-model="editForm.incident_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="incident">Incident</option>
-                          <option value="event">Event</option>
-                          <option value="weakness">Weakness</option>
+                          <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Origin</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.origin') }}</label>
                         <select v-model="editForm.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="internal">Internal</option>
-                          <option value="external">External</option>
-                          <option value="internal and external">Internal &amp; External</option>
+                          <option v-for="o in originOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Classification</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.classification') }}</label>
                         <div class="flex flex-wrap gap-4 mt-1">
                           <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="editForm.affects_c" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0" />
-                            <span class="text-xs text-slate-300">Confidentiality</span>
+                            <span class="text-xs text-slate-300">{{ t('incidents.classification.confidentiality') }}</span>
                           </label>
                           <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="editForm.affects_i" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0" />
-                            <span class="text-xs text-slate-300">Integrity</span>
+                            <span class="text-xs text-slate-300">{{ t('incidents.classification.integrity') }}</span>
                           </label>
                           <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="editForm.affects_a" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0" />
-                            <span class="text-xs text-slate-300">Availability</span>
+                            <span class="text-xs text-slate-300">{{ t('incidents.classification.availability') }}</span>
                           </label>
                         </div>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="draft">Draft</option>
-                          <option value="open">Open</option>
-                          <option value="investigating">Investigating</option>
-                          <option value="contained">Contained</option>
-                          <option value="resolved">Resolved</option>
-                          <option value="closed">Closed</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Assignee</label>
-                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" placeholder="Select assignee..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.assignee') }}</label>
+                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" :placeholder="t('incidents.placeholder.assignee')" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Root Cause</label>
-                        <MarkdownField v-model="editForm.root_cause" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" placeholder="Root cause analysis..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.root_cause') }}</label>
+                        <MarkdownField v-model="editForm.root_cause" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" :placeholder="t('incidents.placeholder.root_cause')" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Lessons Learned</label>
-                        <MarkdownField v-model="editForm.lessons_learned" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" placeholder="What can we improve?" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.lessons_learned') }}</label>
+                        <MarkdownField v-model="editForm.lessons_learned" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" :placeholder="t('incidents.placeholder.lessons_learned')" />
                       </div>
                       <div class="sm:col-span-2">
                         <label class="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" v-model="editForm.data_breach" class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0" />
-                          <span class="text-xs font-medium text-slate-400">This is a personal data breach (GDPR)</span>
+                          <span class="text-xs font-medium text-slate-400">{{ t('incidents.data_breach_checkbox') }}</span>
                         </label>
                       </div>
                     </div>
@@ -279,48 +254,48 @@
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.field.description') }}</div>
                         <div v-if="selectedIncident.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedIncident.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
 
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Severity</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.severity') }}</div>
                           <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider"
-                            :class="severityClass(selectedIncident.severity)">{{ selectedIncident.severity }}</span>
+                            :class="severityClass(selectedIncident.severity)">{{ severityLabel(selectedIncident.severity) }}</span>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Type</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ selectedIncident.incident_type }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.type') }}</div>
+                          <div class="text-sm text-slate-300">{{ typeLabel(selectedIncident.incident_type) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Origin</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ selectedIncident.source }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.origin') }}</div>
+                          <div class="text-sm text-slate-300">{{ originLabel(selectedIncident.source) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Classification</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.classification') }}</div>
                           <div class="flex items-center gap-1.5">
-                            <span v-if="selectedIncident.affects_c" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-900/40 text-blue-300 border border-blue-800">C</span>
-                            <span v-if="selectedIncident.affects_i" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-900/40 text-purple-300 border border-purple-800">I</span>
-                            <span v-if="selectedIncident.affects_a" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">A</span>
+                            <span v-if="selectedIncident.affects_c" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-900/40 text-blue-300 border border-blue-800">{{ t('incidents.cia_abbr.c') }}</span>
+                            <span v-if="selectedIncident.affects_i" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-900/40 text-purple-300 border border-purple-800">{{ t('incidents.cia_abbr.i') }}</span>
+                            <span v-if="selectedIncident.affects_a" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">{{ t('incidents.cia_abbr.a') }}</span>
                             <span v-if="!selectedIncident.affects_c && !selectedIncident.affects_i && !selectedIncident.affects_a" class="text-sm text-slate-600">—</span>
                           </div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Reporter</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.reporter') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedIncident.reporter) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Assignee</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.assignee') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedIncident.assignee) }}</div>
                         </div>
                         <div v-if="selectedIncident.created_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedIncident.created_at) }}</div>
                         </div>
                         <div v-if="selectedIncident.created_by">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedIncident.created_by) }}</div>
                         </div>
                       </div>
@@ -328,12 +303,12 @@
                       <!-- Investigation/resolution fields -->
                       <div class="border-t border-slate-800 pt-4 space-y-3">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Root Cause</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.field.root_cause') }}</div>
                           <div v-if="selectedIncident.root_cause" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedIncident.root_cause)"></div>
                           <div v-else class="text-sm text-slate-600">—</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Lessons Learned</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.field.lessons_learned') }}</div>
                           <div v-if="selectedIncident.lessons_learned" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedIncident.lessons_learned)"></div>
                           <div v-else class="text-sm text-slate-600">—</div>
                         </div>
@@ -341,22 +316,22 @@
 
                       <!-- Timeline -->
                       <div class="border-t border-slate-800 pt-4">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">Timeline</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-3">{{ t('incidents.timeline.heading') }}</div>
                         <div class="grid grid-cols-2 gap-3 text-xs">
                           <div>
-                            <span class="text-slate-500">Detected:</span>
+                            <span class="text-slate-500">{{ t('incidents.timeline.detected') }}</span>
                             <span class="text-slate-300 ml-1">{{ formatDateTime(selectedIncident.detected_at) }}</span>
                           </div>
                           <div v-if="selectedIncident.contained_at">
-                            <span class="text-slate-500">Contained:</span>
+                            <span class="text-slate-500">{{ t('incidents.timeline.contained') }}</span>
                             <span class="text-slate-300 ml-1">{{ formatDateTime(selectedIncident.contained_at) }}</span>
                           </div>
                           <div v-if="selectedIncident.resolved_at">
-                            <span class="text-slate-500">Resolved:</span>
+                            <span class="text-slate-500">{{ t('incidents.timeline.resolved') }}</span>
                             <span class="text-slate-300 ml-1">{{ formatDateTime(selectedIncident.resolved_at) }}</span>
                           </div>
                           <div v-if="selectedIncident.closed_at">
-                            <span class="text-slate-500">Closed:</span>
+                            <span class="text-slate-500">{{ t('incidents.timeline.closed') }}</span>
                             <span class="text-slate-300 ml-1">{{ formatDateTime(selectedIncident.closed_at) }}</span>
                           </div>
                         </div>
@@ -370,14 +345,14 @@
               <!-- ═══ ACTIONS ═══ -->
               <template v-if="detailTab === 'actions'">
                 <div class="px-6 py-5 space-y-4">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick actions</div>
-                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">Read-only — actions require manager or admin role.</div>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('common.heading.quick_actions') }}</div>
+                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">{{ t('common.read_only.actions') }}</div>
                   <div v-else class="flex flex-col gap-3 max-w-md">
                     <button @click="createLinkedCA"
                       class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors text-left">
                       <div>
-                        <div class="text-sm font-medium text-slate-200">Create Corrective Action</div>
-                        <div class="text-xs text-slate-500 mt-0.5">Spawn a corrective action linked back to this incident.</div>
+                        <div class="text-sm font-medium text-slate-200">{{ t('incidents.actions.create_ca') }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">{{ t('incidents.actions.create_ca_desc') }}</div>
                       </div>
                       <span class="text-slate-500 text-lg">→</span>
                     </button>
@@ -389,32 +364,27 @@
               <template v-if="detailTab === 'data_breach' && selectedIncident.data_breach">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Personal Data Breach (GDPR)</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('data_breach')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('incidents.breach.heading') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('data_breach')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'data_breach'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">GDPR Role</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.breach.gdpr_role') }}</label>
                         <select v-model="editForm.gdpr_role" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="controller">Controller</option>
-                          <option value="processor">Processor</option>
+                          <option v-for="o in gdprRoleOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Authority Notification</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.breach.authority_notification') }}</label>
                         <select v-model="editForm.authority_notified" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="not_required">Not Required</option>
-                          <option value="pending">Pending</option>
-                          <option value="notified">Notified</option>
+                          <option v-for="o in notificationOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Data Subjects Notification</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.breach.subjects_notification') }}</label>
                         <select v-model="editForm.subjects_notified" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="not_required">Not Required</option>
-                          <option value="pending">Pending</option>
-                          <option value="notified">Notified</option>
+                          <option v-for="o in notificationOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                     </div>
@@ -423,22 +393,22 @@
                     <div class="bg-red-950/30 border border-red-900/40 rounded-lg p-4 space-y-3">
                       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">GDPR Role</div>
-                          <div class="text-slate-300 capitalize">{{ selectedIncident.gdpr_role || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.breach.gdpr_role') }}</div>
+                          <div class="text-slate-300">{{ gdprRoleLabel(selectedIncident.gdpr_role) || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Authority</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.breach.authority') }}</div>
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                             :class="selectedIncident.authority_notified === 'notified' ? 'bg-emerald-900/40 text-emerald-400' : selectedIncident.authority_notified === 'pending' ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-800 text-slate-500'">
-                            {{ (selectedIncident.authority_notified || 'not_required').replace(/_/g, ' ') }}
+                            {{ notificationLabel(selectedIncident.authority_notified) }}
                           </span>
                           <div v-if="selectedIncident.authority_notified_at" class="text-slate-600 mt-1">{{ formatDateTime(selectedIncident.authority_notified_at) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Data Subjects</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('incidents.breach.subjects') }}</div>
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                             :class="selectedIncident.subjects_notified === 'notified' ? 'bg-emerald-900/40 text-emerald-400' : selectedIncident.subjects_notified === 'pending' ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-800 text-slate-500'">
-                            {{ (selectedIncident.subjects_notified || 'not_required').replace(/_/g, ' ') }}
+                            {{ notificationLabel(selectedIncident.subjects_notified) }}
                           </span>
                           <div v-if="selectedIncident.subjects_notified_at" class="text-slate-600 mt-1">{{ formatDateTime(selectedIncident.subjects_notified_at) }}</div>
                         </div>
@@ -452,15 +422,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('incidents.detail.notes') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="12" placeholder="Add notes..." />
+                    <MarkdownField v-model="editForm.notes" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="12" :placeholder="t('incidents.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedIncident.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedIncident.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -491,10 +461,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="incident" :entityId="String(selectedIncident.id)" />
                   <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this incident is permanent and cannot be undone.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('incidents.danger.warning') }}</div>
                     <button @click="deleteSelectedIncident" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete incident
+                      {{ t('incidents.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -505,8 +475,8 @@
 
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -519,6 +489,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import api from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -540,10 +511,14 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate } from '../composables/useFormat.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
 const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
+const { t } = useI18n()
+const { enumLabel, entityLabel } = useEnumLabel()
 const { success: showSaved, error: showError } = useToast()
 const { confirm: confirmDialog } = useConfirm()
 
@@ -562,7 +537,7 @@ async function reload() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -571,12 +546,12 @@ const error = ref(null)
 const incidents = ref([])
 const stats = ref({})
 const statusStats = computed(() => [
-  { key: '', label: 'Total', count: stats.value.total || total.value || 0, color: 'text-slate-100' },
-  { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-red-400' },
-  { key: 'investigating', label: 'Investigating', count: stats.value.investigating || 0, color: 'text-amber-400' },
-  { key: 'contained', label: 'Contained', count: stats.value.contained || 0, color: 'text-blue-400' },
-  { key: 'resolved', label: 'Resolved', count: stats.value.resolved || 0, color: 'text-emerald-400' },
-  { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-400' },
+  { key: '', label: t('common.stat.total'), count: stats.value.total || total.value || 0, color: 'text-slate-100' },
+  { key: 'open', label: statusLabel('open'), count: stats.value.open || 0, color: 'text-red-400' },
+  { key: 'investigating', label: statusLabel('investigating'), count: stats.value.investigating || 0, color: 'text-amber-400' },
+  { key: 'contained', label: statusLabel('contained'), count: stats.value.contained || 0, color: 'text-blue-400' },
+  { key: 'resolved', label: statusLabel('resolved'), count: stats.value.resolved || 0, color: 'text-emerald-400' },
+  { key: 'closed', label: statusLabel('closed'), count: stats.value.closed || 0, color: 'text-slate-400' },
 ])
 const selectedIncident = ref(null)
 const showCreateForm = ref(false)
@@ -596,17 +571,51 @@ const saving = ref(false)
 
 // orgPath is provided by useCurrentOrg() above.
 
+// The members each <select> offers. The set is this view's own choice; only the
+// label comes from the shared catalogue.
+const STATUSES = ['draft', 'open', 'investigating', 'contained', 'resolved', 'closed']
+const SEVERITIES = ['critical', 'high', 'medium', 'low']
+const INCIDENT_TYPES = ['incident', 'event', 'weakness']
+const ORIGINS = ['internal', 'external', 'internal and external']
+const GDPR_ROLES = ['controller', 'processor']
+const NOTIFICATION_STATES = ['not_required', 'pending', 'notified']
+
+// Lookups and option lists live here rather than in the template: a group name
+// is a stored identifier, and the raw-text scanner reads a bare quoted word in
+// a mustache as unextracted copy.
+const statusLabel = (v) => enumLabel('status', v)
+const severityLabel = (v) => enumLabel('severity', v)
+const typeLabel = (v) => enumLabel('incident_type', v)
+// incidents.source shares its value set with risks.origin, so it shares the
+// group — `source` is reserved for corrective_actions.source, a different set.
+const originLabel = (v) => enumLabel('origin', v)
+const gdprRoleLabel = (v) => enumLabel('gdpr_role', v)
+// Defaults to the column default rather than taking it from the call site: a
+// bare stored value in a mustache is what the raw-text scanner counts, and
+// correctly so.
+const notificationLabel = (v) => enumLabel('notification_status', v || 'not_required')
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const severityOptions = options(SEVERITIES, severityLabel)
+const typeOptions = options(INCIDENT_TYPES, typeLabel)
+const originOptions = options(ORIGINS, originLabel)
+const gdprRoleOptions = options(GDPR_ROLES, gdprRoleLabel)
+const notificationOptions = options(NOTIFICATION_STATES, notificationLabel)
+
+// The tab bar was already a computed, so it was reactive — but its labels were
+// English literals, so it was reactive to the wrong thing. It holds keys now.
 const detailTabs = computed(() => {
-  const base = [{ key: 'overview', label: 'Overview' }]
+  const base = [{ key: 'overview', label: t('common.tab.overview') }]
   if (selectedIncident.value?.data_breach) {
-    base.push({ key: 'data_breach', label: 'Data Breach' })
+    base.push({ key: 'data_breach', label: t('incidents.tab.data_breach') })
   }
-  base.push({ key: 'notes', label: 'Notes' })
-  base.push({ key: 'links', label: 'Links' })
-  base.push({ key: 'actions', label: 'Actions' })
-  base.push({ key: 'suggestions', label: 'Suggestions' })
-  base.push({ key: 'comments', label: 'Comments' })
-  base.push({ key: 'history', label: 'History' })
+  base.push({ key: 'notes', label: t('common.tab.notes') })
+  base.push({ key: 'links', label: t('common.tab.links') })
+  base.push({ key: 'actions', label: t('common.tab.actions') })
+  base.push({ key: 'suggestions', label: t('common.tab.suggestions') })
+  base.push({ key: 'comments', label: t('common.tab.comments') })
+  base.push({ key: 'history', label: t('common.tab.history') })
   return base
 })
 
@@ -654,7 +663,7 @@ async function loadAll() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }
@@ -679,7 +688,7 @@ async function loadIncidents() {
     total.value = res?.total || 0
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -725,21 +734,8 @@ async function createIncident() {
       router.push(orgPath(`/incidents/${fresh.id}`))
     }
   } catch (e) {
-    error.value = e.message
-    showError('Failed to create incident: ' + (e.message || 'unknown error'))
-  }
-}
-
-async function changeStatus(inc, status) {
-  try {
-    await api.updateIncidentStatus(inc.id, status)
-    inc.status = status
-    if (selectedIncident.value?.id === inc.id) {
-      selectedIncident.value = { ...inc, status }
-    }
-    await loadStats()
-  } catch (e) {
-    showError(e.message || 'Status change failed')
+    error.value = renderApiError(e)
+    showError(t('incidents.error.create', { message: renderApiError(e) }))
   }
 }
 
@@ -757,14 +753,14 @@ function createLinkedCA() {
 
 async function deleteSelectedIncident() {
   if (!selectedIncident.value) return
-  if (!await confirmDialog({ message: `Delete incident "${selectedIncident.value.title}"? This cannot be undone.`, confirmLabel: 'Delete', variant: 'danger' })) return
+  if (!await confirmDialog({ message: t('incidents.danger.confirm', { title: selectedIncident.value.title }), confirmLabel: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteIncident(selectedIncident.value.id)
     closeDetail()
     await loadIncidents()
   } catch (e) {
-    error.value = e.message
-    showError('Failed to delete incident: ' + (e.message || 'unknown error'))
+    error.value = renderApiError(e)
+    showError(t('incidents.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -819,9 +815,9 @@ async function saveSection() {
       } catch {}
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('incidents.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
@@ -838,9 +834,9 @@ async function selectIncident(inc) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('incidents.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('incidents.dirty.discard'),
     })
     if (!ok) return
   }
@@ -851,9 +847,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('incidents.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('incidents.dirty.discard'),
     })
     if (!ok) return
   }

@@ -15,6 +15,7 @@ import admin from './admin.json' with { type: 'json' }
 import assets from './assets.json' with { type: 'json' }
 import auth from './auth.json' with { type: 'json' }
 import common from './common.json' with { type: 'json' }
+import correctiveActions from './corrective_actions.json' with { type: 'json' }
 import dashboard from './dashboard.json' with { type: 'json' }
 import components from './components.json' with { type: 'json' }
 import incidents from './incidents.json' with { type: 'json' }
@@ -34,6 +35,7 @@ export default {
   assets,
   auth,
   common,
+  corrective_actions: correctiveActions,
   components,
   dashboard,
   incidents,

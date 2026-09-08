@@ -1,0 +1,70 @@
+{
+  "title": "Corrective Actions",
+  "subtitle": "Track nonconformities, observations, and opportunities for improvement",
+  "error": {
+    "save": "Failed to save: {message}"
+  },
+  "action": {
+    "add": "Add Corrective Action"
+  },
+  "filter": {
+    "assignee_placeholder": "Any assignee",
+    "empty": "No corrective actions match your filter.",
+    "empty_all": "No corrective actions yet — click Add to create your first one."
+  },
+  "create": {
+    "heading": "Add Corrective Action",
+    "title_label": "Title *",
+    "title_placeholder": "Brief title of the nonconformity or improvement",
+    "fill_in_later": "You can add description, assignee, due date and notes after creating.",
+    "submit": "Add"
+  },
+  "source_option": {
+    "internal_audit": "Internal Audit Finding",
+    "external_audit": "External Audit Finding",
+    "risk_assessment": "Risk Assessment",
+    "security_incident": "Security Incident",
+    "objective": "Objective",
+    "feedback": "Feedback / Suggestion",
+    "other": "Other"
+  },
+  "field": {
+    "title": "Title",
+    "description": "Description",
+    "source": "Source",
+    "severity": "Severity",
+    "status": "Status",
+    "assignee": "Assignee",
+    "due_date": "Due date",
+    "root_cause": "Root Cause",
+    "created": "Created",
+    "created_by": "Created by",
+    "resolved": "Resolved"
+  },
+  "placeholder": {
+    "description": "Describe the corrective action...",
+    "assignee": "Select assignee...",
+    "root_cause": "Root cause analysis...",
+    "notes": "Add notes..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes",
+    "resolved_by": "{datetime} {by}",
+    "by": "by {name}"
+  },
+  "actions": {
+    "create_task": "Create Implementation Task",
+    "create_task_hint": "Spawn a task to do the corrective work; auto-linked back to this CA."
+  },
+  "danger": {
+    "warning": "Deleting this corrective action is permanent and cannot be undone.",
+    "delete": "Delete corrective action",
+    "confirm": "Delete this corrective action? This cannot be undone."
+  },
+  "seed": {
+    "from_incident": "Created from [{label}]({link})",
+    "from_audit_finding": "Created from audit finding {label}",
+    "from_risk": "Created from [{label}]({link})"
+  }
+}

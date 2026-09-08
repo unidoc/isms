@@ -18,16 +18,16 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Corrective Actions</h1>
-          <p class="text-sm text-slate-500 mt-1">Track nonconformities, observations, and opportunities for improvement</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('corrective_actions.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('corrective_actions.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite"
             @click="showCreateForm = !showCreateForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            Add Corrective Action
+            {{ t('corrective_actions.action.add') }}
           </button>
-          <SuggestNewButton entityType="corrective_action" typeLabel="Corrective Action" />
+          <SuggestNewButton entityType="corrective_action" :typeLabel="entityLabel('corrective_action')" />
         </div>
       </div>
 
@@ -41,39 +41,25 @@
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..."
+          <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
             class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
         </div>
         <select v-model="filterStatus" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All statuses</option>
-          <option value="todo">Todo</option>
-          <option value="assessment">Assessment</option>
-          <option value="awaiting_approval">Awaiting Approval</option>
-          <option value="implementation">Implementation</option>
-          <option value="monitoring">Monitoring</option>
-          <option value="resolved">Resolved</option>
+          <option value="">{{ t('common.filter.all_statuses') }}</option>
+          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <select v-model="filterSeverity" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All severities</option>
-          <option value="major_nc">Major NC</option>
-          <option value="minor_nc">Minor NC</option>
-          <option value="observation">Observation</option>
-          <option value="opportunity">OFI</option>
+          <option value="">{{ t('common.filter.all_severities') }}</option>
+          <option v-for="o in severityAbbrOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <select v-model="filterSource" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-          <option value="">All sources</option>
-          <option value="internal_audit">Internal Audit</option>
-          <option value="external_audit">External Audit</option>
-          <option value="risk_assessment">Risk Assessment</option>
-          <option value="security_incident">Security Incident</option>
-          <option value="objective">Objective</option>
-          <option value="feedback">Feedback</option>
-          <option value="other">Other</option>
+          <option value="">{{ t('common.filter.all_sources') }}</option>
+          <option v-for="o in sourceOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
         <div class="w-48">
-          <MemberPicker v-model="filterAssignee" :members="orgMembers" placeholder="Any assignee" />
+          <MemberPicker v-model="filterAssignee" :members="orgMembers" :placeholder="t('corrective_actions.filter.assignee_placeholder')" />
         </div>
-        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ total }} total</div>
+        <div class="ml-auto text-xs text-slate-500 tabular-nums">{{ t('common.count.total', { count: total }) }}</div>
       </div>
 
       <!-- Create form -->
@@ -83,7 +69,7 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold text-slate-200">Add Corrective Action</h2>
+          <h2 class="text-sm font-semibold text-slate-200">{{ t('corrective_actions.create.heading') }}</h2>
           <button @click="showCreateForm = false" class="text-slate-500 hover:text-slate-300">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -92,36 +78,27 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="sm:col-span-2">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Title *</label>
-            <input v-model="newCA.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Brief title of the nonconformity or improvement" />
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.create.title_label') }}</label>
+            <input v-model="newCA.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('corrective_actions.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Source</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.source') }}</label>
             <select v-model="newCA.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="internal_audit">Internal Audit Finding</option>
-              <option value="external_audit">External Audit Finding</option>
-              <option value="risk_assessment">Risk Assessment</option>
-              <option value="security_incident">Security Incident</option>
-              <option value="objective">Objective</option>
-              <option value="feedback">Feedback / Suggestion</option>
-              <option value="other">Other</option>
+              <option v-for="o in sourceFormOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Severity</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.severity') }}</label>
             <select v-model="newCA.severity" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="major_nc">Major Non-conformity</option>
-              <option value="minor_nc">Minor Non-conformity</option>
-              <option value="observation">Observation</option>
-              <option value="opportunity">Opportunity for Improvement</option>
+              <option v-for="o in severityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add description, assignee, due date and notes after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('corrective_actions.create.fill_in_later') }}</div>
         <div class="flex justify-end gap-3 pt-2">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
           <button @click="createCA" :disabled="!newCA.title" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
-            Add
+            {{ t('corrective_actions.create.submit') }}
           </button>
         </div>
         </div>
@@ -132,10 +109,10 @@
       <!-- Action list -->
       <div v-if="actions.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
         <div v-if="filterStatus || filterSeverity || filterSource || filterAssignee || searchQuery" class="text-slate-500 text-sm">
-          No corrective actions match your filter.
+          {{ t('corrective_actions.filter.empty') }}
         </div>
         <div v-else class="text-slate-500 text-sm">
-          No corrective actions yet — click Add to create your first one.
+          {{ t('corrective_actions.filter.empty_all') }}
         </div>
       </div>
 
@@ -198,10 +175,10 @@
             <!-- Sidebar nav -->
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -213,96 +190,98 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('corrective_actions.detail.overview') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                        <MarkdownField v-model="editForm.description" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="3" placeholder="Describe the corrective action..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.description') }}</label>
+                        <MarkdownField v-model="editForm.description" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="3" :placeholder="t('corrective_actions.placeholder.description')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Source</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.source') }}</label>
                         <select v-model="editForm.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option v-for="(label, key) in sourceLabels" :key="key" :value="key">{{ label }}</option>
+                          <option v-for="o in sourceFormOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Severity</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.severity') }}</label>
                         <select v-model="editForm.severity" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option v-for="(label, key) in severityFullLabels" :key="key" :value="key">{{ label }}</option>
+                          <option v-for="o in severityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="todo">To do</option>
-                          <option value="assessment">Assessment</option>
-                          <option value="awaiting_approval">Awaiting approval</option>
-                          <option value="implementation">Implementation</option>
-                          <option value="monitoring">Monitoring</option>
-                          <option value="resolved">Resolved</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Assignee</label>
-                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" placeholder="Select assignee..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.assignee') }}</label>
+                        <MemberPicker v-model="editForm.assignee" :members="orgMembers" :placeholder="t('corrective_actions.placeholder.assignee')" />
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Due date</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.due_date') }}</label>
                         <input v-model="editForm.due_date" type="date" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Root Cause</label>
-                        <MarkdownField v-model="editForm.root_cause" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="3" placeholder="Root cause analysis..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.root_cause') }}</label>
+                        <MarkdownField v-model="editForm.root_cause" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="3" :placeholder="t('corrective_actions.placeholder.root_cause')" />
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('corrective_actions.field.description') }}</div>
                         <div v-if="selectedCA.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedCA.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Source</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.source') }}</div>
                           <div class="text-sm text-slate-300">{{ sourceLabel(selectedCA.source) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Severity</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.severity') }}</div>
                           <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded" :class="severityClass(selectedCA.severity)">{{ severityLabel(selectedCA.severity) }}</span>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Assignee</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.assignee') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedCA.assignee) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Due date</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.due_date') }}</div>
                           <div class="text-sm" :class="selectedCA.due_date && isOverdue(selectedCA.due_date) && selectedCA.status !== 'resolved' ? 'text-red-400' : 'text-slate-300'">{{ selectedCA.due_date ? formatDay(selectedCA.due_date) : '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedCA.created_by) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedCA.created_at) }}</div>
                         </div>
                         <div v-if="selectedCA.resolved_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Resolved</div>
-                          <div class="text-sm text-emerald-400">{{ formatDateTime(selectedCA.resolved_at) }}<span v-if="selectedCA.resolved_by" class="text-slate-500"> by {{ resolveUserName(selectedCA.resolved_by) }}</span></div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('corrective_actions.field.resolved') }}</div>
+                          <div class="text-sm text-emerald-400">
+                            <i18n-t keypath="corrective_actions.detail.resolved_by" scope="global">
+                              <template #datetime>{{ formatDateTime(selectedCA.resolved_at) }}</template>
+                              <template #by>
+                                <span v-if="selectedCA.resolved_by" class="text-slate-500">{{ t('corrective_actions.detail.by', { name: resolveUserName(selectedCA.resolved_by) }) }}</span>
+                              </template>
+                            </i18n-t>
+                          </div>
                         </div>
                       </div>
 
                       <div v-if="selectedCA.root_cause" class="border-t border-slate-800 pt-4">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Root Cause</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('corrective_actions.field.root_cause') }}</div>
                         <div class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedCA.root_cause)"></div>
                       </div>
 
@@ -314,14 +293,14 @@
               <!-- ═══ ACTIONS ═══ -->
               <template v-if="detailTab === 'actions'">
                 <div class="px-6 py-5 space-y-4">
-                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick actions</div>
-                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">Read-only — actions require manager or admin role.</div>
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('common.heading.quick_actions') }}</div>
+                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">{{ t('common.read_only.actions') }}</div>
                   <div v-else class="flex flex-col gap-3 max-w-md">
                     <button @click="createLinkedTask"
                       class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors text-left">
                       <div>
-                        <div class="text-sm font-medium text-slate-200">Create Implementation Task</div>
-                        <div class="text-xs text-slate-500 mt-0.5">Spawn a task to do the corrective work; auto-linked back to this CA.</div>
+                        <div class="text-sm font-medium text-slate-200">{{ t('corrective_actions.actions.create_task') }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">{{ t('corrective_actions.actions.create_task_hint') }}</div>
                       </div>
                       <span class="text-slate-500 text-lg">→</span>
                     </button>
@@ -333,15 +312,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('corrective_actions.detail.notes') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="12" placeholder="Add notes..." />
+                    <MarkdownField v-model="editForm.notes" :self-type="'corrective_action'" :self-id="selectedCA?.identifier || ''" :rows="12" :placeholder="t('corrective_actions.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedCA.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedCA.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -372,10 +351,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="corrective_action" :entityId="String(selectedCA.id)" />
                   <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this corrective action is permanent and cannot be undone.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('corrective_actions.danger.warning') }}</div>
                     <button @click="deleteCA(selectedCA.id)" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete corrective action
+                      {{ t('corrective_actions.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -386,8 +365,8 @@
 
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -400,13 +379,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import api from '../api'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
 import RefreshButton from '../components/RefreshButton.vue'
-import EntityReferences from '../components/EntityReferences.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
 import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
@@ -422,12 +401,15 @@ import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { formatDate, formatDay } from '../composables/useFormat.js'
+import { renderApiError } from '../composables/useApiError.js'
+import { enumLabel, enumLabelAbbr, entityLabel } from '../composables/useEnumLabel.js'
 
 const { confirm: confirmDialog } = useConfirm()
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { orgSlug, orgPath } = useCurrentOrg()
+const { orgPath } = useCurrentOrg()
 const { success: showSaved, show: showError } = useToast()
 
 const renderMd = renderMarkdown
@@ -445,7 +427,7 @@ async function reload() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -453,14 +435,17 @@ async function reload() {
 const error = ref(null)
 const actions = ref([])
 const stats = ref({})
-const statusStats = computed(() => [
-  { key: 'todo', label: 'Todo', count: stats.value.todo || 0, color: 'text-red-400' },
-  { key: 'assessment', label: 'Assessment', count: stats.value.assessment || 0, color: 'text-amber-400' },
-  { key: 'awaiting_approval', label: 'Awaiting Approval', count: stats.value.awaiting_approval || 0, color: 'text-purple-400' },
-  { key: 'implementation', label: 'Implementation', count: stats.value.implementation || 0, color: 'text-blue-400' },
-  { key: 'monitoring', label: 'Monitoring', count: stats.value.monitoring || 0, color: 'text-cyan-400' },
-  { key: 'resolved', label: 'Resolved', count: stats.value.resolved || 0, color: 'text-emerald-400' },
-])
+const STATUS_STATS = [
+  { key: 'todo', color: 'text-red-400' },
+  { key: 'assessment', color: 'text-amber-400' },
+  { key: 'awaiting_approval', color: 'text-purple-400' },
+  { key: 'implementation', color: 'text-blue-400' },
+  { key: 'monitoring', color: 'text-cyan-400' },
+  { key: 'resolved', color: 'text-emerald-400' },
+]
+const statusStats = computed(() => STATUS_STATS.map((s) => ({
+  ...s, label: statusLabel(s.key), count: stats.value[s.key] || 0,
+})))
 const selectedCA = ref(null)
 const showCreateForm = ref(false)
 
@@ -471,15 +456,18 @@ const editForm = ref({})
 const { capture: captureEditSnapshot, isDirty } = useDirtyEdit(editForm)
 const saving = ref(false)
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'actions', label: 'Actions' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Tab labels are keys, resolved in a computed: an array built at module load
+// freezes its labels in whatever locale was active when the file was imported.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'actions', label: 'common.tab.actions' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
 ]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
 
 useModalEscape(showCreateForm)
 useModalEscape(computed(() => !!selectedCA.value), () => closeDetail())
@@ -491,8 +479,6 @@ const searchQuery = ref('')
 const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
-const docIDsInput = ref('')
-const controlIDsInput = ref('')
 const pendingRefs = ref([])
 
 const newCA = ref({
@@ -581,7 +567,7 @@ async function loadAll() {
   try {
     await fetchAll()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }
@@ -608,7 +594,7 @@ async function loadActions() {
     total.value = res?.total || 0
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -651,19 +637,19 @@ async function createCA() {
       const id = 'INC-' + String(route.query.from_incident)
       sourceLinks.push({ type: 'incident', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/incidents/${id})`)
+      seedLines.push(t('corrective_actions.seed.from_incident', { label, link: `/incidents/${id}` }))
     }
     if (route.query.from_audit_finding) {
       const id = 'FIND-' + String(route.query.from_audit_finding)
       sourceLinks.push({ type: 'audit_finding', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from audit finding ${label}`)
+      seedLines.push(t('corrective_actions.seed.from_audit_finding', { label }))
     }
     if (route.query.from_risk) {
       const id = String(route.query.from_risk)
       sourceLinks.push({ type: 'risk', id })
       const label = sourceTitle ? `${id}: ${sourceTitle}` : id
-      seedLines.push(`Created from [${label}](/risks/${id})`)
+      seedLines.push(t('corrective_actions.seed.from_risk', { label, link: `/risks/${id}` }))
     }
     if (seedLines.length > 0) {
       payload.notes = seedLines.join('\n') + (payload.notes ? '\n\n' + payload.notes : '')
@@ -685,8 +671,6 @@ async function createCA() {
     pendingRefs.value = []
     showCreateForm.value = false
     newCA.value = { title: '', description: '', source: 'other', severity: 'observation', assignee: '', due_date: '', notes: '' }
-    docIDsInput.value = ''
-    controlIDsInput.value = ''
     await loadActions()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.
     if (created && created.id) {
@@ -699,28 +683,7 @@ async function createCA() {
       router.push(orgPath(`/corrective-actions/${fresh.id}`))
     }
   } catch (e) {
-    error.value = e.message
-  }
-}
-
-async function changeStatus(ca, status) {
-  try {
-    await api.updateCorrectiveActionStatus(ca.id, status)
-    ca.status = status
-    if (selectedCA.value?.id === ca.id) {
-      selectedCA.value = { ...ca }
-    }
-    await loadStats()
-  } catch (e) {
-    showError(e.message || 'Status change failed')
-  }
-}
-
-async function saveField(id, field, value) {
-  try {
-    await api.updateCorrectiveAction(id, { [field]: value })
-  } catch (e) {
-    // silent save
+    error.value = renderApiError(e)
   }
 }
 
@@ -738,14 +701,18 @@ function createLinkedTask() {
 }
 
 async function deleteCA(id) {
-  const ok = await confirmDialog({ message: 'Delete this corrective action? This cannot be undone.', variant: 'danger', confirmLabel: 'Delete' })
+  const ok = await confirmDialog({
+    message: t('corrective_actions.danger.confirm'),
+    variant: 'danger',
+    confirmLabel: t('common.action.delete'),
+  })
   if (!ok) return
   try {
     await api.deleteCorrectiveAction(id)
     closeDetail()
     await loadActions()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -760,9 +727,9 @@ async function selectCA(ca) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -773,9 +740,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -826,9 +793,9 @@ async function saveSection() {
       } catch { /* ignore */ }
     }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('corrective_actions.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
@@ -840,50 +807,29 @@ function isOverdue(dateStr) {
   return d < new Date()
 }
 
-const severityLabels = {
-  major_nc: 'Major NC',
-  minor_nc: 'Minor NC',
-  observation: 'Observation',
-  opportunity: 'OFI',
-}
+// Lookups and option lists live here rather than in the template: a group name
+// is a stored identifier, and the raw-text scanner reads a bare quoted word in
+// a mustache as unextracted copy.
+//
+// The finding taxonomy appears twice over, and both forms are authored: the
+// badge and the filter want "Major NC", the create and edit forms want "Major
+// non-conformity". `source` likewise — the filter reads "Internal audit", the
+// forms spell out "Internal Audit Finding", so the long set stays a local
+// `corrective_actions.source_option.*` rather than displacing the catalogue.
+const STATUSES = ['todo', 'assessment', 'awaiting_approval', 'implementation', 'monitoring', 'resolved']
+const SEVERITIES = ['major_nc', 'minor_nc', 'observation', 'opportunity']
+const SOURCES = ['internal_audit', 'external_audit', 'risk_assessment', 'security_incident', 'objective', 'feedback', 'other']
 
-const severityFullLabels = {
-  major_nc: 'Major Non-conformity',
-  minor_nc: 'Minor Non-conformity',
-  observation: 'Observation',
-  opportunity: 'Opportunity for Improvement',
-}
+const statusLabel = (v) => enumLabel('status', v)
+const severityLabel = (v) => enumLabelAbbr('finding_type', v)
+const sourceLabel = (v) => enumLabel('source', v)
 
-const sourceLabels = {
-  internal_audit: 'Internal Audit Finding',
-  external_audit: 'External Audit Finding',
-  risk_assessment: 'Risk Assessment',
-  security_incident: 'Security Incident',
-  objective: 'Objective',
-  feedback: 'Feedback / Suggestion',
-  other: 'Other',
-}
-
-const statusLabels = {
-  todo: 'Todo',
-  assessment: 'Assessment',
-  awaiting_approval: 'Awaiting Approval',
-  implementation: 'Implementation',
-  monitoring: 'Monitoring',
-  resolved: 'Resolved',
-}
-
-function severityLabel(sev) {
-  return severityLabels[sev] || sev
-}
-
-function sourceLabel(src) {
-  return sourceLabels[src] || src
-}
-
-function statusLabel(st) {
-  return statusLabels[st] || st
-}
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const severityAbbrOptions = options(SEVERITIES, severityLabel)
+const severityOptions = options(SEVERITIES, (v) => enumLabel('finding_type', v))
+const sourceOptions = options(SOURCES, sourceLabel)
+const sourceFormOptions = options(SOURCES, (v) => t(`corrective_actions.source_option.${v}`))
 
 function severityClass(sev) {
   switch (sev) {

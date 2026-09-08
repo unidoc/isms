@@ -27,6 +27,7 @@ import notifications from './notifications.json' with { type: 'json' }
 import objectives from './objectives.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
 import programs from './programs.json' with { type: 'json' }
+import reviews from './reviews.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
 import settings from './settings.json' with { type: 'json' }
 import shell from './shell.json' with { type: 'json' }
@@ -51,6 +52,7 @@ export default {
   objectives,
   organizations,
   programs,
+  reviews,
   risks,
   settings,
   shell,

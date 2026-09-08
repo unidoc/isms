@@ -1,0 +1,200 @@
+{
+  "title": "Reviews",
+  "subtitle": "Document review requests",
+  "back": "Back to reviews",
+  "not_found": "Review not found",
+  "opened_ago": "opened {time}",
+  "ai": {
+    "active": "AI review in progress",
+    "escalated": "Escalated — AI review stalled"
+  },
+  "guide": {
+    "step_review": "Review the document and changes",
+    "step_comment": "Add comments or suggest edits",
+    "step_decide": "Approve or request changes"
+  },
+  "tab": {
+    "changes": "Changes ({round})",
+    "document": "Document",
+    "conversation": "Conversation"
+  },
+  "timeline": {
+    "suggested_edit": "suggested an edit",
+    "commented": "commented",
+    "approved": "approved this review",
+    "proposed_revision": "proposed a revision",
+    "requested_changes": "requested changes",
+    "assigned": "{reviewer} was assigned as reviewer",
+    "empty": "No activity yet.",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "merged this review",
+      "approved": "approved (decision record)",
+      "proposed_revision": "proposed revision (decision record)",
+      "changes_requested": "requested changes (decision record)"
+    },
+    "content_hash": "SHA-256 content hash for tamper evidence",
+    "hide_changes": "Hide changes",
+    "view_changes": "View changes",
+    "diff_loading": "Loading changes…",
+    "diff_error": "Couldn't load this revision's diff."
+  },
+  "updated": {
+    "heading": "Document updated since review was sent",
+    "last_modified_by": "Last modified by {name}",
+    "last_modified_by_with_message": "Last modified by {name} — {message}",
+    "note": "The diff below shows all changes since the last approved version."
+  },
+  "diff": {
+    "summary_heading": "Changes in this review",
+    "never_approved_inline": "Full review — this document has never been approved. Review the full document in the Document tab.",
+    "none_inline": "No diff available — the document may not have been modified since the review base.",
+    "loading": "Loading changes...",
+    "scope_round": "Changes in this round",
+    "scope_all": "All changes in review",
+    "mode_split": "Split",
+    "mode_unified": "Unified",
+    "never_approved_heading": "Full review — this document has never been approved",
+    "never_approved_body": "There is no prior approved version to diff against. Review the full document in the Document tab.",
+    "none_in_round": "No changes found in this round."
+  },
+  "comment": {
+    "heading": "Add a comment",
+    "placeholder": "Leave a comment..."
+  },
+  "edit": {
+    "save_and_resubmit": "Save & Resubmit",
+    "send_revision": "Send proposed revision",
+    "draft_saved": "Draft saved",
+    "note_placeholder": "What did you change and why?",
+    "draft_recovered": "Draft recovered from previous session."
+  },
+  "summary": {
+    "resubmitted": "Resubmitted after requested changes",
+    "initial": "Initial review",
+    "approved_count": "{approved} of {total}",
+    "waiting_on": "Waiting on:",
+    "ready_to_merge": "All reviewers have approved. Ready to merge.",
+    "changes_requested_you": "Changes requested. Waiting for you to respond.",
+    "changes_requested_author": "Changes requested. Waiting for {author} to respond."
+  },
+  "suggestion": {
+    "count": "{count} suggestion | {count} suggestions",
+    "pending": "{count} pending",
+    "accepted": "{count} accepted",
+    "rejected": "{count} rejected"
+  },
+  "assignment": {
+    "empty": "No reviewers assigned",
+    "status": {
+      "approved": "approved",
+      "pending": "pending",
+      "changes_requested": "changes",
+      "proposed_revision": "revision"
+    }
+  },
+  "policy": {
+    "heading": "Approval Requirements",
+    "approvals": "{current}/{min} approvals",
+    "missing_roles": "Missing: {roles} role",
+    "missing_users": "Awaiting: {users}",
+    "blocked": "Merge blocked until all requirements are met",
+    "will_auto_merge": "Will auto-merge when all approvals are in",
+    "require_human": "At least one human approval required",
+    "auto_merge": "Auto-merge enabled for this policy"
+  },
+  "actions": {
+    "heading": "Actions",
+    "requirements_not_met": "Requirements not met",
+    "publish": "Publish",
+    "publish_version": "Publish {version}",
+    "publish_note": "This will make {version} the accepted document.",
+    "publish_note_this_version": "This will make this version the accepted document.",
+    "awaiting_manager": "All reviewers approved. Waiting for a manager to publish.",
+    "revision_proposed_by": "{name} proposed a revision to this document.",
+    "publishing": "Publishing...",
+    "accept_and_publish": "Accept & Publish",
+    "request_another_review": "Request Another Review",
+    "propose_new_revision": "Propose New Revision",
+    "changes_were_requested": "Changes were requested. Edit the document and resubmit.",
+    "edit_and_resubmit": "Edit & Resubmit",
+    "you_sent_this": "You sent this review.",
+    "waiting_for_feedback": "Waiting for reviewer feedback.",
+    "you_approved": "You approved this round.",
+    "you_proposed_revision": "You proposed a revision.",
+    "you_requested_changes": "You requested changes.",
+    "waiting_for_author": "Waiting for {author} to respond.",
+    "waiting_for_reviewers": "Waiting for other reviewers.",
+    "stale_warning": "Document was updated after this review was sent. Review the latest changes before approving.",
+    "request_changes": "Request Changes",
+    "propose_revision": "Propose Revision",
+    "approve_heading": "Approve this document",
+    "approve_placeholder": "Optional comment...",
+    "approving": "Approving...",
+    "confirm_approve": "Confirm Approve",
+    "changes_heading": "Request changes",
+    "changes_placeholder": "Describe what needs to change... (required)",
+    "submitting": "Submitting...",
+    "submit_request": "Submit Request",
+    "withdraw": "Withdraw Review",
+    "close_without_merging": "Close Without Merging",
+    "not_a_reviewer": "You are not a reviewer on this request."
+  },
+  "closed_state": {
+    "merged": "Merged",
+    "closed": "Closed"
+  },
+  "document": {
+    "heading": "Document",
+    "id": "ID",
+    "comments": "Comments",
+    "open_comments": "Open"
+  },
+  "stat": {
+    "open": "Open",
+    "approved": "Approved",
+    "changes_requested": "Changes Requested",
+    "closed": "Closed",
+    "merged": "Merged"
+  },
+  "filter": {
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "list": {
+    "empty_open": "No open reviews",
+    "empty_closed": "No closed reviews",
+    "item_title": "Review #{id} -- {title}",
+    "opened_by": "Opened by {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "author",
+  "reviewer_fallback": "A reviewer",
+  "revision_note_fallback": "Author edits",
+  "toast": {
+    "revision_published": "Revision accepted and published.",
+    "revision_accepted": "Accepted proposed revision",
+    "decision_recorded": "Your approval has been recorded{round}. Waiting on {count} more reviewer. | Your approval has been recorded{round}. Waiting on {count} more reviewers.",
+    "decision_recorded_changes": "Your request for changes has been recorded{round}. Waiting on {count} more reviewer. | Your request for changes has been recorded{round}. Waiting on {count} more reviewers.",
+    "all_approved": "All reviewers have approved{round}. Ready to merge.",
+    "changes_requested": "Changes requested{round}. The author will be notified.",
+    "for_round": " for Round {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Approve anyway",
+    "approve_stale_body": "The document was modified after this review was sent. Approve based on the current version?",
+    "discard_changes": "Discard unsaved changes?"
+  },
+  "error": {
+    "save_and_resubmit": "Save & resubmit failed: {message}",
+    "publish": "Failed to publish: {message}",
+    "accept_revision": "Failed to accept revision: {message}",
+    "submit_revision": "Failed to submit revision: {message}",
+    "load_list": "Failed to load reviews: {message}",
+    "load_one": "Failed to load review: {message}",
+    "add_comment": "Failed to add comment: {message}",
+    "submit_decision": "Failed to submit decision: {message}",
+    "merge": "Failed to merge review: {message}",
+    "close": "Failed to close review: {message}"
+  }
+}

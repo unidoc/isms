@@ -20,7 +20,8 @@
     "resolve": "Resolve",
     "approve": "Approve",
     "add": "Add",
-    "discard_draft": "Discard draft"
+    "discard_draft": "Discard draft",
+    "discard": "Discard"
   },
   "state": {
     "loading": "Loading…",

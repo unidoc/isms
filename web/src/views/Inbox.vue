@@ -18,14 +18,14 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Inbox</h1>
-          <p class="text-sm text-slate-500 mt-1">{{ totalActionItems }} action item{{ totalActionItems !== 1 ? 's' : '' }} requiring attention</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('inbox.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('inbox.subtitle', { count: totalActionItems }, totalActionItems) }}</p>
         </div>
         <div class="flex items-center gap-2">
           <RefreshButton :loading="refreshing" @refresh="reload" />
           <button @click="markAllNotificationsRead"
             class="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
-            Mark all read
+            {{ t('inbox.mark_all_read') }}
           </button>
         </div>
       </div>
@@ -58,7 +58,7 @@
       <!-- ===================== COMMENTS TAB ===================== -->
       <template v-if="activeTab === 'comments'">
         <div v-if="openComments.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
-          <div class="text-slate-500 text-sm">No open comments</div>
+          <div class="text-slate-500 text-sm">{{ t('inbox.comments.empty') }}</div>
         </div>
         <div v-else class="space-y-2">
           <div v-for="c in openComments" :key="c.id"
@@ -69,7 +69,7 @@
               </div>
               <span class="text-sm font-medium text-slate-200">{{ c.author }}</span>
               <span class="text-xs text-slate-600">{{ formatDate(c.created_at) }}</span>
-              <span v-if="c.suggestion_body" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-800/40 text-amber-300">suggestion</span>
+              <span v-if="c.suggestion_body" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-800/40 text-amber-300">{{ t('inbox.comments.suggestion_badge') }}</span>
               <router-link :to="orgPath(`/documents/${encodeURIComponent(c.document_id)}`)"
                 class="ml-auto text-xs text-blue-400 hover:text-blue-300 bg-slate-800 px-2 py-0.5 rounded font-mono" @click.stop>{{ c.document_id }}</router-link>
             </div>
@@ -78,20 +78,20 @@
                 <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
-                Inline
+                {{ t('inbox.comments.scope_inline') }}
               </span>
               <span v-else class="text-[10px] text-slate-500 font-medium flex items-center gap-1">
                 <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Document
+                {{ t('inbox.comments.scope_document') }}
               </span>
             </div>
             <div class="text-sm text-slate-300 leading-relaxed">{{ c.body }}</div>
             <div v-if="c.quote" class="mt-2 text-xs text-slate-600 border-l-2 border-slate-700 pl-2 italic truncate">"{{ c.quote }}"</div>
             <div class="mt-3 flex gap-2">
-              <button @click="goToComment(c)" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">View in document →</button>
-              <button v-if="canResolveComment(c)" @click="resolveFromInbox(c.id)" class="text-xs text-slate-500 hover:text-emerald-400 ml-auto">Resolve</button>
+              <button @click="goToComment(c)" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">{{ t('inbox.comments.view_in_document') }}</button>
+              <button v-if="canResolveComment(c)" @click="resolveFromInbox(c.id)" class="text-xs text-slate-500 hover:text-emerald-400 ml-auto">{{ t('common.action.resolve') }}</button>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@
           <svg class="w-10 h-10 text-slate-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <div class="text-sm text-slate-500">No reviews pending</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.reviews.empty') }}</div>
         </div>
 
         <!-- Review cards -->
@@ -126,11 +126,11 @@
               <StatusBadge :status="review.status" />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-slate-200">{{ review.title || review.document_id || 'Untitled review' }}</span>
-                  <span v-if="review.round > 1" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium">Round {{ review.round }}</span>
+                  <span class="text-sm font-medium text-slate-200">{{ review.title || review.document_id || t('inbox.reviews.untitled') }}</span>
+                  <span v-if="review.round > 1" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium">{{ t('common.label.round', { round: review.round }) }}</span>
                 </div>
                 <div class="text-xs text-slate-500 mt-0.5">
-                  Requested by {{ review.requested_by || 'Unknown' }}
+                  {{ t('inbox.reviews.requested_by', { name: review.requested_by || t('inbox.reviews.unknown_requester') }) }}
                   <span class="mx-1.5 text-slate-700">|</span>
                   {{ formatDate(review.created_at) }}
                   <span v-if="review.version" class="mx-1.5 text-slate-700">|</span>
@@ -160,26 +160,26 @@
               <!-- Metadata -->
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Status</div>
+                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.status') }}</div>
                   <StatusBadge :status="review.status" />
                 </div>
                 <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Document</div>
+                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.document') }}</div>
                   <div class="text-sm text-slate-300 font-mono">{{ review.document_id || '-' }}</div>
                 </div>
                 <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Version</div>
+                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.version') }}</div>
                   <div class="text-sm text-slate-300">{{ review.version || '-' }}</div>
                 </div>
                 <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Requested By</div>
+                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.requested_by') }}</div>
                   <div class="text-sm text-slate-300">{{ review.requested_by || '-' }}</div>
                 </div>
               </div>
 
               <!-- Reviewers -->
               <div v-if="review.reviewers && review.reviewers.length">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Assigned Reviewers</div>
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.assigned_reviewers') }}</div>
                 <div class="flex flex-wrap gap-2">
                   <span
                     v-for="reviewer in review.reviewers"
@@ -196,7 +196,7 @@
 
               <!-- Recent comments -->
               <div v-if="expandedReviewComments.length">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recent Comments</div>
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.recent_comments') }}</div>
                 <div class="space-y-2">
                   <div
                     v-for="comment in expandedReviewComments.slice(0, 3)"
@@ -221,7 +221,7 @@
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                   </svg>
-                  Open Review #{{ review.id }}
+                  {{ t('inbox.reviews.open_review', { id: review.id }) }}
                 </router-link>
               </div>
             </div>
@@ -237,7 +237,7 @@
             @click="showTaskForm = !showTaskForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Add Task
+            {{ t('inbox.tasks.add') }}
           </button>
         </div>
 
@@ -248,7 +248,7 @@
           <div class="absolute inset-0 bg-black/60" @click="showTaskForm = false" />
           <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-semibold text-slate-200">Add Task</h2>
+            <h2 class="text-sm font-semibold text-slate-200">{{ t('inbox.tasks.add') }}</h2>
             <button @click="showTaskForm = false" class="text-slate-500 hover:text-slate-300">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -257,41 +257,33 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
-              <input v-model="newTask.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Task title" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.title') }}</label>
+              <input v-model="newTask.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('inbox.tasks.form.title_placeholder')" />
             </div>
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-              <textarea v-model="newTask.description" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Optional description" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.description') }}</label>
+              <textarea v-model="newTask.description" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" :placeholder="t('inbox.tasks.form.description_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Type</label>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.type') }}</label>
               <select v-model="newTask.task_type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 <!-- Manual task types only. The *_followup types are created
                      automatically by the system, not chosen here (#32). -->
-                <option value="general">General</option>
-                <option value="review">Review</option>
-                <option value="onboarding">Onboarding</option>
-                <option value="offboarding">Offboarding</option>
-                <option value="training">Training</option>
-                <option value="other">Other</option>
+                <option v-for="o in taskTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.priority') }}</label>
               <select v-model="newTask.priority" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                <option v-for="o in priorityOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Assignee</label>
-              <MemberPicker v-model="newTask.assignee" :members="allUsers" placeholder="Select assignee..." />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.assignee') }}</label>
+              <MemberPicker v-model="newTask.assignee" :members="allUsers" :placeholder="t('inbox.tasks.form.assignee_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Due Date</label>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.tasks.form.due_date') }}</label>
               <input v-model="newTask.due_date" type="date" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
           </div>
@@ -301,10 +293,10 @@
               :disabled="!newTask.title.trim() || taskCreating"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              {{ taskCreating ? 'Creating...' : 'Add' }}
+              {{ taskCreating ? t('common.state.creating') : t('common.action.add') }}
             </button>
             <button @click="showTaskForm = false" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors">
-              Cancel
+              {{ t('common.action.cancel') }}
             </button>
           </div>
           </div>
@@ -317,7 +309,7 @@
           <svg class="w-10 h-10 text-slate-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
-          <div class="text-sm text-slate-500">No tasks found</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.tasks.empty') }}</div>
         </div>
 
         <!-- Tasks list (overdue first, then by priority) -->
@@ -335,16 +327,16 @@
             </div>
 
             <!-- Type badge -->
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 capitalize flex-shrink-0">
-              {{ (task.task_type || '').replace(/_/g, ' ') }}
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">
+              {{ taskTypeLabel(task.task_type) }}
             </span>
 
             <!-- Priority badge -->
             <span
-              class="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize flex-shrink-0"
+              class="inline-block px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0"
               :class="priorityClasses[task.priority] || 'bg-slate-700 text-slate-300'"
             >
-              {{ task.priority || '-' }}
+              {{ priorityLabel(task.priority) }}
             </span>
 
             <!-- Assignee -->
@@ -356,7 +348,7 @@
               :class="isOverdue(task) ? 'text-red-400 font-medium' : 'text-slate-500'"
             >
               {{ formatDay(task.due_date) }}
-              <span v-if="isOverdue(task)" class="block text-[10px] text-red-500">OVERDUE</span>
+              <span v-if="isOverdue(task)" class="block text-[10px] text-red-500">{{ t('common.state.overdue') }}</span>
             </span>
 
             <!-- Status button (click to advance) -->
@@ -364,7 +356,7 @@
               v-if="task.status !== 'done' && canAdvanceTask(task)"
               @click="advanceTaskStatus(task)"
               class="flex-shrink-0"
-              :title="task.status === 'open' ? 'Start task' : 'Mark done'"
+              :title="taskAdvanceTitle(task)"
             >
               <StatusBadge :status="task.status" class="cursor-pointer hover:opacity-80 transition-opacity" />
             </button>
@@ -376,7 +368,7 @@
       <!-- ===================== INCIDENTS TAB ===================== -->
       <template v-if="activeTab === 'incidents'">
         <div v-if="incidents.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
-          <div class="text-sm text-slate-500">No incidents assigned to you</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.incidents.empty') }}</div>
         </div>
         <div v-else class="space-y-2">
           <router-link
@@ -390,7 +382,7 @@
               <div class="text-sm font-medium text-slate-200 truncate">{{ inc.title }}</div>
               <div v-if="inc.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ inc.description }}</div>
             </div>
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize flex-shrink-0" :class="priorityClasses[inc.severity] || 'bg-slate-700 text-slate-300'">{{ inc.severity }}</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0" :class="priorityClasses[inc.severity] || 'bg-slate-700 text-slate-300'">{{ severityLabel(inc.severity) }}</span>
             <span class="text-xs text-slate-500 flex-shrink-0 capitalize">{{ inc.category }}</span>
             <span class="text-xs text-slate-500 flex-shrink-0 w-28 truncate text-right">{{ formatDate(inc.detected_at || inc.created_at) }}</span>
             <StatusBadge :status="inc.status" class="flex-shrink-0" />
@@ -401,7 +393,7 @@
       <!-- ===================== CORRECTIVE ACTIONS TAB ===================== -->
       <template v-if="activeTab === 'corrective_actions'">
         <div v-if="correctiveActions.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
-          <div class="text-sm text-slate-500">No corrective actions assigned to you</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.corrective_actions.empty') }}</div>
         </div>
         <div v-else class="space-y-2">
           <router-link
@@ -416,11 +408,11 @@
               <div class="text-sm font-medium text-slate-200 truncate">{{ ca.title }}</div>
               <div v-if="ca.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ ca.description }}</div>
             </div>
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">{{ (ca.severity || '').replace(/_/g, ' ') }}</span>
-            <span class="text-xs text-slate-500 flex-shrink-0 capitalize w-32 truncate text-right">{{ (ca.source || '').replace(/_/g, ' ') }}</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">{{ severityLabel(ca.severity) }}</span>
+            <span class="text-xs text-slate-500 flex-shrink-0 w-32 truncate text-right">{{ sourceLabel(ca.source) }}</span>
             <span v-if="ca.due_date" class="text-xs flex-shrink-0 w-24 text-right" :class="isOverdue(ca) ? 'text-red-400 font-medium' : 'text-slate-500'">
               {{ formatDay(ca.due_date) }}
-              <span v-if="isOverdue(ca)" class="block text-[10px] text-red-500">OVERDUE</span>
+              <span v-if="isOverdue(ca)" class="block text-[10px] text-red-500">{{ t('common.state.overdue') }}</span>
             </span>
             <StatusBadge :status="ca.status" class="flex-shrink-0" />
           </router-link>
@@ -435,7 +427,7 @@
             @click="showChangeForm = !showChangeForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Add Change Request
+            {{ t('inbox.changes.add') }}
           </button>
         </div>
 
@@ -446,7 +438,7 @@
           <div class="absolute inset-0 bg-black/60" @click="showChangeForm = false" />
           <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-semibold text-slate-200">Add Change Request</h2>
+            <h2 class="text-sm font-semibold text-slate-200">{{ t('inbox.changes.add') }}</h2>
             <button @click="showChangeForm = false" class="text-slate-500 hover:text-slate-300">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -455,24 +447,24 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
-              <input v-model="newChange.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Change request title" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.changes.form.title') }}</label>
+              <input v-model="newChange.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('inbox.changes.form.title_placeholder')" />
             </div>
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-              <textarea v-model="newChange.description" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Describe the proposed change" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.changes.form.description') }}</label>
+              <textarea v-model="newChange.description" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" :placeholder="t('inbox.changes.form.description_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Justification</label>
-              <textarea v-model="newChange.justification" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Why is this change needed?" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.changes.form.justification') }}</label>
+              <textarea v-model="newChange.justification" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" :placeholder="t('inbox.changes.form.justification_placeholder')" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Impact Assessment</label>
-              <textarea v-model="newChange.impact" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Expected impact on ISMS" />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.changes.form.impact') }}</label>
+              <textarea v-model="newChange.impact" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" :placeholder="t('inbox.changes.form.impact_placeholder')" />
             </div>
             <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Assign To</label>
-              <MemberPicker v-model="newChange.assigned_to" :members="allUsers" placeholder="Select assignee..." />
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('inbox.changes.form.assign_to') }}</label>
+              <MemberPicker v-model="newChange.assigned_to" :members="allUsers" :placeholder="t('inbox.changes.form.assignee_placeholder')" />
             </div>
           </div>
           <div class="flex items-center gap-3 pt-2">
@@ -481,10 +473,10 @@
               :disabled="!newChange.title.trim() || changeSubmitting"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              {{ changeSubmitting ? 'Creating...' : 'Add' }}
+              {{ changeSubmitting ? t('common.state.creating') : t('common.action.add') }}
             </button>
             <button @click="showChangeForm = false" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors">
-              Cancel
+              {{ t('common.action.cancel') }}
             </button>
           </div>
           </div>
@@ -497,7 +489,7 @@
           <svg class="w-10 h-10 text-slate-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
           </svg>
-          <div class="text-sm text-slate-500">No change requests</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.changes.empty') }}</div>
         </div>
 
         <!-- Change request cards -->
@@ -516,7 +508,7 @@
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium text-slate-200">{{ change.title }}</div>
                 <div class="text-xs text-slate-500 mt-0.5">
-                  Requested by {{ change.requested_by || 'Unknown' }}
+                  {{ t('inbox.changes.requested_by', { name: change.requested_by || t('inbox.changes.unknown_requester') }) }}
                   <span class="mx-1.5 text-slate-700">|</span>
                   {{ formatDate(change.created_at) }}
                 </div>
@@ -549,25 +541,25 @@
             >
               <!-- Description -->
               <div v-if="change.description">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Description</div>
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.changes.detail.description') }}</div>
                 <p class="text-sm text-slate-400 leading-relaxed whitespace-pre-line">{{ change.description }}</p>
               </div>
 
               <!-- Justification & Impact -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div v-if="change.justification">
-                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Justification</div>
+                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.changes.detail.justification') }}</div>
                   <p class="text-sm text-slate-400 leading-relaxed whitespace-pre-line">{{ change.justification }}</p>
                 </div>
                 <div v-if="change.impact">
-                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Impact Assessment</div>
+                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.changes.detail.impact') }}</div>
                   <p class="text-sm text-slate-400 leading-relaxed whitespace-pre-line">{{ change.impact }}</p>
                 </div>
               </div>
 
               <!-- Affected documents -->
               <div v-if="change.document_ids && change.document_ids.length">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Affected Documents</div>
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.changes.detail.affected_documents') }}</div>
                 <div class="flex flex-wrap gap-2">
                   <span
                     v-for="docId in change.document_ids"
@@ -587,7 +579,7 @@
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  Approve
+                  {{ t('inbox.changes.action.approve') }}
                 </button>
                 <button
                   v-if="canManageInbox && change.status === 'proposed'"
@@ -595,7 +587,7 @@
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  Reject
+                  {{ t('inbox.changes.action.reject') }}
                 </button>
                 <button
                   v-if="canManageInbox && change.status === 'approved'"
@@ -603,13 +595,13 @@
                   :disabled="changeActioning"
                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  Mark Implemented
+                  {{ t('inbox.changes.action.mark_implemented') }}
                 </button>
                 <button
                   @click="expandedChangeId = null"
                   class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
                 >
-                  Close
+                  {{ t('inbox.changes.action.close') }}
                 </button>
               </div>
             </div>
@@ -622,10 +614,10 @@
         <!-- Filters -->
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-0.5 bg-slate-900 border border-slate-800 rounded-lg p-0.5">
-            <button v-for="f in ['open', 'applied', 'rejected']" :key="f" @click="suggestionFilter = f; loadSuggestions()"
+            <button v-for="f in suggestionFilters" :key="f.value" @click="suggestionFilter = f.value; loadSuggestions()"
               class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-              :class="suggestionFilter === f ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'">
-              {{ f.replace(/_/g, ' ') }}
+              :class="suggestionFilter === f.value ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'">
+              {{ f.label }}
             </button>
           </div>
         </div>
@@ -637,7 +629,7 @@
 
         <!-- Empty state -->
         <div v-if="suggestions.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
-          <div class="text-sm text-slate-500">No suggestions with this status.</div>
+          <div class="text-sm text-slate-500">{{ t('inbox.suggestions.empty') }}</div>
         </div>
 
         <!-- Suggestion cards -->
@@ -658,25 +650,25 @@
                       : sg.status === 'rejected' ? 'bg-red-500/15 text-red-400'
                       : sg.status === 'withdrawn' ? 'bg-slate-500/15 text-slate-400'
                       : 'bg-blue-500/15 text-blue-400'">
-                    {{ sg.status }}
+                    {{ suggestionStatusLabel(sg.status) }}
                   </span>
-                  <span v-if="sg.suggested_by_type === 'agent'" class="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/15 text-purple-400">AI</span>
+                  <span v-if="sg.suggested_by_type === 'agent'" class="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/15 text-purple-400">{{ t('inbox.suggestions.agent_badge') }}</span>
                 </div>
                 <div class="text-sm text-slate-300 mt-0.5">{{ sg.title }}</div>
                 <div class="text-xs text-slate-500 mt-1">
-                  Suggested by {{ sg.suggested_by?.split('@')[0] }} &middot; {{ formatDate(sg.created_at) }}
+                  {{ t('inbox.suggestions.suggested_by', { name: sg.suggested_by?.split('@')[0], date: formatDate(sg.created_at) }) }}
                 </div>
               </div>
               <!-- Actions -->
               <div v-if="sg.status === 'open'" class="flex items-center gap-1 flex-shrink-0">
                 <template v-if="canReviewSuggestions">
                   <button @click="applySuggestion(sg.id)"
-                    class="text-[10px] px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">Apply</button>
+                    class="text-[10px] px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ t('inbox.suggestions.apply') }}</button>
                   <button @click="rejectingId = sg.id; rejectReason = ''"
-                    class="text-[10px] px-2 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">Reject</button>
+                    class="text-[10px] px-2 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">{{ t('inbox.suggestions.reject') }}</button>
                 </template>
                 <button v-if="sg.suggested_by === currentUserEmail" @click="withdrawSuggestion(sg.id)"
-                  class="text-[10px] px-2 py-1 rounded text-slate-600 hover:text-slate-300 transition-colors">Withdraw</button>
+                  class="text-[10px] px-2 py-1 rounded text-slate-600 hover:text-slate-300 transition-colors">{{ t('inbox.suggestions.withdraw') }}</button>
               </div>
             </div>
 
@@ -693,19 +685,19 @@
 
             <!-- Reject form -->
             <div v-if="rejectingId === sg.id" class="flex items-center gap-2">
-              <input v-model="rejectReason" type="text" placeholder="Reason for rejection..."
+              <input v-model="rejectReason" type="text" :placeholder="t('inbox.suggestions.reject_placeholder')"
                 class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-red-500"
                 @keyup.enter="rejectSuggestion(sg.id)" />
               <button @click="rejectSuggestion(sg.id)"
-                class="text-xs px-2 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded font-medium">Reject</button>
-              <button @click="rejectingId = null" class="text-xs text-slate-500 hover:text-slate-300">Cancel</button>
+                class="text-xs px-2 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded font-medium">{{ t('inbox.suggestions.reject') }}</button>
+              <button @click="rejectingId = null" class="text-xs text-slate-500 hover:text-slate-300">{{ t('common.action.cancel') }}</button>
             </div>
 
             <!-- Reject reason (for rejected suggestions) -->
-            <div v-if="sg.reject_reason" class="text-xs text-red-400/80">Rejected: {{ sg.reject_reason }}</div>
+            <div v-if="sg.reject_reason" class="text-xs text-red-400/80">{{ t('inbox.suggestions.rejected_reason', { reason: sg.reject_reason }) }}</div>
 
             <!-- Applied result -->
-            <div v-if="sg.applied_entity_id" class="text-xs text-emerald-400/80">Applied → {{ sg.entity_type }} {{ sg.applied_entity_id }}</div>
+            <div v-if="sg.applied_entity_id" class="text-xs text-emerald-400/80">{{ t('inbox.suggestions.applied_result', { entity: entityLabel(sg.entity_type), id: sg.applied_entity_id }) }}</div>
           </div>
         </div>
       </template>
@@ -715,6 +707,7 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api, getCurrentUser } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -726,7 +719,10 @@ import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
+import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
@@ -751,7 +747,7 @@ async function reload() {
       loadSuggestions(),
     ])
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -880,14 +876,51 @@ const totalActionItems = computed(() => {
   return reviews.value.length + tasks.value.length + changes.value.length + openComments.value.length + openSuggestions.value.length + incidents.value.length + correctiveActions.value.length
 })
 
+// The whole bar stays in inbox.* rather than common.tab.*, including the two
+// labels that happen to match existing common keys. It mixes entity plurals
+// with "CAs", an abbreviation sized to this bar — and how far a language can
+// abbreviate "corrective actions" is a property of the bar, not of the entity.
 const tabs = computed(() => [
-  { key: 'comments', label: 'Comments', count: openComments.value.length },
-  { key: 'reviews', label: 'Reviews', count: reviews.value.length },
-  { key: 'tasks', label: 'Tasks', count: tasks.value.length },
-  { key: 'incidents', label: 'Incidents', count: incidents.value.length },
-  { key: 'changes', label: 'Changes', count: changes.value.length },
-  { key: 'corrective_actions', label: 'CAs', count: correctiveActions.value.length },
-  { key: 'suggestions', label: 'Suggestions', count: openSuggestions.value.length },
+  { key: 'comments', label: t('inbox.tab.comments'), count: openComments.value.length },
+  { key: 'reviews', label: t('inbox.tab.reviews'), count: reviews.value.length },
+  { key: 'tasks', label: t('inbox.tab.tasks'), count: tasks.value.length },
+  { key: 'incidents', label: t('inbox.tab.incidents'), count: incidents.value.length },
+  { key: 'changes', label: t('inbox.tab.changes'), count: changes.value.length },
+  { key: 'corrective_actions', label: t('inbox.tab.corrective_actions'), count: correctiveActions.value.length },
+  { key: 'suggestions', label: t('inbox.tab.suggestions'), count: openSuggestions.value.length },
+])
+
+// ---------- Catalogue-backed labels ----------
+// Every one of these renders a DB value, so it resolves through common.enum.*
+// rather than through a label map of this view's own. The <option> factories
+// keep the lookup out of the template: a bare group name in a mustache is a
+// quoted word the raw-text scanner counts, and rightly.
+const taskTypeLabel = (v) => enumLabel('task_type', v)
+const priorityLabel = (v) => enumLabel('priority', v)
+const severityLabel = (v) => enumLabel('severity', v)
+const sourceLabel = (v) => enumLabel('source', v)
+const suggestionStatusLabel = (v) => enumLabel('status', v)
+
+// In a helper, not the :title expression: the bare 'open' the ternary compared
+// against was counted as raw text, and most bare quoted words in a template are.
+const taskAdvanceTitle = (task) => task.status === 'open'
+  ? t('inbox.tasks.start')
+  : t('inbox.tasks.mark_done')
+
+// Manual task types only. The *_followup types are created automatically by the
+// system, not chosen here (#32) — so this list is shorter than the catalogue's.
+const TASK_TYPE_VALUES = ['general', 'review', 'onboarding', 'offboarding', 'training', 'other']
+const taskTypeOptions = computed(
+  () => TASK_TYPE_VALUES.map((value) => ({ value, label: taskTypeLabel(value) })))
+
+const PRIORITY_VALUES = ['low', 'medium', 'high', 'critical']
+const priorityOptions = computed(
+  () => PRIORITY_VALUES.map((value) => ({ value, label: priorityLabel(value) })))
+
+const suggestionFilters = computed(() => [
+  { value: 'open', label: t('inbox.suggestions.filter.open') },
+  { value: 'applied', label: t('inbox.suggestions.filter.applied') },
+  { value: 'rejected', label: t('inbox.suggestions.filter.rejected') },
 ])
 
 const forwardableUsers = computed(() => {
@@ -944,7 +977,7 @@ async function resolveFromInbox(id) {
     await api.resolveComment(id, getCurrentUser())
     await loadOpenComments()
   } catch (e) {
-    showError('Failed to resolve comment: ' + (e.message || 'unknown error'))
+    showError(t('inbox.error.resolve_comment', { message: renderApiError(e) }))
   }
 }
 
@@ -976,7 +1009,7 @@ async function markAllNotificationsRead() {
     // Reload inbox data
     await loadInbox()
   } catch (e) {
-    showError('Failed to mark all notifications read: ' + (e.message || 'unknown error'))
+    showError(t('inbox.error.mark_all_read', { message: renderApiError(e) }))
   }
 }
 
@@ -996,8 +1029,8 @@ async function approveReview(review) {
     expandedReviewId.value = null
     await loadReviews()
   } catch (e) {
-    error.value = e.message
-    showError('Failed to approve review: ' + (e.message || 'unknown error'))
+    error.value = renderApiError(e)
+    showError(t('inbox.error.approve_review', { message: renderApiError(e) }))
   } finally {
     reviewActioning.value = false
   }
@@ -1010,8 +1043,8 @@ async function requestChangesOnReview(review) {
     expandedReviewId.value = null
     await loadReviews()
   } catch (e) {
-    error.value = e.message
-    showError('Failed to request changes: ' + (e.message || 'unknown error'))
+    error.value = renderApiError(e)
+    showError(t('inbox.error.request_changes', { message: renderApiError(e) }))
   } finally {
     reviewActioning.value = false
   }
@@ -1033,8 +1066,8 @@ async function submitForward(reviewId) {
     setTimeout(() => { forwardSuccess.value = null }, 3000)
     await loadData()
   } catch (e) {
-    error.value = e.message
-    showError('Failed to forward review: ' + (e.message || 'unknown error'))
+    error.value = renderApiError(e)
+    showError(t('inbox.error.forward_review', { message: renderApiError(e) }))
   }
 }
 
@@ -1075,7 +1108,7 @@ async function loadReviews() {
       }
     }
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -1086,7 +1119,7 @@ async function advanceTaskStatus(task) {
     await api.updateTaskStatus(task.id, next)
     task.status = next
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -1103,7 +1136,7 @@ async function createTask() {
     showTaskForm.value = false
     await loadTasks()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     taskCreating.value = false
   }
@@ -1111,10 +1144,10 @@ async function createTask() {
 
 async function loadTasks() {
   try {
-    const t = await api.getTasks()
-    tasks.value = Array.isArray(t) ? t : []
+    const res = await api.getTasks()
+    tasks.value = Array.isArray(res) ? res : []
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -1130,7 +1163,7 @@ async function updateChangeStatus(change, status) {
     expandedChangeId.value = null
     await loadChanges()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     changeActioning.value = false
   }
@@ -1152,7 +1185,7 @@ async function submitChange() {
     showChangeForm.value = false
     await loadChanges()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     changeSubmitting.value = false
   }
@@ -1163,7 +1196,7 @@ async function loadChanges() {
     const ch = await api.getChanges()
     changes.value = Array.isArray(ch) ? ch : []
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -1199,7 +1232,7 @@ const suggestionError = ref('')
 async function claimSuggestion(id) {
   suggestionError.value = ''
   try { await api.claimSuggestion(id); await loadSuggestions() }
-  catch (e) { suggestionError.value = e.message || 'Failed to claim suggestion' }
+  catch (e) { suggestionError.value = t('inbox.error.claim_suggestion', { message: renderApiError(e) }) }
 }
 
 async function applySuggestion(id, force) {
@@ -1207,16 +1240,21 @@ async function applySuggestion(id, force) {
   try {
     const result = await api.applySuggestion(id, { force: !!force })
     if (result?.stale) {
-      if (await ask('Entity has changed since this suggestion was created. Apply anyway?', { confirm: 'Apply anyway', variant: 'warning' })) {
+      if (await ask(t('inbox.confirm.apply_stale_body'), { confirm: t('inbox.confirm.apply_stale_title'), variant: 'warning' })) {
         await applySuggestion(id, true)
       }
       return
     }
     await loadSuggestions()
-  } catch (e) { suggestionError.value = e.message || 'Failed to apply suggestion' }
+  } catch (e) { suggestionError.value = t('inbox.error.apply_suggestion', { message: renderApiError(e) }) }
 }
 
 async function rejectSuggestion(id) {
+  // Deliberately not translated. This is persisted as the suggestion's
+  // reject_reason and read back by everyone in the org, including the CLI and
+  // the MCP tools — storing the rejecting user's language would leave a row
+  // nobody else can read. Same reasoning as the notification keying work: text
+  // that outlives the request is stored in one language, not the sender's.
   const reason = rejectReason.value.trim() || 'Rejected'
   suggestionError.value = ''
   try {
@@ -1224,18 +1262,19 @@ async function rejectSuggestion(id) {
     rejectingId.value = null
     rejectReason.value = ''
     await loadSuggestions()
-  } catch (e) { suggestionError.value = e.message || 'Failed to reject suggestion' }
+  } catch (e) { suggestionError.value = t('inbox.error.reject_suggestion', { message: renderApiError(e) }) }
 }
 
 async function withdrawSuggestion(id) {
   suggestionError.value = ''
   try { await api.withdrawSuggestion(id); await loadSuggestions() }
-  catch (e) { suggestionError.value = e.message || 'Failed to withdraw suggestion' }
+  catch (e) { suggestionError.value = t('inbox.error.withdraw_suggestion', { message: renderApiError(e) }) }
 }
 
+// Was a local map whose only divergence from the catalogue was "New" for
+// `create`; the catalogue says "Create", and one word for one value beats two.
 function suggestionTypeLabel(sg) {
-  const labels = { create: 'New', update: 'Update', reassess: 'Reassess', link: 'Link', review: 'Review' }
-  return labels[sg.suggestion_type] || sg.suggestion_type
+  return enumLabel('suggestion_type', sg.suggestion_type)
 }
 
 function parsedPayload(raw) {
@@ -1247,9 +1286,11 @@ function parsedPayload(raw) {
   return null
 }
 
+// Twelve entity names the catalogue already carries. Four normalise to its
+// sentence case — "Legal Requirement" becomes "Legal requirement", and so on
+// for change request, corrective action and audit finding.
 function suggestionEntityLabel(sg) {
-  const labels = { risk: 'Risk', incident: 'Incident', supplier: 'Supplier', legal_requirement: 'Legal Requirement', change_request: 'Change Request', corrective_action: 'Corrective Action', objective: 'Objective', task: 'Task', system: 'System', asset: 'Asset', audit_finding: 'Audit Finding', document: 'Document' }
-  return labels[sg.entity_type] || sg.entity_type
+  return entityLabel(sg.entity_type)
 }
 
 function entityIcon(type) {
@@ -1262,13 +1303,29 @@ function entityIconBg(type) {
   return bgs[type] || 'bg-slate-500/10'
 }
 
-const fieldLabels = {
-  title: 'Title', name: 'Name', description: 'Description', category: 'Category',
-  risk_type: 'Risk type', origin: 'Origin', severity: 'Severity', priority: 'Priority',
-  status: 'Status', type: 'Type', criticality: 'Criticality', jurisdiction: 'Jurisdiction',
-  classification: 'Classification', finding_type: 'Finding type',
-  risk_level: 'Risk level', source: 'Source', incident_type: 'Incident type',
-  current_likelihood: 'Likelihood', current_impact: 'Impact',
+// A module-scope label map is invisible to both scanners, which is exactly why
+// it survived this long. Keys are spelled out rather than built from the field
+// name so the keyset walk can see them.
+const PAYLOAD_FIELD_KEYS = {
+  title: 'inbox.suggestions.payload_field.title',
+  name: 'inbox.suggestions.payload_field.name',
+  description: 'inbox.suggestions.payload_field.description',
+  category: 'inbox.suggestions.payload_field.category',
+  risk_type: 'inbox.suggestions.payload_field.risk_type',
+  origin: 'inbox.suggestions.payload_field.origin',
+  severity: 'inbox.suggestions.payload_field.severity',
+  priority: 'inbox.suggestions.payload_field.priority',
+  status: 'inbox.suggestions.payload_field.status',
+  type: 'inbox.suggestions.payload_field.type',
+  criticality: 'inbox.suggestions.payload_field.criticality',
+  jurisdiction: 'inbox.suggestions.payload_field.jurisdiction',
+  classification: 'inbox.suggestions.payload_field.classification',
+  finding_type: 'inbox.suggestions.payload_field.finding_type',
+  risk_level: 'inbox.suggestions.payload_field.risk_level',
+  source: 'inbox.suggestions.payload_field.source',
+  incident_type: 'inbox.suggestions.payload_field.incident_type',
+  current_likelihood: 'inbox.suggestions.payload_field.current_likelihood',
+  current_impact: 'inbox.suggestions.payload_field.current_impact',
 }
 
 function payloadFields(sg) {
@@ -1279,7 +1336,7 @@ function payloadFields(sg) {
     if (!obj || typeof obj !== 'object') return []
     return Object.entries(obj)
       .filter(([, v]) => v !== null && v !== '' && v !== undefined)
-      .map(([k, v]) => ({ key: k, label: fieldLabels[k] || k.replace(/_/g, ' '), value: v }))
+      .map(([k, v]) => ({ key: k, label: PAYLOAD_FIELD_KEYS[k] ? t(PAYLOAD_FIELD_KEYS[k]) : k.replace(/_/g, ' '), value: v }))
   } catch { return [] }
 }
 
@@ -1308,7 +1365,7 @@ onMounted(async () => {
       loadSuggestions(),
     ])
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }

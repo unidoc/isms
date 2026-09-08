@@ -1,0 +1,76 @@
+{
+  "title": "Asset Register",
+  "subtitle": "Information assets, classification, and ownership",
+  "error": {
+    "save": "Failed to save: {message}",
+    "create": "Failed to create asset: {message}",
+    "delete": "Failed to delete: {message}"
+  },
+  "action": {
+    "add": "Add Asset"
+  },
+  "create": {
+    "heading": "Add Asset",
+    "name_label": "Name *",
+    "name_placeholder": "e.g. Production Database, Customer Portal",
+    "type_label": "Type",
+    "deselect_hint": "Click to deselect",
+    "fill_in_later": "You can add CIA classification, owner, and more after creating.",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No assets found"
+  },
+  "stat": {
+    "severe": "Severe (CIA = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Asset",
+      "type": "Type",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Owner"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentiality: {level}",
+      "integrity": "Integrity: {level}",
+      "availability": "Availability: {level}"
+    }
+  },
+  "field": {
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "status": "Status",
+    "owner": "Owner",
+    "primary_location": "Primary Location",
+    "next_review": "Next Review",
+    "created": "Created",
+    "created_by": "Created by"
+  },
+  "placeholder": {
+    "description": "Describe the asset...",
+    "primary_location": "e.g. Reykjavík DC, AWS eu-west-1",
+    "notes": "Additional notes... Type /doc to link a document"
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "assessment": {
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability"
+  },
+  "danger": {
+    "warning": "Deleting this asset is permanent and cannot be undone. History, comments, and linked references will be lost.",
+    "delete": "Delete asset",
+    "confirm": "Delete this asset? This cannot be undone."
+  },
+  "dirty": {
+    "switch_tab": "You have unsaved changes. Discard and switch tab?",
+    "close": "You have unsaved changes. Discard and close?",
+    "discard": "Discard"
+  }
+}

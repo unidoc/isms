@@ -738,9 +738,9 @@ async function saveSection() {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: t('risks.dirty.switch_tab'),
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: t('risks.dirty.discard'),
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -751,9 +751,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: t('risks.dirty.close'),
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: t('risks.dirty.discard'),
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }

@@ -758,9 +758,9 @@ async function openItemFromRoute(id) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: t('legal.dirty.switch_tab'),
+      message: t('common.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: t('legal.dirty.discard'),
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }
@@ -771,9 +771,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: t('legal.dirty.close'),
+      message: t('common.dirty.close'),
       variant: 'danger',
-      confirmLabel: t('legal.dirty.discard'),
+      confirmLabel: t('common.dirty.discard'),
     })
     if (!ok) return
   }

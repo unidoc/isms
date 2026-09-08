@@ -189,9 +189,9 @@
                 </td>
                 <td class="px-5 py-3.5 text-center">
                   <div class="flex gap-0.5 justify-center">
-                    <span v-if="risk.confidentiality_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.confidentiality_impact)" :title="t('risks.table.cia_title.confidentiality', { level: ciaLabel(risk.confidentiality_impact) })">C{{ risk.confidentiality_impact }}</span>
-                    <span v-if="risk.integrity_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.integrity_impact)" :title="t('risks.table.cia_title.integrity', { level: ciaLabel(risk.integrity_impact) })">I{{ risk.integrity_impact }}</span>
-                    <span v-if="risk.availability_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.availability_impact)" :title="t('risks.table.cia_title.availability', { level: ciaLabel(risk.availability_impact) })">A{{ risk.availability_impact }}</span>
+                    <span v-if="risk.confidentiality_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.confidentiality_impact)" :title="t('risks.table.cia_title.confidentiality', { level: ciaLabel(risk.confidentiality_impact) })">{{ t('common.cia_abbr.c') }}{{ risk.confidentiality_impact }}</span>
+                    <span v-if="risk.integrity_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.integrity_impact)" :title="t('risks.table.cia_title.integrity', { level: ciaLabel(risk.integrity_impact) })">{{ t('common.cia_abbr.i') }}{{ risk.integrity_impact }}</span>
+                    <span v-if="risk.availability_impact > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(risk.availability_impact)" :title="t('risks.table.cia_title.availability', { level: ciaLabel(risk.availability_impact) })">{{ t('common.cia_abbr.a') }}{{ risk.availability_impact }}</span>
                     <span v-if="!risk.confidentiality_impact && !risk.integrity_impact && !risk.availability_impact" class="text-slate-600 text-xs">-</span>
                   </div>
                 </td>
@@ -463,9 +463,9 @@
                       </div>
                     </div>
                     <div v-if="selectedRisk.confidentiality_impact || selectedRisk.integrity_impact || selectedRisk.availability_impact" class="flex items-center gap-1.5">
-                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.confidentiality_impact)">C{{ selectedRisk.confidentiality_impact || 0 }}</span>
-                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.integrity_impact)">I{{ selectedRisk.integrity_impact || 0 }}</span>
-                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.availability_impact)">A{{ selectedRisk.availability_impact || 0 }}</span>
+                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.confidentiality_impact)">{{ t('common.cia_abbr.c') }}{{ selectedRisk.confidentiality_impact || 0 }}</span>
+                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.integrity_impact)">{{ t('common.cia_abbr.i') }}{{ selectedRisk.integrity_impact || 0 }}</span>
+                      <span class="inline-flex items-center justify-center w-8 h-8 rounded text-[11px] font-bold" :class="scoreColor(selectedRisk.availability_impact)">{{ t('common.cia_abbr.a') }}{{ selectedRisk.availability_impact || 0 }}</span>
                     </div>
                   </div>
                   <div class="flex gap-4 text-[10px] text-slate-500">
@@ -492,9 +492,9 @@
                     <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{{ t('risks.links.linked_assets') }}</div>
                     <div v-for="asset in riskLinkedAssets[selectedRisk.id]" :key="asset.id" class="flex items-center gap-3 px-3 py-1.5 bg-slate-900/60 rounded">
                       <span class="text-sm text-slate-200 truncate flex-1">{{ asset.name }}</span>
-                      <span v-if="asset.confidentiality > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.confidentiality)">C{{ asset.confidentiality }}</span>
-                      <span v-if="asset.integrity > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.integrity)">I{{ asset.integrity }}</span>
-                      <span v-if="asset.availability > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.availability)">A{{ asset.availability }}</span>
+                      <span v-if="asset.confidentiality > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.confidentiality)">{{ t('common.cia_abbr.c') }}{{ asset.confidentiality }}</span>
+                      <span v-if="asset.integrity > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.integrity)">{{ t('common.cia_abbr.i') }}{{ asset.integrity }}</span>
+                      <span v-if="asset.availability > 0" class="px-1 py-0.5 rounded text-[9px] font-semibold" :class="ciaColor(asset.availability)">{{ t('common.cia_abbr.a') }}{{ asset.availability }}</span>
                     </div>
                   </div>
 

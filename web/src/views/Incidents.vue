@@ -276,9 +276,9 @@
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('incidents.field.classification') }}</div>
                           <div class="flex items-center gap-1.5">
-                            <span v-if="selectedIncident.affects_c" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-900/40 text-blue-300 border border-blue-800">{{ t('incidents.cia_abbr.c') }}</span>
-                            <span v-if="selectedIncident.affects_i" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-900/40 text-purple-300 border border-purple-800">{{ t('incidents.cia_abbr.i') }}</span>
-                            <span v-if="selectedIncident.affects_a" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">{{ t('incidents.cia_abbr.a') }}</span>
+                            <span v-if="selectedIncident.affects_c" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-900/40 text-blue-300 border border-blue-800">{{ t('common.cia_abbr.c') }}</span>
+                            <span v-if="selectedIncident.affects_i" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-900/40 text-purple-300 border border-purple-800">{{ t('common.cia_abbr.i') }}</span>
+                            <span v-if="selectedIncident.affects_a" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-800">{{ t('common.cia_abbr.a') }}</span>
                             <span v-if="!selectedIncident.affects_c && !selectedIncident.affects_i && !selectedIncident.affects_a" class="text-sm text-slate-600">—</span>
                           </div>
                         </div>
@@ -856,11 +856,15 @@ async function closeDetail() {
   router.push(orgPath('/incidents'))
 }
 
+// The initials are copy: which letters abbreviate confidentiality, integrity
+// and availability is a property of the language, not of the data. Invisible to
+// both scanners — the raw-text one never reads script, and a lone capital in a
+// template fails its has-a-word test.
 function classificationLabel(inc) {
   const parts = []
-  if (inc.affects_c) parts.push('C')
-  if (inc.affects_i) parts.push('I')
-  if (inc.affects_a) parts.push('A')
+  if (inc.affects_c) parts.push(t('common.cia_abbr.c'))
+  if (inc.affects_i) parts.push(t('common.cia_abbr.i'))
+  if (inc.affects_a) parts.push(t('common.cia_abbr.a'))
   return parts.length ? parts.join('/') : ''
 }
 

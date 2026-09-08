@@ -26,11 +26,6 @@
     "reporter": "Reporter: {name}",
     "assignee": "Assignee: {name}"
   },
-  "cia_abbr": {
-    "c": "C",
-    "i": "I",
-    "a": "A"
-  },
   "field": {
     "title": "Title",
     "description": "Description",

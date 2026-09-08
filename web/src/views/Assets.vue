@@ -136,9 +136,9 @@
               <td class="px-5 py-3.5 text-sm text-slate-400">{{ typeLabel(asset.asset_type) || '—' }}</td>
               <td class="px-5 py-3.5 text-center">
                 <div class="flex gap-0.5 justify-center">
-                  <span v-if="asset.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.confidentiality)" :title="t('assets.table.cia_title.confidentiality', { level: ciaLabel(asset.confidentiality) })">C{{ asset.confidentiality }}</span>
-                  <span v-if="asset.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.integrity)" :title="t('assets.table.cia_title.integrity', { level: ciaLabel(asset.integrity) })">I{{ asset.integrity }}</span>
-                  <span v-if="asset.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.availability)" :title="t('assets.table.cia_title.availability', { level: ciaLabel(asset.availability) })">A{{ asset.availability }}</span>
+                  <span v-if="asset.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.confidentiality)" :title="t('assets.table.cia_title.confidentiality', { level: ciaLabel(asset.confidentiality) })">{{ t('common.cia_abbr.c') }}{{ asset.confidentiality }}</span>
+                  <span v-if="asset.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.integrity)" :title="t('assets.table.cia_title.integrity', { level: ciaLabel(asset.integrity) })">{{ t('common.cia_abbr.i') }}{{ asset.integrity }}</span>
+                  <span v-if="asset.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(asset.availability)" :title="t('assets.table.cia_title.availability', { level: ciaLabel(asset.availability) })">{{ t('common.cia_abbr.a') }}{{ asset.availability }}</span>
                   <span v-if="!asset.confidentiality && !asset.integrity && !asset.availability" class="text-slate-600 text-xs">-</span>
                 </div>
               </td>

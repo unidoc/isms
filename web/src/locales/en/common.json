@@ -433,6 +433,11 @@
     "next": "Next review: {date}",
     "overdue_since": "Review overdue since {date}"
   },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "A"
+  },
   "cia": {
     "not_assessed": "Not assessed",
     "insignificant": "Insignificant",

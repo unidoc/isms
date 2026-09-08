@@ -160,9 +160,9 @@
               </td>
               <td class="px-5 py-3.5 text-center">
                 <div class="flex gap-0.5 justify-center">
-                  <span v-if="sys.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.confidentiality)" :title="t('systems.table.cia_title.confidentiality', { level: ciaLabel(sys.confidentiality) })">C{{ sys.confidentiality }}</span>
-                  <span v-if="sys.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.integrity)" :title="t('systems.table.cia_title.integrity', { level: ciaLabel(sys.integrity) })">I{{ sys.integrity }}</span>
-                  <span v-if="sys.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.availability)" :title="t('systems.table.cia_title.availability', { level: ciaLabel(sys.availability) })">A{{ sys.availability }}</span>
+                  <span v-if="sys.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.confidentiality)" :title="t('systems.table.cia_title.confidentiality', { level: ciaLabel(sys.confidentiality) })">{{ t('common.cia_abbr.c') }}{{ sys.confidentiality }}</span>
+                  <span v-if="sys.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.integrity)" :title="t('systems.table.cia_title.integrity', { level: ciaLabel(sys.integrity) })">{{ t('common.cia_abbr.i') }}{{ sys.integrity }}</span>
+                  <span v-if="sys.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(sys.availability)" :title="t('systems.table.cia_title.availability', { level: ciaLabel(sys.availability) })">{{ t('common.cia_abbr.a') }}{{ sys.availability }}</span>
                   <span v-if="!sys.confidentiality && !sys.integrity && !sys.availability" class="text-slate-600 text-xs">-</span>
                 </div>
               </td>

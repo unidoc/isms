@@ -155,9 +155,9 @@
               </td>
               <td class="px-5 py-3.5 text-center">
                 <div class="flex gap-0.5 justify-center">
-                  <span v-if="supplier.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.confidentiality)" :title="t('suppliers.table.cia_title.confidentiality', { level: ciaLabel(supplier.confidentiality) })">C{{ supplier.confidentiality }}</span>
-                  <span v-if="supplier.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.integrity)" :title="t('suppliers.table.cia_title.integrity', { level: ciaLabel(supplier.integrity) })">I{{ supplier.integrity }}</span>
-                  <span v-if="supplier.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.availability)" :title="t('suppliers.table.cia_title.availability', { level: ciaLabel(supplier.availability) })">A{{ supplier.availability }}</span>
+                  <span v-if="supplier.confidentiality > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.confidentiality)" :title="t('suppliers.table.cia_title.confidentiality', { level: ciaLabel(supplier.confidentiality) })">{{ t('common.cia_abbr.c') }}{{ supplier.confidentiality }}</span>
+                  <span v-if="supplier.integrity > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.integrity)" :title="t('suppliers.table.cia_title.integrity', { level: ciaLabel(supplier.integrity) })">{{ t('common.cia_abbr.i') }}{{ supplier.integrity }}</span>
+                  <span v-if="supplier.availability > 0" class="inline-block px-1 py-0.5 rounded text-[9px] font-medium" :class="ciaColor(supplier.availability)" :title="t('suppliers.table.cia_title.availability', { level: ciaLabel(supplier.availability) })">{{ t('common.cia_abbr.a') }}{{ supplier.availability }}</span>
                   <span v-if="!supplier.confidentiality && !supplier.integrity && !supplier.availability" class="text-slate-600 text-xs">-</span>
                 </div>
               </td>

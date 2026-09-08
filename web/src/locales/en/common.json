@@ -13,6 +13,7 @@
     "delete": "Delete",
     "copy": "Copy",
     "search": "Search",
+    "clear": "Clear",
     "add_comment": "Add comment",
     "comment": "Comment",
     "reply": "Reply",
@@ -27,7 +28,9 @@
     "outdated": "Outdated",
     "outdated_inline": "outdated",
     "resolved": "Resolved",
-    "copied": "Copied"
+    "copied": "Copied",
+    "overdue": "OVERDUE",
+    "no_notes": "No notes yet."
   },
   "validation": {
     "required": "This field is required"
@@ -383,11 +386,13 @@
     "powered_by": "Powered by isms.sh"
   },
   "count": {
+    "total": "{count} total",
     "comments": "{count} comment | {count} comments",
     "outdated_comments": "{count} outdated comment | {count} outdated comments"
   },
   "placeholder": {
-    "search": "Search..."
+    "search": "Search...",
+    "select_owner": "Select owner..."
   },
   "tab": {
     "overview": "Overview",
@@ -414,5 +419,26 @@
   },
   "stat": {
     "total": "Total"
+  },
+  "heading": {
+    "quick_actions": "Quick actions",
+    "danger_zone": "Danger zone"
+  },
+  "read_only": {
+    "actions": "Read-only — actions require manager or admin role."
+  },
+  "review": {
+    "last": "Last review: {date}",
+    "next": "Next review: {date}",
+    "overdue_since": "Review overdue since {date}"
+  },
+  "cia": {
+    "not_assessed": "Not assessed",
+    "insignificant": "Insignificant",
+    "minor": "Minor",
+    "moderate": "Moderate",
+    "major": "Major",
+    "severe": "Severe",
+    "na": "N/A"
   }
 }

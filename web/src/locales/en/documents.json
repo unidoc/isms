@@ -192,9 +192,7 @@
     "create": "Create Document"
   },
   "confirm": {
-    "embedded_html_title": "Embedded HTML will be lost",
     "embedded_html_body": "This document contains embedded HTML/SVG the editor can't preserve — editing here will drop it on save. Edit the source via the CLI to keep it. Edit anyway?",
-    "delete_title": "Delete Document",
     "delete_body": "Delete \"{name}\"? This cannot be undone."
   },
   "error": {

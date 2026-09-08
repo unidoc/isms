@@ -1829,10 +1829,7 @@ function hasEditorUnsafeHtml(md) {
 async function startEditGuarded() {
   if (hasEditorUnsafeHtml(rawContent.value)) {
     const { ask } = useConfirm()
-    const ok = await ask(
-      t('documents.confirm.embedded_html_body'),
-      t('documents.confirm.embedded_html_title'),
-    )
+    const ok = await ask(t('documents.confirm.embedded_html_body'), { variant: 'warning' })
     if (!ok) return
   }
   startEdit()
@@ -2052,7 +2049,11 @@ function printDocument() {
 async function deleteCurrentDocument() {
   if (!activeId.value) return
   const { ask } = useConfirm()
-  if (!await ask(t('documents.confirm.delete_body', { name: activeDoc.value?.title || activeId.value }), t('documents.confirm.delete_title'))) return
+  const confirmed = await ask(
+    t('documents.confirm.delete_body', { name: activeDoc.value?.title || activeId.value }),
+    { confirm: t('common.action.delete') },
+  )
+  if (!confirmed) return
   try {
     await api.deleteDocument(activeId.value)
     activeDoc.value = null

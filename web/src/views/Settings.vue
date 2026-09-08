@@ -436,7 +436,7 @@ async function changeEmail() {
       current_password: emailCurrentPassword.value,
       otp: emailOtp.value,
     })
-    emailMsg.value = res.message || t('settings.email.sent')
+    emailMsg.value = t('settings.email.sent')
     emailError.value = false
     emailCurrentPassword.value = ''
     emailOtp.value = ''

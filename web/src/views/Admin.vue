@@ -1057,7 +1057,7 @@ async function testProvider(provider) {
   provider._msg = ''
   try {
     const result = await api.postJSON(`/api/v1/admin/oidc/${provider.id}/test`, {})
-    provider._msg = result.message || t('admin.oidc.test_ok')
+    provider._msg = t('admin.oidc.test_ok')
     provider._error = false
   } catch (e) {
     provider._msg = renderApiError(e) || t('admin.oidc.error_test')

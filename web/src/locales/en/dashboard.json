@@ -43,8 +43,7 @@
       "criticality": "Criticality",
       "rpo": "RPO",
       "rto": "RTO"
-    },
-    "hours": "{count}h"
+    }
   },
   "attention": {
     "title": "Needs Your Attention",

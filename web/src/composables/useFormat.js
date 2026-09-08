@@ -104,6 +104,19 @@ export function formatMonthShort(monthIndex) {
   }).format(Date.UTC(2021, i, 1))
 }
 
+// A duration in whole hours, for the RPO/RTO columns. Same reasoning as the
+// date shapes: the unit is locale-specific ("4h" in English, "4 j" in French),
+// so Intl supplies it and no unit letter lands in a translation file. Narrow
+// display because these sit in a compact table column.
+export function formatHours(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
+  return formatter(Intl.NumberFormat, 'number', activeLocale(), {
+    style: 'unit',
+    unit: 'hour',
+    unitDisplay: 'narrow',
+  }).format(value)
+}
+
 export function formatNumber(value, options = {}) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return ''
   return formatter(Intl.NumberFormat, 'number', activeLocale(), options).format(value)
@@ -149,6 +162,7 @@ export function useFormat() {
     date: formatDate,
     day: formatDay,
     monthShort: formatMonthShort,
+    hours: formatHours,
     number: formatNumber,
     relative: formatRelative,
     recent: formatRecent,

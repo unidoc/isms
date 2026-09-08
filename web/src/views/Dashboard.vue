@@ -182,8 +182,8 @@
               <tr v-for="sys in systemsList" :key="sys.id" class="hover:bg-slate-800/30 cursor-pointer" @click="router.push(orgPath('/systems'))">
                 <td class="px-4 py-2.5 text-sm text-slate-300">{{ sys.name }}</td>
                 <td class="px-4 py-2.5"><StatusBadge :status="sys.criticality" group="criticality" /></td>
-                <td class="px-4 py-2.5 text-sm text-slate-400">{{ t('dashboard.bia.hours', { count: sys.rpo_hours }) }}</td>
-                <td class="px-4 py-2.5 text-sm text-slate-400">{{ t('dashboard.bia.hours', { count: sys.rto_hours }) }}</td>
+                <td class="px-4 py-2.5 text-sm text-slate-400">{{ formatHours(sys.rpo_hours) }}</td>
+                <td class="px-4 py-2.5 text-sm text-slate-400">{{ formatHours(sys.rto_hours) }}</td>
               </tr>
             </tbody>
           </table>
@@ -538,7 +538,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 import HeatMap from '../components/HeatMap.vue'
 import OverdueItems from '../components/OverdueItems.vue'
 import { useCurrentOrg, orgEntryURL, isSubdomainMode } from '../composables/useCurrentOrg.js'
-import { formatDate, formatMonthShort } from '../composables/useFormat.js'
+import { formatDate, formatHours, formatMonthShort } from '../composables/useFormat.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 

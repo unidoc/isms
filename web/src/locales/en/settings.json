@@ -28,7 +28,7 @@
     "sending": "Sending…",
     "submit": "Change email",
     "note": "We'll send a confirmation link to the new address. The change takes effect only after you click it.",
-    "sent": "Confirmation sent — check your new inbox."
+    "sent": "Check your new inbox to confirm the change. Your current email stays active until you do."
   },
   "otp": {
     "title": "Two-Factor Authentication (OTP)",

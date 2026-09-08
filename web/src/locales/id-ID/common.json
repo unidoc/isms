@@ -7,6 +7,7 @@
     "create": "Buat",
     "edit": "Ubah",
     "delete": "Hapus",
+    "copy": "Salin",
     "search": "Cari"
   },
   "state": {
@@ -184,6 +185,11 @@
       "link": "Tautkan",
       "review": "Tinjau",
       "reading": "Nilai ulang"
+    },
+    "permissions": {
+      "read-write": "Baca & Tulis",
+      "read": "Hanya baca",
+      "write": "Hanya tulis"
     }
   },
   "enum_inline": {

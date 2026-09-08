@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { enumLabel } from '../src/composables/useEnumLabel.js'
-import { formatDate, formatDay, formatMonthShort, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
+import { formatDate, formatDay, formatHours, formatMonthShort, formatNumber, formatRecent, formatRelative, useFormat } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
 
 test('enum labels come from the catalogue, and de-slug only as a fallback', () => {
@@ -114,6 +114,16 @@ test('short month names come from Intl, and reject anything but a month index', 
   assert.equal(formatMonthShort(1.5), '')
 })
 
+test('durations carry a locale-supplied unit, not a hardcoded letter', () => {
+  // "4h" is English; the unit is Intl's to choose, which is why no 'h' lives in
+  // a translation file.
+  assert.equal(formatHours(4), '4h')
+  assert.equal(formatHours(0), '0h')
+  assert.equal(formatHours(Number.NaN), '')
+  assert.equal(formatHours('4'), '')
+  assert.equal(formatHours(null), '')
+})
+
 test('the active locale drives every shape, not just the English fallback', async () => {
   // The point of the whole seam: switching locale must change the output. An
   // English-only assertion would still pass if the locale stopped being read.
@@ -135,6 +145,8 @@ test('the active locale drives every shape, not just the English fallback', asyn
     // carries, which is why none of them are translation keys.
     assert.equal(formatMonthShort(7), 'Agu')
     assert.equal(formatMonthShort(11), 'Des')
+    // Indonesian writes the hour unit with a space and its own letter.
+    assert.match(formatHours(4), /^4\s*j$/)
   } finally {
     i18n.global.locale.value = previous
   }
@@ -143,9 +155,10 @@ test('the active locale drives every shape, not just the English fallback', asyn
 })
 
 test('useFormat exposes the seam under the names the contract documents', () => {
-  const { date, day, monthShort, number, relative, recent } = useFormat()
+  const { date, day, monthShort, hours, number, relative, recent } = useFormat()
   assert.equal(typeof date, 'function')
   assert.equal(typeof monthShort, 'function')
+  assert.equal(typeof hours, 'function')
   assert.equal(typeof number, 'function')
   assert.equal(typeof relative, 'function')
   assert.equal(typeof day, 'function')

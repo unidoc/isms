@@ -1,0 +1,141 @@
+{
+  "title": "Inbox",
+  "subtitle": "{count} action item requiring attention | {count} action items requiring attention",
+  "mark_all_read": "Mark all read",
+  "tab": {
+    "comments": "Comments",
+    "reviews": "Reviews",
+    "tasks": "Tasks",
+    "incidents": "Incidents",
+    "changes": "Changes",
+    "corrective_actions": "CAs",
+    "suggestions": "Suggestions"
+  },
+  "comments": {
+    "empty": "No open comments",
+    "suggestion_badge": "suggestion",
+    "scope_inline": "Inline",
+    "scope_document": "Document",
+    "view_in_document": "View in document →"
+  },
+  "reviews": {
+    "empty": "No reviews pending",
+    "untitled": "Untitled review",
+    "requested_by": "Requested by {name}",
+    "unknown_requester": "Unknown",
+    "meta": {
+      "status": "Status",
+      "document": "Document",
+      "version": "Version",
+      "requested_by": "Requested By"
+    },
+    "assigned_reviewers": "Assigned Reviewers",
+    "recent_comments": "Recent Comments",
+    "open_review": "Open Review #{id}"
+  },
+  "tasks": {
+    "add": "Add Task",
+    "empty": "No tasks found",
+    "start": "Start task",
+    "mark_done": "Mark done",
+    "form": {
+      "title": "Title",
+      "title_placeholder": "Task title",
+      "description": "Description",
+      "description_placeholder": "Optional description",
+      "type": "Type",
+      "priority": "Priority",
+      "assignee": "Assignee",
+      "assignee_placeholder": "Select assignee...",
+      "due_date": "Due Date"
+    }
+  },
+  "incidents": {
+    "empty": "No incidents assigned to you"
+  },
+  "corrective_actions": {
+    "empty": "No corrective actions assigned to you"
+  },
+  "changes": {
+    "add": "Add Change Request",
+    "empty": "No change requests",
+    "requested_by": "Requested by {name}",
+    "unknown_requester": "Unknown",
+    "form": {
+      "title": "Title",
+      "title_placeholder": "Change request title",
+      "description": "Description",
+      "description_placeholder": "Describe the proposed change",
+      "justification": "Justification",
+      "justification_placeholder": "Why is this change needed?",
+      "impact": "Impact Assessment",
+      "impact_placeholder": "Expected impact on ISMS",
+      "assign_to": "Assign To",
+      "assignee_placeholder": "Select assignee..."
+    },
+    "detail": {
+      "description": "Description",
+      "justification": "Justification",
+      "impact": "Impact Assessment",
+      "affected_documents": "Affected Documents"
+    },
+    "action": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "mark_implemented": "Mark Implemented",
+      "close": "Close"
+    }
+  },
+  "suggestions": {
+    "empty": "No suggestions with this status.",
+    "filter": {
+      "open": "open",
+      "applied": "applied",
+      "rejected": "rejected"
+    },
+    "agent_badge": "AI",
+    "suggested_by": "Suggested by {name} · {date}",
+    "apply": "Apply",
+    "reject": "Reject",
+    "withdraw": "Withdraw",
+    "reject_placeholder": "Reason for rejection...",
+    "rejected_reason": "Rejected: {reason}",
+    "applied_result": "Applied → {entity} {id}",
+    "payload_field": {
+      "title": "Title",
+      "name": "Name",
+      "description": "Description",
+      "category": "Category",
+      "risk_type": "Risk type",
+      "origin": "Origin",
+      "severity": "Severity",
+      "priority": "Priority",
+      "status": "Status",
+      "type": "Type",
+      "criticality": "Criticality",
+      "jurisdiction": "Jurisdiction",
+      "classification": "Classification",
+      "finding_type": "Finding type",
+      "risk_level": "Risk level",
+      "source": "Source",
+      "incident_type": "Incident type",
+      "current_likelihood": "Likelihood",
+      "current_impact": "Impact"
+    }
+  },
+  "error": {
+    "resolve_comment": "Failed to resolve comment: {message}",
+    "mark_all_read": "Failed to mark all notifications read: {message}",
+    "approve_review": "Failed to approve review: {message}",
+    "request_changes": "Failed to request changes: {message}",
+    "forward_review": "Failed to forward review: {message}",
+    "claim_suggestion": "Failed to claim suggestion: {message}",
+    "apply_suggestion": "Failed to apply suggestion: {message}",
+    "reject_suggestion": "Failed to reject suggestion: {message}",
+    "withdraw_suggestion": "Failed to withdraw suggestion: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Apply anyway",
+    "apply_stale_body": "Entity has changed since this suggestion was created. Apply anyway?"
+  }
+}

@@ -9,9 +9,9 @@
           <svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.121a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
           </svg>
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex-1">Documents</span>
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex-1">{{ t('documents.tree.heading') }}</span>
           <div v-if="canEditMetadata" class="relative">
-            <button @click.stop="showNewMenu = !showNewMenu" class="p-1 rounded hover:bg-slate-700 text-slate-500 hover:text-slate-300 transition-colors" title="New">
+            <button @click.stop="showNewMenu = !showNewMenu" class="p-1 rounded hover:bg-slate-700 text-slate-500 hover:text-slate-300 transition-colors" :title="t('documents.tree.new')">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
@@ -22,7 +22,7 @@
                 <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                 </svg>
-                New Folder
+                {{ t('documents.tree.new_folder') }}
               </button>
               <button @click="openNewDocModal(); showNewMenu = false"
                 :disabled="folders.length === 0"
@@ -30,7 +30,7 @@
                 <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
-                New Document
+                {{ t('documents.tree.new_document') }}
               </button>
             </div>
           </div>
@@ -45,13 +45,13 @@
       <!-- Empty state: sidebar -->
       <div v-else-if="folders.length === 0" class="flex-1 overflow-y-auto px-4 py-6">
         <div class="text-center">
-          <div class="text-xs text-slate-500 mb-4">No documents yet</div>
+          <div class="text-xs text-slate-500 mb-4">{{ t('documents.tree.empty') }}</div>
           <div class="space-y-2">
             <button @click="showTemplatePicker = true" class="w-full text-left flex items-center gap-2.5 px-3 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 rounded-lg text-xs text-blue-400 transition-colors">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
-              Import template
+              {{ t('documents.tree.import_template') }}
             </button>
           </div>
         </div>
@@ -66,7 +66,7 @@
             @keydown.enter="confirmRootNewFolder"
             @keydown.escape="rootNewFolder.active = false"
             class="root-folder-input flex-1 bg-slate-800 border border-blue-500/50 rounded px-2 py-1 text-xs text-white focus:outline-none"
-            placeholder="new folder name..." />
+            :placeholder="t('documents.tree.new_folder_placeholder')" />
       </div>
 
       <!-- Recursive folder tree -->
@@ -95,7 +95,7 @@
                 @keydown.escape="cancelInlineNewFolder"
                 @blur="cancelInlineNewFolder"
                 class="inline-folder-input flex-1 bg-slate-800 border border-blue-500/50 rounded px-2 py-1 text-xs text-white focus:outline-none"
-                placeholder="folder name..." />
+                :placeholder="t('documents.tree.folder_name_placeholder')" />
             </div>
           </template>
         </DocTreeNode>
@@ -110,13 +110,13 @@
               <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
-              New Document
+              {{ t('documents.tree.new_document') }}
             </button>
             <button @click="startInlineNewFolder(folderMenu.path)" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 transition-colors text-left">
               <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
               </svg>
-              New Folder
+              {{ t('documents.tree.new_folder') }}
             </button>
           </div>
         </div>
@@ -130,7 +130,7 @@
     <!-- Left panel toggle -->
     <button @click="showTreePanel = !showTreePanel"
       class="w-5 flex-shrink-0 bg-slate-900/50 border-r border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-colors group"
-      :title="showTreePanel ? 'Hide tree' : 'Show tree'">
+      :title="showTreePanel ? t('documents.tree.hide') : t('documents.tree.show')">
       <svg class="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-transform" :class="{ 'rotate-180': !showTreePanel }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
@@ -146,15 +146,15 @@
             <svg class="w-16 h-16 text-slate-700 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.75">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
-            <h2 class="text-xl font-semibold text-slate-200 mb-2">No documents yet</h2>
-            <p class="text-sm text-slate-500 mb-8 max-w-md">Import a template to scaffold your document structure, then use the tree menu to add documents and folders.</p>
+            <h2 class="text-xl font-semibold text-slate-200 mb-2">{{ t('documents.empty.heading') }}</h2>
+            <p class="text-sm text-slate-500 mb-8 max-w-md">{{ t('documents.empty.body') }}</p>
             <div class="flex gap-3">
               <button @click="showTemplatePicker = true"
                 class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
-                Import template
+                {{ t('documents.empty.import_template') }}
               </button>
             </div>
           </div>
@@ -164,21 +164,21 @@
           <div class="flex items-center gap-1 mb-6 border-b border-slate-800">
             <button @click="docDashTab = 'review'" class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
               :class="docDashTab === 'review' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'">
-              Needs Review
+              {{ t('documents.dash.tab.review') }}
               <span v-if="needsReviewChangedCount > 0" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 tabular-nums">{{ needsReviewChangedCount }}</span>
             </button>
             <button @click="docDashTab = 'recent'" class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
               :class="docDashTab === 'recent' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'">
-              Recently Changed
+              {{ t('documents.dash.tab.recent') }}
               <span v-if="changedDocs.length > 0" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-400 tabular-nums">{{ changedDocs.length }}</span>
             </button>
             <button @click="docDashTab = 'search'" class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
               :class="docDashTab === 'search' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'">
-              Search
+              {{ t('documents.dash.tab.search') }}
             </button>
             <button v-if="canEditMetadata" @click="docDashTab = 'templates'" class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
               :class="docDashTab === 'templates' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-300'">
-              Templates
+              {{ t('documents.dash.tab.templates') }}
             </button>
           </div>
 
@@ -187,7 +187,7 @@
             <div class="flex items-center justify-between mb-4">
               <label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
                 <input v-model="includeNeverApproved" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 w-3.5 h-3.5" />
-                Include never approved ({{ allNeedsReviewDocs.filter(d => d.never_approved).length }})
+                {{ t('documents.needs_review.include_never_approved', { count: neverApprovedCount }) }}
               </label>
             </div>
             <div v-if="loadingNeedsReview" class="space-y-2">
@@ -197,7 +197,7 @@
               <svg class="w-10 h-10 text-emerald-500/30 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div class="text-sm text-slate-500">All documents are up to date.</div>
+              <div class="text-sm text-slate-500">{{ t('documents.needs_review.up_to_date') }}</div>
             </div>
             <div v-else class="space-y-2">
               <div v-for="doc in needsReviewDocs" :key="doc.document_id"
@@ -213,13 +213,18 @@
                     <div class="flex items-center gap-2 mb-1">
                       <span class="text-sm font-medium text-blue-400">{{ doc.document_id }}</span>
                       <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{{ doc.folder }}</span>
-                      <span v-if="doc.never_approved" class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-500/20 text-red-400">Never approved</span>
-                      <span v-else class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-500/20 text-amber-400">Changed</span>
+                      <span v-if="doc.never_approved" class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-500/20 text-red-400">{{ t('documents.needs_review.never_approved') }}</span>
+                      <span v-else class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-500/20 text-amber-400">{{ t('documents.needs_review.changed') }}</span>
                     </div>
                     <div v-if="doc.title" class="text-xs text-slate-300 mb-2 truncate">{{ doc.title }}</div>
                     <div class="flex items-center gap-4 text-[10px] text-slate-500">
-                      <span>Current: <span class="font-mono text-slate-400">{{ doc.current_commit }}</span> ({{ doc.current_commit_time }})</span>
-                      <span v-if="doc.approved_commit !== 'never'">Approved: <span class="font-mono text-slate-400">{{ doc.approved_commit }}</span></span>
+                      <i18n-t keypath="documents.needs_review.current" tag="span" scope="global">
+                        <template #commit><span class="font-mono text-slate-400">{{ doc.current_commit }}</span></template>
+                        <template #time>{{ doc.current_commit_time }}</template>
+                      </i18n-t>
+                      <i18n-t v-if="doc.approved_commit !== 'never'" keypath="documents.needs_review.approved" tag="span" scope="global">
+                        <template #commit><span class="font-mono text-slate-400">{{ doc.approved_commit }}</span></template>
+                      </i18n-t>
                     </div>
                     <div v-if="doc.change_summary && doc.change_summary.length > 0" class="mt-2 space-y-0.5">
                       <div v-for="(msg, i) in doc.change_summary.slice(0, 3)" :key="i" class="text-[10px] text-slate-600 truncate">{{ msg }}</div>
@@ -231,11 +236,11 @@
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                       </svg>
-                      Review
+                      {{ t('documents.needs_review.review') }}
                     </button>
                     <button v-if="!doc.never_approved" @click="viewNeedsReviewDiff(doc)"
                       class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium rounded-lg transition-colors border border-slate-700">
-                      Diff
+                      {{ t('documents.needs_review.diff') }}
                     </button>
                   </div>
                 </div>
@@ -253,21 +258,26 @@
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
                 </svg>
-                Refresh
+                {{ t('documents.recent.refresh') }}
               </button>
             </div>
-            <div v-if="changedDocs.length === 0" class="text-center py-12 text-sm text-slate-600">No recent changes.</div>
+            <div v-if="changedDocs.length === 0" class="text-center py-12 text-sm text-slate-600">{{ t('documents.recent.empty') }}</div>
             <div v-else class="space-y-1">
               <button v-for="doc in changedDocs" :key="doc.path" @click="openChangedDoc(doc)"
                 class="w-full flex items-center gap-3 px-4 py-3 bg-slate-900 border border-slate-800 rounded-lg hover:border-blue-500/30 hover:bg-slate-900/80 transition-all text-left group">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-blue-400 group-hover:text-blue-300">{{ doc.document_id || doc.path.split('/').pop().replace('.md', '') }}</span>
+                    <span class="text-sm font-medium text-blue-400 group-hover:text-blue-300">{{ changedDocLabel(doc) }}</span>
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{{ doc.folder }}</span>
                   </div>
                   <div v-if="doc.title" class="text-xs text-slate-400 mt-0.5 truncate">{{ doc.title }}</div>
                   <div class="text-[10px] text-slate-600 mt-1">
-                    {{ doc.commit_time }} by {{ doc.author }} — <span class="font-mono">{{ doc.commit_hash }}</span> {{ doc.commit_message }}
+                    <i18n-t keypath="documents.recent.meta" tag="span" scope="global">
+                      <template #time>{{ doc.commit_time }}</template>
+                      <template #author>{{ doc.author }}</template>
+                      <template #hash><span class="font-mono">{{ doc.commit_hash }}</span></template>
+                      <template #message>{{ doc.commit_message }}</template>
+                    </i18n-t>
                   </div>
                 </div>
                 <svg class="w-4 h-4 text-slate-700 group-hover:text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -287,7 +297,7 @@
                 v-model="searchQuery"
                 @input="onSearchInput"
                 type="text"
-                placeholder="Search all documents..."
+                :placeholder="t('documents.search.placeholder')"
                 class="w-full pl-10 pr-8 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
               />
               <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
@@ -297,10 +307,10 @@
               </button>
             </div>
             <div v-if="!searchQuery || searchQuery.length < 2" class="text-center py-12 text-sm text-slate-600">
-              Type at least 2 characters to search across all documents.
+              {{ t('documents.search.hint') }}
             </div>
-            <div v-else-if="searchLoading" class="text-center py-8 text-xs text-slate-600">Searching...</div>
-            <div v-else-if="searchResults.length === 0" class="text-center py-8 text-xs text-slate-600">No results for "{{ searchQuery }}"</div>
+            <div v-else-if="searchLoading" class="text-center py-8 text-xs text-slate-600">{{ t('documents.search.searching') }}</div>
+            <div v-else-if="searchResults.length === 0" class="text-center py-8 text-xs text-slate-600">{{ t('documents.search.no_results', { query: searchQuery }) }}</div>
             <div v-else class="space-y-1">
               <button v-for="result in searchResults" :key="result.path" @click="openSearchResult(result)"
                 class="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-lg text-left hover:border-blue-500/30 hover:bg-slate-900/80 transition-all group">
@@ -317,8 +327,8 @@
           <!-- TAB: Templates (admin/manager only) -->
           <div v-else-if="docDashTab === 'templates' && canEditMetadata">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-sm font-semibold text-slate-400">Templates</h3>
-              <p class="text-[11px] text-slate-600">Add or remove document scaffolding for standards.</p>
+              <h3 class="text-sm font-semibold text-slate-400">{{ t('documents.templates.heading') }}</h3>
+              <p class="text-[11px] text-slate-600">{{ t('documents.templates.subtitle') }}</p>
             </div>
             <div class="space-y-2">
               <div v-for="fw in templateList" :key="fw.id"
@@ -332,7 +342,7 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                  <button v-if="fw.installed" @click="navigateToTemplate(fw.id)" class="text-[10px] text-emerald-500/70 font-medium px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded transition-colors">Installed</button>
+                  <button v-if="fw.installed" @click="navigateToTemplate(fw.id)" class="text-[10px] text-emerald-500/70 font-medium px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded transition-colors">{{ t('documents.templates.installed') }}</button>
                   <button v-if="!fw.installed" @click="addTemplate(fw.id)"
                     :disabled="templateLoading === fw.id"
                     class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/20 disabled:opacity-50">
@@ -340,7 +350,7 @@
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Add
+                    {{ t('documents.templates.add') }}
                   </button>
                   <button v-if="fw.installed" @click="confirmRemoveTemplate(fw)"
                     :disabled="templateLoading === fw.id"
@@ -349,7 +359,7 @@
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Remove
+                    {{ t('documents.templates.remove') }}
                   </button>
                 </div>
               </div>
@@ -363,20 +373,22 @@
           <!-- Remove template confirm dialog -->
           <div v-if="showRemoveConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showRemoveConfirm = false">
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
-              <h3 class="text-sm font-semibold text-slate-200 mb-2">Remove Template</h3>
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">{{ t('documents.templates.remove_heading') }}</h3>
               <p class="text-xs text-slate-400 mb-4">
-                Are you sure you want to remove <span class="font-semibold text-slate-200">{{ removeTarget?.label }}</span>?
-                This will delete all documents under <code class="text-[11px] bg-slate-800 px-1 py-0.5 rounded">documents/{{ removeTarget?.id }}/</code> from the repository.
+                <i18n-t keypath="documents.templates.remove_body" scope="global">
+                  <template #name><span class="font-semibold text-slate-200">{{ removeTarget?.label }}</span></template>
+                  <template #path><code class="text-[11px] bg-slate-800 px-1 py-0.5 rounded">documents/{{ removeTarget?.id }}/</code></template>
+                </i18n-t>
               </p>
               <div class="flex justify-end gap-2">
                 <button @click="showRemoveConfirm = false"
                   class="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700">
-                  Cancel
+                  {{ t('common.action.cancel') }}
                 </button>
                 <button @click="removeTemplate(removeTarget.id)"
                   :disabled="templateLoading === removeTarget?.id"
                   class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-600 hover:bg-red-500 text-white disabled:opacity-50">
-                  Remove
+                  {{ t('documents.templates.remove') }}
                 </button>
               </div>
             </div>
@@ -403,35 +415,35 @@
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                 </svg>
-                Edit
+                {{ t('documents.toolbar.edit') }}
               </button>
               <template v-if="editMode">
                 <button @click="saveEdit" :disabled="savingEdit"
                   class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50">
-                  {{ savingEdit ? 'Saving...' : 'Save' }}
+                  {{ savingEdit ? t('common.state.saving') : t('documents.toolbar.save') }}
                 </button>
                 <button @click="cancelEdit"
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors text-slate-400 hover:text-slate-200 hover:bg-slate-800">
-                  Cancel
+                  {{ t('common.action.cancel') }}
                 </button>
               </template>
               <!-- Send for review (icon only) -->
               <button v-if="!editMode && canEditMetadata" @click="showReviewModal = true"
-                class="p-1.5 rounded-md transition-colors text-blue-400 hover:bg-blue-600/15" title="Send for review">
+                class="p-1.5 rounded-md transition-colors text-blue-400 hover:bg-blue-600/15" :title="t('documents.toolbar.send_for_review')">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                 </svg>
               </button>
               <!-- History (icon only) — toggles Versions tab -->
               <button v-if="!editMode" @click="toggleHistory"
-                class="p-1.5 rounded-md transition-colors" :class="docTab === 'versions' ? 'text-blue-400 bg-blue-600/15' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'" title="Version history">
+                class="p-1.5 rounded-md transition-colors" :class="docTab === 'versions' ? 'text-blue-400 bg-blue-600/15' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'" :title="t('documents.toolbar.version_history')">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
               <!-- Comments (icon only with count badge) -->
               <button @click="showRightPanel = !showRightPanel"
-                class="relative p-1.5 rounded-md transition-colors" :class="showRightPanel ? 'text-blue-400 bg-blue-600/15' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'" title="Comments">
+                class="relative p-1.5 rounded-md transition-colors" :class="showRightPanel ? 'text-blue-400 bg-blue-600/15' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'" :title="t('documents.toolbar.comments')">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                 </svg>
@@ -439,14 +451,14 @@
               </button>
               <!-- Print (icon only) -->
               <button v-if="!editMode" @click="printDocument"
-                class="p-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-300 hover:bg-slate-800 no-print" title="Print document">
+                class="p-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-300 hover:bg-slate-800 no-print" :title="t('documents.toolbar.print')">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.25 7.034V3.375" />
                 </svg>
               </button>
               <!-- Delete (icon only) -->
               <button v-if="!editMode && canEditMetadata" @click="deleteCurrentDocument"
-                class="p-1.5 rounded-md transition-colors text-slate-600 hover:text-red-400 hover:bg-red-500/10" title="Delete document">
+                class="p-1.5 rounded-md transition-colors text-slate-600 hover:text-red-400 hover:bg-red-500/10" :title="t('documents.toolbar.delete')">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                 </svg>
@@ -457,14 +469,7 @@
           <!-- Print-only header (hidden on screen, visible when printing) -->
           <div class="print-header hidden">
             <div class="print-title">{{ activeDoc.title || activeDoc.Title }}</div>
-            <div class="print-meta">
-              <span v-if="activeDoc.version">Version {{ activeDoc.version }}</span>
-              <span v-if="activeDoc.version && activeDoc.status"> &mdash; </span>
-              <span v-if="activeDoc.status">{{ activeDoc.status }}</span>
-              <span v-if="activeDoc.author"> &mdash; Author: {{ resolveUserName(activeDoc.author) || activeDoc.author }}</span>
-              <span> &mdash; {{ activeId }}</span>
-              <span> &mdash; Printed {{ formatDateValue(Date.now()) }}</span>
-            </div>
+            <div class="print-meta">{{ printMeta }}</div>
           </div>
 
           <!-- Title + status pill (always visible at top of pane) -->
@@ -477,14 +482,14 @@
           <div v-if="!editMode" class="border-b border-slate-800 no-print">
             <div class="flex gap-1">
               <button
-                v-for="t in docTabs"
-                :key="t.key"
-                @click="switchDocTab(t.key)"
+                v-for="tab in docTabs"
+                :key="tab.key"
+                @click="switchDocTab(tab.key)"
                 class="px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px"
-                :class="docTab === t.key
+                :class="docTab === tab.key
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-slate-500 hover:text-slate-300'"
-              >{{ t.label }}</button>
+              >{{ tab.label }}</button>
             </div>
           </div>
 
@@ -492,53 +497,46 @@
           <div v-if="docTab === 'info' || editMode" class="bg-slate-900 border border-slate-800 rounded-xl p-6 no-print">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Status</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.status') }}</div>
                 <router-link v-if="activeDoc.status === 'in_review' && activeDoc.active_review_id"
                   :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
-                  class="inline-block hover:opacity-80 transition-opacity" title="Go to active review">
+                  class="inline-block hover:opacity-80 transition-opacity" :title="t('documents.meta.go_to_active_review')">
                   <StatusBadge :status="activeDoc.status" />
                 </router-link>
                 <router-link v-else-if="activeDoc.status === 'in_review'"
                   :to="orgPath('/reviews')"
-                  class="inline-block hover:opacity-80 transition-opacity" title="Go to reviews">
+                  class="inline-block hover:opacity-80 transition-opacity" :title="t('documents.meta.go_to_reviews')">
                   <StatusBadge :status="activeDoc.status" />
                 </router-link>
                 <StatusBadge v-else-if="activeDoc.status" :status="activeDoc.status" />
                 <span v-else class="text-sm text-slate-400">--</span>
               </div>
               <div>
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Type</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.type') }}</div>
                 <div v-if="editMode">
                   <select :value="activeDoc.type || ''" @change="setDocType($event.target.value)"
                     class="w-full px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-slate-300 focus:outline-none focus:border-blue-500">
-                    <option value="">Document</option>
-                    <option value="policy">Policy</option>
-                    <option value="procedure">Procedure</option>
-                    <option value="control">Control</option>
-                    <option value="guideline">Guideline</option>
-                    <option value="record">Record</option>
-                    <option value="clause">Clause</option>
-                    <option value="requirement">Requirement</option>
+                    <option v-for="o in docTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                   </select>
                 </div>
-                <div v-else class="text-sm text-slate-300 capitalize">{{ activeDoc.type || 'Document' }}</div>
+                <div v-else class="text-sm text-slate-300">{{ docTypeLabel(activeDoc.type) }}</div>
               </div>
               <div>
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Author</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.author') }}</div>
                 <div v-if="editMode" class="mt-0.5">
                   <MemberPicker
                     :modelValue="activeDoc.author || ''"
                     :members="allUsers"
-                    placeholder="Set author..."
+                    :placeholder="t('documents.meta.author_placeholder')"
                     @update:modelValue="setDocAuthor"
                   />
                 </div>
                 <div v-else class="text-sm" :class="activeDoc.author ? 'text-slate-300' : 'text-slate-600 italic'">
-                  {{ resolveUserName(activeDoc.author) || 'Not set' }}
+                  {{ resolveUserName(activeDoc.author) || t('documents.meta.not_set') }}
                 </div>
               </div>
               <div>
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Version</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.version') }}</div>
                 <div v-if="editMode">
                   <input v-model="editVersion"
                     class="w-20 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-slate-300 focus:outline-none focus:border-blue-500" />
@@ -546,16 +544,16 @@
                 <div v-else class="text-sm text-slate-300">{{ activeDoc.version || '--' }}</div>
               </div>
               <div>
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Owner</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.owner') }}</div>
                 <div v-if="editMode">
                   <select v-model="editOwner"
                     class="w-full px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-slate-300 focus:outline-none focus:border-blue-500">
-                    <option value="">Not set</option>
+                    <option value="">{{ t('documents.meta.not_set') }}</option>
                     <option v-for="u in allUsers" :key="u.email" :value="u.email">{{ u.name || u.email }}</option>
                   </select>
                 </div>
                 <div v-else class="text-sm" :class="activeDoc.owner ? 'text-slate-300' : 'text-slate-600 italic'">
-                  {{ resolveUserName(activeDoc.owner) || resolveUserName(activeDoc.author) || 'Not set' }}
+                  {{ resolveUserName(activeDoc.owner) || resolveUserName(activeDoc.author) || t('documents.meta.not_set') }}
                 </div>
               </div>
             </div>
@@ -563,23 +561,23 @@
             <!-- Review cadence -->
             <div v-if="activeDoc.review_cycle || approvedAt" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 pt-3 border-t border-slate-800">
               <div v-if="activeDoc.review_cycle">
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Review Cycle</div>
-                <div class="text-sm text-slate-400">Every {{ activeDoc.review_cycle }} months</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.review_cycle') }}</div>
+                <div class="text-sm text-slate-400">{{ t('documents.meta.review_cycle_months', { count: activeDoc.review_cycle }, activeDoc.review_cycle) }}</div>
               </div>
               <div v-if="approvedAt">
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Last Approved</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.last_approved') }}</div>
                 <div class="text-sm text-slate-400">{{ approvedAt }}</div>
               </div>
               <div v-if="approvedVersion">
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Approved Version</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.approved_version') }}</div>
                 <div class="text-sm text-slate-400">{{ approvedVersion }}</div>
               </div>
               <div v-if="docNextReview">
-                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">Next Review</div>
+                <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.next_review') }}</div>
                 <div class="text-sm" :class="docReviewOverdue ? 'text-red-400 font-medium' : docReviewDueSoon ? 'text-amber-400' : 'text-slate-400'">
                   {{ docNextReview }}
-                  <span v-if="docReviewOverdue" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">OVERDUE</span>
-                  <span v-else-if="docReviewDueSoon" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">DUE SOON</span>
+                  <span v-if="docReviewOverdue" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold">{{ t('common.state.overdue') }}</span>
+                  <span v-else-if="docReviewDueSoon" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">{{ t('documents.meta.due_soon') }}</span>
                 </div>
               </div>
             </div>
@@ -595,20 +593,21 @@
                   <span class="w-2 h-2 mt-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
                   <div class="flex-1 min-w-0">
                     <div class="text-sm text-amber-300 font-medium">
-                      Round {{ activeDoc.active_review_round || 1 }} complete — changes requested
+                      {{ t('documents.banner.round_complete', { round: activeDoc.active_review_round || 1 }) }}
                     </div>
                     <div class="text-xs text-amber-400/80 mt-0.5">
                       <span v-if="activeDoc.active_review_pending_suggestions > 0">
-                        {{ activeDoc.active_review_pending_suggestions }}
-                        pending suggestion{{ activeDoc.active_review_pending_suggestions === 1 ? '' : 's' }} to address.
+                        {{ t('documents.banner.pending_suggestions',
+                             { count: activeDoc.active_review_pending_suggestions },
+                             activeDoc.active_review_pending_suggestions) }}
                       </span>
-                      <span v-else>Reviewer feedback is waiting on the conversation.</span>
-                      Address the feedback, then resubmit for the next round.
+                      <span v-else>{{ t('documents.banner.feedback_waiting') }}</span>
+                      {{ t('documents.banner.then_resubmit') }}
                     </div>
                   </div>
                   <router-link :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
                     class="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-medium transition-colors flex-shrink-0">
-                    Open review
+                    {{ t('documents.banner.open_review') }}
                   </router-link>
                 </div>
               </div>
@@ -616,10 +615,12 @@
               <div v-else class="flex items-center gap-2 text-xs">
                 <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
                 <span class="text-blue-400">
-                  This document is in review<template v-if="activeDoc.active_review_round"> (Round {{ activeDoc.active_review_round }})</template>.
+                  {{ activeDoc.active_review_round
+                    ? t('documents.banner.in_review_round', { round: activeDoc.active_review_round })
+                    : t('documents.banner.in_review') }}
                 </span>
                 <router-link :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
-                  class="text-blue-400 hover:text-blue-300 ml-auto">View review →</router-link>
+                  class="text-blue-400 hover:text-blue-300 ml-auto">{{ t('documents.banner.view_review') }}</router-link>
               </div>
             </div>
 
@@ -629,26 +630,26 @@
               <!-- Retired -->
               <div v-if="activeDoc.status === 'retired'" class="flex items-center gap-2 text-xs">
                 <span class="w-2 h-2 rounded-full bg-slate-600 flex-shrink-0" />
-                <span class="text-slate-500">This document is retired.</span>
+                <span class="text-slate-500">{{ t('documents.banner.retired') }}</span>
               </div>
 
               <!-- 3. Never approved, not in review -->
               <div v-else-if="isDocNeverApproved" class="flex items-center gap-2 text-xs">
                 <span class="w-2 h-2 rounded-full bg-slate-600 flex-shrink-0" />
-                <span class="text-slate-500">This document has never been approved.</span>
-                <button v-if="canEditMetadata" @click="showReviewModal = true" class="text-blue-400 hover:text-blue-300 ml-auto">Send for review →</button>
+                <span class="text-slate-500">{{ t('documents.banner.never_approved') }}</span>
+                <button v-if="canEditMetadata" @click="showReviewModal = true" class="text-blue-400 hover:text-blue-300 ml-auto">{{ t('documents.banner.send_for_review') }}</button>
               </div>
 
               <!-- 4. Approved but has changes since -->
               <div v-else-if="isDocDirty" class="flex items-center gap-2 text-xs flex-wrap">
                 <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
-                <span class="text-amber-400">Changed since last approval</span>
-                <span class="text-slate-600">— last approved{{ approvedVersion ? ` ${approvedVersion}` : '' }}<span v-if="approvedAt"> on {{ approvedAt }}</span></span>
+                <span class="text-amber-400">{{ t('documents.banner.changed_since_approval') }}</span>
+                <span class="text-slate-600">{{ lastApprovedLabel }}</span>
                 <div class="ml-auto flex gap-2">
                   <button @click="viewApprovedVersion" class="text-slate-500 hover:text-slate-300">
-                    {{ showApprovedDiff ? 'Hide diff' : 'View diff' }}
+                    {{ showApprovedDiff ? t('documents.banner.hide_diff') : t('documents.banner.view_diff') }}
                   </button>
-                  <button v-if="canEditMetadata" @click="showReviewModal = true" class="text-blue-400 hover:text-blue-300">Send for review →</button>
+                  <button v-if="canEditMetadata" @click="showReviewModal = true" class="text-blue-400 hover:text-blue-300">{{ t('documents.banner.send_for_review') }}</button>
                 </div>
               </div>
               <!-- Diff since approval -->
@@ -662,13 +663,13 @@
           <!-- Version history panel (Versions tab) -->
           <div v-if="docTab === 'versions' && !editMode" class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-800">
-              <span class="text-sm font-semibold text-slate-300">Version History</span>
+              <span class="text-sm font-semibold text-slate-300">{{ t('documents.versions.heading') }}</span>
             </div>
             <div v-if="loadingVersions" class="p-4 space-y-2">
               <div v-for="i in 3" :key="i" class="h-4 bg-slate-800 rounded animate-pulse" />
             </div>
             <div v-else-if="versions.length === 0" class="p-4 text-xs text-slate-600 text-center">
-              No version history available
+              {{ t('documents.versions.empty') }}
             </div>
             <div v-else class="divide-y divide-slate-800 max-h-48 overflow-y-auto">
               <button
@@ -681,11 +682,11 @@
                 <div class="w-2 h-2 rounded-full flex-shrink-0" :class="idx === 0 ? 'bg-emerald-500' : 'bg-slate-600'" />
                 <div class="flex-1 min-w-0">
                   <div class="text-xs text-slate-300 truncate">
-                    <span class="font-semibold">{{ ver.version || 'v?' }}</span>
+                    <span class="font-semibold">{{ ver.version || t('documents.versions.unknown_version') }}</span>
                     <span v-if="ver.message" class="text-slate-400 ml-1.5">{{ ver.message }}</span>
                   </div>
                   <div class="text-[10px] text-slate-600">
-                    {{ ver.created_by }} — {{ formatDate(ver.created_at) }}
+                    {{ t('documents.versions.meta', { author: ver.created_by, date: formatDate(ver.created_at) }) }}
                   </div>
                 </div>
               </button>
@@ -706,13 +707,13 @@
 
           <!-- Discussion tab — document-level comments (paragraph-level inline comments stay on Content) -->
           <div v-if="docTab === 'discussion' && !editMode && activeDoc && activeId" class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Document discussion</div>
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{{ t('documents.panel.discussion') }}</div>
             <CommentsPanel entityType="document" :entityId="activeId" />
           </div>
 
           <!-- History tab — entity changelog -->
           <div v-if="docTab === 'history' && !editMode && activeDoc && activeId" class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Document changelog</div>
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{{ t('documents.panel.changelog') }}</div>
             <HistoryPanel entityType="document" :entityId="activeId" />
           </div>
 
@@ -720,7 +721,7 @@
           <div v-if="docTab === 'content' && inlineCommentCount > 0 && !editMode" class="flex items-center gap-2 px-1">
             <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             <span class="text-xs text-slate-500">
-              {{ inlineCommentCount }} inline comment{{ inlineCommentCount === 1 ? '' : 's' }} on this document
+              {{ t('documents.content.inline_comment_count', { count: inlineCommentCount }, inlineCommentCount) }}
             </span>
           </div>
 
@@ -729,8 +730,8 @@
             <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
-            <span class="text-amber-300 flex-1">Unsaved draft recovered</span>
-            <button @click="discardDraft" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800">Discard draft</button>
+            <span class="text-amber-300 flex-1">{{ t('documents.content.draft_recovered') }}</span>
+            <button @click="discardDraft" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800">{{ t('common.action.discard_draft') }}</button>
           </div>
 
           <!-- Document editor (edit mode) -->
@@ -776,7 +777,7 @@
                 :class="reviewedBlocks.has(block.index)
                   ? 'bg-emerald-500 text-white scale-100 shadow-md shadow-emerald-900/40'
                   : 'border border-slate-700 text-transparent opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:border-slate-500'"
-                :title="reviewedBlocks.has(block.index) ? 'Mark as unreviewed' : 'Mark as reviewed'"
+                :title="reviewedBlocks.has(block.index) ? t('documents.content.mark_unreviewed') : t('documents.content.mark_reviewed')"
               >
                 <svg class="w-3 h-3 transition-transform duration-300" :class="reviewedBlocks.has(block.index) ? 'scale-100' : 'scale-0'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -791,7 +792,7 @@
                 v-if="hasOpenComments(block.index)"
                 @click="toggleBlockComments(block.index)"
                 class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30"
-                :title="commentCountForBlock(block.index) + ' comment' + (commentCountForBlock(block.index) === 1 ? '' : 's')"
+                :title="blockCommentTitle(block.index)"
               >
                 {{ commentCountForBlock(block.index) }}
               </div>
@@ -801,7 +802,7 @@
                 v-if="!hasOpenComments(block.index)"
                 @click.stop="startInlineComment(block.index)"
                 class="absolute -right-10 top-1 w-6 h-6 rounded-full bg-slate-700 text-slate-400 text-xs flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-900/30 hover:scale-110"
-                title="Add comment"
+                :title="t('documents.content.add_comment')"
               >
                 +
               </button>
@@ -830,18 +831,18 @@
                         <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        <span class="text-[10px] text-emerald-500 font-medium">Resolved</span>
+                        <span class="text-[10px] text-emerald-500 font-medium">{{ t('documents.content.resolved') }}</span>
                       </div>
                       <button
                         v-else
                         @click="resolveComment(comment.id)"
                         class="ml-auto text-[10px] text-slate-500 hover:text-emerald-400 transition-colors"
-                      >Resolve</button>
+                      >{{ t('common.action.resolve') }}</button>
                     </div>
                     <!-- Resolved: show collapsed or expanded body -->
                     <template v-if="comment.status === 'resolved'">
                       <div class="text-[10px] text-emerald-500/70 flex items-center gap-1 mb-1">
-                        Resolved by {{ comment.resolved_by || 'unknown' }} {{ formatDate(comment.resolved_at) }}
+                        {{ resolvedByLabel(comment) }}
                       </div>
                       <div
                         v-if="!expandedResolvedInline.has(comment.id)"
@@ -864,7 +865,7 @@
                     <textarea
                       ref="inlineTextareaRef"
                       v-model="inlineCommentText"
-                      placeholder="Add a comment on this paragraph... (type @ to mention)"
+                      :placeholder="t('documents.content.inline_placeholder')"
                       class="w-full bg-transparent border border-slate-700 rounded-md p-2 text-sm text-slate-300 placeholder-slate-600 resize-none focus:outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500/30"
                       rows="2"
                       @input="e => handleCommentInput(e, 'inline')"
@@ -887,19 +888,19 @@
                           <div class="text-[10px] text-slate-600 truncate">{{ u.email }}</div>
                         </div>
                       </button>
-                      <div v-if="mentionUsers.length === 0" class="px-3 py-2 text-xs text-slate-500">No users found</div>
+                      <div v-if="mentionUsers.length === 0" class="px-3 py-2 text-xs text-slate-500">{{ t('documents.content.no_users') }}</div>
                     </div>
                     <div class="flex items-center justify-end mt-2">
                       <div class="flex gap-2">
                         <button
                           @click="expandedBlock = null; inlineCommentText = ''"
                           class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors cursor-pointer"
-                        >Cancel</button>
+                        >{{ t('common.action.cancel') }}</button>
                         <button
                           @click="submitInlineComment(expandedBlock)"
                           :disabled="!inlineCommentText.trim() || submittingInline"
                           class="text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-1 rounded font-medium transition-colors cursor-pointer"
-                        >{{ submittingInline ? 'Saving...' : 'Comment' }}
+                        >{{ submittingInline ? t('common.state.saving') : t('common.action.comment') }}
                         </button>
                       </div>
                     </div>
@@ -911,7 +912,7 @@
 
           <!-- No content -->
           <div v-else-if="!editMode && !loadingContent" class="py-8 text-center text-sm text-slate-600">
-            No content available for this document.
+            {{ t('documents.content.empty') }}
           </div>
           </template>
         </div>
@@ -922,7 +923,7 @@
     <aside v-if="showRightPanel" class="w-[340px] flex-shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col overflow-hidden">
       <!-- No doc selected -->
       <div v-if="!activeDoc" class="flex items-center justify-center h-full">
-        <div class="text-xs text-slate-600">Select a document to view comments</div>
+        <div class="text-xs text-slate-600">{{ t('documents.comments.no_document') }}</div>
       </div>
 
       <template v-else>
@@ -933,11 +934,11 @@
             <svg class="w-3.5 h-3.5 text-slate-500 transition-transform" :class="{ 'rotate-90': showCommentPanel }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-            <h3 class="text-sm font-semibold text-slate-300">Comments</h3>
+            <h3 class="text-sm font-semibold text-slate-300">{{ t('documents.comments.heading') }}</h3>
           </div>
           <div class="flex items-center gap-2">
             <span v-if="openCommentCount > 0" class="text-xs font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full">{{ openCommentCount }}</span>
-            <span v-if="resolvedCommentCount > 0" class="text-xs text-slate-600">{{ resolvedCommentCount }} resolved</span>
+            <span v-if="resolvedCommentCount > 0" class="text-xs text-slate-600">{{ t('documents.comments.resolved_count', { count: resolvedCommentCount }) }}</span>
           </div>
         </button>
 
@@ -945,7 +946,7 @@
         <div v-show="showCommentPanel" class="px-5 py-4 border-b border-slate-800 space-y-3 flex-shrink-0 relative">
           <textarea
             v-model="newComment"
-            placeholder="Add a general comment... (type @ to mention)"
+            :placeholder="t('documents.comments.general_placeholder')"
             rows="3"
             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
             @input="e => handleCommentInput(e, 'panel')"
@@ -966,12 +967,12 @@
                 <div class="text-[10px] text-slate-600 truncate">{{ u.email }}</div>
               </div>
             </button>
-            <div v-if="mentionUsers.length === 0" class="px-3 py-2 text-xs text-slate-500">No users found</div>
+            <div v-if="mentionUsers.length === 0" class="px-3 py-2 text-xs text-slate-500">{{ t('documents.content.no_users') }}</div>
           </div>
           <div class="flex items-center gap-2">
             <input
               v-model="commentAuthor"
-              placeholder="Your name"
+              :placeholder="t('documents.comments.author_placeholder')"
               class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
             <button
@@ -979,7 +980,7 @@
               :disabled="!newComment.trim() || submitting"
               class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              {{ submitting ? 'Sending...' : 'Send' }}
+              {{ submitting ? t('common.state.sending') : t('documents.comments.send') }}
             </button>
           </div>
         </div>
@@ -1007,16 +1008,16 @@
                 <svg class="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
-                <span class="text-[10px] text-blue-400 font-medium">Inline comment</span>
+                <span class="text-[10px] text-blue-400 font-medium">{{ t('documents.comments.inline_label') }}</span>
                 <span v-if="comment.quote" class="text-[10px] text-slate-600 truncate max-w-[180px]">
-                  — "{{ comment.quote }}"
+                  {{ t('documents.comments.quote', { quote: comment.quote }) }}
                 </span>
               </div>
               <div v-else class="flex items-center gap-1.5 mb-2">
                 <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span class="text-[10px] text-slate-500 font-medium">Document comment</span>
+                <span class="text-[10px] text-slate-500 font-medium">{{ t('documents.comments.document_label') }}</span>
               </div>
               <div class="flex items-baseline gap-2 mb-1.5">
                 <span class="text-[13px] font-semibold text-slate-300">{{ comment.author }}</span>
@@ -1028,13 +1029,13 @@
                   @click.stop="startPanelReply(comment)"
                   class="text-[11px] text-slate-500 hover:text-blue-400 transition-colors cursor-pointer"
                 >
-                  Reply
+                  {{ t('documents.comments.reply') }}
                 </button>
                 <button
                   @click.stop="resolveComment(comment.id)"
                   class="text-[11px] text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  Resolve
+                  {{ t('common.action.resolve') }}
                 </button>
               </div>
 
@@ -1051,7 +1052,7 @@
               <div v-if="panelReplyingTo === comment.id" class="mt-2 ml-4 pl-3 border-l-2 border-blue-600">
                 <textarea
                   v-model="panelReplyText"
-                  placeholder="Write a reply..."
+                  :placeholder="t('documents.comments.reply_placeholder')"
                   rows="2"
                   class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                   @keydown.meta.enter="submitPanelReply"
@@ -1059,9 +1060,9 @@
                 />
                 <div class="flex gap-2 mt-1">
                   <button @click="submitPanelReply" :disabled="!panelReplyText.trim()"
-                    class="px-2 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[10px] font-medium rounded cursor-pointer">Reply</button>
+                    class="px-2 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[10px] font-medium rounded cursor-pointer">{{ t('documents.comments.reply') }}</button>
                   <button @click="panelReplyingTo = null"
-                    class="px-2 py-1 text-[10px] text-slate-500 hover:text-slate-300 cursor-pointer">Cancel</button>
+                    class="px-2 py-1 text-[10px] text-slate-500 hover:text-slate-300 cursor-pointer">{{ t('common.action.cancel') }}</button>
                 </div>
               </div>
             </div>
@@ -1083,7 +1084,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span class="text-[11px] font-medium text-slate-600">
-                  {{ resolvedComments.length }} resolved comment{{ resolvedComments.length === 1 ? '' : 's' }}
+                  {{ t('documents.comments.resolved_toggle', { count: resolvedComments.length }, resolvedComments.length) }}
                 </span>
               </button>
               <template v-if="showResolvedPanel">
@@ -1096,9 +1097,9 @@
                     <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
-                    <span class="text-[10px] text-slate-600 font-medium">Inline</span>
+                    <span class="text-[10px] text-slate-600 font-medium">{{ t('documents.comments.inline_label_short') }}</span>
                     <span v-if="comment.quote" class="text-[10px] text-slate-700 truncate max-w-[180px]">
-                      &mdash; "{{ comment.quote }}"
+                      {{ t('documents.comments.quote', { quote: comment.quote }) }}
                     </span>
                   </div>
                   <div class="flex items-baseline gap-2 mb-1">
@@ -1110,7 +1111,7 @@
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    Resolved by {{ comment.resolved_by || 'unknown' }} {{ formatDate(comment.resolved_at) }}
+                    {{ resolvedByLabel(comment) }}
                   </div>
                 </div>
               </template>
@@ -1118,7 +1119,7 @@
           </template>
 
           <div v-else class="p-5 text-center">
-            <div class="text-xs text-slate-600 mt-4">No comments yet</div>
+            <div class="text-xs text-slate-600 mt-4">{{ t('documents.comments.empty') }}</div>
           </div>
         </div>
       </template>
@@ -1129,11 +1130,11 @@
       <div v-if="showReviewModal" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="showReviewModal = false" />
         <div class="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-          <h2 class="text-lg font-bold text-white">Send for review</h2>
+          <h2 class="text-lg font-bold text-white">{{ t('documents.review_modal.heading') }}</h2>
           <p class="text-sm text-slate-400">{{ activeDoc?.title || activeId }}</p>
 
           <div>
-            <label class="block text-xs text-slate-500 mb-2">Reviewers</label>
+            <label class="block text-xs text-slate-500 mb-2">{{ t('documents.review_modal.reviewers') }}</label>
             <!-- Selected reviewers -->
             <div v-if="selectedReviewers.length > 0" class="flex flex-wrap gap-1.5 mb-2">
               <span
@@ -1154,7 +1155,7 @@
               <input
                 v-model="reviewerSearch"
                 type="text"
-                placeholder="Search members..."
+                :placeholder="t('documents.review_modal.search_members')"
                 class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
                 @focus="showReviewerDropdown = true"
               />
@@ -1174,21 +1175,21 @@
                   </div>
                   <span class="text-[10px] px-1.5 py-0.5 rounded-full"
                     :class="member.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : member.role === 'manager' ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-500/20 text-slate-400'">
-                    {{ member.role }}
+                    {{ roleLabel(member.role) }}
                   </span>
                 </button>
               </div>
             </div>
           </div>
           <div>
-            <label class="block text-xs text-slate-500 mb-1">Version note <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-500 mb-1">{{ t('documents.review_modal.version_note') }} <span class="text-red-400">*</span></label>
             <textarea
               v-model="reviewMessage"
               rows="3"
-              placeholder="e.g. Updated risk assessment criteria. Added data classification table."
+              :placeholder="t('documents.review_modal.version_note_placeholder')"
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 resize-none"
             />
-            <div class="text-[10px] text-slate-600 mt-1">This becomes part of the document's permanent version history after approval.</div>
+            <div class="text-[10px] text-slate-600 mt-1">{{ t('documents.review_modal.version_note_hint') }}</div>
           </div>
 
           <div v-if="reviewError" class="text-xs text-red-400">{{ reviewError }}</div>
@@ -1199,10 +1200,12 @@
               :disabled="reviewSending || selectedReviewers.length === 0 || !reviewMessage.trim()"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
-              {{ reviewSending ? 'Sending...' : `Send to ${selectedReviewers.length} reviewer${selectedReviewers.length !== 1 ? 's' : ''}` }}
+              {{ reviewSending
+                ? t('common.state.sending')
+                : t('documents.review_modal.send', { count: selectedReviewers.length }, selectedReviewers.length) }}
             </button>
             <button @click="showReviewModal = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">
-              Cancel
+              {{ t('common.action.cancel') }}
             </button>
           </div>
         </div>
@@ -1216,27 +1219,22 @@
       <div v-if="showNewDocModal" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="showNewDocModal = false" />
         <form @submit.prevent="createDocument" class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 space-y-4">
-          <h2 class="text-lg font-semibold text-slate-100">New Document</h2>
+          <h2 class="text-lg font-semibold text-slate-100">{{ t('documents.new_doc.heading') }}</h2>
 
           <div class="space-y-4">
             <!-- Title — primary field, always first -->
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Title <span class="text-red-400">*</span></label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('documents.new_doc.title') }} <span class="text-red-400">*</span></label>
               <input v-model="newDoc.title" @input="autoSlug" type="text" autofocus
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                placeholder="e.g. Data Classification Policy" />
+                :placeholder="t('documents.new_doc.title_placeholder')" />
             </div>
             <!-- Type -->
             <div>
-              <label class="block text-xs text-slate-500 mb-1">Type</label>
+              <label class="block text-xs text-slate-500 mb-1">{{ t('documents.new_doc.type') }}</label>
               <select v-model="newDoc.type"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-                <option value="">Document</option>
-                <option value="policy">Policy</option>
-                <option value="procedure">Procedure</option>
-                <option value="control">Control</option>
-                <option value="guideline">Guideline</option>
-                <option value="record">Record</option>
+                <option v-for="o in newDocTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
               </select>
             </div>
             <!-- Location — compact, sensible default, not the focus -->
@@ -1245,14 +1243,14 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
               </svg>
               <span v-if="newDoc.folder && !showFolderPicker" class="text-slate-400">{{ newDoc.folder }}</span>
-              <span v-if="!newDoc.folder && !showFolderPicker" class="text-slate-500 italic">No folder selected</span>
+              <span v-if="!newDoc.folder && !showFolderPicker" class="text-slate-500 italic">{{ t('documents.new_doc.no_folder') }}</span>
               <button v-if="!showFolderPicker" @click="showFolderPicker = true" class="text-blue-400 hover:text-blue-300 ml-auto text-[10px]">
-                {{ newDoc.folder ? 'change' : 'pick folder' }}
+                {{ newDoc.folder ? t('documents.new_doc.change_folder') : t('documents.new_doc.pick_folder') }}
               </button>
               <div v-if="showFolderPicker" class="flex-1">
                 <input v-model="newDoc.folder" type="text" list="folder-list"
                   class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                  placeholder="Type or select folder" @blur="showFolderPicker = false" />
+                  :placeholder="t('documents.new_doc.folder_placeholder')" @blur="showFolderPicker = false" />
                 <datalist id="folder-list">
                   <option v-for="f in allFolderPaths" :key="f" :value="f" />
                 </datalist>
@@ -1260,25 +1258,25 @@
             </div>
             <!-- Advanced (collapsed by default) -->
             <button @click="showNewDocAdvanced = !showNewDocAdvanced" class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-              {{ showNewDocAdvanced ? 'Hide' : 'Show' }} advanced options
+              {{ showNewDocAdvanced ? t('documents.new_doc.hide_advanced') : t('documents.new_doc.show_advanced') }}
             </button>
             <div v-if="showNewDocAdvanced" class="grid grid-cols-2 gap-3 pt-1">
               <div>
-                <label class="block text-[10px] text-slate-600 mb-1">Document ID</label>
+                <label class="block text-[10px] text-slate-600 mb-1">{{ t('documents.new_doc.document_id') }}</label>
                 <input v-model="newDoc.document_id" @input="slugManuallyEdited = true" type="text"
                   class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                  placeholder="auto from title" />
-                <div v-if="newDoc.document_id && docIdExists" class="text-[10px] text-red-400 mt-1">This ID already exists</div>
+                  :placeholder="t('documents.new_doc.document_id_placeholder')" />
+                <div v-if="newDoc.document_id && docIdExists" class="text-[10px] text-red-400 mt-1">{{ t('documents.new_doc.document_id_exists') }}</div>
               </div>
               <div>
-                <label class="block text-[10px] text-slate-600 mb-1">Filename</label>
+                <label class="block text-[10px] text-slate-600 mb-1">{{ t('documents.new_doc.filename') }}</label>
                 <input v-model="newDoc.filename" type="text"
                   class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                  placeholder="auto from ID" />
+                  :placeholder="t('documents.new_doc.filename_placeholder')" />
               </div>
               <div class="col-span-2">
-                <label class="block text-[10px] text-slate-600 mb-1">Author</label>
-                <MemberPicker :modelValue="newDoc.author" :members="allUsers" placeholder="Select author..." @update:modelValue="v => newDoc.author = v" />
+                <label class="block text-[10px] text-slate-600 mb-1">{{ t('documents.new_doc.author') }}</label>
+                <MemberPicker :modelValue="newDoc.author" :members="allUsers" :placeholder="t('documents.new_doc.author_placeholder')" @update:modelValue="v => newDoc.author = v" />
               </div>
             </div>
           </div>
@@ -1288,9 +1286,9 @@
           <div class="flex gap-2 pt-2">
             <button type="submit" :disabled="newDocSaving || !newDoc.title || !newDoc.document_id || !newDoc.folder || docIdExists"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {{ newDocSaving ? 'Creating...' : 'Create Document' }}
+              {{ newDocSaving ? t('common.state.creating') : t('documents.new_doc.create') }}
             </button>
-            <button type="button" @click="showNewDocModal = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">Cancel</button>
+            <button type="button" @click="showNewDocModal = false" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
           </div>
         </form>
       </div>
@@ -1303,15 +1301,15 @@
       <div v-if="showTemplatePicker" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="showTemplatePicker = false" />
         <div class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4">
-          <h2 class="text-lg font-semibold text-slate-100 mb-1">Import template</h2>
-          <p class="text-xs text-slate-500 mb-4">Choose a standard to scaffold your document structure.</p>
+          <h2 class="text-lg font-semibold text-slate-100 mb-1">{{ t('documents.templates.picker_heading') }}</h2>
+          <p class="text-xs text-slate-500 mb-4">{{ t('documents.templates.picker_subtitle') }}</p>
 
           <input v-model="templateSearch" type="text" autofocus
             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 mb-3"
-            placeholder="Search templates..." />
+            :placeholder="t('documents.templates.picker_placeholder')" />
 
           <div v-if="filteredTemplates.length === 0" class="text-center py-6 text-xs text-slate-600">
-            No templates found.
+            {{ t('documents.templates.picker_empty') }}
           </div>
           <div v-else class="space-y-1.5 max-h-72 overflow-y-auto">
             <button v-for="tmpl in filteredTemplates" :key="tmpl.id"
@@ -1332,7 +1330,7 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span v-else class="text-xs text-blue-400 group-hover:text-blue-300 font-medium">Import</span>
+                <span v-else class="text-xs text-blue-400 group-hover:text-blue-300 font-medium">{{ t('documents.templates.import') }}</span>
               </div>
             </button>
           </div>
@@ -1343,7 +1341,7 @@
           </div>
 
           <div class="flex justify-end mt-4">
-            <button @click="showTemplatePicker = false" class="text-sm text-slate-400 hover:text-white">Cancel</button>
+            <button @click="showTemplatePicker = false" class="text-sm text-slate-400 hover:text-white">{{ t('common.action.cancel') }}</button>
           </div>
         </div>
       </div>
@@ -1354,6 +1352,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { buildContentBlocks } from '../utils/contentBlocks.js'
 import DOMPurify from 'dompurify'
@@ -1392,7 +1391,7 @@ function renderRefLinks(html) {
     } else if (routeBase) {
       href = orgPath(`/${routeBase}`)
     }
-    return `<a href="${href}" data-ref-type="${type}" data-ref-id="${id}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-medium no-underline cursor-pointer ${colors}" title="${type}: ${id}">`
+    return `<a href="${href}" data-ref-type="${type}" data-ref-id="${id}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-medium no-underline cursor-pointer ${colors}" title="${refTypeLabel(type)}: ${id}">`
       + `<span class="opacity-60">${type}</span>`
       + `<span>${title}</span>`
       + `</a>`
@@ -1406,6 +1405,8 @@ import { useDocumentTree } from '../composables/useDocumentTree'
 import { useDocumentEditor } from '../composables/useDocumentEditor'
 import { useDocumentComments } from '../composables/useDocumentComments'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 import StatusBadge from '../components/StatusBadge.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import DiffView from '../components/DiffView.vue'
@@ -1415,6 +1416,7 @@ import CommentsPanel from '../components/CommentsPanel.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 const DocumentEditor = defineAsyncComponent(() => import('../components/DocumentEditor.vue'))
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
@@ -1637,13 +1639,90 @@ const loadingContent = ref(false)
 // --- Center-pane tabs (Content default; surfaces metadata, versions, links, discussion, history) ---
 const docTab = ref('content')
 const docTabs = computed(() => [
-  { key: 'content', label: 'Content' },
-  { key: 'info', label: 'Info' },
-  { key: 'versions', label: 'Versions' },
-  { key: 'links', label: 'Links' },
-  { key: 'discussion', label: 'Discussion' },
-  { key: 'history', label: 'History' },
+  { key: 'content', label: t('documents.tab.content') },
+  { key: 'info', label: t('documents.tab.info') },
+  { key: 'versions', label: t('documents.tab.versions') },
+  { key: 'links', label: t('documents.tab.links') },
+  { key: 'discussion', label: t('documents.tab.discussion') },
+  { key: 'history', label: t('documents.tab.history') },
 ])
+
+// ---------- Label helpers ----------
+// Each of these exists because the expression it replaces put a quoted word, a
+// bare DB value or a hand-built sentence in the template, where the raw-text
+// scanner counts it and a translator cannot reach it.
+
+const statusLabel = (v) => enumLabel('status', v)
+const roleLabel = (v) => enumLabel('role', v)
+const docTypeLabel = (v) => enumLabel('document_type', v || 'document')
+
+// The reference pill's tooltip. `[[RISK:id|Title]]` types are upper-case
+// shorthands for entities the catalogue already names.
+const REF_TYPE_ENTITIES = {
+  RISK: 'risk',
+  LEGAL: 'legal_requirement',
+  DOC: 'document',
+  ASSET: 'asset',
+  SUPPLIER: 'supplier',
+  SYSTEM: 'system',
+  INCIDENT: 'incident',
+  CA: 'corrective_action',
+}
+function refTypeLabel(type) {
+  const entity = REF_TYPE_ENTITIES[type]
+  return entity ? entityLabel(entity) : type
+}
+
+// The metadata select offers all eight types; the create form offers the six a
+// user would author by hand. Both read the one catalogue group, and the empty
+// value means "document", the default the frontmatter omits.
+const DOC_TYPE_VALUES = ['', 'policy', 'procedure', 'control', 'guideline', 'record', 'clause', 'requirement']
+const NEW_DOC_TYPE_VALUES = ['', 'policy', 'procedure', 'control', 'guideline', 'record']
+const toTypeOption = (value) => ({ value, label: docTypeLabel(value || 'document') })
+const docTypeOptions = computed(() => DOC_TYPE_VALUES.map(toTypeOption))
+const newDocTypeOptions = computed(() => NEW_DOC_TYPE_VALUES.map(toTypeOption))
+
+const neverApprovedCount = computed(
+  () => allNeedsReviewDocs.value.filter((d) => d.never_approved).length)
+
+// A filename fallback, not copy — but '.md' in the template is a quoted word
+// the scanner counts, and it is right to ask why one is there.
+const changedDocLabel = (doc) =>
+  doc.document_id || doc.path.split('/').pop().replace('.md', '')
+
+const blockCommentTitle = (index) =>
+  t('documents.content.comment_count', { count: commentCountForBlock(index) }, commentCountForBlock(index))
+
+const resolvedByLabel = (comment) => t('documents.content.resolved_by', {
+  name: comment.resolved_by || t('documents.content.resolved_by_unknown'),
+  date: formatDate(comment.resolved_at),
+})
+
+// Four conditional clauses collapse to four whole sentences rather than one
+// spliced from fragments: a language may not be able to append " on <date>" to
+// a clause that already ends in a version number.
+const lastApprovedLabel = computed(() => {
+  if (approvedVersion.value && approvedAt.value) {
+    return t('documents.banner.last_approved_version_on', { version: approvedVersion.value, date: approvedAt.value })
+  }
+  if (approvedVersion.value) return t('documents.banner.last_approved_version', { version: approvedVersion.value })
+  if (approvedAt.value) return t('documents.banner.last_approved_on', { date: approvedAt.value })
+  return t('documents.banner.last_approved')
+})
+
+// The print header, assembled here rather than as six spans joined by four
+// literal em dashes in the markup. The separator is presentation.
+const printMeta = computed(() => {
+  const doc = activeDoc.value
+  if (!doc) return ''
+  const parts = []
+  if (doc.version) parts.push(t('documents.print.version', { version: doc.version }))
+  if (doc.status) parts.push(statusLabel(doc.status))
+  if (doc.author) parts.push(t('documents.print.author', { name: resolveUserName(doc.author) || doc.author }))
+  parts.push(activeId.value)
+  parts.push(t('documents.print.printed', { date: formatDateValue(Date.now()) }))
+  return parts.join(' — ')
+})
 async function switchDocTab(key) {
   docTab.value = key
   // Lazy-load version history when entering Versions tab
@@ -1750,10 +1829,7 @@ function hasEditorUnsafeHtml(md) {
 async function startEditGuarded() {
   if (hasEditorUnsafeHtml(rawContent.value)) {
     const { ask } = useConfirm()
-    const ok = await ask(
-      "This document contains embedded HTML/SVG the editor can't preserve — editing here will drop it on save. Edit the source via the CLI to keep it. Edit anyway?",
-      'Embedded HTML will be lost',
-    )
+    const ok = await ask(t('documents.confirm.embedded_html_body'), { variant: 'warning' })
     if (!ok) return
   }
   startEdit()
@@ -1775,7 +1851,7 @@ async function viewApprovedVersion() {
     const diffText = typeof diff === 'string' ? diff : (diff?.diff || '')
     approvedDiffLines.value = diffText.split('\n')
   } catch {
-    approvedDiffLines.value = ['Failed to load diff']
+    approvedDiffLines.value = [t('documents.error.load_diff')]
   } finally {
     loadingApprovedDiff.value = false
   }
@@ -1791,7 +1867,7 @@ function setDocAuthor(email) {
     if (!activeId.value) return
     api.updateDocumentMetadata(activeId.value, { author: email })
       .then(() => { if (activeDoc.value) activeDoc.value.author = email })
-      .catch(e => { console.error('Failed to set author:', e); toastError('Failed to set author: ' + (e.message || 'unknown error')) })
+      .catch(e => { console.error('Failed to set author:', e); toastError(t('documents.error.set_author', { message: renderApiError(e) })) })
   }
 }
 
@@ -1799,7 +1875,7 @@ function setDocType(type) {
   if (!activeId.value) return
   api.updateDocumentMetadata(activeId.value, { type })
     .then(() => { if (activeDoc.value) activeDoc.value.type = type })
-    .catch(e => { console.error('Failed to set type:', e); toastError('Failed to set type: ' + (e.message || 'unknown error')) })
+    .catch(e => { console.error('Failed to set type:', e); toastError(t('documents.error.set_type', { message: renderApiError(e) })) })
 }
 
 async function saveVersion() {
@@ -1810,7 +1886,7 @@ async function saveVersion() {
     if (activeDoc.value) activeDoc.value.version = v
   } catch (e) {
     console.error('Failed to set version:', e)
-    toastError('Failed to set version: ' + (e.message || 'unknown error'))
+    toastError(t('documents.error.set_version', { message: renderApiError(e) }))
   }
 }
 
@@ -1853,7 +1929,7 @@ async function confirmRootNewFolder() {
     expandedNodes.add(slug)
   } catch (e) {
     const { error: showError } = useToast()
-    showError('Failed to create folder: ' + e.message)
+    showError(t('documents.error.create_folder', { message: renderApiError(e) }))
   }
 }
 
@@ -1883,7 +1959,7 @@ async function confirmInlineNewFolder() {
     expandedNodes.add(folderPath)
   } catch (e) {
     const { error: showError } = useToast()
-    showError('Failed to create folder: ' + e.message)
+    showError(t('documents.error.create_folder', { message: renderApiError(e) }))
   }
 }
 
@@ -1960,7 +2036,7 @@ async function createDocument() {
     // Navigate to the new document
     router.push(orgPath(`/documents/${encodeURIComponent(result.document_id)}`))
   } catch (e) {
-    newDocError.value = e.message || 'Failed to create document'
+    newDocError.value = t('documents.error.create_document', { message: renderApiError(e) })
   } finally {
     newDocSaving.value = false
   }
@@ -1973,7 +2049,11 @@ function printDocument() {
 async function deleteCurrentDocument() {
   if (!activeId.value) return
   const { ask } = useConfirm()
-  if (!await ask(`Delete "${activeDoc.value?.title || activeId.value}"? This cannot be undone.`, 'Delete Document')) return
+  const confirmed = await ask(
+    t('documents.confirm.delete_body', { name: activeDoc.value?.title || activeId.value }),
+    { confirm: t('common.action.delete') },
+  )
+  if (!confirmed) return
   try {
     await api.deleteDocument(activeId.value)
     activeDoc.value = null
@@ -1983,7 +2063,7 @@ async function deleteCurrentDocument() {
     router.push(orgPath('/documents'))
   } catch (e) {
     const { error: showError } = useToast()
-    showError('Failed to delete: ' + e.message)
+    showError(t('documents.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -2036,7 +2116,7 @@ async function sendForReview() {
       loadContent(activeType.value, activeId.value)
     }
   } catch (e) {
-    reviewError.value = e.message || 'Failed to send for review'
+    reviewError.value = t('documents.error.send_for_review', { message: renderApiError(e) })
   } finally {
     reviewSending.value = false
   }
@@ -2121,7 +2201,7 @@ async function viewNeedsReviewDiff(doc) {
       needsReviewDiffLines.value = diff.split('\n')
     }
   } catch {
-    needsReviewDiffLines.value = ['Failed to load diff']
+    needsReviewDiffLines.value = [t('documents.error.load_diff')]
   }
 }
 
@@ -2176,7 +2256,7 @@ async function addTemplate(id) {
   try {
     await api.addTemplate(id)
     const tmpl = availableTemplates.value.find(t => t.id === id)
-    templateMessage.value = `${tmpl?.name || id} template added successfully.`
+    templateMessage.value = t('documents.templates.added', { name: tmpl?.name || id })
     templateMessageError.value = false
     // Reload the document tree
     await loadTree()
@@ -2184,7 +2264,7 @@ async function addTemplate(id) {
       expandedNodes.add(f.name)
     }
   } catch (e) {
-    templateMessage.value = `Failed to add template: ${e.message}`
+    templateMessage.value = t('documents.templates.add_failed', { message: renderApiError(e) })
     templateMessageError.value = true
   } finally {
     templateLoading.value = null
@@ -2203,12 +2283,12 @@ async function removeTemplate(id) {
   try {
     await api.removeTemplate(id)
     const tmpl = availableTemplates.value.find(t => t.id === id)
-    templateMessage.value = `${tmpl?.name || id} template removed.`
+    templateMessage.value = t('documents.templates.removed', { name: tmpl?.name || id })
     templateMessageError.value = false
     // Reload the document tree
     await loadTree()
   } catch (e) {
-    templateMessage.value = `Failed to remove template: ${e.message}`
+    templateMessage.value = t('documents.templates.remove_failed', { message: renderApiError(e) })
     templateMessageError.value = true
   } finally {
     templateLoading.value = null
@@ -2302,7 +2382,7 @@ async function loadContent(folder, id) {
       rawContent.value = detail.content || ''
     }
   } catch (e) {
-    rawContent.value = `**Error loading content:** ${e.message}`
+    rawContent.value = t('documents.error.load_content', { message: renderApiError(e) })
   } finally {
     loadingContent.value = false
   }
@@ -2434,7 +2514,7 @@ async function submitPanelReply() {
     await loadComments(activeId.value)
   } catch (e) {
     console.error('Failed to submit reply:', e)
-    toastError('Failed to submit reply: ' + (e.message || 'unknown error'))
+    toastError(t('documents.error.submit_reply', { message: renderApiError(e) }))
   }
 }
 
@@ -2495,7 +2575,7 @@ async function submitComment() {
     await loadComments(activeId.value)
   } catch (e) {
     console.error('Failed to submit comment:', e)
-    toastError('Failed to submit comment: ' + (e.message || 'unknown error'))
+    toastError(t('documents.error.submit_comment', { message: renderApiError(e) }))
   } finally {
     submitting.value = false
   }
@@ -2507,7 +2587,7 @@ async function resolveComment(id) {
     await loadComments(activeId.value)
   } catch (e) {
     console.error('Failed to resolve comment:', e)
-    toastError('Failed to resolve comment: ' + (e.message || 'unknown error'))
+    toastError(t('documents.error.resolve_comment', { message: renderApiError(e) }))
   }
 }
 
@@ -2601,7 +2681,7 @@ onMounted(async () => {
     }
   } catch (e) {
     console.error('Failed to load document list:', e)
-    toastError('Failed to load documents: ' + (e.message || 'unknown error'))
+    toastError(t('documents.error.load_documents', { message: renderApiError(e) }))
   } finally {
     loadingTree.value = false
   }

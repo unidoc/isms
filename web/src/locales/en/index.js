@@ -20,13 +20,16 @@ import common from './common.json' with { type: 'json' }
 import correctiveActions from './corrective_actions.json' with { type: 'json' }
 import dashboard from './dashboard.json' with { type: 'json' }
 import components from './components.json' with { type: 'json' }
+import documents from './documents.json' with { type: 'json' }
 import incidents from './incidents.json' with { type: 'json' }
+import inbox from './inbox.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
 import legal from './legal.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import objectives from './objectives.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
 import programs from './programs.json' with { type: 'json' }
+import reviews from './reviews.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
 import settings from './settings.json' with { type: 'json' }
 import shell from './shell.json' with { type: 'json' }
@@ -44,6 +47,8 @@ export default {
   corrective_actions: correctiveActions,
   components,
   dashboard,
+  documents,
+  inbox,
   incidents,
   landing,
   legal,
@@ -51,6 +56,7 @@ export default {
   objectives,
   organizations,
   programs,
+  reviews,
   risks,
   settings,
   shell,

@@ -97,10 +97,5 @@
     "warning": "Deleting this system is permanent and cannot be undone. History, comments, access reviews and linked references will be lost.",
     "delete": "Delete system",
     "confirm": "Delete this system? This cannot be undone."
-  },
-  "dirty": {
-    "switch_tab": "You have unsaved changes. Discard and switch tab?",
-    "close": "You have unsaved changes. Discard and close?",
-    "discard": "Discard"
   }
 }

@@ -22,6 +22,7 @@ import landing from './landing.json' with { type: 'json' }
 import legal from './legal.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
+import programs from './programs.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
 import settings from './settings.json' with { type: 'json' }
 import shell from './shell.json' with { type: 'json' }
@@ -40,6 +41,7 @@ export default {
   legal,
   notifications,
   organizations,
+  programs,
   risks,
   settings,
   shell,

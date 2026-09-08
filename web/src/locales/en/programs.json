@@ -1,0 +1,48 @@
+{
+  "title": "Program Register",
+  "subtitle": "Group ISMS objectives into programs of work",
+  "error": {
+    "save": "Failed to save: {message}"
+  },
+  "action": {
+    "add": "Add Program"
+  },
+  "create": {
+    "heading": "Add Program",
+    "key_label": "Key (uppercase) *",
+    "key_placeholder": "AWARE",
+    "title_label": "Title *",
+    "title_placeholder": "Security Awareness",
+    "fill_in_later": "You can add description and notes after creating.",
+    "submit": "Add"
+  },
+  "filter": {
+    "empty": "No programs yet"
+  },
+  "table": {
+    "header": {
+      "key": "Key",
+      "title": "Title",
+      "description": "Description"
+    }
+  },
+  "field": {
+    "key": "Key",
+    "title": "Title",
+    "description": "Description",
+    "created": "Created"
+  },
+  "placeholder": {
+    "description": "What is this program?",
+    "notes": "Add notes..."
+  },
+  "detail": {
+    "overview": "Overview",
+    "notes": "Notes"
+  },
+  "danger": {
+    "warning": "Deleting this program also deletes all objectives under it. This cannot be undone.",
+    "delete": "Delete program",
+    "confirm": "Delete program \"{key}\"? All objectives under it will also be deleted."
+  }
+}

@@ -84,20 +84,22 @@ const form = ref({ suggestion_type: 'create', title: '', description: '', ration
 
 const isDetail = computed(() => !!props.entityId)
 
-// The entity name is interpolated whole. It used to be lower-cased for the
-// "new" variant, which is locale-blind — German capitalises every noun — so
-// the casing now belongs to whatever the caller passes.
-// Mid-sentence ("Suggest new risk") wants the inline entity name, which
-// `common.entity_inline.*` authors per locale — the old code lower-cased
-// `typeLabel`, which is locale-blind. Falls back to the prop for an entity
-// type with no catalogue entry.
+// Every frame this component fills puts the entity name mid-sentence —
+// "Suggest new risk", "Suggest change to risk", "Edit risk", "Describe the new
+// risk..." — so all four take the inline form from `common.entity_inline.*`,
+// which authors that casing per locale. The old code lower-cased `typeLabel`
+// instead, which is locale-blind: German capitalises every noun.
+//
+// `typeLabel` is the caller's standalone label and is never spliced into a
+// frame any more; it survives only as the fallback for an entity type the
+// catalogue does not name.
 const inlineEntity = computed(
   () => entityLabel(props.entityType, { inline: true }) || props.typeLabel,
 )
 
 const formTitle = computed(() =>
   isDetail.value
-    ? t('components.suggest_new.form_title_change', { entity: props.typeLabel })
+    ? t('components.suggest_new.form_title_change', { entity: inlineEntity.value })
     : t('components.suggest_new.form_title_new', { entity: inlineEntity.value }),
 )
 
@@ -121,7 +123,7 @@ const typeOptions = computed(() => {
   if (!isDetail.value) return []
   const defs = detailTypes[props.entityType]
   if (!defs) {
-    return [{ value: 'update', label: t('components.suggest_new.type.edit_entity', { entity: props.typeLabel }) }]
+    return [{ value: 'update', label: t('components.suggest_new.type.edit_entity', { entity: inlineEntity.value }) }]
   }
   return defs.map((o) => ({ value: o.value, label: t(`components.suggest_new.type.${o.labelKey}`) }))
 })

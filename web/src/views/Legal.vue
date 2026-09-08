@@ -19,15 +19,15 @@
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Legal Register</h1>
-          <p class="text-sm text-slate-500 mt-1">Applicable legislation and regulatory risk assessment</p>
+          <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ t('legal.title') }}</h1>
+          <p class="text-sm text-slate-500 mt-1">{{ t('legal.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
           <button v-if="canWrite" @click="showCreateForm = !showCreateForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            {{ showCreateForm ? 'Cancel' : 'Add Legal Requirement' }}
+            {{ showCreateForm ? t('common.action.cancel') : t('legal.action.add') }}
           </button>
-          <SuggestNewButton entityType="legal_requirement" typeLabel="Legal Requirement" />
+          <SuggestNewButton entityType="legal_requirement" :typeLabel="entityLabel('legal_requirement')" />
         </div>
       </div>
 
@@ -38,7 +38,7 @@
         <div class="absolute inset-0 bg-black/60" @click="showCreateForm = false" />
         <div class="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 space-y-4 max-h-[84vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold text-slate-200">Add Legal Requirement</h2>
+          <h2 class="text-sm font-semibold text-slate-200">{{ t('legal.create.heading') }}</h2>
           <button @click="showCreateForm = false" class="text-slate-500 hover:text-slate-300">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -47,29 +47,29 @@
         </div>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Title *</label>
-            <input v-model="newItem.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. GDPR, NIS2 Directive" />
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.create.title_label') }}</label>
+            <input v-model="newItem.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('legal.create.title_placeholder')" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.create.category_label') }}</label>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="cat in legalCategories" :key="cat.key"
                 @click="newItem.category = newItem.category === cat.key ? '' : cat.key"
                 class="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors"
                 :class="newItem.category === cat.key ? 'bg-blue-600/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'"
-                :title="newItem.category === cat.key ? 'Click to deselect' : ''">
+                :title="newItem.category === cat.key ? t('legal.create.deselect_hint') : ''">
                 {{ cat.label }}
               </button>
             </div>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600 mt-1">You can add jurisdiction, owner, treatment and more after creating.</div>
+        <div class="text-[10px] text-slate-600 mt-1">{{ t('legal.create.fill_in_later') }}</div>
 
         <!-- Footer -->
         <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
           <button @click="createItem" :disabled="!newItem.title" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
-            Add
+            {{ t('legal.create.submit') }}
           </button>
         </div>
       </div>
@@ -86,10 +86,10 @@
           <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
-          Risk Map
+          {{ t('legal.map.summary') }}
         </summary>
         <div class="mt-3">
-          <HeatMap :items="heatMapItems" title="Compliance Risk Map" />
+          <HeatMap :items="heatMapItems" :title="t('legal.map.heading')" />
         </div>
       </details>
 
@@ -101,40 +101,35 @@
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <input v-model="searchQuery" type="text" placeholder="Search..."
+            <input v-model="searchQuery" type="text" :placeholder="t('common.placeholder.search')"
               class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500" />
           </div>
           <select v-model="filterLevel" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All levels</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="">{{ t('common.filter.all_levels') }}</option>
+            <option v-for="o in levelOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <select v-model="filterCategory" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All categories</option>
+            <option value="">{{ t('common.filter.all_categories') }}</option>
             <option v-for="cat in legalCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
           </select>
           <select v-model="filterStatus" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 focus:outline-none focus:border-blue-500">
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
+            <option value="">{{ t('common.filter.all_statuses') }}</option>
+            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
           <button v-if="filterLevel || filterCategory || filterStatus || searchQuery"
             @click="filterLevel = ''; filterCategory = ''; filterStatus = ''; searchQuery = ''"
             class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
-            Clear
+            {{ t('common.action.clear') }}
           </button>
           <div class="ml-auto text-xs text-slate-500 tabular-nums">
-            {{ total }} total
+            {{ t('common.count.total', { count: total }) }}
           </div>
         </div>
       </div>
 
       <!-- Empty state -->
       <div v-if="items.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-        <div class="text-sm text-slate-500">No legal requirements found</div>
+        <div class="text-sm text-slate-500">{{ t('legal.filter.empty') }}</div>
       </div>
 
       <!-- Table -->
@@ -142,12 +137,12 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-slate-800">
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jurisdiction</th>
-              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Treatment</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.title') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.jurisdiction') }}</th>
+              <th class="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.score') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.treatment') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.status') }}</th>
+              <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ t('legal.table.header.owner') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/50">
@@ -157,7 +152,7 @@
               <td class="px-5 py-3.5">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-slate-200">{{ item.title }}</span>
-                  <span v-if="isOverdue(item.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">OVERDUE</span>
+                  <span v-if="isOverdue(item.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
                 </div>
                 <div v-if="item.reference" class="text-xs text-slate-500 mt-0.5">{{ item.reference }}</div>
               </td>
@@ -172,7 +167,7 @@
                 </span>
                 <span v-else class="text-slate-600 text-xs">-</span>
               </td>
-              <td class="px-5 py-3.5 text-sm text-slate-400 capitalize">{{ (item.treatment || '-').replace(/_/g, ' ') }}</td>
+              <td class="px-5 py-3.5 text-sm text-slate-400">{{ treatmentLabel(item.treatment) || '-' }}</td>
               <td class="px-5 py-3.5">
                 <StatusBadge :status="item.status" />
               </td>
@@ -211,10 +206,10 @@
             <!-- Left nav -->
             <nav class="flex-shrink-0 w-28 border-r border-slate-800 py-3">
               <div class="space-y-0.5">
-                <button v-for="t in detailTabs" :key="t.key" @click="switchDetailTab(t.key)"
+                <button v-for="tab in detailTabs" :key="tab.key" @click="switchDetailTab(tab.key)"
                   class="w-full text-left px-3 py-2 text-xs font-medium transition-colors"
-                  :class="detailTab === t.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
-                  {{ t.label }}
+                  :class="detailTab === tab.key ? 'text-blue-400 bg-blue-500/10 border-r-2 border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'">
+                  {{ tab.label }}
                 </button>
               </div>
             </nav>
@@ -226,21 +221,21 @@
               <template v-if="detailTab === 'overview'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('legal.detail.overview') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('overview')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'overview'">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Title</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                        <MarkdownField v-model="editForm.description" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="3" placeholder="Describe the requirement..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.description') }}</label>
+                        <MarkdownField v-model="editForm.description" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="3" :placeholder="t('legal.placeholder.description')" />
                       </div>
                       <div class="relative">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Jurisdiction</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.jurisdiction') }}</label>
                         <input v-model="editForm.jurisdiction"
                           @focus="showJurisdictionPicker = true"
                           @input="showJurisdictionPicker = true"
@@ -251,7 +246,7 @@
                           @keydown.enter.prevent="filteredJurisdictions.length && (editForm.jurisdiction = filteredJurisdictions[jurisdictionIdx], showJurisdictionPicker = false)"
                           @keydown.escape="showJurisdictionPicker = false"
                           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="Type to search..." />
+                          :placeholder="t('legal.placeholder.jurisdiction')" />
                         <div v-if="showJurisdictionPicker && filteredJurisdictions.length > 0"
                           class="absolute z-50 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                           <button v-for="(j, i) in filteredJurisdictions" :key="j"
@@ -263,77 +258,75 @@
                         </div>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.category') }}</label>
                         <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="">None</option>
+                          <option value="">{{ t('common.option.none') }}</option>
                           <option v-for="cat in legalCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.status') }}</label>
                         <select v-model="editForm.status" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="draft">Draft</option>
-                          <option value="open">Open</option>
-                          <option value="closed">Closed</option>
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-                        <MemberPicker v-model="editForm.owner" :members="orgMembers" placeholder="Select owner..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.owner') }}</label>
+                        <MemberPicker v-model="editForm.owner" :members="orgMembers" :placeholder="t('common.placeholder.select_owner')" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Reference (article/section)</label>
-                        <input v-model="editForm.reference" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. Article 32, Section 4.2" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.reference_label') }}</label>
+                        <input v-model="editForm.reference" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('legal.placeholder.reference')" />
                       </div>
                       <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">URL</label>
-                        <input v-model="editForm.url" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="https://..." />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.url') }}</label>
+                        <input v-model="editForm.url" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('legal.placeholder.url')" />
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Title</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.title') }}</div>
                         <div class="text-sm text-slate-200 font-medium">{{ selectedItem.title }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.description') }}</div>
                         <div v-if="selectedItem.description" class="text-sm text-slate-300 leading-relaxed doc-prose" v-mermaid v-html="renderMd(selectedItem.description)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
                       <div class="grid grid-cols-2 gap-x-8 gap-y-3 pt-1">
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Status</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.status') }}</div>
                           <StatusBadge :status="selectedItem.status" />
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Owner</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.owner') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedItem.owner) }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Jurisdiction</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.jurisdiction') }}</div>
                           <div class="text-sm text-slate-300">{{ selectedItem.jurisdiction || '—' }}</div>
                         </div>
                         <div>
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Category</div>
-                          <div class="text-sm text-slate-300 capitalize">{{ formatLabel(selectedItem.category) || '—' }}</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.category') }}</div>
+                          <div class="text-sm text-slate-300">{{ categoryLabel(selectedItem.category) || '—' }}</div>
                         </div>
                         <div v-if="selectedItem.created_at">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.created') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedItem.created_at) }}</div>
                         </div>
                         <div v-if="selectedItem.created_by">
-                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Created by</div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedItem.created_by) }}</div>
                         </div>
                       </div>
                       <div class="pt-1">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Reference</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.reference') }}</div>
                         <div class="text-sm text-slate-300">{{ selectedItem.reference || '—' }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">URL</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.url') }}</div>
                         <a v-if="selectedItem.url" :href="selectedItem.url" target="_blank" rel="noopener" class="text-sm text-blue-400 hover:text-blue-300 break-all">{{ selectedItem.url }}</a>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
@@ -346,31 +339,32 @@
               <template v-if="detailTab === 'treatment'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Treatment</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('treatment')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('legal.detail.treatment') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('treatment')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'treatment'">
                     <div class="space-y-4">
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Treatment</label>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.treatment') }}</label>
                         <select v-model="editForm.treatment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="">Not decided</option><option value="mitigate">Mitigate</option><option value="accept">Accept</option><option value="transfer">Transfer</option><option value="avoid">Avoid</option>
+                          <option value="">{{ t('common.option.not_decided') }}</option>
+                          <option v-for="o in treatmentOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Treatment Plan</label>
-                        <MarkdownField v-model="editForm.treatment_plan" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="4" placeholder="How are we addressing this requirement? (controls, policies, actions...)" />
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.treatment_plan') }}</label>
+                        <MarkdownField v-model="editForm.treatment_plan" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="4" :placeholder="t('legal.placeholder.treatment_plan')" />
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="space-y-4">
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Treatment</div>
-                        <div class="text-sm text-slate-300 capitalize">{{ selectedItem.treatment || '—' }}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.treatment') }}</div>
+                        <div class="text-sm text-slate-300">{{ treatmentLabel(selectedItem.treatment) || '—' }}</div>
                       </div>
                       <div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Treatment Plan</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('legal.field.treatment_plan') }}</div>
                         <div v-if="selectedItem.treatment_plan" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedItem.treatment_plan)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
@@ -386,20 +380,20 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    Review overdue since {{ formatDay(selectedItem.next_review) }}
+                    {{ t('common.review.overdue_since', { date: formatDay(selectedItem.next_review) }) }}
                   </div>
                   <div class="flex items-center gap-4">
                     <div class="flex gap-3 flex-1">
                       <div class="bg-slate-800/60 border border-slate-600/50 rounded-lg px-5 py-3 text-center min-w-[90px] ring-1 ring-slate-600/20">
-                        <div class="text-[9px] text-slate-400 uppercase tracking-wider">Current</div>
+                        <div class="text-[9px] text-slate-400 uppercase tracking-wider">{{ t('legal.assessment.current') }}</div>
                         <div v-if="selectedItem.current_score" class="text-xl font-bold tabular-nums mt-1" :class="scoreColor(selectedItem.current_score)">{{ selectedItem.current_score }}</div>
                         <div v-else class="text-xl text-slate-700 mt-1">—</div>
                       </div>
                     </div>
                   </div>
                   <div class="flex gap-4 text-[10px] text-slate-500 flex-wrap">
-                    <span v-if="selectedItem.last_review">Last review: {{ formatDay(selectedItem.last_review) }}</span>
-                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">Next review: {{ formatDay(selectedItem.next_review) }}</span>
+                    <span v-if="selectedItem.last_review">{{ t('common.review.last', { date: formatDay(selectedItem.last_review) }) }}</span>
+                    <span v-if="selectedItem.next_review && !isOverdue(selectedItem.next_review)">{{ t('common.review.next', { date: formatDay(selectedItem.next_review) }) }}</span>
                   </div>
                   <div class="border-t border-slate-800 pt-4">
                     <ReadingsPanel entityType="legal_requirement" :entityId="selectedItem.id" :identifier="selectedItem.identifier || ('LEGAL-' + selectedItem.id)" :canWrite="canWrite"
@@ -413,15 +407,15 @@
               <template v-if="detailTab === 'notes'">
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">Edit</button>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('legal.detail.notes') }}</div>
+                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
-                    <MarkdownField v-model="editForm.notes" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="12" placeholder="Additional notes, observations, interpretations... Type /doc to link a document" />
+                    <MarkdownField v-model="editForm.notes" :self-type="'legal'" :self-id="selectedItem?.identifier || ''" :rows="12" :placeholder="t('legal.placeholder.notes')" />
                   </template>
                   <template v-else>
                     <div v-if="selectedItem.notes" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedItem.notes)"></div>
-                    <div v-else class="text-sm text-slate-600 italic">No notes yet.</div>
+                    <div v-else class="text-sm text-slate-600 italic">{{ t('common.state.no_notes') }}</div>
                   </template>
                 </div>
               </template>
@@ -452,10 +446,10 @@
                 <div class="px-6 py-5 space-y-6">
                   <HistoryPanel entityType="legal_requirement" :entityId="String(selectedItem.id)" />
                   <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
-                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Danger zone</div>
-                    <div class="text-xs text-slate-400">Deleting this legal requirement is permanent and cannot be undone. History, comments, and linked references will be lost.</div>
+                    <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
+                    <div class="text-xs text-slate-400">{{ t('legal.danger.warning') }}</div>
                     <button @click="deleteSelectedItem" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
-                      Delete requirement
+                      {{ t('legal.danger.delete') }}
                     </button>
                   </div>
                 </div>
@@ -466,8 +460,8 @@
 
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
-            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
-            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? 'Saving...' : 'Save' }}</button>
+            <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
+            <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -482,6 +476,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
@@ -506,7 +501,11 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate, formatDay } from '../composables/useFormat.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+import { renderApiError } from '../composables/useApiError.js'
 
+const { t } = useI18n()
+const { enumLabel, entityLabel } = useEnumLabel()
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
 
@@ -527,7 +526,7 @@ async function reload() {
   try {
     await loadItems()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     refreshing.value = false
   }
@@ -566,27 +565,49 @@ const filteredJurisdictions = computed(() => {
 watch(() => editForm.value.jurisdiction, () => { jurisdictionIdx.value = 0 })
 function hideJurisdictionPicker() { setTimeout(() => { showJurisdictionPicker.value = false }, 200) }
 
-const detailTabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'treatment', label: 'Treatment' },
-  { key: 'assessment', label: 'Assessment' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'links', label: 'Links' },
-  { key: 'suggestions', label: 'Suggestions' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'history', label: 'History' },
+// Message keys, not labels: a module-scope array of translated strings freezes
+// the tab bar in whichever locale was active when this module first evaluated.
+const TAB_KEYS = [
+  { key: 'overview', label: 'common.tab.overview' },
+  { key: 'treatment', label: 'common.tab.treatment' },
+  { key: 'assessment', label: 'common.tab.assessment' },
+  { key: 'notes', label: 'common.tab.notes' },
+  { key: 'links', label: 'common.tab.links' },
+  { key: 'suggestions', label: 'common.tab.suggestions' },
+  { key: 'comments', label: 'common.tab.comments' },
+  { key: 'history', label: 'common.tab.history' },
+]
+const detailTabs = computed(() => TAB_KEYS.map((tab) => ({ ...tab, label: t(tab.label) })))
+
+// The members each <select> offers. The set is this view's own choice; only the
+// label comes from the shared catalogue.
+const STATUSES = ['draft', 'open', 'closed']
+const LEVELS = ['critical', 'high', 'medium', 'low']
+const TREATMENTS = ['mitigate', 'accept', 'transfer', 'avoid']
+
+// The category list this view has always offered. It does NOT match
+// db.LegalCategories — six of these eight are rejected on save, which is #269
+// and not an extraction's to fix. Unchanged here; only the labels moved to the
+// catalogue, which carries the server's five as well so a value stored through
+// the API or CLI also renders.
+const CATEGORY_KEYS = [
+  'data_protection', 'employment', 'contractual', 'regulatory',
+  'intellectual_property', 'financial', 'environmental', 'corporate',
 ]
 
-const legalCategories = [
-  { key: 'data_protection', label: 'Data Protection' },
-  { key: 'employment', label: 'Employment Law' },
-  { key: 'contractual', label: 'Contractual' },
-  { key: 'regulatory', label: 'Regulatory Compliance' },
-  { key: 'intellectual_property', label: 'Intellectual Property' },
-  { key: 'financial', label: 'Financial Regulation' },
-  { key: 'environmental', label: 'Environmental' },
-  { key: 'corporate', label: 'Corporate Governance' },
-]
+// Lookups and option lists live here rather than in the template: a group name
+// is a stored identifier, and the raw-text scanner reads a bare quoted word in
+// a mustache as unextracted copy.
+const statusLabel = (v) => enumLabel('status', v)
+const levelLabel = (v) => enumLabel('severity', v)
+const treatmentLabel = (v) => enumLabel('treatment', v)
+const categoryLabel = (v) => enumLabel('legal_category', v)
+
+const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
+const statusOptions = options(STATUSES, statusLabel)
+const levelOptions = options(LEVELS, levelLabel)
+const treatmentOptions = options(TREATMENTS, treatmentLabel)
+const legalCategories = computed(() => CATEGORY_KEYS.map((key) => ({ key, label: categoryLabel(key) })))
 
 useModalEscape(showCreateForm)
 useModalEscape(computed(() => !!selectedItem.value), closeDetail)
@@ -595,12 +616,12 @@ const stats = ref({ total: 0, critical: 0, high: 0, medium: 0, low: 0, not_asses
 const criticalCount = computed(() => stats.value.critical)
 const highCount = computed(() => stats.value.high)
 const statusStats = computed(() => [
-  { key: '', label: 'Total', count: stats.value.total || items.value.length, color: 'text-slate-100' },
-  { key: 'open', label: 'Open', count: stats.value.open || 0, color: 'text-blue-400' },
-  { key: 'draft', label: 'Draft', count: stats.value.draft || 0, color: 'text-amber-400' },
-  { key: 'closed', label: 'Closed', count: stats.value.closed || 0, color: 'text-slate-400' },
-  { key: 'critical', label: 'Critical', count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
-  { key: 'high', label: 'High', count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
+  { key: '', label: t('common.stat.total'), count: stats.value.total || items.value.length, color: 'text-slate-100' },
+  { key: 'open', label: statusLabel('open'), count: stats.value.open || 0, color: 'text-blue-400' },
+  { key: 'draft', label: statusLabel('draft'), count: stats.value.draft || 0, color: 'text-amber-400' },
+  { key: 'closed', label: statusLabel('closed'), count: stats.value.closed || 0, color: 'text-slate-400' },
+  { key: 'critical', label: levelLabel('critical'), count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
+  { key: 'high', label: levelLabel('high'), count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
 ])
 const notAssessedCount = computed(() => stats.value.not_assessed)
 
@@ -630,8 +651,6 @@ function scoreColor(score) {
   return 'bg-emerald-900/60 text-emerald-300'
 }
 
-function formatLabel(s) { return (s || '').replace(/_/g, ' ') }
-
 function isOverdue(dateStr) {
   if (!dateStr) return false
   const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
@@ -658,7 +677,7 @@ async function loadItems() {
     total.value = res?.total || 0
     loadStats()
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   }
 }
 
@@ -708,9 +727,9 @@ async function saveSection() {
     const fresh = items.value.find(i => i.id === selectedItem.value.id)
     if (fresh) { selectedItem.value = fresh; startEdit(fresh) }
     editingSection.value = ''
-    showSaved('Saved')
+    showSaved(t('common.state.saved'))
   } catch (e) {
-    showError('Failed to save: ' + e.message)
+    showError(t('legal.error.save', { message: renderApiError(e) }))
   } finally {
     saving.value = false
   }
@@ -739,9 +758,9 @@ async function openItemFromRoute(id) {
 async function switchDetailTab(key) {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and switch tab?',
+      message: t('legal.dirty.switch_tab'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('legal.dirty.discard'),
     })
     if (!ok) return
   }
@@ -752,9 +771,9 @@ async function switchDetailTab(key) {
 async function closeDetail() {
   if (editingSection.value && isDirty()) {
     const ok = await confirmDialog({
-      message: 'You have unsaved changes. Discard and close?',
+      message: t('legal.dirty.close'),
       variant: 'danger',
-      confirmLabel: 'Discard',
+      confirmLabel: t('legal.dirty.discard'),
     })
     if (!ok) return
   }
@@ -784,20 +803,20 @@ async function createItem() {
       router.push(orgPath(`/legal/${fresh.id}`))
     }
   } catch (e) {
-    showError('Failed to create legal requirement: ' + e.message)
+    showError(t('legal.error.create', { message: renderApiError(e) }))
   }
 }
 
 async function deleteSelectedItem() {
   if (!selectedItem.value) return
-  const ok = await confirmDialog({ message: 'Delete this legal requirement? This cannot be undone.', variant: 'danger', confirmLabel: 'Delete' })
+  const ok = await confirmDialog({ message: t('legal.danger.confirm'), variant: 'danger', confirmLabel: t('common.action.delete') })
   if (!ok) return
   try {
     await api.deleteJSON(`/api/v1/legal/${selectedItem.value.id}`)
     closeDetail()
     await loadItems()
   } catch (e) {
-    showError('Failed to delete: ' + e.message)
+    showError(t('legal.error.delete', { message: renderApiError(e) }))
   }
 }
 
@@ -810,7 +829,7 @@ onMounted(async () => {
     ])
     orgMembers.value = users || []
   } catch (e) {
-    error.value = e.message
+    error.value = renderApiError(e)
   } finally {
     loading.value = false
   }

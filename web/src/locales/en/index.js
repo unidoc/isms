@@ -17,6 +17,7 @@ import common from './common.json' with { type: 'json' }
 import dashboard from './dashboard.json' with { type: 'json' }
 import components from './components.json' with { type: 'json' }
 import landing from './landing.json' with { type: 'json' }
+import legal from './legal.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
 import organizations from './organizations.json' with { type: 'json' }
 import risks from './risks.json' with { type: 'json' }
@@ -30,6 +31,7 @@ export default {
   components,
   dashboard,
   landing,
+  legal,
   notifications,
   organizations,
   risks,

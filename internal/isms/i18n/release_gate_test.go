@@ -116,6 +116,20 @@ const localesDir = "../../../web/src/locales"
 // because it measures the *app*, not the *bundle*. This one measures the
 // bundle.
 //
+// It measures which keys are *present* in the bundle, not which are actually
+// translated, and that limit is worth stating because the obvious way to start a
+// locale walks straight into it: `cp -r en <tag>` yields a bundle that is
+// missing nothing, so this gate reads 100% while every value is English — the
+// exact release it exists to block, waved through. Verified, not assumed.
+//
+// Detecting that here would need a value comparison, and values legitimately
+// agree with `en` sometimes: 17 of id-ID's 244 keys do, all loanwords
+// ("Audit", "Program", "Passkey"). So the control is the procedure instead —
+// docs/i18n.md step 3 says to add area files as they are finished and why — and
+// a reviewer seeing 25 new files of English in one commit. If a copied bundle
+// ever reaches a release, the fix is a check that fails on a *large* share of
+// identical values, not on any.
+//
 // 90 rather than 100 because `localeKeyset.test.js` deliberately lets a
 // translation lag: a missing key renders in English through fallbackLocale, and
 // a bundle a few keys behind must not block an unrelated PR. So a small,

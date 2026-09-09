@@ -57,13 +57,23 @@ type entry struct {
 // Default must always be enabled: it is the last resort of every resolution
 // path.
 //
-// Why id-ID is disabled: the bundle is complete and validated in CI
-// (web/test/localeKeyset.test.js), but most of the UI still holds hardcoded
-// English, so selecting it yields a near-entirely English app that claims to be
-// Indonesian. Enabling it is flipping this one flag once string extraction has
-// progressed far enough; TestSecondLocaleRequiresExtraction asserts that
-// threshold against the web raw-text baseline, so it fails if the flag is
-// flipped too early. Tracking issue: #212.
+// Why id-ID is disabled, and why it is no longer "one flag away":
+//
+// It was disabled because the UI held hardcoded English, so selecting it yielded
+// a near-entirely English app claiming to be Indonesian. That reason is spent —
+// extraction finished in 2026-09, and TestSecondLocaleRequiresExtraction now
+// passes with the raw-text baseline at zero.
+//
+// It stays disabled for the mirror-image reason. The bundle was complete against
+// an `en` of 162 keys; extraction grew `en` to 2448, and id-ID still carries only
+// common.json and notifications.json — 244 keys, under 10%. Missing keys render
+// in English through fallbackLocale, so enabling it today produces the same
+// near-entirely English app by the other route. TestEnabledLocalesAreTranslated
+// measures the bundle against the frozen keyset and fails on exactly this, which
+// is why the extraction gate alone was not enough.
+//
+// So enabling it is: finish the bundle to the coverage threshold, then flip this
+// flag, then update TestOnlyEnabledLocalesAreOffered. Tracking issue: #212.
 //
 // Indonesian is tagged id-ID rather than the barer id. Both are valid and the
 // canonicalization below treats them interchangeably (a browser sending either

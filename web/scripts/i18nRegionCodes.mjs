@@ -197,6 +197,34 @@ export function codeList() {
   return [...SENTINELS, ...Object.values(nameToCode()).sort()]
 }
 
+/**
+ * The shared data file Go embeds: the offered code set, and for each country the
+ * frozen legacy name plus the current English label.
+ *
+ * Go needs all three. It gates region display on the offered set (the same gate
+ * `regionLabel()` applies, so the search index can never resolve a name the UI
+ * renders verbatim), and it folds both names into the search blob so a query
+ * that worked before the conversion still works after it.
+ *
+ * `label` is carried here rather than looked up server-side on purpose.
+ * `golang.org/x/text` ships its own CLDR snapshot, and it does not agree with
+ * the browser's: it calls `SZ` "Swaziland" and `MK` "Macedonia" where the
+ * browser says "Eswatini" and "North Macedonia". Indexing x/text's answer would
+ * put a name in the index that no reader can see on screen.
+ */
+export function dataFile() {
+  const dn = new Intl.DisplayNames(['en'], { type: 'region' })
+  return {
+    _generated: 'node web/scripts/i18nRegionCodes.mjs --json > internal/isms/api/regions.json',
+    sentinels: SENTINELS,
+    entries: Object.entries(nameToCode()).map(([legacy, code]) => ({
+      code,
+      legacy,
+      label: dn.of(code),
+    })),
+  }
+}
+
 /** The migration's CASE arms, exact-match on the stored English name. */
 function sql() {
   const arms = Object.entries(nameToCode())
@@ -213,3 +241,4 @@ function quote(s) {
 
 if (process.argv.includes('--codes')) console.log(codeList().join('\n'))
 else if (process.argv.includes('--sql')) console.log(sql())
+else if (process.argv.includes('--json')) console.log(`${JSON.stringify(dataFile(), null, 2)}\n`)

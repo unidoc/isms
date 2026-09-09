@@ -9,7 +9,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
-import { codeList, nameToCode, SENTINELS } from '../scripts/i18nRegionCodes.mjs'
+import { codeList, dataFile, nameToCode, SENTINELS } from '../scripts/i18nRegionCodes.mjs'
 import countries from '../src/data/countries.js'
 import { REGION_SENTINELS, regionLabel } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
@@ -114,6 +114,41 @@ test('the migration converts every legacy name and no sentinel', () => {
   }
 })
 
+test("the Go side's embedded data file matches the generator", () => {
+  // `internal/isms/api/regions.json` is embedded into the binary and gives Go
+  // the offered code set plus, per country, the frozen legacy name and the
+  // current label. The assertion lives here rather than in Go because this is
+  // the side that can run the generator.
+  //
+  // Drift is not cosmetic: Go gates region resolution on that code set so the
+  // search index can never resolve a value the client renders verbatim, and it
+  // folds both names into the blob so a pre-conversion query still matches. A
+  // stale file silently un-indexes jurisdictions.
+  // Regenerate with:
+  //   node scripts/i18nRegionCodes.mjs --json > ../internal/isms/api/regions.json
+  const committed = JSON.parse(readFileSync(new URL('../../internal/isms/api/regions.json', import.meta.url), 'utf8'))
+  assert.deepEqual(committed, dataFile())
+})
+
+test('the data file carries the legacy name wherever CLDR has drifted', () => {
+  // 16 of the 197 names drifted, which is why `legacy` is carried at all rather
+  // than derived. Someone who has always searched "Czech Republic" gets nothing
+  // if only "Czechia" is indexed.
+  //
+  // 16 is the count against the BROWSER's table, which is the one that matters
+  // because `label` is what a reader sees. Go's `x/text` ships a different CLDR
+  // snapshot and drifts on a different 15 (it still says "Swaziland" and
+  // "Macedonia"); that mismatch is exactly why the label is generated here and
+  // embedded rather than looked up server-side.
+  const byCode = Object.fromEntries(dataFile().entries.map(e => [e.code, e]))
+  assert.equal(byCode.CZ.legacy, 'Czech Republic')
+  assert.equal(byCode.CZ.label, 'Czechia')
+  assert.equal(byCode.AG.legacy, 'Antigua and Barbuda')
+  assert.equal(byCode.AG.label, 'Antigua & Barbuda')
+  const drifted = dataFile().entries.filter(e => e.legacy !== e.label)
+  assert.equal(drifted.length, 16, 'the drifted set changed — check the Go search test too')
+})
+
 test('regionLabel resolves sentinels before ISO, so EU is not "European Union"', () => {
   i18n.global.mergeLocaleMessage('en', {
     common: { region: { global: 'Global', eu: 'EU', eea: 'EEA', apac: 'APAC' } },
@@ -141,6 +176,20 @@ test('regionLabel renders codes, and falls back rather than throwing', () => {
   assert.equal(regionLabel(''), '')
   assert.equal(regionLabel(null), '')
   assert.equal(regionLabel(undefined), '')
+})
+
+test('only codes the picker offers resolve — CLDR is not the gate', () => {
+  // A bare `/^[A-Z]{2}$/` test used to be the gate, and CLDR answers for plenty
+  // of codes this picker never offered. Some of them are not places at all, and
+  // any of them contradicts the contract that a value outside the offered set
+  // displays exactly as stored.
+  for (const code of ['ZZ', 'XA', 'EZ', 'UN', 'QO']) {
+    assert.equal(regionLabel(code), code, `${code} is not a place and must render verbatim`)
+  }
+  // A real ISO code the picker does not offer. Rendered as typed: we have no
+  // basis to claim the user meant the region when we never offered it, and the
+  // Go index gates on the same set so the two cannot disagree.
+  assert.equal(regionLabel('HK'), 'HK')
 })
 
 test('every code the picker offers renders as a name, not as itself', () => {

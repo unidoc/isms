@@ -1,0 +1,997 @@
+{
+  "_generated": "node web/scripts/i18nRegionCodes.mjs --json > internal/isms/api/regions.json",
+  "sentinels": [
+    "Global",
+    "EU",
+    "EEA",
+    "APAC"
+  ],
+  "entries": [
+    {
+      "code": "AF",
+      "legacy": "Afghanistan",
+      "label": "Afghanistan"
+    },
+    {
+      "code": "AL",
+      "legacy": "Albania",
+      "label": "Albania"
+    },
+    {
+      "code": "DZ",
+      "legacy": "Algeria",
+      "label": "Algeria"
+    },
+    {
+      "code": "AD",
+      "legacy": "Andorra",
+      "label": "Andorra"
+    },
+    {
+      "code": "AO",
+      "legacy": "Angola",
+      "label": "Angola"
+    },
+    {
+      "code": "AG",
+      "legacy": "Antigua and Barbuda",
+      "label": "Antigua & Barbuda"
+    },
+    {
+      "code": "AR",
+      "legacy": "Argentina",
+      "label": "Argentina"
+    },
+    {
+      "code": "AM",
+      "legacy": "Armenia",
+      "label": "Armenia"
+    },
+    {
+      "code": "AU",
+      "legacy": "Australia",
+      "label": "Australia"
+    },
+    {
+      "code": "AT",
+      "legacy": "Austria",
+      "label": "Austria"
+    },
+    {
+      "code": "AZ",
+      "legacy": "Azerbaijan",
+      "label": "Azerbaijan"
+    },
+    {
+      "code": "BS",
+      "legacy": "Bahamas",
+      "label": "Bahamas"
+    },
+    {
+      "code": "BH",
+      "legacy": "Bahrain",
+      "label": "Bahrain"
+    },
+    {
+      "code": "BD",
+      "legacy": "Bangladesh",
+      "label": "Bangladesh"
+    },
+    {
+      "code": "BB",
+      "legacy": "Barbados",
+      "label": "Barbados"
+    },
+    {
+      "code": "BY",
+      "legacy": "Belarus",
+      "label": "Belarus"
+    },
+    {
+      "code": "BE",
+      "legacy": "Belgium",
+      "label": "Belgium"
+    },
+    {
+      "code": "BZ",
+      "legacy": "Belize",
+      "label": "Belize"
+    },
+    {
+      "code": "BJ",
+      "legacy": "Benin",
+      "label": "Benin"
+    },
+    {
+      "code": "BT",
+      "legacy": "Bhutan",
+      "label": "Bhutan"
+    },
+    {
+      "code": "BO",
+      "legacy": "Bolivia",
+      "label": "Bolivia"
+    },
+    {
+      "code": "BA",
+      "legacy": "Bosnia and Herzegovina",
+      "label": "Bosnia & Herzegovina"
+    },
+    {
+      "code": "BW",
+      "legacy": "Botswana",
+      "label": "Botswana"
+    },
+    {
+      "code": "BR",
+      "legacy": "Brazil",
+      "label": "Brazil"
+    },
+    {
+      "code": "BN",
+      "legacy": "Brunei",
+      "label": "Brunei"
+    },
+    {
+      "code": "BG",
+      "legacy": "Bulgaria",
+      "label": "Bulgaria"
+    },
+    {
+      "code": "BF",
+      "legacy": "Burkina Faso",
+      "label": "Burkina Faso"
+    },
+    {
+      "code": "BI",
+      "legacy": "Burundi",
+      "label": "Burundi"
+    },
+    {
+      "code": "CV",
+      "legacy": "Cabo Verde",
+      "label": "Cape Verde"
+    },
+    {
+      "code": "KH",
+      "legacy": "Cambodia",
+      "label": "Cambodia"
+    },
+    {
+      "code": "CM",
+      "legacy": "Cameroon",
+      "label": "Cameroon"
+    },
+    {
+      "code": "CA",
+      "legacy": "Canada",
+      "label": "Canada"
+    },
+    {
+      "code": "CF",
+      "legacy": "Central African Republic",
+      "label": "Central African Republic"
+    },
+    {
+      "code": "TD",
+      "legacy": "Chad",
+      "label": "Chad"
+    },
+    {
+      "code": "CL",
+      "legacy": "Chile",
+      "label": "Chile"
+    },
+    {
+      "code": "CN",
+      "legacy": "China",
+      "label": "China"
+    },
+    {
+      "code": "CO",
+      "legacy": "Colombia",
+      "label": "Colombia"
+    },
+    {
+      "code": "KM",
+      "legacy": "Comoros",
+      "label": "Comoros"
+    },
+    {
+      "code": "CG",
+      "legacy": "Congo",
+      "label": "Congo - Brazzaville"
+    },
+    {
+      "code": "CR",
+      "legacy": "Costa Rica",
+      "label": "Costa Rica"
+    },
+    {
+      "code": "HR",
+      "legacy": "Croatia",
+      "label": "Croatia"
+    },
+    {
+      "code": "CU",
+      "legacy": "Cuba",
+      "label": "Cuba"
+    },
+    {
+      "code": "CY",
+      "legacy": "Cyprus",
+      "label": "Cyprus"
+    },
+    {
+      "code": "CZ",
+      "legacy": "Czech Republic",
+      "label": "Czechia"
+    },
+    {
+      "code": "CD",
+      "legacy": "Democratic Republic of the Congo",
+      "label": "Congo - Kinshasa"
+    },
+    {
+      "code": "DK",
+      "legacy": "Denmark",
+      "label": "Denmark"
+    },
+    {
+      "code": "DJ",
+      "legacy": "Djibouti",
+      "label": "Djibouti"
+    },
+    {
+      "code": "DM",
+      "legacy": "Dominica",
+      "label": "Dominica"
+    },
+    {
+      "code": "DO",
+      "legacy": "Dominican Republic",
+      "label": "Dominican Republic"
+    },
+    {
+      "code": "TL",
+      "legacy": "East Timor",
+      "label": "Timor-Leste"
+    },
+    {
+      "code": "EC",
+      "legacy": "Ecuador",
+      "label": "Ecuador"
+    },
+    {
+      "code": "EG",
+      "legacy": "Egypt",
+      "label": "Egypt"
+    },
+    {
+      "code": "SV",
+      "legacy": "El Salvador",
+      "label": "El Salvador"
+    },
+    {
+      "code": "GQ",
+      "legacy": "Equatorial Guinea",
+      "label": "Equatorial Guinea"
+    },
+    {
+      "code": "ER",
+      "legacy": "Eritrea",
+      "label": "Eritrea"
+    },
+    {
+      "code": "EE",
+      "legacy": "Estonia",
+      "label": "Estonia"
+    },
+    {
+      "code": "SZ",
+      "legacy": "Eswatini",
+      "label": "Eswatini"
+    },
+    {
+      "code": "ET",
+      "legacy": "Ethiopia",
+      "label": "Ethiopia"
+    },
+    {
+      "code": "FJ",
+      "legacy": "Fiji",
+      "label": "Fiji"
+    },
+    {
+      "code": "FI",
+      "legacy": "Finland",
+      "label": "Finland"
+    },
+    {
+      "code": "FR",
+      "legacy": "France",
+      "label": "France"
+    },
+    {
+      "code": "GA",
+      "legacy": "Gabon",
+      "label": "Gabon"
+    },
+    {
+      "code": "GM",
+      "legacy": "Gambia",
+      "label": "Gambia"
+    },
+    {
+      "code": "GE",
+      "legacy": "Georgia",
+      "label": "Georgia"
+    },
+    {
+      "code": "DE",
+      "legacy": "Germany",
+      "label": "Germany"
+    },
+    {
+      "code": "GH",
+      "legacy": "Ghana",
+      "label": "Ghana"
+    },
+    {
+      "code": "GR",
+      "legacy": "Greece",
+      "label": "Greece"
+    },
+    {
+      "code": "GD",
+      "legacy": "Grenada",
+      "label": "Grenada"
+    },
+    {
+      "code": "GT",
+      "legacy": "Guatemala",
+      "label": "Guatemala"
+    },
+    {
+      "code": "GN",
+      "legacy": "Guinea",
+      "label": "Guinea"
+    },
+    {
+      "code": "GW",
+      "legacy": "Guinea-Bissau",
+      "label": "Guinea-Bissau"
+    },
+    {
+      "code": "GY",
+      "legacy": "Guyana",
+      "label": "Guyana"
+    },
+    {
+      "code": "HT",
+      "legacy": "Haiti",
+      "label": "Haiti"
+    },
+    {
+      "code": "HN",
+      "legacy": "Honduras",
+      "label": "Honduras"
+    },
+    {
+      "code": "HU",
+      "legacy": "Hungary",
+      "label": "Hungary"
+    },
+    {
+      "code": "IS",
+      "legacy": "Iceland",
+      "label": "Iceland"
+    },
+    {
+      "code": "IN",
+      "legacy": "India",
+      "label": "India"
+    },
+    {
+      "code": "ID",
+      "legacy": "Indonesia",
+      "label": "Indonesia"
+    },
+    {
+      "code": "IR",
+      "legacy": "Iran",
+      "label": "Iran"
+    },
+    {
+      "code": "IQ",
+      "legacy": "Iraq",
+      "label": "Iraq"
+    },
+    {
+      "code": "IE",
+      "legacy": "Ireland",
+      "label": "Ireland"
+    },
+    {
+      "code": "IL",
+      "legacy": "Israel",
+      "label": "Israel"
+    },
+    {
+      "code": "IT",
+      "legacy": "Italy",
+      "label": "Italy"
+    },
+    {
+      "code": "CI",
+      "legacy": "Ivory Coast",
+      "label": "Côte d’Ivoire"
+    },
+    {
+      "code": "JM",
+      "legacy": "Jamaica",
+      "label": "Jamaica"
+    },
+    {
+      "code": "JP",
+      "legacy": "Japan",
+      "label": "Japan"
+    },
+    {
+      "code": "JO",
+      "legacy": "Jordan",
+      "label": "Jordan"
+    },
+    {
+      "code": "KZ",
+      "legacy": "Kazakhstan",
+      "label": "Kazakhstan"
+    },
+    {
+      "code": "KE",
+      "legacy": "Kenya",
+      "label": "Kenya"
+    },
+    {
+      "code": "KI",
+      "legacy": "Kiribati",
+      "label": "Kiribati"
+    },
+    {
+      "code": "XK",
+      "legacy": "Kosovo",
+      "label": "Kosovo"
+    },
+    {
+      "code": "KW",
+      "legacy": "Kuwait",
+      "label": "Kuwait"
+    },
+    {
+      "code": "KG",
+      "legacy": "Kyrgyzstan",
+      "label": "Kyrgyzstan"
+    },
+    {
+      "code": "LA",
+      "legacy": "Laos",
+      "label": "Laos"
+    },
+    {
+      "code": "LV",
+      "legacy": "Latvia",
+      "label": "Latvia"
+    },
+    {
+      "code": "LB",
+      "legacy": "Lebanon",
+      "label": "Lebanon"
+    },
+    {
+      "code": "LS",
+      "legacy": "Lesotho",
+      "label": "Lesotho"
+    },
+    {
+      "code": "LR",
+      "legacy": "Liberia",
+      "label": "Liberia"
+    },
+    {
+      "code": "LY",
+      "legacy": "Libya",
+      "label": "Libya"
+    },
+    {
+      "code": "LI",
+      "legacy": "Liechtenstein",
+      "label": "Liechtenstein"
+    },
+    {
+      "code": "LT",
+      "legacy": "Lithuania",
+      "label": "Lithuania"
+    },
+    {
+      "code": "LU",
+      "legacy": "Luxembourg",
+      "label": "Luxembourg"
+    },
+    {
+      "code": "MG",
+      "legacy": "Madagascar",
+      "label": "Madagascar"
+    },
+    {
+      "code": "MW",
+      "legacy": "Malawi",
+      "label": "Malawi"
+    },
+    {
+      "code": "MY",
+      "legacy": "Malaysia",
+      "label": "Malaysia"
+    },
+    {
+      "code": "MV",
+      "legacy": "Maldives",
+      "label": "Maldives"
+    },
+    {
+      "code": "ML",
+      "legacy": "Mali",
+      "label": "Mali"
+    },
+    {
+      "code": "MT",
+      "legacy": "Malta",
+      "label": "Malta"
+    },
+    {
+      "code": "MH",
+      "legacy": "Marshall Islands",
+      "label": "Marshall Islands"
+    },
+    {
+      "code": "MR",
+      "legacy": "Mauritania",
+      "label": "Mauritania"
+    },
+    {
+      "code": "MU",
+      "legacy": "Mauritius",
+      "label": "Mauritius"
+    },
+    {
+      "code": "MX",
+      "legacy": "Mexico",
+      "label": "Mexico"
+    },
+    {
+      "code": "FM",
+      "legacy": "Micronesia",
+      "label": "Micronesia"
+    },
+    {
+      "code": "MD",
+      "legacy": "Moldova",
+      "label": "Moldova"
+    },
+    {
+      "code": "MC",
+      "legacy": "Monaco",
+      "label": "Monaco"
+    },
+    {
+      "code": "MN",
+      "legacy": "Mongolia",
+      "label": "Mongolia"
+    },
+    {
+      "code": "ME",
+      "legacy": "Montenegro",
+      "label": "Montenegro"
+    },
+    {
+      "code": "MA",
+      "legacy": "Morocco",
+      "label": "Morocco"
+    },
+    {
+      "code": "MZ",
+      "legacy": "Mozambique",
+      "label": "Mozambique"
+    },
+    {
+      "code": "MM",
+      "legacy": "Myanmar",
+      "label": "Myanmar (Burma)"
+    },
+    {
+      "code": "NA",
+      "legacy": "Namibia",
+      "label": "Namibia"
+    },
+    {
+      "code": "NR",
+      "legacy": "Nauru",
+      "label": "Nauru"
+    },
+    {
+      "code": "NP",
+      "legacy": "Nepal",
+      "label": "Nepal"
+    },
+    {
+      "code": "NL",
+      "legacy": "Netherlands",
+      "label": "Netherlands"
+    },
+    {
+      "code": "NZ",
+      "legacy": "New Zealand",
+      "label": "New Zealand"
+    },
+    {
+      "code": "NI",
+      "legacy": "Nicaragua",
+      "label": "Nicaragua"
+    },
+    {
+      "code": "NE",
+      "legacy": "Niger",
+      "label": "Niger"
+    },
+    {
+      "code": "NG",
+      "legacy": "Nigeria",
+      "label": "Nigeria"
+    },
+    {
+      "code": "KP",
+      "legacy": "North Korea",
+      "label": "North Korea"
+    },
+    {
+      "code": "MK",
+      "legacy": "North Macedonia",
+      "label": "North Macedonia"
+    },
+    {
+      "code": "NO",
+      "legacy": "Norway",
+      "label": "Norway"
+    },
+    {
+      "code": "OM",
+      "legacy": "Oman",
+      "label": "Oman"
+    },
+    {
+      "code": "PK",
+      "legacy": "Pakistan",
+      "label": "Pakistan"
+    },
+    {
+      "code": "PW",
+      "legacy": "Palau",
+      "label": "Palau"
+    },
+    {
+      "code": "PS",
+      "legacy": "Palestine",
+      "label": "Palestinian Territories"
+    },
+    {
+      "code": "PA",
+      "legacy": "Panama",
+      "label": "Panama"
+    },
+    {
+      "code": "PG",
+      "legacy": "Papua New Guinea",
+      "label": "Papua New Guinea"
+    },
+    {
+      "code": "PY",
+      "legacy": "Paraguay",
+      "label": "Paraguay"
+    },
+    {
+      "code": "PE",
+      "legacy": "Peru",
+      "label": "Peru"
+    },
+    {
+      "code": "PH",
+      "legacy": "Philippines",
+      "label": "Philippines"
+    },
+    {
+      "code": "PL",
+      "legacy": "Poland",
+      "label": "Poland"
+    },
+    {
+      "code": "PT",
+      "legacy": "Portugal",
+      "label": "Portugal"
+    },
+    {
+      "code": "QA",
+      "legacy": "Qatar",
+      "label": "Qatar"
+    },
+    {
+      "code": "RO",
+      "legacy": "Romania",
+      "label": "Romania"
+    },
+    {
+      "code": "RU",
+      "legacy": "Russia",
+      "label": "Russia"
+    },
+    {
+      "code": "RW",
+      "legacy": "Rwanda",
+      "label": "Rwanda"
+    },
+    {
+      "code": "KN",
+      "legacy": "Saint Kitts and Nevis",
+      "label": "St. Kitts & Nevis"
+    },
+    {
+      "code": "LC",
+      "legacy": "Saint Lucia",
+      "label": "St. Lucia"
+    },
+    {
+      "code": "VC",
+      "legacy": "Saint Vincent and the Grenadines",
+      "label": "St. Vincent & Grenadines"
+    },
+    {
+      "code": "WS",
+      "legacy": "Samoa",
+      "label": "Samoa"
+    },
+    {
+      "code": "SM",
+      "legacy": "San Marino",
+      "label": "San Marino"
+    },
+    {
+      "code": "ST",
+      "legacy": "Sao Tome and Principe",
+      "label": "São Tomé & Príncipe"
+    },
+    {
+      "code": "SA",
+      "legacy": "Saudi Arabia",
+      "label": "Saudi Arabia"
+    },
+    {
+      "code": "SN",
+      "legacy": "Senegal",
+      "label": "Senegal"
+    },
+    {
+      "code": "RS",
+      "legacy": "Serbia",
+      "label": "Serbia"
+    },
+    {
+      "code": "SC",
+      "legacy": "Seychelles",
+      "label": "Seychelles"
+    },
+    {
+      "code": "SL",
+      "legacy": "Sierra Leone",
+      "label": "Sierra Leone"
+    },
+    {
+      "code": "SG",
+      "legacy": "Singapore",
+      "label": "Singapore"
+    },
+    {
+      "code": "SK",
+      "legacy": "Slovakia",
+      "label": "Slovakia"
+    },
+    {
+      "code": "SI",
+      "legacy": "Slovenia",
+      "label": "Slovenia"
+    },
+    {
+      "code": "SB",
+      "legacy": "Solomon Islands",
+      "label": "Solomon Islands"
+    },
+    {
+      "code": "SO",
+      "legacy": "Somalia",
+      "label": "Somalia"
+    },
+    {
+      "code": "ZA",
+      "legacy": "South Africa",
+      "label": "South Africa"
+    },
+    {
+      "code": "KR",
+      "legacy": "South Korea",
+      "label": "South Korea"
+    },
+    {
+      "code": "SS",
+      "legacy": "South Sudan",
+      "label": "South Sudan"
+    },
+    {
+      "code": "ES",
+      "legacy": "Spain",
+      "label": "Spain"
+    },
+    {
+      "code": "LK",
+      "legacy": "Sri Lanka",
+      "label": "Sri Lanka"
+    },
+    {
+      "code": "SD",
+      "legacy": "Sudan",
+      "label": "Sudan"
+    },
+    {
+      "code": "SR",
+      "legacy": "Suriname",
+      "label": "Suriname"
+    },
+    {
+      "code": "SE",
+      "legacy": "Sweden",
+      "label": "Sweden"
+    },
+    {
+      "code": "CH",
+      "legacy": "Switzerland",
+      "label": "Switzerland"
+    },
+    {
+      "code": "SY",
+      "legacy": "Syria",
+      "label": "Syria"
+    },
+    {
+      "code": "TW",
+      "legacy": "Taiwan",
+      "label": "Taiwan"
+    },
+    {
+      "code": "TJ",
+      "legacy": "Tajikistan",
+      "label": "Tajikistan"
+    },
+    {
+      "code": "TZ",
+      "legacy": "Tanzania",
+      "label": "Tanzania"
+    },
+    {
+      "code": "TH",
+      "legacy": "Thailand",
+      "label": "Thailand"
+    },
+    {
+      "code": "TG",
+      "legacy": "Togo",
+      "label": "Togo"
+    },
+    {
+      "code": "TO",
+      "legacy": "Tonga",
+      "label": "Tonga"
+    },
+    {
+      "code": "TT",
+      "legacy": "Trinidad and Tobago",
+      "label": "Trinidad & Tobago"
+    },
+    {
+      "code": "TN",
+      "legacy": "Tunisia",
+      "label": "Tunisia"
+    },
+    {
+      "code": "TR",
+      "legacy": "Turkey",
+      "label": "Türkiye"
+    },
+    {
+      "code": "TM",
+      "legacy": "Turkmenistan",
+      "label": "Turkmenistan"
+    },
+    {
+      "code": "TV",
+      "legacy": "Tuvalu",
+      "label": "Tuvalu"
+    },
+    {
+      "code": "UG",
+      "legacy": "Uganda",
+      "label": "Uganda"
+    },
+    {
+      "code": "UA",
+      "legacy": "Ukraine",
+      "label": "Ukraine"
+    },
+    {
+      "code": "AE",
+      "legacy": "United Arab Emirates",
+      "label": "United Arab Emirates"
+    },
+    {
+      "code": "GB",
+      "legacy": "United Kingdom",
+      "label": "United Kingdom"
+    },
+    {
+      "code": "US",
+      "legacy": "United States",
+      "label": "United States"
+    },
+    {
+      "code": "UY",
+      "legacy": "Uruguay",
+      "label": "Uruguay"
+    },
+    {
+      "code": "UZ",
+      "legacy": "Uzbekistan",
+      "label": "Uzbekistan"
+    },
+    {
+      "code": "VU",
+      "legacy": "Vanuatu",
+      "label": "Vanuatu"
+    },
+    {
+      "code": "VA",
+      "legacy": "Vatican City",
+      "label": "Vatican City"
+    },
+    {
+      "code": "VE",
+      "legacy": "Venezuela",
+      "label": "Venezuela"
+    },
+    {
+      "code": "VN",
+      "legacy": "Vietnam",
+      "label": "Vietnam"
+    },
+    {
+      "code": "YE",
+      "legacy": "Yemen",
+      "label": "Yemen"
+    },
+    {
+      "code": "ZM",
+      "legacy": "Zambia",
+      "label": "Zambia"
+    },
+    {
+      "code": "ZW",
+      "legacy": "Zimbabwe",
+      "label": "Zimbabwe"
+    }
+  ]
+}
+

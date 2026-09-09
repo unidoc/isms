@@ -55,9 +55,11 @@ type NotificationContent struct {
 
 // The closed set of interpolation param names, split by how the client must
 // treat each one before it reaches a translated frame.
-// Mirrors the `params` column comment on
-// migrations/20260824000000_v0.8.0.sql — that comment is the normative
-// statement of the split; this is its executable form.
+// Mirrors the `params` column comment on the 0.8.0 migration,
+// migrations/20260909000000_v0.8.0.sql — that comment is the normative
+// statement of the split; this is its executable form. (The file is renamed on
+// each append while 0.8.0 is unreleased, because the runner records applied
+// migrations by filename; match on the version, not the timestamp.)
 //
 // The split is load-bearing, not cosmetic: splicing an untranslated enum value
 // into a translated sentence yields half-translated output, so the translatable

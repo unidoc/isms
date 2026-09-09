@@ -28,6 +28,24 @@ import { i18n } from '../src/i18n.js'
 i18n.global.mergeLocaleMessage('en', {
   common: { region: { global: 'Global', eu: 'EU', eea: 'EEA', apac: 'APAC' } },
 })
+i18n.global.mergeLocaleMessage('id-ID', {
+  common: { region: { global: 'Global', eu: 'UE', eea: 'EEA', apac: 'APAC' } },
+})
+
+// Run each test from a known locale: these share one global i18n instance, and
+// the locale tests below move it.
+async function withLocale(tag, fn) {
+  const previous = i18n.global.locale.value
+  i18n.global.locale.value = tag
+  try {
+    // `await` matters: a non-async version restored the locale the moment fn()
+    // returned its promise, i.e. before any `await` inside it had run, and the
+    // locale tests below then silently measured the wrong locale.
+    return await fn()
+  } finally {
+    i18n.global.locale.value = previous
+  }
+}
 
 function picker(initial = 'EU') {
   const form = ref({ jurisdiction: initial })
@@ -90,14 +108,21 @@ test('opening and saving a row does not rewrite a field nobody touched', () => {
   // trigger. `jurisdiction` is free text with no CHECK, so the CLI and agent
   // suggestions can leave padding in it. Editing the title and saving used to
   // silently strip that padding.
+  // 'Iceland' is the interesting one and it is deliberately in this list. An
+  // earlier version of this test expected it to be silently upgraded to `IS` on
+  // open-and-save, on the grounds that resolving legacy names is the whole point
+  // of the change. That is the same opportunistic rewrite of an untouched field
+  // that this test exists to forbid, so the rule wins over the opportunity: a
+  // legacy name is free text like any other, and converting it takes an actual
+  // selection from the list. (The migration already converted every exact match,
+  // so a row still holding 'Iceland' was written afterwards by the CLI or an
+  // agent.)
   for (const stored of [' Germany/France ', 'Germany/France', 'IS', 'EU', 'Iceland']) {
     const p = picker(stored)
     p.blur() // no typing at all — just what a blur on open-then-save does
     assert.equal(
       p.form.value.jurisdiction,
-      // A legacy English name still resolves to its code: that is the
-      // conversion doing its job, not an accidental rewrite.
-      stored === 'Iceland' ? 'IS' : stored,
+      stored,
       `reopening a row holding ${JSON.stringify(stored)} changed it`,
     )
   }
@@ -142,6 +167,52 @@ test('an empty box clears the field rather than resurrecting the old code', () =
   p.query.value = ''
   p.blur()
   assert.equal(p.form.value.jurisdiction, '')
+})
+
+test('a locale arriving mid-edit relabels the box and keeps the stored code', async () => {
+  // The app is interactive BEFORE the locale settles: main.js calls setLocale()
+  // without awaiting it, and applyConfigLocales()/applySessionLocale() re-apply
+  // when GET /config and GET /me land. So a form can be opened in one language
+  // and saved in another with nothing typed.
+  //
+  // Before the fix this corrupted data with no typing at all: the box still read
+  // "Iceland", the options had become "Islandia", nothing matched, and the stored
+  // `IS` was overwritten with the free-text string "Iceland".
+  await withLocale('en', async () => {
+    const p = picker('IS')
+    assert.equal(p.query.value, 'Iceland')
+    i18n.global.locale.value = 'id-ID'
+    await nextTick()
+    assert.equal(p.query.value, 'Islandia', 'the box must follow the locale')
+    p.blur() // nothing typed, just saved
+    assert.equal(p.form.value.jurisdiction, 'IS', 'an untouched field must not become free text')
+  })
+})
+
+test('a locale change never rewrites what someone is typing', async () => {
+  // The other half. Relabelling has to be limited to a box that still holds the
+  // label we wrote — clobbering a half-typed value would be its own bug.
+  await withLocale('en', async () => {
+    const p = picker('IS')
+    p.query.value = 'Ice'
+    i18n.global.locale.value = 'id-ID'
+    await nextTick()
+    assert.equal(p.query.value, 'Ice', 'typed text must survive a locale change')
+  })
+})
+
+test('a sentinel also survives a locale change untouched', async () => {
+  // `EU` is the column default, so this is the most common row there is, and its
+  // label is the one that actually differs between the two bundles.
+  await withLocale('en', async () => {
+    const p = picker('EU')
+    assert.equal(p.query.value, 'EU')
+    i18n.global.locale.value = 'id-ID'
+    await nextTick()
+    assert.equal(p.query.value, 'UE')
+    p.blur()
+    assert.equal(p.form.value.jurisdiction, 'EU')
+  })
 })
 
 test('the four regions stay reachable without typing', () => {

@@ -31,10 +31,16 @@ func TestLegalSearchTextIncludesTheRegionName(t *testing.T) {
 
 // Every name the OLD picker offered has to stay searchable, or the conversion
 // silently breaks saved habits: someone who has always found the row by typing
-// "Czech Republic" gets nothing, because CLDR renamed it "Czechia". 15 of the
+// "Czech Republic" gets nothing, because CLDR renamed it "Czechia". 16 of the
 // 197 names drifted this way ("and" became "&", "East Timor" became
 // "Timor-Leste"), and they are the entire reason the data file carries a frozen
 // `legacy` name next to the current label.
+//
+// 16 is the count against the browser's table, which is the one that matters
+// because that is the label a reader sees; `regionCodes.test.js` asserts it.
+// Counting against x/text gives 15 — a different CLDR snapshot — and that
+// mismatch is why the label is generated and embedded rather than looked up
+// here.
 func TestLegacyRegionNamesStaySearchable(t *testing.T) {
 	cases := map[string][]string{
 		"CZ": {"czech republic", "czechia"},

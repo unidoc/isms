@@ -66,7 +66,7 @@ func loadRegionSearchTerms() map[string][]string {
 	out := make(map[string][]string, len(parsed.Entries))
 	for _, e := range parsed.Entries {
 		terms := []string{e.Label}
-		// The two agree for 182 of 197; the rest are spelling drift in CLDR
+		// The two agree for 181 of 197; the other 16 are spelling drift in CLDR
 		// ("Czech Republic" became "Czechia", "and" became "&"). Both go in.
 		if e.Legacy != e.Label {
 			terms = append(terms, e.Legacy)

@@ -35,6 +35,27 @@ export function useJurisdictionPicker(form) {
   const open = ref(false)
   const index = ref(0)
 
+  // The stored value the box is currently *showing*, and the label written for
+  // it. Together they answer "is the text in this box still the selection we
+  // put there, or has the user typed over it?" — which cannot be decided from
+  // the text alone, because a label is locale-dependent and the box is not
+  // rewritten when the locale changes underneath it.
+  //
+  // Without this the picker corrupted data with no typing at all. `main.js`
+  // calls `setLocale()` WITHOUT awaiting it before mounting, and
+  // `applyConfigLocales()` / `applySessionLocale()` re-apply the locale again
+  // when `GET /config` and `GET /me` land, so the app is interactive before the
+  // locale settles. Open a row holding `IS` while the UI is still English, let
+  // `/me` switch it to id-ID, then save without touching anything: the box still
+  // said "Iceland", the options now say "Islandia", nothing matched, and the
+  // stored region code was overwritten with the free-text string "Iceland".
+  //
+  // `useConfirm.js` hit the same race and answered it the same way — resolve
+  // against the live locale rather than snapshotting. There it was cosmetic;
+  // here it changed what is in the database.
+  const selectedCode = ref(null)
+  const selectedLabel = ref(null)
+
   // Sentinels pinned first, countries sorted by localized label under them.
   //
   // The pin is not cosmetic. `Global`/`EU`/`EEA`/`APAC` led the old
@@ -69,15 +90,28 @@ export function useJurisdictionPicker(form) {
       .slice(0, 15)
   })
 
+  // The single path that puts a selection in the box, so the text and the two
+  // tracking refs can never disagree.
+  function show(value) {
+    selectedCode.value = value
+    selectedLabel.value = regionLabel(value)
+    query.value = selectedLabel.value
+  }
+
   /** Load the box from a stored value. An unrecognised one shows itself. */
   function seed(value) {
-    query.value = regionLabel(value)
+    show(value)
   }
 
   function pick(option) {
     form.value.jurisdiction = option.code
-    query.value = option.label
+    show(option.code)
     open.value = false
+  }
+
+  /** True while the box still holds the label we wrote, not typed text. */
+  function isUntouchedSelection() {
+    return selectedCode.value !== null && query.value === selectedLabel.value
   }
 
   // Free text stays free text. If what was typed matches no option it is stored
@@ -97,16 +131,28 @@ export function useJurisdictionPicker(form) {
   // a value, and `jurisdiction` is NOT NULL — parking "  " in it would be its own
   // small defect.
   function commit() {
+    // Nothing was typed: keep the value we are showing, whatever the locale has
+    // done to its label in the meantime. This is the branch that stops an
+    // untouched form from rewriting its own field.
+    if (isUntouchedSelection()) {
+      form.value.jurisdiction = selectedCode.value
+      return
+    }
     const raw = query.value
     const probe = raw.trim()
     if (!probe) {
       form.value.jurisdiction = ''
+      show('')
       return
     }
     const exact = options.value.find(
       o => o.label.toLowerCase() === probe.toLowerCase() || o.code.toUpperCase() === probe.toUpperCase(),
     )
     form.value.jurisdiction = exact ? exact.code : raw
+    // Whatever was resolved becomes the new selection, so a later locale change
+    // refreshes its label instead of stranding it. For free text this is a
+    // no-op: an unrecognised value renders as itself in every locale.
+    show(form.value.jurisdiction)
   }
 
   function blur() {
@@ -144,6 +190,16 @@ export function useJurisdictionPicker(form) {
   watch(query, () => {
     index.value = 0
   })
+
+  // Re-render the selection's label when the locale settles — but only while the
+  // box still holds that label. Genuinely typed text is left alone, because
+  // rewriting what someone is in the middle of typing would be its own bug.
+  watch(
+    () => i18n.global.locale.value,
+    () => {
+      if (isUntouchedSelection()) show(selectedCode.value)
+    },
+  )
 
   return { query, open, index, options, filtered, seed, pick, commit, blur, moveDown, moveUp, pickHighlighted }
 }

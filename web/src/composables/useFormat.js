@@ -168,6 +168,44 @@ export function formatRecent(value, { within = 7 * 24 * 60 * 60 * 1000, style = 
   return Math.abs(Date.now() - d.getTime()) < within ? formatRelative(d) : formatDate(d, style)
 }
 
+// Jurisdiction / region display, for values stored in
+// `legal_requirements.jurisdiction`. Three tiers, and the order is load-bearing:
+//
+//  1. A region sentinel (`Global`, `EU`, `EEA`, `APAC`) resolves through
+//     `common.region.*`. This MUST come first. `EU` is a real ISO 3166
+//     exceptional reservation, so `Intl.DisplayNames` happily renders it
+//     "European Union" — which is not what the picker means by it, and would
+//     also throw away the translated endonym (id-ID says "UE").
+//  2. An alpha-2 code goes to `Intl.DisplayNames`. The regex is a guard, not an
+//     optimisation: `.of('Iceland')` throws `RangeError`, and rows holding a
+//     legacy English name are exactly what tier 3 exists for.
+//  3. Anything else renders verbatim. The column is free text — the CLI and
+//     agent suggestions can write any string, historical changelog entries hold
+//     the pre-migration English names permanently, and a row the migration did
+//     not recognise must still be readable rather than rendering blank.
+const SENTINEL_KEYS = {
+  Global: 'common.region.global',
+  EU: 'common.region.eu',
+  EEA: 'common.region.eea',
+  APAC: 'common.region.apac',
+}
+
+const ALPHA2 = /^[A-Z]{2}$/
+
+export function regionLabel(value) {
+  if (!value) return ''
+  const key = SENTINEL_KEYS[value]
+  if (key) return i18n.global.t(key)
+  if (!ALPHA2.test(value)) return value
+  // `of()` echoes an unrecognised code straight back, so a decommissioned or
+  // invented code renders as itself rather than as an empty cell.
+  try {
+    return formatter(Intl.DisplayNames, 'region', activeLocale(), { type: 'region' }).of(value)
+  } catch {
+    return value
+  }
+}
+
 export function useFormat() {
   return {
     date: formatDate,
@@ -178,5 +216,6 @@ export function useFormat() {
     number: formatNumber,
     relative: formatRelative,
     recent: formatRecent,
+    region: regionLabel,
   }
 }

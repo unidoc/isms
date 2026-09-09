@@ -157,7 +157,7 @@
                 <div v-if="item.reference" class="text-xs text-slate-500 mt-0.5">{{ item.reference }}</div>
               </td>
               <td class="px-5 py-3.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400">{{ item.jurisdiction }}</span>
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400">{{ regionLabel(item.jurisdiction) }}</span>
               </td>
               <td class="px-5 py-3.5 text-center">
                 <span v-if="item.current_score > 0"
@@ -236,24 +236,24 @@
                       </div>
                       <div class="relative">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.jurisdiction') }}</label>
-                        <input v-model="editForm.jurisdiction"
+                        <input v-model="jurisdictionQuery"
                           @focus="showJurisdictionPicker = true"
                           @input="showJurisdictionPicker = true"
                           @blur="hideJurisdictionPicker"
                           @keydown.down.prevent="jurisdictionIdx = Math.min(jurisdictionIdx + 1, filteredJurisdictions.length - 1)"
                           @keydown.up.prevent="jurisdictionIdx = Math.max(jurisdictionIdx - 1, 0)"
-                          @keydown.tab.prevent="filteredJurisdictions.length && (editForm.jurisdiction = filteredJurisdictions[jurisdictionIdx], showJurisdictionPicker = false)"
-                          @keydown.enter.prevent="filteredJurisdictions.length && (editForm.jurisdiction = filteredJurisdictions[jurisdictionIdx], showJurisdictionPicker = false)"
+                          @keydown.tab.prevent="filteredJurisdictions.length && pickJurisdiction(filteredJurisdictions[jurisdictionIdx])"
+                          @keydown.enter.prevent="filteredJurisdictions.length && pickJurisdiction(filteredJurisdictions[jurisdictionIdx])"
                           @keydown.escape="showJurisdictionPicker = false"
                           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           :placeholder="t('legal.placeholder.jurisdiction')" />
                         <div v-if="showJurisdictionPicker && filteredJurisdictions.length > 0"
                           class="absolute z-50 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                          <button v-for="(j, i) in filteredJurisdictions" :key="j"
-                            @mousedown.prevent="editForm.jurisdiction = j; showJurisdictionPicker = false"
+                          <button v-for="(j, i) in filteredJurisdictions" :key="j.code"
+                            @mousedown.prevent="pickJurisdiction(j)"
                             class="w-full text-left px-3 py-1.5 text-xs transition-colors"
                             :class="i === jurisdictionIdx ? 'bg-blue-600/30 text-white' : 'text-slate-300 hover:bg-slate-700'">
-                            {{ j }}
+                            {{ j.label }}
                           </button>
                         </div>
                       </div>
@@ -306,7 +306,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.jurisdiction') }}</div>
-                          <div class="text-sm text-slate-300">{{ selectedItem.jurisdiction || '—' }}</div>
+                          <div class="text-sm text-slate-300">{{ regionLabel(selectedItem.jurisdiction) || '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.category') }}</div>
@@ -493,14 +493,14 @@ import ReadingsPanel from '../components/ReadingsPanel.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
-import jurisdictions from '../data/countries.js'
+import jurisdictionCodes from '../data/countries.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate, formatDay } from '../composables/useFormat.js'
+import { formatDate, formatDay, regionLabel } from '../composables/useFormat.js'
 import { useEnumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
@@ -557,13 +557,76 @@ const total = ref(0)
 
 const showJurisdictionPicker = ref(false)
 const jurisdictionIdx = ref(0)
+
+// What the user has typed, kept separate from `editForm.jurisdiction`. The input
+// used to be `v-model`'d straight onto the form field, which worked only while
+// the stored value and the visible text were the same string. They are not any
+// more: the column stores `IS`, the box shows "Iceland". Selecting an option
+// writes the code to the form and the label to the box.
+const jurisdictionQuery = ref('')
+
+// Sorted by localized label, so the list reads alphabetically in whatever
+// language is active — a computed rather than a module constant for the reason
+// spelled out above TAB_KEYS: a module-scope array freezes whichever locale
+// happened to be active when this module first evaluated.
+const jurisdictionOptions = computed(() =>
+  jurisdictionCodes
+    .map(code => ({ code, label: regionLabel(code) }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+)
+
+// Matches on the label a user can see AND on the code, because the codes are
+// what the API, the CLI and every existing test use — someone who knows the
+// row says `IS` should not have to remember what we render it as.
 const filteredJurisdictions = computed(() => {
-  const q = (editForm.value.jurisdiction || '').toLowerCase()
-  const list = jurisdictions.filter(j => !q || j.toLowerCase().includes(q))
+  const q = jurisdictionQuery.value.trim().toLowerCase()
+  const list = jurisdictionOptions.value.filter(
+    o => !q || o.label.toLowerCase().includes(q) || o.code.toLowerCase().includes(q),
+  )
   return list.slice(0, 15)
 })
-watch(() => editForm.value.jurisdiction, () => { jurisdictionIdx.value = 0 })
-function hideJurisdictionPicker() { setTimeout(() => { showJurisdictionPicker.value = false }, 200) }
+
+function pickJurisdiction(option) {
+  editForm.value.jurisdiction = option.code
+  jurisdictionQuery.value = option.label
+  showJurisdictionPicker.value = false
+}
+
+// Free text stays free text. If what was typed matches no option, it is stored
+// verbatim rather than being discarded or snapped to a neighbour — the column
+// has no constraint, plenty of real jurisdictions are not countries, and
+// silently rewriting a manager's input is worse than storing it.
+function commitJurisdictionText() {
+  const typed = jurisdictionQuery.value.trim()
+  const exact = jurisdictionOptions.value.find(
+    o => o.label.toLowerCase() === typed.toLowerCase() || o.code.toUpperCase() === typed.toUpperCase(),
+  )
+  editForm.value.jurisdiction = exact ? exact.code : typed
+}
+
+watch(jurisdictionQuery, () => { jurisdictionIdx.value = 0 })
+
+function hideJurisdictionPicker() {
+  // Commit SYNCHRONOUSLY, and only defer hiding the dropdown.
+  //
+  // This is not a style preference. Clicking Save runs mousedown -> blur ->
+  // mouseup -> click, so a commit inside the timeout below lands ~195ms AFTER
+  // the save handler has already read `editForm.jurisdiction` — text typed and
+  // never picked from the list would be silently dropped, and useDirtyEdit
+  // would see no change to warn about. The old code bound the input straight to
+  // the form field, so it had no such window; introducing the separate query ref
+  // is what opened one.
+  //
+  // Safe because the option buttons use `@mousedown.prevent`, which stops the
+  // input losing focus — blur therefore never fires from picking an option,
+  // only from clicking away. A blur after a pick is a no-op: the label written
+  // by pickJurisdiction() matches its own option and re-resolves to the same
+  // code.
+  commitJurisdictionText()
+  // Still deferred: a mousedown anywhere in the dropdown that is not a button
+  // (its padding, the scrollbar) would otherwise close it before the click.
+  setTimeout(() => { showJurisdictionPicker.value = false }, 200)
+}
 
 // Message keys, not labels: a module-scope array of translated strings freezes
 // the tab bar in whichever locale was active when this module first evaluated.
@@ -706,6 +769,9 @@ function startEdit(item) {
     treatment_plan: item.treatment_plan || '',
     notes: item.notes || '',
   }
+  // The box shows the label for whatever the row holds; an unrecognised legacy
+  // value shows itself, which is what makes it editable rather than mysterious.
+  jurisdictionQuery.value = regionLabel(editForm.value.jurisdiction)
   captureEditSnapshot()
 }
 

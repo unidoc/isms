@@ -9,4 +9,11 @@ set -eu
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$root/cmd/isms/migrations"
+# Clear stale .sql first, then copy. `cp -f` alone only ever adds: a migration
+# RENAMED in migrations/ (which is how an append to an unreleased release file
+# has to be done, since the runner records applied migrations by filename) would
+# leave the old name behind in a dev's embed dir, and the binary would then
+# embed and apply both copies. CI and goreleaser start from an empty dir and
+# never saw this; a local checkout that has built before does.
+rm -f "$root"/cmd/isms/migrations/*.sql
 cp -f "$root"/migrations/*.sql "$root/cmd/isms/migrations/"

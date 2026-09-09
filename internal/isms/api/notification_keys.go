@@ -158,7 +158,13 @@ var NotificationKeys = []string{
 // inline map literal, a `params := …` map plus conditional `params["note"] = …`
 // in a branch, and the one wholesale `for k, v := range bodyParams` copy — and
 // fails on a shape it does not recognise rather than guessing. Teach it the new
-// shape; do not work around it. The runtime check in keyedColumns
+// shape; do not work around it.
+//
+// An entry for a key written from more than one site is the union of those
+// sites, which is what makes the entry alone too weak to license a frame slot:
+// a param only one site sends renders empty at the others. Frames are held to
+// the intersection instead, derived from source by
+// TestFramesOnlySpendGuaranteedParams. The runtime check in keyedColumns
 // (internal/isms/db/notifications.go, which logs an out-of-set param) stays as
 // the backstop for a value the vocabulary does not contain.
 var NotificationKeyParams = map[string][]string{
@@ -186,7 +192,8 @@ var NotificationKeyParams = map[string][]string{
 	NotifyKeyCAResolvedBody: {"title", "id", "actor"},
 
 	// suggestion_resolved is one title frame shared by the applied and
-	// rejected sites, so its entry is the union of both param maps.
+	// rejected sites, so its entry is the union of both param maps — and its
+	// frame may only spend the three they both send (action, title, actor).
 	NotifyKeySuggestionNew:          {"actor", "title", "suggestion_type", "entity"},
 	NotifyKeySuggestionNewBody:      {"actor", "title", "suggestion_type", "entity"},
 	NotifyKeySuggestionResolved:     {"action", "title", "actor", "entity", "id", "reason"},

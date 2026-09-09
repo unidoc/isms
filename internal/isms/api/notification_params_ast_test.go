@@ -40,7 +40,7 @@ import (
 // be an assertion about the code, and is now a claim the code is checked
 // against. On disagreement the source wins.
 func TestNotificationKeyParamsMatchesCallSites(t *testing.T) {
-	derived := deriveNotificationKeyParams(t)
+	derived, _ := deriveNotificationKeyParams(t)
 
 	for key, want := range derived {
 		got := sortedSet(setOf(NotificationKeyParams[key]))
@@ -65,6 +65,48 @@ func TestNotificationKeyParamsMatchesCallSites(t *testing.T) {
 				"Either the write was removed and the entry is stale, or the key reaches "+
 				"db.NotificationContent through a shape this test cannot read — in which "+
 				"case teach it the shape rather than deleting the entry.", key)
+		}
+	}
+}
+
+// TestFramesOnlySpendGuaranteedParams is the source-based half of the frame
+// check, and the half that sees what a table cannot.
+//
+// TestFramesOnlyUseTheirOwnKeysParams asks whether a frame's slots are named in
+// NotificationKeyParams. For a key written from one site that is the same
+// question as this one. For a key written from several it is weaker, because the
+// table entry is the union: suggestion_resolved's shared title frame is emitted
+// for applied and for rejected, and the union entry names `entity`, `id` and
+// `reason` even though no single emission sends all three. A `{reason}` there
+// would render empty on every applied suggestion, in English and in every
+// translation, and the table-based check would stay green.
+//
+// So a frame may only spend params guaranteed at every emission of its key.
+// Still subset, not equality — a frame is free to use fewer than it is offered.
+func TestFramesOnlySpendGuaranteedParams(t *testing.T) {
+	_, guaranteed := deriveNotificationKeyParams(t)
+	wireKeys := wireKeyForCatalogKey(t)
+	for _, locale := range localesWithNotifications(t) {
+		for key, frame := range loadNotificationLeaves(t, locale) {
+			wireKey, ok := wireKeys[key]
+			if !ok {
+				continue // stale frame; TestENNotificationFramesAreEmitted owns it
+			}
+			sure, derived := guaranteed[wireKey]
+			if !derived {
+				continue // no resolvable write site; the equality check above reports it
+			}
+			for name := range placeholdersIn(frame) {
+				if sure[name] {
+					continue
+				}
+				t.Errorf("[%s] frame %q interpolates {%s}, which not every emission of %q sends\n"+
+					"  frame: %q\n  sent by every site: %v\n"+
+					"At least one write site reaches this frame without that param, so the "+
+					"slot renders empty there. Either drop the slot, split the frame per "+
+					"site, or make every site send the param.",
+					locale, key, name, wireKey, frame, sortedSet(sure))
+			}
 		}
 	}
 }
@@ -107,13 +149,27 @@ var notifWriteTypes = map[string]bool{
 // need not land in this package — the MCP server writes notifications too.
 var scanRoots = []string{"../../../internal", "../../../cmd"}
 
-func deriveNotificationKeyParams(t *testing.T) map[string]map[string]bool {
+// deriveNotificationKeyParams returns two sets per wire key.
+//
+// union is every param any emission of the key can send — what the table must
+// equal, because a name in the table that no site sends is a slot a frame may
+// interpolate empty.
+//
+// guaranteed is the intersection over emissions: the params present *whatever*
+// path wrote the key. The two differ wherever one key is written from more than
+// one site, and suggestion_resolved is exactly that — one shared title frame
+// emitted for applied (`entity`, `id`) and rejected (`reason`). Against the
+// union alone, a `{reason}` in that title passes every check and renders empty
+// on the applied path, which is the failure this file exists to catch. Frames
+// are held to the intersection; see TestFramesOnlySpendGuaranteedParams.
+func deriveNotificationKeyParams(t *testing.T) (union, guaranteed map[string]map[string]bool) {
 	t.Helper()
 	values := notifyKeyConstValues(t)
 	files := parseServerSources(t)
 	calls := collectCalls(files)
 
-	derived := map[string]map[string]bool{}
+	union = map[string]map[string]bool{}
+	guaranteed = map[string]map[string]bool{}
 	sites := 0
 	for _, f := range files {
 		for _, decl := range f.file.Decls {
@@ -121,7 +177,7 @@ func deriveNotificationKeyParams(t *testing.T) map[string]map[string]bool {
 			if !ok || fn.Body == nil {
 				continue
 			}
-			a := analyzeFunc(f.path, fn)
+			a := analyzeFunc(f.path, f.file.Name.Name, fn)
 			for _, w := range a.writes {
 				sites++
 				for _, field := range []struct {
@@ -131,12 +187,15 @@ func deriveNotificationKeyParams(t *testing.T) map[string]map[string]bool {
 					if field.expr == nil {
 						continue // deliberately untranslatable, or org-authored body
 					}
-					for key, params := range a.resolve(t, values, calls, field.expr, w) {
-						if derived[key] == nil {
-							derived[key] = map[string]bool{}
+					for _, e := range a.resolve(t, values, calls, field.expr, w) {
+						if union[e.key] == nil {
+							union[e.key] = map[string]bool{}
+							guaranteed[e.key] = copySet(e.params)
+						} else {
+							intersect(guaranteed[e.key], e.params)
 						}
-						for p := range params {
-							derived[key][p] = true
+						for p := range e.params {
+							union[e.key][p] = true
 						}
 					}
 				}
@@ -147,11 +206,11 @@ func deriveNotificationKeyParams(t *testing.T) map[string]map[string]bool {
 		t.Fatalf("found no notification composite literals (%v) under %v — the write shape "+
 			"changed and this test is now vacuous", sortedSet(notifWriteTypes), scanRoots)
 	}
-	if len(derived) == 0 {
+	if len(union) == 0 {
 		t.Fatal("resolved no wire keys from the write sites — key resolution is broken " +
 			"and this test is now vacuous")
 	}
-	return derived
+	return union, guaranteed
 }
 
 // ── per-function analysis ────────────────────────────────────────────────────
@@ -176,16 +235,24 @@ type keyBinding struct {
 // the block chain that made it available. isDecl marks the map literal that
 // (re)declared the variable, which is what bounds one generation of it: a
 // handler that sends two notifications declares `params` twice, and merging the
-// two derived doc_id onto a key whose sites never send it.
+// two generations would attribute the resubmitted site's doc_id to a key whose
+// sites never send it.
+//
+// unsupported marks a write into the map this test cannot read — a dynamic
+// index, `params[paramName] = value`. Its name is unknown, so the binding
+// carries no name and instead fails the test if it can reach a write site:
+// deriving short here would let a call site add a runtime param invisibly.
 type paramBinding struct {
-	name   string
-	chain  []ast.Node
-	pos    token.Pos
-	isDecl bool
+	name        string
+	chain       []ast.Node
+	pos         token.Pos
+	isDecl      bool
+	unsupported bool
 }
 
 type funcAnalysis struct {
 	path   string
+	pkg    string
 	fn     *ast.FuncDecl
 	writes []writeSite
 
@@ -197,16 +264,23 @@ type funcAnalysis struct {
 	paramBindings map[string][]paramBinding
 	absorbs       map[string][]string
 	paramNames    map[string]int // function parameter name -> position
+
+	// recognised holds the assignments a more specific shape reader already
+	// accepted, so the general reader does not see them as unsupported. The
+	// wholesale-copy shape is a dynamic index assignment by construction.
+	recognised map[*ast.AssignStmt]bool
 }
 
-func analyzeFunc(path string, fn *ast.FuncDecl) *funcAnalysis {
+func analyzeFunc(path, pkg string, fn *ast.FuncDecl) *funcAnalysis {
 	a := &funcAnalysis{
 		path:          path,
+		pkg:           pkg,
 		fn:            fn,
 		keyBindings:   map[string][]keyBinding{},
 		paramBindings: map[string][]paramBinding{},
 		absorbs:       map[string][]string{},
 		paramNames:    map[string]int{},
+		recognised:    map[*ast.AssignStmt]bool{},
 	}
 	pos := 0
 	if fn.Type.Params != nil {
@@ -229,7 +303,7 @@ func analyzeFunc(path string, fn *ast.FuncDecl) *funcAnalysis {
 
 		switch v := n.(type) {
 		case *ast.CompositeLit:
-			if isNotifWriteLit(v) {
+			if isNotifWriteLit(v, a.pkg) {
 				w := notifWrite(v)
 				w.chain = chain
 				a.writes = append(a.writes, w)
@@ -247,9 +321,17 @@ func analyzeFunc(path string, fn *ast.FuncDecl) *funcAnalysis {
 // recordAssign reads the two assignment shapes the write sites use: binding a
 // wire-key constant or a map literal to a variable, and adding a single param
 // to an existing map by literal index.
+//
+// A map write it cannot read — a dynamic index, or a literal whose keys are not
+// string constants — is recorded as unsupported rather than skipped. Skipping
+// it would derive the param set short and leave that site's real parameters
+// unchecked, which is the failure this whole test exists to catch.
 func (a *funcAnalysis) recordAssign(as *ast.AssignStmt, chain []ast.Node) {
 	if as.Tok != token.ASSIGN && as.Tok != token.DEFINE {
 		return
+	}
+	if a.recognised[as] {
+		return // the wholesale-copy shape, already read by recordRangeCopy
 	}
 	for i, lhs := range as.Lhs {
 		if i >= len(as.Rhs) {
@@ -264,7 +346,11 @@ func (a *funcAnalysis) recordAssign(as *ast.AssignStmt, chain []ast.Node) {
 				continue
 			}
 			if lit, ok := rhs.(*ast.CompositeLit); ok && isStringKeyedMap(lit) {
-				keys := mapLiteralKeys(lit)
+				keys, unreadable := mapLiteralKeys(lit)
+				if unreadable {
+					a.paramBindings[target.Name] = append(a.paramBindings[target.Name],
+						paramBinding{chain: chain, pos: as.Pos(), isDecl: true, unsupported: true})
+				}
 				if len(keys) == 0 {
 					// An empty map literal still opens a generation, and losing
 					// it would let the previous one leak across.
@@ -282,10 +368,15 @@ func (a *funcAnalysis) recordAssign(as *ast.AssignStmt, chain []ast.Node) {
 			if !ok {
 				continue
 			}
-			if key, ok := stringLit(target.Index); ok {
+			key, ok := stringLit(target.Index)
+			if !ok {
+				// params[paramName] = value — the name is not in the source.
 				a.paramBindings[ident.Name] = append(a.paramBindings[ident.Name],
-					paramBinding{name: key, chain: chain, pos: as.Pos()})
+					paramBinding{chain: chain, pos: as.Pos(), unsupported: true})
+				continue
 			}
+			a.paramBindings[ident.Name] = append(a.paramBindings[ident.Name],
+				paramBinding{name: key, chain: chain, pos: as.Pos()})
 		}
 	}
 }
@@ -325,27 +416,37 @@ func (a *funcAnalysis) recordRangeCopy(rs *ast.RangeStmt) {
 	if !ok || !identNamed(idx.Index, k.Name) || !identNamed(as.Rhs[0], v.Name) {
 		return
 	}
+	a.recognised[as] = true
 	a.absorbs[dst.Name] = append(a.absorbs[dst.Name], src.Name)
 }
 
 // ── resolution ───────────────────────────────────────────────────────────────
 
-// resolve pairs each wire key the given key expression can carry with the
-// params that can reach the write site when that key is the one written.
+// emission is one resolved (write site, wire key) pair: the params that reach
+// that one write when that one key is the one written. Kept separate rather
+// than merged per key so the intersection over a key's emissions is available
+// — merging first is what let the shared suggestion_resolved title frame claim
+// a param only one of its two callers sends.
+type emission struct {
+	key    string
+	params map[string]bool
+}
+
+// resolve returns one emission per wire key the given key expression can carry
+// on a distinct path to this write site.
 func (a *funcAnalysis) resolve(
 	t *testing.T,
 	values map[string]string,
 	calls map[string][]*ast.CallExpr,
 	keyExpr ast.Expr,
 	w writeSite,
-) map[string]map[string]bool {
+) []emission {
 	t.Helper()
-	out := map[string]map[string]bool{}
+	var out []emission
 
 	// Case 1 — the key is named directly, so it is written on every path.
 	if name, ok := notifyKeyConstName(keyExpr); ok {
-		out[a.wireValue(t, values, name)] = a.paramsReaching(t, calls, w, nil)
-		return out
+		return a.emissionsFor(t, calls, w, nil, a.wireValue(t, values, name))
 	}
 
 	ident, ok := keyExpr.(*ast.Ident)
@@ -374,13 +475,7 @@ func (a *funcAnalysis) resolve(
 			return out
 		}
 		for _, b := range reaching {
-			key := a.wireValue(t, values, b.constName)
-			if out[key] == nil {
-				out[key] = map[string]bool{}
-			}
-			for p := range a.paramsReaching(t, calls, w, b.chain) {
-				out[key][p] = true
-			}
+			out = append(out, a.emissionsFor(t, calls, w, b.chain, a.wireValue(t, values, b.constName))...)
 		}
 		return out
 	}
@@ -411,13 +506,47 @@ func (a *funcAnalysis) resolve(
 				"anything else unresolvable.", a.path, a.fn.Name.Name)
 			continue
 		}
-		key := a.wireValue(t, values, name)
-		if out[key] == nil {
-			out[key] = map[string]bool{}
-		}
-		for p := range a.paramsReaching(t, map[string][]*ast.CallExpr{a.fn.Name.Name: {call}}, w, nil) {
-			out[key][p] = true
-		}
+		out = append(out, emission{
+			key:    a.wireValue(t, values, name),
+			params: a.paramsReaching(t, map[string][]*ast.CallExpr{a.fn.Name.Name: {call}}, w, nil),
+		})
+	}
+	return out
+}
+
+// emissionsFor turns one resolved key at one write site into its emissions.
+//
+// Usually that is one. It is one *per caller* when the params map absorbs a
+// function parameter wholesale, because then each caller supplies a different
+// map to the same write: notifySuggestionResolved names its title key directly,
+// yet the applied and rejected callers pass `{entity,id}` and `{reason}`. Union
+// those into one emission and the intersection over the key becomes the union,
+// which is precisely the blind spot the intersection was added to remove.
+func (a *funcAnalysis) emissionsFor(
+	t *testing.T,
+	calls map[string][]*ast.CallExpr,
+	w writeSite,
+	keyChain []ast.Node,
+	key string,
+) []emission {
+	t.Helper()
+	ident, isIdent := w.params.(*ast.Ident)
+	if !isIdent || len(a.absorbs[ident.Name]) == 0 {
+		return []emission{{key: key, params: a.paramsReaching(t, calls, w, keyChain)}}
+	}
+	sites := calls[a.fn.Name.Name]
+	if len(sites) == 0 {
+		t.Errorf("%s: %s copies its Params from a function parameter but has no resolvable "+
+			"callers\nThe params of the keys it writes cannot be read, so they go unchecked.",
+			a.path, a.fn.Name.Name)
+		return nil
+	}
+	out := make([]emission, 0, len(sites))
+	for _, call := range sites {
+		out = append(out, emission{
+			key:    key,
+			params: a.paramsReaching(t, map[string][]*ast.CallExpr{a.fn.Name.Name: {call}}, w, keyChain),
+		})
 	}
 	return out
 }
@@ -446,7 +575,13 @@ func (a *funcAnalysis) paramsReaching(
 				a.path, a.fn.Name.Name)
 			return got
 		}
-		for _, name := range mapLiteralKeys(lit) {
+		keys, unreadable := mapLiteralKeys(lit)
+		if unreadable {
+			t.Errorf("%s: %s builds Params from a map literal with a key this test cannot "+
+				"read\nA param whose name is not a string literal in the source cannot be "+
+				"checked against the table; give it a literal key.", a.path, a.fn.Name.Name)
+		}
+		for _, name := range keys {
 			got[name] = true
 		}
 		return got
@@ -504,6 +639,14 @@ func (a *funcAnalysis) paramsReaching(
 		if keyChain != nil && !encloses(b.chain, keyChain) {
 			continue
 		}
+		if b.unsupported {
+			t.Errorf("%s: %s writes into %q through a shape this test cannot read, and "+
+				"that write reaches a notification write site\n"+
+				"The param it adds is invisible to the derivation, so the key's set would "+
+				"derive short and the site go unchecked. Use a string-literal key, or teach "+
+				"this test the shape.", a.path, a.fn.Name.Name, ident.Name)
+			continue
+		}
 		if b.name != "" {
 			got[b.name] = true
 		}
@@ -525,7 +668,13 @@ func (a *funcAnalysis) paramsReaching(
 					"would derive short.", a.path, a.fn.Name.Name, src)
 				continue
 			}
-			for _, name := range mapLiteralKeys(lit) {
+			keys, unreadable := mapLiteralKeys(lit)
+			if unreadable {
+				t.Errorf("%s: a call to %s passes %q as a map literal with a key this test "+
+					"cannot read\nThe param it carries would derive short.",
+					a.path, a.fn.Name.Name, src)
+			}
+			for _, name := range keys {
 				got[name] = true
 			}
 		}
@@ -645,17 +794,28 @@ func collectCalls(files []parsedFile) map[string][]*ast.CallExpr {
 
 // ── AST helpers ──────────────────────────────────────────────────────────────
 
-// isNotifWriteLit matches a qualified literal only (db.NotificationContent),
-// which skips the unqualified re-packings inside package db itself —
-// CreateNotification builds a NotificationContent purely to reach
-// keyedColumns, and it carries no constant. That exclusion is safe by
-// construction rather than by luck: the NotifyKey* constants live in package
-// api, db cannot import api without a cycle, and a bare string is forbidden by
-// TestKeyedWritesUseDeclaredConstants. A keyed write therefore cannot originate
-// in db. If one ever needs to, this is the line to widen.
-func isNotifWriteLit(lit *ast.CompositeLit) bool {
-	sel, ok := lit.Type.(*ast.SelectorExpr)
-	return ok && notifWriteTypes[sel.Sel.Name]
+// isNotifWriteLit matches the write structs by type name, qualified
+// (db.NotificationContent) or bare, and skips package db itself.
+//
+// Skipping db skips its unqualified re-packings — CreateNotification builds a
+// NotificationContent purely to reach keyedColumns, and it carries no constant.
+// That exclusion is safe by construction rather than by luck: the NotifyKey*
+// constants live in package api, db cannot import api without a cycle, and a
+// bare string is forbidden by TestKeyedWritesUseDeclaredConstants. A keyed
+// write therefore cannot originate in db.
+//
+// Outside db, a bare name is matched too, so a local type alias or a dot-import
+// of the write struct is read rather than skipped. Matching on the name alone
+// would need go/types to be exact; a same-named unrelated struct here would
+// widen a derived set and fail loudly, which is the right way round.
+func isNotifWriteLit(lit *ast.CompositeLit, pkg string) bool {
+	switch typ := lit.Type.(type) {
+	case *ast.SelectorExpr:
+		return notifWriteTypes[typ.Sel.Name]
+	case *ast.Ident:
+		return pkg != "db" && notifWriteTypes[typ.Name]
+	}
+	return false
 }
 
 func notifWrite(lit *ast.CompositeLit) writeSite {
@@ -704,18 +864,28 @@ func isStringKeyedMap(lit *ast.CompositeLit) bool {
 	return ok && ident.Name == "string"
 }
 
-func mapLiteralKeys(lit *ast.CompositeLit) []string {
+// mapLiteralKeys returns the string-literal keys of a map literal, and whether
+// it holds an entry this test cannot read. A non-literal key is a param name
+// absent from the source: adding `map[string]any{paramName: value}` to a
+// notification map would otherwise add a runtime param without changing the
+// derived set, and this guard would stay green over it. The caller fails.
+func mapLiteralKeys(lit *ast.CompositeLit) ([]string, bool) {
 	var out []string
+	unreadable := false
 	for _, elt := range lit.Elts {
 		kv, ok := elt.(*ast.KeyValueExpr)
 		if !ok {
+			unreadable = true
 			continue
 		}
-		if key, ok := stringLit(kv.Key); ok {
-			out = append(out, key)
+		key, ok := stringLit(kv.Key)
+		if !ok {
+			unreadable = true
+			continue
 		}
+		out = append(out, key)
 	}
-	return out
+	return out, unreadable
 }
 
 func stringLit(e ast.Expr) (string, bool) {
@@ -782,6 +952,23 @@ func encloses(outer, inner []ast.Node) bool {
 // attributing one's params to the other.
 func reaches(at, from []ast.Node) bool {
 	return encloses(at, from) || encloses(from, at)
+}
+
+func copySet(s map[string]bool) map[string]bool {
+	out := make(map[string]bool, len(s))
+	for n := range s {
+		out[n] = true
+	}
+	return out
+}
+
+// intersect narrows dst to the names src also holds.
+func intersect(dst, src map[string]bool) {
+	for n := range dst {
+		if !src[n] {
+			delete(dst, n)
+		}
+	}
 }
 
 func setOf(names []string) map[string]bool {

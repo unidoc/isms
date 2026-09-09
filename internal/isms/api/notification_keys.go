@@ -139,15 +139,34 @@ var NotificationKeys = []string{
 // `note` and the plain ones do not, because the call sites pick the variant by
 // whether a note exists.
 //
-// Hand-maintained, and deliberately so: params are inline map literals built
-// conditionally at each call site (`if req.Message != "" { params["note"] = … }`),
-// which no static extraction can enumerate. What keeps the table honest is
-// TestNotificationKeyParamsIsExhaustive — its key set is pinned to
-// NotificationKeys, so a new notification cannot ship without an entry. The
-// remaining risk is an entry that names more than its call site sends, which
-// is the direction that fails safe: it only widens what a frame may ask for.
-// The call-site half stays a runtime concern (see keyedColumns in
-// internal/isms/db/notifications.go, which logs an out-of-set param).
+// Hand-written, and checked against the call sites rather than trusted.
+// TestNotificationKeyParamsMatchesCallSites derives this table from the source
+// by AST and asserts equality, so the entries are a claim the code is measured
+// against and the source wins on disagreement. Two tests bound it from the
+// other side: TestNotificationKeyParamsIsExhaustive pins the key set to
+// NotificationKeys, and TestFramesOnlyUseTheirOwnKeysParams reads the entries
+// to check the catalogue's slots.
+//
+// It stays hand-written because it is the readable spec and because these
+// per-key comments carry reasoning no derivation expresses. What it no longer
+// is, is an unverified assertion: an entry naming a param no site sends used to
+// be called a safe direction, but the frame check is only as good as this table,
+// so "over-declares" and "is checked" were never the same property.
+//
+// Adding a param at a call site therefore means editing this table in the same
+// change. The derivation reads the shapes the call sites actually use — an
+// inline map literal, a `params := …` map plus conditional `params["note"] = …`
+// in a branch, and the one wholesale `for k, v := range bodyParams` copy — and
+// fails on a shape it does not recognise rather than guessing. Teach it the new
+// shape; do not work around it.
+//
+// An entry for a key written from more than one site is the union of those
+// sites, which is what makes the entry alone too weak to license a frame slot:
+// a param only one site sends renders empty at the others. Frames are held to
+// the intersection instead, derived from source by
+// TestFramesOnlySpendGuaranteedParams. The runtime check in keyedColumns
+// (internal/isms/db/notifications.go, which logs an out-of-set param) stays as
+// the backstop for a value the vocabulary does not contain.
 var NotificationKeyParams = map[string][]string{
 	NotifyKeyMentionComment:       {"actor"},
 	NotifyKeyMentionReviewComment: {"actor"},
@@ -173,7 +192,8 @@ var NotificationKeyParams = map[string][]string{
 	NotifyKeyCAResolvedBody: {"title", "id", "actor"},
 
 	// suggestion_resolved is one title frame shared by the applied and
-	// rejected sites, so its entry is the union of both param maps.
+	// rejected sites, so its entry is the union of both param maps — and its
+	// frame may only spend the three they both send (action, title, actor).
 	NotifyKeySuggestionNew:          {"actor", "title", "suggestion_type", "entity"},
 	NotifyKeySuggestionNewBody:      {"actor", "title", "suggestion_type", "entity"},
 	NotifyKeySuggestionResolved:     {"action", "title", "actor", "entity", "id", "reason"},

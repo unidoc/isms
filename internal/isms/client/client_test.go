@@ -61,6 +61,23 @@ func TestErrorDetail(t *testing.T) {
 		body: `{"message":""}`,
 		want: `{"message":""}`,
 	}, {
+		// A whitespace-only message is no message. Our own server cannot send
+		// one, but the fallback exists for bodies that are not ours, and
+		// "API error 502:   " tells an operator less than the body did.
+		name: "a whitespace-only message falls back to the raw body",
+		body: `{"message":"   "}`,
+		want: `{"message":"   "}`,
+	}, {
+		name: "a newline-only message falls back to the raw body",
+		body: `{"message":"\n"}`,
+		want: `{"message":"\n"}`,
+	}, {
+		// The decoded message is trimmed for the same reason the fallback is:
+		// a stray newline in the envelope should not break the caller's line.
+		name: "surrounding whitespace is trimmed off a real message",
+		body: `{"message":"  risk not found\n"}`,
+		want: "risk not found",
+	}, {
 		// json.Unmarshal into a struct fails on a non-object, so this reaches
 		// the fallback rather than silently yielding "".
 		name: "a JSON array is not an error envelope",

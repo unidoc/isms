@@ -257,7 +257,7 @@ func (s *Server) buildSearchIndex(orgID int) {
 				Type:   "legal",
 				ID:     lr.Identifier,
 				Title:  lr.Title,
-				Search: strings.ToLower(lr.Identifier + " " + lr.Title + " " + lr.Description + " " + lr.Jurisdiction),
+				Search: legalSearchText(&lr),
 			})
 		}
 		return entries

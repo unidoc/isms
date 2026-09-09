@@ -157,7 +157,7 @@
                 <div v-if="item.reference" class="text-xs text-slate-500 mt-0.5">{{ item.reference }}</div>
               </td>
               <td class="px-5 py-3.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400">{{ item.jurisdiction }}</span>
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400">{{ regionLabel(item.jurisdiction) }}</span>
               </td>
               <td class="px-5 py-3.5 text-center">
                 <span v-if="item.current_score > 0"
@@ -236,24 +236,27 @@
                       </div>
                       <div class="relative">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.jurisdiction') }}</label>
-                        <input v-model="editForm.jurisdiction"
+                        <input v-model="jurisdictionQuery"
                           @focus="showJurisdictionPicker = true"
                           @input="showJurisdictionPicker = true"
-                          @blur="hideJurisdictionPicker"
-                          @keydown.down.prevent="jurisdictionIdx = Math.min(jurisdictionIdx + 1, filteredJurisdictions.length - 1)"
-                          @keydown.up.prevent="jurisdictionIdx = Math.max(jurisdictionIdx - 1, 0)"
-                          @keydown.tab.prevent="filteredJurisdictions.length && (editForm.jurisdiction = filteredJurisdictions[jurisdictionIdx], showJurisdictionPicker = false)"
-                          @keydown.enter.prevent="filteredJurisdictions.length && (editForm.jurisdiction = filteredJurisdictions[jurisdictionIdx], showJurisdictionPicker = false)"
+                          @blur="blurJurisdiction"
+                          @keydown.down.prevent="jurisdictionDown"
+                          @keydown.up.prevent="jurisdictionUp"
+                          @keydown.tab.prevent="pickHighlightedJurisdiction"
+                          @keydown.enter.prevent="pickHighlightedJurisdiction"
                           @keydown.escape="showJurisdictionPicker = false"
                           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           :placeholder="t('legal.placeholder.jurisdiction')" />
                         <div v-if="showJurisdictionPicker && filteredJurisdictions.length > 0"
                           class="absolute z-50 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                          <button v-for="(j, i) in filteredJurisdictions" :key="j"
-                            @mousedown.prevent="editForm.jurisdiction = j; showJurisdictionPicker = false"
+                          <!-- `@mousedown.prevent` is contract, not style: it keeps focus on
+                               the input so blur never fires from a pick, which is what lets
+                               useJurisdictionPicker commit synchronously. -->
+                          <button v-for="(j, i) in filteredJurisdictions" :key="j.code"
+                            @mousedown.prevent="pickJurisdiction(j)"
                             class="w-full text-left px-3 py-1.5 text-xs transition-colors"
                             :class="i === jurisdictionIdx ? 'bg-blue-600/30 text-white' : 'text-slate-300 hover:bg-slate-700'">
-                            {{ j }}
+                            {{ j.label }}
                           </button>
                         </div>
                       </div>
@@ -306,7 +309,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.jurisdiction') }}</div>
-                          <div class="text-sm text-slate-300">{{ selectedItem.jurisdiction || '—' }}</div>
+                          <div class="text-sm text-slate-300">{{ regionLabel(selectedItem.jurisdiction) || '—' }}</div>
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('legal.field.category') }}</div>
@@ -493,14 +496,14 @@ import ReadingsPanel from '../components/ReadingsPanel.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import Pagination from '../components/Pagination.vue'
 import ListSkeleton from '../components/ListSkeleton.vue'
-import jurisdictions from '../data/countries.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate, formatDay } from '../composables/useFormat.js'
+import { formatDate, formatDay, regionLabel } from '../composables/useFormat.js'
+import { useJurisdictionPicker } from '../composables/useJurisdictionPicker.js'
 import { useEnumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
@@ -555,15 +558,22 @@ const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
 
-const showJurisdictionPicker = ref(false)
-const jurisdictionIdx = ref(0)
-const filteredJurisdictions = computed(() => {
-  const q = (editForm.value.jurisdiction || '').toLowerCase()
-  const list = jurisdictions.filter(j => !q || j.toLowerCase().includes(q))
-  return list.slice(0, 15)
-})
-watch(() => editForm.value.jurisdiction, () => { jurisdictionIdx.value = 0 })
-function hideJurisdictionPicker() { setTimeout(() => { showJurisdictionPicker.value = false }, 200) }
+// The combobox lives in a composable so its commit timing is testable against
+// the real implementation rather than a copy. NOTE the template contract it
+// documents: the option buttons must keep `@mousedown.prevent`, which is what
+// makes committing on blur safe.
+const {
+  query: jurisdictionQuery,
+  open: showJurisdictionPicker,
+  index: jurisdictionIdx,
+  filtered: filteredJurisdictions,
+  seed: seedJurisdiction,
+  pick: pickJurisdiction,
+  blur: blurJurisdiction,
+  moveDown: jurisdictionDown,
+  moveUp: jurisdictionUp,
+  pickHighlighted: pickHighlightedJurisdiction,
+} = useJurisdictionPicker(editForm)
 
 // Message keys, not labels: a module-scope array of translated strings freezes
 // the tab bar in whichever locale was active when this module first evaluated.
@@ -706,6 +716,9 @@ function startEdit(item) {
     treatment_plan: item.treatment_plan || '',
     notes: item.notes || '',
   }
+  // The box shows the label for whatever the row holds; an unrecognised legacy
+  // value shows itself, which is what makes it editable rather than mysterious.
+  seedJurisdiction(editForm.value.jurisdiction)
   captureEditSnapshot()
 }
 

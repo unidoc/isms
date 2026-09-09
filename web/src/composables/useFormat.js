@@ -5,6 +5,7 @@
 // apart. Everything routes through here so the active vue-i18n locale is the
 // only input, and Intl does the locale-specific work — no date-formatting
 // strings ever land in a translation file.
+import countryCodes from '../data/countries.js'
 import { i18n } from '../i18n.js'
 
 // Intl constructors are comparatively expensive; the same few shapes are used
@@ -168,6 +169,65 @@ export function formatRecent(value, { within = 7 * 24 * 60 * 60 * 1000, style = 
   return Math.abs(Date.now() - d.getTime()) < within ? formatRelative(d) : formatDate(d, style)
 }
 
+// Jurisdiction / region display, for values stored in
+// `legal_requirements.jurisdiction`. Three tiers, and the order is load-bearing:
+//
+//  1. A region sentinel (`Global`, `EU`, `EEA`, `APAC`) resolves through
+//     `common.region.*`. This MUST come first. `EU` is a real ISO 3166
+//     exceptional reservation, so `Intl.DisplayNames` happily renders it
+//     "European Union" — which is not what the picker means by it, and would
+//     also throw away the translated endonym (id-ID says "UE").
+//  2. An alpha-2 code goes to `Intl.DisplayNames`. The regex is a guard, not an
+//     optimisation: `.of('Iceland')` throws `RangeError`, and rows holding a
+//     legacy English name are exactly what tier 3 exists for.
+//  3. Anything else renders verbatim. The column is free text — the CLI and
+//     agent suggestions can write any string, historical changelog entries hold
+//     the pre-migration English names permanently, and a row the migration did
+//     not recognise must still be readable rather than rendering blank.
+const SENTINEL_KEYS = {
+  Global: 'common.region.global',
+  EU: 'common.region.eu',
+  EEA: 'common.region.eea',
+  APAC: 'common.region.apac',
+}
+
+// Exported so a picker can pin these above the countries without restating the
+// list. `scripts/i18nRegionCodes.mjs` has its own copy because it generates the
+// migration and must not import from `src/`; `regionCodes.test.js` asserts the
+// two agree.
+export const REGION_SENTINELS = Object.keys(SENTINEL_KEYS)
+
+// The codes the picker offers, as a set. Gating on this rather than on
+// `/^[A-Z]{2}$/` — a two-uppercase-letter test was too wide in both directions.
+//
+// Too wide upward: CLDR answers for codes this picker never offered, and some of
+// them are not places at all. `ZZ` renders "Unknown Region", `XA`
+// "Pseudo-Accents", `EZ` "Eurozone", `UN` "United Nations". Any of those in a
+// jurisdiction field is worse than showing the raw value, and it broke the
+// stated contract that a value outside the offered set displays exactly as
+// stored.
+//
+// Too wide downward as a server mirror: `language.ParseRegion` in Go is
+// case-insensitive, so a regex here and a parse there disagreed on `"is"`. The
+// offered set is one shared definition both sides can hold, and
+// `internal/isms/api/regions.json` is generated from the same table as this
+// list.
+const OFFERED_CODES = new Set(countryCodes)
+
+export function regionLabel(value) {
+  if (!value) return ''
+  const key = SENTINEL_KEYS[value]
+  if (key) return i18n.global.t(key)
+  if (!OFFERED_CODES.has(value)) return value
+  // `of()` echoes an unrecognised code straight back, so a code CLDR has no
+  // name for renders as itself rather than as an empty cell.
+  try {
+    return formatter(Intl.DisplayNames, 'region', activeLocale(), { type: 'region' }).of(value)
+  } catch {
+    return value
+  }
+}
+
 export function useFormat() {
   return {
     date: formatDate,
@@ -178,5 +238,6 @@ export function useFormat() {
     number: formatNumber,
     relative: formatRelative,
     recent: formatRecent,
+    region: regionLabel,
   }
 }

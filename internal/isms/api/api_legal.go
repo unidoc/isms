@@ -151,7 +151,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 		Detail: lr.Title,
 	})
 
-	s.searchUpsert(orgID, "legal_requirement", lr.Identifier, lr.Title, lr.Identifier+" "+lr.Title+" "+lr.Description+" "+lr.Jurisdiction)
+	s.searchUpsert(orgID, "legal_requirement", lr.Identifier, lr.Title, legalSearchText(&lr))
 
 	return c.JSON(http.StatusCreated, lr)
 }
@@ -293,7 +293,7 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		Detail: existing.Title,
 	})
 
-	s.searchUpsert(orgID, "legal_requirement", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description+" "+existing.Jurisdiction)
+	s.searchUpsert(orgID, "legal_requirement", existing.Identifier, existing.Title, legalSearchText(existing))
 
 	if after != nil {
 		return c.JSON(http.StatusOK, after)

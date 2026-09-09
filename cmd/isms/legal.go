@@ -74,7 +74,7 @@ func legalAddCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&title, "title", "", "Legislation title (e.g. GDPR, NIS2)")
 	cmd.Flags().StringVar(&description, "description", "", "Description")
-	cmd.Flags().StringVar(&jurisdiction, "jurisdiction", "EU", "Jurisdiction: EU, Iceland, US, Global, etc.")
+	cmd.Flags().StringVar(&jurisdiction, "jurisdiction", "EU", "Jurisdiction: ISO 3166-1 alpha-2 country code (IS, US, DE) or a region (Global, EU, EEA, APAC)")
 	cmd.Flags().StringVar(&category, "category", "privacy", "Category: privacy, security, sector, contractual, other")
 	cmd.Flags().StringVar(&reference, "reference", "", "Article/section reference")
 	cmd.Flags().StringVar(&url, "url", "", "Link to legislation text")
@@ -249,7 +249,7 @@ func legalUpdateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&title, "title", "", "Legislation title")
 	cmd.Flags().StringVar(&description, "description", "", "Description")
-	cmd.Flags().StringVar(&jurisdiction, "jurisdiction", "", "Jurisdiction")
+	cmd.Flags().StringVar(&jurisdiction, "jurisdiction", "", "Jurisdiction: ISO 3166-1 alpha-2 country code (IS, US, DE) or a region (Global, EU, EEA, APAC)")
 	cmd.Flags().StringVar(&category, "category", "", "Category")
 	cmd.Flags().StringVar(&reference, "reference", "", "Article/section reference")
 	cmd.Flags().StringVar(&url, "url", "", "URL")

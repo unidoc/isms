@@ -718,7 +718,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
+import { formatDate as formatDateValue, formatDay as formatDayValue, regionLabel } from '../composables/useFormat.js'
 import { enumLabel, enumLabelAbbr, entityLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
@@ -1344,7 +1344,14 @@ function payloadFields(sg) {
     if (!obj || typeof obj !== 'object') return []
     return Object.entries(obj)
       .filter(([, v]) => v !== null && v !== '' && v !== undefined)
-      .map(([k, v]) => ({ key: k, label: PAYLOAD_FIELD_KEYS[k] ? t(PAYLOAD_FIELD_KEYS[k]) : k.replace(/_/g, ' '), value: v }))
+      .map(([k, v]) => ({
+        key: k,
+        label: PAYLOAD_FIELD_KEYS[k] ? t(PAYLOAD_FIELD_KEYS[k]) : k.replace(/_/g, ' '),
+        // `jurisdiction` holds a region code or sentinel, so it renders through
+        // the same seam the legal register uses. Historical suggestions hold the
+        // pre-migration English name and fall through regionLabel() unchanged.
+        value: k === 'jurisdiction' ? regionLabel(v) : v,
+      }))
   } catch { return [] }
 }
 

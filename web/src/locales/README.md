@@ -22,8 +22,12 @@ PR per view and a single `en.json` would make them all collide on one file.
 
 Adding an **area**: one JSON file plus one import line in `index.js`.
 Adding a **locale**: register the tag server-side in
-`internal/isms/i18n/locale.go`, copy `en/`, translate the values, register the
-loader — see [`docs/i18n.md`](../../../docs/i18n.md).
+`internal/isms/i18n/locale.go`, settle the ISO vocabulary (see "ISO terminology"
+below), then add area files one at a time as you finish them — starting from an
+empty directory, **not** from a copy of `en/`, which reports itself as fully
+translated while it is still English. Then register the loader. Full procedure —
+seven steps, ending at the release gates and a layout pass — and the reasoning:
+[`docs/i18n.md`](../../../docs/i18n.md).
 
 ## The keyset is frozen
 

@@ -101,8 +101,14 @@ const keysetSnapshot = "../../../web/test/keyset.snapshot.json"
 // area, and the area key is the filename — see web/src/locales/en/index.js.
 const localesDir = "../../../web/src/locales"
 
-// translationGateThreshold is the share of the frozen keyset an enabled locale
-// must actually translate, in percent.
+// translationGateThreshold is the share of the frozen keyset an enabled locale's
+// bundle must *cover* — that is, contain a key for — in percent.
+//
+// Coverage, not translatedness: what this number bounds is how much of the app
+// a bundle has entries for, and the paragraph below on `cp -r en` is why the
+// distinction has to be stated rather than left as a synonym. The procedure in
+// docs/i18n.md is what makes coverage stand in for translation, by having a key
+// arrive only when someone has translated it.
 //
 // This gate exists because the extraction gate above was necessary and not
 // sufficient, and the gap was invisible for exactly as long as extraction was
@@ -116,11 +122,11 @@ const localesDir = "../../../web/src/locales"
 // because it measures the *app*, not the *bundle*. This one measures the
 // bundle.
 //
-// It measures which keys are *present* in the bundle, not which are actually
-// translated, and that limit is worth stating because the obvious way to start a
-// locale walks straight into it: `cp -r en <tag>` yields a bundle that is
-// missing nothing, so this gate reads 100% while every value is English — the
-// exact release it exists to block, waved through. Verified, not assumed.
+// The limit that follows from measuring presence is worth spelling out, because
+// the obvious way to start a locale walks straight into it: `cp -r en <tag>`
+// yields a bundle that is missing nothing, so this gate reads 100% while every
+// value is English — the exact release it exists to block, waved through.
+// Verified, not assumed.
 //
 // Detecting that here would need a value comparison, and values legitimately
 // agree with `en` sometimes: 17 of id-ID's 244 keys do, all loanwords
@@ -198,7 +204,7 @@ func bundleKeys(t *testing.T, tag string) []string {
 // TestEnabledLocalesAreTranslated is the second half of the release gate.
 //
 // TestSecondLocaleRequiresExtraction asks whether the *app* is extracted.
-// This asks whether the *bundle* is translated. Both were once satisfied by the
+// This asks whether the *bundle* covers it. Both were once satisfied by the
 // same fact — nothing was extracted, so nothing could be translated — and they
 // came apart the moment extraction finished. A reader meets the worse of the
 // two, so both are gated.
@@ -242,8 +248,11 @@ func TestEnabledLocalesAreTranslated(t *testing.T) {
 		percent := covered * 100 / len(frozen)
 		if percent < translationGateThreshold {
 			t.Errorf(
-				"locale %q (%s) is enabled but translates %d of %d keys (%d%%), under the %d%% "+
+				"locale %q (%s) is enabled but covers %d of %d keys (%d%%), under the %d%% "+
 					"threshold.\n\n"+
+					"Coverage counts keys the bundle has, so this is the generous reading; a key "+
+					"that is present but still English counts here and the procedure in "+
+					"docs/i18n.md is what keeps that from happening at scale.\n"+
 					"Missing keys render in English, so enabling it now offers a language the app "+
 					"largely cannot speak — which is worse for the contributor who translated the "+
 					"bundle than for anyone else.\n"+

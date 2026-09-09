@@ -94,10 +94,55 @@ func (c *Client) do(method, path string, body interface{}) ([]byte, error) {
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, errorDetail(respBody))
 	}
 
 	return respBody, nil
+}
+
+// errorDetail turns an API error body into the text a CLI user reads.
+//
+// The server sends {"message": "...", "code": "...", "params": {...}} — the code
+// and params exist so a browser can render the sentence in the reader's own
+// language, and they are noise on a terminal. Printing the raw body put them
+// there anyway:
+//
+//	API error 404: {"message":"risk not found","code":"not_found","params":{"entity":"risk"}}
+//
+// where the useful half is the message. `message` is populated in English on
+// every response and always will be, precisely so this path and the server logs
+// stay readable without decoding anything else.
+//
+// The raw body remains the fallback, and that is the important half of this
+// function rather than an afterthought. A 4xx or 5xx does not always come from
+// the API: a proxy, a Cloudflare Access challenge or a load balancer answers
+// with HTML or plain text, and an operator debugging a failed request needs to
+// see what actually arrived. So anything that is not a JSON object with a
+// message is passed through with its content intact — only surrounding
+// whitespace is trimmed, because a response body ends in a newline more often
+// than not and one that does should not break the operator's line.
+//
+// Whitespace-only counts as no message, on both paths. Our own server cannot
+// send one — every errorMessages value is static prose and apiError's degraded
+// path trims to empty — but the whole reason this function is defensive is that
+// the body may not be ours, and `API error 502:` followed by three spaces tells
+// an operator strictly less than the body it came from.
+func errorDetail(body []byte) string {
+	var parsed struct {
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &parsed); err == nil {
+		if msg := strings.TrimSpace(parsed.Message); msg != "" {
+			return msg
+		}
+	}
+	if trimmed := strings.TrimSpace(string(body)); trimmed != "" {
+		return trimmed
+	}
+	// An empty body says nothing; the status code in the caller's format string
+	// is then the whole message, and "API error 502: " should not trail a colon
+	// into nothing.
+	return "(no response body)"
 }
 
 func (c *Client) get(path string) ([]byte, error) {

@@ -76,6 +76,42 @@ test('free text that matches nothing is stored verbatim, not discarded', () => {
   assert.equal(p.form.value.jurisdiction, 'Germany/France')
 })
 
+test('unmatched free text keeps its exact spelling, spaces included', () => {
+  // The trim inside commit() is for MATCHING only. Storing the trimmed string
+  // looked harmless and was not: it reformatted a value the user never typed.
+  const p = picker('EU')
+  p.query.value = '  Germany / France  '
+  p.blur()
+  assert.equal(p.form.value.jurisdiction, '  Germany / France  ')
+})
+
+test('opening and saving a row does not rewrite a field nobody touched', () => {
+  // The sharper half of the same defect, and the reason it needed no typing to
+  // trigger. `jurisdiction` is free text with no CHECK, so the CLI and agent
+  // suggestions can leave padding in it. Editing the title and saving used to
+  // silently strip that padding.
+  for (const stored of [' Germany/France ', 'Germany/France', 'IS', 'EU', 'Iceland']) {
+    const p = picker(stored)
+    p.blur() // no typing at all — just what a blur on open-then-save does
+    assert.equal(
+      p.form.value.jurisdiction,
+      // A legacy English name still resolves to its code: that is the
+      // conversion doing its job, not an accidental rewrite.
+      stored === 'Iceland' ? 'IS' : stored,
+      `reopening a row holding ${JSON.stringify(stored)} changed it`,
+    )
+  }
+})
+
+test('a whitespace-only box clears the field rather than storing spaces', () => {
+  // The one deliberate exception to verbatim. `jurisdiction` is NOT NULL and
+  // whitespace-only is a cleared field, not a value.
+  const p = picker('IS')
+  p.query.value = '   '
+  p.blur()
+  assert.equal(p.form.value.jurisdiction, '')
+})
+
 test('a typed label or code resolves to the code, case-insensitively', () => {
   for (const [typed, want] of [
     ['Iceland', 'IS'],
@@ -84,6 +120,8 @@ test('a typed label or code resolves to the code, case-insensitively', () => {
     ['is', 'IS'], // someone typing the code in lower case means the code
     ['United Kingdom', 'GB'],
     ['Czechia', 'CZ'],
+    [' Iceland ', 'IS'], // padding must not stop a real option matching
+    ['  IS  ', 'IS'],
   ]) {
     const p = picker('EU')
     p.query.value = typed

@@ -81,15 +81,32 @@ export function useJurisdictionPicker(form) {
   }
 
   // Free text stays free text. If what was typed matches no option it is stored
-  // verbatim rather than discarded or snapped to a neighbour — the column has no
-  // constraint, plenty of real jurisdictions are not countries, and silently
-  // rewriting a manager's input is worse than storing it.
+  // VERBATIM rather than discarded, snapped to a neighbour, or reformatted — the
+  // column has no constraint, plenty of real jurisdictions are not countries, and
+  // silently rewriting a manager's input is worse than storing it.
+  //
+  // The trim is for MATCHING ONLY, and that distinction is the whole point. An
+  // earlier version stored the trimmed string, which quietly broke the contract
+  // above in a way that needed no typing to trigger: a row already holding
+  // " Germany/France " (the CLI and agent suggestions can write it) got rewritten
+  // to "Germany/France" the moment someone opened the form to edit the title and
+  // saved. A field nobody touched must not change.
+  //
+  // One deliberate exception: a box holding nothing but whitespace stores the
+  // empty string, not the spaces. Whitespace-only is a cleared field rather than
+  // a value, and `jurisdiction` is NOT NULL — parking "  " in it would be its own
+  // small defect.
   function commit() {
-    const typed = query.value.trim()
+    const raw = query.value
+    const probe = raw.trim()
+    if (!probe) {
+      form.value.jurisdiction = ''
+      return
+    }
     const exact = options.value.find(
-      o => o.label.toLowerCase() === typed.toLowerCase() || o.code.toUpperCase() === typed.toUpperCase(),
+      o => o.label.toLowerCase() === probe.toLowerCase() || o.code.toUpperCase() === probe.toUpperCase(),
     )
-    form.value.jurisdiction = exact ? exact.code : typed
+    form.value.jurisdiction = exact ? exact.code : raw
   }
 
   function blur() {

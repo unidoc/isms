@@ -500,11 +500,11 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate, formatDay, regionLabel } from '../composables/useFormat.js'
+import { formatDate, formatDay, REGION_SENTINELS, regionLabel } from '../composables/useFormat.js'
 import { useEnumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
-const { t } = useI18n()
+const { t, locale: i18nLocale } = useI18n()
 const { enumLabel, entityLabel } = useEnumLabel()
 const { confirm: confirmDialog } = useConfirm()
 const { show: showError, success: showSaved } = useToast()
@@ -565,15 +565,28 @@ const jurisdictionIdx = ref(0)
 // writes the code to the form and the label to the box.
 const jurisdictionQuery = ref('')
 
-// Sorted by localized label, so the list reads alphabetically in whatever
-// language is active — a computed rather than a module constant for the reason
-// spelled out above TAB_KEYS: a module-scope array freezes whichever locale
-// happened to be active when this module first evaluated.
-const jurisdictionOptions = computed(() =>
-  jurisdictionCodes
-    .map(code => ({ code, label: regionLabel(code) }))
-    .sort((a, b) => a.label.localeCompare(b.label)),
-)
+// Sentinels pinned first, countries sorted by localized label under them.
+//
+// The pin is not cosmetic. `Global`/`EU`/`EEA`/`APAC` led the old hand-ordered
+// list, `EU` is the column's own default and the most-picked value, and the
+// dropdown shows only the first 15 matches — so sorting the whole list together
+// pushes EU to 60th and makes the three most common values unreachable without
+// typing. Sorting the countries is still right: a hand-ordered list is
+// alphabetical in English only, and this list is rendered in the reader's
+// language.
+//
+// A computed rather than a module constant, for the reason spelled out above
+// TAB_KEYS: a module-scope array freezes whichever locale happened to be active
+// when this module first evaluated.
+const jurisdictionOptions = computed(() => {
+  const label = code => ({ code, label: regionLabel(code) })
+  const sentinels = jurisdictionCodes.filter(code => REGION_SENTINELS.includes(code)).map(label)
+  const countries = jurisdictionCodes
+    .filter(code => !REGION_SENTINELS.includes(code))
+    .map(label)
+    .sort((a, b) => a.label.localeCompare(b.label, i18nLocale.value))
+  return [...sentinels, ...countries]
+})
 
 // Matches on the label a user can see AND on the code, because the codes are
 // what the API, the CLI and every existing test use — someone who knows the

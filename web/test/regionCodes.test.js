@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { codeList, nameToCode, SENTINELS } from '../scripts/i18nRegionCodes.mjs'
 import countries from '../src/data/countries.js'
-import { regionLabel } from '../src/composables/useFormat.js'
+import { REGION_SENTINELS, regionLabel } from '../src/composables/useFormat.js'
 import { i18n } from '../src/i18n.js'
 
 test('the generator agrees with itself: every name maps, uniquely, to a real region', () => {
@@ -70,6 +70,14 @@ test('withdrawn ISO codes never win a name', () => {
   for (const code of withdrawn) {
     assert.ok(!offered.has(code), `${code} is withdrawn and must not be offered`)
   }
+})
+
+test('the generator and the runtime agree on which values are sentinels', () => {
+  // Two copies exist on purpose: the generator produces the migration and must
+  // not import from `src/`. They must not drift — a value that is a sentinel to
+  // one and a country to the other either gets converted by the migration or
+  // loses its translated label.
+  assert.deepEqual([...REGION_SENTINELS].sort(), [...SENTINELS].sort())
 })
 
 test('the legacy names table is frozen history, not display copy', () => {

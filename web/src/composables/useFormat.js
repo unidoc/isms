@@ -190,6 +190,12 @@ const SENTINEL_KEYS = {
   APAC: 'common.region.apac',
 }
 
+// Exported so a picker can pin these above the countries without restating the
+// list. `scripts/i18nRegionCodes.mjs` has its own copy because it generates the
+// migration and must not import from `src/`; `regionCodes.test.js` asserts the
+// two agree.
+export const REGION_SENTINELS = Object.keys(SENTINEL_KEYS)
+
 const ALPHA2 = /^[A-Z]{2}$/
 
 export function regionLabel(value) {

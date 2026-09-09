@@ -17,7 +17,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { computed, ref } from 'vue'
-import { regionLabel } from '../src/composables/useFormat.js'
+import { REGION_SENTINELS, regionLabel } from '../src/composables/useFormat.js'
 import countries from '../src/data/countries.js'
 import { i18n } from '../src/i18n.js'
 
@@ -31,9 +31,15 @@ function picker(initial = 'EU') {
   const jurisdictionQuery = ref(regionLabel(initial))
   const showJurisdictionPicker = ref(false)
 
-  const jurisdictionOptions = computed(() =>
-    countries.map((code) => ({ code, label: regionLabel(code) })).sort((a, b) => a.label.localeCompare(b.label)),
-  )
+  const jurisdictionOptions = computed(() => {
+    const label = (code) => ({ code, label: regionLabel(code) })
+    const sentinels = countries.filter((code) => REGION_SENTINELS.includes(code)).map(label)
+    const rest = countries
+      .filter((code) => !REGION_SENTINELS.includes(code))
+      .map(label)
+      .sort((a, b) => a.label.localeCompare(b.label, 'en'))
+    return [...sentinels, ...rest]
+  })
 
   const filteredJurisdictions = computed(() => {
     const q = jurisdictionQuery.value.trim().toLowerCase()
@@ -134,6 +140,22 @@ test('an empty box clears the field rather than resurrecting the old code', () =
   p.jurisdictionQuery.value = ''
   p.hideJurisdictionPicker()
   assert.equal(p.editForm.value.jurisdiction, '')
+})
+
+test('the four regions stay reachable without typing', () => {
+  // The dropdown renders only the first 15 matches. Sorting the sentinels in
+  // with the countries pushed EU — the column's own default — to 60th and out of
+  // reach, which is what this pins. Order, not membership: every other test here
+  // asserts values and none of them caught it.
+  const p = picker()
+  p.jurisdictionQuery.value = ''
+  assert.deepEqual(
+    p.filteredJurisdictions.value.slice(0, 4).map((o) => o.code),
+    ['Global', 'EU', 'EEA', 'APAC'],
+  )
+  // ...and the countries under them are alphabetical by label, not by code.
+  const labels = p.filteredJurisdictions.value.slice(4).map((o) => o.label)
+  assert.deepEqual(labels, [...labels].sort((a, b) => a.localeCompare(b, 'en')))
 })
 
 test('search matches the visible label and the stored code', () => {

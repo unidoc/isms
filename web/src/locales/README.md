@@ -327,6 +327,28 @@ in a reader's mind while the badge beside it was red — trap 2.
 *Mayor* / *minor* / *observasi* follow Indonesian certification-body usage —
 trap 3, not sourced from the standard.
 
+### Abbreviations are not always translatable, and that is a decision to record
+
+`common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:
+they render in fixed-width chips beside a title, so they are constrained by
+space in a way the full label is not. `id-ID` keeps them in their English form,
+for two reasons worth reusing rather than rediscovering:
+
+- **A translated abbreviation can collide where the full term does not.**
+  Confidentiality / integrity / availability are *kerahasiaan* / *integritas* /
+  *ketersediaan*, which abbreviate to K / I / K — the C and the A become the
+  same letter. `document_type` has the same problem: *kendali*, *kebijakan* and
+  *klausul* all start with K.
+- **An abbreviation that is not shorter is not an abbreviation.** *RISK* →
+  *RISIKO* costs two characters in a chip sized for four.
+
+So: translate the full label, keep the code. If your language has established
+short forms, use them — `enum_abbr.finding_type.*` does exactly that in
+`id-ID`, where *KTS Mayor* / *KTS Minor* are the forms Indonesian auditors
+write (*KTS* = *ketidaksesuaian*). The point is not that codes stay English;
+it is that the choice is deliberate and written down, because the next
+contributor will otherwise read an untranslated value as an oversight.
+
 ### Two keys may share a translation
 
 That is fine, and sometimes it is the honest encoding.

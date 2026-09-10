@@ -13,8 +13,10 @@
 // in the bundler and under `node --test`.
 import common from './common.json' with { type: 'json' }
 import notifications from './notifications.json' with { type: 'json' }
+import shell from './shell.json' with { type: 'json' }
 
 export default {
   common,
   notifications,
+  shell,
 }

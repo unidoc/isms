@@ -1,20 +1,43 @@
 {
+  "brand": {
+    "product_name": "ISMS"
+  },
   "action": {
     "save": "Simpan",
     "cancel": "Batal",
     "confirm": "Konfirmasi",
+    "ok": "OK",
     "close": "Tutup",
     "create": "Buat",
     "edit": "Ubah",
     "delete": "Hapus",
     "copy": "Salin",
-    "search": "Cari"
+    "search": "Cari",
+    "clear": "Bersihkan",
+    "add_comment": "Tambah komentar",
+    "comment": "Komentari",
+    "reply": "Balas",
+    "resolve": "Selesaikan",
+    "approve": "Setujui",
+    "add": "Tambah",
+    "discard_draft": "Buang draf",
+    "discard": "Buang"
   },
   "state": {
     "loading": "Memuat…",
+    "saving": "Menyimpan…",
     "empty": "Belum ada apa pun di sini",
     "error": "Terjadi kesalahan",
-    "unknown": "Tidak diketahui"
+    "unknown": "Tidak diketahui",
+    "outdated": "Kedaluwarsa",
+    "outdated_inline": "kedaluwarsa",
+    "resolved": "Selesai",
+    "copied": "Tersalin",
+    "saved": "Tersimpan",
+    "overdue": "TERLAMBAT",
+    "no_notes": "Belum ada catatan.",
+    "sending": "Mengirim…",
+    "creating": "Membuat…"
   },
   "validation": {
     "required": "Kolom ini wajib diisi"
@@ -160,6 +183,12 @@
       "confidential": "Rahasia",
       "restricted": "Sangat Rahasia"
     },
+    "role": {
+      "admin": "Admin",
+      "manager": "Manajer",
+      "contributor": "Kontributor",
+      "reader": "Pembaca"
+    },
     "audit_result": {
       "not_assessed": "Belum dinilai",
       "conforming": "Sesuai",
@@ -186,10 +215,176 @@
       "review": "Tinjau",
       "reading": "Nilai ulang"
     },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
+    },
     "permissions": {
       "read-write": "Baca & Tulis",
       "read": "Hanya baca",
       "write": "Hanya tulis"
+    },
+    "treatment": {
+      "mitigate": "Mitigasi",
+      "accept": "Terima",
+      "transfer": "Alihkan",
+      "avoid": "Hindari"
+    },
+    "risk_type": {
+      "threat": "Ancaman",
+      "opportunity": "Peluang"
+    },
+    "origin": {
+      "internal": "Internal",
+      "external": "Eksternal",
+      "internal and external": "Internal & eksternal"
+    },
+    "incident_type": {
+      "incident": "Insiden",
+      "event": "Kejadian",
+      "weakness": "Kelemahan"
+    },
+    "gdpr_role": {
+      "controller": "Pengendali",
+      "processor": "Prosesor"
+    },
+    "notification_status": {
+      "not_required": "Tidak diperlukan",
+      "pending": "Menunggu",
+      "notified": "Sudah diberitahukan"
+    },
+    "supplier_type": {
+      "cloud": "Cloud",
+      "saas": "SaaS",
+      "consulting": "Konsultansi",
+      "hosting": "Hosting",
+      "infrastructure": "Infrastruktur",
+      "software": "Perangkat lunak",
+      "contractor": "Kontraktor",
+      "other": "Lainnya"
+    },
+    "asset_type": {
+      "infrastructure": "Infrastruktur",
+      "processing_devices": "Perangkat pemroses",
+      "software": "Perangkat lunak",
+      "system": "Sistem",
+      "network": "Jaringan",
+      "service": "Layanan",
+      "financial_info": "Informasi keuangan",
+      "personal_data": "Data pribadi",
+      "ipr": "Kekayaan intelektual",
+      "sales_marketing": "Penjualan & pemasaran",
+      "processing_facility": "Fasilitas pemrosesan",
+      "products_services": "Produk & layanan",
+      "supply_chain": "Rantai pasok",
+      "other": "Lainnya"
+    },
+    "legal_category": {
+      "privacy": "Privasi",
+      "security": "Keamanan",
+      "sector": "Sektoral",
+      "contractual": "Kontraktual",
+      "other": "Lainnya",
+      "data_protection": "Pelindungan data",
+      "employment": "Hukum ketenagakerjaan",
+      "regulatory": "Kepatuhan regulasi",
+      "intellectual_property": "Kekayaan intelektual",
+      "financial": "Regulasi keuangan",
+      "environmental": "Lingkungan hidup",
+      "corporate": "Tata kelola perusahaan"
+    },
+    "audit_type": {
+      "internal": "Internal",
+      "external": "Eksternal",
+      "surveillance": "Surveilans",
+      "certification": "Sertifikasi",
+      "recertification": "Resertifikasi"
+    },
+    "change_category": {
+      "process": "Proses",
+      "technology": "Teknologi",
+      "people": "Sumber daya manusia",
+      "documentation": "Dokumentasi",
+      "infrastructure": "Infrastruktur",
+      "other": "Lainnya"
+    },
+    "task_type": {
+      "general": "Umum",
+      "review": "Tinjauan",
+      "incident_followup": "Tindak lanjut insiden",
+      "audit_followup": "Tindak lanjut audit",
+      "ca_followup": "Tindak lanjut tindakan korektif",
+      "change_followup": "Tindak lanjut perubahan",
+      "onboarding": "Onboarding",
+      "offboarding": "Offboarding",
+      "training": "Pelatihan",
+      "other": "Lainnya"
+    },
+    "source": {
+      "internal_audit": "Audit internal",
+      "external_audit": "Audit eksternal",
+      "risk_assessment": "Penilaian risiko",
+      "security_incident": "Insiden keamanan",
+      "objective": "Sasaran",
+      "feedback": "Umpan balik",
+      "other": "Lainnya"
+    },
+    "priority": {
+      "critical": "Kritis",
+      "high": "Tinggi",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "outcome": {
+      "satisfactory": "Memuaskan",
+      "concerns": "Ada kekhawatiran",
+      "unsatisfactory": "Tidak memuaskan"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "Perubahan",
+      "access_request": "Permintaan akses"
+    },
+    "risk_level": {
+      "critical": "Kritis",
+      "high": "Tinggi",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "document_type": {
+      "document": "Dokumen",
+      "policy": "Kebijakan",
+      "procedure": "Prosedur",
+      "control": "Kendali",
+      "guideline": "Panduan",
+      "record": "Rekaman",
+      "clause": "Klausul",
+      "requirement": "Persyaratan"
     }
   },
   "enum_inline": {
@@ -265,5 +460,122 @@
     "eu": "UE",
     "eea": "EEA",
     "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Kebijakan Privasi",
+    "terms": "Ketentuan Layanan",
+    "powered_by": "Didukung oleh isms.sh"
+  },
+  "count": {
+    "total": "Total {count}",
+    "comments": "{count} komentar",
+    "outdated_comments": "{count} komentar kedaluwarsa",
+    "of": "{shown} dari {total}"
+  },
+  "placeholder": {
+    "search": "Cari…",
+    "select_owner": "Pilih pemilik…"
+  },
+  "tab": {
+    "overview": "Ikhtisar",
+    "treatment": "Penanganan",
+    "assessment": "Penilaian",
+    "notes": "Catatan",
+    "links": "Tautan",
+    "actions": "Tindakan",
+    "suggestions": "Saran",
+    "comments": "Komentar",
+    "history": "Riwayat"
+  },
+  "filter": {
+    "all_statuses": "Semua status",
+    "all_types": "Semua jenis",
+    "all_levels": "Semua tingkat",
+    "all_criticality": "Semua kekritisan",
+    "all_categories": "Semua kategori",
+    "all_severities": "Semua tingkat keparahan",
+    "all_priorities": "Semua prioritas",
+    "all_sources": "Semua sumber",
+    "all_programs": "Semua program",
+    "all_owners": "Semua pemilik"
+  },
+  "option": {
+    "none": "Tidak ada",
+    "not_decided": "Belum diputuskan"
+  },
+  "stat": {
+    "total": "Total",
+    "overdue": "Terlambat"
+  },
+  "heading": {
+    "quick_actions": "Tindakan cepat",
+    "danger_zone": "Zona berbahaya"
+  },
+  "label": {
+    "version": "Versi",
+    "version_number": "Versi {version}",
+    "round": "Putaran {round}",
+    "round_paren": "(Putaran {round})",
+    "reviewers": "Peninjau",
+    "approved_prefix": "Disetujui:"
+  },
+  "read_only": {
+    "actions": "Hanya baca — tindakan memerlukan peran manajer atau admin."
+  },
+  "review": {
+    "last": "Tinjauan terakhir: {date}",
+    "next": "Tinjauan berikutnya: {date}",
+    "overdue_since": "Tinjauan terlambat sejak {date}"
+  },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "A"
+  },
+  "cia": {
+    "not_assessed": "Belum dinilai",
+    "insignificant": "Tidak signifikan",
+    "minor": "Minor",
+    "moderate": "Moderat",
+    "major": "Mayor",
+    "severe": "Berat",
+    "na": "T/A"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "KTS Mayor",
+      "minor_nc": "KTS Minor",
+      "observation": "Observasi",
+      "opportunity": "OFI"
+    },
+    "audit_result": {
+      "not_assessed": "Belum dinilai",
+      "conforming": "Sesuai",
+      "minor_nc": "KTS Minor",
+      "major_nc": "KTS Mayor",
+      "observation": "Observasi",
+      "opportunity": "Peluang"
+    }
+  },
+  "dirty": {
+    "switch_tab": "Ada perubahan yang belum disimpan. Buang dan pindah tab?",
+    "close": "Ada perubahan yang belum disimpan. Buang dan tutup?",
+    "discard": "Buang"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Dibuat dari [{label}]({link})",
+    "created_from_audit_finding": "Dibuat dari temuan audit {label}"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "oleh {name}"
   }
 }

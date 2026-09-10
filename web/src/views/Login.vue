@@ -199,9 +199,7 @@
 
       <!-- Pre-login language choice, so a user can read the app before they have
            an account. Local only — nothing to persist against yet. -->
-      <div class="mt-8 flex justify-center">
-        <LocalePicker :persist="false" compact />
-      </div>
+      <LocalePicker :persist="false" compact class="mt-8 flex justify-center" />
     </div>
     <div class="fixed bottom-4 left-0 right-0 text-center text-xs text-slate-600">
       <a v-if="privacyUrl" :href="privacyUrl" target="_blank" class="hover:text-slate-400 transition-colors">{{ $t('common.footer.privacy') }}</a>

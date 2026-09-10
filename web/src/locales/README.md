@@ -327,6 +327,24 @@ in a reader's mind while the badge beside it was red — trap 2.
 *Mayor* / *minor* / *observasi* follow Indonesian certification-body usage —
 trap 3, not sourced from the standard.
 
+Three more terms were settled when the bundle was completed. They are **not**
+in the table above, deliberately: no adopted standard arbitrates them, so
+citing one would be inventing authority the choice does not have. Recording
+them separately is the honest form, and it is the form to copy when your
+language hits the same situation — a decision with a reason beats a decision
+that looks sourced.
+
+| English | Indonesian | Basis |
+|---|---|---|
+| control (document type) | **kendali** | maintainer decision; common usage also says *kontrol* |
+| controller / processor | **pengendali** / **prosesor** | wording of UU 27/2022 (personal data protection), not an ISO adoption |
+| data protection (legal category) | **pelindungan data** | UU 27/2022 spelling — the law says *pelindungan*, general usage says *perlindungan* |
+
+The middle two matter beyond vocabulary: those are the words a data-protection
+regulator uses, so a reader who works with the law recognises them and a reader
+who does not is not misled. Where your jurisdiction has its own privacy statute,
+prefer its wording over a literal rendering of the English for the same reason.
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

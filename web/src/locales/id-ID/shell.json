@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "search": "Cari",
+    "overview": "Ikhtisar",
+    "documents": "Dokumen",
+    "reviews": "Tinjauan",
+    "inbox": "Kotak masuk",
+    "group_registers": "Register",
+    "risks": "Risiko",
+    "assets": "Aset",
+    "suppliers": "Pemasok",
+    "legal": "Hukum",
+    "systems": "Sistem",
+    "group_operations": "Operasional",
+    "objectives": "Sasaran",
+    "programs": "Program",
+    "audit": "Audit",
+    "corrective_actions": "Tindakan Korektif",
+    "incidents": "Insiden",
+    "changes": "Manajemen Perubahan",
+    "tasks": "Tugas",
+    "admin": "Admin"
+  },
+  "sidebar": {
+    "expand": "Perluas bilah sisi",
+    "collapse": "Ciutkan bilah sisi"
+  },
+  "org": {
+    "none": "Tanpa organisasi",
+    "current_heading": "Organisasi saat ini",
+    "current_heading_short": "Saat ini",
+    "settings": "Pengaturan organisasi",
+    "switch_to": "Beralih ke",
+    "create": "Buat organisasi baru",
+    "switch": "Ganti organisasi"
+  },
+  "notifications": {
+    "heading": "Notifikasi",
+    "mark_all_read": "Tandai semua dibaca",
+    "empty": "Tidak ada notifikasi"
+  },
+  "user": {
+    "settings": "Pengaturan",
+    "sign_out": "Keluar"
+  }
+}

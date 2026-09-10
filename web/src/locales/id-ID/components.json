@@ -1,0 +1,430 @@
+{
+  "readings": {
+    "title": "Pembacaan",
+    "submit": "Kirim Pembacaan",
+    "form_for": "Pembacaan untuk {identifier}",
+    "impact_cia": "Dampak (CIA)",
+    "cia_classification": "Klasifikasi CIA",
+    "confidentiality": "Kerahasiaan *",
+    "integrity": "Integritas *",
+    "availability": "Ketersediaan *",
+    "likelihood": "Kemungkinan *",
+    "impact": "Dampak *",
+    "not_assessed": "Belum dinilai",
+    "select": "Pilih",
+    "risk_score": "Skor Risiko",
+    "score_hint": "Tetapkan CIA + Kemungkinan",
+    "next_review": "Tinjauan Berikutnya",
+    "notes": "Catatan",
+    "notes_placeholder": "Catatan penilaian…",
+    "save": "Simpan Pembacaan",
+    "empty": "Belum ada pembacaan.",
+    "error_save": "Gagal menyimpan pembacaan",
+    "rating": {
+      "very_low": "Sangat Rendah (1)",
+      "low": "Rendah (2)",
+      "medium": "Sedang (3)",
+      "high": "Tinggi (4)",
+      "very_high": "Sangat Tinggi (5)"
+    },
+    "cia": {
+      "insignificant": "Tidak Signifikan (1)",
+      "minor": "Minor (2)",
+      "moderate": "Moderat (3)",
+      "major": "Mayor (4)",
+      "severe": "Berat (5)"
+    },
+    "table": {
+      "date": "Tanggal",
+      "assessor": "Penilai",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "A",
+      "likelihood": "K",
+      "impact": "Dmp",
+      "score": "Skor",
+      "notes": "Catatan"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Tandai sudah ditinjau",
+    "mark_unreviewed": "Tandai belum ditinjau",
+    "resolved_by": "Diselesaikan oleh {name} {date}",
+    "unknown_user": "tidak diketahui",
+    "suggested_edit": "Usulan suntingan",
+    "suggestion_accepted": "Diterima",
+    "suggestion_rejected": "Ditolak",
+    "accept": "Terima",
+    "reject": "Tolak",
+    "awaiting_author": "Menunggu keputusan penulis",
+    "suggestion_resolved_by": "{status} oleh {name}",
+    "reply_placeholder": "Balas… (ketik {'@'} untuk menyebut seseorang)",
+    "suggest_edit": "Usulkan suntingan",
+    "suggest": "Usulkan",
+    "suggestion_placeholder": "Usulkan teks pengganti untuk paragraf ini…",
+    "comment_placeholder": "Tambahkan komentar… (ketik {'@'} untuk menyebut seseorang)",
+    "no_content": "Tidak ada konten.",
+    "status_inline": {
+      "pending": "menunggu",
+      "accepted": "diterima",
+      "rejected": "ditolak"
+    }
+  },
+  "editor": {
+    "undo": "Urungkan (Ctrl+Z)",
+    "redo": "Ulangi (Ctrl+Shift+Z)",
+    "bold": "Tebal (Ctrl+B)",
+    "italic": "Miring (Ctrl+I)",
+    "strikethrough": "Coret (Ctrl+Shift+X)",
+    "text_color": "Warna teks",
+    "heading": "Judul {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Daftar berbutir (Ctrl+Shift+8)",
+    "ordered_list": "Daftar bernomor (Ctrl+Shift+7)",
+    "blockquote": "Kutipan blok (Ctrl+Shift+B)",
+    "code_block": "Blok kode (Ctrl+Alt+C)",
+    "horizontal_rule": "Garis horizontal",
+    "link": "Tautan (Ctrl+K)",
+    "link_entity": "Tautkan {type}",
+    "link_placeholder": "https://…",
+    "insert_table": "Sisipkan tabel",
+    "insert_block": "Sisipkan blok",
+    "no_commands": "Tidak ada perintah yang cocok",
+    "no_results": "Tidak ada hasil",
+    "cell_color_open": "Warna sel…",
+    "cell_color": "Warna sel",
+    "add_row_above": "Tambah baris di atas",
+    "add_row_below": "Tambah baris di bawah",
+    "add_column_left": "Tambah kolom di kiri",
+    "add_column_right": "Tambah kolom di kanan",
+    "delete_row": "Hapus baris",
+    "delete_column": "Hapus kolom",
+    "delete_table": "Hapus tabel",
+    "empty_placeholder": "Mulai menulis…"
+  },
+  "slash": {
+    "table": {
+      "label": "Tabel",
+      "desc": "Sisipkan tabel 3x3"
+    },
+    "h1": {
+      "label": "Judul 1",
+      "desc": "Judul bagian besar"
+    },
+    "h2": {
+      "label": "Judul 2",
+      "desc": "Judul bagian sedang"
+    },
+    "h3": {
+      "label": "Judul 3",
+      "desc": "Judul bagian kecil"
+    },
+    "bullet": {
+      "label": "Daftar Berbutir",
+      "desc": "Daftar tanpa urutan"
+    },
+    "ordered": {
+      "label": "Daftar Bernomor",
+      "desc": "Daftar berurutan"
+    },
+    "quote": {
+      "label": "Kutipan Blok",
+      "desc": "Blok kutipan menjorok"
+    },
+    "code": {
+      "label": "Blok Kode",
+      "desc": "Blok kode berpagar"
+    },
+    "hr": {
+      "label": "Pembatas",
+      "desc": "Garis horizontal"
+    },
+    "risk": {
+      "label": "Risiko",
+      "desc": "Tautkan ke register risiko"
+    },
+    "legal": {
+      "label": "Hukum",
+      "desc": "Tautkan ke persyaratan hukum"
+    },
+    "asset": {
+      "label": "Aset",
+      "desc": "Tautkan ke register aset"
+    },
+    "supplier": {
+      "label": "Pemasok",
+      "desc": "Tautkan ke pemasok"
+    },
+    "system": {
+      "label": "Sistem",
+      "desc": "Tautkan ke sistem TI"
+    },
+    "doc": {
+      "label": "Dokumen",
+      "desc": "Tautkan ke dokumen"
+    },
+    "incident": {
+      "label": "Insiden",
+      "desc": "Tautkan ke insiden"
+    }
+  },
+  "markdown_field": {
+    "bold": "Tebal (Ctrl+B)",
+    "italic": "Miring (Ctrl+I)",
+    "strikethrough": "Coret",
+    "heading": "Judul {level}",
+    "bullet_list": "Daftar berbutir",
+    "numbered_list": "Daftar bernomor",
+    "blockquote": "Kutipan blok",
+    "code_block": "Blok kode",
+    "divider": "Pembatas",
+    "link": "Tautan (Ctrl+K)",
+    "link_entity_button": "Tautkan entitas",
+    "placeholder": "Ketik / untuk perintah…"
+  },
+  "suggestions": {
+    "empty": "Belum ada saran.",
+    "pending_notice": "Usulan tertunda — perubahan ini baru berlaku setelah diterapkan oleh manajer.",
+    "agent_badge": "AI",
+    "suggested_by": "Disarankan oleh {name}",
+    "agent_suffix": "(AI)",
+    "apply": "Terapkan",
+    "reject": "Tolak",
+    "reason_placeholder": "Alasan…",
+    "rejected_with_reason": "Ditolak: {reason}",
+    "applied_entity": "{identifier} diterapkan",
+    "type": "Jenis",
+    "title": "Judul",
+    "title_placeholder": "Deskripsi singkat…",
+    "rationale": "Alasan",
+    "rationale_placeholder": "Mengapa perubahan ini diperlukan?",
+    "creating": "Membuat…",
+    "submit": "Kirim",
+    "suggest": "Usulkan",
+    "created_toast": "Saran terkirim — seorang manajer akan meninjaunya sebelum berlaku.",
+    "stale_confirm": "Entitas telah berubah sejak saran ini dibuat. Tetap terapkan?",
+    "stale_confirm_action": "Tetap terapkan",
+    "error_create": "Gagal membuat saran",
+    "error_apply": "Gagal menerapkan",
+    "error_reject": "Gagal menolak",
+    "error_claim": "Gagal mengambil saran: {message}",
+    "status": {
+      "open": "Menunggu tinjauan",
+      "in_review": "Sedang ditinjau",
+      "applied": "Diterapkan",
+      "rejected": "Ditolak",
+      "withdrawn": "Ditarik"
+    },
+    "action": {
+      "update": "Perbarui kolom",
+      "reassess_rating": "Nilai ulang peringkat",
+      "reassess_criticality": "Nilai ulang kekritisan",
+      "link_entities": "Tautkan ke entitas lain",
+      "link_risks_systems": "Tautkan ke risiko/sistem",
+      "request_review": "Minta tinjauan",
+      "request_access_review": "Minta tinjauan akses"
+    }
+  },
+  "supplier_review": {
+    "title": "Tinjauan Pemasok",
+    "submit": "Kirim Tinjauan",
+    "outcome": "Hasil",
+    "outcome_value": {
+      "satisfactory": "Memuaskan",
+      "concerns": "Ada kekhawatiran",
+      "unsatisfactory": "Tidak memuaskan"
+    },
+    "certifications_verified": "Sertifikasi terverifikasi",
+    "data_handling_verified": "Penanganan data terverifikasi",
+    "sla_met": "SLA terpenuhi",
+    "notes": "Catatan tinjauan",
+    "notes_placeholder": "Jelaskan apa yang ditinjau dan dikonfirmasi. Ini menjadi bukti audit untuk siklus tinjauan ini.",
+    "save": "Simpan Tinjauan",
+    "empty": "Belum ada tinjauan.",
+    "certs_verified_short": "Sertifikasi terverifikasi",
+    "sla_not_met": "SLA tidak terpenuhi",
+    "error_save": "Gagal menyimpan tinjauan"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} paragraf berubah | {count} paragraf berubah",
+    "no_changes": "Tidak ada perubahan",
+    "document_view": "Tampilan dokumen",
+    "advanced_diff": "Diff lanjutan",
+    "previous": "Sebelumnya",
+    "current": "Saat ini",
+    "no_previous_version": "Tidak ada versi sebelumnya",
+    "outdated_from_previous_round": "{count} komentar dari putaran sebelumnya | {count} komentar dari putaran sebelumnya",
+    "comment_placeholder": "Tambahkan komentar…"
+  },
+  "comment_sidebar": {
+    "title": "Komentar",
+    "resolved_count": "{count} selesai",
+    "comment_placeholder": "Tambahkan komentar… (ketik {'@'} untuk menyebut seseorang)",
+    "name_placeholder": "Nama Anda",
+    "send": "Kirim",
+    "empty": "Belum ada komentar",
+    "reply_placeholder": "Tulis balasan… (ketik {'@'} untuk menyebut seseorang)"
+  },
+  "track_changes": {
+    "added": "+{count} ditambahkan",
+    "removed": "-{count} dihapus",
+    "normal": "Normal",
+    "advanced": "Lanjutan",
+    "comment_placeholder": "Tambahkan komentar…"
+  },
+  "references": {
+    "links": "Tautan",
+    "referenced_in": "Dirujuk di",
+    "add_link": "+ Tambah tautan",
+    "search_placeholder": "Cari dokumen, risiko, insiden…",
+    "searching": "Mencari…",
+    "no_matches": "Tidak ada yang cocok",
+    "no_linked_items": "Tidak ada item yang tertaut",
+    "error_search": "Pencarian gagal: {message}",
+    "error_add": "Gagal menambahkan referensi: {message}",
+    "error_remove": "Gagal menghapus referensi: {message}",
+    "error_load": "Gagal memuat referensi: {message}"
+  },
+  "code_block": {
+    "plain_text": "Teks biasa",
+    "enable_wrap": "Aktifkan pembungkusan baris",
+    "disable_wrap": "Nonaktifkan pembungkusan baris",
+    "wrap": "Bungkus",
+    "copy": "Salin",
+    "copy_aria": "Salin kode"
+  },
+  "color_picker": {
+    "remove_color": "Hapus warna"
+  },
+  "comments_panel": {
+    "empty": "Belum ada komentar.",
+    "placeholder": "Tambahkan komentar… (ketik {'@'} untuk menyebut seseorang)",
+    "post": "Kirim",
+    "error_add": "Gagal menambahkan komentar: {message}"
+  },
+  "copy_link": {
+    "copied": "Tautan tersalin",
+    "copy": "Salin tautan ke item ini"
+  },
+  "doc_tree": {
+    "review_required": "Perlu ditinjau"
+  },
+  "refresh": {
+    "refreshing": "Memuat ulang…",
+    "refresh": "Muat ulang"
+  },
+  "diff": {
+    "removed": "- {count} dihapus",
+    "added": "+ {count} ditambahkan",
+    "split": "Terpisah",
+    "unified": "Menyatu",
+    "before": "Sebelum",
+    "after": "Sesudah"
+  },
+  "global_search": {
+    "placeholder": "Cari dokumen, risiko, pemasok, insiden…",
+    "searching": "Mencari…",
+    "no_results": "Tidak ada hasil untuk \"{query}\"",
+    "empty_state": "Ketik untuk mencari di seluruh entitas",
+    "hint_navigate": "navigasi",
+    "hint_open": "buka",
+    "hint_close": "tutup"
+  },
+  "heat_map": {
+    "title": "Peta Panas Risiko",
+    "total_items": "{count} item total | {count} item total",
+    "likelihood": "Kemungkinan",
+    "impact": "Dampak",
+    "unnamed": "Tanpa nama",
+    "more": "+{count} lagi",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Jarang",
+      "unlikely": "Kecil kemungkinan",
+      "possible": "Mungkin",
+      "likely": "Besar kemungkinan",
+      "almost_certain": "Hampir pasti"
+    },
+    "impact_value": {
+      "negligible": "Dapat diabaikan",
+      "minor": "Minor",
+      "moderate": "Moderat",
+      "major": "Mayor",
+      "severe": "Berat"
+    }
+  },
+  "history": {
+    "empty": "Belum ada riwayat.",
+    "field_count": "{count} kolom | {count} kolom",
+    "showing_limit": "Menampilkan 50 dari {total}",
+    "more": "+{count} lagi",
+    "action": {
+      "create": "Dibuat",
+      "update": "Diubah",
+      "delete": "Dihapus",
+      "reading": "Pembacaan",
+      "suggestion_applied": "Saran diterapkan"
+    },
+    "tooltip": {
+      "from": "Dari: {value}",
+      "to": "Menjadi: {value}",
+      "reason": "Alasan: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "Anggota tidak ditemukan",
+    "placeholder": "Pilih anggota…"
+  },
+  "pagination": {
+    "showing": "Menampilkan {start}–{end} dari {total}",
+    "per_page": "Per halaman"
+  },
+  "overdue": {
+    "title": "Tinjauan Terlambat",
+    "creating": "Membuat…",
+    "create_tasks": "Buat Tugas",
+    "created": "{count} tugas dibuat | {count} tugas dibuat",
+    "created_skipped": ", {count} dilewati (sudah ada)",
+    "days_late": "{count} hr",
+    "overdue": "terlambat",
+    "all_on_schedule": "Semua tinjauan sesuai jadwal"
+  },
+  "suggest_new": {
+    "button": "Usulkan",
+    "close": "Tutup",
+    "action": "Tindakan",
+    "title": "Judul",
+    "description": "Deskripsi",
+    "description_placeholder": "Deskripsi entitas baru…",
+    "rationale": "Mengapa ini diperlukan?",
+    "rationale_placeholder": "Alasan untuk saran ini…",
+    "submitting": "Mengirim…",
+    "submit": "Kirim",
+    "form_title_new": "Usulkan {entity} baru",
+    "form_title_change": "Usulkan perubahan pada {entity}",
+    "placeholder_new": "Jelaskan {entity} baru tersebut…",
+    "placeholder_reassess": "Alasan penilaian ulang…",
+    "placeholder_link": "Apa yang perlu ditautkan dan mengapa…",
+    "placeholder_review": "Mengapa hal ini perlu ditinjau…",
+    "placeholder_update": "Apa yang perlu diubah…",
+    "error_create": "Gagal membuat saran",
+    "type": {
+      "edit_risk": "Sunting risiko",
+      "reassess_risk": "Nilai ulang peringkat risiko",
+      "edit_incident": "Sunting insiden",
+      "link_entities": "Tautkan ke entitas lain",
+      "edit_supplier": "Sunting pemasok",
+      "reassess_supplier": "Nilai ulang pemasok",
+      "edit_requirement": "Sunting persyaratan",
+      "edit_change_request": "Sunting permintaan perubahan",
+      "edit_corrective_action": "Sunting tindakan korektif",
+      "edit_task": "Sunting tugas",
+      "edit_objective": "Sunting sasaran",
+      "request_review": "Minta tinjauan",
+      "edit_system": "Sunting sistem",
+      "request_access_review": "Minta tinjauan akses",
+      "edit_asset": "Sunting aset",
+      "request_asset_review": "Minta tinjauan aset",
+      "edit_entity": "Sunting {entity}"
+    }
+  }
+}

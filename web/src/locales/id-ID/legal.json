@@ -1,0 +1,74 @@
+{
+  "title": "Register Hukum",
+  "subtitle": "Peraturan yang berlaku dan penilaian risiko kepatuhan",
+  "error": {
+    "save": "Gagal menyimpan: {message}",
+    "create": "Gagal membuat persyaratan hukum: {message}",
+    "delete": "Gagal menghapus: {message}"
+  },
+  "action": {
+    "add": "Tambah Persyaratan Hukum"
+  },
+  "create": {
+    "heading": "Tambah Persyaratan Hukum",
+    "title_label": "Judul *",
+    "title_placeholder": "mis. GDPR, Direktif NIS2",
+    "category_label": "Kategori",
+    "deselect_hint": "Klik untuk membatalkan pilihan",
+    "fill_in_later": "Yurisdiksi, pemilik, penanganan, dan lainnya dapat ditambahkan setelah dibuat.",
+    "submit": "Tambah"
+  },
+  "map": {
+    "summary": "Peta Risiko",
+    "heading": "Peta Risiko Kepatuhan"
+  },
+  "filter": {
+    "empty": "Persyaratan hukum tidak ditemukan"
+  },
+  "table": {
+    "header": {
+      "title": "Judul",
+      "jurisdiction": "Yurisdiksi",
+      "score": "Skor",
+      "treatment": "Penanganan",
+      "status": "Status",
+      "owner": "Pemilik"
+    }
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "jurisdiction": "Yurisdiksi",
+    "category": "Kategori",
+    "status": "Status",
+    "owner": "Pemilik",
+    "reference": "Rujukan",
+    "reference_label": "Rujukan (pasal/bagian)",
+    "url": "URL",
+    "treatment": "Penanganan",
+    "treatment_plan": "Rencana Penanganan",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh"
+  },
+  "placeholder": {
+    "description": "Jelaskan persyaratan ini…",
+    "jurisdiction": "Ketik untuk mencari…",
+    "reference": "mis. Pasal 32, Bagian 4.2",
+    "url": "https://…",
+    "treatment_plan": "Bagaimana kita memenuhi persyaratan ini? (kendali, kebijakan, tindakan…)",
+    "notes": "Catatan tambahan, observasi, interpretasi… Ketik /doc untuk menautkan dokumen"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "treatment": "Penanganan",
+    "notes": "Catatan"
+  },
+  "assessment": {
+    "current": "Saat ini"
+  },
+  "danger": {
+    "warning": "Menghapus persyaratan hukum ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, dan referensi yang tertaut akan hilang.",
+    "delete": "Hapus persyaratan",
+    "confirm": "Hapus persyaratan hukum ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

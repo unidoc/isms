@@ -6,6 +6,11 @@ Skips: OIDC flows, passkey WebAuthn, git protocol, evidence upload (needs multip
 import requests
 from conftest import ADMIN_EMAIL, READER_EMAIL
 
+# A well-formed BCP 47 tag that is not, and will not become, a shipped locale.
+# Matches the gatedTag fixture in internal/isms/i18n/locale_test.go so both
+# layers refuse the same sentinel.
+UNOFFERED = "zz-ZZ"
+
 
 class TestSystems:
     def test_list(self, api_url, admin_headers):
@@ -288,13 +293,16 @@ class TestAuth:
         assert r.status_code == 200
         return r.json()
 
-    # These use "en" rather than a second locale because the supported set is a
-    # compile-time catalog with a per-entry `enabled` flag, and id-ID currently
-    # ships disabled (its UI is not extracted yet — see docs/i18n.md). An
-    # integration test cannot flip that flag, so the write path is exercised with
-    # the one locale this build offers, and the disabled case is asserted
-    # directly below. Both are worth having: this is the only place either is
-    # checked over HTTP rather than as a unit test on i18n.Canonical.
+    # The supported set is a compile-time catalog with a per-entry `enabled`
+    # flag, and an integration test cannot flip it. So the offered locales are
+    # read from GET /config rather than named here, and the refusal case uses a
+    # tag that will never be in the catalog. From outside the process a disabled
+    # locale and an unsupported one are the same thing — both are refused by
+    # i18n.Canonical — so "not offered" is the only distinction this layer can
+    # honestly draw, and it is the one users actually meet.
+    #
+    # Worth having despite the unit tests on Canonical: this is the only place
+    # the rule is checked over HTTP, through the handler that has to enforce it.
 
     def test_update_profile_locale_only(self, api_url, admin_headers):
         """A locale-only payload is valid — name is optional, not required."""
@@ -317,31 +325,57 @@ class TestAuth:
         assert r.status_code == 200
         assert self._profile(api_url, admin_headers)["locale_preference"] == "en"
 
-    def test_update_profile_locale_rejects_disabled_locale(self, api_url, admin_headers):
-        """A locale in the catalog but not enabled is refused, not stored.
+    def test_update_profile_locale_rejects_unoffered_locale(self, api_url, admin_headers):
+        """A locale this build does not offer is refused, not stored.
 
-        The release gate: id-ID is fully translated but its UI is unextracted, so
-        the build must not let anyone select it. Absent from GET /config (so the
-        picker hides) is only half of that — this is the write path, which has to
-        refuse it outright rather than accept a preference nothing will honour.
+        Absent from GET /config (so the picker cannot show it) is only half the
+        rule — this is the write path, which has to refuse outright rather than
+        store a preference nothing will honour.
+
+        UNOFFERED is well-formed BCP 47, so this exercises the not-supported
+        rejection and not the malformed-tag one; those are separate branches in
+        Canonical and only the first is the subject here.
+
+        The accept half is not decoration: without it this passes just as well
+        against a handler that rejects every locale, which is a way the write
+        path could break while looking guarded.
         """
+        offered = [l["tag"] for l in requests.get(
+            f"{api_url}/config", headers=admin_headers).json()["locales"]]
+        assert UNOFFERED not in offered, "fixture tag must never be a shipped locale"
+
         before = self._profile(api_url, admin_headers)["locale_preference"]
         r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
-            "locale": "id-ID",
+            "locale": UNOFFERED,
         })
-        assert r.status_code == 400, "a disabled locale must not be accepted"
+        assert r.status_code == 400, "a locale that is not offered must not be accepted"
         assert self._profile(api_url, admin_headers)["locale_preference"] == before
 
-    def test_config_advertises_only_enabled_locales(self, api_url, admin_headers):
-        """GET /config lists exactly the enabled locales, so the picker collapses.
+        r = requests.put(f"{api_url}/auth/profile", headers=admin_headers, json={
+            "locale": offered[0],
+        })
+        assert r.status_code == 200, "an offered locale must still be accepted"
+        assert self._profile(api_url, admin_headers)["locale_preference"] == offered[0]
 
-        LocalePicker.vue renders only when it has more than one option, so a
-        single-locale list is what hides the control entirely.
+    def test_config_advertises_only_enabled_locales(self, api_url, admin_headers):
+        """GET /config lists exactly the locales this build ships.
+
+        Pinned as an exact list, not a containment check: the job is to catch a
+        locale that becomes selectable without anyone deciding it should. The
+        order is Default first, then the rest by tag — that is Supported()'s
+        contract, so comparing the list positionally also guards the ordering
+        the picker relies on.
+
+        THIS LIST IS ONE OF TWO. i18n.TestOnlyEnabledLocalesAreOffered pins the
+        same set as a unit test; enabling or removing a locale means updating
+        both, and docs/i18n.md step 6 names them. Two copies is deliberate —
+        this one goes through the HTTP handler and that one does not — but they
+        must be changed together, so neither is found by a red build.
         """
         r = requests.get(f"{api_url}/config", headers=admin_headers)
         assert r.status_code == 200
         cfg = r.json()
-        assert [l["tag"] for l in cfg["locales"]] == ["en"]
+        assert [l["tag"] for l in cfg["locales"]] == ["en", "id-ID"]
         # Whatever the org default is stored as, it resolves to an enabled tag:
         # i18n.Resolve re-validates every tier, so a value that stopped being
         # supported degrades rather than reaching the client.

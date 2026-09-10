@@ -1,0 +1,232 @@
+{
+  "title": "Audit Internal",
+  "subtitle": "Program audit, jadwal, dan temuan",
+  "error": {
+    "load": "Gagal memuat modul audit. {message}",
+    "load_programmes": "Gagal memuat program: {message}",
+    "load_audits": "Gagal memuat audit: {message}",
+    "load_calendar": "Gagal memuat kalender: {message}",
+    "load_findings": "Gagal memuat temuan: {message}",
+    "load_audit_detail": "Gagal memuat detail audit: {message}",
+    "create_programme": "Gagal membuat program: {message}",
+    "save_programme": "Gagal menyimpan program: {message}",
+    "delete_programme": "Gagal menghapus program: {message}",
+    "create_audit": "Gagal membuat audit: {message}",
+    "save_audit": "Gagal menyimpan audit: {message}",
+    "save_report": "Gagal menyimpan laporan: {message}",
+    "add_item": "Gagal menambahkan item: {message}",
+    "save_item": "Gagal menyimpan: {message}",
+    "remove_item": "Gagal menghapus: {message}",
+    "create_finding": "Gagal menambahkan temuan: {message}",
+    "save_finding": "Gagal menyimpan temuan: {message}",
+    "delete_finding": "Gagal menghapus temuan: {message}"
+  },
+  "toast": {
+    "programme_added": "Program ditambahkan",
+    "programme_deleted": "Program dihapus",
+    "audit_added": "Audit ditambahkan",
+    "report_saved": "Laporan tersimpan",
+    "item_added": "Item ditambahkan",
+    "item_removed": "Item dihapus",
+    "finding_added": "Temuan ditambahkan",
+    "finding_deleted": "Temuan dihapus"
+  },
+  "tab": {
+    "calendar": "Kalender",
+    "programmes": "Program",
+    "findings": "Temuan",
+    "audits": "Audit",
+    "items": "Item",
+    "report": "Laporan",
+    "discussion": "Diskusi",
+    "linked": "TK Tertaut"
+  },
+  "action": {
+    "add_programme": "Tambah Program",
+    "add_finding": "Tambah Temuan",
+    "add_audit": "Tambah Audit"
+  },
+  "calendar": {
+    "loading": "Memuat kalender…",
+    "audit_count": "{count} audit | {count} audit",
+    "month_empty": "Tidak ada audit yang direncanakan bulan ini",
+    "unscheduled": "Belum dijadwalkan",
+    "unscheduled_count": "{count} audit tanpa tanggal rencana | {count} audit tanpa tanggal rencana",
+    "unscheduled_range": "belum dijadwalkan",
+    "empty": "Tidak ada audit pada {year}. Tambahkan audit dari sebuah program untuk melihatnya di sini."
+  },
+  "programme": {
+    "search_placeholder": "Cari program…",
+    "all_years": "Semua tahun",
+    "empty_filtered": "Tidak ada program yang cocok dengan filter Anda.",
+    "empty": "Belum ada program audit — klik Tambah Program untuk membuatnya.",
+    "table": {
+      "id": "ID",
+      "title": "Judul",
+      "year": "Tahun",
+      "audits": "Audit",
+      "findings": "Temuan",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Tambah Program",
+      "title_label": "Judul *",
+      "title_placeholder": "mis. Program Audit Tahunan 2026",
+      "year_label": "Tahun *",
+      "fill_in_later": "Deskripsi, status, dan audit dapat ditambahkan setelah program dibuat.",
+      "submitting": "Menambahkan…",
+      "submit": "Tambah"
+    },
+    "field": {
+      "title": "Judul",
+      "year": "Tahun",
+      "status": "Status",
+      "description": "Deskripsi",
+      "notes": "Catatan",
+      "audits": "Audit",
+      "created_by": "Dibuat oleh",
+      "created": "Dibuat"
+    },
+    "placeholder": {
+      "description": "Sasaran dan ruang lingkup program…",
+      "notes": "Catatan internal…"
+    },
+    "audits_heading": "Audit dalam program ini",
+    "add_audit": "+ Tambah Audit",
+    "audits_empty": "Belum ada audit dalam program ini.",
+    "open_findings": "{count} terbuka",
+    "danger": {
+      "warning": "Program yang masih memiliki audit tidak dapat dihapus. Hapus semua auditnya terlebih dahulu.",
+      "delete": "Hapus program",
+      "confirm": "Hapus program \"{title}\"? Tindakan ini tidak dapat dibatalkan."
+    }
+  },
+  "audit": {
+    "loading_detail": "Memuat detail audit…",
+    "create": {
+      "heading": "Tambah Audit",
+      "title_label": "Judul *",
+      "title_placeholder": "Judul audit",
+      "programme_label": "Program",
+      "no_programme": "Tanpa program (ad-hoc)",
+      "type_label": "Jenis Audit",
+      "fill_in_later": "Ruang lingkup, auditor, tanggal, dan item dapat ditambahkan setelah audit dibuat.",
+      "submitting": "Menambahkan…",
+      "submit": "Tambah"
+    },
+    "field": {
+      "title": "Judul",
+      "scope": "Ruang Lingkup",
+      "type": "Jenis Audit",
+      "status": "Status",
+      "auditor": "Auditor",
+      "programme": "Program",
+      "planned_date": "Tanggal Rencana",
+      "end_date": "Tanggal Selesai",
+      "planned": "Direncanakan",
+      "started": "Dimulai",
+      "completed": "Selesai",
+      "items": "Item",
+      "findings": "Temuan",
+      "notes": "Catatan"
+    },
+    "placeholder": {
+      "scope": "Deskripsi ruang lingkup. Ketik /doc untuk menautkan kendali atau klausul…",
+      "auditor": "Pilih auditor…",
+      "notes": "Catatan audit internal…"
+    },
+    "open_count": "({count} terbuka)",
+    "danger": {
+      "warning": "Audit saat ini tidak dapat dihapus dari antarmuka. Kelola tindakan destruktif melalui CLI."
+    }
+  },
+  "items": {
+    "heading": "Item Audit ({count})",
+    "add": "+ Tambah Item",
+    "search_placeholder": "Cari dokumen, kendali, klausul, risiko, aset…",
+    "searching": "Mencari…",
+    "no_matches": "Tidak ada yang cocok.",
+    "empty": "Belum ada item — tambahkan kendali, klausul, risiko, atau item lain untuk dinilai.",
+    "raise_finding": "Ajukan temuan",
+    "raise_finding_title": "Buat temuan dari item ini",
+    "delete_title": "Hapus item",
+    "evidence": "Bukti",
+    "evidence_placeholder": "Rujukan, tautan, atau deskripsi bukti…",
+    "notes": "Catatan",
+    "notes_empty": "Catatan (kosong)",
+    "notes_placeholder": "Catatan sebaris untuk item ini…",
+    "save_notes": "Simpan catatan",
+    "confirm_remove": "Hapus \"{title}\" dari audit ini?",
+    "remove": "Hapus"
+  },
+  "findings": {
+    "search_placeholder": "Cari temuan…",
+    "all_audits": "Semua audit",
+    "overdue_toggle_title": "Alihkan: Hanya yang terlambat",
+    "overdue_only": "Hanya yang terlambat",
+    "overdue": "Terlambat",
+    "empty_filtered": "Tidak ada temuan yang cocok dengan filter Anda.",
+    "empty": "Belum ada temuan yang dicatat.",
+    "heading_count": "Temuan ({count})",
+    "add": "+ Tambah Temuan",
+    "audit_empty": "Belum ada temuan yang dicatat untuk audit ini.",
+    "table": {
+      "id": "ID",
+      "title": "Judul",
+      "audit": "Audit",
+      "type": "Jenis",
+      "owner": "Pemilik",
+      "due": "Tenggat",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Tambah Temuan",
+      "title_label": "Judul *",
+      "title_placeholder": "Judul temuan",
+      "audit_label": "Audit *",
+      "audit_placeholder": "Pilih audit…",
+      "type_label": "Jenis",
+      "fill_in_later": "Deskripsi, pemilik, tenggat, dan tautan tindakan korektif dapat ditambahkan setelah temuan dibuat.",
+      "submitting": "Menambahkan…",
+      "submit": "Tambah"
+    },
+    "field": {
+      "title": "Judul",
+      "description": "Deskripsi",
+      "type": "Jenis",
+      "status": "Status",
+      "owner": "Pemilik",
+      "due_date": "Tenggat",
+      "due_date_read": "Tenggat",
+      "audit": "Audit",
+      "audit_item": "Item Audit",
+      "created": "Dibuat",
+      "closed": "Ditutup"
+    },
+    "placeholder": {
+      "description": "Deskripsi temuan yang rinci, bukti, analisis akar masalah…",
+      "owner": "Pilih pemilik…"
+    },
+    "item_ref": "item #{id}",
+    "quick_action": "Tindakan cepat",
+    "create_ca": "Buat Tindakan Korektif dari temuan",
+    "create_ca_hint": "Buat tindakan korektif yang sudah terisi judul dan tingkat keparahan temuan ini.",
+    "danger": {
+      "warning": "Menghapus temuan ini bersifat permanen. Tindakan korektif yang tertaut tetap ada, tetapi kehilangan rujukan baliknya.",
+      "delete": "Hapus temuan",
+      "confirm": "Hapus temuan ini? Tindakan ini tidak dapat dibatalkan."
+    }
+  },
+  "report": {
+    "heading": "Laporan Audit",
+    "placeholder": "Laporan akhir auditor — observasi, kesimpulan, rekomendasi. Gunakan perintah garis miring untuk menautkan kendali, klausul, bukti…",
+    "empty": "Belum ada laporan yang ditulis."
+  },
+  "dirty": {
+    "report_switch_tab": "Ada perubahan laporan yang belum disimpan. Buang dan pindah tab?",
+    "report_close": "Ada perubahan laporan yang belum disimpan. Buang dan tutup?"
+  },
+  "detail": {
+    "overview": "Ikhtisar"
+  }
+}

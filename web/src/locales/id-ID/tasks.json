@@ -1,0 +1,69 @@
+{
+  "title": "Tugas",
+  "subtitle": "Tugas tinjauan, tindak lanjut, dan pekerjaan operasional.",
+  "error": {
+    "create": "Gagal membuat tugas: {message}",
+    "save": "Gagal menyimpan: {message}",
+    "delete": "Gagal menghapus tugas: {message}"
+  },
+  "action": {
+    "add": "Tambah Tugas"
+  },
+  "create": {
+    "heading": "Tambah Tugas",
+    "title_label": "Judul",
+    "title_placeholder": "mis. Tinjau register risiko",
+    "priority_label": "Prioritas",
+    "type_label": "Jenis",
+    "visibility_label": "Visibilitas",
+    "fill_in_later": "Deskripsi, penanggung jawab, tenggat, dan catatan dapat ditambahkan setelah tugas dibuat.",
+    "submitting": "Membuat…",
+    "submit": "Tambah"
+  },
+  "visibility": {
+    "public": "Publik — semua orang di organisasi",
+    "private": "Privat — penanggung jawab, pembuat & manajer",
+    "private_badge": "Privat",
+    "private_title": "Privat — terlihat oleh penanggung jawab, pembuat & manajer"
+  },
+  "filter": {
+    "assignee_placeholder": "Semua penanggung jawab",
+    "empty": "Tidak ada tugas yang cocok dengan filter Anda.",
+    "empty_all": "Belum ada tugas — klik Tambah untuk membuat yang pertama.",
+    "empty_hint": "Tugas juga dibuat otomatis dari siklus tinjauan yang terlambat."
+  },
+  "list": {
+    "due": "Tenggat {date}",
+    "created_by": "oleh {name}"
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "assignee": "Penanggung jawab",
+    "priority": "Prioritas",
+    "status": "Status",
+    "due_date": "Tenggat",
+    "type": "Jenis",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh",
+    "completed": "Selesai"
+  },
+  "placeholder": {
+    "description": "Jelaskan tugas ini…",
+    "assignee": "Pilih penanggung jawab…",
+    "notes": "Tambahkan catatan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan",
+    "progress": "Kemajuan"
+  },
+  "stat": {
+    "active": "Aktif"
+  },
+  "danger": {
+    "warning": "Menghapus tugas ini bersifat permanen dan tidak dapat dibatalkan.",
+    "delete": "Hapus tugas",
+    "confirm": "Hapus tugas \"{title}\"?"
+  }
+}

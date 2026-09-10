@@ -327,6 +327,46 @@ in a reader's mind while the badge beside it was red — trap 2.
 *Mayor* / *minor* / *observasi* follow Indonesian certification-body usage —
 trap 3, not sourced from the standard.
 
+Three more terms were settled when the bundle was completed. They are **not**
+in the table above, deliberately: no adopted standard arbitrates them, so
+citing one would be inventing authority the choice does not have. Recording
+them separately is the honest form, and it is the form to copy when your
+language hits the same situation — a decision with a reason beats a decision
+that looks sourced.
+
+| English | Indonesian | Basis |
+|---|---|---|
+| control (document type) | **kendali** | maintainer decision; common usage also says *kontrol* |
+| controller / processor | **pengendali** / **prosesor** | wording of UU 27/2022 (personal data protection), not an ISO adoption |
+| data protection (legal category) | **pelindungan data** | UU 27/2022 spelling — the law says *pelindungan*, general usage says *perlindungan* |
+
+The middle two matter beyond vocabulary: those are the words a data-protection
+regulator uses, so a reader who works with the law recognises them and a reader
+who does not is not misled. Where your jurisdiction has its own privacy statute,
+prefer its wording over a literal rendering of the English for the same reason.
+
+### Abbreviations are not always translatable, and that is a decision to record
+
+`common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:
+they render in fixed-width chips beside a title, so they are constrained by
+space in a way the full label is not. `id-ID` keeps them in their English form,
+for two reasons worth reusing rather than rediscovering:
+
+- **A translated abbreviation can collide where the full term does not.**
+  Confidentiality / integrity / availability are *kerahasiaan* / *integritas* /
+  *ketersediaan*, which abbreviate to K / I / K — the C and the A become the
+  same letter. `document_type` has the same problem: *kendali*, *kebijakan* and
+  *klausul* all start with K.
+- **An abbreviation that is not shorter is not an abbreviation.** *RISK* →
+  *RISIKO* costs two characters in a chip sized for four.
+
+So: translate the full label, keep the code. If your language has established
+short forms, use them — `enum_abbr.finding_type.*` does exactly that in
+`id-ID`, where *KTS Mayor* / *KTS Minor* are the forms Indonesian auditors
+write (*KTS* = *ketidaksesuaian*). The point is not that codes stay English;
+it is that the choice is deliberate and written down, because the next
+contributor will otherwise read an untranslated value as an oversight.
+
 ### Two keys may share a translation
 
 That is fine, and sometimes it is the honest encoding.

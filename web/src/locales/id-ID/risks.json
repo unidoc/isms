@@ -1,0 +1,93 @@
+{
+  "title": "Register Risiko",
+  "subtitle": "Penilaian dan penanganan risiko keamanan informasi",
+  "error": {
+    "load": "Gagal memuat risiko. {message}",
+    "save": "Gagal menyimpan: {message}",
+    "create": "Gagal membuat risiko: {message}",
+    "delete": "Gagal menghapus risiko: {message}"
+  },
+  "action": {
+    "add": "Tambah Risiko",
+    "cancel": "Batal"
+  },
+  "create": {
+    "heading": "Tambah Risiko",
+    "title_label": "Judul *",
+    "title_placeholder": "mis. Serangan ransomware pada sistem produksi",
+    "category_label": "Kategori",
+    "deselect_hint": "Klik untuk membatalkan pilihan",
+    "fill_in_later": "Deskripsi, konsekuensi, penanganan, pemilik, dan lainnya dapat ditambahkan setelah risiko dibuat.",
+    "submit": "Tambah"
+  },
+  "map": {
+    "heading": "Peta Risiko"
+  },
+  "stat": {
+    "total": "Total Risiko"
+  },
+  "filter": {
+    "empty": "Tidak ada risiko yang cocok dengan filter Anda.",
+    "none_yet": "Belum ada risiko — klik Tambah untuk membuat yang pertama."
+  },
+  "table": {
+    "header": {
+      "risk": "Risiko",
+      "type": "Jenis",
+      "score": "Skor",
+      "cia": "C/I/A",
+      "owner": "Pemilik",
+      "treatment": "Penanganan",
+      "status": "Status",
+      "actions": "Tindakan"
+    },
+    "was_score": "sebelumnya {score}",
+    "cia_title": {
+      "confidentiality": "Kerahasiaan: {level}",
+      "integrity": "Integritas: {level}",
+      "availability": "Ketersediaan: {level}"
+    },
+    "advisory_badge": "Tinjau",
+    "advisory_title": "CIA tidak selaras dengan aset yang tertaut — perlu dinilai ulang"
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "status": "Status",
+    "owner": "Pemilik",
+    "category": "Kategori",
+    "risk_type": "Jenis Risiko",
+    "origin": "Asal",
+    "treatment": "Penanganan",
+    "treatment_plan": "Rencana Penanganan",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh",
+    "notes": "Catatan"
+  },
+  "placeholder": {
+    "description": "Jelaskan risiko ini…",
+    "treatment_plan": "Bagaimana kita menangani risiko ini?",
+    "notes": "Tambahkan catatan, observasi, notulen rapat, rujukan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "treatment": "Penanganan",
+    "notes": "Catatan"
+  },
+  "assessment": {
+    "inherent": "Bawaan",
+    "current": "Saat ini"
+  },
+  "links": {
+    "linked_assets": "Aset Tertaut"
+  },
+  "actions": {
+    "create_task": "Buat Tugas Implementasi",
+    "create_task_desc": "Buat tugas untuk menjalankan rencana penanganan; otomatis tertaut kembali ke risiko ini."
+  },
+  "danger": {
+    "warning": "Menghapus risiko ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, dan referensi yang tertaut akan hilang.",
+    "delete": "Hapus risiko",
+    "confirm": "Hapus risiko ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

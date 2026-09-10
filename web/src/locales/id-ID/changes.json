@@ -1,0 +1,65 @@
+{
+  "title": "Manajemen Perubahan",
+  "subtitle": "Pantau dan setujui perubahan pada sistem manajemen Anda.",
+  "error": {
+    "load": "Gagal memuat perubahan: {message}",
+    "create": "Gagal membuat permintaan perubahan: {message}",
+    "save": "Gagal menyimpan: {message}",
+    "delete": "Gagal menghapus permintaan perubahan: {message}"
+  },
+  "action": {
+    "add": "Tambah Permintaan Perubahan"
+  },
+  "create": {
+    "heading": "Tambah Permintaan Perubahan",
+    "type_label": "Jenis",
+    "title_label": "Judul",
+    "title_placeholder": "mis. Migrasi autentikasi ke OIDC",
+    "priority_label": "Prioritas",
+    "category_label": "Kategori",
+    "fill_in_later": "Deskripsi, justifikasi, tanggal rencana, tingkat risiko, penanggung jawab, rencana pemulihan, dan catatan dapat ditambahkan setelah dibuat.",
+    "submitting": "Membuat…",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Permintaan perubahan tidak ditemukan"
+  },
+  "list": {
+    "requested_by": "Diminta oleh {name}",
+    "assigned_to": "Ditugaskan kepada {name}",
+    "risk": "Risiko: {level}"
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "type": "Jenis",
+    "priority": "Prioritas",
+    "category": "Kategori",
+    "risk_level": "Tingkat Risiko",
+    "status": "Status",
+    "assigned_to": "Ditugaskan kepada",
+    "assignee": "Penanggung jawab",
+    "planned_for": "Direncanakan pada",
+    "justification": "Justifikasi",
+    "rollback_plan": "Rencana Pemulihan",
+    "requested_by": "Diminta oleh",
+    "created": "Dibuat"
+  },
+  "placeholder": {
+    "description": "Jelaskan perubahan ini…",
+    "assignee": "Pilih…",
+    "justification": "Mengapa perubahan ini diperlukan?",
+    "rollback_plan": "Bagaimana cara memulihkannya?",
+    "notes": "Tambahkan catatan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan",
+    "progress": "Kemajuan"
+  },
+  "danger": {
+    "warning": "Menghapus permintaan perubahan ini bersifat permanen dan tidak dapat dibatalkan.",
+    "delete": "Hapus permintaan perubahan",
+    "confirm": "Hapus permintaan perubahan ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

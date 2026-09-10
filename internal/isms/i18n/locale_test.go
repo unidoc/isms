@@ -32,6 +32,37 @@ func withAllLocales(t *testing.T) {
 	supported = next
 }
 
+// gatedTag is a synthetic locale used only by the disabled-locale tests below.
+// It is deliberately not a language we intend to ship: those tests assert that
+// the release gate works, not that any particular locale is off.
+//
+// Until id-ID shipped, they used id-ID itself. That was fine while something
+// real happened to be disabled and became a trap the moment nothing was: the
+// same assertions would have started passing vacuously against a catalog with
+// no disabled entry in it, still green, while the gate they describe went
+// unexercised. A fixture keeps the coverage pinned to the mechanism instead of
+// to whichever locale is currently unfinished.
+const gatedTag = "zz-ZZ"
+
+// withGatedLocale adds one disabled entry to the catalog for the duration of a
+// test. Same restore discipline as withAllLocales: no t.Parallel.
+func withGatedLocale(t *testing.T) {
+	t.Helper()
+	original := make(map[string]entry, len(supported))
+	for tag, e := range supported {
+		original[tag] = e
+	}
+	t.Cleanup(func() {
+		supported = original
+	})
+	next := make(map[string]entry, len(supported)+1)
+	for tag, e := range original {
+		next[tag] = e
+	}
+	next[gatedTag] = entry{name: "Test Locale", enabled: false}
+	supported = next
+}
+
 func TestCanonical(t *testing.T) {
 	withAllLocales(t)
 	tests := []struct {
@@ -223,11 +254,17 @@ func TestDefaultIsEnabled(t *testing.T) {
 	}
 }
 
-// What this build ships. id-ID is complete as a bundle but the UI behind it is
-// not extracted, so shipping it would offer an Indonesian option that renders
-// an almost entirely English app. Update this list when that changes.
+// What this build ships. Both gates hold for id-ID: the app is extracted (the
+// raw-text baseline is 0) and the bundle covers the whole frozen keyset, so it
+// is offered. Update this list — deliberately — when that set changes.
+//
+// Default comes first and the rest sort by tag, which is Supported()'s contract
+// and the reason this compares position by position rather than as a set.
 func TestOnlyEnabledLocalesAreOffered(t *testing.T) {
-	want := []Locale{{Tag: "en", Name: "English"}}
+	want := []Locale{
+		{Tag: "en", Name: "English"},
+		{Tag: "id-ID", Name: "Bahasa Indonesia"},
+	}
 	got := Supported()
 	if len(got) != len(want) {
 		t.Fatalf("Supported() = %+v, want %+v", got, want)
@@ -243,14 +280,15 @@ func TestOnlyEnabledLocalesAreOffered(t *testing.T) {
 // absent from the picker. PUT /auth/profile and PUT /admin/settings both
 // validate through Canonical, so this is what turns them into a 400.
 func TestDisabledLocaleIsNotCanonical(t *testing.T) {
+	withGatedLocale(t)
 	// Every spelling that would have resolved while it was enabled.
-	for _, in := range []string{"id-ID", "ID-id", "id_ID", "id", "id-SG"} {
+	for _, in := range []string{"zz-ZZ", "ZZ-zz", "zz_ZZ", "zz", "zz-SG"} {
 		if tag, ok := Canonical(in); ok {
-			t.Errorf("Canonical(%q) = (%q, true), want rejected — id-ID is disabled", in, tag)
+			t.Errorf("Canonical(%q) = (%q, true), want rejected — %s is disabled", in, tag, gatedTag)
 		}
 	}
-	if IsSupported("id-ID") {
-		t.Error("IsSupported(\"id-ID\") = true, want false — id-ID is disabled")
+	if IsSupported(gatedTag) {
+		t.Errorf("IsSupported(%q) = true, want false — it is disabled", gatedTag)
 	}
 }
 
@@ -259,10 +297,11 @@ func TestDisabledLocaleIsNotCanonical(t *testing.T) {
 // stored preference to the default instead of rendering a locale the client can
 // no longer load.
 func TestDisabledLocaleDegradesToDefault(t *testing.T) {
+	withGatedLocale(t)
 	cases := []struct{ user, org string }{
-		{"id-ID", ""},      // a user preference stored pre-gate
-		{"", "id-ID"},      // an org default stored pre-gate
-		{"id-ID", "id-ID"}, // both
+		{gatedTag, ""},       // a user preference stored pre-gate
+		{"", gatedTag},       // an org default stored pre-gate
+		{gatedTag, gatedTag}, // both
 	}
 	for _, c := range cases {
 		if got := Resolve(c.user, c.org); got != Default {
@@ -275,9 +314,10 @@ func TestDisabledLocaleDegradesToDefault(t *testing.T) {
 // is the path that needs no picker and no stored preference, and so the one
 // that would otherwise reach a new user with nothing opted in.
 func TestDisabledLocaleIsNotNegotiated(t *testing.T) {
-	for _, header := range []string{"id-ID", "id", "id-ID,en;q=0.5", "id;q=0.9, en;q=0.5"} {
+	withGatedLocale(t)
+	for _, header := range []string{"zz-ZZ", "zz", "zz-ZZ,en;q=0.5", "zz;q=0.9, en;q=0.5"} {
 		if tag, ok := FromAcceptLanguage(header); ok && tag != Default {
-			t.Errorf("FromAcceptLanguage(%q) = (%q, true), want no id-ID match", header, tag)
+			t.Errorf("FromAcceptLanguage(%q) = (%q, true), want no %s match", header, tag, gatedTag)
 		}
 	}
 }

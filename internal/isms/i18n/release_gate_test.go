@@ -116,11 +116,12 @@ const localesDir = "../../../web/src/locales"
 // to zero — `extractionGateThreshold` itself is unchanged at 100, and the two
 // are easy to conflate: the threshold is the budget, the baseline is the
 // measurement. With the measurement at zero the gate is satisfied, and `id-ID`
-// — 244 of 2448 keys, just under 10% — became one flag away from being offered.
-// That is the precise failure the other gate's comment describes: "the picker
-// offers a language, and the app answers in mostly English". It cannot see it,
-// because it measures the *app*, not the *bundle*. This one measures the
-// bundle.
+// — 244 of 2448 keys, just under 10% at the time — became one flag away from
+// being offered. That is the precise failure the other gate's comment
+// describes: "the picker offers a language, and the app answers in mostly
+// English". It cannot see it, because it measures the *app*, not the *bundle*.
+// This one measures the bundle, and it is what held id-ID back until the bundle
+// was finished to 2448 of 2448 and the locale enabled.
 //
 // The limit that follows from measuring presence is worth spelling out, because
 // the obvious way to start a locale walks straight into it: `cp -r en <tag>`
@@ -129,8 +130,8 @@ const localesDir = "../../../web/src/locales"
 // Verified, not assumed.
 //
 // Detecting that here would need a value comparison, and values legitimately
-// agree with `en` sometimes: 17 of id-ID's 244 keys do, all loanwords
-// ("Audit", "Program", "Passkey"). So the control is the procedure instead —
+// agree with `en` sometimes — in id-ID, loanwords like "Audit", "Program" and
+// "Passkey" do. So the control is the procedure instead —
 // docs/i18n.md step 3 says to add area files as they are finished and why — and
 // a reviewer seeing 25 new files of English in one commit. If a copied bundle
 // ever reaches a release, the fix is a check that fails on a *large* share of

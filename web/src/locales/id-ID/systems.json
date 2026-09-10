@@ -1,0 +1,101 @@
+{
+  "title": "Register Sistem",
+  "subtitle": "Sistem TI, sasaran pemulihan, kendali akses, dan keterkaitan pemasok",
+  "error": {
+    "save": "Gagal menyimpan: {message}",
+    "create": "Gagal membuat sistem: {message}",
+    "delete": "Gagal menghapus: {message}",
+    "record_review": "Gagal mencatat tinjauan: {message}"
+  },
+  "action": {
+    "add": "Tambah Sistem"
+  },
+  "create": {
+    "heading": "Tambah Sistem",
+    "name_label": "Nama *",
+    "name_placeholder": "mis. ERP Produksi",
+    "classification_label": "Klasifikasi",
+    "criticality_label": "Kekritisan",
+    "supplier_label": "Pemasok",
+    "fill_in_later": "Klasifikasi CIA, RPO/RTO, dan pemilik dapat ditambahkan setelah sistem dibuat.",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Sistem tidak ditemukan"
+  },
+  "option": {
+    "no_supplier": "— Tidak ada —"
+  },
+  "table": {
+    "header": {
+      "system": "Sistem",
+      "classification": "Klasifikasi",
+      "criticality": "Kekritisan",
+      "cia": "C/I/A",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Status",
+      "owner": "Pemilik",
+      "next_review": "Tinjauan Berikutnya"
+    },
+    "cia_title": {
+      "confidentiality": "Kerahasiaan: {level}",
+      "integrity": "Integritas: {level}",
+      "availability": "Ketersediaan: {level}"
+    },
+    "hours": "{count} jam"
+  },
+  "field": {
+    "name": "Nama",
+    "description": "Deskripsi",
+    "classification": "Klasifikasi",
+    "criticality": "Kekritisan",
+    "status": "Status",
+    "owner": "Pemilik",
+    "department": "Departemen",
+    "supplier": "Pemasok",
+    "rpo": "RPO (jam)",
+    "rto": "RTO (jam)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh"
+  },
+  "hint": {
+    "rpo": "Kehilangan data maksimum yang dapat diterima (jam)",
+    "rto": "Waktu henti maksimum yang dapat diterima (jam)"
+  },
+  "placeholder": {
+    "description": "Jelaskan sistem ini…",
+    "department": "TI, Teknik, Pemasaran…",
+    "notes": "Catatan tambahan… Ketik /doc untuk menautkan dokumen"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "tab": {
+    "reviews": "Tinjauan Akses"
+  },
+  "assessment": {
+    "confidentiality": "Kerahasiaan",
+    "integrity": "Integritas",
+    "availability": "Ketersediaan"
+  },
+  "reviews": {
+    "heading": "Tinjauan Akses",
+    "add": "+ Catat tinjauan",
+    "users_added": "Pengguna Ditambahkan",
+    "users_removed": "Pengguna Dihapus",
+    "notes_label": "Catatan",
+    "notes_placeholder": "Menghapus mantan karyawan…",
+    "submit": "Catat Tinjauan",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "meninjau",
+    "empty": "Belum ada tinjauan akses yang dicatat."
+  },
+  "danger": {
+    "warning": "Menghapus sistem ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, tinjauan akses, dan referensi yang tertaut akan hilang.",
+    "delete": "Hapus sistem",
+    "confirm": "Hapus sistem ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

@@ -57,30 +57,31 @@ type entry struct {
 // Default must always be enabled: it is the last resort of every resolution
 // path.
 //
-// Why id-ID is disabled, and why it is no longer "one flag away":
+// id-ID is enabled, and the route it took is the reason `enabled` is a field.
 //
-// It was disabled because the UI held hardcoded English, so selecting it yielded
-// a near-entirely English app claiming to be Indonesian. That reason is spent —
-// extraction finished in 2026-09, and TestSecondLocaleRequiresExtraction now
-// passes with the raw-text baseline at zero.
+// It was gated twice, for two different reasons, and clearing the first did not
+// clear the second. First the UI held hardcoded English, so selecting it yielded
+// a near-entirely English app claiming to be Indonesian; extraction finished in
+// 2026-09 and TestSecondLocaleRequiresExtraction went green. That left it "one
+// flag away" — and it was not, because the bundle had meanwhile gone stale in
+// place: complete against an `en` of 162 keys, still 244 keys after extraction
+// grew `en` to 2448. Flipping the flag then would have produced the same
+// mostly-English app by the opposite route, which is what
+// TestEnabledLocalesAreTranslated exists to catch and did.
 //
-// It stays disabled for the mirror-image reason. The bundle was complete against
-// an `en` of 162 keys; extraction grew `en` to 2448, and id-ID still carries only
-// common.json and notifications.json — 244 keys, under 10%. Missing keys render
-// in English through fallbackLocale, so enabling it today produces the same
-// near-entirely English app by the other route. TestEnabledLocalesAreTranslated
-// measures the bundle against the frozen keyset and fails on exactly this, which
-// is why the extraction gate alone was not enough.
+// Both now hold: the raw-text baseline is 0 and the bundle covers 2448 of 2448.
 //
-// So enabling it is: finish the bundle to the coverage threshold, then flip this
-// flag, then update TestOnlyEnabledLocalesAreOffered. Tracking issue: #212.
+// The next locale re-enters at the same gate, so leave the machinery alone: a
+// new entry goes in as `enabled: false` and stays there until its bundle clears
+// the coverage threshold. Nothing about this entry being true makes that
+// ceremony optional.
 //
 // Indonesian is tagged id-ID rather than the barer id. Both are valid and the
 // canonicalization below treats them interchangeably (a browser sending either
 // resolves to the same entry), so this is a naming choice, not a functional one.
 var supported = map[string]entry{
 	"en":    {name: "English", enabled: true},
-	"id-ID": {name: "Bahasa Indonesia", enabled: false},
+	"id-ID": {name: "Bahasa Indonesia", enabled: true},
 }
 
 // Locale is one selectable locale, as exposed to clients.

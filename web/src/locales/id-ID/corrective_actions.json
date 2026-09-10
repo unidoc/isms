@@ -1,0 +1,63 @@
+{
+  "title": "Tindakan Korektif",
+  "subtitle": "Pantau ketidaksesuaian, observasi, dan peluang peningkatan",
+  "error": {
+    "save": "Gagal menyimpan: {message}"
+  },
+  "action": {
+    "add": "Tambah Tindakan Korektif"
+  },
+  "filter": {
+    "assignee_placeholder": "Semua penanggung jawab",
+    "empty": "Tidak ada tindakan korektif yang cocok dengan filter Anda.",
+    "empty_all": "Belum ada tindakan korektif — klik Tambah untuk membuat yang pertama."
+  },
+  "create": {
+    "heading": "Tambah Tindakan Korektif",
+    "title_label": "Judul *",
+    "title_placeholder": "Judul singkat ketidaksesuaian atau peningkatan",
+    "fill_in_later": "Deskripsi, penanggung jawab, tenggat, dan catatan dapat ditambahkan setelah dibuat.",
+    "submit": "Tambah"
+  },
+  "source_option": {
+    "internal_audit": "Temuan Audit Internal",
+    "external_audit": "Temuan Audit Eksternal",
+    "risk_assessment": "Penilaian Risiko",
+    "security_incident": "Insiden Keamanan",
+    "objective": "Sasaran",
+    "feedback": "Umpan Balik / Saran",
+    "other": "Lainnya"
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "source": "Sumber",
+    "severity": "Tingkat keparahan",
+    "status": "Status",
+    "assignee": "Penanggung jawab",
+    "due_date": "Tenggat",
+    "root_cause": "Akar Masalah",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh",
+    "resolved": "Selesai ditangani"
+  },
+  "placeholder": {
+    "description": "Jelaskan tindakan korektif…",
+    "assignee": "Pilih penanggung jawab…",
+    "root_cause": "Analisis akar masalah…",
+    "notes": "Tambahkan catatan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "actions": {
+    "create_task": "Buat Tugas Implementasi",
+    "create_task_hint": "Buat tugas untuk mengerjakan tindakan korektif ini; otomatis tertaut kembali ke tindakan korektif ini."
+  },
+  "danger": {
+    "warning": "Menghapus tindakan korektif ini bersifat permanen dan tidak dapat dibatalkan.",
+    "delete": "Hapus tindakan korektif",
+    "confirm": "Hapus tindakan korektif ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

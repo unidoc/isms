@@ -1,0 +1,48 @@
+{
+  "title": "Register Program",
+  "subtitle": "Kelompokkan sasaran ISMS ke dalam program kerja",
+  "error": {
+    "save": "Gagal menyimpan: {message}"
+  },
+  "action": {
+    "add": "Tambah Program"
+  },
+  "create": {
+    "heading": "Tambah Program",
+    "key_label": "Kunci (huruf kapital) *",
+    "key_placeholder": "AWARE",
+    "title_label": "Judul *",
+    "title_placeholder": "Kesadaran Keamanan",
+    "fill_in_later": "Deskripsi dan catatan dapat ditambahkan setelah program dibuat.",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Belum ada program"
+  },
+  "table": {
+    "header": {
+      "key": "Kunci",
+      "title": "Judul",
+      "description": "Deskripsi"
+    }
+  },
+  "field": {
+    "key": "Kunci",
+    "title": "Judul",
+    "description": "Deskripsi",
+    "created": "Dibuat"
+  },
+  "placeholder": {
+    "description": "Apa tujuan program ini?",
+    "notes": "Tambahkan catatan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "danger": {
+    "warning": "Menghapus program ini juga menghapus seluruh sasaran di bawahnya. Tindakan ini tidak dapat dibatalkan.",
+    "delete": "Hapus program",
+    "confirm": "Hapus program \"{key}\"? Seluruh sasaran di bawahnya juga akan dihapus."
+  }
+}

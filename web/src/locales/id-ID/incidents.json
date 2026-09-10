@@ -1,0 +1,88 @@
+{
+  "title": "Manajemen Insiden",
+  "subtitle": "Pantau, tangani, dan ambil pelajaran dari insiden keamanan",
+  "error": {
+    "create": "Gagal membuat insiden: {message}",
+    "save": "Gagal menyimpan: {message}",
+    "delete": "Gagal menghapus insiden: {message}"
+  },
+  "action": {
+    "add": "Tambah Insiden"
+  },
+  "create": {
+    "heading": "Tambah Insiden",
+    "title_label": "Judul *",
+    "title_placeholder": "Judul singkat insiden",
+    "severity_label": "Tingkat keparahan",
+    "type_label": "Jenis",
+    "fill_in_later": "Deskripsi, klasifikasi, asal, penanggung jawab, detail GDPR, dan catatan dapat ditambahkan setelah dibuat.",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Insiden tidak ditemukan"
+  },
+  "list": {
+    "source": "Sumber: {value}",
+    "reporter": "Pelapor: {name}",
+    "assignee": "Penanggung jawab: {name}"
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "severity": "Tingkat keparahan",
+    "type": "Jenis",
+    "origin": "Asal",
+    "classification": "Klasifikasi",
+    "status": "Status",
+    "assignee": "Penanggung jawab",
+    "reporter": "Pelapor",
+    "root_cause": "Akar Masalah",
+    "lessons_learned": "Pelajaran yang Dipetik",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh"
+  },
+  "placeholder": {
+    "description": "Jelaskan insiden ini…",
+    "root_cause": "Analisis akar masalah…",
+    "lessons_learned": "Apa yang dapat kita perbaiki?",
+    "assignee": "Pilih penanggung jawab…",
+    "notes": "Tambahkan catatan…"
+  },
+  "classification": {
+    "confidentiality": "Kerahasiaan",
+    "integrity": "Integritas",
+    "availability": "Ketersediaan"
+  },
+  "data_breach_checkbox": "Ini merupakan pelanggaran data pribadi (GDPR)",
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "tab": {
+    "data_breach": "Pelanggaran Data"
+  },
+  "timeline": {
+    "heading": "Lini Masa",
+    "detected": "Terdeteksi:",
+    "contained": "Terkendali:",
+    "resolved": "Selesai ditangani:",
+    "closed": "Ditutup:"
+  },
+  "actions": {
+    "create_ca": "Buat Tindakan Korektif",
+    "create_ca_desc": "Buat tindakan korektif yang tertaut kembali ke insiden ini."
+  },
+  "breach": {
+    "heading": "Pelanggaran Data Pribadi (GDPR)",
+    "gdpr_role": "Peran GDPR",
+    "authority_notification": "Pemberitahuan ke Otoritas",
+    "subjects_notification": "Pemberitahuan ke Subjek Data",
+    "authority": "Otoritas",
+    "subjects": "Subjek Data"
+  },
+  "danger": {
+    "warning": "Menghapus insiden ini bersifat permanen dan tidak dapat dibatalkan.",
+    "delete": "Hapus insiden",
+    "confirm": "Hapus insiden \"{title}\"? Tindakan ini tidak dapat dibatalkan."
+  }
+}

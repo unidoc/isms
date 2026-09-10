@@ -1,0 +1,141 @@
+{
+  "title": "Kotak Masuk",
+  "subtitle": "{count} item tindakan memerlukan perhatian | {count} item tindakan memerlukan perhatian",
+  "mark_all_read": "Tandai semua dibaca",
+  "tab": {
+    "comments": "Komentar",
+    "reviews": "Tinjauan",
+    "tasks": "Tugas",
+    "incidents": "Insiden",
+    "changes": "Perubahan",
+    "corrective_actions": "TK",
+    "suggestions": "Saran"
+  },
+  "comments": {
+    "empty": "Tidak ada komentar terbuka",
+    "suggestion_badge": "saran",
+    "scope_inline": "Sebaris",
+    "scope_document": "Dokumen",
+    "view_in_document": "Lihat di dokumen →"
+  },
+  "reviews": {
+    "empty": "Tidak ada tinjauan yang tertunda",
+    "untitled": "Tinjauan tanpa judul",
+    "requested_by": "Diminta oleh {name}",
+    "unknown_requester": "Tidak diketahui",
+    "meta": {
+      "status": "Status",
+      "document": "Dokumen",
+      "version": "Versi",
+      "requested_by": "Diminta Oleh"
+    },
+    "assigned_reviewers": "Peninjau yang Ditugaskan",
+    "recent_comments": "Komentar Terbaru",
+    "open_review": "Buka Tinjauan #{id}"
+  },
+  "tasks": {
+    "add": "Tambah Tugas",
+    "empty": "Tugas tidak ditemukan",
+    "start": "Mulai tugas",
+    "mark_done": "Tandai selesai",
+    "form": {
+      "title": "Judul",
+      "title_placeholder": "Judul tugas",
+      "description": "Deskripsi",
+      "description_placeholder": "Deskripsi opsional",
+      "type": "Jenis",
+      "priority": "Prioritas",
+      "assignee": "Penanggung jawab",
+      "assignee_placeholder": "Pilih penanggung jawab…",
+      "due_date": "Tenggat"
+    }
+  },
+  "incidents": {
+    "empty": "Tidak ada insiden yang ditugaskan kepada Anda"
+  },
+  "corrective_actions": {
+    "empty": "Tidak ada tindakan korektif yang ditugaskan kepada Anda"
+  },
+  "changes": {
+    "add": "Tambah Permintaan Perubahan",
+    "empty": "Tidak ada permintaan perubahan",
+    "requested_by": "Diminta oleh {name}",
+    "unknown_requester": "Tidak diketahui",
+    "form": {
+      "title": "Judul",
+      "title_placeholder": "Judul permintaan perubahan",
+      "description": "Deskripsi",
+      "description_placeholder": "Jelaskan perubahan yang diusulkan",
+      "justification": "Justifikasi",
+      "justification_placeholder": "Mengapa perubahan ini diperlukan?",
+      "impact": "Penilaian Dampak",
+      "impact_placeholder": "Dampak yang diperkirakan terhadap ISMS",
+      "assign_to": "Tugaskan Kepada",
+      "assignee_placeholder": "Pilih penanggung jawab…"
+    },
+    "detail": {
+      "description": "Deskripsi",
+      "justification": "Justifikasi",
+      "impact": "Penilaian Dampak",
+      "affected_documents": "Dokumen Terdampak"
+    },
+    "action": {
+      "approve": "Setujui",
+      "reject": "Tolak",
+      "mark_implemented": "Tandai Sudah Diimplementasikan",
+      "close": "Tutup"
+    }
+  },
+  "suggestions": {
+    "empty": "Tidak ada saran dengan status ini.",
+    "filter": {
+      "open": "terbuka",
+      "applied": "diterapkan",
+      "rejected": "ditolak"
+    },
+    "agent_badge": "AI",
+    "suggested_by": "Disarankan oleh {name} · {date}",
+    "apply": "Terapkan",
+    "reject": "Tolak",
+    "withdraw": "Tarik",
+    "reject_placeholder": "Alasan penolakan…",
+    "rejected_reason": "Ditolak: {reason}",
+    "applied_result": "Diterapkan → {entity} {id}",
+    "payload_field": {
+      "title": "Judul",
+      "name": "Nama",
+      "description": "Deskripsi",
+      "category": "Kategori",
+      "risk_type": "Jenis risiko",
+      "origin": "Asal",
+      "severity": "Tingkat keparahan",
+      "priority": "Prioritas",
+      "status": "Status",
+      "type": "Jenis",
+      "criticality": "Kekritisan",
+      "jurisdiction": "Yurisdiksi",
+      "classification": "Klasifikasi",
+      "finding_type": "Jenis temuan",
+      "risk_level": "Tingkat risiko",
+      "source": "Sumber",
+      "incident_type": "Jenis insiden",
+      "current_likelihood": "Kemungkinan",
+      "current_impact": "Dampak"
+    }
+  },
+  "error": {
+    "resolve_comment": "Gagal menyelesaikan komentar: {message}",
+    "mark_all_read": "Gagal menandai semua notifikasi sebagai dibaca: {message}",
+    "approve_review": "Gagal menyetujui tinjauan: {message}",
+    "request_changes": "Gagal meminta perubahan: {message}",
+    "forward_review": "Gagal meneruskan tinjauan: {message}",
+    "claim_suggestion": "Gagal mengambil saran: {message}",
+    "apply_suggestion": "Gagal menerapkan saran: {message}",
+    "reject_suggestion": "Gagal menolak saran: {message}",
+    "withdraw_suggestion": "Gagal menarik saran: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Tetap terapkan",
+    "apply_stale_body": "Entitas telah berubah sejak saran ini dibuat. Tetap terapkan?"
+  }
+}

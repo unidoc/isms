@@ -1,0 +1,71 @@
+{
+  "title": "Register Aset",
+  "subtitle": "Aset informasi, klasifikasi, dan kepemilikan",
+  "error": {
+    "save": "Gagal menyimpan: {message}",
+    "create": "Gagal membuat aset: {message}",
+    "delete": "Gagal menghapus: {message}"
+  },
+  "action": {
+    "add": "Tambah Aset"
+  },
+  "create": {
+    "heading": "Tambah Aset",
+    "name_label": "Nama *",
+    "name_placeholder": "mis. Basis Data Produksi, Portal Pelanggan",
+    "type_label": "Jenis",
+    "deselect_hint": "Klik untuk membatalkan pilihan",
+    "fill_in_later": "Klasifikasi CIA, pemilik, dan lainnya dapat ditambahkan setelah aset dibuat.",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Aset tidak ditemukan"
+  },
+  "stat": {
+    "severe": "Berat (CIA = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Aset",
+      "type": "Jenis",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Pemilik"
+    },
+    "cia_title": {
+      "confidentiality": "Kerahasiaan: {level}",
+      "integrity": "Integritas: {level}",
+      "availability": "Ketersediaan: {level}"
+    }
+  },
+  "field": {
+    "name": "Nama",
+    "description": "Deskripsi",
+    "type": "Jenis",
+    "status": "Status",
+    "owner": "Pemilik",
+    "primary_location": "Lokasi Utama",
+    "next_review": "Tinjauan Berikutnya",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh"
+  },
+  "placeholder": {
+    "description": "Jelaskan aset ini…",
+    "primary_location": "mis. Reykjavík DC, AWS eu-west-1",
+    "notes": "Catatan tambahan… Ketik /doc untuk menautkan dokumen"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "assessment": {
+    "confidentiality": "Kerahasiaan",
+    "integrity": "Integritas",
+    "availability": "Ketersediaan"
+  },
+  "danger": {
+    "warning": "Menghapus aset ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, dan referensi yang tertaut akan hilang.",
+    "delete": "Hapus aset",
+    "confirm": "Hapus aset ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

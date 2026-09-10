@@ -1,0 +1,98 @@
+{
+  "title": "Sasaran",
+  "subtitle": "Pantau sasaran ISMS yang terukur dan kinerja KPI",
+  "error": {
+    "save": "Gagal menyimpan: {message}",
+    "download": "Unduhan gagal: respons tak terduga dari server"
+  },
+  "action": {
+    "add": "Tambah Sasaran"
+  },
+  "filter": {
+    "all_programs": "Semua program",
+    "owner_placeholder": "Pemilik…",
+    "empty": "Sasaran tidak ditemukan"
+  },
+  "create": {
+    "heading": "Tambah Sasaran",
+    "program_label": "Program *",
+    "program_placeholder": "Pilih program…",
+    "owner_label": "Pemilik",
+    "title_label": "Judul *",
+    "title_placeholder": "Tingkat penyelesaian uji phishing bulanan",
+    "fill_in_later": "Nilai target, sumber, metode pengukuran, deskripsi, dan catatan dapat ditambahkan setelah sasaran dibuat.",
+    "submit": "Tambah"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Judul",
+      "target": "Target",
+      "status": "Status",
+      "owner": "Pemilik"
+    }
+  },
+  "field": {
+    "title": "Judul",
+    "description": "Deskripsi",
+    "owner": "Pemilik",
+    "source": "Sumber",
+    "status": "Status",
+    "measurement_method": "Metode pengukuran",
+    "measurement": "Pengukuran",
+    "operator": "Operator",
+    "target_value": "Nilai target",
+    "target": "Target",
+    "unit": "Satuan",
+    "checkin_cycle_months": "Siklus check-in (bulan)",
+    "checkin_cycle": "Siklus check-in",
+    "last_checkin": "Check-in terakhir",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh",
+    "months": "{count} bulan | {count} bulan"
+  },
+  "placeholder": {
+    "description": "Apa sasaran ini?",
+    "owner": "Pilih pemilik…",
+    "source": "ISO 27001 6.2, dll.",
+    "measurement_method": "Bagaimana hal ini diukur?",
+    "unit": "%, jumlah, jam…",
+    "notes": "Tambahkan catatan…"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "checkin": {
+    "heading": "Check-in",
+    "summary": "{pass} lulus · {fail} gagal · {total} total",
+    "record_heading": "Catat check-in",
+    "value_label": "Nilai",
+    "value_placeholder": "97,5",
+    "result_label": "Hasil",
+    "result": {
+      "unspecified": "Tidak ditentukan",
+      "pass": "Lulus",
+      "fail": "Gagal"
+    },
+    "message_label": "Catatan internal",
+    "message_placeholder": "Konteks internal…",
+    "public_note_placeholder": "Catatan publik (terlihat oleh pemangku kepentingan)",
+    "submit": "Catat",
+    "empty": "Belum ada check-in yang dicatat",
+    "pass_badge": "LULUS",
+    "fail_badge": "GAGAL",
+    "public": "Publik: {note}",
+    "confirm_delete": "Hapus check-in ini?"
+  },
+  "evidence": {
+    "download": "Unduh",
+    "attach": "Lampirkan bukti",
+    "confirm_delete": "Hapus bukti \"{title}\"?"
+  },
+  "danger": {
+    "warning": "Menghapus sasaran ini bersifat permanen dan tidak dapat dibatalkan.",
+    "delete": "Hapus sasaran",
+    "confirm": "Hapus sasaran \"{title}\"? Tindakan ini tidak dapat dibatalkan."
+  }
+}

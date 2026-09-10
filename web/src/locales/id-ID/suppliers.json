@@ -1,0 +1,83 @@
+{
+  "title": "Register Pemasok",
+  "subtitle": "Pemasok pihak ketiga, kekritisan, dan penilaian",
+  "error": {
+    "save": "Gagal menyimpan: {message}",
+    "create": "Gagal membuat pemasok: {message}",
+    "delete": "Gagal menghapus: {message}"
+  },
+  "action": {
+    "add": "Tambah Pemasok"
+  },
+  "create": {
+    "heading": "Tambah Pemasok",
+    "name_label": "Nama *",
+    "name_placeholder": "mis. AWS, Office 365",
+    "type_label": "Jenis",
+    "criticality_label": "Kekritisan",
+    "fill_in_later": "Klasifikasi CIA, pemilik, dan detail kontrak dapat ditambahkan setelah pemasok dibuat.",
+    "submit": "Tambah"
+  },
+  "filter": {
+    "empty": "Pemasok tidak ditemukan"
+  },
+  "table": {
+    "header": {
+      "supplier": "Pemasok",
+      "type": "Jenis",
+      "criticality": "Kekritisan",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Pemilik",
+      "next_review": "Tinjauan Berikutnya"
+    },
+    "cia_title": {
+      "confidentiality": "Kerahasiaan: {level}",
+      "integrity": "Integritas: {level}",
+      "availability": "Ketersediaan: {level}"
+    }
+  },
+  "field": {
+    "name": "Nama",
+    "type": "Jenis",
+    "criticality": "Kekritisan",
+    "status": "Status",
+    "owner": "Pemilik",
+    "contact": "Kontak",
+    "contract_ref": "Rujukan Kontrak",
+    "contract_expiry": "Berakhirnya Kontrak",
+    "data_access": "Akses Data",
+    "created": "Dibuat",
+    "created_by": "Dibuat oleh"
+  },
+  "placeholder": {
+    "contact": "kontak{'@'}pemasok.com",
+    "contract_ref": "DPA / URL kontrak",
+    "notes": "Catatan tambahan… Ketik /doc untuk menautkan dokumen"
+  },
+  "data_access": {
+    "checkbox": "Pemasok memiliki akses ke data kami",
+    "yes": "Ya",
+    "no": "Tidak"
+  },
+  "detail": {
+    "overview": "Ikhtisar",
+    "notes": "Catatan"
+  },
+  "tab": {
+    "reviews": "Tinjauan"
+  },
+  "assessment": {
+    "confidentiality": "Kerahasiaan",
+    "integrity": "Integritas",
+    "availability": "Ketersediaan"
+  },
+  "linked_systems": {
+    "heading": "tidak ada sistem tertaut | Sistem tertaut ({count}) | Sistem tertaut ({count})"
+  },
+  "danger": {
+    "warning": "Menghapus pemasok ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, tinjauan, dan referensi yang tertaut akan hilang.",
+    "delete": "Hapus pemasok",
+    "confirm": "Hapus pemasok ini? Tindakan ini tidak dapat dibatalkan."
+  }
+}

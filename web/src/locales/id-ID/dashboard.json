@@ -1,0 +1,115 @@
+{
+  "loading": "Memuat dasbor…",
+  "title": "Ikhtisar",
+  "subtitle": "Ikhtisar kepatuhan dan implementasi ISMS ISO 27001",
+  "org_picker": {
+    "title": "Pilih organisasi",
+    "subtitle": "Pilih organisasi tempat Anda ingin bekerja.",
+    "create_toggle": "+ Buat organisasi baru"
+  },
+  "no_org": {
+    "title": "Anda belum tergabung di organisasi mana pun",
+    "subtitle": "Buat organisasi Anda untuk memulai, atau tunggu undangan."
+  },
+  "compliance": {
+    "title": "Kepatuhan Keseluruhan",
+    "approved_of_total": "{approved} dari {total} dokumen disetujui",
+    "draft": "{count} draf",
+    "in_review": "{count} dalam tinjauan",
+    "approved": "{count} disetujui"
+  },
+  "modules": {
+    "title": "Ikhtisar Modul",
+    "documents": "Dokumen",
+    "risks": "Risiko",
+    "incidents": "Insiden",
+    "changes": "Perubahan",
+    "corrective_actions": "Tindakan Korektif",
+    "suppliers": "Pemasok",
+    "assets": "Aset",
+    "legal": "Hukum",
+    "systems": "Sistem",
+    "alert": {
+      "draft": "{count} draf",
+      "high_critical": "{count} tinggi/kritis",
+      "open": "{count} terbuka",
+      "pending": "{count} menunggu"
+    }
+  },
+  "bia": {
+    "title": "Analisis Dampak Bisnis",
+    "header": {
+      "system": "Sistem",
+      "criticality": "Kekritisan",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Perlu Perhatian Anda",
+    "reviews": {
+      "title": "Tinjauan terbuka",
+      "detail": "{count} tinjauan menunggu tanggapan | {count} tinjauan menunggu tanggapan"
+    },
+    "risks": {
+      "title": "Risiko tinggi & kritis",
+      "detail": "{count} risiko memerlukan penanganan atau eskalasi | {count} risiko memerlukan penanganan atau eskalasi"
+    },
+    "overdue_documents": {
+      "title": "Dokumen terlambat",
+      "detail": "{count} kebijakan melewati tanggal tinjauan | {count} kebijakan melewati tanggal tinjauan"
+    },
+    "incidents": {
+      "title": "Insiden terbuka",
+      "detail": "{count} insiden perlu diselidiki | {count} insiden perlu diselidiki"
+    },
+    "changes": {
+      "title": "Perubahan menunggu persetujuan",
+      "detail": "{count} perubahan diusulkan | {count} perubahan diusulkan"
+    },
+    "corrective_actions": {
+      "title": "Tindakan korektif terbuka",
+      "detail": "{count} tindakan korektif sedang berjalan | {count} tindakan korektif sedang berjalan"
+    }
+  },
+  "stats": {
+    "title": "Statistik Ringkas",
+    "documents": "Dokumen",
+    "documents_detail": "{count} perlu ditinjau",
+    "risks": "Risiko",
+    "risks_detail": "{count} tinggi/kritis",
+    "risks_none": "Semua dalam batas toleransi",
+    "incidents": "Insiden",
+    "incidents_detail": "insiden terbuka",
+    "corrective_actions": "TK",
+    "corrective_actions_detail": "tindakan terbuka",
+    "changes": "Perubahan",
+    "changes_detail": "menunggu persetujuan",
+    "changes_none": "tidak ada yang tertunda",
+    "overdue": "Terlambat",
+    "overdue_detail": "item melewati tenggat",
+    "overdue_none": "semua sesuai jadwal"
+  },
+  "heatmap_title": "Peta Risiko",
+  "calendar": {
+    "title": "Rencana Tahunan",
+    "previous_year": "Tahun sebelumnya",
+    "next_year": "Tahun berikutnya",
+    "category": {
+      "audit": "Audit",
+      "risk": "Tinjauan Risiko",
+      "supplier": "Tinjauan Pemasok",
+      "legal": "Tinjauan Hukum",
+      "task": "Tugas"
+    },
+    "untitled_audit": "Audit"
+  },
+  "activity": {
+    "title": "Aktivitas Terbaru",
+    "empty": "Aktivitas akan muncul seiring tim bekerja"
+  },
+  "error": {
+    "create_org": "Gagal membuat organisasi",
+    "load": "Gagal memuat dasbor"
+  }
+}

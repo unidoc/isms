@@ -468,8 +468,8 @@
   },
   "count": {
     "total": "Total {count}",
-    "comments": "{count} komentar",
-    "outdated_comments": "{count} komentar kedaluwarsa",
+    "comments": "{count} komentar | {count} komentar",
+    "outdated_comments": "{count} komentar kedaluwarsa | {count} komentar kedaluwarsa",
     "of": "{shown} dari {total}"
   },
   "placeholder": {

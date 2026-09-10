@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Dokumen",
+    "new": "Baru",
+    "new_folder": "Folder Baru",
+    "new_document": "Dokumen Baru",
+    "empty": "Belum ada dokumen",
+    "import_template": "Impor templat",
+    "new_folder_placeholder": "nama folder baru…",
+    "folder_name_placeholder": "nama folder…",
+    "hide": "Sembunyikan pohon",
+    "show": "Tampilkan pohon"
+  },
+  "empty": {
+    "heading": "Belum ada dokumen",
+    "body": "Impor templat untuk menyiapkan kerangka struktur dokumen Anda, lalu gunakan menu pohon untuk menambahkan dokumen dan folder.",
+    "import_template": "Impor templat"
+  },
+  "dash": {
+    "tab": {
+      "review": "Perlu Ditinjau",
+      "recent": "Baru Diubah",
+      "search": "Cari",
+      "templates": "Templat"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Sertakan yang belum pernah disetujui ({count})",
+    "up_to_date": "Semua dokumen sudah mutakhir.",
+    "never_approved": "Belum pernah disetujui",
+    "changed": "Berubah",
+    "current": "Saat ini: {commit} ({time})",
+    "approved": "Disetujui: {commit}",
+    "review": "Tinjau",
+    "diff": "Diff"
+  },
+  "recent": {
+    "refresh": "Muat ulang",
+    "empty": "Tidak ada perubahan terbaru.",
+    "meta": "{time} oleh {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Cari di semua dokumen…",
+    "hint": "Ketik minimal 2 karakter untuk mencari di seluruh dokumen.",
+    "searching": "Mencari…",
+    "no_results": "Tidak ada hasil untuk \"{query}\""
+  },
+  "templates": {
+    "heading": "Templat",
+    "subtitle": "Tambahkan atau hapus kerangka dokumen untuk suatu standar.",
+    "installed": "Terpasang",
+    "add": "Tambah",
+    "remove": "Hapus",
+    "remove_heading": "Hapus Templat",
+    "remove_body": "Yakin ingin menghapus {name}? Ini akan menghapus semua dokumen di bawah {path} dari repositori.",
+    "picker_heading": "Impor templat",
+    "picker_subtitle": "Pilih standar untuk menyiapkan kerangka struktur dokumen Anda.",
+    "picker_placeholder": "Cari templat…",
+    "picker_empty": "Templat tidak ditemukan.",
+    "import": "Impor",
+    "added": "Templat {name} berhasil ditambahkan.",
+    "removed": "Templat {name} dihapus.",
+    "add_failed": "Gagal menambahkan templat: {message}",
+    "remove_failed": "Gagal menghapus templat: {message}"
+  },
+  "toolbar": {
+    "edit": "Sunting",
+    "save": "Simpan",
+    "send_for_review": "Kirim untuk ditinjau",
+    "version_history": "Riwayat versi",
+    "comments": "Komentar",
+    "print": "Cetak dokumen",
+    "delete": "Hapus dokumen"
+  },
+  "print": {
+    "version": "Versi {version}",
+    "author": "Penulis: {name}",
+    "printed": "Dicetak {date}"
+  },
+  "tab": {
+    "content": "Konten",
+    "info": "Info",
+    "versions": "Versi",
+    "links": "Tautan",
+    "discussion": "Diskusi",
+    "history": "Riwayat"
+  },
+  "meta": {
+    "status": "Status",
+    "go_to_active_review": "Buka tinjauan yang aktif",
+    "go_to_reviews": "Buka daftar tinjauan",
+    "type": "Jenis",
+    "author": "Penulis",
+    "author_placeholder": "Tetapkan penulis…",
+    "version": "Versi",
+    "owner": "Pemilik",
+    "not_set": "Belum diatur",
+    "review_cycle": "Siklus Tinjauan",
+    "review_cycle_months": "Setiap {count} bulan | Setiap {count} bulan",
+    "last_approved": "Terakhir Disetujui",
+    "approved_version": "Versi yang Disetujui",
+    "next_review": "Tinjauan Berikutnya",
+    "due_soon": "SEGERA JATUH TEMPO"
+  },
+  "banner": {
+    "round_complete": "Putaran {round} selesai — perubahan diminta",
+    "pending_suggestions": "{count} saran tertunda perlu ditangani. | {count} saran tertunda perlu ditangani.",
+    "feedback_waiting": "Masukan peninjau menunggu di percakapan.",
+    "then_resubmit": "Tangani masukan tersebut, lalu ajukan ulang untuk putaran berikutnya.",
+    "open_review": "Buka tinjauan",
+    "in_review": "Dokumen ini sedang ditinjau.",
+    "in_review_round": "Dokumen ini sedang ditinjau (Putaran {round}).",
+    "view_review": "Lihat tinjauan →",
+    "retired": "Dokumen ini sudah tidak berlaku.",
+    "never_approved": "Dokumen ini belum pernah disetujui.",
+    "send_for_review": "Kirim untuk ditinjau →",
+    "changed_since_approval": "Berubah sejak persetujuan terakhir",
+    "last_approved": "— terakhir disetujui",
+    "last_approved_version": "— terakhir disetujui {version}",
+    "last_approved_on": "— terakhir disetujui pada {date}",
+    "last_approved_version_on": "— terakhir disetujui {version} pada {date}",
+    "hide_diff": "Sembunyikan diff",
+    "view_diff": "Lihat diff"
+  },
+  "versions": {
+    "heading": "Riwayat Versi",
+    "empty": "Riwayat versi tidak tersedia",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Diskusi dokumen",
+    "changelog": "Catatan perubahan dokumen"
+  },
+  "content": {
+    "inline_comment_count": "{count} komentar sebaris pada dokumen ini | {count} komentar sebaris pada dokumen ini",
+    "draft_recovered": "Draf yang belum disimpan telah dipulihkan",
+    "mark_unreviewed": "Tandai belum ditinjau",
+    "mark_reviewed": "Tandai sudah ditinjau",
+    "comment_count": "{count} komentar | {count} komentar",
+    "add_comment": "Tambah komentar",
+    "resolved": "Selesai",
+    "resolved_by": "Diselesaikan oleh {name} {date}",
+    "resolved_by_unknown": "tidak diketahui",
+    "inline_placeholder": "Tambahkan komentar pada paragraf ini… (ketik {'@'} untuk menyebut seseorang)",
+    "no_users": "Pengguna tidak ditemukan",
+    "empty": "Tidak ada konten untuk dokumen ini."
+  },
+  "comments": {
+    "no_document": "Pilih dokumen untuk melihat komentar",
+    "heading": "Komentar",
+    "resolved_count": "{count} selesai",
+    "general_placeholder": "Tambahkan komentar umum… (ketik {'@'} untuk menyebut seseorang)",
+    "author_placeholder": "Nama Anda",
+    "send": "Kirim",
+    "inline_label": "Komentar sebaris",
+    "inline_label_short": "Sebaris",
+    "document_label": "Komentar dokumen",
+    "quote": "— \"{quote}\"",
+    "reply": "Balas",
+    "reply_placeholder": "Tulis balasan…",
+    "resolved_toggle": "{count} komentar selesai | {count} komentar selesai",
+    "empty": "Belum ada komentar"
+  },
+  "review_modal": {
+    "heading": "Kirim untuk ditinjau",
+    "reviewers": "Peninjau",
+    "search_members": "Cari anggota…",
+    "version_note": "Catatan versi",
+    "version_note_placeholder": "mis. Memperbarui kriteria penilaian risiko. Menambahkan tabel klasifikasi data.",
+    "version_note_hint": "Catatan ini menjadi bagian dari riwayat versi permanen dokumen setelah disetujui.",
+    "send": "Kirim ke {count} peninjau | Kirim ke {count} peninjau"
+  },
+  "new_doc": {
+    "heading": "Dokumen Baru",
+    "title": "Judul",
+    "title_placeholder": "mis. Kebijakan Klasifikasi Data",
+    "type": "Jenis",
+    "no_folder": "Belum ada folder yang dipilih",
+    "change_folder": "ubah",
+    "pick_folder": "pilih folder",
+    "folder_placeholder": "Ketik atau pilih folder",
+    "show_advanced": "Tampilkan opsi lanjutan",
+    "hide_advanced": "Sembunyikan opsi lanjutan",
+    "document_id": "ID Dokumen",
+    "document_id_placeholder": "otomatis dari judul",
+    "document_id_exists": "ID ini sudah digunakan",
+    "filename": "Nama berkas",
+    "filename_placeholder": "otomatis dari ID",
+    "author": "Penulis",
+    "author_placeholder": "Pilih penulis…",
+    "create": "Buat Dokumen"
+  },
+  "confirm": {
+    "embedded_html_body": "Dokumen ini memuat HTML/SVG tersemat yang tidak dapat dipertahankan oleh penyunting — menyuntingnya di sini akan menghapusnya saat disimpan. Sunting sumbernya melalui CLI untuk mempertahankannya. Tetap sunting?",
+    "delete_body": "Hapus \"{name}\"? Tindakan ini tidak dapat dibatalkan."
+  },
+  "error": {
+    "load_diff": "Gagal memuat diff",
+    "set_author": "Gagal menetapkan penulis: {message}",
+    "set_type": "Gagal menetapkan jenis: {message}",
+    "set_version": "Gagal menetapkan versi: {message}",
+    "create_folder": "Gagal membuat folder: {message}",
+    "create_document": "Gagal membuat dokumen: {message}",
+    "delete": "Gagal menghapus: {message}",
+    "send_for_review": "Gagal mengirim untuk ditinjau: {message}",
+    "load_content": "**Gagal memuat konten:** {message}",
+    "submit_reply": "Gagal mengirim balasan: {message}",
+    "submit_comment": "Gagal mengirim komentar: {message}",
+    "resolve_comment": "Gagal menyelesaikan komentar: {message}",
+    "load_documents": "Gagal memuat dokumen: {message}",
+    "save": "Gagal menyimpan: {message}"
+  }
+}

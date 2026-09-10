@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Dokumentasi",
+    "sign_in": "Masuk"
+  },
+  "hero": {
+    "badge": "Sumber terbuka · Apache 2.0",
+    "title_line1": "Sistem Manajemen",
+    "title_line2": "yang Cerdas",
+    "subtitle": "Dokumen hidup, tinjauan terpantau, dan irama operasional dalam satu platform yang dapat diaudit. Pilih kerangka kerja atau bawa milik Anda sendiri. AI membantu pekerjaannya. Manusia tetap memegang kendali.",
+    "cta_cloud": "Mulai di cloud",
+    "cta_selfhost": "Pasang sendiri",
+    "cta_docs": "Baca dokumentasi"
+  },
+  "why": {
+    "heading": "Mengapa perlu sistem manajemen lagi?",
+    "p1": "Karena sistem yang ada rumit, tidak transparan, dan diperlakukan sebagai formalitas kepatuhan — relevan saat audit, tidak relevan keesokan harinya. Sementara taruhannya terus meningkat: seiring adopsi AI yang kian cepat dan permukaan ancaman yang meluas, sistem manajemen yang tidak hidup justru lebih buruk daripada tidak ada.",
+    "p2": "Tidak harus seperti itu. Keamanan yang benar dimulai dari akarnya — benar-benar memahami dan mengelola risiko Anda, bukan menutupinya. Dibangun dengan AI sejak awal, dengan disiplin nyata dalam perancangan dan penggunaannya, sistem manajemen seharusnya menjadi bagian hidup dari cara Anda beroperasi, bukan beban yang ditempelkan di atasnya.",
+    "p3": "Itulah sebabnya proyek ini bersumber terbuka — dibangun untuk organisasi dari segala ukuran, dan akhirnya menjadi pilihan yang kredibel bagi organisasi kecil, yang selama ini tidak pernah punya sistem manajemen yang sederhana, tetap mutakhir, dan tidak menyulitkan. Kami membangun ini untuk mengubahnya."
+  },
+  "pillars": {
+    "documents_title": "Dokumen adalah aset operasional",
+    "documents_desc": "Kebijakan tersimpan di git sebagai markdown. Setiap suntingan adalah commit. Setiap versi dapat dipulihkan. Dokumen menggerakkan ISMS Anda, bukan sekadar mengendap di folder.",
+    "reviews_title": "Tinjauan adalah keputusan yang terpantau",
+    "reviews_desc": "Tinjauan berbasis putaran dengan komentar sebaris. Setujui, minta perubahan, atau usulkan revisi. Setiap keputusan menjadi rekaman permanen dengan hash SHA-256.",
+    "tasks_title": "Tugas menjalankan tahun Anda",
+    "tasks_desc": "Rencana tahunan menyebarkan tinjauan, audit, dan penilaian risiko sepanjang kalender. Dasbor menunjukkan apa yang perlu perhatian bulan ini. ISMS Anda tidak pernah usang."
+  },
+  "how": {
+    "heading": "Lima menit, bukan lima rapat",
+    "subtitle": "Dari kejadian, ke kebijakan yang diperbarui, ke dokumen yang disetujui. Platform ini menangani pekerjaan rutinnya.",
+    "step1_title": "Sesuatu terjadi",
+    "step1_desc": "Sebuah insiden, pemasok baru, perubahan regulasi, temuan audit. Kejadian apa pun yang memengaruhi postur keamanan Anda.",
+    "step2_title": "Buat atau perbarui",
+    "step2_desc": "Catat di register yang tepat. AI dapat mengusulkan pembaruan risiko, perubahan kebijakan, dan tindakan korektif. Anda meninjau setiap usulan.",
+    "step3_title": "Dokumen diperbarui di sebuah branch",
+    "step3_desc": "Perubahan kebijakan masuk ke branch tinjauan lengkap dengan diff. Tidak ada suntingan misterius. Lima dokumen dalam lima menit.",
+    "step4_title": "Putaran tinjauan",
+    "step4_desc": "Peninjau menerima notifikasi. Menyetujui atau meminta perubahan. Setelah disunting, ajukan ulang sebagai putaran baru. Setiap putaran hanya menampilkan apa yang berubah sejak masukan terakhir.",
+    "step5_title": "Terbitkan",
+    "step5_desc": "Gabungkan ke main. Versi bertambah. Rekaman keputusan dibuat. Bukti tersimpan. Selesai."
+  },
+  "features": {
+    "heading": "Dibangun berbeda",
+    "subtitle": "Bukan penyunting dokumen dengan pengaya kepatuhan. Sebuah sistem manajemen yang dirancang khusus, tempat semuanya saling terhubung.",
+    "git_title": "Dokumen berbasis git",
+    "git_desc": "Kebijakan adalah berkas markdown di repositori git. Setiap perubahan adalah commit lengkap dengan diff. Buat branch untuk tinjauan, gabungkan untuk menerbitkan. Tanpa format tertutup, tanpa keterikatan vendor.",
+    "review_title": "Tinjauan berbasis putaran",
+    "review_desc": "Kirim dokumen untuk ditinjau. Peninjau menyetujui, meminta perubahan, atau mengusulkan revisi dengan komentar sebaris. Ajukan ulang sebagai putaran baru — peninjau hanya melihat apa yang berubah.",
+    "registers_title": "Register yang saling terhubung",
+    "registers_desc": "Risiko tertaut ke aset dan kendali. Insiden memunculkan tindakan korektif. Persyaratan hukum tertaut ke kebijakan. Ubah satu hal, lihat dampaknya di mana-mana.",
+    "ai_title": "AI mengusulkan, Anda menyetujui",
+    "ai_desc": "Agen AI menyusun draf kebijakan, menilai risiko, dan mengusulkan pembaruan register melalui alur tinjauan yang sama. Server MCP dengan 22 alat. Identitas agen dan jejak audit yang lengkap. Bukan autopilot — melainkan asisten yang cakap.",
+    "cadence_title": "Rencana tahunan dan irama kerja",
+    "cadence_desc": "Dasbor menunjukkan apa yang perlu perhatian bulan ini. Sebarkan tinjauan, audit, dan penilaian risiko sepanjang tahun. Tugas memantau pelaksanaannya. ISMS Anda tetap hidup.",
+    "audit_title": "Siap diaudit sejak hari pertama",
+    "audit_desc": "Setiap persetujuan tinjauan dan penerbitan dokumen menghasilkan rekaman keputusan permanen dengan hash konten SHA-256. Bertanda waktu, dapat ditelusuri pelakunya, dan dapat diverifikasi secara kriptografis."
+  },
+  "frameworks": {
+    "heading": "Kerangka kerja apa pun. Templat Anda sendiri.",
+    "subtitle": "11 kerangka kerja bawaan. Atau bawa templat Anda sendiri — cukup satu folder berisi berkas markdown. Jalankan beberapa standar sekaligus di platform yang sama."
+  },
+  "deploy": {
+    "cloud_title": "Cloud terkelola",
+    "cloud_desc": "Daftar, pilih kerangka kerja Anda, langsung bekerja. Kami menangani infrastruktur, pencadangan, dan pembaruan. Multi-tenant dengan isolasi data tingkat baris.",
+    "cloud_cta": "Mulai gratis",
+    "cloud_cta_signin": "Masuk",
+    "selfhost_title": "Dipasang sendiri",
+    "selfhost_desc": "Satu biner Go. PostgreSQL dan sebuah direktori data. Pasang di mana saja — infrastruktur Anda, data Anda. Apache 2.0, tanpa batasan buatan, tanpa trik open-core.",
+    "selfhost_cta": "Lihat di GitHub"
+  },
+  "cta": {
+    "heading": "Auditor Anda akan berterima kasih",
+    "subtitle": "Riwayat versi lengkap. Rekaman persetujuan yang permanen. Keputusan yang dapat diverifikasi secara kriptografis. Jejak audit menyeluruh sejak hari pertama."
+  },
+  "footer": {
+    "powered_by": "Didukung oleh {link}"
+  }
+}

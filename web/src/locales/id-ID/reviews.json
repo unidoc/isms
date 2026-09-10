@@ -1,0 +1,189 @@
+{
+  "title": "Tinjauan",
+  "subtitle": "Permintaan tinjauan dokumen",
+  "back": "Kembali ke daftar tinjauan",
+  "not_found": "Tinjauan tidak ditemukan",
+  "opened_ago": "dibuka {time}",
+  "ai": {
+    "active": "Tinjauan AI sedang berjalan",
+    "escalated": "Dieskalasi — tinjauan AI terhenti"
+  },
+  "guide": {
+    "step_review": "Tinjau dokumen dan perubahannya",
+    "step_comment": "Tambahkan komentar atau usulkan suntingan",
+    "step_decide": "Setujui atau minta perubahan"
+  },
+  "tab": {
+    "changes": "Perubahan (Putaran {round})",
+    "document": "Dokumen",
+    "conversation": "Percakapan"
+  },
+  "timeline": {
+    "suggested_edit": "mengusulkan suntingan",
+    "commented": "berkomentar",
+    "approved": "menyetujui tinjauan ini",
+    "proposed_revision": "mengusulkan revisi",
+    "requested_changes": "meminta perubahan",
+    "assigned": "{reviewer} ditugaskan sebagai peninjau",
+    "empty": "Belum ada aktivitas.",
+    "round_short": "P{round}",
+    "decision": {
+      "merged": "menggabungkan tinjauan ini",
+      "approved": "menyetujui (rekaman keputusan)",
+      "proposed_revision": "mengusulkan revisi (rekaman keputusan)",
+      "changes_requested": "meminta perubahan (rekaman keputusan)"
+    },
+    "content_hash": "Hash konten SHA-256 sebagai bukti keaslian",
+    "hide_changes": "Sembunyikan perubahan",
+    "view_changes": "Lihat perubahan",
+    "diff_loading": "Memuat perubahan…",
+    "diff_error": "Tidak dapat memuat diff revisi ini."
+  },
+  "updated": {
+    "heading": "Dokumen diperbarui setelah tinjauan dikirim",
+    "last_modified_by": "Terakhir diubah oleh {name}",
+    "last_modified_by_with_message": "Terakhir diubah oleh {name} — {message}",
+    "note": "Diff di bawah menampilkan seluruh perubahan sejak versi terakhir yang disetujui."
+  },
+  "diff": {
+    "summary_heading": "Perubahan dalam tinjauan ini",
+    "never_approved_inline": "Tinjauan penuh — dokumen ini belum pernah disetujui. Tinjau dokumen selengkapnya di tab Dokumen.",
+    "none_inline": "Diff tidak tersedia — dokumen mungkin belum diubah sejak dasar tinjauan.",
+    "loading": "Memuat perubahan…",
+    "scope_round": "Perubahan pada putaran ini",
+    "scope_all": "Semua perubahan dalam tinjauan",
+    "mode_split": "Terpisah",
+    "mode_unified": "Menyatu",
+    "never_approved_heading": "Tinjauan penuh — dokumen ini belum pernah disetujui",
+    "never_approved_body": "Tidak ada versi disetujui sebelumnya untuk dibandingkan. Tinjau dokumen selengkapnya di tab Dokumen.",
+    "none_in_round": "Tidak ditemukan perubahan pada putaran ini."
+  },
+  "comment": {
+    "heading": "Tambahkan komentar",
+    "placeholder": "Tulis komentar…"
+  },
+  "edit": {
+    "save_and_resubmit": "Simpan & Ajukan Ulang",
+    "send_revision": "Kirim usulan revisi",
+    "draft_saved": "Draf tersimpan",
+    "note_placeholder": "Apa yang Anda ubah dan mengapa?",
+    "draft_recovered": "Draf dipulihkan dari sesi sebelumnya."
+  },
+  "summary": {
+    "resubmitted": "Diajukan ulang setelah permintaan perubahan",
+    "initial": "Tinjauan awal",
+    "approved_count": "{approved} dari {total}",
+    "waiting_on": "Menunggu:",
+    "ready_to_merge": "Semua peninjau telah menyetujui. Siap digabungkan.",
+    "changes_requested_you": "Perubahan diminta. Menunggu tanggapan Anda.",
+    "changes_requested_author": "Perubahan diminta. Menunggu tanggapan {author}."
+  },
+  "suggestion": {
+    "count": "{count} saran | {count} saran",
+    "pending": "{count} menunggu",
+    "accepted": "{count} diterima",
+    "rejected": "{count} ditolak"
+  },
+  "assignment": {
+    "empty": "Belum ada peninjau yang ditugaskan",
+    "status": {
+      "approved": "disetujui",
+      "pending": "menunggu",
+      "changes_requested": "perubahan",
+      "proposed_revision": "revisi"
+    }
+  },
+  "policy": {
+    "heading": "Persyaratan Persetujuan",
+    "approvals": "{current}/{min} persetujuan",
+    "missing_roles": "Belum ada: peran {roles}",
+    "missing_users": "Menunggu: {users}",
+    "blocked": "Penggabungan terhalang sampai semua persyaratan terpenuhi",
+    "will_auto_merge": "Akan digabungkan otomatis setelah semua persetujuan masuk",
+    "require_human": "Setidaknya satu persetujuan manusia diperlukan",
+    "auto_merge": "Penggabungan otomatis aktif untuk kebijakan ini"
+  },
+  "actions": {
+    "heading": "Tindakan",
+    "requirements_not_met": "Persyaratan belum terpenuhi",
+    "publish": "Terbitkan",
+    "publish_version": "Terbitkan {version}",
+    "publish_note": "Ini akan menjadikan {version} sebagai dokumen yang berlaku.",
+    "publish_note_this_version": "Ini akan menjadikan versi ini sebagai dokumen yang berlaku.",
+    "awaiting_manager": "Semua peninjau telah menyetujui. Menunggu manajer untuk menerbitkan.",
+    "revision_proposed_by": "{name} mengusulkan revisi pada dokumen ini.",
+    "publishing": "Menerbitkan…",
+    "accept_and_publish": "Terima & Terbitkan",
+    "request_another_review": "Minta Tinjauan Lagi",
+    "propose_new_revision": "Usulkan Revisi Baru",
+    "changes_were_requested": "Perubahan telah diminta. Sunting dokumen dan ajukan ulang.",
+    "edit_and_resubmit": "Sunting & Ajukan Ulang",
+    "you_sent_this": "Anda yang mengirim tinjauan ini.",
+    "waiting_for_feedback": "Menunggu masukan peninjau.",
+    "you_approved": "Anda menyetujui putaran ini.",
+    "you_proposed_revision": "Anda mengusulkan revisi.",
+    "you_requested_changes": "Anda meminta perubahan.",
+    "waiting_for_author": "Menunggu tanggapan {author}.",
+    "waiting_for_reviewers": "Menunggu peninjau lain.",
+    "stale_warning": "Dokumen diperbarui setelah tinjauan ini dikirim. Tinjau perubahan terbaru sebelum menyetujui.",
+    "request_changes": "Minta Perubahan",
+    "propose_revision": "Usulkan Revisi",
+    "approve_heading": "Setujui dokumen ini",
+    "approve_placeholder": "Komentar opsional…",
+    "approving": "Menyetujui…",
+    "confirm_approve": "Konfirmasi Persetujuan",
+    "changes_heading": "Minta perubahan",
+    "changes_placeholder": "Jelaskan apa yang perlu diubah… (wajib)",
+    "submitting": "Mengirim…",
+    "submit_request": "Kirim Permintaan",
+    "withdraw": "Tarik Tinjauan",
+    "close_without_merging": "Tutup Tanpa Menggabungkan",
+    "not_a_reviewer": "Anda bukan peninjau pada permintaan ini."
+  },
+  "closed_state": {
+    "merged": "Digabungkan",
+    "closed": "Ditutup"
+  },
+  "document": {
+    "heading": "Dokumen",
+    "id": "ID",
+    "comments": "Komentar",
+    "open_comments": "Terbuka"
+  },
+  "list": {
+    "empty_open": "Tidak ada tinjauan terbuka",
+    "empty_closed": "Tidak ada tinjauan yang ditutup",
+    "item_title": "Tinjauan #{id} -- {title}",
+    "opened_by": "Dibuka oleh {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "penulis",
+  "reviewer_fallback": "Seorang peninjau",
+  "revision_note_fallback": "Suntingan penulis",
+  "toast": {
+    "revision_published": "Revisi diterima dan diterbitkan.",
+    "revision_accepted": "Usulan revisi diterima",
+    "decision_recorded": "Persetujuan Anda telah dicatat{round}. Menunggu {count} peninjau lagi. | Persetujuan Anda telah dicatat{round}. Menunggu {count} peninjau lagi.",
+    "decision_recorded_changes": "Permintaan perubahan Anda telah dicatat{round}. Menunggu {count} peninjau lagi. | Permintaan perubahan Anda telah dicatat{round}. Menunggu {count} peninjau lagi.",
+    "all_approved": "Semua peninjau telah menyetujui{round}. Siap digabungkan.",
+    "changes_requested": "Perubahan diminta{round}. Penulis akan diberi tahu.",
+    "for_round": " untuk Putaran {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Tetap setujui",
+    "approve_stale_body": "Dokumen diubah setelah tinjauan ini dikirim. Setujui berdasarkan versi saat ini?",
+    "discard_changes": "Buang perubahan yang belum disimpan?"
+  },
+  "error": {
+    "save_and_resubmit": "Gagal menyimpan & mengajukan ulang: {message}",
+    "publish": "Gagal menerbitkan: {message}",
+    "accept_revision": "Gagal menerima revisi: {message}",
+    "submit_revision": "Gagal mengirim revisi: {message}",
+    "load_list": "Gagal memuat daftar tinjauan: {message}",
+    "load_one": "Gagal memuat tinjauan: {message}",
+    "add_comment": "Gagal menambahkan komentar: {message}",
+    "submit_decision": "Gagal mengirim keputusan: {message}",
+    "merge": "Gagal menggabungkan tinjauan: {message}",
+    "close": "Gagal menutup tinjauan: {message}"
+  }
+}

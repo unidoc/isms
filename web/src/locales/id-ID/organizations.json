@@ -1,0 +1,20 @@
+{
+  "title": "Organisasi Anda",
+  "empty": "Anda belum menjadi anggota organisasi mana pun.",
+  "create": "Buat organisasi",
+  "form": {
+    "title": "Organisasi baru",
+    "name_label": "Nama",
+    "name_placeholder": "Acme Corp",
+    "slug_label": "Slug URL",
+    "slug_placeholder": "acme",
+    "template_label": "Templat (opsional)",
+    "template_none": "Tidak ada — saya akan menyiapkan dokumen sendiri",
+    "template_iso27001": "ISO 27001 — set dokumen lengkap",
+    "template_soc2": "SOC 2 — Trust Services Criteria",
+    "template_nis2": "NIS2 — persyaratan direktif UE",
+    "template_hint": "Menyiapkan kerangka templat dokumen di git. Templat lain dapat ditambahkan kemudian.",
+    "creating": "Membuat…",
+    "error_create": "Gagal membuat organisasi"
+  }
+}

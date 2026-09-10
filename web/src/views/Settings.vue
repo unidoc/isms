@@ -22,11 +22,14 @@
           </div>
           <div v-if="nameMsg" class="text-xs mt-1" :class="nameError ? 'text-red-400' : 'text-emerald-400'">{{ nameMsg }}</div>
         </div>
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">{{ $t('common.locale.label') }}</label>
-          <LocalePicker @error="localeMsg = $event" />
+        <!-- No wrapper of our own: the picker hides itself on a single-locale
+             deployment, and a wrapper here would survive it as an empty row in
+             the surrounding space-y-4. The label and the error go through the
+             component for the same reason — an error can only happen when the
+             picker is on screen. -->
+        <LocalePicker :label="$t('common.locale.label')" @error="localeMsg = $event">
           <div v-if="localeMsg" class="text-xs mt-1 text-red-400">{{ localeMsg }}</div>
-        </div>
+        </LocalePicker>
         <div>
           <label class="block text-xs text-slate-500 mb-1">{{ t('settings.profile.role') }}</label>
           <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full"

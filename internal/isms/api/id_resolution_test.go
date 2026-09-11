@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"go/ast"
 	"go/parser"
@@ -135,6 +136,40 @@ func TestEntityIDResolverKeysAreNameable(t *testing.T) {
 		if _, ok := common.EntityInline[entityType]; !ok {
 			t.Errorf("entityIDResolvers has %q but common.entity_inline has no key for it — "+
 				"the error message would render with a missing translation", entityType)
+		}
+	}
+}
+
+// TestEntityIDResolverHandlesAuditDisplayIDs: the MCP server passes display
+// identifiers to /changelog/:type/:id untouched (#201), so a type missing from
+// entityIDResolvers falls through to the numeric-only path and 400s on its own
+// display form. "audit" was absent, which broke get_entity_history("audit",
+// "AUDIT-3") — a call that worked before, when MCP stripped the prefix itself.
+// Neither audit resolver touches the Server or the database, so a nil receiver
+// is enough to drive them.
+func TestEntityIDResolverHandlesAuditDisplayIDs(t *testing.T) {
+	var s *Server
+	for _, tc := range []struct {
+		entityType, param string
+		want              int64
+		wantOK            bool
+	}{
+		{"audit", "AUDIT-3", 3, true},
+		{"audit", "3", 3, true},
+		{"audit_finding", "FIND-7", 7, true},
+		{"audit_finding", "7", 7, true},
+	} {
+		got, hasIdentifier, err := s.resolveEntityID(context.Background(), 1, tc.entityType, tc.param)
+		if err != nil {
+			t.Errorf("resolveEntityID(%q, %q): %v", tc.entityType, tc.param, err)
+			continue
+		}
+		if !hasIdentifier {
+			t.Errorf("resolveEntityID(%q, %q): hasIdentifier = false; the type must be in entityIDResolvers",
+				tc.entityType, tc.param)
+		}
+		if got != tc.want {
+			t.Errorf("resolveEntityID(%q, %q) = %d, want %d", tc.entityType, tc.param, got, tc.want)
 		}
 	}
 }

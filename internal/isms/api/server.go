@@ -3385,6 +3385,47 @@ func hasIdentifierShape(param string) bool {
 // lookup (#177, #201). Numeric → the id; identifier-shaped → look it up, so a
 // per-org seq that differs from the id no longer silently resolves to the wrong
 // row; anything else → errInvalidID, which callers map to 400.
+// entityIDResolvers maps the entity_type values written to entity_changelog —
+// which are also what the web UI's HistoryPanel and the MCP server send — to the
+// resolver for that type. Types absent from this map have no display identifier
+// (document carries a string document_id; checkin, access_review, audit and
+// audit_programme are numeric only), so their :id can only be a primary key.
+//
+// Keep the keys in step with common.entity_inline.* in the web locales: the
+// handlers below pass the type to Entity(), which the client looks up there.
+var entityIDResolvers = map[string]func(*Server, context.Context, int, string) (int64, error){
+	"asset":             (*Server).resolveAssetID,
+	"risk":              (*Server).resolveRiskID,
+	"system":            (*Server).resolveSystemID,
+	"supplier":          (*Server).resolveSupplierID,
+	"task":              (*Server).resolveTaskID,
+	"incident":          (*Server).resolveIncidentID,
+	"corrective_action": (*Server).resolveCorrectiveActionID,
+	"legal_requirement": (*Server).resolveLegalID,
+	"change":            (*Server).resolveChangeID,
+	"change_request":    (*Server).resolveChangeID,
+	"objective":         (*Server).resolveObjectiveID,
+	"audit_finding": func(_ *Server, _ context.Context, _ int, param string) (int64, error) {
+		// A finding's display id IS its primary key (db/audits.go), so there is
+		// nothing to look up — see the comment in api_audit.go.
+		return strconv.ParseInt(stripPrefix(param, "FIND-"), 10, 64)
+	},
+}
+
+// resolveEntityID resolves a :id param for a route whose entity type is itself a
+// param (GET /changelog/:type/:id). The bool reports whether the type has a
+// display identifier at all; when false the param was parsed as a bare numeric
+// id, which is what every type did before #201.
+func (s *Server) resolveEntityID(ctx context.Context, orgID int, entityType, param string) (int64, bool, error) {
+	resolve, ok := entityIDResolvers[entityType]
+	if !ok {
+		n, err := strconv.ParseInt(param, 10, 64)
+		return n, false, err
+	}
+	n, err := resolve(s, ctx, orgID, param)
+	return n, true, err
+}
+
 func (s *Server) resolveChangeID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil

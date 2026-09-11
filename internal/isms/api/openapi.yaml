@@ -3197,7 +3197,16 @@ components:
       name: id
       in: path
       required: true
-      schema: { type: integer }
+      description: >-
+        The entity's numeric id, or its display identifier (ASSET-3, CR-1,
+        LEGAL-2, or an objective's program-scoped ISMS2026-3). The identifier is
+        resolved by lookup within the caller's organization, so it always names
+        the same row the UI shows; an identifier that does not exist returns 404,
+        and a value that is neither form returns 400.
+      schema:
+        oneOf:
+          - type: integer
+          - type: string
     docId:
       name: docId
       in: path
@@ -3353,7 +3362,7 @@ components:
       type: object
       properties:
         id: { type: integer }
-        identifier: { type: string, example: "AST-001" }
+        identifier: { type: string, example: "ASSET-1" }
         name: { type: string }
         description: { type: string }
         asset_type: { type: string, enum: [infrastructure, processing_devices, software, financial_info, personal_data, ipr, sales_marketing, processing_facility, products_services, supply_chain, system, network, service, other] }

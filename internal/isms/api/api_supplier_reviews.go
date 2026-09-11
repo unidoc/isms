@@ -1,8 +1,8 @@
 package api
 
 import (
+	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
@@ -27,9 +27,12 @@ func (s *Server) handleCreateSupplierReview(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the display identifier, resolved by lookup (#201).
+	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 
 	// Verify supplier exists in this org (cross-org safety).
@@ -71,9 +74,12 @@ func (s *Server) handleCreateSupplierReview(c echo.Context) error {
 
 func (s *Server) handleListSupplierReviews(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the display identifier, resolved by lookup (#201).
+	id, err := s.resolveSupplierID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 
 	reviews, err := s.db.ListSupplierReviews(c.Request().Context(), orgID, id)

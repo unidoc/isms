@@ -279,6 +279,8 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 		return entityID
 
 	case "audit":
+		// AUDIT-/FIND- are built from the row id (audits and audit_findings have
+		// no identifier column), so stripping is correct here — see api_audit.go.
 		id, err := strconv.Atoi(stripPrefix(entityID, "AUDIT-"))
 		if err != nil {
 			return entityID
@@ -301,22 +303,26 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 		return f.Title
 
 	case "change_request":
-		id, err := strconv.Atoi(stripPrefix(entityID, "CR-"))
+		// CR- identifiers come from the per-org sequence, so the suffix is not
+		// the primary key — stripping it named a different change request's
+		// title on the reference chip (#201, and the warning in db/changes.go).
+		id, err := s.resolveChangeID(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
-		cr, err := s.db.GetChangeRequest(ctx, orgID, id)
+		cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 		if err != nil {
 			return entityID
 		}
 		return cr.Title
 
 	case "task":
-		id, err := strconv.Atoi(stripPrefix(entityID, "TASK-"))
+		// As with CR- above: TASK- is a per-org sequence, not the primary key.
+		id, err := s.resolveTaskID(ctx, orgID, entityID)
 		if err != nil {
 			return entityID
 		}
-		t, err := s.db.GetTask(ctx, orgID, int64(id))
+		t, err := s.db.GetTask(ctx, orgID, id)
 		if err != nil {
 			return entityID
 		}

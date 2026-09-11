@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -394,9 +395,13 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidID)
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	old, err := s.db.GetObjective(ctx, orgID, id)
@@ -488,9 +493,13 @@ func (s *Server) handleDeleteObjective(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidID)
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	if err := s.db.DeleteObjective(ctx, orgID, id); err != nil {
@@ -519,9 +528,13 @@ func (s *Server) handleArchiveObjective(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidID)
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	before, _ := s.db.GetObjective(ctx, orgID, id)
@@ -560,9 +573,13 @@ func (s *Server) handleUnarchiveObjective(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidID)
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	before, _ := s.db.GetObjective(ctx, orgID, id)
@@ -605,9 +622,13 @@ func (s *Server) handleUnarchiveObjective(c echo.Context) error {
 
 func (s *Server) handleListCheckins(c echo.Context) error {
 	orgID := getOrgID(c)
-	objectiveID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	objectiveID, err := s.resolveObjectiveID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	limit := 50
@@ -636,9 +657,13 @@ func (s *Server) handleCreateCheckin(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	objectiveID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	objectiveID, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
 	}
 
 	var req checkinCreateRequest

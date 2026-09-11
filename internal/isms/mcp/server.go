@@ -378,8 +378,10 @@ func (c *apiClient) toolGetEntity(args map[string]interface{}) (*mcpToolResult, 
 	if path == "" {
 		return errResult("unknown entity_type: " + entityType), nil
 	}
-	numID := stripPrefix(entityID)
-	data, err := c.get(path + "/" + url.PathEscape(numID))
+	// Pass the identifier through: every entity route resolves the display form
+	// by lookup (#201). Stripping the prefix here used to convert a correct
+	// identifier lookup into a primary-key hit on a possibly unrelated row.
+	data, err := c.get(path + "/" + url.PathEscape(entityID))
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -389,8 +391,8 @@ func (c *apiClient) toolGetEntity(args map[string]interface{}) (*mcpToolResult, 
 func (c *apiClient) toolGetEntityHistory(args map[string]interface{}) (*mcpToolResult, error) {
 	entityType := str(args, "entity_type")
 	entityID := str(args, "entity_id")
-	numID := stripPrefix(entityID)
-	data, err := c.get("/changelog/" + url.PathEscape(entityType) + "/" + url.PathEscape(numID))
+	// /changelog/:type/:id resolves the display form per entity type (#201).
+	data, err := c.get("/changelog/" + url.PathEscape(entityType) + "/" + url.PathEscape(entityID))
 	if err != nil {
 		return errResult(err.Error()), nil
 	}
@@ -714,23 +716,6 @@ func entityTypeToAPIPath(t string) string {
 	default:
 		return ""
 	}
-}
-
-func stripPrefix(id string) string {
-	parts := strings.SplitN(id, "-", 2)
-	if len(parts) == 2 {
-		allLetters := true
-		for _, c := range parts[0] {
-			if c < 'A' || c > 'Z' {
-				allLetters = false
-				break
-			}
-		}
-		if allLetters {
-			return parts[1]
-		}
-	}
-	return id
 }
 
 func str(m map[string]interface{}, key string) string {

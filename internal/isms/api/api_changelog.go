@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -27,9 +28,20 @@ func (s *Server) handleListChangelog(c echo.Context) error {
 func (s *Server) handleEntityChangelog(c echo.Context) error {
 	orgID := getOrgID(c)
 	entityType := c.Param("type")
-	entityID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	// Accept the numeric id OR the entity's display identifier (#201); which
+	// forms are valid depends on the :type, so dispatch on it.
+	entityID, hasIdentifier, err := s.resolveEntityID(c.Request().Context(), orgID, entityType, c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid entity id")
+		if !hasIdentifier {
+			// No display identifier for this type, so the param could only ever
+			// have been numeric — and entityType may have no entity_inline key
+			// to name in the message.
+			return apiError(http.StatusBadRequest, CodeInvalidID)
+		}
+		if errors.Is(err, errInvalidID) {
+			return errInvalidEntityID(entityType)
+		}
+		return errNotFound(entityType)
 	}
 
 	entries, err := s.db.ListEntityChangelog(c.Request().Context(), orgID, entityType, entityID)

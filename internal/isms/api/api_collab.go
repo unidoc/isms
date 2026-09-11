@@ -2718,10 +2718,15 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
+	// Accept the numeric id OR the CR-12 identifier, resolved by lookup like
+	// handleGetChange next door (#201). resolveChangeID returns int64 → cast.
+	id64, err := s.resolveChangeID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("change_request")
+	} else if err != nil {
+		return errNotFound("change_request")
 	}
+	id := int(id64)
 
 	old, err := s.db.GetChangeRequest(ctx, orgID, id)
 	if err != nil {
@@ -2846,10 +2851,15 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
+	// Accept the numeric id OR the CR-12 identifier, resolved by lookup like
+	// handleGetChange next door (#201). resolveChangeID returns int64 → cast.
+	id64, err := s.resolveChangeID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("change_request")
+	} else if err != nil {
+		return errNotFound("change_request")
 	}
+	id := int(id64)
 
 	old, _ := s.db.GetChangeRequest(ctx, orgID, id)
 	oldStatus := ""
@@ -2955,10 +2965,15 @@ func (s *Server) handleDeleteChange(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("change_request"))
+	// Accept the numeric id OR the CR-12 identifier, resolved by lookup like
+	// handleGetChange next door (#201). resolveChangeID returns int64 → cast.
+	id64, err := s.resolveChangeID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("change_request")
+	} else if err != nil {
+		return errNotFound("change_request")
 	}
+	id := int(id64)
 
 	cr, err := s.db.GetChangeRequest(ctx, orgID, id)
 	if err != nil || cr == nil {

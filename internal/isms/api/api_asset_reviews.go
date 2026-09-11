@@ -1,8 +1,8 @@
 package api
 
 import (
+	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
@@ -26,9 +26,12 @@ func (s *Server) handleCreateAssetReview(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the display identifier, resolved by lookup (#201).
+	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 
 	// Verify asset exists in this org (cross-org safety).
@@ -69,9 +72,12 @@ func (s *Server) handleCreateAssetReview(c echo.Context) error {
 
 func (s *Server) handleListAssetReviews(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	// Accept the numeric id OR the display identifier, resolved by lookup (#201).
+	id, err := s.resolveAssetID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 
 	reviews, err := s.db.ListAssetReviews(c.Request().Context(), orgID, id)

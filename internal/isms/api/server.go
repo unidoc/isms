@@ -1970,9 +1970,11 @@ func (s *Server) handleDeleteAsset(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 	old, _ := s.db.GetAsset(ctx, orgID, id)
 	if err := s.db.DeleteAsset(ctx, orgID, id); err != nil {
@@ -2314,9 +2316,11 @@ func (s *Server) handleRiskAdvisories(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
 	}
 
 	risk, err := s.db.GetRisk(ctx, orgID, id)
@@ -2413,9 +2417,11 @@ func (s *Server) handleDeleteRisk(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
 	}
 	old, _ := s.db.GetRisk(ctx, orgID, id)
 	if err := s.db.DeleteRisk(ctx, orgID, id); err != nil {
@@ -2545,9 +2551,11 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 	old, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
@@ -2638,9 +2646,11 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
 	}
 	old, err := s.db.GetRisk(ctx, orgID, id)
 	if err != nil {
@@ -2805,9 +2815,11 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 	old, err := s.db.GetSystem(ctx, orgID, id)
 	if err != nil {
@@ -2920,9 +2932,11 @@ func (s *Server) handleDeleteSystem(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 	old, _ := s.db.GetSystem(ctx, orgID, id)
 	if err := s.db.DeleteSystem(ctx, orgID, id); err != nil {
@@ -2943,9 +2957,11 @@ func (s *Server) handleDeleteSystem(c echo.Context) error {
 func (s *Server) handleListAccessReviews(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	systemID, err := parseID(c.Param("id"))
-	if err != nil {
+	systemID, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 	reviews, err := s.db.ListAccessReviews(ctx, orgID, systemID)
 	if err != nil {
@@ -2963,9 +2979,11 @@ func (s *Server) handleCreateAccessReview(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	systemID, err := parseID(c.Param("id"))
-	if err != nil {
+	systemID, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 	var ar db.AccessReview
 	if err := c.Bind(&ar); err != nil {
@@ -3000,7 +3018,10 @@ func (s *Server) handleDeleteAccessReview(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
+	// The param here is the access review's own primary key (DELETE
+	// /access-reviews/:id), not a system reference — access reviews have no
+	// display identifier, so there is nothing to resolve.
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return errInvalidEntityID("access_review")
 	}
@@ -3016,9 +3037,11 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 	old, err := s.db.GetSupplier(ctx, orgID, id)
 	if err != nil {
@@ -3123,9 +3146,11 @@ func (s *Server) handleDeleteSupplier(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	id, err := parseID(c.Param("id"))
-	if err != nil {
+	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 	old, _ := s.db.GetSupplier(ctx, orgID, id)
 	if err := s.db.DeleteSupplier(ctx, orgID, id); err != nil {
@@ -3271,20 +3296,6 @@ func stripFrontmatter(s string) string {
 	return strings.TrimLeft(rest[idx+4:], "\n")
 }
 
-// parseID accepts a bare numeric id, or an identifier whose numeric SUFFIX is used
-// directly as the primary key: findings (FIND-<id>, built from the row id itself —
-// see SoftDeleteAuditFinding) and, so far incidentally rather than by design, the
-// pre-existing SUPPLIER-/ASSET-/RISK-/SYSTEM- handlers (same identifier_sequences
-// mechanism as TASK-/INC-/CA-/LEGAL-, just not yet observed to diverge). It does
-// NOT work for seq-based identifiers known to diverge from the id (TASK-/INC-/CA-/
-// LEGAL-) — those resolve via the resolve*ID lookups below (#174).
-func parseID(s string) (int64, error) {
-	for _, prefix := range []string{"RISK-", "ASSET-", "AST-", "SUPPLIER-", "SYSTEM-", "FIND-"} {
-		s = strings.TrimPrefix(s, prefix)
-	}
-	return strconv.ParseInt(s, 10, 64)
-}
-
 // errInvalidID marks a param that is neither numeric nor a well-formed identifier
 // for the entity. Callers map it to 400; a well-formed-but-missing identifier (a
 // real lookup miss) returns the lookup error instead, which callers map to 404 —
@@ -3351,17 +3362,35 @@ func (s *Server) resolveLegalID(ctx context.Context, orgID int, param string) (i
 	return lr.ID, nil
 }
 
-// resolveChangeID / resolveObjectiveID / resolveSystemID / resolveAssetID map a
-// suggestion's EntityID (numeric primary key OR the per-org identifier form) to
-// the numeric id via lookup (#177). Unlike resolveTaskID et al. these skip a
-// fixed-prefix check on purpose: asset identifiers exist as both ASSET- and AST-,
-// systems as SYSTEM-, and objective "identifiers" are program-key-scoped display
-// IDs (e.g. ISMS-1), so a hardcoded prefix would be wrong. Numeric → the id;
-// otherwise look it up — a per-org seq that differs from the id no longer silently
-// resolves to the wrong row.
+// hasIdentifierShape reports whether param could be a display identifier at all:
+// a non-empty prefix, a dash, and a non-empty remainder. It is deliberately
+// looser than the fixed-prefix checks in resolveTaskID et al. — asset
+// identifiers exist as both ASSET- and AST-, and objective display IDs are
+// program-key-scoped, so a hardcoded prefix would be wrong. It does not reject a
+// numeric prefix either: a program key is only uppercased on create
+// (api_objectives.go), never checked for digits, so "2026-3" is a legitimate
+// objective display ID.
+//
+// Its only job is to separate "malformed param" (400) from "well-formed
+// identifier that does not exist" (404). Deciding whether the identifier belongs
+// to THIS entity is the lookup's job, not this function's.
+func hasIdentifierShape(param string) bool {
+	prefix, rest, ok := strings.Cut(param, "-")
+	return ok && prefix != "" && rest != ""
+}
+
+// resolveChangeID / resolveObjectiveID / resolveSystemID / resolveAssetID / and
+// the risk and supplier variants map a URL param or a suggestion's EntityID
+// (numeric primary key OR the per-org identifier form) to the numeric id via
+// lookup (#177, #201). Numeric → the id; identifier-shaped → look it up, so a
+// per-org seq that differs from the id no longer silently resolves to the wrong
+// row; anything else → errInvalidID, which callers map to 400.
 func (s *Server) resolveChangeID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
+	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
 	}
 	cr, err := s.db.GetChangeRequestByIdentifier(ctx, orgID, param)
 	if err != nil {
@@ -3374,6 +3403,9 @@ func (s *Server) resolveObjectiveID(ctx context.Context, orgID int, param string
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
 	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
+	}
 	o, err := s.db.GetObjectiveByDisplayID(ctx, orgID, param)
 	if err != nil {
 		return 0, err
@@ -3384,6 +3416,9 @@ func (s *Server) resolveObjectiveID(ctx context.Context, orgID int, param string
 func (s *Server) resolveSystemID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
+	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
 	}
 	sys, err := s.db.GetSystemByIdentifier(ctx, orgID, param)
 	if err != nil {
@@ -3396,6 +3431,9 @@ func (s *Server) resolveAssetID(ctx context.Context, orgID int, param string) (i
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
 	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
+	}
 	a, err := s.db.GetAssetByIdentifier(ctx, orgID, param)
 	if err != nil {
 		return 0, err
@@ -3407,6 +3445,9 @@ func (s *Server) resolveRiskID(ctx context.Context, orgID int, param string) (in
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
 	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
+	}
 	r, err := s.db.GetRiskByIdentifier(ctx, orgID, param)
 	if err != nil {
 		return 0, err
@@ -3417,6 +3458,9 @@ func (s *Server) resolveRiskID(ctx context.Context, orgID int, param string) (in
 func (s *Server) resolveSupplierID(ctx context.Context, orgID int, param string) (int64, error) {
 	if n, err := strconv.ParseInt(param, 10, 64); err == nil {
 		return n, nil
+	}
+	if !hasIdentifierShape(param) {
+		return 0, errInvalidID
 	}
 	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, param)
 	if err != nil {

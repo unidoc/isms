@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -18,9 +19,11 @@ import (
 func (s *Server) handleListRiskReadings(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	riskID, err := parseID(c.Param("id"))
-	if err != nil {
+	riskID, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "risk", riskID)
 	if err != nil {
@@ -38,9 +41,11 @@ func (s *Server) handleCreateRiskReading(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	riskID, err := parseID(c.Param("id"))
-	if err != nil {
+	riskID, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
 	}
 
 	var req struct {
@@ -162,9 +167,11 @@ func writeRiskFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 func (s *Server) handleListAssetReadings(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	assetID, err := parseID(c.Param("id"))
-	if err != nil {
+	assetID, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "asset", assetID)
 	if err != nil {
@@ -182,9 +189,11 @@ func (s *Server) handleCreateAssetReading(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	assetID, err := parseID(c.Param("id"))
-	if err != nil {
+	assetID, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
 	}
 
 	var req struct {
@@ -285,9 +294,11 @@ func writeAssetFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 func (s *Server) handleListLegalReadings(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	legalID, err := parseID(c.Param("id"))
-	if err != nil {
+	legalID, err := s.resolveLegalID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("legal_requirement")
+	} else if err != nil {
+		return errNotFound("legal_requirement")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "legal_requirement", legalID)
 	if err != nil {
@@ -305,9 +316,11 @@ func (s *Server) handleCreateLegalReading(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	legalID, err := parseID(c.Param("id"))
-	if err != nil {
+	legalID, err := s.resolveLegalID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("legal_requirement")
+	} else if err != nil {
+		return errNotFound("legal_requirement")
 	}
 
 	var req struct {
@@ -389,9 +402,11 @@ func writeLegalFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 func (s *Server) handleListSupplierReadings(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	supplierID, err := parseID(c.Param("id"))
-	if err != nil {
+	supplierID, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "supplier", supplierID)
 	if err != nil {
@@ -409,9 +424,11 @@ func (s *Server) handleCreateSupplierReading(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	supplierID, err := parseID(c.Param("id"))
-	if err != nil {
+	supplierID, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
 	}
 
 	var req struct {
@@ -489,9 +506,11 @@ func writeSupplierFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID i
 func (s *Server) handleListSystemReadings(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	systemID, err := parseID(c.Param("id"))
-	if err != nil {
+	systemID, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 	readings, err := s.db.ListEntityReadings(ctx, orgID, "system", systemID)
 	if err != nil {
@@ -509,9 +528,11 @@ func (s *Server) handleCreateSystemReading(c echo.Context) error {
 	}
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
-	systemID, err := parseID(c.Param("id"))
-	if err != nil {
+	systemID, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
 		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
 	}
 
 	var req struct {

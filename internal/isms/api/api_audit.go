@@ -641,7 +641,11 @@ func (s *Server) handlePaginatedAuditFindings(c echo.Context) error {
 
 func (s *Server) handleGetAuditFinding(c echo.Context) error {
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	// Findings are the one register whose display id IS its primary key —
+	// db.SoftDeleteAuditFinding mints "FIND-<id>" from the row id, and
+	// audit_findings has no identifier column to look up. Stripping is correct
+	// here, and only here (#201).
+	id, err := strconv.ParseInt(stripPrefix(c.Param("id"), "FIND-"), 10, 64)
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
@@ -726,7 +730,7 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := strconv.ParseInt(stripPrefix(c.Param("id"), "FIND-"), 10, 64)
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
@@ -791,7 +795,7 @@ func (s *Server) handleUpdateAuditFindingStatus(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := strconv.ParseInt(stripPrefix(c.Param("id"), "FIND-"), 10, 64)
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
@@ -833,7 +837,7 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 		return err
 	}
 	orgID := getOrgID(c)
-	id, err := parseID(c.Param("id"))
+	id, err := strconv.ParseInt(stripPrefix(c.Param("id"), "FIND-"), 10, 64)
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}

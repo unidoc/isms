@@ -678,6 +678,96 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Risk custom fields: bespoke editor (hidden from the generic list) -->
+              <div v-if="cat === 'risk'" class="px-5 py-4 border-t border-slate-800">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-sm font-medium text-slate-200">{{ t('admin.risk_custom_fields.title') }}</label>
+                    <div class="text-xs text-slate-500 mt-0.5">{{ t('admin.risk_custom_fields.description') }}</div>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <button @click="saveCustomFields" :disabled="customFieldsSaving"
+                      class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap">
+                      {{ customFieldsSaving ? t('common.state.saving') : t('common.action.save') }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="w-full max-w-xl space-y-2">
+                  <div v-if="!customFieldsLoaded" class="text-xs text-slate-600">{{ t('common.state.loading') }}</div>
+                  <div v-else-if="customFields.length === 0" class="text-xs text-slate-600">
+                    {{ t('admin.risk_custom_fields.empty') }}
+                  </div>
+                  <div v-for="(f, i) in customFields" :key="f.key"
+                    class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 space-y-2">
+                    <div class="flex items-center gap-2">
+                      <div class="flex flex-col">
+                        <button @click="moveCustomField(i, -1)" :disabled="i === 0" :title="t('admin.risk_custom_fields.move_up')"
+                          class="text-slate-500 hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-500 leading-none text-[10px]">▲</button>
+                        <button @click="moveCustomField(i, 1)" :disabled="i === customFields.length - 1" :title="t('admin.risk_custom_fields.move_down')"
+                          class="text-slate-500 hover:text-slate-200 disabled:opacity-30 disabled:hover:text-slate-500 leading-none text-[10px]">▼</button>
+                      </div>
+                      <input v-model="f.label" type="text" maxlength="100" :placeholder="t('admin.risk_custom_fields.label_placeholder')"
+                        class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+                      <span class="text-[11px] text-slate-500 font-mono truncate max-w-[8rem]" :title="f.key">{{ f.key }}</span>
+                      <select v-model="f.type" :disabled="!f._new"
+                        :title="f._new ? '' : t('admin.risk_custom_fields.type_immutable')"
+                        class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 disabled:opacity-60">
+                        <option v-for="ty in CUSTOM_FIELD_TYPES" :key="ty" :value="ty">{{ customFieldTypeLabel(ty) }}</option>
+                      </select>
+                      <label class="flex items-center gap-1 text-xs text-slate-400 flex-shrink-0">
+                        <input type="checkbox" v-model="f.required" />
+                        {{ t('admin.risk_custom_fields.required') }}
+                      </label>
+                      <button @click="removeCustomField(i)" :title="t('admin.risk_custom_fields.remove')"
+                        class="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <!-- Options sub-editor, select fields only -->
+                    <div v-if="f.type === 'select'" class="pl-6 space-y-1">
+                      <div v-for="(opt, j) in f.options" :key="j" class="flex items-center gap-2">
+                        <input v-model="f.options[j]" type="text" maxlength="100" :placeholder="t('admin.risk_custom_fields.option_placeholder')"
+                          class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500" />
+                        <button @click="f.options.splice(j, 1)" class="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <button @click="f.options.push('')"
+                        class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">
+                        + {{ t('admin.risk_custom_fields.add_option') }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 pt-1">
+                    <input v-model="newFieldLabel" type="text" maxlength="100"
+                      :placeholder="t('admin.risk_custom_fields.new_placeholder')" @keyup.enter="addCustomField"
+                      class="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+                    <select v-model="newFieldType" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                      <option v-for="ty in CUSTOM_FIELD_TYPES" :key="ty" :value="ty">{{ customFieldTypeLabel(ty) }}</option>
+                    </select>
+                    <button @click="addCustomField"
+                      class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors whitespace-nowrap">
+                      {{ t('admin.risk_custom_fields.add') }}
+                    </button>
+                  </div>
+                  <div v-if="newFieldLabel.trim()" class="text-[10px] text-slate-600">
+                    <i18n-t keypath="admin.risk_custom_fields.key_preview" tag="span" scope="global">
+                      <template #key><span class="font-mono">{{ slugifyFieldKey(newFieldLabel) || '—' }}</span></template>
+                    </i18n-t>
+                  </div>
+                  <div class="text-[10px] text-slate-600">{{ t('admin.risk_custom_fields.footnote') }}</div>
+                  <div v-if="customFieldsMsg" class="text-xs" :class="customFieldsError ? 'text-red-400' : 'text-emerald-400'">
+                    {{ customFieldsMsg }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div v-if="settingsMsg" class="text-xs" :class="settingsError ? 'text-red-400' : 'text-emerald-400'">{{ settingsMsg }}</div>
@@ -690,6 +780,7 @@
 <script setup>
 import { useConfirm } from '../composables/useConfirm'
 import { slugifyCategory } from '../riskCategories'
+import { slugifyFieldKey } from '../customFields'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -1144,7 +1235,7 @@ const BRANDING_SETTING_KEYS = new Set([
 
 // Edited by dedicated UI (the Risk Categories editor in the Risk group) — hide
 // from the generic list so it does not render as a raw JSON text field.
-const HIDDEN_SETTING_KEYS = new Set(['risk_categories'])
+const HIDDEN_SETTING_KEYS = new Set(['risk_categories', 'risk_custom_fields'])
 
 // A closed set of categories the server groups settings by, each with its own
 // message key. An unknown category falls back to its own name rather than
@@ -1355,6 +1446,141 @@ async function resetRiskCategories() {
   }
 }
 
+// ---------- Risk custom fields editor ----------
+// Field labels and select options are org-authored data, same as category
+// labels: stored verbatim, never routed through i18n. Type is immutable after
+// creation (existing risks store values keyed by the field key) — retyping
+// isn't supported, delete and recreate instead. Mirrors ParseCustomFieldDefs
+// in internal/isms/db/risk_custom_fields.go so the admin gets an inline error
+// instead of a 400.
+const CUSTOM_FIELD_TYPES = ['text', 'number', 'date', 'select']
+const CUSTOM_FIELD_KEY_RE = /^[a-z0-9]+(_[a-z0-9]+)*$/
+const CUSTOM_FIELD_MAX = 30
+
+// Explicit per-type calls (rather than a concatenated key) so the static
+// i18n scanner can see every literal key this view actually uses.
+function customFieldTypeLabel(type) {
+  switch (type) {
+    case 'text': return t('admin.risk_custom_fields.type.text')
+    case 'number': return t('admin.risk_custom_fields.type.number')
+    case 'date': return t('admin.risk_custom_fields.type.date')
+    case 'select': return t('admin.risk_custom_fields.type.select')
+    default: return type
+  }
+}
+
+const customFields = ref([])
+const customFieldsLoaded = ref(false)
+const customFieldsSaving = ref(false)
+const customFieldsMsg = ref('')
+const customFieldsError = ref(false)
+const newFieldLabel = ref('')
+const newFieldType = ref('text')
+
+async function loadCustomFields() {
+  try {
+    const data = await api.fetchJSON('/api/v1/risks/custom-fields')
+    customFields.value = (Array.isArray(data) ? data : []).map(f => ({
+      key: f.key, label: f.label, type: f.type, required: !!f.required,
+      options: Array.isArray(f.options) ? [...f.options] : [], _new: false,
+    }))
+  } catch {
+    customFields.value = []
+  } finally {
+    customFieldsLoaded.value = true
+  }
+}
+
+function setCustomFieldError(msg) {
+  customFieldsMsg.value = msg
+  customFieldsError.value = true
+}
+
+function addCustomField() {
+  const label = newFieldLabel.value.trim()
+  customFieldsMsg.value = ''
+  if (!label) return setCustomFieldError(t('admin.risk_custom_fields.error_label_required'))
+  if (label.length > 100) return setCustomFieldError(t('admin.risk_custom_fields.error_label_too_long'))
+  if (customFields.value.length >= CUSTOM_FIELD_MAX) {
+    return setCustomFieldError(t('admin.risk_custom_fields.error_too_many', { max: CUSTOM_FIELD_MAX }))
+  }
+  const key = slugifyFieldKey(label)
+  if (!key || !CUSTOM_FIELD_KEY_RE.test(key)) {
+    return setCustomFieldError(t('admin.risk_custom_fields.error_key_undeliverable'))
+  }
+  if (customFields.value.some(f => f.key.toLowerCase() === key)) {
+    return setCustomFieldError(t('admin.risk_custom_fields.error_duplicate_key', { key }))
+  }
+  customFields.value.push({
+    key, label, type: newFieldType.value, required: false,
+    options: newFieldType.value === 'select' ? [''] : [], _new: true,
+  })
+  newFieldLabel.value = ''
+  customFieldsError.value = false
+}
+
+function moveCustomField(i, delta) {
+  const j = i + delta
+  if (j < 0 || j >= customFields.value.length) return
+  const list = customFields.value
+  ;[list[i], list[j]] = [list[j], list[i]]
+}
+
+async function removeCustomField(i) {
+  const f = customFields.value[i]
+  if (!f) return
+  const ok = await useConfirm().ask(
+    t('admin.risk_custom_fields.remove_confirm', { label: f.label }),
+    { confirm: t('admin.risk_custom_fields.remove_confirm_action'), variant: 'danger' },
+  )
+  if (!ok) return
+  customFields.value.splice(i, 1)
+  customFieldsMsg.value = ''
+  customFieldsError.value = false
+}
+
+async function saveCustomFields() {
+  customFieldsMsg.value = ''
+  const list = customFields.value.map(f => ({
+    key: f.key,
+    label: (f.label || '').trim(),
+    type: f.type,
+    required: !!f.required,
+    options: f.type === 'select' ? (f.options || []).map(o => (o || '').trim()).filter(o => o) : [],
+  }))
+  if (list.length > CUSTOM_FIELD_MAX) {
+    return setCustomFieldError(t('admin.risk_custom_fields.error_too_many', { max: CUSTOM_FIELD_MAX }))
+  }
+  const seen = new Set()
+  for (const f of list) {
+    if (!f.label) return setCustomFieldError(t('admin.risk_custom_fields.error_label_required'))
+    if (f.label.length > 100) return setCustomFieldError(t('admin.risk_custom_fields.error_label_too_long'))
+    if (f.key.length > 64 || !CUSTOM_FIELD_KEY_RE.test(f.key)) {
+      return setCustomFieldError(t('admin.risk_custom_fields.error_key_undeliverable'))
+    }
+    const lower = f.key.toLowerCase()
+    if (seen.has(lower)) return setCustomFieldError(t('admin.risk_custom_fields.error_duplicate_key', { key: f.key }))
+    seen.add(lower)
+    if (!CUSTOM_FIELD_TYPES.includes(f.type)) {
+      return setCustomFieldError(t('admin.risk_custom_fields.error_key_undeliverable'))
+    }
+    if (f.type === 'select' && f.options.length === 0) {
+      return setCustomFieldError(t('admin.risk_custom_fields.error_select_needs_options', { label: f.label }))
+    }
+  }
+  customFieldsSaving.value = true
+  try {
+    await api.putJSON('/api/v1/admin/settings', { key: 'risk_custom_fields', value: JSON.stringify(list) })
+    customFields.value = list.map(f => ({ ...f, _new: false }))
+    customFieldsMsg.value = t('admin.risk_custom_fields.saved')
+    customFieldsError.value = false
+  } catch (e) {
+    setCustomFieldError(renderApiError(e))
+  } finally {
+    customFieldsSaving.value = false
+  }
+}
+
 function loadBrandingFromSettings() {
   // Extract branding keys from the already-loaded settings list
   for (const s of settings.value) {
@@ -1399,7 +1625,7 @@ onMounted(async () => {
   }
 
   try {
-    await Promise.all([loadMembers(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies(), loadRiskCategories()])
+    await Promise.all([loadMembers(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies(), loadRiskCategories(), loadCustomFields()])
     loadBrandingFromSettings()
   } finally {
     pageLoading.value = false

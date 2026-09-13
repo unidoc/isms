@@ -516,3 +516,23 @@ UPDATE legal_requirements
         'Zambia',
         'Zimbabwe'
  );
+
+-- Custom fields on risks (#213, second half — categories shipped first via
+-- #215). Values are a flat JSON object keyed by the field key from the
+-- risk_custom_fields org setting. No CHECK constraint on the column: a field
+-- the org later deletes leaves its stored value behind (orphan-not-cascade),
+-- matching how risks.category already behaves. default_value stays NULL, same
+-- reasoning as risk_categories above — unset means "no custom fields defined",
+-- not "these particular fields", so the default can change later without
+-- touching existing orgs.
+ALTER TABLE risks ADD COLUMN IF NOT EXISTS custom_fields JSONB NOT NULL DEFAULT '{}';
+
+INSERT INTO settings (key, description, category, default_value, sensitive)
+VALUES (
+    'risk_custom_fields',
+    'JSON array of custom field definitions for the risk register: [{"key","label","type","required","options"}]. Empty means no custom fields.',
+    'risk',
+    NULL,
+    false
+)
+ON CONFLICT (key) DO NOTHING;

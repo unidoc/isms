@@ -365,6 +365,17 @@ func (c *Client) AddRisk(risk *db.Risk, refs []Reference) (*db.Risk, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
+// GetRiskCustomFields returns the org's configured custom field definitions
+// for risks.
+func (c *Client) GetRiskCustomFields() ([]db.CustomFieldDef, error) {
+	data, err := c.get("/v1/risks/custom-fields")
+	if err != nil {
+		return nil, err
+	}
+	var result []db.CustomFieldDef
+	return result, json.Unmarshal(data, &result)
+}
+
 func (c *Client) UpdateRisk(id string, risk *db.Risk) (*db.Risk, error) {
 	data, err := c.put("/v1/risks/"+id, risk)
 	if err != nil {

@@ -92,13 +92,13 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 			target_likelihood, target_impact, target_score, target_level,
 			treatment, treatment_plan, treatment_due_date,
 			accepted_at, accepted_by_id,
-			owner_id, status, last_review, next_review, notes)
+			owner_id, status, last_review, next_review, notes, custom_fields)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
 			$12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
 			$22, $23, $24,
 			$25, $26, $27,
 			$28, $29,
-			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34)
+			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34, $35)
 		RETURNING id, created_at, updated_at
 	`, orgID, r.Identifier, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -108,7 +108,7 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 		r.TargetLikelihood, r.TargetImpact, r.TargetScore, nilIfEmpty(r.TargetLevel),
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
-		r.Owner, r.Status, r.LastReview, r.NextReview, nilIfEmpty(r.Notes),
+		r.Owner, r.Status, r.LastReview, r.NextReview, nilIfEmpty(r.Notes), customFieldsArg(r.CustomFields),
 	).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt)
 }
 
@@ -125,7 +125,7 @@ func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 			treatment = $24, treatment_plan = $25, treatment_due_date = $26,
 			accepted_at = $27, accepted_by_id = $28,
 			owner_id = (SELECT id FROM users WHERE email = $29), status = $30, last_review = $31, next_review = $32,
-			notes = $33, updated_at = now()
+			notes = $33, custom_fields = $35, updated_at = now()
 		WHERE id = $1 AND organization_id = $34 AND deleted_at IS NULL
 	`, r.ID, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -136,7 +136,7 @@ func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
 		nilIfEmpty(r.Owner), r.Status, r.LastReview, r.NextReview,
-		nilIfEmpty(r.Notes), orgID)
+		nilIfEmpty(r.Notes), orgID, customFieldsArg(r.CustomFields))
 	return err
 }
 

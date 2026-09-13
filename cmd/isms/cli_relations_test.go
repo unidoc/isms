@@ -119,7 +119,17 @@ func TestRiskAddSendsRelations(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	refs := refSet(t, (*got)[0].body)
+	// `risk add` always resolves required custom fields first (a GET to
+	// /risks/custom-fields — see parseRiskCustomFieldFlags), so the create POST
+	// is no longer necessarily the first recorded request; select it by method.
+	var createBody map[string]interface{}
+	for _, r := range *got {
+		if r.method == http.MethodPost {
+			createBody = r.body
+			break
+		}
+	}
+	refs := refSet(t, createBody)
 	if !reflect.DeepEqual(refs["asset"], []string{"A-1", "A-2"}) {
 		t.Errorf("asset refs = %v (full=%v)", refs["asset"], refs)
 	}

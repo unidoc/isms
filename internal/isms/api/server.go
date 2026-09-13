@@ -565,6 +565,7 @@ func (s *Server) routes() {
 	api.DELETE("/risks/:id", s.handleDeleteRisk)
 	api.GET("/risks/matrix", s.handleRiskMatrix)
 	api.GET("/risks/categories", s.handleListRiskCategories)
+	api.GET("/risks/custom-fields", s.handleListRiskCustomFields)
 	api.GET("/risks/:id/advisories", s.handleRiskAdvisories)
 	api.GET("/risks/:id/readings", s.handleListRiskReadings)
 	api.POST("/risks/:id/readings", s.handleCreateRiskReading)
@@ -2168,6 +2169,41 @@ func (s *Server) riskCategoryKeys(ctx context.Context, orgID int) []string {
 	return keys
 }
 
+// handleListRiskCustomFields returns the custom field definitions configured
+// for the caller's org. Available to any authenticated org member — the
+// create/edit forms need it to render their inputs, so it is not admin-only
+// data.
+func (s *Server) handleListRiskCustomFields(c echo.Context) error {
+	orgID := getOrgID(c)
+	defs := s.customFieldDefs(c.Request().Context(), orgID)
+	return c.JSON(http.StatusOK, defs)
+}
+
+// customFieldDefs resolves the org's custom field definitions. CustomFieldDefsFor
+// never returns an error to the caller, so a failure degrades to "no custom
+// fields" rather than blocking the write.
+func (s *Server) customFieldDefs(ctx context.Context, orgID int) []db.CustomFieldDef {
+	defs, _ := s.db.CustomFieldDefsFor(ctx, orgID)
+	return defs
+}
+
+// changedCustomFields returns the subset of next whose value differs from prev.
+// Unchanged values are exempt from validation on purpose: a risk may hold a
+// value whose select option the org has since removed, and the web edit form
+// PUTs the whole form back — validating unchanged values would make such a risk
+// permanently uneditable. Removing an option orphans the value, it does not
+// freeze the risk. Same rule as riskCategoryNeedsValidation.
+func changedCustomFields(prev, next map[string]any) map[string]any {
+	changed := make(map[string]any, len(next))
+	for k, v := range next {
+		pv, ok := prev[k]
+		if !ok || fmt.Sprint(pv) != fmt.Sprint(v) {
+			changed[k] = v
+		}
+	}
+	return changed
+}
+
 func (s *Server) handleListRisks(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
@@ -2217,6 +2253,7 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		RiskType:                      req.RiskType,
 		Origin:                        req.Origin,
 		Category:                      req.Category,
+		CustomFields:                  req.CustomFields,
 		CurrentLikelihood:             req.CurrentLikelihood,
 		CurrentImpact:                 req.CurrentImpact,
 		ConfidentialityImpact:         req.ConfidentialityImpact,
@@ -2269,6 +2306,11 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 	if err := validateEnum("category", r.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
 		return err
 	}
+	defs := s.customFieldDefs(ctx, orgID)
+	if err := db.ValidateCustomFieldValues(defs, req.CustomFields, true); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	r.CustomFields = db.NormalizeCustomFieldValues(defs, req.CustomFields)
 	if err := validateEnum("treatment", r.Treatment, db.TreatmentOptions); err != nil {
 		return err
 	}
@@ -2680,6 +2722,25 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 			return err
 		}
 	}
+	defs := s.customFieldDefs(ctx, orgID)
+	if req.CustomFields != nil {
+		// Validate only the entries that actually changed with checkRequired=false:
+		// an unchanged value must never be rejected just because a field became
+		// required after the risk was created (riskCategoryNeedsValidation has the
+		// same reasoning for categories). A separate whole-map check below enforces
+		// required fields.
+		changed := changedCustomFields(old.CustomFields, *req.CustomFields)
+		if err := db.ValidateCustomFieldValues(defs, changed, false); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		// Required is checked separately over the whole merged map, via a helper
+		// that ignores unknown keys — the full map still carries any orphaned
+		// values from a deleted definition, and re-running the unknown-key check
+		// on those here would reject an edit that never touched them.
+		if err := db.RequiredCustomFieldsSatisfied(defs, *req.CustomFields); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+	}
 	if req.Treatment != nil {
 		if err := validateEnum("treatment", *req.Treatment, db.TreatmentOptions); err != nil {
 			return err
@@ -2706,6 +2767,12 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	}
 	if req.Category != nil {
 		updated.Category = *req.Category
+	}
+	if req.CustomFields != nil {
+		// PUT replaces the object wholesale — merge-by-key would make clearing a
+		// field impossible. old.CustomFields is used only as the "prev" argument
+		// to changedCustomFields above.
+		updated.CustomFields = db.NormalizeCustomFieldValues(defs, *req.CustomFields)
 	}
 	if req.CurrentLikelihood != nil {
 		updated.CurrentLikelihood = *req.CurrentLikelihood
@@ -2794,7 +2861,7 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	after, _ := s.db.GetRisk(ctx, orgID, id)
 	if after != nil {
 		reason := c.QueryParam("reason")
-		changes := db.DiffFields("risk", id, actor, reason, old.ToChangeMap(), after.ToChangeMap())
+		changes := db.DiffFields("risk", id, actor, reason, old.ToChangeMap(defs...), after.ToChangeMap(defs...))
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
 		}

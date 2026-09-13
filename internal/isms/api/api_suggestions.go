@@ -685,15 +685,16 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 
 func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, error) {
 	var payload struct {
-		Title             string `json:"title"`
-		Description       string `json:"description"`
-		RiskType          string `json:"risk_type"`
-		Origin            string `json:"origin"`
-		Category          string `json:"category"`
-		CurrentLikelihood *int   `json:"current_likelihood"`
-		CurrentImpact     *int   `json:"current_impact"`
-		TreatmentPlan     string `json:"treatment_plan"`
-		Treatment         string `json:"treatment"`
+		Title             string         `json:"title"`
+		Description       string         `json:"description"`
+		RiskType          string         `json:"risk_type"`
+		Origin            string         `json:"origin"`
+		Category          string         `json:"category"`
+		CurrentLikelihood *int           `json:"current_likelihood"`
+		CurrentImpact     *int           `json:"current_impact"`
+		TreatmentPlan     string         `json:"treatment_plan"`
+		Treatment         string         `json:"treatment"`
+		CustomFields      map[string]any `json:"custom_fields"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
 		return "", fmt.Errorf("invalid risk payload: %w", err)
@@ -707,6 +708,13 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := validateEnum("category", payload.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
 		return "", err
 	}
+	defs := s.customFieldDefs(ctx, orgID)
+	// checkRequired=false, deliberately: agents cannot fill out a form, so a
+	// required custom field must never block an agent-created risk. See
+	// "Required fields are in scope" in the implementation plan for #213/#216.
+	if err := db.ValidateCustomFieldValues(defs, payload.CustomFields, false); err != nil {
+		return "", echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
 
 	risk := db.Risk{
 		Title:             payload.Title,
@@ -714,6 +722,7 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		RiskType:          payload.RiskType,
 		Origin:            payload.Origin,
 		Category:          payload.Category,
+		CustomFields:      db.NormalizeCustomFieldValues(defs, payload.CustomFields),
 		CurrentLikelihood: payload.CurrentLikelihood,
 		CurrentImpact:     payload.CurrentImpact,
 		TreatmentPlan:     payload.TreatmentPlan,

@@ -196,8 +196,13 @@ func (a *Asset) ToChangeMap() map[string]string {
 	}
 }
 
-func (r *Risk) ToChangeMap() map[string]string {
-	return map[string]string{
+// ToChangeMap builds the field→string map DiffFields compares. defs is
+// optional and, when supplied, ensures a custom field that has no value in
+// r.CustomFields still gets a "custom.<key>": "" entry so clearing a field is
+// auditable too — DiffFields iterates newFields only, so a key that simply
+// disappears from the map would otherwise produce no changelog entry.
+func (r *Risk) ToChangeMap(defs ...CustomFieldDef) map[string]string {
+	m := map[string]string{
 		"title":                           r.Title,
 		"description":                     r.Description,
 		"risk_type":                       r.RiskType,
@@ -231,6 +236,21 @@ func (r *Risk) ToChangeMap() map[string]string {
 		"next_review":                     epochToString(r.NextReview),
 		"notes":                           r.Notes,
 	}
+	for _, k := range sortedCustomFieldKeys(r.CustomFields) {
+		v := r.CustomFields[k]
+		s := ""
+		if v != nil {
+			s = fmt.Sprint(v)
+		}
+		m["custom."+k] = s
+	}
+	for _, def := range defs {
+		key := "custom." + def.Key
+		if _, ok := m[key]; !ok {
+			m[key] = ""
+		}
+	}
+	return m
 }
 
 func (sup *Supplier) ToChangeMap() map[string]string {

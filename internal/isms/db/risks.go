@@ -42,6 +42,9 @@ type Risk struct {
 	RiskType       string `json:"risk_type"`
 	Origin         string `json:"origin"`
 	Category       string `json:"category,omitempty"`
+	// CustomFields holds admin-defined extra values, keyed by the field key
+	// from the risk_custom_fields org setting. Always non-nil after a read.
+	CustomFields map[string]any `json:"custom_fields,omitempty"`
 	// PotentialConsequences was a column; now lives in description (## Potential consequences)
 
 	// Current/residual assessment (nil = not assessed)
@@ -367,13 +370,13 @@ func (d *DB) CreateRisk(ctx context.Context, orgID int, r *Risk) error {
 			target_likelihood, target_impact, target_score, target_level,
 			treatment, treatment_plan, treatment_due_date,
 			accepted_at, accepted_by_id,
-			owner_id, status, last_review, next_review, notes)
+			owner_id, status, last_review, next_review, notes, custom_fields)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
 			$12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
 			$22, $23, $24,
 			$25, $26, $27,
 			$28, $29,
-			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34)
+			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34, $35)
 		RETURNING id, created_at, updated_at
 	`, orgID, r.Identifier, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -383,7 +386,7 @@ func (d *DB) CreateRisk(ctx context.Context, orgID int, r *Risk) error {
 		r.TargetLikelihood, r.TargetImpact, r.TargetScore, nilIfEmpty(r.TargetLevel),
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
-		r.Owner, r.Status, r.LastReview, r.NextReview, nilIfEmpty(r.Notes),
+		r.Owner, r.Status, r.LastReview, r.NextReview, nilIfEmpty(r.Notes), customFieldsArg(r.CustomFields),
 	).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt)
 }
 
@@ -399,7 +402,7 @@ const riskSelectCols = `id, organization_id, identifier, title, COALESCE(descrip
 		treatment_due_date,
 		accepted_at, accepted_by_id,
 		COALESCE((SELECT email FROM users WHERE id = risks.owner_id), ''), status, last_review, next_review,
-		COALESCE(notes, ''), created_at, updated_at`
+		COALESCE(notes, ''), created_at, updated_at, COALESCE(custom_fields, '{}')`
 
 func scanRisk(scanner interface {
 	Scan(dest ...interface{}) error
@@ -415,7 +418,7 @@ func scanRisk(scanner interface {
 		&r.TreatmentDueDate,
 		&r.AcceptedAt, &r.AcceptedByID,
 		&r.Owner, &r.Status, &r.LastReview, &r.NextReview,
-		&r.Notes, &r.CreatedAt, &r.UpdatedAt)
+		&r.Notes, &r.CreatedAt, &r.UpdatedAt, &r.CustomFields)
 }
 
 func (d *DB) GetRisk(ctx context.Context, orgID int, id int64) (*Risk, error) {
@@ -599,7 +602,7 @@ func (d *DB) UpdateRisk(ctx context.Context, orgID int, r *Risk) error {
 			treatment = $24, treatment_plan = $25, treatment_due_date = $26,
 			accepted_at = $27, accepted_by_id = $28,
 			owner_id = (SELECT id FROM users WHERE email = $29), status = $30, last_review = $31, next_review = $32,
-			notes = $33, updated_at = now()
+			notes = $33, custom_fields = $35, updated_at = now()
 		WHERE id = $1 AND organization_id = $34 AND deleted_at IS NULL
 	`, r.ID, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -610,7 +613,7 @@ func (d *DB) UpdateRisk(ctx context.Context, orgID int, r *Risk) error {
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
 		nilIfEmpty(r.Owner), r.Status, r.LastReview, r.NextReview,
-		nilIfEmpty(r.Notes), orgID)
+		nilIfEmpty(r.Notes), orgID, customFieldsArg(r.CustomFields))
 	return err
 }
 

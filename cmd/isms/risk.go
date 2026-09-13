@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
 	riskpkg "isms.sh/internal/isms/risk"
 )
@@ -53,6 +55,7 @@ func riskAddCmd() *cobra.Command {
 		status                        string
 		reviewDate                    string
 		notes                         string
+		fields                        []string
 	)
 
 	cmd := &cobra.Command{
@@ -71,12 +74,17 @@ func riskAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			customFields, err := parseRiskCustomFieldFlags(c, fields)
+			if err != nil {
+				return err
+			}
 			r := &db.Risk{
 				Title:                         title,
 				Description:                   description,
 				RiskType:                      riskType,
 				Origin:                        origin,
 				Category:                      category,
+				CustomFields:                  customFields,
 				CurrentLikelihood:             &currentLikelihood,
 				CurrentImpact:                 &currentImpact,
 				ConfidentialityImpact:         &confidentialityImpact,
@@ -133,7 +141,79 @@ func riskAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "open", "Status: draft, open, closed")
 	cmd.Flags().StringVar(&reviewDate, "review-date", "", "Next review date (YYYY-MM-DD)")
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes")
+	cmd.Flags().StringArrayVar(&fields, "field", nil, "Custom field value as key=value (repeatable)")
 	return cmd
+}
+
+// parseRiskCustomFieldFlags turns repeated --field key=value flags into the
+// payload the API expects, coercing each value per its definition's Type the
+// same way the web form does (number -> float64, others -> string). It fails
+// fast client-side, listing missing required fields by key and label, rather
+// than forwarding the server's generic 400 — required custom fields ship in
+// v1, so the CLI needs its own way to supply them.
+func parseRiskCustomFieldFlags(c *client.Client, fields []string) (map[string]any, error) {
+	values := make(map[string]string, len(fields))
+	for _, f := range fields {
+		k, v, ok := strings.Cut(f, "=")
+		if !ok {
+			return nil, fmt.Errorf("--field must be key=value, got %q", f)
+		}
+		values[k] = v
+	}
+
+	defs, err := c.GetRiskCustomFields()
+	if err != nil {
+		// If we can't resolve definitions, fall back to sending strings as-is
+		// and let the server validate.
+		out := make(map[string]any, len(values))
+		for k, v := range values {
+			out[k] = v
+		}
+		return out, nil
+	}
+
+	out := make(map[string]any, len(values))
+	for k, v := range values {
+		def, ok := customFieldDefByKeyCLI(defs, k)
+		if !ok {
+			out[k] = v
+			continue
+		}
+		if def.Type == "number" {
+			n, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				return nil, fmt.Errorf("--field %s: %q is not a number", k, v)
+			}
+			out[k] = n
+		} else {
+			out[k] = v
+		}
+	}
+
+	var missing []string
+	for _, def := range defs {
+		if !def.Required {
+			continue
+		}
+		v, ok := values[def.Key]
+		if !ok || strings.TrimSpace(v) == "" {
+			missing = append(missing, fmt.Sprintf("%s (%s)", def.Key, def.Label))
+		}
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("missing required custom field(s): %s (use --field key=value)", strings.Join(missing, ", "))
+	}
+
+	return out, nil
+}
+
+func customFieldDefByKeyCLI(defs []db.CustomFieldDef, key string) (db.CustomFieldDef, bool) {
+	for _, d := range defs {
+		if d.Key == key {
+			return d, true
+		}
+	}
+	return db.CustomFieldDef{}, false
 }
 
 func riskListCmd() *cobra.Command {

@@ -64,13 +64,27 @@
               </button>
             </div>
           </div>
+          <!-- Required custom fields only — non-required fields stay out of
+               quick-create; the user fills those in via the detail modal. -->
+          <div v-for="def in requiredCustomFieldDefs" :key="def.key">
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ def.label }} <span class="text-red-400">*</span></label>
+            <select v-if="def.type === 'select'" v-model="newRisk.custom_fields[def.key]"
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option value="">{{ t('common.option.none') }}</option>
+              <option v-for="opt in def.options" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+            <input v-else-if="def.type === 'number'" type="number" v-model.number="newRisk.custom_fields[def.key]"
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            <input v-else :type="customFieldInputType(def.type)" v-model="newRisk.custom_fields[def.key]"
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
         </div>
         <div class="text-[10px] text-slate-600 mt-1">{{ t('risks.create.fill_in_later') }}</div>
 
         <!-- Footer -->
         <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
           <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
-          <button @click="createRisk" :disabled="!newRisk.title" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
+          <button @click="createRisk" :disabled="!newRisk.title || !newRiskRequiredFieldsFilled" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
             {{ t('risks.create.submit') }}
           </button>
         </div>
@@ -305,6 +319,20 @@
                             <option v-for="o in originOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                           </select>
                         </div>
+                        <div v-for="def in customFieldDefs" :key="def.key">
+                          <label class="block text-xs font-medium text-slate-500 mb-1">
+                            {{ def.label }} <span v-if="def.required" class="text-red-400">*</span>
+                          </label>
+                          <select v-if="def.type === 'select'" v-model="editForm.custom_fields[def.key]"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="">{{ t('common.option.none') }}</option>
+                            <option v-for="opt in def.options" :key="opt" :value="opt">{{ opt }}</option>
+                          </select>
+                          <input v-else-if="def.type === 'number'" type="number" v-model.number="editForm.custom_fields[def.key]"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          <input v-else :type="customFieldInputType(def.type)" v-model="editForm.custom_fields[def.key]"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        </div>
                       </div>
                     </div>
                   </template>
@@ -353,6 +381,16 @@
                         <div v-if="selectedRisk.created_by">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('risks.field.created_by') }}</div>
                           <div class="text-sm text-slate-300">{{ resolveUserName(selectedRisk.created_by) }}</div>
+                        </div>
+                        <div v-for="def in customFieldDefs" :key="def.key">
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ def.label }}</div>
+                          <div class="text-sm text-slate-300">{{ (selectedRisk.custom_fields || {})[def.key] ?? '—' }}</div>
+                        </div>
+                        <!-- Orphaned custom values: left behind by a deleted field definition.
+                             Kept visible on purpose — orphan-not-cascade. -->
+                        <div v-for="(val, key) in orphanCustomValues(customFieldDefs, selectedRisk.custom_fields)" :key="'orphan-' + key">
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ deslugFieldKey(key) }}</div>
+                          <div class="text-sm text-slate-300">{{ val }}</div>
                         </div>
                       </div>
 
@@ -548,7 +586,7 @@
           <!-- Footer action bar (edit mode only) -->
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
             <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
-            <button @click="saveSection" :disabled="riskSaving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ riskSaving ? t('common.state.saving') : t('common.action.save') }}</button>
+            <button @click="saveSection" :disabled="riskSaving || (editingSection === 'overview' && !editFormRequiredFieldsFilled)" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ riskSaving ? t('common.state.saving') : t('common.action.save') }}</button>
           </div>
         </div>
       </div>
@@ -566,6 +604,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { DEFAULT_RISK_CATEGORIES, categoryLabel as resolveCategoryLabel } from '../riskCategories'
+import { orphanCustomValues, deslugFieldKey, customFieldInputType, requiredCustomFieldsSatisfied } from '../customFields'
 import StatusBadge from '../components/StatusBadge.vue'
 import StatStrip from '../components/StatStrip.vue'
 import RefreshButton from '../components/RefreshButton.vue'
@@ -781,9 +820,31 @@ async function loadRiskCategories() {
   } catch { /* keep defaults */ }
 }
 
+// Custom field definitions configured for this org (#213/#216). Empty when
+// unset — unlike categories, "no custom fields" is the normal state.
+const customFieldDefs = ref([])
+
+async function loadCustomFieldDefs() {
+  try {
+    const res = await api.fetchJSON('/api/v1/risks/custom-fields')
+    customFieldDefs.value = Array.isArray(res) ? res : []
+  } catch { customFieldDefs.value = [] }
+}
+
+const requiredCustomFieldDefs = computed(() => customFieldDefs.value.filter(d => d && d.required))
+
+// Shared by quick-create and the full edit form: submit stays blocked until
+// every required custom field has a value.
+const newRiskRequiredFieldsFilled = computed(() =>
+  requiredCustomFieldsSatisfied(requiredCustomFieldDefs.value, newRisk.value.custom_fields))
+
+const editFormRequiredFieldsFilled = computed(() =>
+  requiredCustomFieldsSatisfied(requiredCustomFieldDefs.value, editForm.value.custom_fields))
+
 const newRisk = ref({
   title: '',
   category: '',
+  custom_fields: {},
 })
 
 function isOverdue(dateStr) {
@@ -991,6 +1052,7 @@ function startEdit(risk) {
     treatment_plan: risk.treatment_plan || '',
     notes: risk.notes || '',
     status: risk.status || 'open',
+    custom_fields: { ...(risk.custom_fields || {}) },
   }
   captureEditSnapshot()
 }
@@ -1009,7 +1071,7 @@ async function createRisk() {
     }
     pendingRefs.value = []
     showCreateForm.value = false
-    newRisk.value = { title: '', category: '' }
+    newRisk.value = { title: '', category: '', custom_fields: {} }
     await loadRisks()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.
     if (created && created.id) {
@@ -1066,6 +1128,7 @@ function scoreColor(score) {
 onMounted(async () => {
   try { const me = await api.getMe(); userRole.value = me?.role || '' } catch {}
   loadRiskCategories()
+  loadCustomFieldDefs()
   try {
     orgMembers.value = await api.getUsers() || []
   } catch { orgMembers.value = [] }

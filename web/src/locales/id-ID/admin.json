@@ -213,5 +213,37 @@
     "error_label_empty": "Setiap kategori memerlukan label.",
     "error_label_overlong": "Label \"{label}…\" melebihi 100 karakter.",
     "error_invalid_key": "Kunci kategori \"{key}\" tidak valid."
+  },
+  "risk_custom_fields": {
+    "title": "Bidang Kustom Risiko",
+    "description": "Bidang tambahan untuk diisi saat membuat atau menyunting risiko. Kunci dihasilkan dari labelnya dan tidak dapat diubah setelahnya, karena risiko menyimpan nilai berdasarkan kunci tersebut. Jenis bidang tetap setelah dibuat — hapus dan buat ulang untuk mengubah jenisnya.",
+    "empty": "Belum ada bidang kustom yang dikonfigurasi.",
+    "move_up": "Pindah ke atas",
+    "move_down": "Pindah ke bawah",
+    "label_placeholder": "Label",
+    "option_placeholder": "Opsi",
+    "add_option": "Tambah opsi",
+    "required": "Wajib",
+    "remove": "Hapus",
+    "new_placeholder": "Label bidang baru",
+    "add": "Tambah",
+    "key_preview": "Kunci: {key}",
+    "type_immutable": "Jenis tidak dapat diubah setelah bidang dibuat",
+    "type": {
+      "text": "Teks",
+      "number": "Angka",
+      "date": "Tanggal",
+      "select": "Pilihan"
+    },
+    "footnote": "Menghapus sebuah bidang tidak mengubah risiko yang sudah ada — risiko tersebut tetap menyimpan nilainya, tetapi nilai itu tidak lagi dapat disunting atau ditampilkan sebagai bidang berlabel setelah dihapus. Menandai bidang sebagai wajib hanya berlaku ke depannya; risiko yang disimpan sebelum bidang itu ada tetap dapat disunting tanpa mengisinya.",
+    "saved": "Bidang kustom tersimpan",
+    "remove_confirm": "Hapus \"{label}\"? Risiko yang sudah memiliki nilai untuk bidang ini tetap menyimpan nilainya, tetapi bidang tersebut tidak lagi muncul pada formulir pembuatan atau penyuntingan.",
+    "remove_confirm_action": "Hapus",
+    "error_label_required": "Masukkan label terlebih dahulu.",
+    "error_label_too_long": "Label maksimal 100 karakter.",
+    "error_too_many": "Maksimal {max} bidang yang diperbolehkan.",
+    "error_key_undeliverable": "Label harus memuat setidaknya satu huruf atau angka untuk menghasilkan kunci.",
+    "error_duplicate_key": "Bidang dengan kunci \"{key}\" sudah ada.",
+    "error_select_needs_options": "\"{label}\" adalah bidang pilihan dan memerlukan setidaknya satu opsi."
   }
 }

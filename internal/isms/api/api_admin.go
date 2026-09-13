@@ -399,6 +399,15 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 		}
 	}
 
+	// Custom fields are consumed as JSON by risk create/edit validation, same
+	// concern as risk_categories above. Empty is allowed and meaningful: it
+	// clears the org's custom fields entirely.
+	if req.Key == "risk_custom_fields" && strings.TrimSpace(req.Value) != "" {
+		if _, err := db.ParseCustomFieldDefs(req.Value); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+	}
+
 	if err := s.db.SetOrgSetting(ctx, orgID, req.Key, req.Value); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
 	}

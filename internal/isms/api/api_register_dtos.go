@@ -128,6 +128,7 @@ type riskCreateRequest struct {
 	RiskType                      string           `json:"risk_type"`
 	Origin                        string           `json:"origin"`
 	Category                      string           `json:"category"`
+	CustomFields                  map[string]any   `json:"custom_fields"`
 	CurrentLikelihood             *int             `json:"current_likelihood"`
 	CurrentImpact                 *int             `json:"current_impact"`
 	ConfidentialityImpact         *int             `json:"confidentiality_impact"`
@@ -152,29 +153,30 @@ type riskCreateRequest struct {
 }
 
 type riskUpdateRequest struct {
-	Title                         *string    `json:"title"`
-	Description                   *string    `json:"description"`
-	RiskType                      *string    `json:"risk_type"`
-	Origin                        *string    `json:"origin"`
-	Category                      *string    `json:"category"`
-	CurrentLikelihood             **int      `json:"current_likelihood"`
-	CurrentImpact                 **int      `json:"current_impact"`
-	ConfidentialityImpact         **int      `json:"confidentiality_impact"`
-	IntegrityImpact               **int      `json:"integrity_impact"`
-	AvailabilityImpact            **int      `json:"availability_impact"`
-	InherentLikelihood            **int      `json:"inherent_likelihood"`
-	InherentImpact                **int      `json:"inherent_impact"`
-	InherentConfidentialityImpact **int      `json:"inherent_confidentiality_impact"`
-	InherentIntegrityImpact       **int      `json:"inherent_integrity_impact"`
-	InherentAvailabilityImpact    **int      `json:"inherent_availability_impact"`
-	TargetLikelihood              **int      `json:"target_likelihood"`
-	TargetImpact                  **int      `json:"target_impact"`
-	Treatment                     *string    `json:"treatment"`
-	TreatmentPlan                 *string    `json:"treatment_plan"`
-	TreatmentDueDate              **db.Epoch `json:"treatment_due_date"`
-	Owner                         *string    `json:"owner"`
-	Status                        *string    `json:"status"`
-	LastReview                    **db.Epoch `json:"last_review"`
-	NextReview                    **db.Epoch `json:"next_review"`
-	Notes                         *string    `json:"notes"`
+	Title                         *string         `json:"title"`
+	Description                   *string         `json:"description"`
+	RiskType                      *string         `json:"risk_type"`
+	Origin                        *string         `json:"origin"`
+	Category                      *string         `json:"category"`
+	CustomFields                  *map[string]any `json:"custom_fields"`
+	CurrentLikelihood             **int           `json:"current_likelihood"`
+	CurrentImpact                 **int           `json:"current_impact"`
+	ConfidentialityImpact         **int           `json:"confidentiality_impact"`
+	IntegrityImpact               **int           `json:"integrity_impact"`
+	AvailabilityImpact            **int           `json:"availability_impact"`
+	InherentLikelihood            **int           `json:"inherent_likelihood"`
+	InherentImpact                **int           `json:"inherent_impact"`
+	InherentConfidentialityImpact **int           `json:"inherent_confidentiality_impact"`
+	InherentIntegrityImpact       **int           `json:"inherent_integrity_impact"`
+	InherentAvailabilityImpact    **int           `json:"inherent_availability_impact"`
+	TargetLikelihood              **int           `json:"target_likelihood"`
+	TargetImpact                  **int           `json:"target_impact"`
+	Treatment                     *string         `json:"treatment"`
+	TreatmentPlan                 *string         `json:"treatment_plan"`
+	TreatmentDueDate              **db.Epoch      `json:"treatment_due_date"`
+	Owner                         *string         `json:"owner"`
+	Status                        *string         `json:"status"`
+	LastReview                    **db.Epoch      `json:"last_review"`
+	NextReview                    **db.Epoch      `json:"next_review"`
+	Notes                         *string         `json:"notes"`
 }

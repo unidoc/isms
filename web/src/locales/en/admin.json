@@ -213,5 +213,37 @@
     "error_label_empty": "Every category needs a label.",
     "error_label_overlong": "Label \"{label}…\" exceeds 100 characters.",
     "error_invalid_key": "Invalid category key \"{key}\"."
+  },
+  "risk_custom_fields": {
+    "title": "Risk Custom Fields",
+    "description": "Extra fields to fill in when creating or editing a risk. Keys are generated from the label and cannot be changed afterwards, because risks store values under the key. A field's type is fixed once created — delete and recreate it to change the type.",
+    "empty": "No custom fields configured.",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "label_placeholder": "Label",
+    "option_placeholder": "Option",
+    "add_option": "Add option",
+    "required": "Required",
+    "remove": "Remove",
+    "new_placeholder": "New field label",
+    "add": "Add",
+    "key_preview": "Key: {key}",
+    "type_immutable": "Type cannot be changed after a field is created",
+    "type": {
+      "text": "Text",
+      "number": "Number",
+      "date": "Date",
+      "select": "Select"
+    },
+    "footnote": "Removing a field does not change existing risks — they keep the stored value, but it is no longer editable or shown as a labeled field once removed. Marking a field required only applies going forward; a risk saved before the field existed can still be edited without it.",
+    "saved": "Custom fields saved",
+    "remove_confirm": "Remove \"{label}\"? Risks already holding a value for it keep that value, but the field will no longer appear on the create or edit forms.",
+    "remove_confirm_action": "Remove",
+    "error_label_required": "Enter a label first.",
+    "error_label_too_long": "Label must be 100 characters or fewer.",
+    "error_too_many": "At most {max} fields are allowed.",
+    "error_key_undeliverable": "Label must contain at least one letter or number to generate a key.",
+    "error_duplicate_key": "A field with key \"{key}\" already exists.",
+    "error_select_needs_options": "\"{label}\" is a select field and needs at least one option."
   }
 }

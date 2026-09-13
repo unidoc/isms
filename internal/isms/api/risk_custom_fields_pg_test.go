@@ -183,3 +183,30 @@ func TestSuggestionApplyWithInvalidCustomValueRejectedNoRiskCreated(t *testing.T
 		t.Errorf("risk count changed from %d to %d — a row was created despite the rejected apply", countBefore, len(after))
 	}
 }
+
+// Agents cannot fill out a form, so applyRiskCreate deliberately skips the
+// required-field check (checkRequired=false). A suggestion that omits a
+// required custom field must still succeed.
+func TestSuggestionApplyRiskCreateSucceedsWithMissingRequiredField(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "cf-suggestion-missing-required")
+	setCustomFieldDefs(t, s, orgID, `[{"key":"priority","label":"Priority","type":"text","required":true}]`)
+
+	payload := []byte(`{"title":"Agent-created risk","custom_fields":{}}`)
+	sg := &db.Suggestion{OrganizationID: orgID, EntityType: "risk", SuggestionType: "create", Payload: payload}
+
+	tx, err := s.db.Pool().Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback(ctx)
+
+	identifier, applyErr := applyRiskCreate(ctx, tx, s, orgID, sg, "admin@custom-fields.test")
+	if applyErr != nil {
+		t.Fatalf("applyRiskCreate must succeed despite a missing required custom field: %v", applyErr)
+	}
+	if identifier == "" {
+		t.Error("expected a risk identifier to be returned")
+	}
+}

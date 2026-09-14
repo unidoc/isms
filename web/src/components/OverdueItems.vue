@@ -45,6 +45,9 @@
           <svg v-else-if="item.entity_type === 'task'" class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
+          <svg v-else-if="item.entity_type === 'supplier_contract'" class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
         </div>
 
         <!-- Details -->
@@ -56,10 +59,18 @@
           </div>
         </div>
 
-        <!-- Days overdue -->
+        <!-- Days overdue / contract state -->
         <div class="text-right flex-shrink-0">
-          <div class="text-sm font-bold tabular-nums" :class="daysColor(item.days_late)">{{ $t('components.overdue.days_late', { count: item.days_late }) }}</div>
-          <div class="text-[10px] text-slate-600">{{ $t('components.overdue.overdue') }}</div>
+          <template v-if="item.entity_type === 'supplier_contract'">
+            <div class="text-sm font-bold tabular-nums" :class="isExpired(item) ? 'text-red-400' : 'text-amber-400'">
+              {{ isExpired(item) ? $t('components.overdue.contract_expired', { count: item.days_late }) : $t('components.overdue.contract_expires_in', { count: -item.days_late }) }}
+            </div>
+            <div class="text-[10px] text-slate-600">{{ $t('components.overdue.contract') }}</div>
+          </template>
+          <template v-else>
+            <div class="text-sm font-bold tabular-nums" :class="daysColor(item.days_late)">{{ $t('components.overdue.days_late', { count: item.days_late }) }}</div>
+            <div class="text-[10px] text-slate-600">{{ $t('components.overdue.overdue') }}</div>
+          </template>
         </div>
       </div>
     </div>
@@ -92,6 +103,7 @@ const allItems = computed(() => {
     ...(overdue.value.suppliers || []),
     ...(overdue.value.systems || []),
     ...(overdue.value.legal || []),
+    ...(overdue.value.supplier_contracts || []),
     ...(overdue.value.tasks || []),
   ]
   items.sort((a, b) => b.days_late - a.days_late)
@@ -127,6 +139,7 @@ function typeIconBg(type) {
     case 'system': return 'bg-blue-950/60'
     case 'legal': return 'bg-cyan-950/60'
     case 'task': return 'bg-emerald-950/60'
+    case 'supplier_contract': return 'bg-amber-950/60'
     default: return 'bg-slate-800'
   }
 }
@@ -138,6 +151,7 @@ function typeBadgeClass(type) {
     case 'system': return 'bg-blue-900/40 text-blue-400'
     case 'legal': return 'bg-cyan-900/40 text-cyan-400'
     case 'task': return 'bg-emerald-900/40 text-emerald-400'
+    case 'supplier_contract': return 'bg-amber-900/40 text-amber-400'
     default: return 'bg-slate-800 text-slate-400'
   }
 }
@@ -147,5 +161,10 @@ function daysColor(days) {
   if (days >= 14) return 'text-orange-400'
   if (days >= 7) return 'text-amber-400'
   return 'text-yellow-400'
+}
+
+// item.state is the API state enum ("expiring" / "expired"), not copy.
+function isExpired(item) {
+  return item.state === 'expired'
 }
 </script>

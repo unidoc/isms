@@ -386,7 +386,10 @@
     "created_skipped": ", {count} skipped (already exist)",
     "days_late": "{count}d",
     "overdue": "overdue",
-    "all_on_schedule": "All reviews on schedule"
+    "all_on_schedule": "All reviews on schedule",
+    "contract": "contract",
+    "contract_expired": "{count}d ago",
+    "contract_expires_in": "in {count}d"
   },
   "suggest_new": {
     "button": "Suggest",

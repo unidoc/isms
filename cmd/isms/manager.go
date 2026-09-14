@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/api"
 	"isms.sh/internal/isms/db"
 )
 
@@ -21,6 +22,7 @@ Tasks performed:
   - Create review tasks for documents past their review cycle
   - Create check-in tasks for objectives with overdue check-ins
   - Backfill missing next_review dates on suppliers and systems
+  - Notify on supplier contracts 30 days, 7 days, and 0 days from expiry
   - Report summary of actions taken
 
 Example cron (every hour):
@@ -61,36 +63,38 @@ func runManager(quiet bool) error {
 
 	totalCreated := 0
 	totalBackfilled := 0
+	totalNotified := 0
 
 	for _, org := range orgs {
 		orgID := org.ID
 
-		created, backfilled, err := manageOrg(ctx, d, orgID, quiet)
+		created, backfilled, notified, err := manageOrg(ctx, d, orgID, quiet)
 		if err != nil && !quiet {
 			fmt.Printf("[%s] error: %v\n", org.Slug, err)
 			continue
 		}
 		totalCreated += created
 		totalBackfilled += backfilled
+		totalNotified += notified
 
-		if !quiet && (created > 0 || backfilled > 0) {
-			fmt.Printf("[%s] created %d tasks, backfilled %d review dates\n",
-				org.Slug, created, backfilled)
+		if !quiet && (created > 0 || backfilled > 0 || notified > 0) {
+			fmt.Printf("[%s] created %d tasks, backfilled %d review dates, sent %d notifications\n",
+				org.Slug, created, backfilled, notified)
 		}
 	}
 
 	if !quiet {
-		fmt.Printf("\nISMS manager: %d org(s), %d tasks created, %d review dates backfilled\n",
-			len(orgs), totalCreated, totalBackfilled)
-	} else if totalCreated > 0 || totalBackfilled > 0 {
-		fmt.Printf("isms manager: %d tasks created, %d backfilled [%s]\n",
-			totalCreated, totalBackfilled, time.Now().Format("2006-01-02 15:04"))
+		fmt.Printf("\nISMS manager: %d org(s), %d tasks created, %d review dates backfilled, %d notifications sent\n",
+			len(orgs), totalCreated, totalBackfilled, totalNotified)
+	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 {
+		fmt.Printf("isms manager: %d tasks created, %d backfilled, %d notified [%s]\n",
+			totalCreated, totalBackfilled, totalNotified, time.Now().Format("2006-01-02 15:04"))
 	}
 
 	return nil
 }
 
-func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, backfilled int, err error) {
+func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, backfilled, notified int, err error) {
 	// 1. Backfill missing next_review on suppliers
 	suppliers, err := d.ListSuppliers(ctx, orgID)
 	if err == nil {
@@ -136,9 +140,17 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	// Use "system" as the actor since this is automated
 	result, err := d.CreateOverdueReviewTasks(ctx, orgID, "system")
 	if err != nil {
-		return created, backfilled, err
+		return created, backfilled, notified, err
 	}
 	created = len(result.Created)
 
-	return created, backfilled, nil
+	// 4. Supplier contract expiry notifications (#44).
+	// Non-fatal: a notification failure must not stop the cron from having done
+	// the task creation above, which is the run's primary output.
+	notified, nerr := api.NotifySupplierContractExpiry(ctx, d, orgID)
+	if nerr != nil && !quiet {
+		fmt.Printf("[warn] supplier contract expiry notifications failed: %v\n", nerr)
+	}
+
+	return created, backfilled, notified, nil
 }

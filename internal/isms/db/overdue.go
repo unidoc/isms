@@ -14,16 +14,22 @@ type OverdueItem struct {
 	NextReview  *Epoch `json:"next_review"`
 	DaysLate    int    `json:"days_late"`
 	Criticality string `json:"criticality,omitempty"` // risk level or criticality
+	// State is set only for entity types whose problem is not lateness against a
+	// review date: "expiring" or "expired" for supplier contracts. Empty for
+	// every review-cycle item, which is what keeps the existing clients — and
+	// the "N days overdue" column — reading exactly as they did.
+	State string `json:"state,omitempty"`
 }
 
 // OverdueSummary is the aggregate overdue status across all entity types.
 type OverdueSummary struct {
-	Risks      []OverdueItem `json:"risks"`
-	Suppliers  []OverdueItem `json:"suppliers"`
-	Systems    []OverdueItem `json:"systems"`
-	Legal      []OverdueItem `json:"legal"`
-	Tasks      []OverdueItem `json:"tasks"`
-	TotalCount int           `json:"total_count"`
+	Risks             []OverdueItem `json:"risks"`
+	Suppliers         []OverdueItem `json:"suppliers"`
+	Systems           []OverdueItem `json:"systems"`
+	Legal             []OverdueItem `json:"legal"`
+	SupplierContracts []OverdueItem `json:"supplier_contracts"`
+	Tasks             []OverdueItem `json:"tasks"`
+	TotalCount        int           `json:"total_count"`
 }
 
 // GetOverdueSummary returns all overdue review items across entity types.
@@ -84,6 +90,45 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			summary.Suppliers = append(summary.Suppliers, item)
 		}
 		rows2.Close()
+	}
+
+	// Supplier contracts expiring within 30 days, or already expired (#44,
+	// Annex A 5.20). This is NOT a review-cycle item: the date arithmetic is
+	// done in SQL because contract_expiry is a DATE and a Go-side
+	// now.Sub(midnight)/24h is off by one either side of a timezone boundary.
+	rowsC, err := d.pool.Query(ctx, `
+		SELECT identifier, name, criticality, contract_expiry,
+			(contract_expiry - CURRENT_DATE)::int AS days_until
+		FROM suppliers
+		WHERE organization_id = $1
+			AND contract_expiry IS NOT NULL
+			AND (contract_expiry - CURRENT_DATE)::int <= 30
+			AND COALESCE(status, 'active') <> 'terminated'
+			AND deleted_at IS NULL
+		ORDER BY contract_expiry ASC
+	`, orgID)
+	if err == nil {
+		defer rowsC.Close()
+		for rowsC.Next() {
+			var item OverdueItem
+			var expiry Epoch
+			var daysUntil int
+			if err := rowsC.Scan(&item.EntityID, &item.Title, &item.Criticality, &expiry, &daysUntil); err != nil {
+				break
+			}
+			item.EntityType = "supplier_contract"
+			item.NextReview = &expiry
+			// Negative until the contract expires, so the shared "days late"
+			// column reads correctly the moment it does.
+			item.DaysLate = -daysUntil
+			if daysUntil < 0 {
+				item.State = "expired"
+			} else {
+				item.State = "expiring"
+			}
+			summary.SupplierContracts = append(summary.SupplierContracts, item)
+		}
+		rowsC.Close()
 	}
 
 	// Overdue systems (access reviews)
@@ -172,7 +217,8 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 	}
 
 	summary.TotalCount = len(summary.Risks) + len(summary.Suppliers) +
-		len(summary.Systems) + len(summary.Legal) + len(summary.Tasks)
+		len(summary.Systems) + len(summary.Legal) + len(summary.Tasks) +
+		len(summary.SupplierContracts)
 
 	return summary, nil
 }

@@ -53,5 +53,17 @@
   "incident_status": {
     "title": "Incident {status}: {title}",
     "body": "Incident #{id} has been {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Contract expires in 30 days: {title}",
+    "body": "The contract for {title} ({id}) expires in 30 days."
+  },
+  "supplier_contract_7": {
+    "title": "Contract expires in 7 days: {title}",
+    "body": "The contract for {title} ({id}) expires in 7 days."
+  },
+  "supplier_contract_today": {
+    "title": "Contract expires today: {title}",
+    "body": "The contract for {title} ({id}) expires today."
   }
 }

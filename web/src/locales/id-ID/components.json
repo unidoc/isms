@@ -386,7 +386,10 @@
     "created_skipped": ", {count} dilewati (sudah ada)",
     "days_late": "{count} hr",
     "overdue": "terlambat",
-    "all_on_schedule": "Semua tinjauan sesuai jadwal"
+    "all_on_schedule": "Semua tinjauan sesuai jadwal",
+    "contract": "kontrak",
+    "contract_expired": "{count}h lalu",
+    "contract_expires_in": "dalam {count}h"
   },
   "suggest_new": {
     "button": "Usulkan",

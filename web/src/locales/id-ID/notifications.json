@@ -53,5 +53,17 @@
   "incident_status": {
     "title": "Insiden {status}: {title}",
     "body": "Insiden #{id} telah {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Kontrak berakhir dalam 30 hari: {title}",
+    "body": "Kontrak untuk {title} ({id}) berakhir dalam 30 hari."
+  },
+  "supplier_contract_7": {
+    "title": "Kontrak berakhir dalam 7 hari: {title}",
+    "body": "Kontrak untuk {title} ({id}) berakhir dalam 7 hari."
+  },
+  "supplier_contract_today": {
+    "title": "Kontrak berakhir hari ini: {title}",
+    "body": "Kontrak untuk {title} ({id}) berakhir hari ini."
   }
 }

@@ -214,6 +214,43 @@ func (d *DB) CreateNotificationContentByEmail(ctx context.Context, orgID int, re
 	return err
 }
 
+// NotificationExistsToday reports whether a notification with this title key was
+// already created for this recipient, about this entity, today.
+//
+// This is the whole of the "fire once per threshold" guarantee for the cron
+// notifications (#44). The marks are discrete days, so a supplier can match at
+// most one of them per day — but `isms server manager` is documented as an
+// hourly cron, which would otherwise send the day-30 notice twenty-four times.
+// Checking the notifications table is exact here and costs no new state: the row
+// the previous run wrote IS the record that it ran.
+//
+// entityID matches against the `id` param rather than the link, and the
+// difference is not cosmetic: two suppliers owned by the same person can reach
+// the same mark on the same day, and a match that could not tell them apart
+// would drop the second one silently. `id` is one of the two params every such
+// notification sends, so it is always there to match on.
+//
+// titleKey arrives as a value, never a literal: wire keys are declared in the
+// api package and this package must not name them (see notification_keys.go).
+//
+// An unknown recipient email matches nothing and returns false, mirroring
+// CreateNotificationContentByEmail, which silently drops such a write.
+func (d *DB) NotificationExistsToday(ctx context.Context, orgID int, recipientEmail, titleKey, entityID string) (bool, error) {
+	var exists bool
+	err := d.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM notifications n
+			JOIN users u ON u.id = n.recipient_id
+			WHERE n.organization_id = $1
+				AND u.email = $2
+				AND n.title_key = $3
+				AND n.params->>'id' = $4
+				AND n.created_at >= CURRENT_DATE
+		)
+	`, orgID, recipientEmail, titleKey, entityID).Scan(&exists)
+	return exists, err
+}
+
 func (d *DB) ListNotifications(ctx context.Context, orgID int, userID int, unreadOnly bool, limit int) ([]Notification, error) {
 	query := `SELECT id, organization_id, recipient_id, title, COALESCE(body, ''), COALESCE(link, ''),
 			COALESCE(title_key, ''), COALESCE(body_key, ''), params, read, created_at

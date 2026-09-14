@@ -81,6 +81,20 @@ const (
 	NotifyKeyIncidentNew        = "notifications.incident_new"
 	NotifyKeyIncidentStatus     = "notifications.incident_status"
 	NotifyKeyIncidentStatusBody = "notifications.incident_status.body"
+
+	// Supplier contracts (#44). Three keys rather than one key with a `days`
+	// param: `days` is not in the closed param set in db/notifications.go, and
+	// widening that set to carry what is really three different sentences would
+	// also mean editing the params column comment on the 0.8.0 migration and the
+	// client's classification list. Three frames cost nothing and translate
+	// better — "expires in 30 days" and "expired" are not the same sentence with
+	// a number swapped.
+	NotifyKeySupplierContract30        = "notifications.supplier_contract_30"
+	NotifyKeySupplierContract30Body    = "notifications.supplier_contract_30.body"
+	NotifyKeySupplierContract7         = "notifications.supplier_contract_7"
+	NotifyKeySupplierContract7Body     = "notifications.supplier_contract_7.body"
+	NotifyKeySupplierContractToday     = "notifications.supplier_contract_today"
+	NotifyKeySupplierContractTodayBody = "notifications.supplier_contract_today.body"
 )
 
 // NotificationKeys is every wire key this build can write. Adding a constant
@@ -119,6 +133,13 @@ var NotificationKeys = []string{
 	NotifyKeyIncidentNew,
 	NotifyKeyIncidentStatus,
 	NotifyKeyIncidentStatusBody,
+
+	NotifyKeySupplierContract30,
+	NotifyKeySupplierContract30Body,
+	NotifyKeySupplierContract7,
+	NotifyKeySupplierContract7Body,
+	NotifyKeySupplierContractToday,
+	NotifyKeySupplierContractTodayBody,
 }
 
 // NotificationKeyParams is the set of param names each wire key's call sites
@@ -203,4 +224,11 @@ var NotificationKeyParams = map[string][]string{
 	NotifyKeyIncidentNew:        {"severity", "title"},
 	NotifyKeyIncidentStatus:     {"status", "title", "id"},
 	NotifyKeyIncidentStatusBody: {"status", "title", "id"},
+
+	NotifyKeySupplierContract30:        {"title", "id"},
+	NotifyKeySupplierContract30Body:    {"title", "id"},
+	NotifyKeySupplierContract7:         {"title", "id"},
+	NotifyKeySupplierContract7Body:     {"title", "id"},
+	NotifyKeySupplierContractToday:     {"title", "id"},
+	NotifyKeySupplierContractTodayBody: {"title", "id"},
 }

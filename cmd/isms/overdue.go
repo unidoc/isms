@@ -73,6 +73,21 @@ Examples:
 				}
 			}
 
+			if len(summary.SupplierContracts) > 0 {
+				fmt.Printf("\n  Supplier contracts (%d)\n", len(summary.SupplierContracts))
+				fmt.Println("  " + repeat("─", 66))
+				for _, sc := range summary.SupplierContracts {
+					var state string
+					if sc.State == "expired" {
+						state = fmt.Sprintf("expired %dd ago", sc.DaysLate)
+					} else {
+						state = fmt.Sprintf("expires in %dd", -sc.DaysLate)
+					}
+					fmt.Printf("  %-14s %-32s %-20s [%s]\n",
+						sc.EntityID, truncate(sc.Title, 32), state, sc.Criticality)
+				}
+			}
+
 			if len(summary.Tasks) > 0 {
 				fmt.Printf("\n  Overdue tasks (%d)\n", len(summary.Tasks))
 				fmt.Println("  " + repeat("─", 66))

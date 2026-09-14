@@ -446,6 +446,12 @@ func (s *Server) handleUpdateReviewStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	if st, stErr := s.storeForOrg(ctx, orgID); stErr == nil {
+		if archErr := st.ArchiveReviewBranch(id); archErr != nil {
+			fmt.Printf("warning: failed to archive review branch for review %d: %v\n", id, archErr)
+		}
+	}
+
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		ReviewID: &id,
 		Actor:    actor,
@@ -1332,6 +1338,11 @@ func (s *Server) performMerge(ctx context.Context, orgID int, id int, review *db
 				return fmt.Errorf("merging review branch: %w", mergeErr)
 			}
 		}
+	}
+
+	if archErr := st.ArchiveReviewBranch(id); archErr != nil {
+		// Non-fatal — cosmetic cleanup only, must never block a merge.
+		fmt.Printf("warning: failed to archive review branch for review %d: %v\n", id, archErr)
 	}
 
 	// Update document status

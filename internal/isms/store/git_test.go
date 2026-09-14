@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"isms.sh/internal/isms/model"
 )
@@ -443,17 +444,64 @@ func TestBranchLifecycle(t *testing.T) {
 	if string(mainContent) != origContent {
 		t.Error("main branch content should not change after creating suggestion")
 	}
+}
 
-	// Delete branch
-	if err := st.DeleteSuggestionBranch(branchName); err != nil {
-		t.Fatalf("DeleteSuggestionBranch: %v", err)
+func TestArchiveReviewBranch(t *testing.T) {
+	dir := t.TempDir()
+	st := initBareStore(t, dir)
+
+	docPath := filepath.Join(st.Root(), "documents", "policies", "archive-test.md")
+	origContent := "---\ndocument_id: arc-1\ntitle: Archive Test\nstatus: draft\n---\nOriginal\n"
+	if _, err := st.CommitFile(docPath, []byte(origContent), "A", "a@test.com", "initial"); err != nil {
+		t.Fatalf("initial commit: %v", err)
 	}
-	branches2, err := st.ListSuggestionBranches("suggestions/br-1/")
+
+	branchName := "review/42"
+	branchContent := []byte("---\ndocument_id: arc-1\ntitle: Archive Test\nstatus: draft\n---\nEdited on review branch\n")
+	commitHash, err := st.CreateSuggestion(docPath, branchName, branchContent, "Reviewer", "rev@test.com", "review edit")
 	if err != nil {
-		t.Fatalf("ListSuggestionBranches after delete: %v", err)
+		t.Fatalf("CreateSuggestion: %v", err)
 	}
-	if len(branches2) != 0 {
-		t.Errorf("expected 0 branches after delete, got %v", branches2)
+
+	if err := st.ArchiveReviewBranch(42); err != nil {
+		t.Fatalf("ArchiveReviewBranch: %v", err)
+	}
+
+	// The refs/heads/review/42 branch must be gone from `git branch` listing.
+	branches, _ := st.ListSuggestionBranches("review/")
+	if len(branches) != 0 {
+		t.Errorf("expected review/42 to be gone from refs/heads, got %v", branches)
+	}
+
+	// The commit must still be reachable via refs/reviews/42.
+	archivedRef, err := st.repo.Reference(plumbing.ReferenceName("refs/reviews/42"), true)
+	if err != nil {
+		t.Fatalf("expected refs/reviews/42 to exist: %v", err)
+	}
+	if archivedRef.Hash().String() != commitHash {
+		t.Errorf("archived ref hash = %s, want %s", archivedRef.Hash().String(), commitHash)
+	}
+
+	// resolveRef must still resolve "review/42" transparently after archiving
+	// (Step 1's fallback) — this is what keeps handleReviewDiff /
+	// handleGetReviewContent working for closed/merged reviews.
+	relPath := "documents/policies/archive-test.md"
+	got, err := st.ReadFileAtRef("review/42", relPath)
+	if err != nil {
+		t.Fatalf("ReadFileAtRef(\"review/42\", ...) after archiving: %v", err)
+	}
+	if string(got) != string(branchContent) {
+		t.Errorf("content after archiving:\ngot:  %q\nwant: %q", got, branchContent)
+	}
+}
+
+func TestArchiveReviewBranch_NoOpWhenMissing(t *testing.T) {
+	dir := t.TempDir()
+	st := initBareStore(t, dir)
+
+	// No review/99 branch was ever created — archiving must be a silent no-op.
+	if err := st.ArchiveReviewBranch(99); err != nil {
+		t.Fatalf("ArchiveReviewBranch on missing branch should be a no-op, got: %v", err)
 	}
 }
 
@@ -491,10 +539,12 @@ func TestMergeSuggestion(t *testing.T) {
 		t.Errorf("after merge:\ngot:  %q\nwant: %q", got, newContent)
 	}
 
-	// Branch should be deleted after merge
+	// MergeSuggestion no longer deletes the branch itself — that is now the
+	// caller's responsibility (see Store.ArchiveReviewBranch, called from the
+	// review-merge API handler, not from the generic store layer).
 	branches, _ := st.ListSuggestionBranches("suggestions/mrg-1/")
-	if len(branches) != 0 {
-		t.Errorf("suggestion branch should be deleted after merge, got %v", branches)
+	if len(branches) != 1 || branches[0] != branchName {
+		t.Errorf("suggestion branch should still exist after MergeSuggestion, got %v", branches)
 	}
 }
 

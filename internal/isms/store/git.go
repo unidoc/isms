@@ -631,6 +631,17 @@ func (s *Store) resolveRef(ref string) (*object.Commit, error) {
 	// Try resolving as a revision (handles HEAD, HEAD~1, branch names, tags).
 	hash, err := s.repo.ResolveRevision(plumbing.Revision(ref))
 	if err != nil {
+		// A review branch may have been archived (refs/heads/review/<id> ->
+		// refs/reviews/<id>) after the review was merged/closed — see
+		// Store.ArchiveReviewBranch. Retry there so callers that still pass
+		// "review/<id>" (e.g. DiffSuggestion, ReadFileAtRef call sites in the
+		// review handlers) keep resolving after archiving, transparently.
+		if strings.HasPrefix(ref, "review/") {
+			suffix := strings.TrimPrefix(ref, "review/")
+			if archivedHash, archErr := s.repo.ResolveRevision(plumbing.Revision("refs/reviews/" + suffix)); archErr == nil {
+				return s.repo.CommitObject(*archivedHash)
+			}
+		}
 		// Try as a raw hex hash.
 		h := plumbing.NewHash(ref)
 		commit, err2 := s.repo.CommitObject(h)
@@ -1990,23 +2001,42 @@ func (s *Store) MergeSuggestion(docPath, branchName string, authorName, authorEm
 		return "", fmt.Errorf("committing merge: %w", err)
 	}
 
-	// Delete the suggestion branch
-	if delErr := s.DeleteSuggestionBranch(branchName); delErr != nil {
-		// Non-fatal — log but don't fail
-		fmt.Printf("warning: failed to delete suggestion branch %s: %v\n", branchName, delErr)
-	}
-
 	return commitHash, nil
 }
 
-// DeleteSuggestionBranch removes a suggestion branch reference.
-func (s *Store) DeleteSuggestionBranch(branchName string) error {
+// ArchiveReviewBranch moves refs/heads/review/<id> to refs/reviews/<id>. This
+// removes the branch from `git branch` listings while keeping the commit
+// reachable (GC-safe), so decision-log commit-hash resolution and per-event
+// diff reconstruction keep working after a review is merged or closed. It is
+// a no-op (returns nil) if the branch does not exist — e.g. a review that was
+// approved with no reviewer edits never had a review/<id> branch created.
+func (s *Store) ArchiveReviewBranch(reviewID int) error {
 	if s.repo == nil {
 		return fmt.Errorf("not a bare repo store")
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	refName := plumbing.ReferenceName("refs/heads/" + branchName)
-	return s.repo.Storer.RemoveReference(refName)
+	srcName := plumbing.ReferenceName(fmt.Sprintf("refs/heads/review/%d", reviewID))
+	ref, err := s.repo.Storer.Reference(srcName)
+	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return nil
+		}
+		return fmt.Errorf("resolving review branch: %w", err)
+	}
+
+	// Create the archived ref BEFORE removing the original — the commit must
+	// never be unreferenced, even momentarily, so a concurrent GC can't reap
+	// it between the two calls. Do not reorder these two operations.
+	dstName := plumbing.ReferenceName(fmt.Sprintf("refs/reviews/%d", reviewID))
+	if err := s.repo.Storer.SetReference(plumbing.NewHashReference(dstName, ref.Hash())); err != nil {
+		return fmt.Errorf("creating archived review ref: %w", err)
+	}
+	if err := s.repo.Storer.RemoveReference(srcName); err != nil {
+		return fmt.Errorf("removing original review branch ref: %w", err)
+	}
+	return nil
 }
 
 // DiffSuggestion returns a unified diff between the HEAD version and the suggestion branch version of a file.

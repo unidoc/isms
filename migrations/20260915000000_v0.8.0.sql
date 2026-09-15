@@ -2,15 +2,17 @@
 -- named for the release (not for any one change). ALL schema changes shipping in
 -- 0.8.0 accumulate in this file, appended in the order they land on master.
 --
--- NB: this file has been renamed twice — from 20260823000000_v0.8.0.sql, which
--- briefly shipped #213 on master, and then from 20260824000000_v0.8.0.sql when
--- the jurisdiction conversion at the bottom was appended. Appending under an
--- existing name would be SKIPPED (the runner tracks applied migrations by
--- filename, see internal/isms/db/postgres.go) on any DB that already ran it, so
--- each append renames. That is safe only because 0.8.0 is unreleased and every
--- statement here is idempotent — re-running the whole file under the new name is
--- the expected consequence, not an accident. Keep both properties when you
--- append: bump the timestamp, and write statements that survive a second run.
+-- NB: this file has been renamed three times — from 20260823000000_v0.8.0.sql,
+-- which briefly shipped #213 on master, then from 20260824000000_v0.8.0.sql when
+-- the jurisdiction conversion at the bottom was appended, and then from
+-- 20260913000000_v0.8.0.sql when the supplier review-cycle seed (#43) was
+-- appended. Appending under an existing name would be SKIPPED (the runner
+-- tracks applied migrations by filename, see internal/isms/db/postgres.go) on
+-- any DB that already ran it, so each append renames. That is safe only because
+-- 0.8.0 is unreleased and every statement here is idempotent — re-running the
+-- whole file under the new name is the expected consequence, not an accident.
+-- Keep both properties when you append: bump the timestamp, and write
+-- statements that survive a second run.
 
 -- Per-org custom risk categories (#213, merged first via #215): a JSON array in
 -- organization_settings under 'risk_categories', e.g.
@@ -535,4 +537,19 @@ VALUES (
     NULL,
     false
 )
+ON CONFLICT (key) DO NOTHING;
+
+-- Per-org supplier review cycles (#43, Annex A 5.22). Supplier cycle length was a
+-- hard-coded per-criticality switch; these four keys move it into the settings
+-- registry, exactly as risk_review_cycle_* already does for risks.
+--
+-- default_value is populated (NOT NULL, unlike risk_categories above) on purpose:
+-- GetOrgSetting falls back to default_value, so 1/3/6/12 — the values the switch
+-- returned — apply to every existing org with zero rows in organization_settings
+-- and zero backfill. An org changes its cycles by writing a row; nothing else moves.
+INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
+    ('supplier_review_cycle_critical', 'Review cycle for critical suppliers (months)', 'review_cycles', '1',  false),
+    ('supplier_review_cycle_high',     'Review cycle for high-criticality suppliers (months)', 'review_cycles', '3',  false),
+    ('supplier_review_cycle_medium',   'Review cycle for medium-criticality suppliers (months)', 'review_cycles', '6',  false),
+    ('supplier_review_cycle_low',      'Review cycle for low-criticality suppliers (months)', 'review_cycles', '12', false)
 ON CONFLICT (key) DO NOTHING;

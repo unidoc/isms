@@ -76,31 +76,36 @@ var CriticalityLevels = []string{"low", "medium", "high", "critical"}
 // Valid supplier lifecycle statuses.
 var SupplierStatuses = []string{"active", "under_review", "suspended", "terminated"}
 
-// supplierReviewMonths derives review cycle (months) from criticality.
-// Mirrors the risk level mapping: critical=1, high=3, medium=6, low/unset=12.
-func supplierReviewMonths(criticality string) int {
-	switch criticality {
-	case "critical":
-		return 1
-	case "high":
-		return 3
-	case "medium":
-		return 6
-	default:
-		return 12
-	}
+// SupplierReviewCycles resolves the org's supplier review cycles. Exported because
+// every supplier write path outside this package (api readings, suggestion apply,
+// the manager cron) must resolve real cycles — passing nil there would silently
+// ignore the org's configuration, which is the bug the risk readings path has.
+func (d *DB) SupplierReviewCycles(ctx context.Context, orgID int) map[string]int {
+	return d.reviewCyclesFor(ctx, orgID, "supplier_review_cycle_")
 }
 
-// CalculateNextReview sets next_review based on criticality (when not already set).
-// Cycle is purely derived — users override the date through readings/reviews.
-func (s *Supplier) CalculateNextReview() {
-	months := supplierReviewMonths(s.Criticality)
+// CalculateNextReview sets next_review from the supplier's criticality.
+// cycles maps criticality level → months; pass nil to use reviewCycleDefaults
+// (1/3/6/12). Resolve a real map with DB.SupplierReviewCycles — do not pass nil
+// from outside this package, or the org's configured cycles are ignored (#43).
+//
+// NB: callers that set NextReview explicitly do NOT survive this — UpdateSupplier
+// and UpdateSupplierTx recalculate unconditionally, so a user-supplied date is
+// overwritten. That is pre-existing behaviour, tracked separately; this function
+// deliberately does not change it.
+func (s *Supplier) CalculateNextReview(cycles map[string]int) {
+	if cycles == nil {
+		cycles = reviewCycleDefaults
+	}
+	months, ok := cycles[s.Criticality]
+	if !ok {
+		months = 12
+	}
 	base := time.Now()
 	if s.LastReview != nil && !s.LastReview.IsZero() {
 		base = s.LastReview.Time
 	}
-	next := base.AddDate(0, months, 0)
-	s.NextReview = &Epoch{Time: next}
+	s.NextReview = &Epoch{Time: base.AddDate(0, months, 0)}
 }
 
 // Shared column lists — keep INSERT/SELECT/UPDATE in lock-step.
@@ -129,7 +134,7 @@ func scanSupplier(scanner interface {
 
 func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 	s.OrganizationID = orgID
-	s.CalculateNextReview()
+	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
 	ident, err := d.NextIdentifier(ctx, orgID, "supplier")
 	if err != nil {
 		return err
@@ -314,7 +319,7 @@ func (d *DB) GetSupplierByIdentifier(ctx context.Context, orgID int, identifier 
 }
 
 func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier) error {
-	s.CalculateNextReview()
+	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
 	_, err := d.pool.Exec(ctx, `
 		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
 			data_access = $5, contact = $6, contract_ref = $7,

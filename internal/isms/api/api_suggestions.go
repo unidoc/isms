@@ -1034,7 +1034,7 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		return "", err
 	}
 
-	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup); err != nil {
+	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup, s.db.SupplierReviewCycles(ctx, orgID)); err != nil {
 		return "", err
 	}
 
@@ -1072,7 +1072,7 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		}
 	}
 
-	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup); err != nil {
+	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup, s.db.SupplierReviewCycles(ctx, orgID)); err != nil {
 		return "", err
 	}
 

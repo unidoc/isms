@@ -408,6 +408,21 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 		}
 	}
 
+	// Review cycles are read back with strconv.Atoi and silently skipped when they do
+	// not parse, which means a typo degrades to the 12-month fallback with no signal.
+	// Reject it here instead — same diagnosability argument as default_locale above.
+	// Empty is allowed and meaningful: it reverts the org to the registry default.
+	if strings.HasPrefix(req.Key, "supplier_review_cycle_") || strings.HasPrefix(req.Key, "risk_review_cycle_") {
+		if v := strings.TrimSpace(req.Value); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil || n < 1 || n > 120 {
+				return echo.NewHTTPError(http.StatusBadRequest,
+					req.Key+" must be a whole number of months between 1 and 120")
+			}
+			req.Value = v // store the trimmed form
+		}
+	}
+
 	if err := s.db.SetOrgSetting(ctx, orgID, req.Key, req.Value); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
 	}

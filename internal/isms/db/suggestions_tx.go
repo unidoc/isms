@@ -320,9 +320,9 @@ func LogChangesTx(ctx context.Context, tx pgx.Tx, orgID int, entries []Changelog
 }
 
 // CreateSupplierTx creates a supplier within an existing transaction.
-func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier) error {
+func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
 	s.OrganizationID = orgID
-	s.CalculateNextReview()
+	s.CalculateNextReview(cycles)
 
 	var seq int
 	err := tx.QueryRow(ctx, `
@@ -359,8 +359,8 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier) er
 }
 
 // UpdateSupplierTx updates a supplier within an existing transaction.
-func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier) error {
-	s.CalculateNextReview()
+func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
+	s.CalculateNextReview(cycles)
 	_, err := tx.Exec(ctx, `
 		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
 			data_access = $5, contact = $6, contract_ref = $7,

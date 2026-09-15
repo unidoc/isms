@@ -40,7 +40,7 @@ func (d *DB) CreateSupplierReview(ctx context.Context, orgID int, sr *SupplierRe
 	if err == nil {
 		now := EpochNow()
 		sup.LastReview = &now
-		sup.CalculateNextReview()
+		sup.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
 		if sr.Outcome == "unsatisfactory" {
 			sup.Status = "under_review"
 		}

@@ -332,13 +332,16 @@ var RiskTypes = []string{"threat", "opportunity"}
 // RiskOrigins defines valid risk origins.
 var RiskOrigins = []string{"internal", "external", "internal and external"}
 
-// riskReviewCycles fetches the per-level review cycle settings for an org.
-// Returns a map of level → months (e.g. "critical" → 1).
-func (d *DB) riskReviewCycles(ctx context.Context, orgID int) map[string]int {
+// reviewCyclesFor fetches per-level review cycle settings for an org under a key
+// prefix (e.g. "risk_review_cycle_" or "supplier_review_cycle_"). Returns a map of
+// level → months, or nil when the org has configured none — nil means "use
+// reviewCycleDefaults", which is what the registry default_value already resolves to.
+// A stored value that is not a positive integer is skipped rather than trusted; the
+// settings PUT rejects such values (api_admin.go), so this is defence in depth.
+func (d *DB) reviewCyclesFor(ctx context.Context, orgID int, prefix string) map[string]int {
 	cycles := make(map[string]int, 4)
 	for _, level := range []string{"critical", "high", "medium", "low"} {
-		key := "risk_review_cycle_" + level
-		if val, err := d.GetOrgSetting(ctx, orgID, key); err == nil && val != "" {
+		if val, err := d.GetOrgSetting(ctx, orgID, prefix+level); err == nil && val != "" {
 			if n, err := strconv.Atoi(val); err == nil && n > 0 {
 				cycles[level] = n
 			}
@@ -348,6 +351,12 @@ func (d *DB) riskReviewCycles(ctx context.Context, orgID int) map[string]int {
 		return nil // use built-in defaults
 	}
 	return cycles
+}
+
+// riskReviewCycles fetches the per-level review cycle settings for an org.
+// Returns a map of level → months (e.g. "critical" → 1).
+func (d *DB) riskReviewCycles(ctx context.Context, orgID int) map[string]int {
+	return d.reviewCyclesFor(ctx, orgID, "risk_review_cycle_")
 }
 
 func (d *DB) CreateRisk(ctx context.Context, orgID int, r *Risk) error {

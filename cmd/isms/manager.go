@@ -98,10 +98,13 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	// 1. Backfill missing next_review on suppliers
 	suppliers, err := d.ListSuppliers(ctx, orgID)
 	if err == nil {
+		// Resolved once per org, not per supplier: SupplierReviewCycles is four
+		// GetOrgSetting queries and the value cannot change mid-loop.
+		cycles := d.SupplierReviewCycles(ctx, orgID)
 		for _, s := range suppliers {
 			if s.NextReview == nil || s.NextReview.IsZero() {
 				before := s.ToChangeMap()
-				s.CalculateNextReview()
+				s.CalculateNextReview(cycles)
 				if err := d.UpdateSupplier(ctx, orgID, &s); err == nil {
 					backfilled++
 					if changes := db.DiffFields("supplier", int64(s.ID), "system", "automated next_review backfill", before, s.ToChangeMap()); len(changes) > 0 {

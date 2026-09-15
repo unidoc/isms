@@ -486,6 +486,7 @@ func writeSupplierFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID i
 	now := db.NewEpoch(time.Now())
 	sup.LastReview = &now
 
+	cycles := s.db.SupplierReviewCycles(ctx, orgID)
 	// Next review: explicit user input wins, otherwise derive from criticality.
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
@@ -493,10 +494,10 @@ func writeSupplierFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID i
 			sup.NextReview = &e
 		}
 	} else {
-		sup.CalculateNextReview()
+		sup.CalculateNextReview(cycles)
 	}
 	_ = actor
-	return db.UpdateSupplierTx(ctx, tx, orgID, sup)
+	return db.UpdateSupplierTx(ctx, tx, orgID, sup, cycles)
 }
 
 // ═══════════════════════════════════════════════════════════════════════

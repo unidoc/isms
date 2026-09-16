@@ -48,7 +48,8 @@
     "treatment": "Treatment",
     "treatment_plan": "Treatment Plan",
     "created": "Created",
-    "created_by": "Created by"
+    "created_by": "Created by",
+    "external_id": "External ID"
   },
   "placeholder": {
     "description": "Describe the requirement...",

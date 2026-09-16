@@ -2,11 +2,13 @@
 -- named for the release (not for any one change). ALL schema changes shipping in
 -- 0.8.0 accumulate in this file, appended in the order they land on master.
 --
--- NB: this file has been renamed three times — from 20260823000000_v0.8.0.sql,
+-- NB: this file has been renamed four times — from 20260823000000_v0.8.0.sql,
 -- which briefly shipped #213 on master, then from 20260824000000_v0.8.0.sql when
--- the jurisdiction conversion at the bottom was appended, and then from
+-- the jurisdiction conversion at the bottom was appended, then from
 -- 20260913000000_v0.8.0.sql when the supplier review-cycle seed (#43) was
--- appended. Appending under an existing name would be SKIPPED (the runner
+-- appended, and then from 20260915000000_v0.8.0.sql when the optional
+-- external_id columns on the registers (#39) were appended. Appending under an
+-- existing name would be SKIPPED (the runner
 -- tracks applied migrations by filename, see internal/isms/db/postgres.go) on
 -- any DB that already ran it, so each append renames. That is safe only because
 -- 0.8.0 is unreleased and every statement here is idempotent — re-running the
@@ -553,3 +555,24 @@ INSERT INTO settings (key, description, category, default_value, sensitive) VALU
     ('supplier_review_cycle_medium',   'Review cycle for medium-criticality suppliers (months)', 'review_cycles', '6',  false),
     ('supplier_review_cycle_low',      'Review cycle for low-criticality suppliers (months)', 'review_cycles', '12', false)
 ON CONFLICT (key) DO NOTHING;
+
+-- Optional external/own identifier on register entities (#39). A reference to
+-- the org's own numbering in an external system — deliberately NOT a key:
+-- nullable, free text, no uniqueness. Our canonical identifiers (INC-N, RISK-N,
+-- …) are untouched, so entity_references and its integrity guarantees are not
+-- affected. Indexed per-org because it is searchable from the register list.
+ALTER TABLE incidents           ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE risks               ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE assets              ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE suppliers           ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE systems             ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE legal_requirements  ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE corrective_actions  ADD COLUMN IF NOT EXISTS external_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_incidents_org_external_id  ON incidents (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_risks_org_external_id      ON risks (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_assets_org_external_id     ON assets (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_suppliers_org_external_id  ON suppliers (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_systems_org_external_id    ON systems (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_legal_org_external_id      ON legal_requirements (organization_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_ca_org_external_id         ON corrective_actions (organization_id, external_id);

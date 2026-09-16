@@ -54,6 +54,7 @@ type Asset struct {
 	Notes           string `json:"notes,omitempty"`
 	CreatedAt       Epoch  `json:"created_at"`
 	UpdatedAt       Epoch  `json:"updated_at"`
+	ExternalID      string `json:"external_id,omitempty"`
 }
 
 // Valid asset types.
@@ -89,16 +90,17 @@ func (d *DB) CreateAsset(ctx context.Context, orgID int, a *Asset) error {
 	return d.pool.QueryRow(ctx, `
 		INSERT INTO assets (organization_id, identifier, name, description, asset_type, status,
 			owner_id, primary_location, confidentiality, integrity, availability,
-			last_review, next_review, notes)
+			last_review, next_review, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6,
 			CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END,
 			$8, $9, $10, $11,
-			$12, $13, $14)
+			$12, $13, $14, $15)
 		RETURNING id, created_at, updated_at
 	`, orgID, a.Identifier, a.Name, nilIfEmpty(a.Description), a.AssetType, a.Status,
 		a.Owner, nilIfEmpty(a.PrimaryLocation),
 		a.Confidentiality, a.Integrity, a.Availability,
 		a.LastReview, a.NextReview, nilIfEmpty(a.Notes),
+		nilIfEmpty(strings.TrimSpace(a.ExternalID)),
 	).Scan(&a.ID, &a.CreatedAt, &a.UpdatedAt)
 }
 
@@ -107,7 +109,8 @@ const assetSelectCols = `id, organization_id, identifier, name, COALESCE(descrip
 		confidentiality, integrity, availability,
 		last_review, next_review,
 		COALESCE(notes, ''),
-		created_at, updated_at`
+		created_at, updated_at,
+		COALESCE(external_id, '')`
 
 func scanAsset(scanner interface {
 	Scan(dest ...interface{}) error
@@ -116,7 +119,8 @@ func scanAsset(scanner interface {
 		&a.AssetType, &a.Status, &a.Owner, &a.PrimaryLocation,
 		&a.Confidentiality, &a.Integrity, &a.Availability,
 		&a.LastReview, &a.NextReview,
-		&a.Notes, &a.CreatedAt, &a.UpdatedAt)
+		&a.Notes, &a.CreatedAt, &a.UpdatedAt,
+		&a.ExternalID)
 }
 
 func (d *DB) GetAsset(ctx context.Context, orgID int, id int64) (*Asset, error) {
@@ -203,7 +207,7 @@ func (d *DB) PaginatedAssets(ctx context.Context, orgID int, p AssetListParams) 
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (name ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d)`, idx, idx, idx)
+		where += fmt.Sprintf(` AND (name ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -277,13 +281,14 @@ func (d *DB) UpdateAsset(ctx context.Context, orgID int, a *Asset) error {
 			primary_location = $7,
 			confidentiality = $8, integrity = $9, availability = $10,
 			last_review = $11, next_review = $12,
-			notes = $13, updated_at = now()
+			notes = $13, external_id = $15, updated_at = now()
 		WHERE id = $1 AND organization_id = $14 AND deleted_at IS NULL
 	`, a.ID, a.Name, nilIfEmpty(a.Description), a.AssetType, a.Status,
 		a.Owner, nilIfEmpty(a.PrimaryLocation),
 		a.Confidentiality, a.Integrity, a.Availability,
 		a.LastReview, a.NextReview,
-		nilIfEmpty(a.Notes), orgID)
+		nilIfEmpty(a.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(a.ExternalID)))
 	return err
 }
 

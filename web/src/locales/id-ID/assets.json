@@ -47,7 +47,8 @@
     "primary_location": "Lokasi Utama",
     "next_review": "Tinjauan Berikutnya",
     "created": "Dibuat",
-    "created_by": "Dibuat oleh"
+    "created_by": "Dibuat oleh",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "description": "Jelaskan aset ini…",

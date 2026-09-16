@@ -43,7 +43,8 @@ const correctiveActionSelectCols = `id, organization_id, identifier, title, desc
 	COALESCE(root_cause, ''),
 	COALESCE(notes, ''),
 	resolved_at, COALESCE((SELECT email FROM users WHERE id = corrective_actions.resolved_by_id), ''),
-	created_at, updated_at`
+	created_at, updated_at,
+	COALESCE(external_id, '')`
 
 // CorrectiveAction represents a corrective action / nonconformity record.
 type CorrectiveAction struct {
@@ -64,6 +65,7 @@ type CorrectiveAction struct {
 	ResolvedBy     string `json:"resolved_by,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`
+	ExternalID     string `json:"external_id,omitempty"`
 }
 
 func (d *DB) CreateCorrectiveAction(ctx context.Context, orgID int, ca *CorrectiveAction) error {
@@ -75,15 +77,16 @@ func (d *DB) CreateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 	ca.Identifier = ident
 	return d.pool.QueryRow(ctx, `
 		INSERT INTO corrective_actions (organization_id, identifier, title, description, source, severity, status,
-			assignee_id, created_by, created_by_user_id, due_date, root_cause, notes)
+			assignee_id, created_by, created_by_user_id, due_date, root_cause, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7,
 			CASE WHEN $8 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $8) END,
-			$9, (SELECT id FROM users WHERE email = $9), $10, $11, $12)
+			$9, (SELECT id FROM users WHERE email = $9), $10, $11, $12, $13)
 		RETURNING id, created_at, updated_at
 	`, orgID, ca.Identifier, ca.Title, ca.Description, ca.Source, ca.Severity, ca.Status,
 		ca.Assignee, ca.CreatedBy, ca.DueDate,
 		nilIfEmpty(ca.RootCause),
 		nilIfEmpty(ca.Notes),
+		nilIfEmpty(strings.TrimSpace(ca.ExternalID)),
 	).Scan(&ca.ID, &ca.CreatedAt, &ca.UpdatedAt)
 }
 
@@ -98,7 +101,8 @@ func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int64) (*Cor
 		&ca.RootCause,
 		&ca.Notes,
 		&ca.ResolvedAt, &ca.ResolvedBy,
-		&ca.CreatedAt, &ca.UpdatedAt)
+		&ca.CreatedAt, &ca.UpdatedAt,
+		&ca.ExternalID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +122,8 @@ func (d *DB) GetCorrectiveActionByIdentifier(ctx context.Context, orgID int, ide
 		&ca.RootCause,
 		&ca.Notes,
 		&ca.ResolvedAt, &ca.ResolvedBy,
-		&ca.CreatedAt, &ca.UpdatedAt)
+		&ca.CreatedAt, &ca.UpdatedAt,
+		&ca.ExternalID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +170,8 @@ func (d *DB) ListCorrectiveActions(ctx context.Context, orgID int, status, sever
 			&ca.RootCause,
 			&ca.Notes,
 			&ca.ResolvedAt, &ca.ResolvedBy,
-			&ca.CreatedAt, &ca.UpdatedAt); err != nil {
+			&ca.CreatedAt, &ca.UpdatedAt,
+			&ca.ExternalID); err != nil {
 			return nil, err
 		}
 		actions = append(actions, ca)
@@ -178,12 +184,13 @@ func (d *DB) UpdateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 		UPDATE corrective_actions SET title = $2, description = $3, source = $4, severity = $5,
 			assignee_id = CASE WHEN $6 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $6) END, due_date = $7,
 			root_cause = $8,
-			notes = $9, updated_at = now()
+			notes = $9, external_id = $11, updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, ca.ID, ca.Title, ca.Description, ca.Source, ca.Severity,
 		ca.Assignee, ca.DueDate,
 		nilIfEmpty(ca.RootCause),
-		nilIfEmpty(ca.Notes), orgID)
+		nilIfEmpty(ca.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(ca.ExternalID)))
 	return err
 }
 
@@ -303,7 +310,7 @@ func (d *DB) PaginatedCorrectiveActions(ctx context.Context, orgID int, p Correc
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (title ILIKE $%d OR description ILIKE $%d)`, idx, idx)
+		where += fmt.Sprintf(` AND (title ILIKE $%d OR description ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -367,7 +374,8 @@ func (d *DB) PaginatedCorrectiveActions(ctx context.Context, orgID int, p Correc
 			&ca.RootCause,
 			&ca.Notes,
 			&ca.ResolvedAt, &ca.ResolvedBy,
-			&ca.CreatedAt, &ca.UpdatedAt); err != nil {
+			&ca.CreatedAt, &ca.UpdatedAt,
+			&ca.ExternalID); err != nil {
 			return nil, 0, err
 		}
 		actions = append(actions, ca)

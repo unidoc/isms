@@ -58,7 +58,8 @@
     "rto": "RTO (jam)",
     "rpo_rto": "RPO / RTO",
     "created": "Dibuat",
-    "created_by": "Dibuat oleh"
+    "created_by": "Dibuat oleh",
+    "external_id": "ID Eksternal"
   },
   "hint": {
     "rpo": "Kehilangan data maksimum yang dapat diterima (jam)",

@@ -39,7 +39,8 @@
     "root_cause": "Root Cause",
     "created": "Created",
     "created_by": "Created by",
-    "resolved": "Resolved"
+    "resolved": "Resolved",
+    "external_id": "External ID"
   },
   "placeholder": {
     "description": "Describe the corrective action...",

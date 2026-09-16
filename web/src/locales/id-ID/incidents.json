@@ -39,7 +39,8 @@
     "root_cause": "Akar Masalah",
     "lessons_learned": "Pelajaran yang Dipetik",
     "created": "Dibuat",
-    "created_by": "Dibuat oleh"
+    "created_by": "Dibuat oleh",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "description": "Jelaskan insiden ini…",

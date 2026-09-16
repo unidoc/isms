@@ -53,6 +53,10 @@
             <input v-model="newRisk.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('risks.create.title_placeholder')" />
           </div>
           <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.external_id') }}</label>
+            <input v-model="newRisk.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.create.category_label') }}</label>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="cat in riskCategories" :key="cat.key"
@@ -178,6 +182,7 @@
                 <td class="px-5 py-3.5">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-slate-200">{{ risk.title || risk.risk_id }}</span>
+                    <span v-if="risk.external_id" class="text-xs text-slate-500 font-mono truncate">{{ risk.external_id }}</span>
                     <span v-if="isOverdue(risk.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
                   </div>
                   <div v-if="risk.category" class="text-[10px] text-slate-600 mt-0.5">{{ categoryLabel(risk.category) }}</div>
@@ -243,6 +248,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedRisk.identifier }}</span>
+              <span v-if="selectedRisk.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedRisk.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedRisk.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
@@ -285,6 +291,10 @@
                         <div class="sm:col-span-2">
                           <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.title') }}</label>
                           <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.external_id') }}</label>
+                          <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                         </div>
                         <div class="sm:col-span-2">
                           <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('risks.field.description') }}</label>
@@ -845,6 +855,7 @@ const newRisk = ref({
   title: '',
   category: '',
   custom_fields: {},
+  external_id: '',
 })
 
 function isOverdue(dateStr) {
@@ -1051,6 +1062,7 @@ function startEdit(risk) {
     treatment: risk.treatment || '',
     treatment_plan: risk.treatment_plan || '',
     notes: risk.notes || '',
+    external_id: risk.external_id || '',
     status: risk.status || 'open',
     custom_fields: { ...(risk.custom_fields || {}) },
   }
@@ -1071,7 +1083,7 @@ async function createRisk() {
     }
     pendingRefs.value = []
     showCreateForm.value = false
-    newRisk.value = { title: '', category: '', custom_fields: {} }
+    newRisk.value = { title: '', category: '', custom_fields: {}, external_id: '' }
     await loadRisks()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.
     if (created && created.id) {

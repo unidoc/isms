@@ -73,6 +73,7 @@ type System struct {
 	Notes      string `json:"notes,omitempty"`
 	CreatedAt  Epoch  `json:"created_at"`
 	UpdatedAt  Epoch  `json:"updated_at"`
+	ExternalID string `json:"external_id,omitempty"`
 }
 
 // ToChangeMap returns a map of field names to string values for changelog diffing.
@@ -151,7 +152,8 @@ const systemSelectCols = `id, organization_id, identifier, name, COALESCE(descri
 		confidentiality, integrity, availability,
 		last_review, next_review,
 		COALESCE((SELECT email FROM users WHERE id = systems.owner_id), ''),
-		COALESCE(notes, ''), created_at, updated_at`
+		COALESCE(notes, ''), created_at, updated_at,
+		COALESCE(external_id, '')`
 
 func scanSystem(scanner interface {
 	Scan(dest ...interface{}) error
@@ -163,7 +165,8 @@ func scanSystem(scanner interface {
 		&sys.Confidentiality, &sys.Integrity, &sys.Availability,
 		&sys.LastReview, &sys.NextReview,
 		&sys.Owner,
-		&sys.Notes, &sys.CreatedAt, &sys.UpdatedAt)
+		&sys.Notes, &sys.CreatedAt, &sys.UpdatedAt,
+		&sys.ExternalID)
 }
 
 func (d *DB) CreateSystem(ctx context.Context, orgID int, sys *System) error {
@@ -182,10 +185,10 @@ func (d *DB) CreateSystem(ctx context.Context, orgID int, sys *System) error {
 			classification, criticality, status, rpo_hours, rto_hours,
 			confidentiality, integrity, availability,
 			last_review, next_review,
-			owner_id, notes)
+			owner_id, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			CASE WHEN $17 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $17) END,
-			$18)
+			$18, $19)
 		RETURNING id, created_at, updated_at
 	`, orgID, sys.Identifier, sys.Name, nilIfEmpty(sys.Description), sys.SupplierID,
 		nilIfEmpty(sys.Department),
@@ -194,6 +197,7 @@ func (d *DB) CreateSystem(ctx context.Context, orgID int, sys *System) error {
 		sys.Confidentiality, sys.Integrity, sys.Availability,
 		sys.LastReview, sys.NextReview,
 		sys.Owner, nilIfEmpty(sys.Notes),
+		nilIfEmpty(strings.TrimSpace(sys.ExternalID)),
 	).Scan(&sys.ID, &sys.CreatedAt, &sys.UpdatedAt)
 }
 
@@ -285,7 +289,7 @@ func (d *DB) PaginatedSystems(ctx context.Context, orgID int, p SystemListParams
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (name ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d)`, idx, idx, idx)
+		where += fmt.Sprintf(` AND (name ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -374,7 +378,7 @@ func (d *DB) UpdateSystem(ctx context.Context, orgID int, sys *System) error {
 			confidentiality = $11, integrity = $12, availability = $13,
 			last_review = $14, next_review = $15,
 			owner_id = CASE WHEN $16 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $16) END,
-			notes = $17, updated_at = now()
+			notes = $17, external_id = $19, updated_at = now()
 		WHERE id = $1 AND organization_id = $18 AND deleted_at IS NULL
 	`, sys.ID, sys.Name, nilIfEmpty(sys.Description), sys.SupplierID,
 		nilIfEmpty(sys.Department),
@@ -382,7 +386,8 @@ func (d *DB) UpdateSystem(ctx context.Context, orgID int, sys *System) error {
 		sys.RPOHours, sys.RTOHours,
 		sys.Confidentiality, sys.Integrity, sys.Availability,
 		sys.LastReview, sys.NextReview,
-		sys.Owner, nilIfEmpty(sys.Notes), orgID)
+		sys.Owner, nilIfEmpty(sys.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(sys.ExternalID)))
 	return err
 }
 

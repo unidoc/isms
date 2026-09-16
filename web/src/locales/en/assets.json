@@ -47,7 +47,8 @@
     "primary_location": "Primary Location",
     "next_review": "Next Review",
     "created": "Created",
-    "created_by": "Created by"
+    "created_by": "Created by",
+    "external_id": "External ID"
   },
   "placeholder": {
     "description": "Describe the asset...",

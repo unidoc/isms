@@ -63,6 +63,8 @@ type LegalRequirement struct {
 	// Assessment lifecycle: see entity_readings table for the canonical assessment log
 	CreatedAt Epoch `json:"created_at"`
 	UpdatedAt Epoch `json:"updated_at"`
+
+	ExternalID string `json:"external_id,omitempty"`
 }
 
 // CalculateReviewDate sets next_review based on current_level (risk-driven).
@@ -129,7 +131,8 @@ const legalSelectCols = `id, identifier, organization_id, title, COALESCE(descri
 	current_likelihood, current_impact, current_score, COALESCE(current_level, ''),
 	COALESCE(treatment, ''), COALESCE(treatment_plan, ''),
 	target_likelihood, target_impact, COALESCE(completion, 0),
-	created_at, updated_at`
+	created_at, updated_at,
+	COALESCE(external_id, '')`
 
 func scanLegal(scanner interface {
 	Scan(dest ...interface{}) error
@@ -143,6 +146,7 @@ func scanLegal(scanner interface {
 		&lr.Treatment, &lr.TreatmentPlan,
 		&lr.TargetLikelihood, &lr.TargetImpact, &lr.Completion,
 		&lr.CreatedAt, &lr.UpdatedAt,
+		&lr.ExternalID,
 	)
 }
 
@@ -162,12 +166,12 @@ func (d *DB) CreateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 	//   treatment($18), treatment_plan($19),
 	//   target_likelihood($20), target_impact($21), completion($22)
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO legal_requirements (organization_id, identifier, `+legalCols+`)
+		INSERT INTO legal_requirements (organization_id, identifier, `+legalCols+`, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11, $12, $13,
 			$14, $15, $16, $17, $18, $19,
-			$20, $21, $22)
+			$20, $21, $22, $23)
 		RETURNING id, created_at, updated_at
 	`, orgID, lr.Identifier, lr.Title, nilIfEmpty(lr.Description), lr.Jurisdiction, lr.Category,
 		nilIfEmpty(lr.Reference), nilIfEmpty(lr.URL),
@@ -177,6 +181,7 @@ func (d *DB) CreateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 		nilIfEmpty(lr.Notes),
 		lr.CurrentLikelihood, lr.CurrentImpact, lr.CurrentScore, nilIfEmpty(lr.CurrentLevel), nilIfEmpty(lr.Treatment), nilIfEmpty(lr.TreatmentPlan),
 		lr.TargetLikelihood, lr.TargetImpact, lr.Completion,
+		nilIfEmpty(strings.TrimSpace(lr.ExternalID)),
 	).Scan(&lr.ID, &lr.CreatedAt, &lr.UpdatedAt)
 }
 
@@ -270,7 +275,7 @@ func (d *DB) PaginatedLegalRequirements(ctx context.Context, orgID int, p LegalL
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (title ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d)`, idx, idx, idx)
+		where += fmt.Sprintf(` AND (title ILIKE $%d OR COALESCE(description,'') ILIKE $%d OR identifier ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -355,6 +360,7 @@ func (d *DB) UpdateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 			last_review = $10, next_review = $11, notes = $12,
 			current_likelihood = $13, current_impact = $14, current_score = $15, current_level = $16, treatment = $17, treatment_plan = $18,
 			target_likelihood = $19, target_impact = $20, completion = $21,
+			external_id = $23,
 			updated_at = now()
 		WHERE id = $1 AND organization_id = $22 AND deleted_at IS NULL
 	`, lr.ID, lr.Title, nilIfEmpty(lr.Description), lr.Jurisdiction, lr.Category,
@@ -365,7 +371,8 @@ func (d *DB) UpdateLegalRequirement(ctx context.Context, orgID int, lr *LegalReq
 		nilIfEmpty(lr.Notes),
 		lr.CurrentLikelihood, lr.CurrentImpact, lr.CurrentScore, nilIfEmpty(lr.CurrentLevel), nilIfEmpty(lr.Treatment), nilIfEmpty(lr.TreatmentPlan),
 		lr.TargetLikelihood, lr.TargetImpact, lr.Completion,
-		orgID)
+		orgID,
+		nilIfEmpty(strings.TrimSpace(lr.ExternalID)))
 	return err
 }
 

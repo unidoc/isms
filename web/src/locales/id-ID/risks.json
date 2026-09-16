@@ -62,7 +62,8 @@
     "treatment_plan": "Rencana Penanganan",
     "created": "Dibuat",
     "created_by": "Dibuat oleh",
-    "notes": "Catatan"
+    "notes": "Catatan",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "description": "Jelaskan risiko ini…",

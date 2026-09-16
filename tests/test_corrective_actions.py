@@ -96,3 +96,45 @@ class TestCARBAC:
             "severity": "observation",
         })
         assert r.status_code == 403
+
+
+class TestCorrectiveActionExternalID:
+    """Optional external_id (#39) — the org's own reference, free text, not a key."""
+
+    def _create(self, api_url, admin_headers, external_id=None):
+        body = dict({"title": "External ID CA", "source": "feedback", "severity": "observation"})
+        if external_id is not None:
+            body["external_id"] = external_id
+        r = requests.post(f"{api_url}/corrective-actions", headers=admin_headers, json=body)
+        assert r.status_code in [200, 201], f"Failed: {r.text}"
+        return r.json()
+
+    def test_create_with_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "CA-2026-001")
+        r = requests.get(f"{api_url}/corrective-actions/{created['id']}", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json().get("external_id") == "CA-2026-001"
+
+    def test_update_clears_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "CA-2026-002")
+        u = requests.put(f"{api_url}/corrective-actions/{created['id']}", headers=admin_headers,
+                         json={"external_id": ""})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/corrective-actions/{created['id']}", headers=admin_headers)
+        assert not r.json().get("external_id")
+
+    def test_update_omitting_external_id_leaves_it_alone(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "CA-2026-003")
+        u = requests.put(f"{api_url}/corrective-actions/{created['id']}", headers=admin_headers, json={})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/corrective-actions/{created['id']}", headers=admin_headers)
+        assert r.json().get("external_id") == "CA-2026-003"
+
+    def test_search_by_external_id(self, api_url, admin_headers):
+        self._create(api_url, admin_headers, "CAZZ-2026-777")
+        # The register list search parameter is `q`, not `search`.
+        r = requests.get(f"{api_url}/corrective-actions", headers=admin_headers, params={"q": "CAZZ-2026"})
+        assert r.status_code == 200
+        payload = r.json()
+        data = payload.get("data") or payload
+        assert any(i.get("external_id") == "CAZZ-2026-777" for i in data), payload

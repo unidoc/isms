@@ -51,6 +51,10 @@
             <input v-model="newItem.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('legal.create.title_placeholder')" />
           </div>
           <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.external_id') }}</label>
+            <input v-model="newItem.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.create.category_label') }}</label>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="cat in legalCategories" :key="cat.key"
@@ -152,6 +156,7 @@
               <td class="px-5 py-3.5">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-slate-200">{{ item.title }}</span>
+                  <span v-if="item.external_id" class="text-xs text-slate-500 font-mono truncate">{{ item.external_id }}</span>
                   <span v-if="isOverdue(item.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
                 </div>
                 <div v-if="item.reference" class="text-xs text-slate-500 mt-0.5">{{ item.reference }}</div>
@@ -188,6 +193,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedItem.identifier }}</span>
+              <span v-if="selectedItem.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedItem.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedItem.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
@@ -229,6 +235,10 @@
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.external_id') }}</label>
+                        <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.description') }}</label>
@@ -547,7 +557,7 @@ const { capture: captureEditSnapshot, isDirty } = useDirtyEdit(editForm)
 
 const showCreateForm = ref(false)
 const newItem = ref({
-  title: '', category: '',
+  title: '', category: '', external_id: '',
 })
 
 const searchQuery = ref('')
@@ -715,6 +725,7 @@ function startEdit(item) {
     treatment: item.treatment || '',
     treatment_plan: item.treatment_plan || '',
     notes: item.notes || '',
+    external_id: item.external_id || '',
   }
   // The box shows the label for whatever the row holds; an unrecognised legacy
   // value shows itself, which is what makes it editable rather than mysterious.
@@ -800,7 +811,7 @@ async function createItem() {
     showCreateForm.value = false
     // Release focus from the autofocused input so subsequent clicks aren't blocked
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    newItem.value = { title: '', category: '' }
+    newItem.value = { title: '', category: '', external_id: '' }
     await loadItems()
     if (created?.id && !items.value.find(i => i.id === created.id)) {
       items.value = [created, ...items.value]

@@ -22,6 +22,7 @@ type assetCreateRequest struct {
 	LastReview      *db.Epoch        `json:"last_review"`
 	NextReview      *db.Epoch        `json:"next_review"`
 	Notes           string           `json:"notes"`
+	ExternalID      string           `json:"external_id"`
 	References      []ReferenceInput `json:"references"`
 }
 
@@ -38,6 +39,7 @@ type assetUpdateRequest struct {
 	LastReview      **db.Epoch `json:"last_review"`
 	NextReview      **db.Epoch `json:"next_review"`
 	Notes           *string    `json:"notes"`
+	ExternalID      *string    `json:"external_id"`
 }
 
 // --- Suppliers ---
@@ -58,6 +60,7 @@ type supplierCreateRequest struct {
 	LastReview      *db.Epoch        `json:"last_review"`
 	NextReview      *db.Epoch        `json:"next_review"`
 	Notes           string           `json:"notes"`
+	ExternalID      string           `json:"external_id"`
 	References      []ReferenceInput `json:"references"`
 }
 
@@ -77,6 +80,7 @@ type supplierUpdateRequest struct {
 	LastReview      **db.Epoch `json:"last_review"`
 	NextReview      **db.Epoch `json:"next_review"`
 	Notes           *string    `json:"notes"`
+	ExternalID      *string    `json:"external_id"`
 }
 
 // --- Systems ---
@@ -98,6 +102,7 @@ type systemCreateRequest struct {
 	NextReview      *db.Epoch        `json:"next_review"`
 	Owner           string           `json:"owner"`
 	Notes           string           `json:"notes"`
+	ExternalID      string           `json:"external_id"`
 	References      []ReferenceInput `json:"references"`
 }
 
@@ -118,6 +123,7 @@ type systemUpdateRequest struct {
 	NextReview      **db.Epoch `json:"next_review"`
 	Owner           *string    `json:"owner"`
 	Notes           *string    `json:"notes"`
+	ExternalID      *string    `json:"external_id"`
 }
 
 // --- Risks ---
@@ -149,6 +155,7 @@ type riskCreateRequest struct {
 	LastReview                    *db.Epoch        `json:"last_review"`
 	NextReview                    *db.Epoch        `json:"next_review"`
 	Notes                         string           `json:"notes"`
+	ExternalID                    string           `json:"external_id"`
 	References                    []ReferenceInput `json:"references"`
 }
 
@@ -179,4 +186,5 @@ type riskUpdateRequest struct {
 	LastReview                    **db.Epoch      `json:"last_review"`
 	NextReview                    **db.Epoch      `json:"next_review"`
 	Notes                         *string         `json:"notes"`
+	ExternalID                    *string         `json:"external_id"`
 }

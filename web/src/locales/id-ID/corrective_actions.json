@@ -39,7 +39,8 @@
     "root_cause": "Akar Masalah",
     "created": "Dibuat",
     "created_by": "Dibuat oleh",
-    "resolved": "Selesai ditangani"
+    "resolved": "Selesai ditangani",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "description": "Jelaskan tindakan korektif…",

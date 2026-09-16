@@ -26,6 +26,7 @@ type correctiveActionCreateRequest struct {
 	DueDate     *db.Epoch        `json:"due_date"`
 	RootCause   string           `json:"root_cause"`
 	Notes       string           `json:"notes"`
+	ExternalID  string           `json:"external_id"`
 	References  []ReferenceInput `json:"references"`
 }
 
@@ -42,6 +43,7 @@ type correctiveActionUpdateRequest struct {
 	DueDate     **db.Epoch `json:"due_date"`
 	RootCause   *string    `json:"root_cause"`
 	Notes       *string    `json:"notes"`
+	ExternalID  *string    `json:"external_id"`
 }
 
 func (s *Server) handleListCorrectiveActions(c echo.Context) error {
@@ -98,6 +100,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		DueDate:     req.DueDate,
 		RootCause:   req.RootCause,
 		Notes:       req.Notes,
+		ExternalID:  req.ExternalID,
 	}
 	// Server-side overwrites for system-managed fields. Body values for these
 	// are intentionally ignored so clients cannot spoof identity or timestamps.
@@ -260,6 +263,9 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	}
 	if req.Notes != nil {
 		existing.Notes = *req.Notes
+	}
+	if req.ExternalID != nil {
+		existing.ExternalID = *req.ExternalID
 	}
 
 	oldMap := existing.ToChangeMap()

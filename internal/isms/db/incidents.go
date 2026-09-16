@@ -48,7 +48,8 @@ const incidentSelectCols = `incidents.id, incidents.organization_id, identifier,
 	COALESCE((SELECT email FROM users WHERE id = incidents.assignee_id), ''),
 	detected_at, contained_at, resolved_at, closed_at,
 	COALESCE(root_cause, ''), COALESCE(lessons_learned, ''),
-	incidents.created_at, incidents.updated_at`
+	incidents.created_at, incidents.updated_at,
+	COALESCE(external_id, '')`
 
 // Incident represents a security or operational incident.
 type Incident struct {
@@ -81,6 +82,7 @@ type Incident struct {
 	LessonsLearned      string `json:"lessons_learned,omitempty"`
 	CreatedAt           Epoch  `json:"created_at"`
 	UpdatedAt           Epoch  `json:"updated_at"`
+	ExternalID          string `json:"external_id,omitempty"`
 }
 
 func (d *DB) CreateIncident(ctx context.Context, orgID int, inc *Incident) error {
@@ -96,10 +98,10 @@ func (d *DB) CreateIncident(ctx context.Context, orgID int, inc *Incident) error
 			incident_type, source, notes, data_breach, gdpr_role,
 			authority_notified, subjects_notified,
 			reporter, reporter_user_id, assignee_id, detected_at,
-			root_cause, lessons_learned)
+			root_cause, lessons_learned, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 			$15, $16,
-			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21)
+			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22)
 		RETURNING id, created_at, updated_at
 	`, orgID, inc.Identifier, inc.Title, inc.Description, inc.Severity, inc.Status,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
@@ -107,6 +109,7 @@ func (d *DB) CreateIncident(ctx context.Context, orgID int, inc *Incident) error
 		inc.AuthorityNotified, inc.SubjectsNotified,
 		inc.Reporter, inc.Assignee,
 		inc.DetectedAt, nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
+		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
 	).Scan(&inc.ID, &inc.CreatedAt, &inc.UpdatedAt)
 }
 
@@ -126,7 +129,8 @@ func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, m
 			COALESCE((SELECT email FROM users WHERE id = incidents.assignee_id), ''),
 			detected_at, contained_at, resolved_at, closed_at,
 			COALESCE(root_cause, ''), COALESCE(lessons_learned, ''),
-			created_at, updated_at
+			created_at, updated_at,
+			COALESCE(external_id, '')
 		FROM incidents WHERE `+matchCol+` = $1 AND organization_id = $2 AND deleted_at IS NULL
 	`, matchVal, orgID).Scan(&inc.ID, &inc.OrganizationID, &inc.Identifier, &inc.Title, &inc.Description,
 		&inc.Severity, &inc.Status,
@@ -138,7 +142,8 @@ func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, m
 		&inc.Reporter, &inc.Assignee,
 		&inc.DetectedAt, &inc.ContainedAt, &inc.ResolvedAt, &inc.ClosedAt,
 		&inc.RootCause, &inc.LessonsLearned,
-		&inc.CreatedAt, &inc.UpdatedAt)
+		&inc.CreatedAt, &inc.UpdatedAt,
+		&inc.ExternalID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +199,8 @@ func (d *DB) ListIncidents(ctx context.Context, orgID int, status, severity stri
 			&inc.Reporter, &inc.Assignee,
 			&inc.DetectedAt, &inc.ContainedAt, &inc.ResolvedAt, &inc.ClosedAt,
 			&inc.RootCause, &inc.LessonsLearned,
-			&inc.CreatedAt, &inc.UpdatedAt); err != nil {
+			&inc.CreatedAt, &inc.UpdatedAt,
+			&inc.ExternalID); err != nil {
 			return nil, err
 		}
 		incidents = append(incidents, inc)
@@ -212,8 +218,9 @@ func (d *DB) UpdateIncident(ctx context.Context, orgID int, inc *Incident) error
 			subjects_notified = $15, subjects_notified_at = $16,
 			assignee_id = (SELECT id FROM users WHERE email = $17),
 			root_cause = $18, lessons_learned = $19,
+			external_id = $20,
 			updated_at = now()
-		WHERE id = $1 AND organization_id = $20 AND deleted_at IS NULL
+		WHERE id = $1 AND organization_id = $21 AND deleted_at IS NULL
 	`, inc.ID, inc.Title, inc.Description, inc.Severity,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
 		inc.IncidentType, inc.Source,
@@ -222,6 +229,7 @@ func (d *DB) UpdateIncident(ctx context.Context, orgID int, inc *Incident) error
 		inc.SubjectsNotified, inc.SubjectsNotifiedAt,
 		nilIfEmpty(inc.Assignee),
 		nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
+		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
 		orgID)
 	return err
 }
@@ -332,7 +340,7 @@ func (d *DB) PaginatedIncidents(ctx context.Context, orgID int, p IncidentListPa
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (title ILIKE $%d OR description ILIKE $%d)`, idx, idx)
+		where += fmt.Sprintf(` AND (title ILIKE $%d OR description ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -400,7 +408,8 @@ func (d *DB) PaginatedIncidents(ctx context.Context, orgID int, p IncidentListPa
 			&inc.Reporter, &inc.Assignee,
 			&inc.DetectedAt, &inc.ContainedAt, &inc.ResolvedAt, &inc.ClosedAt,
 			&inc.RootCause, &inc.LessonsLearned,
-			&inc.CreatedAt, &inc.UpdatedAt); err != nil {
+			&inc.CreatedAt, &inc.UpdatedAt,
+			&inc.ExternalID); err != nil {
 			return nil, 0, err
 		}
 		incidents = append(incidents, inc)

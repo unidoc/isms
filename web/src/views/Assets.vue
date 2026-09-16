@@ -51,6 +51,10 @@
               <input v-model="newItem.name" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('assets.create.name_placeholder')" />
             </div>
             <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('assets.field.external_id') }}</label>
+              <input v-model="newItem.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('assets.create.type_label') }}</label>
               <div class="flex flex-wrap gap-1.5">
                 <button v-for="o in typeOptions" :key="o.value"
@@ -131,6 +135,7 @@
               class="hover:bg-slate-800/50 transition-colors cursor-pointer">
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-slate-200">{{ asset.name }}</div>
+                <div v-if="asset.external_id" class="text-xs text-slate-500 font-mono truncate">{{ asset.external_id }}</div>
                 <div v-if="asset.description" class="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{{ asset.description }}</div>
               </td>
               <td class="px-5 py-3.5 text-sm text-slate-400">{{ typeLabel(asset.asset_type) || '—' }}</td>
@@ -162,6 +167,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedItem.identifier }}</span>
+              <span v-if="selectedItem.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedItem.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedItem.name }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
@@ -203,6 +209,10 @@
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('assets.field.name') }}</label>
                         <input v-model="editForm.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('assets.field.external_id') }}</label>
+                        <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('assets.field.description') }}</label>
@@ -474,7 +484,7 @@ const { capture: captureEditSnapshot, isDirty } = useDirtyEdit(editForm)
 
 const showCreateForm = ref(false)
 const newItem = ref({
-  name: '', asset_type: '',
+  name: '', asset_type: '', external_id: '',
 })
 
 const searchQuery = ref('')
@@ -620,6 +630,7 @@ function startEdit(item) {
     integrity: item.integrity || 0,
     availability: item.availability || 0,
     notes: item.notes || '',
+    external_id: item.external_id || '',
   }
   captureEditSnapshot()
 }
@@ -698,7 +709,7 @@ async function createItem() {
     const created = await api.postJSON('/api/v1/assets', payload)
     showCreateForm.value = false
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    newItem.value = { name: '', asset_type: '' }
+    newItem.value = { name: '', asset_type: '', external_id: '' }
     await loadAssets()
     if (created?.id && !assets.value.find(a => a.id === created.id)) {
       assets.value = [created, ...assets.value]

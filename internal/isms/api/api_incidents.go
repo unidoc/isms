@@ -39,6 +39,7 @@ type incidentCreateRequest struct {
 	DetectedAt          db.Epoch         `json:"detected_at"`
 	RootCause           string           `json:"root_cause"`
 	LessonsLearned      string           `json:"lessons_learned"`
+	ExternalID          string           `json:"external_id"`
 	References          []ReferenceInput `json:"references"`
 }
 
@@ -66,6 +67,7 @@ type incidentUpdateRequest struct {
 	Assignee            *string    `json:"assignee"`
 	RootCause           *string    `json:"root_cause"`
 	LessonsLearned      *string    `json:"lessons_learned"`
+	ExternalID          *string    `json:"external_id"`
 }
 
 func (s *Server) handleListIncidents(c echo.Context) error {
@@ -133,6 +135,7 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		DetectedAt:          req.DetectedAt,
 		RootCause:           req.RootCause,
 		LessonsLearned:      req.LessonsLearned,
+		ExternalID:          req.ExternalID,
 	}
 
 	// Server-side overwrites for system-managed fields.
@@ -396,6 +399,9 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	}
 	if req.LessonsLearned != nil {
 		existing.LessonsLearned = *req.LessonsLearned
+	}
+	if req.ExternalID != nil {
+		existing.ExternalID = *req.ExternalID
 	}
 
 	oldMap := existing.ToChangeMap()

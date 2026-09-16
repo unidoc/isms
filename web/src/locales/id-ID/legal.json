@@ -48,7 +48,8 @@
     "treatment": "Penanganan",
     "treatment_plan": "Rencana Penanganan",
     "created": "Dibuat",
-    "created_by": "Dibuat oleh"
+    "created_by": "Dibuat oleh",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "description": "Jelaskan persyaratan ini…",

@@ -62,7 +62,8 @@
     "treatment_plan": "Treatment Plan",
     "created": "Created",
     "created_by": "Created by",
-    "notes": "Notes"
+    "notes": "Notes",
+    "external_id": "External ID"
   },
   "placeholder": {
     "description": "Describe the risk...",

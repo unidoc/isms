@@ -48,7 +48,8 @@
     "contract_expiry": "Berakhirnya Kontrak",
     "data_access": "Akses Data",
     "created": "Dibuat",
-    "created_by": "Dibuat oleh"
+    "created_by": "Dibuat oleh",
+    "external_id": "ID Eksternal"
   },
   "placeholder": {
     "contact": "kontak{'@'}pemasok.com",

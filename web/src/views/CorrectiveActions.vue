@@ -81,6 +81,10 @@
             <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.create.title_label') }}</label>
             <input v-model="newCA.title" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('corrective_actions.create.title_placeholder')" />
           </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.external_id') }}</label>
+            <input v-model="newCA.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.source') }}</label>
             <select v-model="newCA.source" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -142,6 +146,7 @@
             </span>
             <!-- ID -->
             <span class="text-xs text-slate-600 font-mono">{{ ca.identifier }}</span>
+            <span v-if="ca.external_id" class="text-xs text-slate-500 font-mono truncate">{{ ca.external_id }}</span>
           </div>
         </div>
         <Pagination :page="page" :pageSize="pageSize" :total="total" @update:page="page = $event" @update:pageSize="pageSize = $event" />
@@ -157,6 +162,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedCA.identifier }}</span>
+              <span v-if="selectedCA.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedCA.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedCA.title }}</h2>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
@@ -198,6 +204,10 @@
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.external_id') }}</label>
+                        <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.description') }}</label>
@@ -489,6 +499,7 @@ const newCA = ref({
   assignee: '',
   due_date: '',
   notes: '',
+  external_id: '',
 })
 
 onMounted(async () => {
@@ -507,6 +518,7 @@ onMounted(async () => {
       assignee: '',
       due_date: '',
       notes: '',
+      external_id: '',
     }
     showCreateForm.value = true
   } else if (route.query.from_audit_finding) {
@@ -518,6 +530,7 @@ onMounted(async () => {
       assignee: '',
       due_date: '',
       notes: '',
+      external_id: '',
     }
     showCreateForm.value = true
   } else if (route.query.from_risk) {
@@ -529,6 +542,7 @@ onMounted(async () => {
       assignee: '',
       due_date: '',
       notes: '',
+      external_id: '',
     }
     showCreateForm.value = true
   }
@@ -670,7 +684,7 @@ async function createCA() {
     }
     pendingRefs.value = []
     showCreateForm.value = false
-    newCA.value = { title: '', description: '', source: 'other', severity: 'observation', assignee: '', due_date: '', notes: '' }
+    newCA.value = { title: '', description: '', source: 'other', severity: 'observation', assignee: '', due_date: '', notes: '', external_id: '' }
     await loadActions()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.
     if (created && created.id) {
@@ -760,6 +774,7 @@ function startEdit(ca) {
     due_date: ca.due_date ? (typeof ca.due_date === 'number' ? new Date(ca.due_date * 1000).toISOString().slice(0, 10) : String(ca.due_date).slice(0, 10)) : '',
     root_cause: ca.root_cause || '',
     notes: ca.notes || '',
+    external_id: ca.external_id || '',
   }
   captureEditSnapshot()
 }

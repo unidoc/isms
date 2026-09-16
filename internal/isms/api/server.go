@@ -1942,6 +1942,7 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 		LastReview:      req.LastReview,
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
+		ExternalID:      req.ExternalID,
 	}
 	applyAssetDefaults(&a, getUserEmail(c))
 	if err := validateAssetCreate(&a); err != nil {
@@ -2078,6 +2079,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Owner:           req.Owner,
 		Notes:           req.Notes,
+		ExternalID:      req.ExternalID,
 	}
 	applySystemDefaults(&sys, getUserEmail(c))
 	if err := validateSystemCreate(&sys); err != nil {
@@ -2274,6 +2276,7 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		LastReview:                    req.LastReview,
 		NextReview:                    req.NextReview,
 		Notes:                         req.Notes,
+		ExternalID:                    req.ExternalID,
 	}
 	if r.Owner == "" {
 		r.Owner = getUserEmail(c)
@@ -2563,6 +2566,7 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		LastReview:      req.LastReview,
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
+		ExternalID:      req.ExternalID,
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateSupplierCreate(&sup); err != nil {
@@ -2659,6 +2663,9 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
 	}
 	if err := s.db.UpdateAsset(ctx, orgID, &updated); err != nil {
 		return pgxHTTPError(err)
@@ -2834,6 +2841,9 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
 	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
+	}
 
 	if err := updated.Validate(); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -2970,6 +2980,9 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
 	}
 	if err := s.db.UpdateSystem(ctx, orgID, &updated); err != nil {
 		return pgxHTTPError(err)
@@ -3184,6 +3197,9 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
 	}
 	if err := s.db.UpdateSupplier(ctx, orgID, &updated); err != nil {
 		return pgxHTTPError(err)

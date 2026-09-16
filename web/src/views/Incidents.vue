@@ -86,6 +86,10 @@
               <option v-for="o in typeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.external_id') }}</label>
+            <input v-model="newIncident.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
         </div>
         <div class="text-[10px] text-slate-600 mt-1">{{ t('incidents.create.fill_in_later') }}</div>
         <div class="flex justify-end gap-3 pt-2">
@@ -120,6 +124,7 @@
             <StatusBadge :status="inc.status" />
             <span class="text-sm font-medium text-slate-200 flex-1 truncate">{{ inc.title }}</span>
             <span class="text-xs text-slate-600 font-mono">{{ inc.identifier }}</span>
+            <span v-if="inc.external_id" class="text-xs text-slate-500 font-mono truncate">{{ inc.external_id }}</span>
             <span class="text-xs text-slate-600">{{ formatDate(inc.created_at) }}</span>
           </div>
           <div class="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
@@ -142,6 +147,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedIncident.identifier }}</span>
+              <span v-if="selectedIncident.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedIncident.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedIncident.title }}</h2>
             </div>
             <div class="flex items-center gap-3 flex-shrink-0">
@@ -185,6 +191,10 @@
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.title') }}</label>
                         <input v-model="editForm.title" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.external_id') }}</label>
+                        <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.description') }}</label>
@@ -626,6 +636,7 @@ const newIncident = ref({
   title: '',
   severity: 'medium',
   incident_type: 'event',
+  external_id: '',
 })
 
 onMounted(async () => {
@@ -721,7 +732,7 @@ async function createIncident() {
     const payload = { ...newIncident.value }
     const created = await api.createIncident(payload)
     showCreateForm.value = false
-    newIncident.value = { title: '', severity: 'medium', incident_type: 'event' }
+    newIncident.value = { title: '', severity: 'medium', incident_type: 'event', external_id: '' }
     await loadIncidents()
     // Drop user into detail modal in edit mode on Overview to keep filling things in.
     if (created && created.id) {
@@ -777,6 +788,7 @@ function startEdit(inc) {
     affects_a: !!inc.affects_a,
     assignee: inc.assignee || '',
     notes: inc.notes || '',
+    external_id: inc.external_id || '',
     root_cause: inc.root_cause || '',
     lessons_learned: inc.lessons_learned || '',
     data_breach: !!inc.data_breach,

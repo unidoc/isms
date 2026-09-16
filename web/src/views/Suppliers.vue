@@ -51,6 +51,10 @@
               <input v-model="newItem.name" autofocus class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.create.name_placeholder')" />
             </div>
             <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.external_id') }}</label>
+              <input v-model="newItem.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.create.type_label') }}</label>
               <div class="flex flex-wrap gap-1.5">
                 <button v-for="o in typeOptions" :key="o.value"
@@ -148,6 +152,7 @@
               :class="isOverdue(supplier.next_review) ? 'bg-amber-950/10' : ''">
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-slate-200">{{ supplier.name }}</div>
+                <div v-if="supplier.external_id" class="text-xs text-slate-500 font-mono truncate">{{ supplier.external_id }}</div>
               </td>
               <td class="px-5 py-3.5 text-sm text-slate-400">{{ typeLabel(supplier.supplier_type) || '—' }}</td>
               <td class="px-5 py-3.5">
@@ -184,6 +189,7 @@
           <div class="flex-shrink-0 border-b border-slate-800 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0">
               <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600 flex-shrink-0">{{ selectedItem.identifier }}</span>
+              <span v-if="selectedItem.external_id" class="text-[10px] font-mono uppercase tracking-wider text-slate-500 flex-shrink-0">{{ selectedItem.external_id }}</span>
               <h2 class="text-[15px] font-semibold text-slate-200 truncate">{{ selectedItem.name }}</h2>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
@@ -225,6 +231,10 @@
                       <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.name') }}</label>
                         <input v-model="editForm.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.external_id') }}</label>
+                        <input v-model="editForm.external_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       </div>
                       <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.type') }}</label>
@@ -547,7 +557,7 @@ async function loadLinkedSystems() {
 watch(() => selectedItem.value?.id, loadLinkedSystems, { immediate: true })
 
 const showCreateForm = ref(false)
-const newItem = ref({ name: '', supplier_type: '', criticality: 'medium' })
+const newItem = ref({ name: '', supplier_type: '', criticality: 'medium', external_id: '' })
 
 const searchQuery = ref('')
 const filterType = ref('')
@@ -724,6 +734,7 @@ function startEdit(item) {
     integrity: item.integrity || 0,
     availability: item.availability || 0,
     notes: item.notes || '',
+    external_id: item.external_id || '',
   }
   captureEditSnapshot()
 }
@@ -802,7 +813,7 @@ async function createItem() {
     const created = await api.postJSON('/api/v1/suppliers', payload)
     showCreateForm.value = false
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    newItem.value = { name: '', supplier_type: '', criticality: 'medium' }
+    newItem.value = { name: '', supplier_type: '', criticality: 'medium', external_id: '' }
     await loadSuppliers()
     if (created?.id && !suppliers.value.find(s => s.id === created.id)) {
       suppliers.value = [created, ...suppliers.value]

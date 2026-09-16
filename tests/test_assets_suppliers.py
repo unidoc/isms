@@ -180,3 +180,87 @@ class TestSuppliers:
     def test_reader_can_read(self, api_url, reader_headers):
         r = requests.get(f"{api_url}/suppliers", headers=reader_headers)
         assert r.status_code == 200
+
+
+class TestAssetExternalID:
+    """Optional external_id (#39) — the org's own reference, free text, not a key."""
+
+    def _create(self, api_url, admin_headers, external_id=None):
+        body = dict({"name": "External ID asset", "asset_type": "other", "status": "open"})
+        if external_id is not None:
+            body["external_id"] = external_id
+        r = requests.post(f"{api_url}/assets", headers=admin_headers, json=body)
+        assert r.status_code in [200, 201], f"Failed: {r.text}"
+        return r.json()
+
+    def test_create_with_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "ASSET-2026-001")
+        r = requests.get(f"{api_url}/assets/{created['id']}", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json().get("external_id") == "ASSET-2026-001"
+
+    def test_update_clears_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "ASSET-2026-002")
+        u = requests.put(f"{api_url}/assets/{created['id']}", headers=admin_headers,
+                         json={"external_id": ""})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/assets/{created['id']}", headers=admin_headers)
+        assert not r.json().get("external_id")
+
+    def test_update_omitting_external_id_leaves_it_alone(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "ASSET-2026-003")
+        u = requests.put(f"{api_url}/assets/{created['id']}", headers=admin_headers, json={})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/assets/{created['id']}", headers=admin_headers)
+        assert r.json().get("external_id") == "ASSET-2026-003"
+
+    def test_search_by_external_id(self, api_url, admin_headers):
+        self._create(api_url, admin_headers, "ASSETZZ-2026-777")
+        # The register list search parameter is `q`, not `search`.
+        r = requests.get(f"{api_url}/assets", headers=admin_headers, params={"q": "ASSETZZ-2026"})
+        assert r.status_code == 200
+        payload = r.json()
+        data = payload.get("data") or payload
+        assert any(i.get("external_id") == "ASSETZZ-2026-777" for i in data), payload
+
+
+class TestSupplierExternalID:
+    """Optional external_id (#39) — the org's own reference, free text, not a key."""
+
+    def _create(self, api_url, admin_headers, external_id=None):
+        body = dict({"name": "External ID supplier", "supplier_type": "saas", "criticality": "medium"})
+        if external_id is not None:
+            body["external_id"] = external_id
+        r = requests.post(f"{api_url}/suppliers", headers=admin_headers, json=body)
+        assert r.status_code in [200, 201], f"Failed: {r.text}"
+        return r.json()
+
+    def test_create_with_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "SUP-2026-001")
+        r = requests.get(f"{api_url}/suppliers/{created['id']}", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json().get("external_id") == "SUP-2026-001"
+
+    def test_update_clears_external_id(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "SUP-2026-002")
+        u = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers,
+                         json={"external_id": ""})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/suppliers/{created['id']}", headers=admin_headers)
+        assert not r.json().get("external_id")
+
+    def test_update_omitting_external_id_leaves_it_alone(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, "SUP-2026-003")
+        u = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers, json={})
+        assert u.status_code == 200, u.text
+        r = requests.get(f"{api_url}/suppliers/{created['id']}", headers=admin_headers)
+        assert r.json().get("external_id") == "SUP-2026-003"
+
+    def test_search_by_external_id(self, api_url, admin_headers):
+        self._create(api_url, admin_headers, "SUPZZ-2026-777")
+        # The register list search parameter is `q`, not `search`.
+        r = requests.get(f"{api_url}/suppliers", headers=admin_headers, params={"q": "SUPZZ-2026"})
+        assert r.status_code == 200
+        payload = r.json()
+        data = payload.get("data") or payload
+        assert any(i.get("external_id") == "SUPZZ-2026-777" for i in data), payload

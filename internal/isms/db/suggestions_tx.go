@@ -92,13 +92,13 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 			target_likelihood, target_impact, target_score, target_level,
 			treatment, treatment_plan, treatment_due_date,
 			accepted_at, accepted_by_id,
-			owner_id, status, last_review, next_review, notes, custom_fields)
+			owner_id, status, last_review, next_review, notes, custom_fields, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
 			$12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
 			$22, $23, $24,
 			$25, $26, $27,
 			$28, $29,
-			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34, $35)
+			(SELECT id FROM users WHERE email = $30), $31, $32, $33, $34, $35, $36)
 		RETURNING id, created_at, updated_at
 	`, orgID, r.Identifier, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -109,6 +109,7 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
 		r.Owner, r.Status, r.LastReview, r.NextReview, nilIfEmpty(r.Notes), customFieldsArg(r.CustomFields),
+		nilIfEmpty(strings.TrimSpace(r.ExternalID)),
 	).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt)
 }
 
@@ -125,7 +126,7 @@ func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 			treatment = $24, treatment_plan = $25, treatment_due_date = $26,
 			accepted_at = $27, accepted_by_id = $28,
 			owner_id = (SELECT id FROM users WHERE email = $29), status = $30, last_review = $31, next_review = $32,
-			notes = $33, custom_fields = $35, updated_at = now()
+			notes = $33, custom_fields = $35, external_id = $36, updated_at = now()
 		WHERE id = $1 AND organization_id = $34 AND deleted_at IS NULL
 	`, r.ID, r.Title, nilIfEmpty(r.Description), r.RiskType, r.Origin, nilIfEmpty(r.Category),
 		r.CurrentLikelihood, r.CurrentImpact, r.CurrentScore, nilIfEmpty(r.CurrentLevel),
@@ -136,7 +137,8 @@ func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 		nilIfEmpty(r.Treatment), nilIfEmpty(r.TreatmentPlan), r.TreatmentDueDate,
 		r.AcceptedAt, r.AcceptedByID,
 		nilIfEmpty(r.Owner), r.Status, r.LastReview, r.NextReview,
-		nilIfEmpty(r.Notes), orgID, customFieldsArg(r.CustomFields))
+		nilIfEmpty(r.Notes), orgID, customFieldsArg(r.CustomFields),
+		nilIfEmpty(strings.TrimSpace(r.ExternalID)))
 	return err
 }
 
@@ -154,10 +156,10 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 			incident_type, source, notes, data_breach, gdpr_role,
 			authority_notified, subjects_notified,
 			reporter, reporter_user_id, assignee_id, detected_at,
-			root_cause, lessons_learned)
+			root_cause, lessons_learned, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 			$15, $16,
-			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21)
+			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22)
 		RETURNING id, created_at, updated_at
 	`, orgID, inc.Identifier, inc.Title, inc.Description, inc.Severity, inc.Status,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
@@ -165,6 +167,7 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 		inc.AuthorityNotified, inc.SubjectsNotified,
 		inc.Reporter, inc.Assignee,
 		inc.DetectedAt, nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
+		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
 	).Scan(&inc.ID, &inc.CreatedAt, &inc.UpdatedAt)
 }
 
@@ -179,8 +182,9 @@ func UpdateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 			subjects_notified = $16, subjects_notified_at = $17,
 			assignee_id = CASE WHEN $18 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $18) END,
 			root_cause = $19, lessons_learned = $20,
+			external_id = $21,
 			updated_at = now()
-		WHERE id = $1 AND organization_id = $21 AND deleted_at IS NULL
+		WHERE id = $1 AND organization_id = $22 AND deleted_at IS NULL
 	`, inc.ID, inc.Title, inc.Description, inc.Severity, inc.Status,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
 		inc.IncidentType, inc.Source,
@@ -189,6 +193,7 @@ func UpdateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 		inc.SubjectsNotified, inc.SubjectsNotifiedAt,
 		inc.Assignee,
 		nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
+		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
 		orgID)
 	return err
 }
@@ -342,19 +347,20 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 			data_access, contact, contract_ref,
 			status, owner_id, contract_expiry,
 			confidentiality, integrity, availability,
-			last_review, next_review, notes)
+			last_review, next_review, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
 			$9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11,
 			$12, $13, $14,
-			$15, $16, $17)
+			$15, $16, $17, $18)
 		RETURNING id, created_at, updated_at
 	`, orgID, s.Identifier, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
 		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview, nilIfEmpty(s.Notes),
+		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
 	).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
 }
 
@@ -369,14 +375,15 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 			contract_expiry = $10,
 			confidentiality = $11, integrity = $12, availability = $13,
 			last_review = $14, next_review = $15,
-			notes = $16, updated_at = now()
+			notes = $16, external_id = $18, updated_at = now()
 		WHERE id = $1 AND organization_id = $17 AND deleted_at IS NULL
 	`, s.ID, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
 		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview,
-		nilIfEmpty(s.Notes), orgID)
+		nilIfEmpty(s.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(s.ExternalID)))
 	return err
 }
 
@@ -396,12 +403,12 @@ func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 	lr.Identifier = ident
 
 	return tx.QueryRow(ctx, `
-		INSERT INTO legal_requirements (organization_id, identifier, `+legalCols+`)
+		INSERT INTO legal_requirements (organization_id, identifier, `+legalCols+`, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11, $12, $13,
 			$14, $15, $16, $17, $18, $19,
-			$20, $21, $22)
+			$20, $21, $22, $23)
 		RETURNING id, created_at, updated_at
 	`, orgID, lr.Identifier, lr.Title, nilIfEmpty(lr.Description), lr.Jurisdiction, lr.Category,
 		nilIfEmpty(lr.Reference), nilIfEmpty(lr.URL),
@@ -411,6 +418,7 @@ func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 		nilIfEmpty(lr.Notes),
 		lr.CurrentLikelihood, lr.CurrentImpact, lr.CurrentScore, nilIfEmpty(lr.CurrentLevel), nilIfEmpty(lr.Treatment), nilIfEmpty(lr.TreatmentPlan),
 		lr.TargetLikelihood, lr.TargetImpact, lr.Completion,
+		nilIfEmpty(strings.TrimSpace(lr.ExternalID)),
 	).Scan(&lr.ID, &lr.CreatedAt, &lr.UpdatedAt)
 }
 
@@ -425,6 +433,7 @@ func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 			last_review = $10, next_review = $11, notes = $12,
 			current_likelihood = $13, current_impact = $14, current_score = $15, current_level = $16, treatment = $17, treatment_plan = $18,
 			target_likelihood = $19, target_impact = $20, completion = $21,
+			external_id = $23,
 			updated_at = now()
 		WHERE id = $1 AND organization_id = $22 AND deleted_at IS NULL
 	`, lr.ID, lr.Title, nilIfEmpty(lr.Description), lr.Jurisdiction, lr.Category,
@@ -435,7 +444,8 @@ func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 		nilIfEmpty(lr.Notes),
 		lr.CurrentLikelihood, lr.CurrentImpact, lr.CurrentScore, nilIfEmpty(lr.CurrentLevel), nilIfEmpty(lr.Treatment), nilIfEmpty(lr.TreatmentPlan),
 		lr.TargetLikelihood, lr.TargetImpact, lr.Completion,
-		orgID)
+		orgID,
+		nilIfEmpty(strings.TrimSpace(lr.ExternalID)))
 	return err
 }
 
@@ -522,15 +532,16 @@ func CreateCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, ca *Cor
 	ca.Identifier = ident
 	return tx.QueryRow(ctx, `
 		INSERT INTO corrective_actions (organization_id, identifier, title, description, source, severity, status,
-			assignee_id, created_by, created_by_user_id, due_date, root_cause, notes)
+			assignee_id, created_by, created_by_user_id, due_date, root_cause, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7,
 			CASE WHEN $8 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $8) END,
-			$9, (SELECT id FROM users WHERE email = $9), $10, $11, $12)
+			$9, (SELECT id FROM users WHERE email = $9), $10, $11, $12, $13)
 		RETURNING id, created_at, updated_at
 	`, orgID, ca.Identifier, ca.Title, ca.Description, ca.Source, ca.Severity, ca.Status,
 		ca.Assignee, ca.CreatedBy, ca.DueDate,
 		nilIfEmpty(ca.RootCause),
 		nilIfEmpty(ca.Notes),
+		nilIfEmpty(strings.TrimSpace(ca.ExternalID)),
 	).Scan(&ca.ID, &ca.CreatedAt, &ca.UpdatedAt)
 }
 
@@ -540,11 +551,12 @@ func UpdateCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, ca *Cor
 		UPDATE corrective_actions SET title = $2, description = $3, source = $4, severity = $5, status = $6,
 			assignee_id = CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END,
 			root_cause = $8,
-			notes = $9, updated_at = now()
+			notes = $9, external_id = $11, updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, ca.ID, ca.Title, ca.Description, ca.Source, ca.Severity, ca.Status,
 		ca.Assignee,
-		nilIfEmpty(ca.RootCause), nilIfEmpty(ca.Notes), orgID)
+		nilIfEmpty(ca.RootCause), nilIfEmpty(ca.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(ca.ExternalID)))
 	return err
 }
 
@@ -613,14 +625,15 @@ func UpdateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) erro
 			confidentiality = $11, integrity = $12, availability = $13,
 			last_review = $14, next_review = $15,
 			owner_id = CASE WHEN $16 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $16) END,
-			notes = $17, updated_at = now()
+			notes = $17, external_id = $19, updated_at = now()
 		WHERE id = $1 AND organization_id = $18 AND deleted_at IS NULL
 	`, sys.ID, sys.Name, nilIfEmpty(sys.Description), sys.SupplierID,
 		nilIfEmpty(sys.Department),
 		sys.Classification, sys.Criticality, sys.Status, sys.RPOHours, sys.RTOHours,
 		sys.Confidentiality, sys.Integrity, sys.Availability,
 		sys.LastReview, sys.NextReview,
-		sys.Owner, nilIfEmpty(sys.Notes), orgID)
+		sys.Owner, nilIfEmpty(sys.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(sys.ExternalID)))
 	return err
 }
 
@@ -632,13 +645,14 @@ func UpdateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 			primary_location = $7,
 			confidentiality = $8, integrity = $9, availability = $10,
 			last_review = $11, next_review = $12,
-			notes = $13, updated_at = now()
+			notes = $13, external_id = $15, updated_at = now()
 		WHERE id = $1 AND organization_id = $14 AND deleted_at IS NULL
 	`, a.ID, a.Name, nilIfEmpty(a.Description), a.AssetType, a.Status,
 		a.Owner, nilIfEmpty(a.PrimaryLocation),
 		a.Confidentiality, a.Integrity, a.Availability,
 		a.LastReview, a.NextReview,
-		nilIfEmpty(a.Notes), orgID)
+		nilIfEmpty(a.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(a.ExternalID)))
 	return err
 }
 
@@ -716,10 +730,10 @@ func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) erro
 			classification, criticality, status, rpo_hours, rto_hours,
 			confidentiality, integrity, availability,
 			last_review, next_review,
-			owner_id, notes)
+			owner_id, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			CASE WHEN $17 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $17) END,
-			$18)
+			$18, $19)
 		RETURNING id, created_at, updated_at
 	`, orgID, sys.Identifier, sys.Name, nilIfEmpty(sys.Description), sys.SupplierID,
 		nilIfEmpty(sys.Department),
@@ -728,6 +742,7 @@ func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) erro
 		sys.Confidentiality, sys.Integrity, sys.Availability,
 		sys.LastReview, sys.NextReview,
 		sys.Owner, nilIfEmpty(sys.Notes),
+		nilIfEmpty(strings.TrimSpace(sys.ExternalID)),
 	).Scan(&sys.ID, &sys.CreatedAt, &sys.UpdatedAt)
 }
 
@@ -746,16 +761,17 @@ func CreateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 	return tx.QueryRow(ctx, `
 		INSERT INTO assets (organization_id, identifier, name, description, asset_type, status,
 			owner_id, primary_location, confidentiality, integrity, availability,
-			last_review, next_review, notes)
+			last_review, next_review, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6,
 			CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END,
 			$8, $9, $10, $11,
-			$12, $13, $14)
+			$12, $13, $14, $15)
 		RETURNING id, created_at, updated_at
 	`, orgID, a.Identifier, a.Name, nilIfEmpty(a.Description), a.AssetType, a.Status,
 		a.Owner, nilIfEmpty(a.PrimaryLocation),
 		a.Confidentiality, a.Integrity, a.Availability,
 		a.LastReview, a.NextReview, nilIfEmpty(a.Notes),
+		nilIfEmpty(strings.TrimSpace(a.ExternalID)),
 	).Scan(&a.ID, &a.CreatedAt, &a.UpdatedAt)
 }
 

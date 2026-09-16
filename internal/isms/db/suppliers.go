@@ -65,6 +65,7 @@ type Supplier struct {
 	Notes           string `json:"notes,omitempty"`
 	CreatedAt       Epoch  `json:"created_at"`
 	UpdatedAt       Epoch  `json:"updated_at"`
+	ExternalID      string `json:"external_id,omitempty"`
 }
 
 // Valid supplier types.
@@ -117,7 +118,8 @@ const supplierSelectCols = `id, organization_id, identifier, name, supplier_type
 		contract_expiry,
 		confidentiality, integrity, availability,
 		last_review, next_review,
-		COALESCE(notes, ''), created_at, updated_at`
+		COALESCE(notes, ''), created_at, updated_at,
+		COALESCE(external_id, '')`
 
 func scanSupplier(scanner interface {
 	Scan(dest ...interface{}) error
@@ -129,7 +131,8 @@ func scanSupplier(scanner interface {
 		&s.ContractExpiry,
 		&s.Confidentiality, &s.Integrity, &s.Availability,
 		&s.LastReview, &s.NextReview,
-		&s.Notes, &s.CreatedAt, &s.UpdatedAt)
+		&s.Notes, &s.CreatedAt, &s.UpdatedAt,
+		&s.ExternalID)
 }
 
 func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
@@ -145,19 +148,20 @@ func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 			data_access, contact, contract_ref,
 			status, owner_id, contract_expiry,
 			confidentiality, integrity, availability,
-			last_review, next_review, notes)
+			last_review, next_review, notes, external_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
 			$9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11,
 			$12, $13, $14,
-			$15, $16, $17)
+			$15, $16, $17, $18)
 		RETURNING id, created_at, updated_at
 	`, orgID, s.Identifier, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
 		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview, nilIfEmpty(s.Notes),
+		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
 	).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
 }
 
@@ -238,7 +242,7 @@ func (d *DB) PaginatedSuppliers(ctx context.Context, orgID int, p SupplierListPa
 	args := []interface{}{orgID}
 	idx := 2
 	if p.Search != "" {
-		where += fmt.Sprintf(` AND (name ILIKE $%d OR identifier ILIKE $%d OR COALESCE(notes,'') ILIKE $%d)`, idx, idx, idx)
+		where += fmt.Sprintf(` AND (name ILIKE $%d OR identifier ILIKE $%d OR COALESCE(notes,'') ILIKE $%d OR COALESCE(external_id,'') ILIKE $%d)`, idx, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
@@ -328,14 +332,15 @@ func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 			contract_expiry = $10,
 			confidentiality = $11, integrity = $12, availability = $13,
 			last_review = $14, next_review = $15,
-			notes = $16, updated_at = now()
+			notes = $16, external_id = $18, updated_at = now()
 		WHERE id = $1 AND organization_id = $17 AND deleted_at IS NULL
 	`, s.ID, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
 		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview,
-		nilIfEmpty(s.Notes), orgID)
+		nilIfEmpty(s.Notes), orgID,
+		nilIfEmpty(strings.TrimSpace(s.ExternalID)))
 	return err
 }
 

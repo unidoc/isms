@@ -30,6 +30,7 @@ type legalCreateRequest struct {
 	TargetLikelihood  *int             `json:"target_likelihood"`
 	TargetImpact      *int             `json:"target_impact"`
 	Completion        int              `json:"completion"`
+	ExternalID        string           `json:"external_id"`
 	References        []ReferenceInput `json:"references"`
 }
 
@@ -52,6 +53,7 @@ type legalUpdateRequest struct {
 	TargetLikelihood  **int      `json:"target_likelihood"`
 	TargetImpact      **int      `json:"target_impact"`
 	Completion        *int       `json:"completion"`
+	ExternalID        *string    `json:"external_id"`
 }
 
 func (s *Server) handleLegalStats(c echo.Context) error {
@@ -123,6 +125,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 		TargetLikelihood:  req.TargetLikelihood,
 		TargetImpact:      req.TargetImpact,
 		Completion:        req.Completion,
+		ExternalID:        req.ExternalID,
 	}
 
 	applyLegalDefaults(&lr, getUserEmail(c))
@@ -268,6 +271,9 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	}
 	if req.Completion != nil {
 		existing.Completion = *req.Completion
+	}
+	if req.ExternalID != nil {
+		existing.ExternalID = *req.ExternalID
 	}
 
 	oldMap := existing.ToChangeMap()

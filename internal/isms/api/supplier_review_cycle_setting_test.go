@@ -66,13 +66,18 @@ func TestAdminUpdateSettingAcceptsValidReviewCycle(t *testing.T) {
 	}{
 		{"plain valid value", "supplier_review_cycle_critical", "6", "6", false},
 		{"surrounding whitespace is trimmed", "supplier_review_cycle_high", " 6 ", "6", false},
-		// By this point critical and high are already configured above, so the
-		// review-cycle map is non-empty — this is the masking condition from
-		// #43: if the fix regressed to storing '' instead of deleting the row,
-		// GetOrgSetting would return "" (not the registry default "6") but the
-		// old assertion style (comparing only to "") would not have caught
-		// that regression, since it also happened to expect "". Comparing to
-		// the actual registry default value catches it either way.
+		// medium must actually be configured before it is cleared: clearing a
+		// key that was never set would let DeleteOrgSetting no-op (0 rows
+		// deleted) and the test would still "pass", proving nothing about the
+		// fix. Setting it first, then clearing it, proves an existing
+		// override row is actually removed.
+		{"medium set before clearing", "supplier_review_cycle_medium", "3", "3", false},
+		// By this point critical, high, and medium (until this case) are all
+		// configured, so the review-cycle map stays non-empty — the masking
+		// condition from #43: comparing the cleared level's resolved value to
+		// its actual registry default ("6", not "") is what catches a
+		// regression back to SetOrgSetting(""), which would leave the value
+		// pinned at whatever was last stored instead of reverting.
 		{"empty reverts to the registry default", "supplier_review_cycle_medium", "", "6", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -67,14 +67,20 @@ func TestSupplierReviewCyclesRoundTrip(t *testing.T) {
 			s.NextReview.Time.Format("2006-01-02"), wantHigh.NextReview.Time.Format("2006-01-02"))
 	}
 
-	// 4. #43 regression: clearing one level to "" must revert THAT level to the
-	// registry default even when another level is still configured. This is
-	// the condition that masks the bug: with only one level ever set, clearing
-	// it makes SupplierReviewCycles's map empty, reviewCyclesFor short-circuits
-	// to reviewCycleDefaults, and the test would pass whether or not the
-	// cleared value's row was actually deleted. "critical" (set to 2 in step 2,
-	// still present) keeps the map non-empty, so this only passes if
-	// DeleteOrgSetting - not SetOrgSetting("") - is what runs on clear.
+	// 4. #43 regression (DB-layer contract): DeleteOrgSetting on one level must
+	// revert THAT level to its registry default while a different level
+	// ("critical", set to 2 in step 2) stays configured. This is the
+	// db.DB-level half of the masking condition described in the plan
+	// (§1.7/§4.1): with only one level ever touched, clearing it would make
+	// SupplierReviewCycles's map empty and reviewCyclesFor would short-circuit
+	// to reviewCycleDefaults regardless of how the clear was performed, so a
+	// test that never configures a second level proves nothing. This test
+	// exercises DeleteOrgSetting directly (package db) and so pins the
+	// underlying contract the API handler in package api now relies on; it
+	// cannot by itself fail if the handler regresses back to
+	// SetOrgSetting("") — internal/isms/api/supplier_review_cycle_setting_test.go's
+	// TestAdminUpdateSettingAcceptsValidReviewCycle is what discriminates
+	// between the two handler behaviours end-to-end.
 	if err := d.DeleteOrgSetting(ctx, orgID, "supplier_review_cycle_high"); err != nil {
 		t.Fatalf("DeleteOrgSetting: %v", err)
 	}
@@ -85,8 +91,8 @@ func TestSupplierReviewCyclesRoundTrip(t *testing.T) {
 	// reviewCyclesFor always populates every level via GetOrgSetting's
 	// COALESCE-to-default_value fallback, so "high" is still a key in the map
 	// after clearing — its value must be the registry default (3), not the
-	// stale override (2, the "high" custom value set two steps below would be,
-	// but here it was never customized) and not skipped/zero.
+	// garbage value ("soon") skipped in step 3, and not stuck at critical's
+	// unrelated override (2).
 	if got := cycles["high"]; got != 3 {
 		t.Errorf("cleared supplier_review_cycle_high: cycles[\"high\"]=%d, want registry default 3 (full map: %v)", got, cycles)
 	}

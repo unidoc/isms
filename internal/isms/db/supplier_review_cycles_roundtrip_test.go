@@ -66,4 +66,36 @@ func TestSupplierReviewCyclesRoundTrip(t *testing.T) {
 		t.Errorf("high with garbage stored value: got %s, want 12-month fallback %s",
 			s.NextReview.Time.Format("2006-01-02"), wantHigh.NextReview.Time.Format("2006-01-02"))
 	}
+
+	// 4. #43 regression: clearing one level to "" must revert THAT level to the
+	// registry default even when another level is still configured. This is
+	// the condition that masks the bug: with only one level ever set, clearing
+	// it makes SupplierReviewCycles's map empty, reviewCyclesFor short-circuits
+	// to reviewCycleDefaults, and the test would pass whether or not the
+	// cleared value's row was actually deleted. "critical" (set to 2 in step 2,
+	// still present) keeps the map non-empty, so this only passes if
+	// DeleteOrgSetting - not SetOrgSetting("") - is what runs on clear.
+	if err := d.DeleteOrgSetting(ctx, orgID, "supplier_review_cycle_high"); err != nil {
+		t.Fatalf("DeleteOrgSetting: %v", err)
+	}
+	cycles = d.SupplierReviewCycles(ctx, orgID)
+	if cycles == nil || cycles["critical"] != 2 {
+		t.Fatalf("expected critical:2 to remain configured after clearing high, got %v", cycles)
+	}
+	// reviewCyclesFor always populates every level via GetOrgSetting's
+	// COALESCE-to-default_value fallback, so "high" is still a key in the map
+	// after clearing — its value must be the registry default (3), not the
+	// stale override (2, the "high" custom value set two steps below would be,
+	// but here it was never customized) and not skipped/zero.
+	if got := cycles["high"]; got != 3 {
+		t.Errorf("cleared supplier_review_cycle_high: cycles[\"high\"]=%d, want registry default 3 (full map: %v)", got, cycles)
+	}
+	highSup := &Supplier{Criticality: "high"}
+	highSup.CalculateNextReview(cycles)
+	wantHighDefault := &Supplier{Criticality: "high"}
+	wantHighDefault.CalculateNextReview(nil) // registry default for high: 3 months
+	if highSup.NextReview.Time.Format("2006-01-02") != wantHighDefault.NextReview.Time.Format("2006-01-02") {
+		t.Errorf("cleared high with critical still configured: got %s, want registry default %s",
+			highSup.NextReview.Time.Format("2006-01-02"), wantHighDefault.NextReview.Time.Format("2006-01-02"))
+	}
 }

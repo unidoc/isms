@@ -61,11 +61,19 @@ func TestAdminUpdateSettingAcceptsValidReviewCycle(t *testing.T) {
 		name      string
 		key       string
 		val       string
-		wantStore string // expected stored value; "" means the key is cleared/reverted
+		wantStore string // expected value from GetOrgSetting (registry default when cleared)
+		wantNoRow bool   // when true, assert no organization_settings row exists for the key
 	}{
-		{"plain valid value", "supplier_review_cycle_critical", "6", "6"},
-		{"surrounding whitespace is trimmed", "supplier_review_cycle_high", " 6 ", "6"},
-		{"empty reverts to the registry default", "supplier_review_cycle_medium", "", ""},
+		{"plain valid value", "supplier_review_cycle_critical", "6", "6", false},
+		{"surrounding whitespace is trimmed", "supplier_review_cycle_high", " 6 ", "6", false},
+		// By this point critical and high are already configured above, so the
+		// review-cycle map is non-empty — this is the masking condition from
+		// #43: if the fix regressed to storing '' instead of deleting the row,
+		// GetOrgSetting would return "" (not the registry default "6") but the
+		// old assertion style (comparing only to "") would not have caught
+		// that regression, since it also happened to expect "". Comparing to
+		// the actual registry default value catches it either way.
+		{"empty reverts to the registry default", "supplier_review_cycle_medium", "", "6", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			body := `{"key":"` + tc.key + `","value":"` + tc.val + `"}`
@@ -82,6 +90,25 @@ func TestAdminUpdateSettingAcceptsValidReviewCycle(t *testing.T) {
 			}
 			if got != tc.wantStore {
 				t.Errorf("stored value=%q, want %q", got, tc.wantStore)
+			}
+			if tc.wantNoRow {
+				// A 200 response and GetOrgSetting()=="" are not enough proof:
+				// SetOrgSetting("") would ALSO produce both, because
+				// COALESCE(os.value, s.default_value, '') can't tell an
+				// explicitly-empty row from a missing one (that's the bug).
+				// Assert the row itself is gone.
+				var count int
+				err := s.db.Pool().QueryRow(context.Background(),
+					`SELECT count(*) FROM organization_settings WHERE organization_id = $1 AND setting_key = $2`,
+					orgID, tc.key).Scan(&count)
+				if err != nil {
+					t.Fatalf("querying organization_settings: %v", err)
+				}
+				if count != 0 {
+					t.Errorf("organization_settings row for %s still present after clearing (count=%d); "+
+						"SetOrgSetting(\"\") stores a real empty-string row that COALESCE never falls through, "+
+						"masking the registry default forever", tc.key, count)
+				}
 			}
 		})
 	}

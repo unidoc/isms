@@ -413,14 +413,33 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 	// Reject it here instead — same diagnosability argument as default_locale above.
 	// Empty is allowed and meaningful: it reverts the org to the registry default.
 	if strings.HasPrefix(req.Key, "supplier_review_cycle_") || strings.HasPrefix(req.Key, "risk_review_cycle_") {
-		if v := strings.TrimSpace(req.Value); v != "" {
-			n, err := strconv.Atoi(v)
-			if err != nil || n < 1 || n > 120 {
-				return echo.NewHTTPError(http.StatusBadRequest,
-					req.Key+" must be a whole number of months between 1 and 120")
+		v := strings.TrimSpace(req.Value)
+		if v == "" {
+			// GetOrgSetting's COALESCE(os.value, s.default_value, '') cannot tell
+			// an explicitly-stored empty string apart from "no row": storing ''
+			// here would still be non-NULL and would shadow the registry default
+			// forever. Delete the row instead so the lookup falls through to
+			// s.default_value, which is what "revert to registry default" means.
+			if err := s.db.DeleteOrgSetting(ctx, orgID, req.Key); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
 			}
-			req.Value = v // store the trimmed form
+
+			actor := getUserEmail(c)
+			s.logAndNotify(ctx, orgID, &db.Activity{
+				Actor:  actor,
+				Action: "setting_updated",
+				Detail: fmt.Sprintf("Updated setting %q", req.Key),
+			})
+
+			return c.JSON(http.StatusOK, map[string]string{"status": "setting updated"})
 		}
+
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 120 {
+			return echo.NewHTTPError(http.StatusBadRequest,
+				req.Key+" must be a whole number of months between 1 and 120")
+		}
+		req.Value = v // store the trimmed form
 	}
 
 	if err := s.db.SetOrgSetting(ctx, orgID, req.Key, req.Value); err != nil {

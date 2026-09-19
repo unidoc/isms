@@ -13,7 +13,7 @@
   },
   "empty": {
     "heading": "Engin skjöl ennþá",
-    "body": "Fluttu inn sniðmát til að útbúa skjalauppbyggingu, notaðu svo trévalmyndina til að bæta við skjölum og möppum.",
+    "body": "Flyttu inn sniðmát til að útbúa skjalauppbyggingu, notaðu svo trévalmyndina til að bæta við skjölum og möppum.",
     "import_template": "Flytja inn sniðmát"
   },
   "dash": {
@@ -135,7 +135,7 @@
   "content": {
     "inline_comment_count": "{count} innskotsathugasemd við þetta skjal | {count} innskotsathugasemdir við þetta skjal",
     "draft_recovered": "Óvistuð drög endurheimt",
-    "mark_unreviewed": "Merkja ekki yfirfarið",
+    "mark_unreviewed": "Merkja sem óyfirfarið",
     "mark_reviewed": "Merkja yfirfarið",
     "comment_count": "{count} athugasemd | {count} athugasemdir",
     "add_comment": "Bæta við athugasemd",

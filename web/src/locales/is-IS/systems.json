@@ -62,8 +62,8 @@
     "external_id": "Utanaðkomandi auðkenni"
   },
   "hint": {
-    "rpo": "Hámarks ásættanlegt gagnatap (klst.)",
-    "rto": "Hámarks ásættanlegur niðritími (klst.)"
+    "rpo": "Hámark ásættanlegs gagnataps (klst.)",
+    "rto": "Hámark ásættanlegs endurheimtartíma (klst.)"
   },
   "placeholder": {
     "description": "Lýstu kerfinu...",

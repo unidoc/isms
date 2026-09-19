@@ -30,7 +30,7 @@
     "assignee_placeholder": "Hver sem er ábyrgur",
     "empty": "Engin verkefni samræmast síunni þinni.",
     "empty_all": "Engin verkefni ennþá — smelltu á Bæta við til að stofna það fyrsta.",
-    "empty_hint": "Verkefni verða líka til sjálfkrafa út frá yfirfallnum yfirferðarlotum."
+    "empty_hint": "Verkefni verða líka til sjálfkrafa út frá yfirferðarlotum sem eru komnar fram yfir áætlaðan tíma."
   },
   "list": {
     "due": "Skiladagur {date}",

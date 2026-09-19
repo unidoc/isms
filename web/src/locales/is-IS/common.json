@@ -34,7 +34,7 @@
     "resolved": "Leyst",
     "copied": "Afritað",
     "saved": "Vistað",
-    "overdue": "YFIRFALLIÐ",
+    "overdue": "KOMIÐ FRAM YFIR SKILADAG",
     "no_notes": "Engar athugasemdir ennþá.",
     "sending": "Sendi...",
     "creating": "Stofna..."
@@ -60,7 +60,7 @@
     "audit": "Úttekt",
     "audit_finding": "Niðurstaða úttektar",
     "program": "Áætlun",
-    "checkin": "Innritun",
+    "checkin": "Stöðumat",
     "access_review": "Aðgangsyfirferð",
     "user": "Notandi",
     "organization": "Fyrirtæki",
@@ -88,7 +88,7 @@
     "audit": "úttekt",
     "audit_finding": "niðurstaða úttektar",
     "program": "áætlun",
-    "checkin": "innritun",
+    "checkin": "stöðumat",
     "access_review": "aðgangsyfirferð",
     "user": "notandi",
     "organization": "fyrirtæki",
@@ -391,7 +391,7 @@
     "severity": {
       "critical": "mjög alvarlegt",
       "high": "alvarlegt",
-      "medium": "í meðallagi",
+      "medium": "í meðallagi alvarlegt",
       "low": "lítið"
     },
     "status": {
@@ -505,7 +505,7 @@
   },
   "stat": {
     "total": "Samtals",
-    "overdue": "Yfirfallið"
+    "overdue": "Fram yfir skiladag"
   },
   "heading": {
     "quick_actions": "Flýtiaðgerðir",
@@ -525,7 +525,7 @@
   "review": {
     "last": "Síðasta yfirferð: {date}",
     "next": "Næsta yfirferð: {date}",
-    "overdue_since": "Yfirferð yfirfallin síðan {date}"
+    "overdue_since": "Yfirferð fram yfir skiladag síðan {date}"
   },
   "cia_abbr": {
     "c": "L",

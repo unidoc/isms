@@ -383,7 +383,7 @@ persónuupplýsinga, nr. 90/2018*, Iceland's GDPR implementation.
 |---|---|---|
 | controller | **ábyrgðaraðili** | nr. 90/2018 |
 | processor | **vinnsluaðili** | nr. 90/2018 |
-| data protection officer (DPO) | **persónuverndarfulltrúi** | nr. 90/2018, art. 35 |
+| data protection officer (DPO) | **persónuverndarfulltrúi** | nr. 90/2018; GDPR arts. 37–39 |
 | personal data | **persónuupplýsingar** | nr. 90/2018 |
 
 **Nonconformity/audit-result grading is certification-body practice, not

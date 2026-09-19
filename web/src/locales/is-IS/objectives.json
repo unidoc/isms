@@ -44,9 +44,9 @@
     "target_value": "Markgildi",
     "target": "Markmið",
     "unit": "Eining",
-    "checkin_cycle_months": "Innritunartíðni (mánuðir)",
-    "checkin_cycle": "Innritunartíðni",
-    "last_checkin": "Síðasta innritun",
+    "checkin_cycle_months": "Stöðumatstíðni (mánuðir)",
+    "checkin_cycle": "Stöðumatstíðni",
+    "last_checkin": "Síðasta stöðumat",
     "created": "Stofnað",
     "created_by": "Stofnað af",
     "months": "{count} mánuður | {count} mánuðir"
@@ -64,9 +64,9 @@
     "notes": "Athugasemdir"
   },
   "checkin": {
-    "heading": "Innritanir",
+    "heading": "Stöðumöt",
     "summary": "{pass} náð · {fail} ekki náð · {total} samtals",
-    "record_heading": "Skrá innritun",
+    "record_heading": "Skrá stöðumat",
     "value_label": "Gildi",
     "value_placeholder": "97,5",
     "result_label": "Niðurstaða",
@@ -79,11 +79,11 @@
     "message_placeholder": "Innra samhengi...",
     "public_note_placeholder": "Athugasemd fyrir hagsmunaaðila (sýnileg þeim)",
     "submit": "Skrá",
-    "empty": "Engar innritanir skráðar ennþá",
+    "empty": "Engin stöðumöt skráð ennþá",
     "pass_badge": "NÁÐ",
     "fail_badge": "EKKI NÁÐ",
     "public": "Opinbert: {note}",
-    "confirm_delete": "Eyða þessari innritun?"
+    "confirm_delete": "Eyða þessu stöðumati?"
   },
   "evidence": {
     "download": "Sækja",

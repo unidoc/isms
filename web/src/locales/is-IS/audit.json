@@ -162,9 +162,9 @@
   "findings": {
     "search_placeholder": "Leita í niðurstöðum...",
     "all_audits": "Allar úttektir",
-    "overdue_toggle_title": "Víxla: Aðeins yfirfallið",
-    "overdue_only": "Aðeins yfirfallið",
-    "overdue": "Yfirfallið",
+    "overdue_toggle_title": "Sýna aðeins það sem er komið fram yfir skiladag",
+    "overdue_only": "Aðeins komið fram yfir skiladag",
+    "overdue": "Komið fram yfir skiladag",
     "empty_filtered": "Engar niðurstöður samræmast síunni þinni.",
     "empty": "Engar niðurstöður skráðar ennþá.",
     "heading_count": "Niðurstöður ({count})",
@@ -204,7 +204,7 @@
       "closed": "Lokað"
     },
     "placeholder": {
-      "description": "Ítarleg lýsing á niðurstöðu, sönnunargögnum, greining á frumorsök...",
+      "description": "Ítarleg lýsing á niðurstöðu, sönnunargögnum og greiningu á frumorsök...",
       "owner": "Velja ábyrgðaraðila..."
     },
     "item_ref": "atriði #{id}",

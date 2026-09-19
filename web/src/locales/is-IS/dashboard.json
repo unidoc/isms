@@ -56,7 +56,7 @@
       "detail": "{count} áhætta þarfnast meðhöndlunar eða stigmögnunar | {count} áhættur þarfnast meðhöndlunar eða stigmögnunar"
     },
     "overdue_documents": {
-      "title": "Yfirfallin skjöl",
+      "title": "Skjöl komin fram yfir yfirferðardag",
       "detail": "{count} stefna er komin fram yfir yfirferðardag | {count} stefnur eru komnar fram yfir yfirferðardag"
     },
     "incidents": {
@@ -86,7 +86,7 @@
     "changes": "Breytingar",
     "changes_detail": "bíða samþykkis",
     "changes_none": "engar í bið",
-    "overdue": "Yfirfallið",
+    "overdue": "Fram yfir skiladag",
     "overdue_detail": "atriði komin fram yfir tíma",
     "overdue_none": "allt á áætlun"
   },

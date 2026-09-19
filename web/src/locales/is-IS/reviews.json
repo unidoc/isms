@@ -6,7 +6,7 @@
   "opened_ago": "opnað {time}",
   "ai": {
     "active": "AI-yfirferð í vinnslu",
-    "escalated": "Vísað áfram — AI-yfirferð stopp"
+    "escalated": "Vísað áfram — AI-yfirferð stöðvuð"
   },
   "guide": {
     "step_review": "Farðu yfir skjalið og breytingarnar",

@@ -9,7 +9,7 @@
     "title_line2": "stjórnkerfið",
     "subtitle": "Lifandi skjöl, rekjanlegar yfirferðir og reglubundið verklag á einum vettvangi sem stenst úttekt. Veldu staðal eða komdu með þinn eigin. Gervigreind hjálpar til við vinnuna. Fólk heldur stjórninni.",
     "cta_cloud": "Byrja í skýinu",
-    "cta_selfhost": "Hýsa sjálf/ur",
+    "cta_selfhost": "Sjálfhýsa",
     "cta_docs": "Lesa handbókina"
   },
   "why": {
@@ -19,7 +19,7 @@
     "p3": "Þess vegna er þetta opinn hugbúnaður — byggður fyrir fyrirtæki af öllum stærðum, og loksins trúverðugur kostur fyrir smærri fyrirtæki, sem hafa aldrei haft aðgang að stjórnkerfi sem er einfalt, helst uppfært og vinnur með þeim en ekki gegn þeim. Við byggðum þetta til að breyta því."
   },
   "pillars": {
-    "documents_title": "Skjöl eru rekstrareignir",
+    "documents_title": "Skjöl eru lifandi hluti rekstrarins",
     "documents_desc": "Stefnur eru vistaðar í git sem markdown. Hver breyting er commit. Hverja útgáfu má endurheimta. Skjölin drífa stjórnkerfið áfram, liggja ekki í möppu.",
     "reviews_title": "Yfirferðir eru rekjanlegar ákvarðanir",
     "reviews_desc": "Umferðaskipt yfirferð með innskotsathugasemdum. Samþykktu, óskaðu eftir breytingum, eða leggðu til endurskoðun. Sérhver ákvörðun er óbreytanleg skrá með SHA-256 gátkóða.",
@@ -44,13 +44,13 @@
     "heading": "Öðruvísi byggt",
     "subtitle": "Ekki skjalaritill með regluvörsluviðbótum. Sérhannað stjórnkerfi þar sem allt tengist saman.",
     "git_title": "Skjöl innbyggð í git",
-    "git_desc": "Stefnur eru markdown-skrár í git-safni. Hver breyting er commit með fullum samanburði. Grein fyrir yfirferð, sameinað til birtingar. Engin sérsniðin snið, engin innilokun.",
+    "git_desc": "Stefnur eru markdown-skrár í git-safni. Hver breyting er commit með fullum samanburði. Grein fyrir yfirferð, sameinað til birtingar. Engin sérsniðin snið, engin binding við kerfið.",
     "review_title": "Umferðaskipt yfirferð",
     "review_desc": "Sendu skjal til yfirferðar. Yfirferðaraðilar samþykkja, óska eftir breytingum, eða leggja til endurskoðun með innskotsathugasemdum. Endursent sem ný umferð — yfirferðaraðilar sjá aðeins það sem breyttist.",
     "registers_title": "Skrár sem tengjast",
     "registers_desc": "Áhætta tengist eignum og stjórntækjum. Atvik búa til úrbætur. Lagakröfur tengjast stefnum. Breyttu einu, sjáðu áhrifin alls staðar.",
     "ai_title": "Gervigreind leggur til, þú samþykkir",
-    "ai_desc": "Gervigreindarfulltrúar semja drög að stefnum, meta áhættu og leggja til uppfærslur á skrám í gegnum sama yfirferðarferli. MCP-þjónn með 22 verkfærum. Fullt auðkenni fulltrúa og rekjanleg saga. Ekki sjálfstýring — hæfur aðstoðarmaður.",
+    "ai_desc": "Gervigreindarfulltrúar semja drög að stefnum, meta áhættu og leggja til uppfærslur á skrám í gegnum sama yfirferðarferli. MCP-þjónn með 22 verkfærum. Skýrt auðkenni fulltrúa og full rekjanleiki. Ekki sjálfstýring — hæfur aðstoðarmaður.",
     "cadence_title": "Ársáætlun og taktur",
     "cadence_desc": "Yfirlitið sýnir hvað þarf athygli í þessum mánuði. Dreifðu yfirferðum, úttektum og áhættumötum yfir árið. Verkefni fylgja framkvæmdinni eftir. Stjórnkerfið þitt heldur áfram að lifa.",
     "audit_title": "Tilbúið fyrir úttekt frá fyrsta degi",
@@ -62,7 +62,7 @@
   },
   "deploy": {
     "cloud_title": "Rekið í skýi",
-    "cloud_desc": "Skráðu þig, veldu staðal, byrjaðu að vinna. Við sjáum um innviði, afritun og uppfærslur. Fjölleigjukerfi með gagnaeinangrun á raðstigi.",
+    "cloud_desc": "Skráðu þig, veldu staðal, byrjaðu að vinna. Við sjáum um innviði, afritun og uppfærslur. Fjölleigukerfi með gagnaeinangrun á raðstigi.",
     "cloud_cta": "Byrja frítt",
     "cloud_cta_signin": "Skrá inn",
     "selfhost_title": "Sjálfhýst",
@@ -71,7 +71,7 @@
   },
   "cta": {
     "heading": "Endurskoðandinn þinn mun þakka þér",
-    "subtitle": "Full útgáfusaga. Óbreytanlegar samþykktarskrár. Dulkóðunarlega sannreynanlegar ákvarðanir. Fullkomlega rekjanleg saga frá fyrsta degi."
+    "subtitle": "Full útgáfusaga. Óbreytanlegar samþykktarskrár. Sannreynanlegar ákvarðanir með dulritun. Fullkomlega rekjanleg saga frá fyrsta degi."
   },
   "footer": {
     "powered_by": "Keyrt af {link}"

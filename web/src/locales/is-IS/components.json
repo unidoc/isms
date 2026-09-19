@@ -48,7 +48,7 @@
   },
   "viewer": {
     "mark_reviewed": "Merkja yfirfarið",
-    "mark_unreviewed": "Merkja ekki yfirfarið",
+    "mark_unreviewed": "Merkja sem óyfirfarið",
     "resolved_by": "Leyst af {name} {date}",
     "unknown_user": "óþekkt",
     "suggested_edit": "Lögð til breyting",
@@ -379,13 +379,13 @@
     "per_page": "Á síðu"
   },
   "overdue": {
-    "title": "Yfirfallnar yfirferðir",
+    "title": "Yfirferðir fram yfir skiladag",
     "creating": "Stofna...",
     "create_tasks": "Stofna verkefni",
     "created": "{count} verkefni stofnað | {count} verkefni stofnuð",
     "created_skipped": ", {count} sleppt (þegar til)",
     "days_late": "{count}d",
-    "overdue": "yfirfallið",
+    "overdue": "fram yfir skiladag",
     "all_on_schedule": "Allar yfirferðir á áætlun",
     "contract": "samningur",
     "contract_expired": "{count}d síðan",

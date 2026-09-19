@@ -77,6 +77,8 @@ func TestCanonical(t *testing.T) {
 		{"underscore separator", "id_ID", "id-ID", true},
 		{"bare language", "id", "id-ID", true},
 		{"unsupported region falls back to same language", "id-SG", "id-ID", true},
+		{"bare language pt", "pt", "pt-BR", true},
+		{"unsupported region falls back to pt-BR", "pt-PT", "pt-BR", true},
 		{"region we do not distinguish", "en-US", "en", true},
 		{"unknown language", "ja", "", false},
 		// Malformed input must be rejected, not reduced to its primary subtag.
@@ -264,6 +266,7 @@ func TestOnlyEnabledLocalesAreOffered(t *testing.T) {
 	want := []Locale{
 		{Tag: "en", Name: "English"},
 		{Tag: "id-ID", Name: "Bahasa Indonesia"},
+		{Tag: "pt-BR", Name: "Português (Brasil)"},
 	}
 	got := Supported()
 	if len(got) != len(want) {

@@ -82,6 +82,7 @@ type entry struct {
 var supported = map[string]entry{
 	"en":    {name: "English", enabled: true},
 	"id-ID": {name: "Bahasa Indonesia", enabled: true},
+	"pt-BR": {name: "Português (Brasil)", enabled: true},
 }
 
 // Locale is one selectable locale, as exposed to clients.

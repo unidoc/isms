@@ -1,0 +1,141 @@
+{
+  "title": "Caixa de Entrada",
+  "subtitle": "{count} pendência aguardando atenção | {count} pendências aguardando atenção",
+  "mark_all_read": "Marcar tudo como lido",
+  "tab": {
+    "comments": "Comentários",
+    "reviews": "Revisões",
+    "tasks": "Tarefas",
+    "incidents": "Incidentes",
+    "changes": "Mudanças",
+    "corrective_actions": "ACs",
+    "suggestions": "Sugestões"
+  },
+  "comments": {
+    "empty": "Nenhum comentário aberto",
+    "suggestion_badge": "sugestão",
+    "scope_inline": "Inline",
+    "scope_document": "Documento",
+    "view_in_document": "Ver no documento →"
+  },
+  "reviews": {
+    "empty": "Nenhuma revisão pendente",
+    "untitled": "Revisão sem título",
+    "requested_by": "Solicitada por {name}",
+    "unknown_requester": "Desconhecido",
+    "meta": {
+      "status": "Status",
+      "document": "Documento",
+      "version": "Versão",
+      "requested_by": "Solicitada Por"
+    },
+    "assigned_reviewers": "Revisores Atribuídos",
+    "recent_comments": "Comentários Recentes",
+    "open_review": "Abrir Revisão #{id}"
+  },
+  "tasks": {
+    "add": "Adicionar Tarefa",
+    "empty": "Nenhuma tarefa encontrada",
+    "start": "Iniciar tarefa",
+    "mark_done": "Marcar como concluída",
+    "form": {
+      "title": "Título",
+      "title_placeholder": "Título da tarefa",
+      "description": "Descrição",
+      "description_placeholder": "Descrição opcional",
+      "type": "Tipo",
+      "priority": "Prioridade",
+      "assignee": "Responsável",
+      "assignee_placeholder": "Selecionar responsável...",
+      "due_date": "Prazo"
+    }
+  },
+  "incidents": {
+    "empty": "Nenhum incidente atribuído a você"
+  },
+  "corrective_actions": {
+    "empty": "Nenhuma ação corretiva atribuída a você"
+  },
+  "changes": {
+    "add": "Adicionar Solicitação de Mudança",
+    "empty": "Nenhuma solicitação de mudança",
+    "requested_by": "Solicitada por {name}",
+    "unknown_requester": "Desconhecido",
+    "form": {
+      "title": "Título",
+      "title_placeholder": "Título da solicitação de mudança",
+      "description": "Descrição",
+      "description_placeholder": "Descreva a mudança proposta",
+      "justification": "Justificativa",
+      "justification_placeholder": "Por que esta mudança é necessária?",
+      "impact": "Avaliação de Impacto",
+      "impact_placeholder": "Impacto esperado no SGSI",
+      "assign_to": "Atribuir a",
+      "assignee_placeholder": "Selecionar responsável..."
+    },
+    "detail": {
+      "description": "Descrição",
+      "justification": "Justificativa",
+      "impact": "Avaliação de Impacto",
+      "affected_documents": "Documentos Afetados"
+    },
+    "action": {
+      "approve": "Aprovar",
+      "reject": "Rejeitar",
+      "mark_implemented": "Marcar como Implementado",
+      "close": "Fechar"
+    }
+  },
+  "suggestions": {
+    "empty": "Nenhuma sugestão com este status.",
+    "filter": {
+      "open": "aberta",
+      "applied": "aplicada",
+      "rejected": "rejeitada"
+    },
+    "agent_badge": "IA",
+    "suggested_by": "Sugerido por {name} · {date}",
+    "apply": "Aplicar",
+    "reject": "Rejeitar",
+    "withdraw": "Retirar",
+    "reject_placeholder": "Motivo da rejeição...",
+    "rejected_reason": "Rejeitado: {reason}",
+    "applied_result": "Aplicado → {entity} {id}",
+    "payload_field": {
+      "title": "Título",
+      "name": "Nome",
+      "description": "Descrição",
+      "category": "Categoria",
+      "risk_type": "Tipo de risco",
+      "origin": "Origem",
+      "severity": "Severidade",
+      "priority": "Prioridade",
+      "status": "Status",
+      "type": "Tipo",
+      "criticality": "Criticalidade",
+      "jurisdiction": "Jurisdição",
+      "classification": "Classificação",
+      "finding_type": "Tipo de constatação",
+      "risk_level": "Nível de risco",
+      "source": "Fonte",
+      "incident_type": "Tipo de incidente",
+      "current_likelihood": "Probabilidade",
+      "current_impact": "Impacto"
+    }
+  },
+  "error": {
+    "resolve_comment": "Falha ao resolver comentário: {message}",
+    "mark_all_read": "Falha ao marcar tudo como lido: {message}",
+    "approve_review": "Falha ao aprovar revisão: {message}",
+    "request_changes": "Falha ao solicitar alterações: {message}",
+    "forward_review": "Falha ao encaminhar revisão: {message}",
+    "claim_suggestion": "Falha ao reivindicar sugestão: {message}",
+    "apply_suggestion": "Falha ao aplicar sugestão: {message}",
+    "reject_suggestion": "Falha ao rejeitar sugestão: {message}",
+    "withdraw_suggestion": "Falha ao retirar sugestão: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Aplicar mesmo assim",
+    "apply_stale_body": "A entidade foi alterada desde que esta sugestão foi criada. Aplicar mesmo assim?"
+  }
+}

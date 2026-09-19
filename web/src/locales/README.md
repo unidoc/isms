@@ -295,6 +295,69 @@ from certification-body practice under ISO/IEC 17021, not from ISO 27001 or
 9001, so no adopted text can arbitrate them. Follow the usage of certification
 bodies operating in your language and say in your subsection that you did.
 
+### Worked example — Brazilian Portuguese (`pt-BR`)
+
+Verified against the Brazilian adoption of ISO/IEC 27001:2022 and the shared Annex SL vocabulary in ABNT NBR ISO 9001:2015.
+
+| English | Brazilian Portuguese | Where it comes from |
+|---|---|---|
+| improvement | melhoria | clause 10 heading |
+| continual improvement | melhoria contínua | clause 10.3 (ISO 9001); clause 10.1 (ISO/IEC 27001) |
+| opportunity for improvement | oportunidade de melhoria | Brazilian certification/audit practice |
+| nonconformity | não conformidade | clause 10.2 heading |
+| corrective action | ação corretiva | clause 10.2 heading |
+| conformity | conformidade | throughout |
+| objective | objetivo | clause 6.2 |
+| monitoring | monitoramento | clause 9.1 heading |
+| review (management) | análise crítica (pela Direção) | clause 9.3 heading |
+| internal audit | auditoria interna | clause 9.2 heading |
+
+The Brazilian adoption uses **análise crítica** for the management-system meaning of **review**. This terminology is also used in ABNT NBR ISO 9001:2015 and ABNT NBR ISO/IEC 27001:2022.
+
+**Correction is not improvement.** The Brazilian terminology distinguishes **correção** from **melhoria** and **ação corretiva**. ABNT NBR ISO 9001:2015 treats correction, corrective action, and continual improvement as distinct concepts, while clause 10.2 uses **não conformidade** and **ação corretiva**.
+
+**Opportunity wording.** ABNT NBR ISO 9001:2015 uses the expression **oportunidades para melhoria**, while ABNT NBR ISO/IEC 27001:2022 uses **oportunidades para a melhoria contínua**. However, **oportunidade de melhoria** is the established wording used for the audit finding/result category in Brazilian certification practice. The locale therefore uses **oportunidade de melhoria** for the catalogue value, preserving the distinction between the ISO improvement concept and the audit-result label.
+
+**Nonconformity grading is not defined by ISO/IEC 27001.** The application uses **major nonconformity**, **minor nonconformity**, and **observation** as audit-result terminology. These are certification/audit practice terms rather than levels defined by ISO/IEC 27001 itself. The Brazilian Portuguese translations are **não conformidade maior**, **não conformidade menor**, and **observação**.
+
+**Opportunity for improvement is kept distinct from nonconformity.** It is translated as **oportunidade de melhoria**, preserving the distinction between a potential improvement and a nonconformity requiring corrective action.
+
+**Classification terms.** The locale uses **público**, **interno**, **confidencial**, and **restrito** for the application's existing `public`, `internal`, `confidential`, and `restricted` classification levels. These labels are application classification levels, not a four-level classification scheme prescribed by ISO/IEC 27001 itself, so the locale preserves the ordering and semantics of the existing application values.
+
+**Security-management vocabulary.** The locale uses the Brazilian Portuguese terminology established by the Brazilian adoption of ABNT NBR ISO/IEC 27001:2022, including **segurança da informação**, **sistema de gestão da segurança da informação**, **política de segurança da informação**, **objetivos da segurança da informação**, **avaliação de riscos de segurança da informação**, **tratamento de riscos da segurança da informação**, **informação documentada**, **partes interessadas**, **Alta Direção**, and **controles de segurança da informação**. Terms are kept aligned with the wording used in the Brazilian standard rather than translated independently from the English.
+
+**CIA terms.** For confidentiality, integrity, and availability, the Brazilian Portuguese terms are **confidencialidade**, **integridade**, and **disponibilidade**. In Brazil, these principles are universally referred to as the **CID triad** (*tríade CID*), using the Portuguese initials. The `pt-BR` locale therefore localizes badge codes and table headers consistently to the **CID** form:
+
+| Key | en | pt-BR | Rationale |
+|---|---|---|---|
+| `common.cia_abbr.a` | `A` | `D` | Initial of *disponibilidade* |
+| `components.readings.table.availability` | `A` | `D` | Same chip, same rule |
+| `*.table.cia` (risks, assets, systems, suppliers) | `C/I/A` | `C/I/D` | Header follows the triad |
+
+Unlike Indonesian (K/I/K collision), the CID triad has no initial collision, so localization is both possible and the established practice in Brazilian security literature.
+
+**Likelihood column code.** The readings table column for likelihood (`components.readings.table.likelihood`) is localized to `"P"` (*Probabilidade*), following the same rationale as the CID codes: "P" is the single-character form Brazilian risk practitioners expect in a narrow column header, and it does not collide with any other column initial in the same table (C, I, D, Imp).
+
+**Finding-type abbreviations.** `common.enum_abbr.finding_type` and `common.enum_abbr.audit_result` are fully localized:
+
+| Key | en | pt-BR | Rationale |
+|---|---|---|---|
+| `finding_type.opportunity` | `OFI` | `OM` | *Oportunidade de Melhoria* — the established Brazilian audit abbreviation |
+| `finding_type.major_nc` | `Major NC` | `NC Maior` | Word-order follows Brazilian usage (*Não Conformidade Maior*) |
+| `finding_type.minor_nc` | `Minor NC` | `NC Menor` | Same rule |
+
+**"N/A" format.** The `common.cia.na` field uses `"N/A"` to represent *Não Aplicável* (Not Applicable) in Brazilian Portuguese. The most common alternative in translations is "N/D" (*Não Disponível*) which was considered but discarded. In compliance contexts, *Não Aplicável* indicates that the control does not apply to the record, whereas *Não Disponível* indicates that the expected evidence is unavailable or was not found. The latter situation may, therefore, indicate a control failure and result in the recording of a non-conformity.
+
+
+Privacy and data protection terms follow Brazil's Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), rather than an ISO adoption:
+
+| English | Brazilian Portuguese | Basis |
+|---|---|---|
+| controller | **controlador** | LGPD, art. 5º, VI |
+| processor | **operador** | LGPD, art. 5º, VII — legal wording; avoid literal "processador" |
+| data protection officer (DPO) | **encarregado** | LGPD, art. 5º, VIII |
+| data protection (legal category) | **proteção de dados** | LGPD statutory vocabulary |
+
 ### Worked example — Indonesian (`id-ID`)
 
 Verified against the bilingual SNI ISO 9001:2015, whose clauses 4–10 are the

@@ -1,0 +1,581 @@
+{
+  "brand": {
+    "product_name": "ISMS"
+  },
+  "action": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "ok": "OK",
+    "close": "Fechar",
+    "create": "Criar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "copy": "Copiar",
+    "search": "Pesquisar",
+    "clear": "Limpar",
+    "add_comment": "Adicionar comentário",
+    "comment": "Comentar",
+    "reply": "Responder",
+    "resolve": "Resolver",
+    "approve": "Aprovar",
+    "add": "Adicionar",
+    "discard_draft": "Descartar rascunho",
+    "discard": "Descartar"
+  },
+  "state": {
+    "loading": "Carregando…",
+    "saving": "Salvando...",
+    "empty": "Nada aqui ainda",
+    "error": "Algo deu errado",
+    "unknown": "Desconhecido",
+    "outdated": "Desatualizado",
+    "outdated_inline": "desatualizado",
+    "resolved": "Resolvido",
+    "copied": "Copiado",
+    "saved": "Salvo",
+    "overdue": "ATRASADO",
+    "no_notes": "Nenhuma nota ainda.",
+    "sending": "Enviando...",
+    "creating": "Criando..."
+  },
+  "validation": {
+    "required": "Este campo é obrigatório"
+  },
+  "locale": {
+    "label": "Idioma",
+    "org_default": "Padrão da organização"
+  },
+  "entity": {
+    "risk": "Risco",
+    "supplier": "Fornecedor",
+    "incident": "Incidente",
+    "legal_requirement": "Requisito legal",
+    "change_request": "Solicitação de mudança",
+    "corrective_action": "Ação corretiva",
+    "objective": "Objetivo",
+    "task": "Tarefa",
+    "system": "Sistema",
+    "asset": "Ativo",
+    "audit": "Auditoria",
+    "audit_finding": "Constatação de auditoria",
+    "program": "Programa",
+    "checkin": "Check-in",
+    "access_review": "Revisão de acesso",
+    "user": "Usuário",
+    "organization": "Organização",
+    "review": "Revisão",
+    "document": "Documento",
+    "comment": "Comentário",
+    "suggestion": "Sugestão",
+    "oidc_provider": "Provedor OIDC",
+    "policy": "Política",
+    "passkey": "Chave de acesso (passkey)",
+    "evidence": "Evidência",
+    "item": "Item"
+  },
+  "entity_inline": {
+    "risk": "risco",
+    "supplier": "fornecedor",
+    "incident": "incidente",
+    "legal_requirement": "requisito legal",
+    "change_request": "solicitação de mudança",
+    "corrective_action": "ação corretiva",
+    "objective": "objetivo",
+    "task": "tarefa",
+    "system": "sistema",
+    "asset": "ativo",
+    "audit": "auditoria",
+    "audit_finding": "constatação de auditoria",
+    "program": "programa",
+    "checkin": "check-in",
+    "access_review": "revisão de acesso",
+    "user": "usuário",
+    "organization": "organização",
+    "review": "revisão",
+    "document": "documento",
+    "comment": "comentário",
+    "suggestion": "sugestão",
+    "oidc_provider": "provedor OIDC",
+    "policy": "política",
+    "passkey": "passkey",
+    "evidence": "evidência",
+    "item": "item"
+  },
+  "field": {
+    "title": "título",
+    "name": "nome",
+    "email": "e-mail",
+    "token": "token",
+    "key": "chave",
+    "notes": "notas",
+    "path_pattern": "padrão de caminho",
+    "current_password": "senha atual",
+    "slug": "slug",
+    "role": "função",
+    "body": "corpo",
+    "reason": "motivo",
+    "file": "arquivo",
+    "code": "código",
+    "document_id": "ID do documento",
+    "new_email": "novo e-mail",
+    "entity_type": "tipo de entidade",
+    "suggestion_type": "tipo de sugestão"
+  },
+  "enum": {
+    "status": {
+      "draft": "Rascunho",
+      "open": "Aberto",
+      "in_review": "Em revisão",
+      "approved": "Aprovado",
+      "changes_requested": "Alterações solicitadas",
+      "proposed_revision": "Revisão proposta",
+      "merged": "Mesclado",
+      "retired": "Obsoleto",
+      "pending": "Pendente",
+      "accepted": "Aceito",
+      "applied": "Aplicado",
+      "rejected": "Rejeitado",
+      "withdrawn": "Retirado",
+      "resolved": "Resolvido",
+      "closed": "Fechado",
+      "investigating": "Investigando",
+      "contained": "Contido",
+      "todo": "A fazer",
+      "in_progress": "Em andamento",
+      "done": "Concluído",
+      "cancelled": "Cancelado",
+      "proposed": "Proposto",
+      "not_started": "Não iniciado",
+      "implemented": "Implementado",
+      "verified": "Verificado",
+      "planned": "Planejado",
+      "completed": "Concluído",
+      "active": "Ativo",
+      "at_risk": "Em risco",
+      "paused": "Pausado",
+      "complete": "Completo",
+      "assessment": "Avaliação",
+      "awaiting_approval": "Aguardando aprovação",
+      "implementation": "Implementação",
+      "monitoring": "Monitoramento",
+      "under_review": "Em análise crítica",
+      "suspended": "Suspenso",
+      "terminated": "Encerrado",
+      "decommissioned": "Descomissionado",
+      "archived": "Arquivado"
+    },
+    "severity": {
+      "critical": "Crítico",
+      "high": "Alto",
+      "medium": "Médio",
+      "low": "Baixo"
+    },
+    "criticality": {
+      "critical": "Crítica",
+      "high": "Alta",
+      "medium": "Média",
+      "low": "Baixa"
+    },
+    "classification": {
+      "public": "Público",
+      "internal": "Interno",
+      "confidential": "Confidencial",
+      "restricted": "Restrito"
+    },
+    "role": {
+      "admin": "Administrador",
+      "manager": "Gestor",
+      "contributor": "Colaborador",
+      "reader": "Leitor"
+    },
+    "audit_result": {
+      "not_assessed": "Não avaliado",
+      "conforming": "Conforme",
+      "minor_nc": "Não conformidade menor",
+      "major_nc": "Não conformidade maior",
+      "observation": "Observação",
+      "opportunity": "Oportunidade de melhoria"
+    },
+    "finding_type": {
+      "major_nc": "Não conformidade maior",
+      "minor_nc": "Não conformidade menor",
+      "observation": "Observação",
+      "opportunity": "Oportunidade de melhoria"
+    },
+    "action": {
+      "applied": "aplicado",
+      "rejected": "rejeitado"
+    },
+    "suggestion_type": {
+      "create": "Criar",
+      "update": "Atualizar",
+      "reassess": "Reavaliar",
+      "link": "Vincular",
+      "review": "Revisar",
+      "reading": "Leitura"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
+    },
+    "permissions": {
+      "read-write": "Leitura e escrita",
+      "read": "Somente leitura",
+      "write": "Somente escrita"
+    },
+    "treatment": {
+      "mitigate": "Mitigar",
+      "accept": "Aceitar",
+      "transfer": "Transferir",
+      "avoid": "Evitar"
+    },
+    "risk_type": {
+      "threat": "Ameaça",
+      "opportunity": "Oportunidade"
+    },
+    "origin": {
+      "internal": "Interno",
+      "external": "Externo",
+      "internal and external": "Interno e externo"
+    },
+    "incident_type": {
+      "incident": "Incidente",
+      "event": "Evento",
+      "weakness": "Fragilidade"
+    },
+    "gdpr_role": {
+      "controller": "Controlador",
+      "processor": "Operador"
+    },
+    "notification_status": {
+      "not_required": "Não necessário",
+      "pending": "Pendente",
+      "notified": "Notificado"
+    },
+    "supplier_type": {
+      "cloud": "Nuvem",
+      "saas": "SaaS",
+      "consulting": "Consultoria",
+      "hosting": "Hospedagem",
+      "infrastructure": "Infraestrutura",
+      "software": "Software",
+      "contractor": "Prestador de serviços",
+      "other": "Outro"
+    },
+    "asset_type": {
+      "infrastructure": "Infraestrutura",
+      "processing_devices": "Dispositivos de processamento",
+      "software": "Software",
+      "system": "Sistema",
+      "network": "Rede",
+      "service": "Serviço",
+      "financial_info": "Informações financeiras",
+      "personal_data": "Dados pessoais",
+      "ipr": "Propriedade intelectual",
+      "sales_marketing": "Vendas e marketing",
+      "processing_facility": "Instalação de processamento",
+      "products_services": "Produtos e serviços",
+      "supply_chain": "Cadeia de suprimentos",
+      "other": "Outro"
+    },
+    "legal_category": {
+      "privacy": "Privacidade",
+      "security": "Segurança",
+      "sector": "Setorial",
+      "contractual": "Contratual",
+      "other": "Outro",
+      "data_protection": "Proteção de dados",
+      "employment": "Legislação trabalhista",
+      "regulatory": "Conformidade regulatória",
+      "intellectual_property": "Propriedade intelectual",
+      "financial": "Regulamentação financeira",
+      "environmental": "Ambiental",
+      "corporate": "Governança corporativa"
+    },
+    "audit_type": {
+      "internal": "Interna",
+      "external": "Externa",
+      "surveillance": "Vigilância",
+      "certification": "Certificação",
+      "recertification": "Recertificação"
+    },
+    "change_category": {
+      "process": "Processo",
+      "technology": "Tecnologia",
+      "people": "Pessoas",
+      "documentation": "Documentação",
+      "infrastructure": "Infraestrutura",
+      "other": "Outro"
+    },
+    "task_type": {
+      "general": "Geral",
+      "review": "Revisão",
+      "incident_followup": "Acompanhamento de incidente",
+      "audit_followup": "Acompanhamento de auditoria",
+      "ca_followup": "Acompanhamento de ação corretiva",
+      "change_followup": "Acompanhamento de mudança",
+      "onboarding": "Integração",
+      "offboarding": "Desligamento",
+      "training": "Treinamento",
+      "other": "Outro"
+    },
+    "source": {
+      "internal_audit": "Auditoria interna",
+      "external_audit": "Auditoria externa",
+      "risk_assessment": "Avaliação de riscos",
+      "security_incident": "Incidente de segurança",
+      "objective": "Objetivo",
+      "feedback": "Feedback",
+      "other": "Outro"
+    },
+    "priority": {
+      "critical": "Crítica",
+      "high": "Alta",
+      "medium": "Média",
+      "low": "Baixa"
+    },
+    "outcome": {
+      "satisfactory": "Satisfatório",
+      "concerns": "Ressalvas",
+      "unsatisfactory": "Insatisfatório"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "Mudança",
+      "access_request": "Solicitação de acesso"
+    },
+    "risk_level": {
+      "critical": "Crítico",
+      "high": "Alto",
+      "medium": "Médio",
+      "low": "Baixo"
+    },
+    "document_type": {
+      "document": "Documento",
+      "policy": "Política",
+      "procedure": "Procedimento",
+      "control": "Controle",
+      "guideline": "Diretriz",
+      "record": "Registro",
+      "clause": "Cláusula",
+      "requirement": "Requisito"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "crítico",
+      "high": "alto",
+      "medium": "médio",
+      "low": "baixo"
+    },
+    "status": {
+      "draft": "rascunho",
+      "open": "aberto",
+      "investigating": "investigando",
+      "contained": "contido",
+      "resolved": "resolvido",
+      "closed": "fechado",
+      "in_review": "em revisão",
+      "approved": "aprovado",
+      "changes_requested": "alterações solicitadas",
+      "merged": "mesclado"
+    },
+    "suggestion_type": {
+      "create": "criar",
+      "update": "atualizar",
+      "reassess": "reavaliar",
+      "link": "vincular",
+      "review": "revisar",
+      "reading": "leitura"
+    },
+    "action": {
+      "applied": "aplicado",
+      "rejected": "rejeitado"
+    }
+  },
+  "error": {
+    "not_found": "{entity} não encontrado(a)",
+    "not_found_in_org": "{entity} não encontrado(a) nesta organização",
+    "invalid_entity_id": "id de {entity} inválido",
+    "required": "{field} é obrigatório",
+    "field_empty": "{field} não pode estar vazio",
+    "invalid_id": "id inválido",
+    "invalid_request": "solicitação inválida",
+    "invalid_role": "função inválida",
+    "invalid_status": "status inválido: {value}",
+    "invalid_credentials": "credenciais inválidas",
+    "invalid_token": "token inválido",
+    "invalid_otp_code": "código OTP inválido",
+    "invalid_confirm_link": "link de confirmação inválido ou expirado",
+    "token_email_mismatch": "o e-mail do token não corresponde",
+    "not_authenticated": "não autenticado",
+    "too_many_attempts": "muitas tentativas, tente novamente mais tarde",
+    "password_too_short": "a senha deve ter pelo menos {count} caracteres",
+    "current_password_required": "senha atual obrigatória",
+    "current_password_incorrect": "senha atual incorreta",
+    "email_and_password_required": "e-mail e senha são obrigatórios",
+    "email_in_use": "esse endereço de e-mail já está em uso",
+    "not_your_passkey": "não é sua chave de acesso",
+    "api_key_required": "chave de API necessária. Use: isms server api-key create",
+    "api_key_wrong_org": "a chave de API não está autorizada para esta organização",
+    "not_org_member": "não é membro desta organização",
+    "provider_other_org": "o provedor pertence a outra organização",
+    "manager_or_admin_required": "requer função de gestor ou administrador",
+    "document_modified": "o documento foi modificado por outro usuário — atualize e tente novamente",
+    "document_file_not_found": "arquivo do documento não encontrado",
+    "notes_required": "as notas são obrigatórias — descreva o que foi revisado e confirmado",
+    "review_wrong_status": "a revisão está {status}",
+    "review_already_status": "a revisão já está {status}",
+    "ai_disabled": "os recursos de IA estão desativados para esta organização",
+    "unsupported_locale": "idioma não suportado"
+  },
+  "region": {
+    "global": "Global",
+    "eu": "UE",
+    "eea": "EEE",
+    "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Serviço",
+    "powered_by": "Desenvolvido com isms.sh"
+  },
+  "count": {
+    "total": "{count} no total",
+    "comments": "{count} comentário | {count} comentários",
+    "outdated_comments": "{count} comentário desatualizado | {count} comentários desatualizados",
+    "of": "{shown} de {total}"
+  },
+  "placeholder": {
+    "search": "Pesquisar...",
+    "select_owner": "Selecionar responsável..."
+  },
+  "tab": {
+    "overview": "Visão geral",
+    "treatment": "Tratamento",
+    "assessment": "Avaliação",
+    "notes": "Notas",
+    "links": "Vínculos",
+    "actions": "Ações",
+    "suggestions": "Sugestões",
+    "comments": "Comentários",
+    "history": "Histórico"
+  },
+  "filter": {
+    "all_statuses": "Todos os status",
+    "all_types": "Todos os tipos",
+    "all_levels": "Todos os níveis",
+    "all_criticality": "Todas as criticidades",
+    "all_categories": "Todas as categorias",
+    "all_severities": "Todas as severidades",
+    "all_priorities": "Todas as prioridades",
+    "all_sources": "Todas as fontes",
+    "all_programs": "Todos os programas",
+    "all_owners": "Todos os responsáveis"
+  },
+  "option": {
+    "none": "Nenhum",
+    "not_decided": "Não decidido"
+  },
+  "stat": {
+    "total": "Total",
+    "overdue": "Atrasado"
+  },
+  "heading": {
+    "quick_actions": "Ações rápidas",
+    "danger_zone": "Zona de perigo"
+  },
+  "label": {
+    "version": "Versão",
+    "version_number": "Versão {version}",
+    "round": "Rodada {round}",
+    "round_paren": "(Rodada {round})",
+    "reviewers": "Revisores",
+    "approved_prefix": "Aprovado:"
+  },
+  "read_only": {
+    "actions": "Somente leitura — você precisa ser gestor ou administrador para fazer alterações."
+  },
+  "review": {
+    "last": "Última revisão: {date}",
+    "next": "Próxima revisão: {date}",
+    "overdue_since": "Revisão atrasada desde {date}"
+  },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "D"
+  },
+  "cia": {
+    "not_assessed": "Não avaliado",
+    "insignificant": "Insignificante",
+    "minor": "Menor",
+    "moderate": "Moderado",
+    "major": "Maior",
+    "severe": "Severo",
+    "na": "N/A"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "NC Maior",
+      "minor_nc": "NC Menor",
+      "observation": "Observação",
+      "opportunity": "OM"
+    },
+    "audit_result": {
+      "not_assessed": "Não avaliado",
+      "conforming": "Conforme",
+      "minor_nc": "NC Menor",
+      "major_nc": "NC Maior",
+      "observation": "Observação",
+      "opportunity": "Oportunidade"
+    }
+  },
+  "dirty": {
+    "switch_tab": "Você tem alterações não salvas. Descartar e alternar de aba?",
+    "close": "Você tem alterações não salvas. Descartar e fechar?",
+    "discard": "Descartar"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Criado a partir de [{label}]({link})",
+    "created_from_audit_finding": "Criado a partir da constatação de auditoria {label}"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "por {name}"
+  }
+}

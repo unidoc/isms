@@ -1,0 +1,84 @@
+{
+  "title": "Registro de Fornecedores",
+  "subtitle": "Fornecedores terceiros, criticalidade e avaliação",
+  "error": {
+    "save": "Falha ao salvar: {message}",
+    "create": "Falha ao criar fornecedor: {message}",
+    "delete": "Falha ao excluir: {message}"
+  },
+  "action": {
+    "add": "Adicionar Fornecedor"
+  },
+  "create": {
+    "heading": "Adicionar Fornecedor",
+    "name_label": "Nome *",
+    "name_placeholder": "ex.: AWS, Office 365",
+    "type_label": "Tipo",
+    "criticality_label": "Criticalidade",
+    "fill_in_later": "Você pode adicionar classificação CID, responsável e detalhes contratuais após a criação.",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhum fornecedor encontrado"
+  },
+  "table": {
+    "header": {
+      "supplier": "Fornecedor",
+      "type": "Tipo",
+      "criticality": "Criticalidade",
+      "cia": "C/I/D",
+      "status": "Status",
+      "owner": "Responsável",
+      "next_review": "Próxima Revisão"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidade: {level}",
+      "integrity": "Integridade: {level}",
+      "availability": "Disponibilidade: {level}"
+    }
+  },
+  "field": {
+    "name": "Nome",
+    "type": "Tipo",
+    "criticality": "Criticalidade",
+    "status": "Status",
+    "owner": "Responsável",
+    "contact": "Contato",
+    "contract_ref": "Referência Contratual",
+    "contract_expiry": "Vencimento do Contrato",
+    "data_access": "Acesso a Dados",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "contact": "contato{'@'}fornecedor.com",
+    "contract_ref": "DPA / URL do contrato",
+    "notes": "Notas adicionais... Digite /doc para vincular um documento"
+  },
+  "data_access": {
+    "checkbox": "Fornecedor tem acesso aos nossos dados",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "tab": {
+    "reviews": "Revisões"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidade",
+    "integrity": "Integridade",
+    "availability": "Disponibilidade"
+  },
+  "linked_systems": {
+    "heading": "nenhum sistema vinculado | Sistema vinculado ({count}) | Sistemas vinculados ({count})"
+  },
+  "danger": {
+    "warning": "Excluir este fornecedor é permanente e não pode ser desfeito. Histórico, comentários, revisões e referências vinculadas serão perdidos.",
+    "delete": "Excluir fornecedor",
+    "confirm": "Excluir este fornecedor? Esta ação não pode ser desfeita."
+  }
+}

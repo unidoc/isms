@@ -1,0 +1,102 @@
+{
+  "title": "Registro de Sistemas",
+  "subtitle": "Sistemas de TI, objetivos de recuperação, controle de acesso e vínculos com fornecedores",
+  "error": {
+    "save": "Falha ao salvar: {message}",
+    "create": "Falha ao criar sistema: {message}",
+    "delete": "Falha ao excluir: {message}",
+    "record_review": "Falha ao registrar revisão: {message}"
+  },
+  "action": {
+    "add": "Adicionar Sistema"
+  },
+  "create": {
+    "heading": "Adicionar Sistema",
+    "name_label": "Nome *",
+    "name_placeholder": "ex.: ERP de Produção",
+    "classification_label": "Classificação",
+    "criticality_label": "Criticalidade",
+    "supplier_label": "Fornecedor",
+    "fill_in_later": "Você pode adicionar classificação CID, RPO/RTO e responsável após a criação.",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhum sistema encontrado"
+  },
+  "option": {
+    "no_supplier": "— Nenhum —"
+  },
+  "table": {
+    "header": {
+      "system": "Sistema",
+      "classification": "Classificação",
+      "criticality": "Criticalidade",
+      "cia": "C/I/D",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Status",
+      "owner": "Responsável",
+      "next_review": "Próxima Revisão"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidade: {level}",
+      "integrity": "Integridade: {level}",
+      "availability": "Disponibilidade: {level}"
+    },
+    "hours": "{count}h"
+  },
+  "field": {
+    "name": "Nome",
+    "description": "Descrição",
+    "classification": "Classificação",
+    "criticality": "Criticalidade",
+    "status": "Status",
+    "owner": "Responsável",
+    "department": "Departamento",
+    "supplier": "Fornecedor",
+    "rpo": "RPO (horas)",
+    "rto": "RTO (horas)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "external_id": "ID Externo"
+  },
+  "hint": {
+    "rpo": "Perda de dados máxima aceitável (horas)",
+    "rto": "Tempo de inatividade máximo aceitável (horas)"
+  },
+  "placeholder": {
+    "description": "Descreva o sistema...",
+    "department": "TI, Engenharia, Marketing...",
+    "notes": "Notas adicionais... Digite /doc para vincular um documento"
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "tab": {
+    "reviews": "Revisões de Acesso"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidade",
+    "integrity": "Integridade",
+    "availability": "Disponibilidade"
+  },
+  "reviews": {
+    "heading": "Revisões de Acesso",
+    "add": "+ Registrar revisão",
+    "users_added": "Usuários Adicionados",
+    "users_removed": "Usuários Removidos",
+    "notes_label": "Notas",
+    "notes_placeholder": "Funcionários desligados removidos...",
+    "submit": "Registrar Revisão",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "revisou",
+    "empty": "Nenhuma revisão de acesso registrada."
+  },
+  "danger": {
+    "warning": "Excluir este sistema é permanente e não pode ser desfeito. Histórico, comentários, revisões de acesso e referências vinculadas serão perdidos.",
+    "delete": "Excluir sistema",
+    "confirm": "Excluir este sistema? Esta ação não pode ser desfeita."
+  }
+}

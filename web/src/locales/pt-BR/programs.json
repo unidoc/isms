@@ -1,0 +1,48 @@
+{
+  "title": "Registro de Programas",
+  "subtitle": "Agrupar objetivos do SGSI em programas de trabalho",
+  "error": {
+    "save": "Falha ao salvar: {message}"
+  },
+  "action": {
+    "add": "Adicionar Programa"
+  },
+  "create": {
+    "heading": "Adicionar Programa",
+    "key_label": "Chave (maiúsculas) *",
+    "key_placeholder": "CONSCIE",
+    "title_label": "Título *",
+    "title_placeholder": "Conscientização em Segurança",
+    "fill_in_later": "Você pode adicionar descrição e notas após a criação.",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhum programa ainda"
+  },
+  "table": {
+    "header": {
+      "key": "Chave",
+      "title": "Título",
+      "description": "Descrição"
+    }
+  },
+  "field": {
+    "key": "Chave",
+    "title": "Título",
+    "description": "Descrição",
+    "created": "Criado"
+  },
+  "placeholder": {
+    "description": "Qual é este programa?",
+    "notes": "Adicionar notas..."
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "danger": {
+    "warning": "Excluir este programa também exclui todos os objetivos vinculados. Esta ação não pode ser desfeita.",
+    "delete": "Excluir programa",
+    "confirm": "Excluir programa \"{key}\"? Todos os objetivos vinculados também serão excluídos."
+  }
+}

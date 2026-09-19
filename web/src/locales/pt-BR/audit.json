@@ -1,0 +1,232 @@
+{
+  "title": "Auditoria Interna",
+  "subtitle": "Programas de auditoria, calendário e constatações",
+  "error": {
+    "load": "Falha ao carregar módulo de auditoria. {message}",
+    "load_programmes": "Falha ao carregar programas: {message}",
+    "load_audits": "Falha ao carregar auditorias: {message}",
+    "load_calendar": "Falha ao carregar calendário: {message}",
+    "load_findings": "Falha ao carregar constatações: {message}",
+    "load_audit_detail": "Falha ao carregar detalhes da auditoria: {message}",
+    "create_programme": "Falha ao criar programa: {message}",
+    "save_programme": "Falha ao salvar programa: {message}",
+    "delete_programme": "Falha ao excluir programa: {message}",
+    "create_audit": "Falha ao criar auditoria: {message}",
+    "save_audit": "Falha ao salvar auditoria: {message}",
+    "save_report": "Falha ao salvar relatório: {message}",
+    "add_item": "Falha ao adicionar item: {message}",
+    "save_item": "Falha ao salvar: {message}",
+    "remove_item": "Falha ao remover: {message}",
+    "create_finding": "Falha ao adicionar constatação: {message}",
+    "save_finding": "Falha ao salvar constatação: {message}",
+    "delete_finding": "Falha ao excluir constatação: {message}"
+  },
+  "toast": {
+    "programme_added": "Programa adicionado",
+    "programme_deleted": "Programa excluído",
+    "audit_added": "Auditoria adicionada",
+    "report_saved": "Relatório salvo",
+    "item_added": "Item adicionado",
+    "item_removed": "Item removido",
+    "finding_added": "Constatação adicionada",
+    "finding_deleted": "Constatação excluída"
+  },
+  "tab": {
+    "calendar": "Calendário",
+    "programmes": "Programas",
+    "findings": "Constatações",
+    "audits": "Auditorias",
+    "items": "Itens",
+    "report": "Relatório",
+    "discussion": "Discussão",
+    "linked": "ACs Vinculadas"
+  },
+  "action": {
+    "add_programme": "Adicionar Programa",
+    "add_finding": "Adicionar Constatação",
+    "add_audit": "Adicionar Auditoria"
+  },
+  "calendar": {
+    "loading": "Carregando calendário...",
+    "audit_count": "{count} auditoria | {count} auditorias",
+    "month_empty": "Nenhuma auditoria planejada para este mês",
+    "unscheduled": "Sem agendamento",
+    "unscheduled_count": "{count} auditoria sem data planejada | {count} auditorias sem data planejada",
+    "unscheduled_range": "sem agendamento",
+    "empty": "Nenhuma auditoria em {year}. Adicione uma auditoria de um programa para vê-la aqui."
+  },
+  "programme": {
+    "search_placeholder": "Buscar programas...",
+    "all_years": "Todos os anos",
+    "empty_filtered": "Nenhum programa corresponde ao seu filtro.",
+    "empty": "Nenhum programa de auditoria ainda — clique em Adicionar Programa para criar um.",
+    "table": {
+      "id": "ID",
+      "title": "Título",
+      "year": "Ano",
+      "audits": "Auditorias",
+      "findings": "Constatações",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Adicionar Programa",
+      "title_label": "Título *",
+      "title_placeholder": "ex.: Programa de Auditoria Anual 2026",
+      "year_label": "Ano *",
+      "fill_in_later": "Você pode adicionar descrição, status e auditorias após a criação.",
+      "submitting": "Adicionando...",
+      "submit": "Adicionar"
+    },
+    "field": {
+      "title": "Título",
+      "year": "Ano",
+      "status": "Status",
+      "description": "Descrição",
+      "notes": "Notas",
+      "audits": "Auditorias",
+      "created_by": "Criado por",
+      "created": "Criado"
+    },
+    "placeholder": {
+      "description": "Objetivos e escopo do programa...",
+      "notes": "Notas internas..."
+    },
+    "audits_heading": "Auditorias neste programa",
+    "add_audit": "+ Adicionar Auditoria",
+    "audits_empty": "Nenhuma auditoria neste programa ainda.",
+    "open_findings": "{count} aberta(s)",
+    "danger": {
+      "warning": "Programas com auditorias não podem ser excluídos. Remova todas as auditorias primeiro.",
+      "delete": "Excluir programa",
+      "confirm": "Excluir programa \"{title}\"? Esta ação não pode ser desfeita."
+    }
+  },
+  "audit": {
+    "loading_detail": "Carregando detalhes da auditoria...",
+    "create": {
+      "heading": "Adicionar Auditoria",
+      "title_label": "Título *",
+      "title_placeholder": "Título da auditoria",
+      "programme_label": "Programa",
+      "no_programme": "Sem programa (avulsa)",
+      "type_label": "Tipo de Auditoria",
+      "fill_in_later": "Você pode adicionar escopo, auditor, datas e itens após a criação.",
+      "submitting": "Adicionando...",
+      "submit": "Adicionar"
+    },
+    "field": {
+      "title": "Título",
+      "scope": "Escopo",
+      "type": "Tipo de Auditoria",
+      "status": "Status",
+      "auditor": "Auditor",
+      "programme": "Programa",
+      "planned_date": "Data Planejada",
+      "end_date": "Data de Término",
+      "planned": "Planejado",
+      "started": "Iniciado",
+      "completed": "Concluído",
+      "items": "Itens",
+      "findings": "Constatações",
+      "notes": "Notas"
+    },
+    "placeholder": {
+      "scope": "Descrição do escopo. Digite /doc para vincular controles ou cláusulas...",
+      "auditor": "Selecionar auditor...",
+      "notes": "Notas internas da auditoria..."
+    },
+    "open_count": "({count} aberta(s))",
+    "danger": {
+      "warning": "Auditorias não podem ser excluídas pela interface. Gerencie ações destrutivas via CLI."
+    }
+  },
+  "items": {
+    "heading": "Itens de Auditoria ({count})",
+    "add": "+ Adicionar Item",
+    "search_placeholder": "Buscar documentos, controles, cláusulas, riscos, ativos...",
+    "searching": "Buscando...",
+    "no_matches": "Nenhum resultado.",
+    "empty": "Nenhum item ainda — adicione controles, cláusulas, riscos ou outros itens para avaliar.",
+    "raise_finding": "Levantar constatação",
+    "raise_finding_title": "Criar uma constatação a partir deste item",
+    "delete_title": "Excluir item",
+    "evidence": "Evidência",
+    "evidence_placeholder": "Referência de evidência, link ou descrição...",
+    "notes": "Notas",
+    "notes_empty": "Notas (vazio)",
+    "notes_placeholder": "Notas inline para este item...",
+    "save_notes": "Salvar notas",
+    "confirm_remove": "Remover \"{title}\" desta auditoria?",
+    "remove": "Remover"
+  },
+  "findings": {
+    "search_placeholder": "Buscar constatações...",
+    "all_audits": "Todas as auditorias",
+    "overdue_toggle_title": "Alternar: Somente atrasadas",
+    "overdue_only": "Somente atrasadas",
+    "overdue": "Atrasado",
+    "empty_filtered": "Nenhuma constatação corresponde ao seu filtro.",
+    "empty": "Nenhuma constatação registrada ainda.",
+    "heading_count": "Constatações ({count})",
+    "add": "+ Adicionar Constatação",
+    "audit_empty": "Nenhuma constatação registrada para esta auditoria ainda.",
+    "table": {
+      "id": "ID",
+      "title": "Título",
+      "audit": "Auditoria",
+      "type": "Tipo",
+      "owner": "Responsável",
+      "due": "Prazo",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Adicionar Constatação",
+      "title_label": "Título *",
+      "title_placeholder": "Título da constatação",
+      "audit_label": "Auditoria *",
+      "audit_placeholder": "Selecionar auditoria...",
+      "type_label": "Tipo",
+      "fill_in_later": "Você pode adicionar descrição, responsável, data de prazo e vínculos com ações corretivas após a criação.",
+      "submitting": "Adicionando...",
+      "submit": "Adicionar"
+    },
+    "field": {
+      "title": "Título",
+      "description": "Descrição",
+      "type": "Tipo",
+      "status": "Status",
+      "owner": "Responsável",
+      "due_date": "Prazo",
+      "due_date_read": "Prazo",
+      "audit": "Auditoria",
+      "audit_item": "Item de Auditoria",
+      "created": "Criado",
+      "closed": "Fechado"
+    },
+    "placeholder": {
+      "description": "Descrição detalhada da constatação, evidências, análise de causa raiz...",
+      "owner": "Selecionar responsável..."
+    },
+    "item_ref": "item #{id}",
+    "quick_action": "Ação rápida",
+    "create_ca": "Criar Ação Corretiva a partir da constatação",
+    "create_ca_hint": "Criar uma AC pré-preenchida com o título e a severidade desta constatação.",
+    "danger": {
+      "warning": "Excluir esta constatação é permanente. As ações corretivas vinculadas permanecem, mas perdem esta referência.",
+      "delete": "Excluir constatação",
+      "confirm": "Excluir esta constatação? Esta ação não pode ser desfeita."
+    }
+  },
+  "report": {
+    "heading": "Relatório de Auditoria",
+    "placeholder": "Relatório final do auditor — observações, conclusões, recomendações. Use comandos de barra para vincular controles, cláusulas, evidências...",
+    "empty": "Nenhum relatório escrito ainda."
+  },
+  "dirty": {
+    "report_switch_tab": "Você tem alterações não salvas no relatório. Descartar e trocar de aba?",
+    "report_close": "Você tem alterações não salvas no relatório. Descartar e fechar?"
+  },
+  "detail": {
+    "overview": "Visão geral"
+  }
+}

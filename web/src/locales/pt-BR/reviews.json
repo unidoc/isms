@@ -1,0 +1,189 @@
+{
+  "title": "Revisões",
+  "subtitle": "Solicitações de revisão de documentos",
+  "back": "Voltar para revisões",
+  "not_found": "Revisão não encontrada",
+  "opened_ago": "aberta {time}",
+  "ai": {
+    "active": "Análise crítica de IA em andamento",
+    "escalated": "Escalada — análise crítica de IA parada"
+  },
+  "guide": {
+    "step_review": "Revisar o documento e as alterações",
+    "step_comment": "Adicionar comentários ou sugerir edições",
+    "step_decide": "Aprovar ou solicitar alterações"
+  },
+  "tab": {
+    "changes": "Alterações (Rodada {round})",
+    "document": "Documento",
+    "conversation": "Conversa"
+  },
+  "timeline": {
+    "suggested_edit": "sugeriu uma edição",
+    "commented": "comentou",
+    "approved": "aprovou esta revisão",
+    "proposed_revision": "propôs uma revisão",
+    "requested_changes": "solicitou alterações",
+    "assigned": "{reviewer} foi atribuído como revisor",
+    "empty": "Nenhuma atividade ainda.",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "mesclou esta revisão",
+      "approved": "aprovou (registro de decisão)",
+      "proposed_revision": "propôs revisão (registro de decisão)",
+      "changes_requested": "solicitou alterações (registro de decisão)"
+    },
+    "content_hash": "Hash SHA-256 do conteúdo para evidência de integridade",
+    "hide_changes": "Ocultar alterações",
+    "view_changes": "Ver alterações",
+    "diff_loading": "Carregando alterações…",
+    "diff_error": "Não foi possível carregar o diff desta revisão."
+  },
+  "updated": {
+    "heading": "Documento atualizado desde o envio da revisão",
+    "last_modified_by": "Última modificação por {name}",
+    "last_modified_by_with_message": "Última modificação por {name} — {message}",
+    "note": "O diff abaixo mostra todas as alterações desde a última versão aprovada."
+  },
+  "diff": {
+    "summary_heading": "Alterações nesta revisão",
+    "never_approved_inline": "Revisão completa — este documento nunca foi aprovado. Revise o documento completo na aba Documento.",
+    "none_inline": "Nenhum diff disponível — o documento pode não ter sido modificado desde a base da revisão.",
+    "loading": "Carregando alterações...",
+    "scope_round": "Alterações nesta rodada",
+    "scope_all": "Todas as alterações na revisão",
+    "mode_split": "Dividido",
+    "mode_unified": "Unificado",
+    "never_approved_heading": "Revisão completa — este documento nunca foi aprovado",
+    "never_approved_body": "Não existe versão aprovada anterior para comparar. Revise o documento completo na aba Documento.",
+    "none_in_round": "Nenhuma alteração encontrada nesta rodada."
+  },
+  "comment": {
+    "heading": "Adicionar comentário",
+    "placeholder": "Deixe um comentário..."
+  },
+  "edit": {
+    "save_and_resubmit": "Salvar & Reenviar",
+    "send_revision": "Enviar revisão proposta",
+    "draft_saved": "Rascunho salvo",
+    "note_placeholder": "O que você alterou e por quê?",
+    "draft_recovered": "Rascunho recuperado da sessão anterior."
+  },
+  "summary": {
+    "resubmitted": "Reenviado após alterações solicitadas",
+    "initial": "Revisão inicial",
+    "approved_count": "{approved} de {total}",
+    "waiting_on": "Aguardando:",
+    "ready_to_merge": "Todos os revisores aprovaram. Pronto para mesclar.",
+    "changes_requested_you": "Alterações solicitadas. Aguardando sua resposta.",
+    "changes_requested_author": "Alterações solicitadas. Aguardando resposta de {author}."
+  },
+  "suggestion": {
+    "count": "{count} sugestão | {count} sugestões",
+    "pending": "{count} pendente(s)",
+    "accepted": "{count} aceita(s)",
+    "rejected": "{count} rejeitada(s)"
+  },
+  "assignment": {
+    "empty": "Nenhum revisor atribuído",
+    "status": {
+      "approved": "aprovado",
+      "pending": "pendente",
+      "changes_requested": "alterações",
+      "proposed_revision": "revisão"
+    }
+  },
+  "policy": {
+    "heading": "Requisitos de Aprovação",
+    "approvals": "{current}/{min} aprovações",
+    "missing_roles": "Faltando: função {roles}",
+    "missing_users": "Aguardando: {users}",
+    "blocked": "Mesclagem bloqueada até que todos os requisitos sejam atendidos",
+    "will_auto_merge": "Será mesclado automaticamente quando todas as aprovações forem concluídas",
+    "require_human": "Pelo menos uma aprovação humana é obrigatória",
+    "auto_merge": "Mesclagem automática habilitada para esta política"
+  },
+  "actions": {
+    "heading": "Ações",
+    "requirements_not_met": "Requisitos não atendidos",
+    "publish": "Publicar",
+    "publish_version": "Publicar {version}",
+    "publish_note": "Isso tornará {version} o documento aceito.",
+    "publish_note_this_version": "Isso tornará esta versão o documento aceito.",
+    "awaiting_manager": "Todos os revisores aprovaram. Aguardando um gestor para publicar.",
+    "revision_proposed_by": "{name} propôs uma revisão a este documento.",
+    "publishing": "Publicando...",
+    "accept_and_publish": "Aceitar & Publicar",
+    "request_another_review": "Solicitar Outra Revisão",
+    "propose_new_revision": "Propor Nova Revisão",
+    "changes_were_requested": "Alterações foram solicitadas. Edite o documento e reenvie.",
+    "edit_and_resubmit": "Editar & Reenviar",
+    "you_sent_this": "Você enviou esta revisão.",
+    "waiting_for_feedback": "Aguardando feedback dos revisores.",
+    "you_approved": "Você aprovou esta rodada.",
+    "you_proposed_revision": "Você propôs uma revisão.",
+    "you_requested_changes": "Você solicitou alterações.",
+    "waiting_for_author": "Aguardando resposta de {author}.",
+    "waiting_for_reviewers": "Aguardando outros revisores.",
+    "stale_warning": "O documento foi atualizado após o envio desta revisão. Revise as últimas alterações antes de aprovar.",
+    "request_changes": "Solicitar Alterações",
+    "propose_revision": "Propor Revisão",
+    "approve_heading": "Aprovar este documento",
+    "approve_placeholder": "Comentário opcional...",
+    "approving": "Aprovando...",
+    "confirm_approve": "Confirmar Aprovação",
+    "changes_heading": "Solicitar alterações",
+    "changes_placeholder": "Descreva o que precisa ser alterado... (obrigatório)",
+    "submitting": "Enviando...",
+    "submit_request": "Enviar Solicitação",
+    "withdraw": "Retirar Revisão",
+    "close_without_merging": "Fechar Sem Mesclar",
+    "not_a_reviewer": "Você não é revisor nesta solicitação."
+  },
+  "closed_state": {
+    "merged": "Mesclado",
+    "closed": "Fechado"
+  },
+  "document": {
+    "heading": "Documento",
+    "id": "ID",
+    "comments": "Comentários",
+    "open_comments": "Abertos"
+  },
+  "list": {
+    "empty_open": "Nenhuma revisão aberta",
+    "empty_closed": "Nenhuma revisão fechada",
+    "item_title": "Revisão #{id} -- {title}",
+    "opened_by": "Aberta por {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "autor",
+  "reviewer_fallback": "Um revisor",
+  "revision_note_fallback": "Edições do autor",
+  "toast": {
+    "revision_published": "Revisão aceita e publicada.",
+    "revision_accepted": "Revisão proposta aceita",
+    "decision_recorded": "Sua aprovação foi registrada{round}. Aguardando {count} revisor. | Sua aprovação foi registrada{round}. Aguardando {count} revisores.",
+    "decision_recorded_changes": "Sua solicitação de alterações foi registrada{round}. Aguardando {count} revisor. | Sua solicitação de alterações foi registrada{round}. Aguardando {count} revisores.",
+    "all_approved": "Todos os revisores aprovaram{round}. Pronto para mesclar.",
+    "changes_requested": "Alterações solicitadas{round}. O autor será notificado.",
+    "for_round": " para a Rodada {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Aprovar mesmo assim",
+    "approve_stale_body": "O documento foi modificado após o envio desta revisão. Aprovar com base na versão atual?",
+    "discard_changes": "Descartar alterações não salvas?"
+  },
+  "error": {
+    "save_and_resubmit": "Falha ao salvar & reenviar: {message}",
+    "publish": "Falha ao publicar: {message}",
+    "accept_revision": "Falha ao aceitar revisão: {message}",
+    "submit_revision": "Falha ao enviar revisão: {message}",
+    "load_list": "Falha ao carregar revisões: {message}",
+    "load_one": "Falha ao carregar revisão: {message}",
+    "add_comment": "Falha ao adicionar comentário: {message}",
+    "submit_decision": "Falha ao enviar decisão: {message}",
+    "merge": "Falha ao mesclar revisão: {message}",
+    "close": "Falha ao fechar revisão: {message}"
+  }
+}

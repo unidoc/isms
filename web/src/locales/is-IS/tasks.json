@@ -1,0 +1,69 @@
+{
+  "title": "Verkefni",
+  "subtitle": "Yfirferðarverkefni, eftirfylgni og rekstrarverkefni.",
+  "error": {
+    "create": "Ekki tókst að stofna verkefni: {message}",
+    "save": "Ekki tókst að vista: {message}",
+    "delete": "Ekki tókst að eyða verkefni: {message}"
+  },
+  "action": {
+    "add": "Bæta við verkefni"
+  },
+  "create": {
+    "heading": "Bæta við verkefni",
+    "title_label": "Titill",
+    "title_placeholder": "t.d. Fara yfir áhættuskrá",
+    "priority_label": "Forgangur",
+    "type_label": "Tegund",
+    "visibility_label": "Sýnileiki",
+    "fill_in_later": "Þú getur bætt við lýsingu, ábyrgðaraðila, skiladegi og athugasemdum eftir stofnun.",
+    "submitting": "Stofna...",
+    "submit": "Bæta við"
+  },
+  "visibility": {
+    "public": "Opinbert — allir í fyrirtækinu",
+    "private": "Einkamál — ábyrgðaraðili, stofnandi og stjórnendur",
+    "private_badge": "Einkamál",
+    "private_title": "Einkamál — sýnilegt ábyrgðaraðila, stofnanda og stjórnendum"
+  },
+  "filter": {
+    "assignee_placeholder": "Hver sem er ábyrgur",
+    "empty": "Engin verkefni samræmast síunni þinni.",
+    "empty_all": "Engin verkefni ennþá — smelltu á Bæta við til að stofna það fyrsta.",
+    "empty_hint": "Verkefni verða líka til sjálfkrafa út frá yfirfallnum yfirferðarlotum."
+  },
+  "list": {
+    "due": "Skiladagur {date}",
+    "created_by": "af {name}"
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "assignee": "Ábyrgðaraðili",
+    "priority": "Forgangur",
+    "status": "Staða",
+    "due_date": "Skiladagur",
+    "type": "Tegund",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "completed": "Lokið"
+  },
+  "placeholder": {
+    "description": "Lýstu verkefninu...",
+    "assignee": "Velja ábyrgðaraðila...",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir",
+    "progress": "Framvinda"
+  },
+  "stat": {
+    "active": "Virk"
+  },
+  "danger": {
+    "warning": "Að eyða þessu verkefni er varanlegt og verður ekki afturkallað.",
+    "delete": "Eyða verkefni",
+    "confirm": "Eyða verkefninu „{title}“?"
+  }
+}

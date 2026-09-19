@@ -1,0 +1,98 @@
+{
+  "title": "Markmið",
+  "subtitle": "Fylgjast með mælanlegum markmiðum stjórnkerfisins og árangri lykilmælikvarða",
+  "error": {
+    "save": "Ekki tókst að vista: {message}",
+    "download": "Niðurhal mistókst: óvænt svar frá netþjóni"
+  },
+  "action": {
+    "add": "Bæta við markmiði"
+  },
+  "filter": {
+    "all_programs": "Allar áætlanir",
+    "owner_placeholder": "Ábyrgðaraðili...",
+    "empty": "Engin markmið fundust"
+  },
+  "create": {
+    "heading": "Bæta við markmiði",
+    "program_label": "Áætlun *",
+    "program_placeholder": "Velja áætlun...",
+    "owner_label": "Ábyrgðaraðili",
+    "title_label": "Titill *",
+    "title_placeholder": "Mánaðarlegt hlutfall lokinna vefveiðaprófa",
+    "fill_in_later": "Þú getur bætt við markgildi, uppruna, mæliaðferð, lýsingu og athugasemdum eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "table": {
+    "header": {
+      "id": "Auðkenni",
+      "title": "Titill",
+      "target": "Markmið",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili"
+    }
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "owner": "Ábyrgðaraðili",
+    "source": "Uppruni",
+    "status": "Staða",
+    "measurement_method": "Mæliaðferð",
+    "measurement": "Mæling",
+    "operator": "Virki",
+    "target_value": "Markgildi",
+    "target": "Markmið",
+    "unit": "Eining",
+    "checkin_cycle_months": "Innritunartíðni (mánuðir)",
+    "checkin_cycle": "Innritunartíðni",
+    "last_checkin": "Síðasta innritun",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "months": "{count} mánuður | {count} mánuðir"
+  },
+  "placeholder": {
+    "description": "Hvað felst í þessu markmiði?",
+    "owner": "Velja ábyrgðaraðila...",
+    "source": "ISO 27001 6.2, o.fl.",
+    "measurement_method": "Hvernig er þetta mælt?",
+    "unit": "%, fjöldi, klukkustundir...",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "checkin": {
+    "heading": "Innritanir",
+    "summary": "{pass} náð · {fail} ekki náð · {total} samtals",
+    "record_heading": "Skrá innritun",
+    "value_label": "Gildi",
+    "value_placeholder": "97,5",
+    "result_label": "Niðurstaða",
+    "result": {
+      "unspecified": "Óskilgreint",
+      "pass": "Náð",
+      "fail": "Ekki náð"
+    },
+    "message_label": "Innri athugasemd",
+    "message_placeholder": "Innra samhengi...",
+    "public_note_placeholder": "Athugasemd fyrir hagsmunaaðila (sýnileg þeim)",
+    "submit": "Skrá",
+    "empty": "Engar innritanir skráðar ennþá",
+    "pass_badge": "NÁÐ",
+    "fail_badge": "EKKI NÁÐ",
+    "public": "Opinbert: {note}",
+    "confirm_delete": "Eyða þessari innritun?"
+  },
+  "evidence": {
+    "download": "Sækja",
+    "attach": "Festa sönnunargagn við",
+    "confirm_delete": "Eyða sönnunargagninu „{title}“?"
+  },
+  "danger": {
+    "warning": "Að eyða þessu markmiði er varanlegt og verður ekki afturkallað.",
+    "delete": "Eyða markmiði",
+    "confirm": "Eyða markmiðinu „{title}“? Þetta verður ekki afturkallað."
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Skjöl",
+    "new": "Nýtt",
+    "new_folder": "Ný mappa",
+    "new_document": "Nýtt skjal",
+    "empty": "Engin skjöl ennþá",
+    "import_template": "Flytja inn sniðmát",
+    "new_folder_placeholder": "heiti nýrrar möppu...",
+    "folder_name_placeholder": "heiti möppu...",
+    "hide": "Fela tré",
+    "show": "Sýna tré"
+  },
+  "empty": {
+    "heading": "Engin skjöl ennþá",
+    "body": "Fluttu inn sniðmát til að útbúa skjalauppbyggingu, notaðu svo trévalmyndina til að bæta við skjölum og möppum.",
+    "import_template": "Flytja inn sniðmát"
+  },
+  "dash": {
+    "tab": {
+      "review": "Þarfnast yfirferðar",
+      "recent": "Nýlega breytt",
+      "search": "Leita",
+      "templates": "Sniðmát"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Taka með aldrei samþykkt ({count})",
+    "up_to_date": "Öll skjöl eru uppfærð.",
+    "never_approved": "Aldrei samþykkt",
+    "changed": "Breytt",
+    "current": "Núverandi: {commit} ({time})",
+    "approved": "Samþykkt: {commit}",
+    "review": "Yfirfara",
+    "diff": "Samanburður"
+  },
+  "recent": {
+    "refresh": "Endurhlaða",
+    "empty": "Engar nýlegar breytingar.",
+    "meta": "{time} af {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Leita í öllum skjölum...",
+    "hint": "Skrifaðu að minnsta kosti 2 stafi til að leita í öllum skjölum.",
+    "searching": "Leita...",
+    "no_results": "Engar niðurstöður fyrir „{query}“"
+  },
+  "templates": {
+    "heading": "Sniðmát",
+    "subtitle": "Bæta við eða fjarlægja skjalauppbyggingu fyrir staðla.",
+    "installed": "Uppsett",
+    "add": "Bæta við",
+    "remove": "Fjarlægja",
+    "remove_heading": "Fjarlægja sniðmát",
+    "remove_body": "Ertu viss um að þú viljir fjarlægja {name}? Þetta eyðir öllum skjölum undir {path} úr safninu.",
+    "picker_heading": "Flytja inn sniðmát",
+    "picker_subtitle": "Veldu staðal til að útbúa skjalauppbygginguna þína.",
+    "picker_placeholder": "Leita í sniðmátum...",
+    "picker_empty": "Engin sniðmát fundust.",
+    "import": "Flytja inn",
+    "added": "Sniðmátið {name} var bætt við.",
+    "removed": "Sniðmátið {name} var fjarlægt.",
+    "add_failed": "Ekki tókst að bæta við sniðmáti: {message}",
+    "remove_failed": "Ekki tókst að fjarlægja sniðmát: {message}"
+  },
+  "toolbar": {
+    "edit": "Breyta",
+    "save": "Vista",
+    "send_for_review": "Senda til yfirferðar",
+    "version_history": "Útgáfusaga",
+    "comments": "Athugasemdir",
+    "print": "Prenta skjal",
+    "delete": "Eyða skjali"
+  },
+  "print": {
+    "version": "Útgáfa {version}",
+    "author": "Höfundur: {name}",
+    "printed": "Prentað {date}"
+  },
+  "tab": {
+    "content": "Efni",
+    "info": "Upplýsingar",
+    "versions": "Útgáfur",
+    "links": "Tenglar",
+    "discussion": "Umræða",
+    "history": "Saga"
+  },
+  "meta": {
+    "status": "Staða",
+    "go_to_active_review": "Fara í virka yfirferð",
+    "go_to_reviews": "Fara í yfirferðir",
+    "type": "Tegund",
+    "author": "Höfundur",
+    "author_placeholder": "Velja höfund...",
+    "version": "Útgáfa",
+    "owner": "Ábyrgðaraðili",
+    "not_set": "Ekki stillt",
+    "review_cycle": "Yfirferðartíðni",
+    "review_cycle_months": "Á {count} mánaðar fresti | Á {count} mánaða fresti",
+    "last_approved": "Síðast samþykkt",
+    "approved_version": "Samþykkt útgáfa",
+    "next_review": "Næsta yfirferð",
+    "due_soon": "VÆNTANLEGT"
+  },
+  "banner": {
+    "round_complete": "Umferð {round} lokið — óskað eftir breytingum",
+    "pending_suggestions": "{count} tillaga bíður úrvinnslu. | {count} tillögur bíða úrvinnslu.",
+    "feedback_waiting": "Beðið er eftir ábendingu yfirferðaraðila í samtalinu.",
+    "then_resubmit": "Vinndu úr ábendingunum og sendu svo aftur fyrir næstu umferð.",
+    "open_review": "Opna yfirferð",
+    "in_review": "Þetta skjal er í yfirferð.",
+    "in_review_round": "Þetta skjal er í yfirferð (umferð {round}).",
+    "view_review": "Skoða yfirferð →",
+    "retired": "Þetta skjal er fyrnt.",
+    "never_approved": "Þetta skjal hefur aldrei verið samþykkt.",
+    "send_for_review": "Senda til yfirferðar →",
+    "changed_since_approval": "Breytt síðan síðast var samþykkt",
+    "last_approved": "— síðast samþykkt",
+    "last_approved_version": "— síðast samþykkt {version}",
+    "last_approved_on": "— síðast samþykkt þann {date}",
+    "last_approved_version_on": "— síðast samþykkt {version} þann {date}",
+    "hide_diff": "Fela samanburð",
+    "view_diff": "Skoða samanburð"
+  },
+  "versions": {
+    "heading": "Útgáfusaga",
+    "empty": "Engin útgáfusaga tiltæk",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Umræða um skjal",
+    "changelog": "Breytingasaga skjals"
+  },
+  "content": {
+    "inline_comment_count": "{count} innskotsathugasemd við þetta skjal | {count} innskotsathugasemdir við þetta skjal",
+    "draft_recovered": "Óvistuð drög endurheimt",
+    "mark_unreviewed": "Merkja ekki yfirfarið",
+    "mark_reviewed": "Merkja yfirfarið",
+    "comment_count": "{count} athugasemd | {count} athugasemdir",
+    "add_comment": "Bæta við athugasemd",
+    "resolved": "Leyst",
+    "resolved_by": "Leyst af {name} {date}",
+    "resolved_by_unknown": "óþekkt",
+    "inline_placeholder": "Bæta við athugasemd við þessa málsgrein... (skrifaðu {'@'} til að nefna)",
+    "no_users": "Engir notendur fundust",
+    "empty": "Ekkert efni tiltækt fyrir þetta skjal."
+  },
+  "comments": {
+    "no_document": "Veldu skjal til að skoða athugasemdir",
+    "heading": "Athugasemdir",
+    "resolved_count": "{count} leyst",
+    "general_placeholder": "Bæta við almennri athugasemd... (skrifaðu {'@'} til að nefna)",
+    "author_placeholder": "Nafnið þitt",
+    "send": "Senda",
+    "inline_label": "Innskotsathugasemd",
+    "inline_label_short": "Innskot",
+    "document_label": "Athugasemd við skjal",
+    "quote": "— „{quote}“",
+    "reply": "Svara",
+    "reply_placeholder": "Skrifa svar...",
+    "resolved_toggle": "{count} leyst athugasemd | {count} leystar athugasemdir",
+    "empty": "Engar athugasemdir ennþá"
+  },
+  "review_modal": {
+    "heading": "Senda til yfirferðar",
+    "reviewers": "Yfirferðaraðilar",
+    "search_members": "Leita að meðlimum...",
+    "version_note": "Athugasemd við útgáfu",
+    "version_note_placeholder": "t.d. Uppfærð viðmið áhættumats. Bætt við töflu um gagnaflokkun.",
+    "version_note_hint": "Þetta verður hluti af varanlegri útgáfusögu skjalsins eftir samþykki.",
+    "send": "Senda til {count} yfirferðaraðila | Senda til {count} yfirferðaraðila"
+  },
+  "new_doc": {
+    "heading": "Nýtt skjal",
+    "title": "Titill",
+    "title_placeholder": "t.d. Stefna um gagnaflokkun",
+    "type": "Tegund",
+    "no_folder": "Engin mappa valin",
+    "change_folder": "breyta",
+    "pick_folder": "velja möppu",
+    "folder_placeholder": "Skrifaðu eða veldu möppu",
+    "show_advanced": "Sýna ítarlegri valkosti",
+    "hide_advanced": "Fela ítarlegri valkosti",
+    "document_id": "Auðkenni skjals",
+    "document_id_placeholder": "sjálfvirkt út frá titli",
+    "document_id_exists": "Þetta auðkenni er þegar til",
+    "filename": "Skráarheiti",
+    "filename_placeholder": "sjálfvirkt út frá auðkenni",
+    "author": "Höfundur",
+    "author_placeholder": "Velja höfund...",
+    "create": "Stofna skjal"
+  },
+  "confirm": {
+    "embedded_html_body": "Þetta skjal inniheldur ívafið HTML/SVG sem ritillinn getur ekki varðveitt — breytingar hér munu fjarlægja það við vistun. Breyttu upprunanum í gegnum skipanalínuna til að halda því. Breyta samt?",
+    "delete_body": "Eyða „{name}“? Þetta verður ekki afturkallað."
+  },
+  "error": {
+    "load_diff": "Ekki tókst að sækja samanburð",
+    "set_author": "Ekki tókst að stilla höfund: {message}",
+    "set_type": "Ekki tókst að stilla tegund: {message}",
+    "set_version": "Ekki tókst að stilla útgáfu: {message}",
+    "create_folder": "Ekki tókst að stofna möppu: {message}",
+    "create_document": "Ekki tókst að stofna skjal: {message}",
+    "delete": "Ekki tókst að eyða: {message}",
+    "send_for_review": "Ekki tókst að senda til yfirferðar: {message}",
+    "load_content": "**Villa við að sækja efni:** {message}",
+    "submit_reply": "Ekki tókst að senda svar: {message}",
+    "submit_comment": "Ekki tókst að senda athugasemd: {message}",
+    "resolve_comment": "Ekki tókst að leysa athugasemd: {message}",
+    "load_documents": "Ekki tókst að sækja skjöl: {message}",
+    "save": "Ekki tókst að vista: {message}"
+  }
+}

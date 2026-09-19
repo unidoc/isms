@@ -1,0 +1,75 @@
+{
+  "title": "Lagakröfuskrá",
+  "subtitle": "Gildandi löggjöf og áhættumat regluvörslu",
+  "error": {
+    "save": "Ekki tókst að vista: {message}",
+    "create": "Ekki tókst að stofna lagakröfu: {message}",
+    "delete": "Ekki tókst að eyða: {message}"
+  },
+  "action": {
+    "add": "Bæta við lagakröfu"
+  },
+  "create": {
+    "heading": "Bæta við lagakröfu",
+    "title_label": "Titill *",
+    "title_placeholder": "t.d. GDPR, NIS2-tilskipunin",
+    "category_label": "Flokkur",
+    "deselect_hint": "Smelltu til að afvelja",
+    "fill_in_later": "Þú getur bætt við lögsögu, ábyrgðaraðila, meðhöndlun og fleiru eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "map": {
+    "summary": "Áhættukort",
+    "heading": "Áhættukort regluvörslu"
+  },
+  "filter": {
+    "empty": "Engar lagakröfur fundust"
+  },
+  "table": {
+    "header": {
+      "title": "Titill",
+      "jurisdiction": "Lögsaga",
+      "score": "Stig",
+      "treatment": "Meðhöndlun",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili"
+    }
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "jurisdiction": "Lögsaga",
+    "category": "Flokkur",
+    "status": "Staða",
+    "owner": "Ábyrgðaraðili",
+    "reference": "Tilvísun",
+    "reference_label": "Tilvísun (grein/kafli)",
+    "url": "Vefslóð",
+    "treatment": "Meðhöndlun",
+    "treatment_plan": "Meðhöndlunaráætlun",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "description": "Lýstu kröfunni...",
+    "jurisdiction": "Skrifaðu til að leita...",
+    "reference": "t.d. 32. gr., 4.2. kafli",
+    "url": "https://...",
+    "treatment_plan": "Hvernig mætum við þessari kröfu? (stjórntæki, stefnur, aðgerðir...)",
+    "notes": "Frekari athugasemdir, ábendingar, túlkanir... Skrifaðu /doc til að tengja skjal"
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "treatment": "Meðhöndlun",
+    "notes": "Athugasemdir"
+  },
+  "assessment": {
+    "current": "Núverandi"
+  },
+  "danger": {
+    "warning": "Að eyða þessari lagakröfu er varanlegt og verður ekki afturkallað. Saga, athugasemdir og tengdar tilvísanir tapast.",
+    "delete": "Eyða kröfu",
+    "confirm": "Eyða þessari lagakröfu? Þetta verður ekki afturkallað."
+  }
+}

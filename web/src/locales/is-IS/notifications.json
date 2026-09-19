@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} nefndi þig í athugasemd"
+  },
+  "mention_review_comment": {
+    "title": "{actor} nefndi þig í athugasemd við yfirferð"
+  },
+  "mention_change_request": {
+    "title": "{actor} nefndi þig í breytingabeiðni"
+  },
+  "review_forwarded": {
+    "title": "Yfirferð áframsend: {title}",
+    "body": "{actor} áframsendi yfirferð á {doc_id} ({title} útg. {version}) til þín",
+    "body_with_note": "{actor} áframsendi yfirferð á {doc_id} ({title} útg. {version}) til þín\n\nAthugasemd: {note}"
+  },
+  "review_requested": {
+    "title": "Yfirferð: {title} útg. {version}",
+    "body": "{actor} vill birta {title} útg. {version} og óskaði eftir yfirferð þinni",
+    "body_with_note": "{actor} vill birta {title} útg. {version} og óskaði eftir yfirferð þinni\n\nAthugasemd: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Yfirferð endursend: {title}",
+    "body": "{actor} sendi {doc_id} ({title} útg. {version}) aftur til yfirferðar",
+    "body_with_note": "{actor} sendi {doc_id} ({title} útg. {version}) aftur til yfirferðar\n\nAthugasemd: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "AI-yfirferð vísað áfram",
+    "body": "AI-yfirferð á {doc_id} náði umferð {round} án samkomulags. Vinsamlegast farðu yfir og taktu ákvörðun."
+  },
+  "ca_assigned": {
+    "title": "Úrbót úthlutað: {title}"
+  },
+  "ca_resolved": {
+    "title": "Úrbót leyst: {title}",
+    "body": "Úrbót #{id} hefur verið leyst af {actor}"
+  },
+  "suggestion_new": {
+    "title": "Ný tillaga",
+    "body": "{actor} lagði til: {title} ({suggestion_type} {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Tillaga {action}"
+  },
+  "suggestion_applied": {
+    "body": "Tillögu þinni „{title}“ var beitt af {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Tillögu þinni „{title}“ var hafnað af {actor}: {reason}"
+  },
+  "incident_new": {
+    "title": "Nýtt {severity} atvik: {title}"
+  },
+  "incident_status": {
+    "title": "Atvik {status}: {title}",
+    "body": "Atvik #{id} er nú {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Samningur rennur út eftir 30 daga: {title}",
+    "body": "Samningurinn fyrir {title} ({id}) rennur út eftir 30 daga."
+  },
+  "supplier_contract_7": {
+    "title": "Samningur rennur út eftir 7 daga: {title}",
+    "body": "Samningurinn fyrir {title} ({id}) rennur út eftir 7 daga."
+  },
+  "supplier_contract_today": {
+    "title": "Samningur rennur út í dag: {title}",
+    "body": "Samningurinn fyrir {title} ({id}) rennur út í dag."
+  }
+}

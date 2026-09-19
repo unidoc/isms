@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "search": "Leita",
+    "overview": "Yfirlit",
+    "documents": "Skjöl",
+    "reviews": "Yfirferðir",
+    "inbox": "Innhólf",
+    "group_registers": "Skrár",
+    "risks": "Áhætta",
+    "assets": "Eignir",
+    "suppliers": "Birgjar",
+    "legal": "Lagakröfur",
+    "systems": "Kerfi",
+    "group_operations": "Rekstur",
+    "objectives": "Markmið",
+    "programs": "Áætlanir",
+    "audit": "Úttekt",
+    "corrective_actions": "Úrbætur",
+    "incidents": "Atvik",
+    "changes": "Breytingastjórnun",
+    "tasks": "Verkefni",
+    "admin": "Stjórnun"
+  },
+  "sidebar": {
+    "expand": "Stækka hliðarslá",
+    "collapse": "Minnka hliðarslá"
+  },
+  "org": {
+    "none": "Ekkert fyrirtæki",
+    "current_heading": "Núverandi fyrirtæki",
+    "current_heading_short": "Núverandi",
+    "settings": "Stillingar fyrirtækis",
+    "switch_to": "Skipta yfir í",
+    "create": "Stofna nýtt fyrirtæki",
+    "switch": "Skipta um fyrirtæki"
+  },
+  "notifications": {
+    "heading": "Tilkynningar",
+    "mark_all_read": "Merkja allt lesið",
+    "empty": "Engar tilkynningar"
+  },
+  "user": {
+    "settings": "Stillingar",
+    "sign_out": "Skrá út"
+  }
+}

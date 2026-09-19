@@ -1,0 +1,433 @@
+{
+  "readings": {
+    "title": "Mælingar",
+    "submit": "Senda mælingu",
+    "form_for": "Mæling fyrir {identifier}",
+    "impact_cia": "Áhrif (LHT)",
+    "cia_classification": "LHT-flokkun",
+    "confidentiality": "Leynd *",
+    "integrity": "Heilleiki *",
+    "availability": "Tiltækileiki *",
+    "likelihood": "Líkur *",
+    "impact": "Áhrif *",
+    "not_assessed": "Ekki metið",
+    "select": "Velja",
+    "risk_score": "Áhættustig",
+    "score_hint": "Stilltu LHT + líkur",
+    "next_review": "Næsta yfirferð",
+    "notes": "Athugasemdir",
+    "notes_placeholder": "Athugasemdir við mat...",
+    "save": "Vista mælingu",
+    "empty": "Engar mælingar ennþá.",
+    "error_save": "Ekki tókst að vista mælingu",
+    "rating": {
+      "very_low": "Mjög litlar (1)",
+      "low": "Litlar (2)",
+      "medium": "Meðal (3)",
+      "high": "Miklar (4)",
+      "very_high": "Mjög miklar (5)"
+    },
+    "cia": {
+      "insignificant": "Óverulegt (1)",
+      "minor": "Lítið (2)",
+      "moderate": "Í meðallagi (3)",
+      "major": "Mikið (4)",
+      "severe": "Alvarlegt (5)"
+    },
+    "table": {
+      "date": "Dagsetning",
+      "assessor": "Matsaðili",
+      "confidentiality": "L",
+      "integrity": "H",
+      "availability": "T",
+      "likelihood": "Lík",
+      "impact": "Áhr",
+      "score": "Stig",
+      "notes": "Athugasemdir"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Merkja yfirfarið",
+    "mark_unreviewed": "Merkja ekki yfirfarið",
+    "resolved_by": "Leyst af {name} {date}",
+    "unknown_user": "óþekkt",
+    "suggested_edit": "Lögð til breyting",
+    "suggestion_accepted": "Samþykkt",
+    "suggestion_rejected": "Hafnað",
+    "accept": "Samþykkja",
+    "reject": "Hafna",
+    "awaiting_author": "Beðið eftir ákvörðun höfundar",
+    "suggestion_resolved_by": "{status} af {name}",
+    "reply_placeholder": "Svara... (skrifaðu {'@'} til að nefna)",
+    "suggest_edit": "Leggja til breytingu",
+    "suggest": "Leggja til",
+    "suggestion_placeholder": "Leggðu til nýjan texta fyrir þessa málsgrein...",
+    "comment_placeholder": "Bæta við athugasemd... (skrifaðu {'@'} til að nefna)",
+    "no_content": "Ekkert efni tiltækt.",
+    "status_inline": {
+      "pending": "í bið",
+      "accepted": "samþykkt",
+      "rejected": "hafnað"
+    }
+  },
+  "editor": {
+    "undo": "Afturkalla (Ctrl+Z)",
+    "redo": "Endurtaka (Ctrl+Shift+Z)",
+    "bold": "Feitletrað (Ctrl+B)",
+    "italic": "Skáletrað (Ctrl+I)",
+    "strikethrough": "Yfirstrikað (Ctrl+Shift+X)",
+    "text_color": "Litur texta",
+    "heading": "Fyrirsögn {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Punktalisti (Ctrl+Shift+8)",
+    "ordered_list": "Töluliðalisti (Ctrl+Shift+7)",
+    "blockquote": "Tilvitnun (Ctrl+Shift+B)",
+    "code_block": "Kóðareitur (Ctrl+Alt+C)",
+    "horizontal_rule": "Lárétt lína",
+    "link": "Tengill (Ctrl+K)",
+    "link_entity": "Tengja {type}",
+    "link_placeholder": "https://...",
+    "insert_table": "Setja inn töflu",
+    "insert_block": "Setja inn blokk",
+    "no_commands": "Engar samsvarandi skipanir",
+    "no_results": "Engar niðurstöður",
+    "cell_color_open": "Litur reits...",
+    "cell_color": "Litur reits",
+    "add_row_above": "Bæta við röð fyrir ofan",
+    "add_row_below": "Bæta við röð fyrir neðan",
+    "add_column_left": "Bæta við dálki til vinstri",
+    "add_column_right": "Bæta við dálki til hægri",
+    "delete_row": "Eyða röð",
+    "delete_column": "Eyða dálki",
+    "delete_table": "Eyða töflu",
+    "empty_placeholder": "Byrjaðu að skrifa..."
+  },
+  "slash": {
+    "table": {
+      "label": "Tafla",
+      "desc": "Setja inn 3x3 töflu"
+    },
+    "h1": {
+      "label": "Fyrirsögn 1",
+      "desc": "Stór kaflafyrirsögn"
+    },
+    "h2": {
+      "label": "Fyrirsögn 2",
+      "desc": "Meðalstór kaflafyrirsögn"
+    },
+    "h3": {
+      "label": "Fyrirsögn 3",
+      "desc": "Lítil kaflafyrirsögn"
+    },
+    "bullet": {
+      "label": "Punktalisti",
+      "desc": "Óröðaður listi"
+    },
+    "ordered": {
+      "label": "Töluliðalisti",
+      "desc": "Röðaður listi"
+    },
+    "quote": {
+      "label": "Tilvitnun",
+      "desc": "Inndregin tilvitnunarblokk"
+    },
+    "code": {
+      "label": "Kóðareitur",
+      "desc": "Girtur kóðareitur"
+    },
+    "hr": {
+      "label": "Skil",
+      "desc": "Lárétt lína"
+    },
+    "risk": {
+      "label": "Áhætta",
+      "desc": "Tengja við áhættuskrá"
+    },
+    "legal": {
+      "label": "Lagakrafa",
+      "desc": "Tengja við lagakröfu"
+    },
+    "asset": {
+      "label": "Eign",
+      "desc": "Tengja við eignaskrá"
+    },
+    "supplier": {
+      "label": "Birgi",
+      "desc": "Tengja við birgi"
+    },
+    "system": {
+      "label": "Kerfi",
+      "desc": "Tengja við UT-kerfi"
+    },
+    "doc": {
+      "label": "Skjal",
+      "desc": "Tengja við skjal"
+    },
+    "incident": {
+      "label": "Atvik",
+      "desc": "Tengja við atvik"
+    }
+  },
+  "markdown_field": {
+    "bold": "Feitletrað (Ctrl+B)",
+    "italic": "Skáletrað (Ctrl+I)",
+    "strikethrough": "Yfirstrikað",
+    "heading": "Fyrirsögn {level}",
+    "bullet_list": "Punktalisti",
+    "numbered_list": "Töluliðalisti",
+    "blockquote": "Tilvitnun",
+    "code_block": "Kóðareitur",
+    "divider": "Skil",
+    "link": "Tengill (Ctrl+K)",
+    "link_entity_button": "Tengja færslu",
+    "placeholder": "Skrifaðu / fyrir skipanir..."
+  },
+  "suggestions": {
+    "empty": "Engar tillögur ennþá.",
+    "pending_notice": "Tillögur í bið — þessar breytingar taka aðeins gildi eftir að stjórnandi beitir þeim.",
+    "agent_badge": "AI",
+    "suggested_by": "Lagt til af {name}",
+    "agent_suffix": "(AI)",
+    "apply": "Beita",
+    "reject": "Hafna",
+    "reason_placeholder": "Ástæða...",
+    "rejected_with_reason": "Hafnað: {reason}",
+    "applied_entity": "{identifier} beitt",
+    "type": "Tegund",
+    "title": "Titill",
+    "title_placeholder": "Stutt lýsing...",
+    "rationale": "Rökstuðningur",
+    "rationale_placeholder": "Af hverju þarf þessa breytingu?",
+    "creating": "Stofna...",
+    "submit": "Senda",
+    "suggest": "Leggja til",
+    "created_toast": "Tillaga send — stjórnandi fer yfir hana áður en hún tekur gildi.",
+    "stale_confirm": "Færslunni hefur verið breytt síðan þessi tillaga var stofnuð. Beita samt?",
+    "stale_confirm_action": "Beita samt",
+    "error_create": "Ekki tókst að stofna tillögu",
+    "error_apply": "Ekki tókst að beita",
+    "error_reject": "Ekki tókst að hafna",
+    "error_claim": "Ekki tókst að taka tillögu að sér: {message}",
+    "status": {
+      "open": "Bíður yfirferðar",
+      "in_review": "Í yfirferð",
+      "applied": "Beitt",
+      "rejected": "Hafnað",
+      "withdrawn": "Dregin til baka"
+    },
+    "action": {
+      "update": "Uppfæra svæði",
+      "reassess_rating": "Endurmeta einkunn",
+      "reassess_criticality": "Endurmeta mikilvægi",
+      "link_entities": "Tengja við aðrar færslur",
+      "link_risks_systems": "Tengja við áhættu/kerfi",
+      "request_review": "Óska eftir yfirferð",
+      "request_access_review": "Óska eftir aðgangsyfirferð"
+    }
+  },
+  "supplier_review": {
+    "title": "Birgjayfirferðir",
+    "submit": "Senda yfirferð",
+    "outcome": "Niðurstaða",
+    "outcome_value": {
+      "satisfactory": "Fullnægjandi",
+      "concerns": "Áhyggjuefni greind",
+      "unsatisfactory": "Ófullnægjandi"
+    },
+    "certifications_verified": "Vottanir staðfestar",
+    "data_handling_verified": "Gagnameðferð staðfest",
+    "sla_met": "Þjónustustig (SLA) uppfyllt",
+    "notes": "Athugasemdir yfirferðar",
+    "notes_placeholder": "Lýstu því sem var farið yfir og staðfest. Þetta eru sönnunargögn úttektar fyrir þessa yfirferðarlotu.",
+    "save": "Vista yfirferð",
+    "empty": "Engar yfirferðir ennþá.",
+    "certs_verified_short": "Vottanir staðfestar",
+    "sla_not_met": "Þjónustustig (SLA) ekki uppfyllt",
+    "error_save": "Ekki tókst að vista yfirferð"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} breytt málsgrein | {count} breyttar málsgreinar",
+    "no_changes": "Engar breytingar",
+    "document_view": "Skjalasýn",
+    "advanced_diff": "Ítarlegur samanburður",
+    "previous": "Fyrri",
+    "current": "Núverandi",
+    "no_previous_version": "Engin fyrri útgáfa",
+    "outdated_from_previous_round": "{count} athugasemd frá fyrri umferð | {count} athugasemdir frá fyrri umferð",
+    "comment_placeholder": "Bæta við athugasemd..."
+  },
+  "comment_sidebar": {
+    "title": "Athugasemdir",
+    "resolved_count": "{count} leyst",
+    "comment_placeholder": "Bæta við athugasemd... (skrifaðu {'@'} til að nefna)",
+    "name_placeholder": "Nafnið þitt",
+    "send": "Senda",
+    "empty": "Engar athugasemdir ennþá",
+    "reply_placeholder": "Skrifa svar... (skrifaðu {'@'} til að nefna)"
+  },
+  "track_changes": {
+    "added": "+{count} bætt við",
+    "removed": "-{count} fjarlægt",
+    "normal": "Venjulegt",
+    "advanced": "Ítarlegt",
+    "comment_placeholder": "Bæta við athugasemd..."
+  },
+  "references": {
+    "links": "Tenglar",
+    "referenced_in": "Vísað til í",
+    "add_link": "+ Bæta við tengli",
+    "search_placeholder": "Leita í skjölum, áhættu, atvikum...",
+    "searching": "Leita...",
+    "no_matches": "Engar samsvaranir",
+    "no_linked_items": "Engar tengdar færslur",
+    "error_search": "Leit mistókst: {message}",
+    "error_add": "Ekki tókst að bæta við tilvísun: {message}",
+    "error_remove": "Ekki tókst að fjarlægja tilvísun: {message}",
+    "error_load": "Ekki tókst að sækja tilvísanir: {message}"
+  },
+  "code_block": {
+    "plain_text": "Hreinn texti",
+    "enable_wrap": "Kveikja á línuskiptingu",
+    "disable_wrap": "Slökkva á línuskiptingu",
+    "wrap": "Skipta línum",
+    "copy": "Afrita",
+    "copy_aria": "Afrita kóða"
+  },
+  "color_picker": {
+    "remove_color": "Fjarlægja lit"
+  },
+  "comments_panel": {
+    "empty": "Engar athugasemdir ennþá.",
+    "placeholder": "Bæta við athugasemd... (skrifaðu {'@'} til að nefna)",
+    "post": "Senda",
+    "error_add": "Ekki tókst að bæta við athugasemd: {message}"
+  },
+  "copy_link": {
+    "copied": "Tengill afritaður",
+    "copy": "Afrita tengil á þessa færslu"
+  },
+  "doc_tree": {
+    "review_required": "Yfirferð nauðsynleg"
+  },
+  "refresh": {
+    "refreshing": "Endurhleð…",
+    "refresh": "Endurhlaða"
+  },
+  "diff": {
+    "removed": "- {count} fjarlægt",
+    "added": "+ {count} bætt við",
+    "split": "Hlið við hlið",
+    "unified": "Sameinað",
+    "before": "Fyrir",
+    "after": "Eftir"
+  },
+  "global_search": {
+    "placeholder": "Leita í skjölum, áhættu, birgjum, atvikum...",
+    "searching": "Leita...",
+    "no_results": "Engar niðurstöður fyrir „{query}“",
+    "empty_state": "Skrifaðu til að leita í öllum færslum",
+    "hint_navigate": "fletta",
+    "hint_open": "opna",
+    "hint_close": "loka"
+  },
+  "heat_map": {
+    "title": "Áhættuhitakort",
+    "total_items": "{count} atriði samtals | {count} atriði samtals",
+    "likelihood": "Líkur",
+    "impact": "Áhrif",
+    "unnamed": "Ónefnt",
+    "more": "+{count} til viðbótar",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Sjaldgæft",
+      "unlikely": "Ólíklegt",
+      "possible": "Mögulegt",
+      "likely": "Líklegt",
+      "almost_certain": "Nær öruggt"
+    },
+    "impact_value": {
+      "negligible": "Hverfandi",
+      "minor": "Lítið",
+      "moderate": "Í meðallagi",
+      "major": "Mikið",
+      "severe": "Alvarlegt"
+    }
+  },
+  "history": {
+    "empty": "Engin saga ennþá.",
+    "field_count": "{count} svæði | {count} svæði",
+    "showing_limit": "Sýni 50 af {total}",
+    "more": "+{count} til viðbótar",
+    "action": {
+      "create": "Stofnað",
+      "update": "Breytt",
+      "delete": "Eytt",
+      "reading": "Mæling",
+      "suggestion_applied": "Tillögu beitt"
+    },
+    "tooltip": {
+      "from": "Frá: {value}",
+      "to": "Í: {value}",
+      "reason": "Ástæða: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "Engir meðlimir fundust",
+    "placeholder": "Velja meðlim..."
+  },
+  "pagination": {
+    "showing": "Sýni {start}–{end} af {total}",
+    "per_page": "Á síðu"
+  },
+  "overdue": {
+    "title": "Yfirfallnar yfirferðir",
+    "creating": "Stofna...",
+    "create_tasks": "Stofna verkefni",
+    "created": "{count} verkefni stofnað | {count} verkefni stofnuð",
+    "created_skipped": ", {count} sleppt (þegar til)",
+    "days_late": "{count}d",
+    "overdue": "yfirfallið",
+    "all_on_schedule": "Allar yfirferðir á áætlun",
+    "contract": "samningur",
+    "contract_expired": "{count}d síðan",
+    "contract_expires_in": "eftir {count}d"
+  },
+  "suggest_new": {
+    "button": "Leggja til",
+    "close": "Loka",
+    "action": "Aðgerð",
+    "title": "Titill",
+    "description": "Lýsing",
+    "description_placeholder": "Lýsing á nýju færslunni...",
+    "rationale": "Af hverju er þetta nauðsynlegt?",
+    "rationale_placeholder": "Rökstuðningur fyrir þessari tillögu...",
+    "submitting": "Sendi...",
+    "submit": "Senda",
+    "form_title_new": "Leggja til nýtt/nýja {entity}",
+    "form_title_change": "Leggja til breytingu á {entity}",
+    "placeholder_new": "Lýstu nýju/nýrri {entity}...",
+    "placeholder_reassess": "Rökstuðningur fyrir endurmati...",
+    "placeholder_link": "Hvað ætti að tengja og af hverju...",
+    "placeholder_review": "Af hverju ætti að yfirfara þetta...",
+    "placeholder_update": "Hverju ætti að breyta...",
+    "error_create": "Ekki tókst að stofna tillögu",
+    "type": {
+      "edit_risk": "Breyta áhættu",
+      "reassess_risk": "Endurmeta einkunn áhættu",
+      "edit_incident": "Breyta atviki",
+      "link_entities": "Tengja við aðrar færslur",
+      "edit_supplier": "Breyta birgi",
+      "reassess_supplier": "Endurmeta birgi",
+      "edit_requirement": "Breyta kröfu",
+      "edit_change_request": "Breyta breytingabeiðni",
+      "edit_corrective_action": "Breyta úrbót",
+      "edit_task": "Breyta verkefni",
+      "edit_objective": "Breyta markmiði",
+      "request_review": "Óska eftir yfirferð",
+      "edit_system": "Breyta kerfi",
+      "request_access_review": "Óska eftir aðgangsyfirferð",
+      "edit_asset": "Breyta eign",
+      "request_asset_review": "Óska eftir yfirferð eignar",
+      "edit_entity": "Breyta {entity}"
+    }
+  }
+}

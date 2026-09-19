@@ -1,0 +1,141 @@
+{
+  "title": "Innhólf",
+  "subtitle": "{count} verkefni þarfnast athygli | {count} verkefni þarfnast athygli",
+  "mark_all_read": "Merkja allt lesið",
+  "tab": {
+    "comments": "Athugasemdir",
+    "reviews": "Yfirferðir",
+    "tasks": "Verkefni",
+    "incidents": "Atvik",
+    "changes": "Breytingar",
+    "corrective_actions": "Úrbætur",
+    "suggestions": "Tillögur"
+  },
+  "comments": {
+    "empty": "Engar opnar athugasemdir",
+    "suggestion_badge": "tillaga",
+    "scope_inline": "Innskotsathugasemd",
+    "scope_document": "Skjal",
+    "view_in_document": "Skoða í skjali →"
+  },
+  "reviews": {
+    "empty": "Engar yfirferðir í bið",
+    "untitled": "Ónefnd yfirferð",
+    "requested_by": "Óskað af {name}",
+    "unknown_requester": "Óþekkt",
+    "meta": {
+      "status": "Staða",
+      "document": "Skjal",
+      "version": "Útgáfa",
+      "requested_by": "Óskað af"
+    },
+    "assigned_reviewers": "Úthlutaðir yfirferðaraðilar",
+    "recent_comments": "Nýlegar athugasemdir",
+    "open_review": "Opna yfirferð #{id}"
+  },
+  "tasks": {
+    "add": "Bæta við verkefni",
+    "empty": "Engin verkefni fundust",
+    "start": "Hefja verkefni",
+    "mark_done": "Merkja lokið",
+    "form": {
+      "title": "Titill",
+      "title_placeholder": "Titill verkefnis",
+      "description": "Lýsing",
+      "description_placeholder": "Valfrjáls lýsing",
+      "type": "Tegund",
+      "priority": "Forgangur",
+      "assignee": "Ábyrgðaraðili",
+      "assignee_placeholder": "Velja ábyrgðaraðila...",
+      "due_date": "Skiladagur"
+    }
+  },
+  "incidents": {
+    "empty": "Engin atvik úthlutuð þér"
+  },
+  "corrective_actions": {
+    "empty": "Engar úrbætur úthlutaðar þér"
+  },
+  "changes": {
+    "add": "Bæta við breytingabeiðni",
+    "empty": "Engar breytingabeiðnir",
+    "requested_by": "Óskað af {name}",
+    "unknown_requester": "Óþekkt",
+    "form": {
+      "title": "Titill",
+      "title_placeholder": "Titill breytingabeiðni",
+      "description": "Lýsing",
+      "description_placeholder": "Lýstu tillögunni að breytingu",
+      "justification": "Rökstuðningur",
+      "justification_placeholder": "Af hverju þarf þessa breytingu?",
+      "impact": "Áhrifamat",
+      "impact_placeholder": "Væntanleg áhrif á stjórnkerfið",
+      "assign_to": "Úthluta til",
+      "assignee_placeholder": "Velja ábyrgðaraðila..."
+    },
+    "detail": {
+      "description": "Lýsing",
+      "justification": "Rökstuðningur",
+      "impact": "Áhrifamat",
+      "affected_documents": "Snert skjöl"
+    },
+    "action": {
+      "approve": "Samþykkja",
+      "reject": "Hafna",
+      "mark_implemented": "Merkja innleitt",
+      "close": "Loka"
+    }
+  },
+  "suggestions": {
+    "empty": "Engar tillögur með þessa stöðu.",
+    "filter": {
+      "open": "opnar",
+      "applied": "beitt",
+      "rejected": "hafnað"
+    },
+    "agent_badge": "AI",
+    "suggested_by": "Lagt til af {name} · {date}",
+    "apply": "Beita",
+    "reject": "Hafna",
+    "withdraw": "Draga til baka",
+    "reject_placeholder": "Ástæða höfnunar...",
+    "rejected_reason": "Hafnað: {reason}",
+    "applied_result": "Beitt → {entity} {id}",
+    "payload_field": {
+      "title": "Titill",
+      "name": "Heiti",
+      "description": "Lýsing",
+      "category": "Flokkur",
+      "risk_type": "Tegund áhættu",
+      "origin": "Uppruni",
+      "severity": "Alvarleiki",
+      "priority": "Forgangur",
+      "status": "Staða",
+      "type": "Tegund",
+      "criticality": "Mikilvægi",
+      "jurisdiction": "Lögsaga",
+      "classification": "Flokkun",
+      "finding_type": "Tegund niðurstöðu",
+      "risk_level": "Áhættustig",
+      "source": "Uppruni",
+      "incident_type": "Tegund atviks",
+      "current_likelihood": "Líkur",
+      "current_impact": "Áhrif"
+    }
+  },
+  "error": {
+    "resolve_comment": "Ekki tókst að leysa athugasemd: {message}",
+    "mark_all_read": "Ekki tókst að merkja allar tilkynningar lesnar: {message}",
+    "approve_review": "Ekki tókst að samþykkja yfirferð: {message}",
+    "request_changes": "Ekki tókst að óska eftir breytingum: {message}",
+    "forward_review": "Ekki tókst að áframsenda yfirferð: {message}",
+    "claim_suggestion": "Ekki tókst að taka tillögu að sér: {message}",
+    "apply_suggestion": "Ekki tókst að beita tillögu: {message}",
+    "reject_suggestion": "Ekki tókst að hafna tillögu: {message}",
+    "withdraw_suggestion": "Ekki tókst að draga tillögu til baka: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Beita samt",
+    "apply_stale_body": "Færslunni hefur verið breytt síðan þessi tillaga var stofnuð. Beita samt?"
+  }
+}

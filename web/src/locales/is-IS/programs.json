@@ -1,0 +1,48 @@
+{
+  "title": "Áætlanaskrá",
+  "subtitle": "Flokka markmið stjórnkerfis upplýsingaöryggis í áætlanir",
+  "error": {
+    "save": "Ekki tókst að vista: {message}"
+  },
+  "action": {
+    "add": "Bæta við áætlun"
+  },
+  "create": {
+    "heading": "Bæta við áætlun",
+    "key_label": "Lykill (hástafir) *",
+    "key_placeholder": "VITUND",
+    "title_label": "Titill *",
+    "title_placeholder": "Öryggisvitund",
+    "fill_in_later": "Þú getur bætt við lýsingu og athugasemdum eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engar áætlanir ennþá"
+  },
+  "table": {
+    "header": {
+      "key": "Lykill",
+      "title": "Titill",
+      "description": "Lýsing"
+    }
+  },
+  "field": {
+    "key": "Lykill",
+    "title": "Titill",
+    "description": "Lýsing",
+    "created": "Stofnað"
+  },
+  "placeholder": {
+    "description": "Hvað felst í þessari áætlun?",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "danger": {
+    "warning": "Ef þessari áætlun er eytt eyðast einnig öll markmið undir henni. Þetta er ekki hægt að afturkalla.",
+    "delete": "Eyða áætlun",
+    "confirm": "Eyða áætluninni „{key}“? Öll markmið undir henni eyðast einnig."
+  }
+}

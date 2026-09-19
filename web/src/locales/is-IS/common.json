@@ -1,0 +1,581 @@
+{
+  "brand": {
+    "product_name": "ISMS"
+  },
+  "action": {
+    "save": "Vista",
+    "cancel": "Hætta við",
+    "confirm": "Staðfesta",
+    "ok": "Í lagi",
+    "close": "Loka",
+    "create": "Stofna",
+    "edit": "Breyta",
+    "delete": "Eyða",
+    "copy": "Afrita",
+    "search": "Leita",
+    "clear": "Hreinsa",
+    "add_comment": "Bæta við athugasemd",
+    "comment": "Athugasemd",
+    "reply": "Svara",
+    "resolve": "Leysa",
+    "approve": "Samþykkja",
+    "add": "Bæta við",
+    "discard_draft": "Henda drögum",
+    "discard": "Henda"
+  },
+  "state": {
+    "loading": "Hleð…",
+    "saving": "Vista...",
+    "empty": "Ekkert hér ennþá",
+    "error": "Eitthvað fór úrskeiðis",
+    "unknown": "Óþekkt",
+    "outdated": "Úrelt",
+    "outdated_inline": "úrelt",
+    "resolved": "Leyst",
+    "copied": "Afritað",
+    "saved": "Vistað",
+    "overdue": "YFIRFALLIÐ",
+    "no_notes": "Engar athugasemdir ennþá.",
+    "sending": "Sendi...",
+    "creating": "Stofna..."
+  },
+  "validation": {
+    "required": "Þetta svæði er nauðsynlegt"
+  },
+  "locale": {
+    "label": "Tungumál",
+    "org_default": "Sjálfgefið hjá fyrirtæki"
+  },
+  "entity": {
+    "risk": "Áhætta",
+    "supplier": "Birgi",
+    "incident": "Atvik",
+    "legal_requirement": "Lagakrafa",
+    "change_request": "Breytingabeiðni",
+    "corrective_action": "Úrbót",
+    "objective": "Markmið",
+    "task": "Verkefni",
+    "system": "Kerfi",
+    "asset": "Eign",
+    "audit": "Úttekt",
+    "audit_finding": "Niðurstaða úttektar",
+    "program": "Áætlun",
+    "checkin": "Innritun",
+    "access_review": "Aðgangsyfirferð",
+    "user": "Notandi",
+    "organization": "Fyrirtæki",
+    "review": "Yfirferð",
+    "document": "Skjal",
+    "comment": "Athugasemd",
+    "suggestion": "Tillaga",
+    "oidc_provider": "OIDC-veitandi",
+    "policy": "Stefna",
+    "passkey": "Aðgangslykill",
+    "evidence": "Sönnunargagn",
+    "item": "Atriði"
+  },
+  "entity_inline": {
+    "risk": "áhætta",
+    "supplier": "birgi",
+    "incident": "atvik",
+    "legal_requirement": "lagakrafa",
+    "change_request": "breytingabeiðni",
+    "corrective_action": "úrbót",
+    "objective": "markmið",
+    "task": "verkefni",
+    "system": "kerfi",
+    "asset": "eign",
+    "audit": "úttekt",
+    "audit_finding": "niðurstaða úttektar",
+    "program": "áætlun",
+    "checkin": "innritun",
+    "access_review": "aðgangsyfirferð",
+    "user": "notandi",
+    "organization": "fyrirtæki",
+    "review": "yfirferð",
+    "document": "skjal",
+    "comment": "athugasemd",
+    "suggestion": "tillaga",
+    "oidc_provider": "OIDC-veitandi",
+    "policy": "stefna",
+    "passkey": "aðgangslykill",
+    "evidence": "sönnunargagn",
+    "item": "atriði"
+  },
+  "field": {
+    "title": "titill",
+    "name": "heiti",
+    "email": "netfang",
+    "token": "teikn",
+    "key": "lykill",
+    "notes": "athugasemdir",
+    "path_pattern": "slóðarmynstur",
+    "current_password": "núverandi lykilorð",
+    "slug": "slug",
+    "role": "hlutverk",
+    "body": "meginmál",
+    "reason": "ástæða",
+    "file": "skrá",
+    "code": "kóði",
+    "document_id": "auðkenni skjals",
+    "new_email": "nýtt netfang",
+    "entity_type": "tegund færslu",
+    "suggestion_type": "tegund tillögu"
+  },
+  "enum": {
+    "status": {
+      "draft": "Drög",
+      "open": "Opið",
+      "in_review": "Í yfirferð",
+      "approved": "Samþykkt",
+      "changes_requested": "Óskað eftir breytingum",
+      "proposed_revision": "Endurskoðun lögð til",
+      "merged": "Sameinað",
+      "retired": "Fyrnt",
+      "pending": "Í bið",
+      "accepted": "Samþykkt",
+      "applied": "Beitt",
+      "rejected": "Hafnað",
+      "withdrawn": "Dregið til baka",
+      "resolved": "Leyst",
+      "closed": "Lokað",
+      "investigating": "Í rannsókn",
+      "contained": "Afmarkað",
+      "todo": "Óunnið",
+      "in_progress": "Í vinnslu",
+      "done": "Lokið",
+      "cancelled": "Hætt við",
+      "proposed": "Lagt til",
+      "not_started": "Ekki hafið",
+      "implemented": "Innleitt",
+      "verified": "Sannreynt",
+      "planned": "Áætlað",
+      "completed": "Lokið",
+      "active": "Virkt",
+      "at_risk": "Í hættu",
+      "paused": "Gert hlé á",
+      "complete": "Lokið",
+      "assessment": "Mat",
+      "awaiting_approval": "Bíður samþykkis",
+      "implementation": "Innleiðing",
+      "monitoring": "Vöktun",
+      "under_review": "Í yfirferð",
+      "suspended": "Stöðvað tímabundið",
+      "terminated": "Samstarfi hætt",
+      "decommissioned": "Aflagt",
+      "archived": "Í geymslu"
+    },
+    "severity": {
+      "critical": "Mjög alvarlegt",
+      "high": "Alvarlegt",
+      "medium": "Í meðallagi",
+      "low": "Lítið"
+    },
+    "criticality": {
+      "critical": "Mjög mikilvægt",
+      "high": "Mikilvægt",
+      "medium": "Í meðallagi mikilvægt",
+      "low": "Lítið mikilvægt"
+    },
+    "classification": {
+      "public": "Opinbert",
+      "internal": "Innanhúss",
+      "confidential": "Trúnaðarmál",
+      "restricted": "Takmarkað"
+    },
+    "role": {
+      "admin": "Stjórnandi",
+      "manager": "Yfirmaður",
+      "contributor": "Þátttakandi",
+      "reader": "Lesandi"
+    },
+    "audit_result": {
+      "not_assessed": "Ekki metið",
+      "conforming": "Samræmist",
+      "minor_nc": "Minniháttar frávik",
+      "major_nc": "Alvarlegt frávik",
+      "observation": "Ábending",
+      "opportunity": "Tækifæri til umbóta"
+    },
+    "finding_type": {
+      "major_nc": "Alvarlegt frávik",
+      "minor_nc": "Minniháttar frávik",
+      "observation": "Ábending",
+      "opportunity": "Tækifæri til umbóta"
+    },
+    "action": {
+      "applied": "beitt",
+      "rejected": "hafnað"
+    },
+    "suggestion_type": {
+      "create": "Stofna",
+      "update": "Uppfæra",
+      "reassess": "Endurmeta",
+      "link": "Tengja",
+      "review": "Yfirfara",
+      "reading": "Mæling"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
+    },
+    "permissions": {
+      "read-write": "Lesa og skrifa",
+      "read": "Aðeins lesa",
+      "write": "Aðeins skrifa"
+    },
+    "treatment": {
+      "mitigate": "Draga úr",
+      "accept": "Samþykkja",
+      "transfer": "Yfirfæra",
+      "avoid": "Forðast"
+    },
+    "risk_type": {
+      "threat": "Ógn",
+      "opportunity": "Tækifæri"
+    },
+    "origin": {
+      "internal": "Innanhúss",
+      "external": "Utanaðkomandi",
+      "internal and external": "Innanhúss og utanaðkomandi"
+    },
+    "incident_type": {
+      "incident": "Atvik",
+      "event": "Uppákoma",
+      "weakness": "Veikleiki"
+    },
+    "gdpr_role": {
+      "controller": "Ábyrgðaraðili",
+      "processor": "Vinnsluaðili"
+    },
+    "notification_status": {
+      "not_required": "Ekki nauðsynlegt",
+      "pending": "Í bið",
+      "notified": "Tilkynnt"
+    },
+    "supplier_type": {
+      "cloud": "Ský",
+      "saas": "SaaS",
+      "consulting": "Ráðgjöf",
+      "hosting": "Hýsing",
+      "infrastructure": "Innviðir",
+      "software": "Hugbúnaður",
+      "contractor": "Verktaki",
+      "other": "Annað"
+    },
+    "asset_type": {
+      "infrastructure": "Innviðir",
+      "processing_devices": "Vinnslutæki",
+      "software": "Hugbúnaður",
+      "system": "Kerfi",
+      "network": "Net",
+      "service": "Þjónusta",
+      "financial_info": "Fjárhagsupplýsingar",
+      "personal_data": "Persónuupplýsingar",
+      "ipr": "Hugverkaréttindi",
+      "sales_marketing": "Sölu- og markaðsmál",
+      "processing_facility": "Vinnsluaðstaða",
+      "products_services": "Vörur og þjónusta",
+      "supply_chain": "Aðfangakeðja",
+      "other": "Annað"
+    },
+    "legal_category": {
+      "privacy": "Persónuvernd",
+      "security": "Öryggi",
+      "sector": "Atvinnugrein",
+      "contractual": "Samningsbundið",
+      "other": "Annað",
+      "data_protection": "Gagnavernd",
+      "employment": "Vinnuréttur",
+      "regulatory": "Regluvarsla",
+      "intellectual_property": "Hugverkaréttindi",
+      "financial": "Fjármálareglur",
+      "environmental": "Umhverfismál",
+      "corporate": "Stjórnarhættir fyrirtækja"
+    },
+    "audit_type": {
+      "internal": "Innri",
+      "external": "Ytri",
+      "surveillance": "Eftirlitsúttekt",
+      "certification": "Vottunarúttekt",
+      "recertification": "Endurvottunarúttekt"
+    },
+    "change_category": {
+      "process": "Ferli",
+      "technology": "Tækni",
+      "people": "Starfsfólk",
+      "documentation": "Skjölun",
+      "infrastructure": "Innviðir",
+      "other": "Annað"
+    },
+    "task_type": {
+      "general": "Almennt",
+      "review": "Yfirferð",
+      "incident_followup": "Eftirfylgni atviks",
+      "audit_followup": "Eftirfylgni úttektar",
+      "ca_followup": "Eftirfylgni úrbótar",
+      "change_followup": "Eftirfylgni breytingar",
+      "onboarding": "Móttaka nýliða",
+      "offboarding": "Starfslok",
+      "training": "Þjálfun",
+      "other": "Annað"
+    },
+    "source": {
+      "internal_audit": "Innri úttekt",
+      "external_audit": "Ytri úttekt",
+      "risk_assessment": "Áhættumat",
+      "security_incident": "Öryggisatvik",
+      "objective": "Markmið",
+      "feedback": "Ábending",
+      "other": "Annað"
+    },
+    "priority": {
+      "critical": "Bráð",
+      "high": "Hár",
+      "medium": "Miðlungs",
+      "low": "Lágur"
+    },
+    "outcome": {
+      "satisfactory": "Fullnægjandi",
+      "concerns": "Áhyggjuefni",
+      "unsatisfactory": "Ófullnægjandi"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "Breyting",
+      "access_request": "Aðgangsbeiðni"
+    },
+    "risk_level": {
+      "critical": "Mjög alvarlegt",
+      "high": "Hátt",
+      "medium": "Miðlungs",
+      "low": "Lágt"
+    },
+    "document_type": {
+      "document": "Skjal",
+      "policy": "Stefna",
+      "procedure": "Verklagsregla",
+      "control": "Stjórntæki",
+      "guideline": "Leiðbeiningar",
+      "record": "Skrá",
+      "clause": "Grein",
+      "requirement": "Krafa"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "mjög alvarlegt",
+      "high": "alvarlegt",
+      "medium": "í meðallagi",
+      "low": "lítið"
+    },
+    "status": {
+      "draft": "drög",
+      "open": "opið",
+      "investigating": "í rannsókn",
+      "contained": "afmarkað",
+      "resolved": "leyst",
+      "closed": "lokað",
+      "in_review": "í yfirferð",
+      "approved": "samþykkt",
+      "changes_requested": "óskað eftir breytingum",
+      "merged": "sameinað"
+    },
+    "suggestion_type": {
+      "create": "stofna",
+      "update": "uppfæra",
+      "reassess": "endurmeta",
+      "link": "tengja",
+      "review": "yfirfara",
+      "reading": "mæling"
+    },
+    "action": {
+      "applied": "beitt",
+      "rejected": "hafnað"
+    }
+  },
+  "error": {
+    "not_found": "{entity} fannst ekki",
+    "not_found_in_org": "{entity} fannst ekki í þessu fyrirtæki",
+    "invalid_entity_id": "ógilt auðkenni fyrir {entity}",
+    "required": "{field} er nauðsynlegt",
+    "field_empty": "{field} má ekki vera tómt",
+    "invalid_id": "ógilt auðkenni",
+    "invalid_request": "ógild beiðni",
+    "invalid_role": "ógilt hlutverk",
+    "invalid_status": "ógild staða: {value}",
+    "invalid_credentials": "rangar innskráningarupplýsingar",
+    "invalid_token": "ógilt teikn",
+    "invalid_otp_code": "ógildur OTP-kóði",
+    "invalid_confirm_link": "ógildur eða útrunninn staðfestingarhlekkur",
+    "token_email_mismatch": "netfang passar ekki við teikn",
+    "not_authenticated": "ekki auðkennt",
+    "too_many_attempts": "of margar tilraunir, reyndu aftur síðar",
+    "password_too_short": "lykilorð verður að vera að minnsta kosti {count} stafir",
+    "current_password_required": "núverandi lykilorð nauðsynlegt",
+    "current_password_incorrect": "núverandi lykilorð er rangt",
+    "email_and_password_required": "netfang og lykilorð nauðsynleg",
+    "email_in_use": "þetta netfang er þegar í notkun",
+    "not_your_passkey": "ekki þinn aðgangslykill",
+    "api_key_required": "API-lykill nauðsynlegur. Notaðu: isms server api-key create",
+    "api_key_wrong_org": "API-lykillinn hefur ekki heimild fyrir þetta fyrirtæki",
+    "not_org_member": "ekki meðlimur í þessu fyrirtæki",
+    "provider_other_org": "veitandinn tilheyrir öðru fyrirtæki",
+    "manager_or_admin_required": "krefst hlutverks yfirmanns eða stjórnanda",
+    "document_modified": "skjalinu var breytt af öðrum notanda — vinsamlegast endurhladdu og reyndu aftur",
+    "document_file_not_found": "skjalaskrá fannst ekki",
+    "notes_required": "athugasemdir eru nauðsynlegar — lýstu því sem var farið yfir og staðfest",
+    "review_wrong_status": "yfirferð er {status}",
+    "review_already_status": "yfirferð er þegar {status}",
+    "ai_disabled": "gervigreindarþættir eru óvirkir fyrir þetta fyrirtæki",
+    "unsupported_locale": "óstutt tungumál"
+  },
+  "region": {
+    "global": "Á heimsvísu",
+    "eu": "ESB",
+    "eea": "EES",
+    "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Persónuverndarstefna",
+    "terms": "Þjónustuskilmálar",
+    "powered_by": "Keyrt af isms.sh"
+  },
+  "count": {
+    "total": "{count} samtals",
+    "comments": "{count} athugasemd | {count} athugasemdir",
+    "outdated_comments": "{count} úrelt athugasemd | {count} úreltar athugasemdir",
+    "of": "{shown} af {total}"
+  },
+  "placeholder": {
+    "search": "Leita...",
+    "select_owner": "Velja ábyrgðaraðila..."
+  },
+  "tab": {
+    "overview": "Yfirlit",
+    "treatment": "Meðhöndlun",
+    "assessment": "Mat",
+    "notes": "Athugasemdir",
+    "links": "Tenglar",
+    "actions": "Aðgerðir",
+    "suggestions": "Tillögur",
+    "comments": "Athugasemdir",
+    "history": "Saga"
+  },
+  "filter": {
+    "all_statuses": "Allar stöður",
+    "all_types": "Allar tegundir",
+    "all_levels": "Öll stig",
+    "all_criticality": "Allt mikilvægi",
+    "all_categories": "Allir flokkar",
+    "all_severities": "Allur alvarleiki",
+    "all_priorities": "Allur forgangur",
+    "all_sources": "Allur uppruni",
+    "all_programs": "Allar áætlanir",
+    "all_owners": "Allir ábyrgðaraðilar"
+  },
+  "option": {
+    "none": "Ekkert",
+    "not_decided": "Ekki ákveðið"
+  },
+  "stat": {
+    "total": "Samtals",
+    "overdue": "Yfirfallið"
+  },
+  "heading": {
+    "quick_actions": "Flýtiaðgerðir",
+    "danger_zone": "Hættusvæði"
+  },
+  "label": {
+    "version": "Útgáfa",
+    "version_number": "Útgáfa {version}",
+    "round": "Umferð {round}",
+    "round_paren": "(umferð {round})",
+    "reviewers": "Yfirferðaraðilar",
+    "approved_prefix": "Samþykkt:"
+  },
+  "read_only": {
+    "actions": "Aðeins til skoðunar — aðgerðir krefjast hlutverks yfirmanns eða stjórnanda."
+  },
+  "review": {
+    "last": "Síðasta yfirferð: {date}",
+    "next": "Næsta yfirferð: {date}",
+    "overdue_since": "Yfirferð yfirfallin síðan {date}"
+  },
+  "cia_abbr": {
+    "c": "L",
+    "i": "H",
+    "a": "T"
+  },
+  "cia": {
+    "not_assessed": "Ekki metið",
+    "insignificant": "Óverulegt",
+    "minor": "Lítið",
+    "moderate": "Í meðallagi",
+    "major": "Mikið",
+    "severe": "Alvarlegt",
+    "na": "Á ekki við"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "Alvarlegt frávik",
+      "minor_nc": "Minniháttar frávik",
+      "observation": "Ábending",
+      "opportunity": "TTU"
+    },
+    "audit_result": {
+      "not_assessed": "Ekki metið",
+      "conforming": "Samræmist",
+      "minor_nc": "Minniháttar frávik",
+      "major_nc": "Alvarlegt frávik",
+      "observation": "Ábending",
+      "opportunity": "Tækifæri"
+    }
+  },
+  "dirty": {
+    "switch_tab": "Þú átt óvistaðar breytingar. Henda þeim og skipta um flipa?",
+    "close": "Þú átt óvistaðar breytingar. Henda þeim og loka?",
+    "discard": "Henda"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Stofnað út frá [{label}]({link})",
+    "created_from_audit_finding": "Stofnað út frá niðurstöðu úttektar {label}"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "af {name}"
+  }
+}

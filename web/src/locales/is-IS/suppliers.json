@@ -1,0 +1,84 @@
+{
+  "title": "Birgjaskrá",
+  "subtitle": "Birgjar þriðja aðila, mikilvægi og mat",
+  "error": {
+    "save": "Ekki tókst að vista: {message}",
+    "create": "Ekki tókst að stofna birgi: {message}",
+    "delete": "Ekki tókst að eyða: {message}"
+  },
+  "action": {
+    "add": "Bæta við birgi"
+  },
+  "create": {
+    "heading": "Bæta við birgi",
+    "name_label": "Heiti *",
+    "name_placeholder": "t.d. AWS, Office 365",
+    "type_label": "Tegund",
+    "criticality_label": "Mikilvægi",
+    "fill_in_later": "Þú getur bætt við LHT-flokkun, ábyrgðaraðila og samningsupplýsingum eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engir birgjar fundust"
+  },
+  "table": {
+    "header": {
+      "supplier": "Birgi",
+      "type": "Tegund",
+      "criticality": "Mikilvægi",
+      "cia": "L/H/T",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili",
+      "next_review": "Næsta yfirferð"
+    },
+    "cia_title": {
+      "confidentiality": "Leynd: {level}",
+      "integrity": "Heilleiki: {level}",
+      "availability": "Tiltækileiki: {level}"
+    }
+  },
+  "field": {
+    "name": "Heiti",
+    "type": "Tegund",
+    "criticality": "Mikilvægi",
+    "status": "Staða",
+    "owner": "Ábyrgðaraðili",
+    "contact": "Tengiliður",
+    "contract_ref": "Tilvísun í samning",
+    "contract_expiry": "Samningur rennur út",
+    "data_access": "Gagnaaðgangur",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "contact": "tengilidur{'@'}birgir.is",
+    "contract_ref": "DPA / vefslóð samnings",
+    "notes": "Frekari athugasemdir... Skrifaðu /doc til að tengja skjal"
+  },
+  "data_access": {
+    "checkbox": "Birgi hefur aðgang að gögnum okkar",
+    "yes": "Já",
+    "no": "Nei"
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "tab": {
+    "reviews": "Yfirferðir"
+  },
+  "assessment": {
+    "confidentiality": "Leynd",
+    "integrity": "Heilleiki",
+    "availability": "Tiltækileiki"
+  },
+  "linked_systems": {
+    "heading": "engin tengd kerfi | Tengt kerfi ({count}) | Tengd kerfi ({count})"
+  },
+  "danger": {
+    "warning": "Að eyða þessum birgi er varanlegt og verður ekki afturkallað. Saga, athugasemdir, yfirferðir og tengdar tilvísanir tapast.",
+    "delete": "Eyða birgi",
+    "confirm": "Eyða þessum birgi? Þetta verður ekki afturkallað."
+  }
+}

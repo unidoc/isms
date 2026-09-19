@@ -1,0 +1,64 @@
+{
+  "title": "Úrbætur",
+  "subtitle": "Halda utan um frávik, ábendingar og tækifæri til umbóta",
+  "error": {
+    "save": "Ekki tókst að vista: {message}"
+  },
+  "action": {
+    "add": "Bæta við úrbót"
+  },
+  "filter": {
+    "assignee_placeholder": "Hver sem er ábyrgur",
+    "empty": "Engar úrbætur samræmast síunni þinni.",
+    "empty_all": "Engar úrbætur ennþá — smelltu á Bæta við til að stofna þá fyrstu."
+  },
+  "create": {
+    "heading": "Bæta við úrbót",
+    "title_label": "Titill *",
+    "title_placeholder": "Stuttur titill á fráviki eða umbót",
+    "fill_in_later": "Þú getur bætt við lýsingu, ábyrgðaraðila, skiladegi og athugasemdum eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "source_option": {
+    "internal_audit": "Niðurstaða innri úttektar",
+    "external_audit": "Niðurstaða ytri úttektar",
+    "risk_assessment": "Áhættumat",
+    "security_incident": "Öryggisatvik",
+    "objective": "Markmið",
+    "feedback": "Ábending / tillaga",
+    "other": "Annað"
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "source": "Uppruni",
+    "severity": "Alvarleiki",
+    "status": "Staða",
+    "assignee": "Ábyrgðaraðili",
+    "due_date": "Skiladagur",
+    "root_cause": "Frumorsök",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "resolved": "Leyst",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "description": "Lýstu úrbótinni...",
+    "assignee": "Velja ábyrgðaraðila...",
+    "root_cause": "Greining á frumorsök...",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "actions": {
+    "create_task": "Stofna framkvæmdarverkefni",
+    "create_task_hint": "Búa til verkefni til að vinna úrbótina; sjálfvirkt tengt við þessa úrbót."
+  },
+  "danger": {
+    "warning": "Að eyða þessari úrbót er varanlegt og verður ekki afturkallað.",
+    "delete": "Eyða úrbót",
+    "confirm": "Eyða þessari úrbót? Þetta verður ekki afturkallað."
+  }
+}

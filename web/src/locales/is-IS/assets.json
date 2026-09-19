@@ -1,0 +1,72 @@
+{
+  "title": "Eignaskrá",
+  "subtitle": "Upplýsingaeignir, flokkun og ábyrgð",
+  "error": {
+    "save": "Ekki tókst að vista: {message}",
+    "create": "Ekki tókst að stofna eign: {message}",
+    "delete": "Ekki tókst að eyða: {message}"
+  },
+  "action": {
+    "add": "Bæta við eign"
+  },
+  "create": {
+    "heading": "Bæta við eign",
+    "name_label": "Heiti *",
+    "name_placeholder": "t.d. Framleiðslugagnagrunnur, Viðskiptavinagátt",
+    "type_label": "Tegund",
+    "deselect_hint": "Smelltu til að afvelja",
+    "fill_in_later": "Þú getur bætt við LHT-flokkun, ábyrgðaraðila og fleiru eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engar eignir fundust"
+  },
+  "stat": {
+    "severe": "Alvarlegt (LHT = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Eign",
+      "type": "Tegund",
+      "cia": "L/H/T",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili"
+    },
+    "cia_title": {
+      "confidentiality": "Leynd: {level}",
+      "integrity": "Heilleiki: {level}",
+      "availability": "Tiltækileiki: {level}"
+    }
+  },
+  "field": {
+    "name": "Heiti",
+    "description": "Lýsing",
+    "type": "Tegund",
+    "status": "Staða",
+    "owner": "Ábyrgðaraðili",
+    "primary_location": "Aðalstaðsetning",
+    "next_review": "Næsta yfirferð",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "description": "Lýstu eigninni...",
+    "primary_location": "t.d. Reykjavík DC, AWS eu-west-1",
+    "notes": "Frekari athugasemdir... Skrifaðu /doc til að tengja skjal"
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "assessment": {
+    "confidentiality": "Leynd",
+    "integrity": "Heilleiki",
+    "availability": "Tiltækileiki"
+  },
+  "danger": {
+    "warning": "Að eyða þessari eign er varanlegt og verður ekki afturkallað. Saga, athugasemdir og tengdar tilvísanir tapast.",
+    "delete": "Eyða eign",
+    "confirm": "Eyða þessari eign? Þetta verður ekki afturkallað."
+  }
+}

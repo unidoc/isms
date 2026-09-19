@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Handbók",
+    "sign_in": "Skrá inn"
+  },
+  "hero": {
+    "badge": "Opinn hugbúnaður · Apache 2.0",
+    "title_line1": "Snjalla",
+    "title_line2": "stjórnkerfið",
+    "subtitle": "Lifandi skjöl, rekjanlegar yfirferðir og reglubundið verklag á einum vettvangi sem stenst úttekt. Veldu staðal eða komdu með þinn eigin. Gervigreind hjálpar til við vinnuna. Fólk heldur stjórninni.",
+    "cta_cloud": "Byrja í skýinu",
+    "cta_selfhost": "Hýsa sjálf/ur",
+    "cta_docs": "Lesa handbókina"
+  },
+  "why": {
+    "heading": "Af hverju enn eitt stjórnkerfið?",
+    "p1": "Vegna þess að þau sem fyrir eru eru flókin, ógagnsæ og meðhöndluð sem regluvörsluæfing — mikilvæg fyrir úttektina, ómikilvæg daginn eftir. Og áhættan eykst stöðugt: eftir því sem notkun gervigreindar færist í aukana og ógnarfletir stækka verður stjórnkerfi sem heldur sér ekki lifandi verra en ekkert.",
+    "p2": "Þetta þarf ekki að vera svona. Rétt unnið öryggi byrjar við rótina — að skilja og stýra áhættu sinni í raun, ekki bara plástra yfir hana. Byggt með gervigreind frá grunni, með raunverulegum aga í hönnun og notkun, á stjórnkerfi að vera lifandi hluti af því hvernig þú starfar, ekki byrði sem bætt er ofan á.",
+    "p3": "Þess vegna er þetta opinn hugbúnaður — byggður fyrir fyrirtæki af öllum stærðum, og loksins trúverðugur kostur fyrir smærri fyrirtæki, sem hafa aldrei haft aðgang að stjórnkerfi sem er einfalt, helst uppfært og vinnur með þeim en ekki gegn þeim. Við byggðum þetta til að breyta því."
+  },
+  "pillars": {
+    "documents_title": "Skjöl eru rekstrareignir",
+    "documents_desc": "Stefnur eru vistaðar í git sem markdown. Hver breyting er commit. Hverja útgáfu má endurheimta. Skjölin drífa stjórnkerfið áfram, liggja ekki í möppu.",
+    "reviews_title": "Yfirferðir eru rekjanlegar ákvarðanir",
+    "reviews_desc": "Umferðaskipt yfirferð með innskotsathugasemdum. Samþykktu, óskaðu eftir breytingum, eða leggðu til endurskoðun. Sérhver ákvörðun er óbreytanleg skrá með SHA-256 gátkóða.",
+    "tasks_title": "Verkefni drífa árið áfram",
+    "tasks_desc": "Ársáætlun dreifir yfirferðum, úttektum og áhættumötum yfir dagatalið. Yfirlitið sýnir hvað þarf athygli í þessum mánuði. Stjórnkerfið þitt úreldist aldrei."
+  },
+  "how": {
+    "heading": "Fimm mínútur, ekki fimm fundir",
+    "subtitle": "Frá atburði til uppfærðrar stefnu til samþykkts skjals. Vettvangurinn sér um puðið.",
+    "step1_title": "Eitthvað gerist",
+    "step1_desc": "Atvik, nýr birgi, breyting á lögum, niðurstaða úttektar. Hvaða atburður sem hefur áhrif á öryggisstöðu þína.",
+    "step2_title": "Stofna eða uppfæra",
+    "step2_desc": "Skráðu það í réttu skrána. Gervigreind getur lagt til uppfærslur á áhættu, breytingar á stefnum og úrbætur. Þú ferð yfir hverja tillögu.",
+    "step3_title": "Skjöl uppfærast á grein",
+    "step3_desc": "Breytingar á stefnum lenda á yfirferðargrein með fullum samanburði. Engar dularfullar breytingar. Fimm skjöl á fimm mínútum.",
+    "step4_title": "Yfirferðarumferðir",
+    "step4_desc": "Yfirferðaraðilar fá tilkynningu. Samþykkja eða óska eftir breytingum. Eftir breytingar er sent aftur sem ný umferð. Hver umferð sýnir aðeins það sem breyttist frá síðustu ábendingu.",
+    "step5_title": "Birta",
+    "step5_desc": "Sameina við aðalgrein. Útgáfunúmer hækkar. Ákvörðunarskrá verður til. Sönnunargögn vistuð. Búið."
+  },
+  "features": {
+    "heading": "Öðruvísi byggt",
+    "subtitle": "Ekki skjalaritill með regluvörsluviðbótum. Sérhannað stjórnkerfi þar sem allt tengist saman.",
+    "git_title": "Skjöl innbyggð í git",
+    "git_desc": "Stefnur eru markdown-skrár í git-safni. Hver breyting er commit með fullum samanburði. Grein fyrir yfirferð, sameinað til birtingar. Engin sérsniðin snið, engin innilokun.",
+    "review_title": "Umferðaskipt yfirferð",
+    "review_desc": "Sendu skjal til yfirferðar. Yfirferðaraðilar samþykkja, óska eftir breytingum, eða leggja til endurskoðun með innskotsathugasemdum. Endursent sem ný umferð — yfirferðaraðilar sjá aðeins það sem breyttist.",
+    "registers_title": "Skrár sem tengjast",
+    "registers_desc": "Áhætta tengist eignum og stjórntækjum. Atvik búa til úrbætur. Lagakröfur tengjast stefnum. Breyttu einu, sjáðu áhrifin alls staðar.",
+    "ai_title": "Gervigreind leggur til, þú samþykkir",
+    "ai_desc": "Gervigreindarfulltrúar semja drög að stefnum, meta áhættu og leggja til uppfærslur á skrám í gegnum sama yfirferðarferli. MCP-þjónn með 22 verkfærum. Fullt auðkenni fulltrúa og rekjanleg saga. Ekki sjálfstýring — hæfur aðstoðarmaður.",
+    "cadence_title": "Ársáætlun og taktur",
+    "cadence_desc": "Yfirlitið sýnir hvað þarf athygli í þessum mánuði. Dreifðu yfirferðum, úttektum og áhættumötum yfir árið. Verkefni fylgja framkvæmdinni eftir. Stjórnkerfið þitt heldur áfram að lifa.",
+    "audit_title": "Tilbúið fyrir úttekt frá fyrsta degi",
+    "audit_desc": "Hver samþykkt yfirferð og hver birting skjals býr til óbreytanlega ákvörðunarskrá með SHA-256 innihaldsgátkóða. Tímastimplað, rekjanlegt, dulkóðunarlega sannreynanlegt."
+  },
+  "frameworks": {
+    "heading": "Hvaða staðal sem er. Þín sniðmát.",
+    "subtitle": "11 innbyggðir staðlar. Eða komdu með þín eigin sniðmát — mappa af markdown-skrám er allt sem þarf. Keyrðu marga staðla á sama vettvangi."
+  },
+  "deploy": {
+    "cloud_title": "Rekið í skýi",
+    "cloud_desc": "Skráðu þig, veldu staðal, byrjaðu að vinna. Við sjáum um innviði, afritun og uppfærslur. Fjölleigjukerfi með gagnaeinangrun á raðstigi.",
+    "cloud_cta": "Byrja frítt",
+    "cloud_cta_signin": "Skrá inn",
+    "selfhost_title": "Sjálfhýst",
+    "selfhost_desc": "Eitt Go-forrit. PostgreSQL og gagnamappa. Settu upp hvar sem er — þinn innviður, þín gögn. Apache 2.0, engin tilbúin takmörk, engin open-core brögð.",
+    "selfhost_cta": "Skoða á GitHub"
+  },
+  "cta": {
+    "heading": "Endurskoðandinn þinn mun þakka þér",
+    "subtitle": "Full útgáfusaga. Óbreytanlegar samþykktarskrár. Dulkóðunarlega sannreynanlegar ákvarðanir. Fullkomlega rekjanleg saga frá fyrsta degi."
+  },
+  "footer": {
+    "powered_by": "Keyrt af {link}"
+  }
+}

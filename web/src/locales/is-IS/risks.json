@@ -1,0 +1,94 @@
+{
+  "title": "Áhættuskrá",
+  "subtitle": "Mat og meðhöndlun áhættu í upplýsingaöryggi",
+  "error": {
+    "load": "Ekki tókst að sækja áhættur. {message}",
+    "save": "Ekki tókst að vista: {message}",
+    "create": "Ekki tókst að stofna áhættu: {message}",
+    "delete": "Ekki tókst að eyða áhættu: {message}"
+  },
+  "action": {
+    "add": "Bæta við áhættu",
+    "cancel": "Hætta við"
+  },
+  "create": {
+    "heading": "Bæta við áhættu",
+    "title_label": "Titill *",
+    "title_placeholder": "t.d. Gagnagíslataka á framleiðslukerfum",
+    "category_label": "Flokkur",
+    "deselect_hint": "Smelltu til að afvelja",
+    "fill_in_later": "Þú getur bætt við lýsingu, afleiðingum, meðhöndlun, ábyrgðaraðila og fleiru eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "map": {
+    "heading": "Áhættukort"
+  },
+  "stat": {
+    "total": "Áhættur samtals"
+  },
+  "filter": {
+    "empty": "Engar áhættur samræmast síunni þinni.",
+    "none_yet": "Engar áhættur ennþá — smelltu á Bæta við til að stofna þá fyrstu."
+  },
+  "table": {
+    "header": {
+      "risk": "Áhætta",
+      "type": "Tegund",
+      "score": "Stig",
+      "cia": "L/H/T",
+      "owner": "Ábyrgðaraðili",
+      "treatment": "Meðhöndlun",
+      "status": "Staða",
+      "actions": "Aðgerðir"
+    },
+    "was_score": "var {score}",
+    "cia_title": {
+      "confidentiality": "Leynd: {level}",
+      "integrity": "Heilleiki: {level}",
+      "availability": "Tiltækileiki: {level}"
+    },
+    "advisory_badge": "Yfirferð",
+    "advisory_title": "LHT-misræmi við tengdar eignir — endurmat þarf"
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "status": "Staða",
+    "owner": "Ábyrgðaraðili",
+    "category": "Flokkur",
+    "risk_type": "Tegund áhættu",
+    "origin": "Uppruni",
+    "treatment": "Meðhöndlun",
+    "treatment_plan": "Meðhöndlunaráætlun",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "notes": "Athugasemdir",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "description": "Lýstu áhættunni...",
+    "treatment_plan": "Hvernig mætum við þessari áhættu?",
+    "notes": "Bæta við athugasemdum, ábendingum, fundargerðum, tilvísunum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "treatment": "Meðhöndlun",
+    "notes": "Athugasemdir"
+  },
+  "assessment": {
+    "inherent": "Upprunaleg",
+    "current": "Núverandi"
+  },
+  "links": {
+    "linked_assets": "Tengdar eignir"
+  },
+  "actions": {
+    "create_task": "Stofna framkvæmdarverkefni",
+    "create_task_desc": "Búa til verkefni til að framkvæma meðhöndlunaráætlunina; sjálfvirkt tengt við þessa áhættu."
+  },
+  "danger": {
+    "warning": "Að eyða þessari áhættu er varanlegt og verður ekki afturkallað. Saga, athugasemdir og tengdar tilvísanir tapast.",
+    "delete": "Eyða áhættu",
+    "confirm": "Eyða þessari áhættu? Þetta verður ekki afturkallað."
+  }
+}

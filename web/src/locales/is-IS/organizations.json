@@ -1,0 +1,20 @@
+{
+  "title": "Fyrirtækin þín",
+  "empty": "Þú ert ekki meðlimur í neinu fyrirtæki ennþá.",
+  "create": "Stofna fyrirtæki",
+  "form": {
+    "title": "Nýtt fyrirtæki",
+    "name_label": "Nafn",
+    "name_placeholder": "Dæmi ehf.",
+    "slug_label": "Vefslóð (slug)",
+    "slug_placeholder": "daemi",
+    "template_label": "Sniðmát (valfrjálst)",
+    "template_none": "Ekkert — ég útbý skjölin sjálf/ur",
+    "template_iso27001": "ISO 27001 — heilt skjalasett",
+    "template_soc2": "SOC 2 — Trust Services Criteria",
+    "template_nis2": "NIS2 — kröfur ESB-tilskipunar",
+    "template_hint": "Útbýr sniðmát skjala í git. Hægt að bæta við fleiri sniðmátum síðar.",
+    "creating": "Stofna…",
+    "error_create": "Ekki tókst að stofna fyrirtæki"
+  }
+}

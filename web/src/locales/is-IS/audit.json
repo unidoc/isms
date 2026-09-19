@@ -1,0 +1,232 @@
+{
+  "title": "Innri úttekt",
+  "subtitle": "Úttektaráætlanir, tímasetningar og niðurstöður",
+  "error": {
+    "load": "Ekki tókst að sækja úttektareininguna. {message}",
+    "load_programmes": "Ekki tókst að sækja áætlanir: {message}",
+    "load_audits": "Ekki tókst að sækja úttektir: {message}",
+    "load_calendar": "Ekki tókst að sækja dagatal: {message}",
+    "load_findings": "Ekki tókst að sækja niðurstöður: {message}",
+    "load_audit_detail": "Ekki tókst að sækja upplýsingar úttektar: {message}",
+    "create_programme": "Ekki tókst að stofna áætlun: {message}",
+    "save_programme": "Ekki tókst að vista áætlun: {message}",
+    "delete_programme": "Ekki tókst að eyða áætlun: {message}",
+    "create_audit": "Ekki tókst að stofna úttekt: {message}",
+    "save_audit": "Ekki tókst að vista úttekt: {message}",
+    "save_report": "Ekki tókst að vista skýrslu: {message}",
+    "add_item": "Ekki tókst að bæta við atriði: {message}",
+    "save_item": "Ekki tókst að vista: {message}",
+    "remove_item": "Ekki tókst að fjarlægja: {message}",
+    "create_finding": "Ekki tókst að bæta við niðurstöðu: {message}",
+    "save_finding": "Ekki tókst að vista niðurstöðu: {message}",
+    "delete_finding": "Ekki tókst að eyða niðurstöðu: {message}"
+  },
+  "toast": {
+    "programme_added": "Áætlun bætt við",
+    "programme_deleted": "Áætlun eytt",
+    "audit_added": "Úttekt bætt við",
+    "report_saved": "Skýrsla vistuð",
+    "item_added": "Atriði bætt við",
+    "item_removed": "Atriði fjarlægt",
+    "finding_added": "Niðurstöðu bætt við",
+    "finding_deleted": "Niðurstöðu eytt"
+  },
+  "tab": {
+    "calendar": "Dagatal",
+    "programmes": "Áætlanir",
+    "findings": "Niðurstöður",
+    "audits": "Úttektir",
+    "items": "Atriði",
+    "report": "Skýrsla",
+    "discussion": "Umræða",
+    "linked": "Tengdar úrbætur"
+  },
+  "action": {
+    "add_programme": "Bæta við áætlun",
+    "add_finding": "Bæta við niðurstöðu",
+    "add_audit": "Bæta við úttekt"
+  },
+  "calendar": {
+    "loading": "Sæki dagatal...",
+    "audit_count": "{count} úttekt | {count} úttektir",
+    "month_empty": "Engar úttektir áætlaðar þennan mánuð",
+    "unscheduled": "Ekki tímasett",
+    "unscheduled_count": "{count} úttekt án áætlaðs dags | {count} úttektir án áætlaðs dags",
+    "unscheduled_range": "ekki tímasett",
+    "empty": "Engar úttektir árið {year}. Bættu við úttekt úr áætlun til að sjá hana hér."
+  },
+  "programme": {
+    "search_placeholder": "Leita í áætlunum...",
+    "all_years": "Öll ár",
+    "empty_filtered": "Engar áætlanir samræmast síunni þinni.",
+    "empty": "Engar úttektaráætlanir ennþá — smelltu á Bæta við áætlun til að stofna eina.",
+    "table": {
+      "id": "Auðkenni",
+      "title": "Titill",
+      "year": "Ár",
+      "audits": "Úttektir",
+      "findings": "Niðurstöður",
+      "status": "Staða"
+    },
+    "create": {
+      "heading": "Bæta við áætlun",
+      "title_label": "Titill *",
+      "title_placeholder": "t.d. Árleg úttektaráætlun 2026",
+      "year_label": "Ár *",
+      "fill_in_later": "Þú getur bætt við lýsingu, stöðu og úttektum eftir stofnun.",
+      "submitting": "Bæti við...",
+      "submit": "Bæta við"
+    },
+    "field": {
+      "title": "Titill",
+      "year": "Ár",
+      "status": "Staða",
+      "description": "Lýsing",
+      "notes": "Athugasemdir",
+      "audits": "Úttektir",
+      "created_by": "Stofnað af",
+      "created": "Stofnað"
+    },
+    "placeholder": {
+      "description": "Markmið og umfang áætlunar...",
+      "notes": "Innri athugasemdir..."
+    },
+    "audits_heading": "Úttektir í þessari áætlun",
+    "add_audit": "+ Bæta við úttekt",
+    "audits_empty": "Engar úttektir í þessari áætlun ennþá.",
+    "open_findings": "{count} opnar",
+    "danger": {
+      "warning": "Ekki er hægt að eyða áætlunum með úttektum. Fjarlægðu allar úttektir fyrst.",
+      "delete": "Eyða áætlun",
+      "confirm": "Eyða áætluninni „{title}“? Þetta verður ekki afturkallað."
+    }
+  },
+  "audit": {
+    "loading_detail": "Sæki upplýsingar úttektar...",
+    "create": {
+      "heading": "Bæta við úttekt",
+      "title_label": "Titill *",
+      "title_placeholder": "Titill úttektar",
+      "programme_label": "Áætlun",
+      "no_programme": "Engin áætlun (stök úttekt)",
+      "type_label": "Tegund úttektar",
+      "fill_in_later": "Þú getur bætt við umfangi, úttektaraðila, dagsetningum og atriðum eftir stofnun.",
+      "submitting": "Bæti við...",
+      "submit": "Bæta við"
+    },
+    "field": {
+      "title": "Titill",
+      "scope": "Umfang",
+      "type": "Tegund úttektar",
+      "status": "Staða",
+      "auditor": "Úttektaraðili",
+      "programme": "Áætlun",
+      "planned_date": "Áætlaður dagur",
+      "end_date": "Lokadagur",
+      "planned": "Áætlað",
+      "started": "Hafið",
+      "completed": "Lokið",
+      "items": "Atriði",
+      "findings": "Niðurstöður",
+      "notes": "Athugasemdir"
+    },
+    "placeholder": {
+      "scope": "Lýsing á umfangi. Skrifaðu /doc til að tengja stjórntæki eða greinar...",
+      "auditor": "Velja úttektaraðila...",
+      "notes": "Innri athugasemdir úttektar..."
+    },
+    "open_count": "({count} opnar)",
+    "danger": {
+      "warning": "Ekki er hægt að eyða úttektum úr notandaviðmótinu eins og er. Framkvæmdu eyðingaraðgerðir í gegnum skipanalínuna."
+    }
+  },
+  "items": {
+    "heading": "Atriði úttektar ({count})",
+    "add": "+ Bæta við atriði",
+    "search_placeholder": "Leita í skjölum, stjórntækjum, greinum, áhættu, eignum...",
+    "searching": "Leita...",
+    "no_matches": "Engar samsvaranir.",
+    "empty": "Engin atriði ennþá — bættu við stjórntækjum, greinum, áhættu eða öðrum atriðum til að meta.",
+    "raise_finding": "Skrá niðurstöðu",
+    "raise_finding_title": "Stofna niðurstöðu út frá þessu atriði",
+    "delete_title": "Eyða atriði",
+    "evidence": "Sönnunargagn",
+    "evidence_placeholder": "Tilvísun, hlekkur eða lýsing á sönnunargagni...",
+    "notes": "Athugasemdir",
+    "notes_empty": "Athugasemdir (engar)",
+    "notes_placeholder": "Innskotsathugasemdir fyrir þetta atriði...",
+    "save_notes": "Vista athugasemdir",
+    "confirm_remove": "Fjarlægja „{title}“ úr þessari úttekt?",
+    "remove": "Fjarlægja"
+  },
+  "findings": {
+    "search_placeholder": "Leita í niðurstöðum...",
+    "all_audits": "Allar úttektir",
+    "overdue_toggle_title": "Víxla: Aðeins yfirfallið",
+    "overdue_only": "Aðeins yfirfallið",
+    "overdue": "Yfirfallið",
+    "empty_filtered": "Engar niðurstöður samræmast síunni þinni.",
+    "empty": "Engar niðurstöður skráðar ennþá.",
+    "heading_count": "Niðurstöður ({count})",
+    "add": "+ Bæta við niðurstöðu",
+    "audit_empty": "Engar niðurstöður skráðar fyrir þessa úttekt ennþá.",
+    "table": {
+      "id": "Auðkenni",
+      "title": "Titill",
+      "audit": "Úttekt",
+      "type": "Tegund",
+      "owner": "Ábyrgðaraðili",
+      "due": "Skiladagur",
+      "status": "Staða"
+    },
+    "create": {
+      "heading": "Bæta við niðurstöðu",
+      "title_label": "Titill *",
+      "title_placeholder": "Titill niðurstöðu",
+      "audit_label": "Úttekt *",
+      "audit_placeholder": "Velja úttekt...",
+      "type_label": "Tegund",
+      "fill_in_later": "Þú getur bætt við lýsingu, ábyrgðaraðila, skiladegi og tengingum við úrbætur eftir stofnun.",
+      "submitting": "Bæti við...",
+      "submit": "Bæta við"
+    },
+    "field": {
+      "title": "Titill",
+      "description": "Lýsing",
+      "type": "Tegund",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili",
+      "due_date": "Skiladagur",
+      "due_date_read": "Skiladagur",
+      "audit": "Úttekt",
+      "audit_item": "Atriði úttektar",
+      "created": "Stofnað",
+      "closed": "Lokað"
+    },
+    "placeholder": {
+      "description": "Ítarleg lýsing á niðurstöðu, sönnunargögnum, greining á frumorsök...",
+      "owner": "Velja ábyrgðaraðila..."
+    },
+    "item_ref": "atriði #{id}",
+    "quick_action": "Flýtiaðgerð",
+    "create_ca": "Stofna úrbót út frá niðurstöðu",
+    "create_ca_hint": "Búa til úrbót forútfyllta með titli og alvarleika þessarar niðurstöðu.",
+    "danger": {
+      "warning": "Að eyða þessari niðurstöðu er varanlegt. Tengdar úrbætur haldast en missa þessa tilvísun til baka.",
+      "delete": "Eyða niðurstöðu",
+      "confirm": "Eyða þessari niðurstöðu? Þetta verður ekki afturkallað."
+    }
+  },
+  "report": {
+    "heading": "Úttektarskýrsla",
+    "placeholder": "Lokaskýrsla úttektaraðila — athuganir, niðurstöður, tillögur. Notaðu skástrikaskipanir til að tengja stjórntæki, greinar, sönnunargögn...",
+    "empty": "Engin skýrsla skrifuð ennþá."
+  },
+  "dirty": {
+    "report_switch_tab": "Þú átt óvistaðar breytingar á skýrslu. Henda þeim og skipta um flipa?",
+    "report_close": "Þú átt óvistaðar breytingar á skýrslu. Henda þeim og loka?"
+  },
+  "detail": {
+    "overview": "Yfirlit"
+  }
+}

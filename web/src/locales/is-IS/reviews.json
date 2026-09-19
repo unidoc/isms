@@ -1,0 +1,189 @@
+{
+  "title": "Yfirferðir",
+  "subtitle": "Beiðnir um yfirferð skjala",
+  "back": "Til baka í yfirferðir",
+  "not_found": "Yfirferð fannst ekki",
+  "opened_ago": "opnað {time}",
+  "ai": {
+    "active": "AI-yfirferð í vinnslu",
+    "escalated": "Vísað áfram — AI-yfirferð stopp"
+  },
+  "guide": {
+    "step_review": "Farðu yfir skjalið og breytingarnar",
+    "step_comment": "Bættu við athugasemdum eða leggðu til breytingar",
+    "step_decide": "Samþykktu eða óskaðu eftir breytingum"
+  },
+  "tab": {
+    "changes": "Breytingar (umferð {round})",
+    "document": "Skjal",
+    "conversation": "Samtal"
+  },
+  "timeline": {
+    "suggested_edit": "lagði til breytingu",
+    "commented": "gerði athugasemd",
+    "approved": "samþykkti þessa yfirferð",
+    "proposed_revision": "lagði til endurskoðun",
+    "requested_changes": "óskaði eftir breytingum",
+    "assigned": "{reviewer} var úthlutað sem yfirferðaraðili",
+    "empty": "Engin virkni ennþá.",
+    "round_short": "U{round}",
+    "decision": {
+      "merged": "sameinaði þessa yfirferð",
+      "approved": "samþykkti (ákvörðunarskrá)",
+      "proposed_revision": "lagði til endurskoðun (ákvörðunarskrá)",
+      "changes_requested": "óskaði eftir breytingum (ákvörðunarskrá)"
+    },
+    "content_hash": "SHA-256 innihaldsgátkóði til sönnunar um breytingar",
+    "hide_changes": "Fela breytingar",
+    "view_changes": "Skoða breytingar",
+    "diff_loading": "Sæki breytingar…",
+    "diff_error": "Ekki tókst að sækja samanburð þessarar útgáfu."
+  },
+  "updated": {
+    "heading": "Skjal uppfært síðan yfirferð var send",
+    "last_modified_by": "Síðast breytt af {name}",
+    "last_modified_by_with_message": "Síðast breytt af {name} — {message}",
+    "note": "Samanburðurinn hér að neðan sýnir allar breytingar síðan síðasta samþykkta útgáfa."
+  },
+  "diff": {
+    "summary_heading": "Breytingar í þessari yfirferð",
+    "never_approved_inline": "Full yfirferð — þetta skjal hefur aldrei verið samþykkt. Skoðaðu allt skjalið undir Skjal-flipanum.",
+    "none_inline": "Enginn samanburður í boði — skjalinu hefur ef til vill ekki verið breytt síðan yfirferðin hófst.",
+    "loading": "Sæki breytingar...",
+    "scope_round": "Breytingar í þessari umferð",
+    "scope_all": "Allar breytingar í yfirferðinni",
+    "mode_split": "Hlið við hlið",
+    "mode_unified": "Sameinað",
+    "never_approved_heading": "Full yfirferð — þetta skjal hefur aldrei verið samþykkt",
+    "never_approved_body": "Engin fyrri samþykkt útgáfa er til samanburðar. Skoðaðu allt skjalið undir Skjal-flipanum.",
+    "none_in_round": "Engar breytingar fundust í þessari umferð."
+  },
+  "comment": {
+    "heading": "Bæta við athugasemd",
+    "placeholder": "Skildu eftir athugasemd..."
+  },
+  "edit": {
+    "save_and_resubmit": "Vista og senda aftur",
+    "send_revision": "Senda lagða endurskoðun",
+    "draft_saved": "Drög vistuð",
+    "note_placeholder": "Hverju breyttir þú og af hverju?",
+    "draft_recovered": "Drög endurheimt úr fyrri lotu."
+  },
+  "summary": {
+    "resubmitted": "Endursent eftir óskaðar breytingar",
+    "initial": "Fyrsta yfirferð",
+    "approved_count": "{approved} af {total}",
+    "waiting_on": "Beðið eftir:",
+    "ready_to_merge": "Allir yfirferðaraðilar hafa samþykkt. Tilbúið til sameiningar.",
+    "changes_requested_you": "Óskað eftir breytingum. Beðið eftir svari þínu.",
+    "changes_requested_author": "Óskað eftir breytingum. Beðið eftir svari frá {author}."
+  },
+  "suggestion": {
+    "count": "{count} tillaga | {count} tillögur",
+    "pending": "{count} í bið",
+    "accepted": "{count} samþykktar",
+    "rejected": "{count} hafnað"
+  },
+  "assignment": {
+    "empty": "Engum yfirferðaraðilum úthlutað",
+    "status": {
+      "approved": "samþykkt",
+      "pending": "í bið",
+      "changes_requested": "breytingar",
+      "proposed_revision": "endurskoðun"
+    }
+  },
+  "policy": {
+    "heading": "Kröfur um samþykki",
+    "approvals": "{current}/{min} samþykki",
+    "missing_roles": "Vantar: hlutverk {roles}",
+    "missing_users": "Beðið eftir: {users}",
+    "blocked": "Sameining læst þar til allar kröfur eru uppfylltar",
+    "will_auto_merge": "Sameinast sjálfkrafa þegar öll samþykki liggja fyrir",
+    "require_human": "Að minnsta kosti eitt samþykki frá manneskju er nauðsynlegt",
+    "auto_merge": "Sjálfvirk sameining virk fyrir þessa stefnu"
+  },
+  "actions": {
+    "heading": "Aðgerðir",
+    "requirements_not_met": "Kröfur ekki uppfylltar",
+    "publish": "Birta",
+    "publish_version": "Birta {version}",
+    "publish_note": "Þetta gerir {version} að samþykkta skjalinu.",
+    "publish_note_this_version": "Þetta gerir þessa útgáfu að samþykkta skjalinu.",
+    "awaiting_manager": "Allir yfirferðaraðilar samþykktu. Beðið eftir að stjórnandi birti.",
+    "revision_proposed_by": "{name} lagði til endurskoðun á þessu skjali.",
+    "publishing": "Birti...",
+    "accept_and_publish": "Samþykkja og birta",
+    "request_another_review": "Óska eftir annarri yfirferð",
+    "propose_new_revision": "Leggja til nýja endurskoðun",
+    "changes_were_requested": "Óskað var eftir breytingum. Breyttu skjalinu og sendu aftur.",
+    "edit_and_resubmit": "Breyta og senda aftur",
+    "you_sent_this": "Þú sendir þessa yfirferð.",
+    "waiting_for_feedback": "Beðið eftir ábendingu yfirferðaraðila.",
+    "you_approved": "Þú samþykktir þessa umferð.",
+    "you_proposed_revision": "Þú lagðir til endurskoðun.",
+    "you_requested_changes": "Þú óskaðir eftir breytingum.",
+    "waiting_for_author": "Beðið eftir svari frá {author}.",
+    "waiting_for_reviewers": "Beðið eftir öðrum yfirferðaraðilum.",
+    "stale_warning": "Skjalinu var breytt eftir að þessi yfirferð var send. Farðu yfir nýjustu breytingarnar áður en þú samþykkir.",
+    "request_changes": "Óska eftir breytingum",
+    "propose_revision": "Leggja til endurskoðun",
+    "approve_heading": "Samþykkja þetta skjal",
+    "approve_placeholder": "Valfrjáls athugasemd...",
+    "approving": "Samþykki...",
+    "confirm_approve": "Staðfesta samþykki",
+    "changes_heading": "Óska eftir breytingum",
+    "changes_placeholder": "Lýstu því sem þarf að breyta... (nauðsynlegt)",
+    "submitting": "Sendi...",
+    "submit_request": "Senda beiðni",
+    "withdraw": "Draga yfirferð til baka",
+    "close_without_merging": "Loka án sameiningar",
+    "not_a_reviewer": "Þú ert ekki yfirferðaraðili á þessari beiðni."
+  },
+  "closed_state": {
+    "merged": "Sameinað",
+    "closed": "Lokað"
+  },
+  "document": {
+    "heading": "Skjal",
+    "id": "Auðkenni",
+    "comments": "Athugasemdir",
+    "open_comments": "Opnar"
+  },
+  "list": {
+    "empty_open": "Engar opnar yfirferðir",
+    "empty_closed": "Engar lokaðar yfirferðir",
+    "item_title": "Yfirferð #{id} -- {title}",
+    "opened_by": "Opnað af {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "höfundur",
+  "reviewer_fallback": "Yfirferðaraðili",
+  "revision_note_fallback": "Breytingar höfundar",
+  "toast": {
+    "revision_published": "Endurskoðun samþykkt og birt.",
+    "revision_accepted": "Lögð endurskoðun samþykkt",
+    "decision_recorded": "Samþykki þitt hefur verið skráð{round}. Beðið eftir {count} yfirferðaraðila til viðbótar. | Samþykki þitt hefur verið skráð{round}. Beðið eftir {count} yfirferðaraðilum til viðbótar.",
+    "decision_recorded_changes": "Beiðni þín um breytingar hefur verið skráð{round}. Beðið eftir {count} yfirferðaraðila til viðbótar. | Beiðni þín um breytingar hefur verið skráð{round}. Beðið eftir {count} yfirferðaraðilum til viðbótar.",
+    "all_approved": "Allir yfirferðaraðilar hafa samþykkt{round}. Tilbúið til sameiningar.",
+    "changes_requested": "Óskað eftir breytingum{round}. Höfundur fær tilkynningu.",
+    "for_round": " fyrir umferð {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Samþykkja samt",
+    "approve_stale_body": "Skjalinu var breytt eftir að þessi yfirferð var send. Samþykkja miðað við núverandi útgáfu?",
+    "discard_changes": "Henda óvistuðum breytingum?"
+  },
+  "error": {
+    "save_and_resubmit": "Vista og senda aftur mistókst: {message}",
+    "publish": "Ekki tókst að birta: {message}",
+    "accept_revision": "Ekki tókst að samþykkja endurskoðun: {message}",
+    "submit_revision": "Ekki tókst að senda endurskoðun: {message}",
+    "load_list": "Ekki tókst að sækja yfirferðir: {message}",
+    "load_one": "Ekki tókst að sækja yfirferð: {message}",
+    "add_comment": "Ekki tókst að bæta við athugasemd: {message}",
+    "submit_decision": "Ekki tókst að senda ákvörðun: {message}",
+    "merge": "Ekki tókst að sameina yfirferð: {message}",
+    "close": "Ekki tókst að loka yfirferð: {message}"
+  }
+}

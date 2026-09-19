@@ -1,0 +1,65 @@
+{
+  "title": "Breytingastjórnun",
+  "subtitle": "Halda utan um og samþykkja breytingar á stjórnkerfinu þínu.",
+  "error": {
+    "load": "Ekki tókst að sækja breytingar: {message}",
+    "create": "Ekki tókst að stofna breytingabeiðni: {message}",
+    "save": "Ekki tókst að vista: {message}",
+    "delete": "Ekki tókst að eyða breytingabeiðni: {message}"
+  },
+  "action": {
+    "add": "Bæta við breytingabeiðni"
+  },
+  "create": {
+    "heading": "Bæta við breytingabeiðni",
+    "type_label": "Tegund",
+    "title_label": "Titill",
+    "title_placeholder": "t.d. Flytja auðkenningu yfir í OIDC",
+    "priority_label": "Forgangur",
+    "category_label": "Flokkur",
+    "fill_in_later": "Þú getur bætt við lýsingu, rökstuðningi, áætluðum degi, áhættustigi, ábyrgðaraðila, afturköllunaráætlun og athugasemdum eftir stofnun.",
+    "submitting": "Stofna...",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engar breytingabeiðnir fundust"
+  },
+  "list": {
+    "requested_by": "Óskað af {name}",
+    "assigned_to": "Úthlutað til {name}",
+    "risk": "Áhætta: {level}"
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "type": "Tegund",
+    "priority": "Forgangur",
+    "category": "Flokkur",
+    "risk_level": "Áhættustig",
+    "status": "Staða",
+    "assigned_to": "Úthlutað til",
+    "assignee": "Ábyrgðaraðili",
+    "planned_for": "Áætlað fyrir",
+    "justification": "Rökstuðningur",
+    "rollback_plan": "Afturköllunaráætlun",
+    "requested_by": "Óskað af",
+    "created": "Stofnað"
+  },
+  "placeholder": {
+    "description": "Lýstu breytingunni...",
+    "assignee": "Velja...",
+    "justification": "Af hverju þarf þessa breytingu?",
+    "rollback_plan": "Hvernig á að afturkalla?",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir",
+    "progress": "Framvinda"
+  },
+  "danger": {
+    "warning": "Að eyða þessari breytingabeiðni er varanlegt og verður ekki afturkallað.",
+    "delete": "Eyða breytingabeiðni",
+    "confirm": "Eyða þessari breytingabeiðni? Þetta verður ekki afturkallað."
+  }
+}

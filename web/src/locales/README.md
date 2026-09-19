@@ -345,6 +345,67 @@ regulator uses, so a reader who works with the law recognises them and a reader
 who does not is not misled. Where your jurisdiction has its own privacy statute,
 prefer its wording over a literal rendering of the English for the same reason.
 
+### Worked example — Icelandic (`is-IS`)
+
+Iceland's national standards body, Staðlaráð Íslands, publishes an official
+Icelandic translation of the standard itself — ÍST EN ISO/IEC 27001 ("Upplýsingatækni
+– Öryggisaðferðir – Stjórnunarkerfi um upplýsingaöryggi – Kröfur"), most recently
+as ÍST EN ISO/IEC 27001:2023+AC:2025. That text is sold through Staðlabúðin and was
+not read clause-by-clause for this bundle — the general management-system and
+audit vocabulary below follows established Icelandic ISO/9001-adjacent and
+infosec-industry usage rather than a clause citation, and this paragraph is that
+disclosure, not a claim of having checked the standard directly.
+
+**The CIA triad is not translated letter-for-letter.** Confidentiality,
+integrity and availability are **leynd**, **heilleiki** and **tiltækileiki** in
+Icelandic information-security practice (consistent usage across Háskóli
+Íslands's and 112.is's information-security policies, and multiple corporate
+security policies published in Icelandic) — so the triad itself, and every
+abbreviated C/I/A badge, table header and single-letter code in the app, is
+**L/H/T** here, not CIA. This is the same category of finding as Brazilian
+Portuguese's CID: a literal transliteration of the initials would have been
+wrong, not just non-idiomatic, because L/H/T is what a Icelandic-reading
+practitioner actually expects to see labeled on a risk or asset assessment.
+
+| English | Icelandic |
+|---|---|
+| confidentiality | leynd |
+| integrity | heilleiki |
+| availability | tiltækileiki |
+| C / I / A | L / H / T |
+
+**Privacy and data-protection terms follow Icelandic law directly, not an ISO
+adoption.** Iceland is in the EEA and GDPR applies without a local equivalent
+of Brazil's LGPD; the operative statute is *Lög um persónuvernd og vinnslu
+persónuupplýsinga, nr. 90/2018*, Iceland's GDPR implementation.
+
+| English | Icelandic | Basis |
+|---|---|---|
+| controller | **ábyrgðaraðili** | nr. 90/2018 |
+| processor | **vinnsluaðili** | nr. 90/2018 |
+| data protection officer (DPO) | **persónuverndarfulltrúi** | nr. 90/2018, art. 35 |
+| personal data | **persónuupplýsingar** | nr. 90/2018 |
+
+**Nonconformity/audit-result grading is certification-body practice, not
+standard text** — same caveat as the Indonesian section above. *Frávik*
+(nonconformity), *ábending* (observation) and *tækifæri til umbóta*
+(opportunity for improvement) follow general Icelandic audit usage; *meiri
+háttar* / *minni háttar* (major/minor) are the ordinary Icelandic adjectives
+for grading severity, not standard-defined terms.
+
+**A known, undisclosed-elsewhere limitation of the bundle's pluralization,
+not specific to this locale:** every `{count} X | {count} Y` message in this
+app resolves through vue-i18n's default two-way plural rule — index 0 when
+the count is exactly 1, index 1 otherwise. Icelandic grammar instead wants the
+singular form after any count ending in 1 except 11 (21, 31, 101 mánuður, not
+mánuðir), which this bundle cannot express without a locale-specific plural
+rule the i18n setup does not register for any locale today. The two forms
+provided here are therefore the closest available fit, not a claim of
+grammatical correctness at every count — the same simplification English
+itself is not tested against, but Icelandic's plural rule genuinely differs
+from English's where English's does not (English "21 months" is idiomatic;
+"21 mánuðir" is not).
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

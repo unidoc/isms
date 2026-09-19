@@ -1,0 +1,89 @@
+{
+  "title": "Atvikastjórnun",
+  "subtitle": "Skrá, bregðast við og læra af öryggisatvikum",
+  "error": {
+    "create": "Ekki tókst að stofna atvik: {message}",
+    "save": "Ekki tókst að vista: {message}",
+    "delete": "Ekki tókst að eyða atviki: {message}"
+  },
+  "action": {
+    "add": "Bæta við atviki"
+  },
+  "create": {
+    "heading": "Bæta við atviki",
+    "title_label": "Titill *",
+    "title_placeholder": "Stuttur titill atviks",
+    "severity_label": "Alvarleiki",
+    "type_label": "Tegund",
+    "fill_in_later": "Þú getur bætt við lýsingu, flokkun, uppruna, ábyrgðaraðila, GDPR-upplýsingum og athugasemdum eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engin atvik fundust"
+  },
+  "list": {
+    "source": "Uppruni: {value}",
+    "reporter": "Tilkynnandi: {name}",
+    "assignee": "Ábyrgðaraðili: {name}"
+  },
+  "field": {
+    "title": "Titill",
+    "description": "Lýsing",
+    "severity": "Alvarleiki",
+    "type": "Tegund",
+    "origin": "Uppruni",
+    "classification": "Flokkun",
+    "status": "Staða",
+    "assignee": "Ábyrgðaraðili",
+    "reporter": "Tilkynnandi",
+    "root_cause": "Frumorsök",
+    "lessons_learned": "Lærdómur",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "placeholder": {
+    "description": "Lýstu atvikinu...",
+    "root_cause": "Greining á frumorsök...",
+    "lessons_learned": "Hvað getum við bætt?",
+    "assignee": "Velja ábyrgðaraðila...",
+    "notes": "Bæta við athugasemdum..."
+  },
+  "classification": {
+    "confidentiality": "Leynd",
+    "integrity": "Heilleiki",
+    "availability": "Tiltækileiki"
+  },
+  "data_breach_checkbox": "Þetta er öryggisbrot varðandi persónuupplýsingar (GDPR)",
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "tab": {
+    "data_breach": "Öryggisbrot"
+  },
+  "timeline": {
+    "heading": "Tímalína",
+    "detected": "Uppgötvað:",
+    "contained": "Afmarkað:",
+    "resolved": "Leyst:",
+    "closed": "Lokað:"
+  },
+  "actions": {
+    "create_ca": "Stofna úrbót",
+    "create_ca_desc": "Búa til úrbót tengda þessu atviki."
+  },
+  "breach": {
+    "heading": "Öryggisbrot varðandi persónuupplýsingar (GDPR)",
+    "gdpr_role": "Hlutverk skv. GDPR",
+    "authority_notification": "Tilkynning til yfirvalds",
+    "subjects_notification": "Tilkynning til skráðra einstaklinga",
+    "authority": "Yfirvald",
+    "subjects": "Skráðir einstaklingar"
+  },
+  "danger": {
+    "warning": "Að eyða þessu atviki er varanlegt og verður ekki afturkallað.",
+    "delete": "Eyða atviki",
+    "confirm": "Eyða atvikinu „{title}“? Þetta verður ekki afturkallað."
+  }
+}

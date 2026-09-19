@@ -1,0 +1,102 @@
+{
+  "title": "Kerfaskrá",
+  "subtitle": "UT-kerfi, endurheimtarmarkmið, aðgangsstýring og tengingar við birgja",
+  "error": {
+    "save": "Ekki tókst að vista: {message}",
+    "create": "Ekki tókst að stofna kerfi: {message}",
+    "delete": "Ekki tókst að eyða: {message}",
+    "record_review": "Ekki tókst að skrá yfirferð: {message}"
+  },
+  "action": {
+    "add": "Bæta við kerfi"
+  },
+  "create": {
+    "heading": "Bæta við kerfi",
+    "name_label": "Heiti *",
+    "name_placeholder": "t.d. Framleiðslu-ERP",
+    "classification_label": "Flokkun",
+    "criticality_label": "Mikilvægi",
+    "supplier_label": "Birgi",
+    "fill_in_later": "Þú getur bætt við LHT-flokkun, RPO/RTO og ábyrgðaraðila eftir stofnun.",
+    "submit": "Bæta við"
+  },
+  "filter": {
+    "empty": "Engin kerfi fundust"
+  },
+  "option": {
+    "no_supplier": "— Enginn —"
+  },
+  "table": {
+    "header": {
+      "system": "Kerfi",
+      "classification": "Flokkun",
+      "criticality": "Mikilvægi",
+      "cia": "L/H/T",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Staða",
+      "owner": "Ábyrgðaraðili",
+      "next_review": "Næsta yfirferð"
+    },
+    "cia_title": {
+      "confidentiality": "Leynd: {level}",
+      "integrity": "Heilleiki: {level}",
+      "availability": "Tiltækileiki: {level}"
+    },
+    "hours": "{count} klst."
+  },
+  "field": {
+    "name": "Heiti",
+    "description": "Lýsing",
+    "classification": "Flokkun",
+    "criticality": "Mikilvægi",
+    "status": "Staða",
+    "owner": "Ábyrgðaraðili",
+    "department": "Deild",
+    "supplier": "Birgi",
+    "rpo": "RPO (klst.)",
+    "rto": "RTO (klst.)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Stofnað",
+    "created_by": "Stofnað af",
+    "external_id": "Utanaðkomandi auðkenni"
+  },
+  "hint": {
+    "rpo": "Hámarks ásættanlegt gagnatap (klst.)",
+    "rto": "Hámarks ásættanlegur niðritími (klst.)"
+  },
+  "placeholder": {
+    "description": "Lýstu kerfinu...",
+    "department": "UT, Verkfræði, Markaðsmál...",
+    "notes": "Frekari athugasemdir... Skrifaðu /doc til að tengja skjal"
+  },
+  "detail": {
+    "overview": "Yfirlit",
+    "notes": "Athugasemdir"
+  },
+  "tab": {
+    "reviews": "Aðgangsyfirferðir"
+  },
+  "assessment": {
+    "confidentiality": "Leynd",
+    "integrity": "Heilleiki",
+    "availability": "Tiltækileiki"
+  },
+  "reviews": {
+    "heading": "Aðgangsyfirferðir",
+    "add": "+ Skrá yfirferð",
+    "users_added": "Notendum bætt við",
+    "users_removed": "Notendur fjarlægðir",
+    "notes_label": "Athugasemdir",
+    "notes_placeholder": "Fjarlægði fyrrverandi starfsmenn...",
+    "submit": "Skrá yfirferð",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "yfirfór",
+    "empty": "Engar aðgangsyfirferðir skráðar."
+  },
+  "danger": {
+    "warning": "Að eyða þessu kerfi er varanlegt og verður ekki afturkallað. Saga, athugasemdir, aðgangsyfirferðir og tengdar tilvísanir tapast.",
+    "delete": "Eyða kerfi",
+    "confirm": "Eyða þessu kerfi? Þetta verður ekki afturkallað."
+  }
+}

@@ -122,3 +122,46 @@ test('a list starting at 0 keeps 0 as its base, not 1', () => {
     ['0', '1', '2'],
   )
 })
+
+// Regression: a table inserted with the editor's "Insert table" command is
+// stored as raw Tiptap HTML inline in the markdown, and Tiptap puts the header
+// <tr> of <th> cells straight inside <tbody> without ever emitting a <thead>.
+// Looking the header up via querySelector('thead') therefore found nothing:
+// the header block was skipped and the header row fell through the body-row
+// loop as an empty grid row, so readers and printed PDFs lost the column
+// labels entirely. The input below is that real editor output shape.
+test('an editor-authored table with no <thead> keeps its header row', () => {
+  const md = '<table><colgroup><col style="width: 200px"><col style="width: 200px"><col style="width: 200px"></colgroup><tbody><tr><th colwidth="200"><p><span style="color: rgb(0,0,0)">Internal Issue</span></p></th><th colwidth="200"><p><span style="color: rgb(0,0,0)">Overview</span></p></th><th colwidth="200"><p><span style="color: rgb(0,0,0)">Risk Ref. on Risk Register</span></p></th></tr><tr><td colwidth="200"><p>Issue 1</p></td><td colwidth="200"><p>Overview text</p></td><td colwidth="200"><p>R-1</p></td></tr></tbody></table>'
+  const blocks = buildContentBlocks(md)
+  assert.deepEqual(blocks.map((b) => b.tag), ['thead', 'tr'])
+  assert.equal(blocks[0].html.split('tbl-hdr-cell').length - 1, 3)
+  assert.match(blocks[0].html, /Internal Issue/)
+  assert.match(blocks[0].html, /Overview/)
+  assert.match(blocks[0].html, /Risk Ref\. on Risk Register/)
+  assert.equal(blocks[1].html.split('tbl-cell').length - 1, 3)
+  assert.match(blocks[1].html, /Issue 1/)
+  assert.doesNotMatch(blocks[1].html, /Internal Issue/)
+})
+
+// A table block carries no `raw`, so its `html` string IS the anchor that
+// useDocumentComments.blockHash hashes, and commentsForBlock hard-rejects on a
+// hash mismatch. These three strings are therefore inline-comment anchors: if
+// the emitted html for a markdown pipe table changes by even one byte, every
+// inline comment already stored against that table silently detaches.
+test('markdown pipe-table block html is byte-stable', () => {
+  const md = '| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n'
+  const blocks = buildContentBlocks(md)
+  assert.deepEqual(blocks.map((b) => b.tag), ['thead', 'tr', 'tr'])
+  assert.equal(
+    blocks[0].html,
+    '<div class="tbl-grid" style="grid-template-columns: 1fr 1fr;"><div class="tbl-hdr-cell" style="">A</div><div class="tbl-hdr-cell" style="">B</div></div>',
+  )
+  assert.equal(
+    blocks[1].html,
+    '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">1</div><div class="tbl-cell" style="">2</div></div>',
+  )
+  assert.equal(
+    blocks[2].html,
+    '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">3</div><div class="tbl-cell" style="">4</div></div>',
+  )
+})

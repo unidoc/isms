@@ -51,10 +51,14 @@ export function buildContentBlocks(rawContent) {
     }
     // Tables — convert to grid-based rows so each gets a "+" button
     else if (tag === 'table') {
-      const thead = child.querySelector('thead')
-      const tbody = child.querySelector('tbody')
-      const ths = thead ? Array.from(thead.querySelectorAll('th')) : []
-      const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : []
+      // Header rows are found by their cells, not by a <thead> wrapper: tables authored
+      // in the editor are stored as raw Tiptap HTML, which puts the <th> row directly in
+      // <tbody> and emits no <thead> at all. A row mixing <th> and <td> is a body row with
+      // a row-header cell, not a table header, so it stays in `rows`.
+      const allRows = Array.from(child.querySelectorAll('tr'))
+      const headerRows = allRows.filter(tr => tr.querySelector('th') && !tr.querySelector('td'))
+      const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
+      const rows = allRows.filter(tr => !headerRows.includes(tr))
       const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
       const gridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
 
@@ -64,7 +68,7 @@ export function buildContentBlocks(rawContent) {
           const styleAttr = th.getAttribute('style') || ''
           return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
         }).join('')
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', thead.textContent || '')
+        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''))
       }
 
       // Each body row as separate block — gets its own "+" button!

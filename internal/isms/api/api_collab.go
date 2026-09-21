@@ -297,14 +297,21 @@ func (s *Server) handleReviewStats(c echo.Context) error {
 // settable from the body: the review state machine is owned by dedicated
 // transition endpoints (approve / merge / resubmit / status). System-managed
 // fields (RequestedBy, Round, OrganizationID, ID, MergeCommit, timestamps)
-// are derived server-side and ignored if present in the body.
+// are derived server-side and ignored if present in the body. DocumentType,
+// Title and Version are also ignored on input — they are resolved from the
+// store by document_id, the same as POST /documents/:docId/reviews.
 type reviewCreateRequest struct {
-	DocumentID   string `json:"document_id"`
-	DocumentType string `json:"document_type"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Message      string `json:"message"`
-	Version      string `json:"version"`
+	DocumentID   string   `json:"document_id"`
+	DocumentType string   `json:"document_type"`
+	Title        string   `json:"title"`
+	Description  string   `json:"description"`
+	Message      string   `json:"message"`
+	Version      string   `json:"version"`
+	Reviewers    []string `json:"reviewers"`
+	// Assignees is an alias for Reviewers: openapi.yaml documented this endpoint
+	// with `assignees` while every handler binds `reviewers`. Both are accepted so
+	// integrations written against either spelling work.
+	Assignees []string `json:"assignees"`
 }
 
 func (s *Server) handleCreateReview(c echo.Context) error {
@@ -318,18 +325,58 @@ func (s *Server) handleCreateReview(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+
+	actor := getUserEmail(c)
+	if actor == "" {
+		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
+	}
 	if req.DocumentID == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("document_id"))
 	}
 
-	// Capture current HEAD as the snapshot the review is anchored to. Best-effort —
-	// not all stores may expose a head (e.g. fresh repo); fall back to empty string.
-	var commitHash, sentHead string
-	if st, stErr := s.storeForOrg(ctx, orgID); stErr == nil {
-		if h, herr := st.HeadHash(); herr == nil {
-			commitHash = h
-			sentHead = h
+	// Union reviewers and assignees, de-duplicated, preserving first-seen order.
+	reviewers := make([]string, 0, len(req.Reviewers)+len(req.Assignees))
+	seen := make(map[string]bool, len(req.Reviewers)+len(req.Assignees))
+	for _, r := range append(append([]string{}, req.Reviewers...), req.Assignees...) {
+		if r == "" || seen[r] {
+			continue
 		}
+		seen[r] = true
+		reviewers = append(reviewers, r)
+	}
+	if len(reviewers) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "at least one reviewer required")
+	}
+
+	st, err := s.storeForOrg(ctx, orgID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	title, version, docType, err := resolveDocument(st, req.DocumentID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+
+	// review_assignments.reviewer_id is NOT NULL and AddReviewAssignmentTx resolves
+	// the email with a subselect, so an unknown reviewer would otherwise surface as
+	// a NOT NULL violation (500). Validate up front for a readable 400 instead.
+	for _, reviewer := range reviewers {
+		if _, err := s.db.ValidateOrgUser(ctx, orgID, reviewer); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+	}
+
+	existing, err := s.db.GetOpenReviewForDocument(ctx, orgID, req.DocumentID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking existing reviews: %v", err))
+	}
+	if existing != nil {
+		return c.JSON(http.StatusConflict, map[string]interface{}{
+			"error":     "an open review already exists for this document",
+			"review_id": existing.ID,
+			"status":    existing.Status,
+		})
 	}
 
 	// Body's Description maps to legacy Message field for backward compat.
@@ -338,28 +385,11 @@ func (s *Server) handleCreateReview(c echo.Context) error {
 		message = req.Description
 	}
 
-	r := db.Review{
-		DocumentID:   req.DocumentID,
-		DocumentType: req.DocumentType,
-		Title:        req.Title,
-		Version:      req.Version,
-		CommitHash:   commitHash,
-		SentHead:     sentHead,
-		Message:      message,
-		// Server-side enforced: identity, state, round.
-		RequestedBy: getUserEmail(c),
-		Status:      "open",
+	review, err := s.createReviewWithAssignments(ctx, st, orgID, actor, req.DocumentID, title, version, docType, message, reviewers)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	if err := s.db.CreateReview(ctx, orgID, &r); err != nil {
-		return pgxHTTPError(err)
-	}
-	s.logAndNotify(ctx, orgID, &db.Activity{
-		DocumentID: r.DocumentID,
-		Actor:      getUserEmail(c),
-		Action:     "review_created",
-		Detail:     fmt.Sprintf("Created review for %s", r.DocumentID),
-	})
-	return c.JSON(http.StatusCreated, r)
+	return c.JSON(http.StatusCreated, review)
 }
 
 func (s *Server) handleGetReview(c echo.Context) error {
@@ -3918,18 +3948,6 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	}
 
-	// b. Find the base commit for diff — last merged review's merge_commit, or empty for first review
-	commitHash := ""
-	lastApproved, _ := s.db.GetLastApprovedReview(ctx, orgID, docID)
-	if lastApproved != nil {
-		// Prefer merge_commit (post-merge state) over commit_hash (pre-review state)
-		if lastApproved.MergeCommit != "" {
-			commitHash = lastApproved.MergeCommit
-		} else if lastApproved.CommitHash != "" {
-			commitHash = lastApproved.CommitHash
-		}
-	}
-
 	// c. Check if there's already an open review for this document
 	existingReview, existErr := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
 	if existErr != nil {
@@ -4075,9 +4093,48 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		})
 	}
 
+	review, err := s.createReviewWithAssignments(ctx, st, orgID, actor, docID, title, version, docType, req.Message, req.Reviewers)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"review_id": review.ID,
+		"version":   version,
+	})
+}
+
+// createReviewWithAssignments runs the fresh-review path shared by
+// POST /documents/:docId/reviews and POST /reviews: it flips the document to
+// in_review, creates the review row and its assignments in one transaction, then
+// fires the reviewer notifications and the activity log. Both entry points must
+// go through it — a review created without assignments cannot be approved by a
+// non-manager reviewer and can fail its approval policy at merge.
+//
+// The caller is responsible for resolving the document (title/version/docType)
+// and for rejecting the request when an open review already exists.
+func (s *Server) createReviewWithAssignments(
+	ctx context.Context,
+	st *store.Store,
+	orgID int,
+	actor, docID, title, version, docType, message string,
+	reviewers []string,
+) (*db.Review, error) {
+	// Find the base commit for diff — last merged review's merge_commit, or empty for first review
+	commitHash := ""
+	lastApproved, _ := s.db.GetLastApprovedReview(ctx, orgID, docID)
+	if lastApproved != nil {
+		// Prefer merge_commit (post-merge state) over commit_hash (pre-review state)
+		if lastApproved.MergeCommit != "" {
+			commitHash = lastApproved.MergeCommit
+		} else if lastApproved.CommitHash != "" {
+			commitHash = lastApproved.CommitHash
+		}
+	}
+
 	// Set document status to in_review (version unchanged — only user edits change version)
 	if err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("setting document status: %v", err))
+		return nil, fmt.Errorf("setting document status: %w", err)
 	}
 
 	// Capture HEAD AFTER status change — this is the immutable snapshot of what was sent
@@ -4092,7 +4149,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		CommitHash:   commitHash,
 		SentHead:     sentHead,
 		RequestedBy:  actor,
-		Message:      req.Message,
+		Message:      message,
 		Status:       "open",
 	}
 	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -4100,7 +4157,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			return fmt.Errorf("creating review: %w", err)
 		}
 		// f. Create review assignments for each reviewer
-		for _, reviewer := range req.Reviewers {
+		for _, reviewer := range reviewers {
 			if err := db.AddReviewAssignmentTx(ctx, tx, orgID, review.ID, reviewer); err != nil {
 				return fmt.Errorf("assigning reviewer %s: %w", reviewer, err)
 			}
@@ -4108,11 +4165,11 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		return nil
 	})
 	if txErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
+		return nil, txErr
 	}
 
 	// Post-commit: notifications and emails (fire-and-forget, outside transaction)
-	for _, reviewer := range req.Reviewers {
+	for _, reviewer := range reviewers {
 		notifBody := fmt.Sprintf("%s wants to publish %s v%s and requested your review", actor, title, version)
 		// Same frame and same with-note split as the reviewers-added site above.
 		bodyKey := NotifyKeyReviewRequestedBody
@@ -4121,10 +4178,10 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			"title":   title,
 			"version": version,
 		}
-		if req.Message != "" {
-			notifBody += "\n\nNote: " + req.Message
+		if message != "" {
+			notifBody += "\n\nNote: " + message
 			bodyKey = NotifyKeyReviewRequestedBodyWithNote
-			params["note"] = req.Message
+			params["note"] = message
 		}
 		s.db.CreateNotificationContentByEmail(ctx, orgID, reviewer, db.NotificationContent{
 			Title:    fmt.Sprintf("Review: %s v%s", title, version),
@@ -4138,14 +4195,14 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
 			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, review.ID, req.Message, m.Branding)
+			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, review.ID, message, m.Branding)
 		}
 	}
 
 	// h. Log activity
 	detail := fmt.Sprintf("Created review for %s v%s", docID, version)
-	if len(req.Reviewers) > 0 {
-		detail += fmt.Sprintf(", assigned to %s", strings.Join(req.Reviewers, ", "))
+	if len(reviewers) > 0 {
+		detail += fmt.Sprintf(", assigned to %s", strings.Join(reviewers, ", "))
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		DocumentID: docID,
@@ -4155,10 +4212,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		Detail:     detail,
 	})
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
-		"review_id": review.ID,
-		"version":   version,
-	})
+	return review, nil
 }
 
 // resolveDocument looks up a document by ID from the store and returns title, version, and type.

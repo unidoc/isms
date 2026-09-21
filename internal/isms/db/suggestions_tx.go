@@ -62,12 +62,15 @@ func ApplySuggestionTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, revi
 }
 
 // CreateRiskTx creates a risk within an existing transaction.
-func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
+//
+// cycles comes from DB.RiskReviewCycles — pass the org's real cycles, never nil,
+// or the org's configured review schedule is ignored (#289).
+func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk, cycles map[string]int) error {
 	r.OrganizationID = orgID
 	if err := r.Validate(); err != nil {
 		return err
 	}
-	r.CalculateScore(nil) // use defaults within tx
+	r.CalculateScore(cycles)
 
 	// Allocate identifier within tx
 	var seq int
@@ -114,8 +117,18 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
 }
 
 // UpdateRiskTx updates a risk within an existing transaction.
-func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk) error {
-	r.CalculateScore(nil)
+//
+// cycles comes from DB.RiskReviewCycles — pass the org's real cycles, never nil,
+// or the org's configured review schedule is ignored (#289).
+//
+// explicitNextReview, when non-nil, is a user-supplied date that wins over the
+// level-derived one. CalculateScore always recomputes NextReview, so the override
+// has to happen after it (#288).
+func UpdateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk, cycles map[string]int, explicitNextReview *Epoch) error {
+	r.CalculateScore(cycles)
+	if explicitNextReview != nil {
+		r.NextReview = explicitNextReview
+	}
 	_, err := tx.Exec(ctx, `
 		UPDATE risks SET title = $2, description = $3, risk_type = $4, origin = $5, category = $6,
 			current_likelihood = $7, current_impact = $8, current_score = $9, current_level = $10,
@@ -365,8 +378,18 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 }
 
 // UpdateSupplierTx updates a supplier within an existing transaction.
-func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
+//
+// cycles comes from DB.SupplierReviewCycles — pass the org's real cycles, never
+// nil, or the org's configured review schedule is ignored (#289).
+//
+// explicitNextReview, when non-nil, is a user-supplied date that wins over the
+// criticality-derived one. CalculateNextReview always recomputes NextReview, so
+// the override has to happen after it (#288).
+func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int, explicitNextReview *Epoch) error {
 	s.CalculateNextReview(cycles)
+	if explicitNextReview != nil {
+		s.NextReview = explicitNextReview
+	}
 	_, err := tx.Exec(ctx, `
 		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
 			data_access = $5, contact = $6, contract_ref = $7,
@@ -388,9 +411,13 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 }
 
 // CreateLegalRequirementTx creates a legal requirement within an existing transaction.
-func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement) error {
+//
+// cycles comes from DB.RiskReviewCycles — pass the org's real cycles, never nil,
+// or the org's configured review schedule is ignored (#289). Legal requirements
+// share the risk cycle keys by design; there is no separate legal cycle setting.
+func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement, cycles map[string]int) error {
 	lr.OrganizationID = orgID
-	lr.CalculateRiskScore(nil)
+	lr.CalculateRiskScore(cycles)
 
 	// Use the shared identifier allocator with the SAME entity_type key as the
 	// HTTP path (NextIdentifier(..,"legal_requirement")). The old hardcoded
@@ -423,8 +450,19 @@ func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 }
 
 // UpdateLegalRequirementTx updates a legal requirement within an existing transaction.
-func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement) error {
-	lr.CalculateRiskScore(nil)
+//
+// cycles comes from DB.RiskReviewCycles — pass the org's real cycles, never nil,
+// or the org's configured review schedule is ignored (#289). Legal requirements
+// share the risk cycle keys by design; there is no separate legal cycle setting.
+//
+// explicitNextReview, when non-nil, is a user-supplied date that wins over the
+// level-derived one. CalculateRiskScore always recomputes NextReview, so the
+// override has to happen after it (#288).
+func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement, cycles map[string]int, explicitNextReview *Epoch) error {
+	lr.CalculateRiskScore(cycles)
+	if explicitNextReview != nil {
+		lr.NextReview = explicitNextReview
+	}
 	_, err := tx.Exec(ctx, `
 		UPDATE legal_requirements SET title = $2, description = $3, jurisdiction = $4, category = $5,
 			reference = $6, url = $7,
@@ -613,8 +651,16 @@ func UpdateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 }
 
 // UpdateSystemTx updates a system within an existing transaction.
-func UpdateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) error {
+//
+// explicitNextReview, when non-nil, is a user-supplied date that wins over the
+// derived one. CalculateNextReview always recomputes NextReview, so the override
+// has to happen after it (#288). Systems still use the hardcoded review-month
+// switch, not the settings registry (that is #308) — there is no cycles parameter.
+func UpdateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System, explicitNextReview *Epoch) error {
 	sys.CalculateNextReview()
+	if explicitNextReview != nil {
+		sys.NextReview = explicitNextReview
+	}
 	if sys.Status == "" {
 		sys.Status = "active"
 	}

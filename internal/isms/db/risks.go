@@ -355,9 +355,12 @@ func (d *DB) reviewCyclesFor(ctx context.Context, orgID int, prefix string) map[
 	return cycles
 }
 
-// riskReviewCycles fetches the per-level review cycle settings for an org.
-// Returns a map of level → months (e.g. "critical" → 1).
-func (d *DB) riskReviewCycles(ctx context.Context, orgID int) map[string]int {
+// RiskReviewCycles fetches the per-level review cycle settings for an org.
+// Returns a map of level → months (e.g. "critical" → 1), or nil when the org has
+// configured none. Exported because the api package needs it to pass real cycles
+// into UpdateRiskTx / UpdateLegalRequirementTx (#289); legal requirements share the
+// risk cycle keys by design.
+func (d *DB) RiskReviewCycles(ctx context.Context, orgID int) map[string]int {
 	return d.reviewCyclesFor(ctx, orgID, "risk_review_cycle_")
 }
 
@@ -366,7 +369,7 @@ func (d *DB) CreateRisk(ctx context.Context, orgID int, r *Risk) error {
 	if err := r.Validate(); err != nil {
 		return err
 	}
-	r.CalculateScore(d.riskReviewCycles(ctx, orgID))
+	r.CalculateScore(d.RiskReviewCycles(ctx, orgID))
 	ident, err := d.NextIdentifier(ctx, orgID, "risk")
 	if err != nil {
 		return err
@@ -605,7 +608,7 @@ func (d *DB) PaginatedRisks(ctx context.Context, orgID int, p RiskListParams) ([
 }
 
 func (d *DB) UpdateRisk(ctx context.Context, orgID int, r *Risk) error {
-	r.CalculateScore(d.riskReviewCycles(ctx, orgID))
+	r.CalculateScore(d.RiskReviewCycles(ctx, orgID))
 	_, err := d.pool.Exec(ctx, `
 		UPDATE risks SET title = $2, description = $3, risk_type = $4, origin = $5, category = $6,
 			current_likelihood = $7, current_impact = $8, current_score = $9, current_level = $10,

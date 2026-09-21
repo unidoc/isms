@@ -152,7 +152,7 @@ func scanLegal(scanner interface {
 
 func (d *DB) CreateLegalRequirement(ctx context.Context, orgID int, lr *LegalRequirement) error {
 	lr.OrganizationID = orgID
-	lr.CalculateRiskScore(d.riskReviewCycles(ctx, orgID))
+	lr.CalculateRiskScore(d.RiskReviewCycles(ctx, orgID))
 	ident, err := d.NextIdentifier(ctx, orgID, "legal_requirement")
 	if err != nil {
 		return err
@@ -351,7 +351,7 @@ func (d *DB) GetLegalRequirementByIdentifier(ctx context.Context, orgID int, ide
 }
 
 func (d *DB) UpdateLegalRequirement(ctx context.Context, orgID int, lr *LegalRequirement) error {
-	lr.CalculateRiskScore(d.riskReviewCycles(ctx, orgID))
+	lr.CalculateRiskScore(d.RiskReviewCycles(ctx, orgID))
 	_, err := d.pool.Exec(ctx, `
 		UPDATE legal_requirements SET title = $2, description = $3, jurisdiction = $4, category = $5,
 			reference = $6, url = $7,

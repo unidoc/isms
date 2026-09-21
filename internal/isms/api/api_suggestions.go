@@ -754,7 +754,7 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		risk.Description = "## Description\n\n\n\n## Potential consequences\n\n"
 	}
 
-	if err := db.CreateRiskTx(ctx, tx, orgID, &risk); err != nil {
+	if err := db.CreateRiskTx(ctx, tx, orgID, &risk, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", err
 	}
 
@@ -783,9 +783,7 @@ func applyRiskReassess(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if payload.CurrentImpact != nil {
 		risk.CurrentImpact = payload.CurrentImpact
 	}
-	risk.CalculateScore(nil)
-
-	if err := db.UpdateRiskTx(ctx, tx, orgID, risk); err != nil {
+	if err := db.UpdateRiskTx(ctx, tx, orgID, risk, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
 		return "", err
 	}
 
@@ -838,7 +836,7 @@ func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		}
 	}
 
-	if err := db.UpdateRiskTx(ctx, tx, orgID, risk); err != nil {
+	if err := db.UpdateRiskTx(ctx, tx, orgID, risk, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
 		return "", err
 	}
 
@@ -1072,7 +1070,7 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		}
 	}
 
-	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup, s.db.SupplierReviewCycles(ctx, orgID)); err != nil {
+	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup, s.db.SupplierReviewCycles(ctx, orgID), nil); err != nil {
 		return "", err
 	}
 
@@ -1117,7 +1115,7 @@ func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		return "", err
 	}
 
-	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr); err != nil {
+	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", err
 	}
 
@@ -1150,7 +1148,7 @@ func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 		}
 	}
 
-	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, lr); err != nil {
+	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, lr, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
 		return "", err
 	}
 
@@ -1643,7 +1641,7 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 			sys.Status = sv
 		}
 	}
-	if err := db.UpdateSystemTx(ctx, tx, orgID, sys); err != nil {
+	if err := db.UpdateSystemTx(ctx, tx, orgID, sys, nil); err != nil {
 		return "", err
 	}
 	diffs := db.DiffFields("system", sys.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, sys.ToChangeMap())

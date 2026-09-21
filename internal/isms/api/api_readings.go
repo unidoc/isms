@@ -137,24 +137,21 @@ func writeRiskFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 		risk.Treatment = r.Treatment
 	}
 
-	// Recompute score and level
-	risk.CalculateScore(nil)
-
 	// Set last_review to now (canonical assessment log lives in entity_readings)
 	now := db.NewEpoch(time.Now())
 	risk.LastReview = &now
 
-	// Set next review date from explicit input, or compute from level
+	// A user-supplied date wins; nil lets UpdateRiskTx derive one from the org's
+	// configured cycles. Score and review date are both recomputed inside the helper.
+	var explicitNextReview *db.Epoch
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
 			e := db.NewEpoch(t)
-			risk.NextReview = &e
+			explicitNextReview = &e
 		}
-	} else {
-		risk.CalculateReviewDate(nil)
 	}
 
-	if err := db.UpdateRiskTx(ctx, tx, orgID, risk); err != nil {
+	if err := db.UpdateRiskTx(ctx, tx, orgID, risk, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview); err != nil {
 		return err
 	}
 	return nil
@@ -376,23 +373,22 @@ func writeLegalFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		lr.CurrentImpact = r.CurrentImpact
 	}
 
-	// Recompute score and level
-	lr.CalculateRiskScore(nil)
-
 	// Stamp last_review to now (canonical log lives in entity_readings)
 	now := db.NewEpoch(time.Now())
 	lr.LastReview = &now
-	// Set next review date from explicit input, or compute from level
+
+	// A user-supplied date wins; nil lets UpdateLegalRequirementTx derive one from
+	// the org's configured cycles. Score and review date are both recomputed
+	// inside the helper.
+	var explicitNextReview *db.Epoch
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
 			e := db.NewEpoch(t)
-			lr.NextReview = &e
+			explicitNextReview = &e
 		}
-	} else {
-		lr.CalculateReviewDate(nil)
 	}
 
-	return db.UpdateLegalRequirementTx(ctx, tx, orgID, lr)
+	return db.UpdateLegalRequirementTx(ctx, tx, orgID, lr, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview)
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -487,17 +483,17 @@ func writeSupplierFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID i
 	sup.LastReview = &now
 
 	cycles := s.db.SupplierReviewCycles(ctx, orgID)
-	// Next review: explicit user input wins, otherwise derive from criticality.
+	// A user-supplied date wins; nil lets UpdateSupplierTx derive one from the
+	// criticality-based cycles. Review date is recomputed inside the helper.
+	var explicitNextReview *db.Epoch
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
 			e := db.NewEpoch(t)
-			sup.NextReview = &e
+			explicitNextReview = &e
 		}
-	} else {
-		sup.CalculateNextReview(cycles)
 	}
 	_ = actor
-	return db.UpdateSupplierTx(ctx, tx, orgID, sup, cycles)
+	return db.UpdateSupplierTx(ctx, tx, orgID, sup, cycles, explicitNextReview)
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -591,15 +587,15 @@ func writeSystemFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int
 	now := db.NewEpoch(time.Now())
 	sys.LastReview = &now
 
-	// Next review: explicit user input wins, otherwise derive from criticality.
+	// A user-supplied date wins; nil lets UpdateSystemTx derive one from the
+	// hardcoded review-month switch. Review date is recomputed inside the helper.
+	var explicitNextReview *db.Epoch
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
 			e := db.NewEpoch(t)
-			sys.NextReview = &e
+			explicitNextReview = &e
 		}
-	} else {
-		sys.CalculateNextReview()
 	}
 	_ = actor
-	return db.UpdateSystemTx(ctx, tx, orgID, sys)
+	return db.UpdateSystemTx(ctx, tx, orgID, sys, explicitNextReview)
 }

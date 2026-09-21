@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Documentos",
+    "new": "Novo",
+    "new_folder": "Nova Pasta",
+    "new_document": "Novo Documento",
+    "empty": "Nenhum documento ainda",
+    "import_template": "Importar modelo",
+    "new_folder_placeholder": "nome da nova pasta...",
+    "folder_name_placeholder": "nome da pasta...",
+    "hide": "Ocultar árvore",
+    "show": "Exibir árvore"
+  },
+  "empty": {
+    "heading": "Nenhum documento ainda",
+    "body": "Importe um modelo para montar a estrutura de documentos, depois use o menu da árvore para adicionar documentos e pastas.",
+    "import_template": "Importar modelo"
+  },
+  "dash": {
+    "tab": {
+      "review": "Pendentes de Revisão",
+      "recent": "Alterados Recentemente",
+      "search": "Busca",
+      "templates": "Modelos"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Incluir nunca aprovados ({count})",
+    "up_to_date": "Todos os documentos estão atualizados.",
+    "never_approved": "Nunca aprovado",
+    "changed": "Alterado",
+    "current": "Atual: {commit} ({time})",
+    "approved": "Aprovado: {commit}",
+    "review": "Revisar",
+    "diff": "Diff"
+  },
+  "recent": {
+    "refresh": "Atualizar",
+    "empty": "Nenhuma alteração recente.",
+    "meta": "{time} por {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Buscar todos os documentos...",
+    "hint": "Digite pelo menos 2 caracteres para buscar em todos os documentos.",
+    "searching": "Buscando...",
+    "no_results": "Sem resultados para \"{query}\""
+  },
+  "templates": {
+    "heading": "Modelos",
+    "subtitle": "Adicionar ou remover estruturas de documentos para padrões.",
+    "installed": "Instalado",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "remove_heading": "Remover Modelo",
+    "remove_body": "Tem certeza que deseja remover {name}? Isso excluirá todos os documentos em {path} do repositório.",
+    "picker_heading": "Importar modelo",
+    "picker_subtitle": "Escolha um padrão para montar a estrutura de documentos.",
+    "picker_placeholder": "Buscar modelos...",
+    "picker_empty": "Nenhum modelo encontrado.",
+    "import": "Importar",
+    "added": "Modelo {name} adicionado com sucesso.",
+    "removed": "Modelo {name} removido.",
+    "add_failed": "Falha ao adicionar modelo: {message}",
+    "remove_failed": "Falha ao remover modelo: {message}"
+  },
+  "toolbar": {
+    "edit": "Editar",
+    "save": "Salvar",
+    "send_for_review": "Enviar para revisão",
+    "version_history": "Histórico de versões",
+    "comments": "Comentários",
+    "print": "Imprimir documento",
+    "delete": "Excluir documento"
+  },
+  "print": {
+    "version": "Versão {version}",
+    "author": "Autor: {name}",
+    "printed": "Impresso em {date}"
+  },
+  "tab": {
+    "content": "Conteúdo",
+    "info": "Informações",
+    "versions": "Versões",
+    "links": "Vínculos",
+    "discussion": "Discussão",
+    "history": "Histórico"
+  },
+  "meta": {
+    "status": "Status",
+    "go_to_active_review": "Ir para a revisão ativa",
+    "go_to_reviews": "Ir para revisões",
+    "type": "Tipo",
+    "author": "Autor",
+    "author_placeholder": "Definir autor...",
+    "version": "Versão",
+    "owner": "Responsável",
+    "not_set": "Não definido",
+    "review_cycle": "Ciclo de Revisão",
+    "review_cycle_months": "A cada {count} mês | A cada {count} meses",
+    "last_approved": "Última Aprovação",
+    "approved_version": "Versão Aprovada",
+    "next_review": "Próxima Revisão",
+    "due_soon": "VENCE EM BREVE"
+  },
+  "banner": {
+    "round_complete": "Rodada {round} concluída — alterações solicitadas",
+    "pending_suggestions": "{count} sugestão pendente a resolver. | {count} sugestões pendentes a resolver.",
+    "feedback_waiting": "O feedback do revisor está aguardando na conversa.",
+    "then_resubmit": "Resolva o feedback e depois reenvie para a próxima rodada.",
+    "open_review": "Abrir revisão",
+    "in_review": "Este documento está em revisão.",
+    "in_review_round": "Este documento está em revisão (Rodada {round}).",
+    "view_review": "Ver revisão →",
+    "retired": "Este documento está obsoleto.",
+    "never_approved": "Este documento nunca foi aprovado.",
+    "send_for_review": "Enviar para revisão →",
+    "changed_since_approval": "Alterado desde a última aprovação",
+    "last_approved": "— última aprovação",
+    "last_approved_version": "— última aprovação {version}",
+    "last_approved_on": "— última aprovação em {date}",
+    "last_approved_version_on": "— última aprovação {version} em {date}",
+    "hide_diff": "Ocultar diff",
+    "view_diff": "Ver diff"
+  },
+  "versions": {
+    "heading": "Histórico de Versões",
+    "empty": "Nenhum histórico de versões disponível",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Discussão do documento",
+    "changelog": "Changelog do documento"
+  },
+  "content": {
+    "inline_comment_count": "{count} comentário inline neste documento | {count} comentários inline neste documento",
+    "draft_recovered": "Rascunho não salvo recuperado",
+    "mark_unreviewed": "Desmarcar revisão",
+    "mark_reviewed": "Marcar como revisado",
+    "comment_count": "{count} comentário | {count} comentários",
+    "add_comment": "Adicionar comentário",
+    "resolved": "Resolvido",
+    "resolved_by": "Resolvido por {name} {date}",
+    "resolved_by_unknown": "desconhecido",
+    "inline_placeholder": "Adicionar comentário neste parágrafo... (digite {'@'} para mencionar)",
+    "no_users": "Nenhum usuário encontrado",
+    "empty": "Nenhum conteúdo disponível para este documento."
+  },
+  "comments": {
+    "no_document": "Selecione um documento para ver os comentários",
+    "heading": "Comentários",
+    "resolved_count": "{count} resolvido(s)",
+    "general_placeholder": "Adicionar comentário geral... (digite {'@'} para mencionar)",
+    "author_placeholder": "Seu nome",
+    "send": "Enviar",
+    "inline_label": "Comentário inline",
+    "inline_label_short": "Inline",
+    "document_label": "Comentário do documento",
+    "quote": "— \"{quote}\"",
+    "reply": "Responder",
+    "reply_placeholder": "Escrever resposta...",
+    "resolved_toggle": "{count} comentário resolvido | {count} comentários resolvidos",
+    "empty": "Nenhum comentário ainda"
+  },
+  "review_modal": {
+    "heading": "Enviar para revisão",
+    "reviewers": "Revisores",
+    "search_members": "Buscar membros...",
+    "version_note": "Nota da versão",
+    "version_note_placeholder": "ex.: Critérios de avaliação de risco atualizados. Tabela de classificação de dados adicionada.",
+    "version_note_hint": "Isso se tornará parte do histórico permanente de versões do documento após a aprovação.",
+    "send": "Enviar para {count} revisor | Enviar para {count} revisores"
+  },
+  "new_doc": {
+    "heading": "Novo Documento",
+    "title": "Título",
+    "title_placeholder": "ex.: Política de Classificação de Dados",
+    "type": "Tipo",
+    "no_folder": "Nenhuma pasta selecionada",
+    "change_folder": "alterar",
+    "pick_folder": "escolher pasta",
+    "folder_placeholder": "Digite ou selecione uma pasta",
+    "show_advanced": "Exibir opções avançadas",
+    "hide_advanced": "Ocultar opções avançadas",
+    "document_id": "ID do Documento",
+    "document_id_placeholder": "automático a partir do título",
+    "document_id_exists": "Este ID já existe",
+    "filename": "Nome do arquivo",
+    "filename_placeholder": "automático a partir do ID",
+    "author": "Autor",
+    "author_placeholder": "Selecionar autor...",
+    "create": "Criar Documento"
+  },
+  "confirm": {
+    "embedded_html_body": "Este documento contém HTML/SVG incorporado que o editor não consegue preservar — editá-lo aqui descartará esse conteúdo ao salvar. Edite o código-fonte via CLI para mantê-lo. Editar mesmo assim?",
+    "delete_body": "Excluir \"{name}\"? Esta ação não pode ser desfeita."
+  },
+  "error": {
+    "load_diff": "Falha ao carregar diff",
+    "set_author": "Falha ao definir autor: {message}",
+    "set_type": "Falha ao definir tipo: {message}",
+    "set_version": "Falha ao definir versão: {message}",
+    "create_folder": "Falha ao criar pasta: {message}",
+    "create_document": "Falha ao criar documento: {message}",
+    "delete": "Falha ao excluir: {message}",
+    "send_for_review": "Falha ao enviar para revisão: {message}",
+    "load_content": "**Erro ao carregar conteúdo:** {message}",
+    "submit_reply": "Falha ao enviar resposta: {message}",
+    "submit_comment": "Falha ao enviar comentário: {message}",
+    "resolve_comment": "Falha ao resolver comentário: {message}",
+    "load_documents": "Falha ao carregar documentos: {message}",
+    "save": "Falha ao salvar: {message}"
+  }
+}

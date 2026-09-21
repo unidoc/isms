@@ -1,0 +1,98 @@
+{
+  "title": "Objetivos",
+  "subtitle": "Acompanhar objetivos mensuráveis do SGSI e desempenho de KPIs",
+  "error": {
+    "save": "Falha ao salvar: {message}",
+    "download": "Download falhou: resposta inesperada do servidor"
+  },
+  "action": {
+    "add": "Adicionar Objetivo"
+  },
+  "filter": {
+    "all_programs": "Todos os programas",
+    "owner_placeholder": "Responsável...",
+    "empty": "Nenhum objetivo encontrado"
+  },
+  "create": {
+    "heading": "Adicionar Objetivo",
+    "program_label": "Programa *",
+    "program_placeholder": "Selecionar programa...",
+    "owner_label": "Responsável",
+    "title_label": "Título *",
+    "title_placeholder": "Taxa de conclusão mensal de teste de phishing",
+    "fill_in_later": "Você pode adicionar valor-alvo, fonte, método de medição, descrição e notas após a criação.",
+    "submit": "Adicionar"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Título",
+      "target": "Meta",
+      "status": "Status",
+      "owner": "Responsável"
+    }
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descrição",
+    "owner": "Responsável",
+    "source": "Fonte",
+    "status": "Status",
+    "measurement_method": "Método de medição",
+    "measurement": "Medição",
+    "operator": "Operador",
+    "target_value": "Valor-alvo",
+    "target": "Meta",
+    "unit": "Unidade",
+    "checkin_cycle_months": "Ciclo de check-in (meses)",
+    "checkin_cycle": "Ciclo de check-in",
+    "last_checkin": "Último check-in",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "months": "{count} mês | {count} meses"
+  },
+  "placeholder": {
+    "description": "Qual é este objetivo?",
+    "owner": "Selecionar responsável...",
+    "source": "ISO 27001 6.2, etc.",
+    "measurement_method": "Como é medido?",
+    "unit": "%, quantidade, horas...",
+    "notes": "Adicionar notas..."
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "checkin": {
+    "heading": "Check-ins",
+    "summary": "{pass} aprovado(s) · {fail} reprovado(s) · {total} total",
+    "record_heading": "Registrar check-in",
+    "value_label": "Valor",
+    "value_placeholder": "97,5",
+    "result_label": "Resultado",
+    "result": {
+      "unspecified": "Não especificado",
+      "pass": "Aprovado",
+      "fail": "Reprovado"
+    },
+    "message_label": "Nota interna",
+    "message_placeholder": "Contexto interno...",
+    "public_note_placeholder": "Nota pública (visível às partes interessadas)",
+    "submit": "Registrar",
+    "empty": "Nenhum check-in registrado ainda",
+    "pass_badge": "APROVADO",
+    "fail_badge": "REPROVADO",
+    "public": "Público: {note}",
+    "confirm_delete": "Excluir este check-in?"
+  },
+  "evidence": {
+    "download": "Baixar",
+    "attach": "Anexar evidência",
+    "confirm_delete": "Excluir evidência \"{title}\"?"
+  },
+  "danger": {
+    "warning": "Excluir este objetivo é permanente e não pode ser desfeito.",
+    "delete": "Excluir objetivo",
+    "confirm": "Excluir objetivo \"{title}\"? Esta ação não pode ser desfeita."
+  }
+}

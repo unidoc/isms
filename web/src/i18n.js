@@ -26,6 +26,7 @@ export const STORAGE_KEY = 'isms_locale'
 export const loaders = {
   'id-ID': () => import('./locales/id-ID/index.js'),
   'is-IS': () => import('./locales/is-IS/index.js'),
+  'pt-BR': () => import('./locales/pt-BR/index.js'),
 }
 
 // Locales the server says it supports, as {tag, name} — name is the endonym, for

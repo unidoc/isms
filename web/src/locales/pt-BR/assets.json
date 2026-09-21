@@ -1,0 +1,72 @@
+{
+  "title": "Registro de Ativos",
+  "subtitle": "Ativos de informação, classificação e responsabilidade",
+  "error": {
+    "save": "Falha ao salvar: {message}",
+    "create": "Falha ao criar ativo: {message}",
+    "delete": "Falha ao excluir: {message}"
+  },
+  "action": {
+    "add": "Adicionar Ativo"
+  },
+  "create": {
+    "heading": "Adicionar Ativo",
+    "name_label": "Nome *",
+    "name_placeholder": "ex.: Banco de Dados de Produção, Portal do Cliente",
+    "type_label": "Tipo",
+    "deselect_hint": "Clique para desmarcar",
+    "fill_in_later": "Você pode adicionar classificação CID, responsável e mais após a criação.",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhum ativo encontrado"
+  },
+  "stat": {
+    "severe": "Severo (CID = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Ativo",
+      "type": "Tipo",
+      "cia": "C/I/D",
+      "status": "Status",
+      "owner": "Responsável"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidade: {level}",
+      "integrity": "Integridade: {level}",
+      "availability": "Disponibilidade: {level}"
+    }
+  },
+  "field": {
+    "name": "Nome",
+    "description": "Descrição",
+    "type": "Tipo",
+    "status": "Status",
+    "owner": "Responsável",
+    "primary_location": "Localização Primária",
+    "next_review": "Próxima Revisão",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Descreva o ativo...",
+    "primary_location": "ex.: DC Reykjavík, AWS eu-west-1",
+    "notes": "Notas adicionais... Digite /doc para vincular um documento"
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidade",
+    "integrity": "Integridade",
+    "availability": "Disponibilidade"
+  },
+  "danger": {
+    "warning": "Excluir este ativo é permanente e não pode ser desfeito. Histórico, comentários e referências vinculadas serão perdidos.",
+    "delete": "Excluir ativo",
+    "confirm": "Excluir este ativo? Esta ação não pode ser desfeita."
+  }
+}

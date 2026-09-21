@@ -1,0 +1,69 @@
+{
+  "title": "Tarefas",
+  "subtitle": "Tarefas de revisão, acompanhamentos e itens de trabalho operacional.",
+  "error": {
+    "create": "Falha ao criar tarefa: {message}",
+    "save": "Falha ao salvar: {message}",
+    "delete": "Falha ao excluir tarefa: {message}"
+  },
+  "action": {
+    "add": "Adicionar Tarefa"
+  },
+  "create": {
+    "heading": "Adicionar Tarefa",
+    "title_label": "Título",
+    "title_placeholder": "ex.: Revisar registro de riscos",
+    "priority_label": "Prioridade",
+    "type_label": "Tipo",
+    "visibility_label": "Visibilidade",
+    "fill_in_later": "Você pode adicionar descrição, responsável, prazo e notas após a criação.",
+    "submitting": "Criando...",
+    "submit": "Adicionar"
+  },
+  "visibility": {
+    "public": "Pública — todos na organização",
+    "private": "Privada — responsável, criador e gestores",
+    "private_badge": "Privada",
+    "private_title": "Privada — visível ao responsável, criador e gestores"
+  },
+  "filter": {
+    "assignee_placeholder": "Qualquer responsável",
+    "empty": "Nenhuma tarefa corresponde ao seu filtro.",
+    "empty_all": "Nenhuma tarefa ainda — clique em Adicionar para criar a primeira.",
+    "empty_hint": "Tarefas também são geradas automaticamente a partir de ciclos de revisão atrasados."
+  },
+  "list": {
+    "due": "Prazo {date}",
+    "created_by": "por {name}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descrição",
+    "assignee": "Responsável",
+    "priority": "Prioridade",
+    "status": "Status",
+    "due_date": "Prazo",
+    "type": "Tipo",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "completed": "Concluído"
+  },
+  "placeholder": {
+    "description": "Descreva a tarefa...",
+    "assignee": "Selecionar responsável...",
+    "notes": "Adicionar notas..."
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas",
+    "progress": "Progresso"
+  },
+  "stat": {
+    "active": "Ativa"
+  },
+  "danger": {
+    "warning": "Excluir esta tarefa é permanente e não pode ser desfeito.",
+    "delete": "Excluir tarefa",
+    "confirm": "Excluir tarefa \"{title}\"?"
+  }
+}

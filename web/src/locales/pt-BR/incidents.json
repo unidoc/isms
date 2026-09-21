@@ -1,0 +1,89 @@
+{
+  "title": "Gestão de Incidentes",
+  "subtitle": "Rastrear, responder e aprender com incidentes de segurança",
+  "error": {
+    "create": "Falha ao criar incidente: {message}",
+    "save": "Falha ao salvar: {message}",
+    "delete": "Falha ao excluir incidente: {message}"
+  },
+  "action": {
+    "add": "Adicionar Incidente"
+  },
+  "create": {
+    "heading": "Adicionar Incidente",
+    "title_label": "Título *",
+    "title_placeholder": "Título breve do incidente",
+    "severity_label": "Severidade",
+    "type_label": "Tipo",
+    "fill_in_later": "Você pode adicionar descrição, classificação, origem, responsável, detalhes LGPD e notas após a criação.",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhum incidente encontrado"
+  },
+  "list": {
+    "source": "Fonte: {value}",
+    "reporter": "Reportado por: {name}",
+    "assignee": "Responsável: {name}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descrição",
+    "severity": "Severidade",
+    "type": "Tipo",
+    "origin": "Origem",
+    "classification": "Classificação",
+    "status": "Status",
+    "assignee": "Responsável",
+    "reporter": "Reportado por",
+    "root_cause": "Causa Raiz",
+    "lessons_learned": "Lições Aprendidas",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Descreva o incidente...",
+    "root_cause": "Análise de causa raiz...",
+    "lessons_learned": "O que podemos melhorar?",
+    "assignee": "Selecionar responsável...",
+    "notes": "Adicionar notas..."
+  },
+  "classification": {
+    "confidentiality": "Confidencialidade",
+    "integrity": "Integridade",
+    "availability": "Disponibilidade"
+  },
+  "data_breach_checkbox": "Este é um incidente de violação de dados pessoais (LGPD)",
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "tab": {
+    "data_breach": "Violação de Dados"
+  },
+  "timeline": {
+    "heading": "Linha do Tempo",
+    "detected": "Detectado:",
+    "contained": "Contido:",
+    "resolved": "Resolvido:",
+    "closed": "Fechado:"
+  },
+  "actions": {
+    "create_ca": "Criar Ação Corretiva",
+    "create_ca_desc": "Criar uma ação corretiva vinculada de volta a este incidente."
+  },
+  "breach": {
+    "heading": "Violação de Dados Pessoais (LGPD)",
+    "gdpr_role": "Papel LGPD",
+    "authority_notification": "Notificação à Autoridade",
+    "subjects_notification": "Notificação aos Titulares",
+    "authority": "Autoridade",
+    "subjects": "Titulares dos Dados"
+  },
+  "danger": {
+    "warning": "Excluir este incidente é permanente e não pode ser desfeito.",
+    "delete": "Excluir incidente",
+    "confirm": "Excluir incidente \"{title}\"? Esta ação não pode ser desfeita."
+  }
+}

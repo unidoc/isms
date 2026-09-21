@@ -1,0 +1,64 @@
+{
+  "title": "Ações Corretivas",
+  "subtitle": "Rastrear não conformidades, observações e oportunidades de melhoria",
+  "error": {
+    "save": "Falha ao salvar: {message}"
+  },
+  "action": {
+    "add": "Adicionar Ação Corretiva"
+  },
+  "filter": {
+    "assignee_placeholder": "Qualquer responsável",
+    "empty": "Nenhuma ação corretiva corresponde ao seu filtro.",
+    "empty_all": "Nenhuma ação corretiva ainda — clique em Adicionar para criar a primeira."
+  },
+  "create": {
+    "heading": "Adicionar Ação Corretiva",
+    "title_label": "Título *",
+    "title_placeholder": "Título breve da não conformidade ou melhoria",
+    "fill_in_later": "Você pode adicionar descrição, responsável, prazo e notas após a criação.",
+    "submit": "Adicionar"
+  },
+  "source_option": {
+    "internal_audit": "Constatação de Auditoria Interna",
+    "external_audit": "Constatação de Auditoria Externa",
+    "risk_assessment": "Avaliação de Riscos",
+    "security_incident": "Incidente de Segurança",
+    "objective": "Objetivo",
+    "feedback": "Feedback / Sugestão",
+    "other": "Outro"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descrição",
+    "source": "Fonte",
+    "severity": "Severidade",
+    "status": "Status",
+    "assignee": "Responsável",
+    "due_date": "Prazo",
+    "root_cause": "Causa Raiz",
+    "created": "Criado",
+    "created_by": "Criado por",
+    "resolved": "Resolvido",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Descreva a ação corretiva...",
+    "assignee": "Selecionar responsável...",
+    "root_cause": "Análise de causa raiz...",
+    "notes": "Adicionar notas..."
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas"
+  },
+  "actions": {
+    "create_task": "Criar Tarefa de Implementação",
+    "create_task_hint": "Criar uma tarefa para realizar o trabalho corretivo; vinculada automaticamente de volta a esta AC."
+  },
+  "danger": {
+    "warning": "Excluir esta ação corretiva é permanente e não pode ser desfeito.",
+    "delete": "Excluir ação corretiva",
+    "confirm": "Excluir esta ação corretiva? Esta ação não pode ser desfeita."
+  }
+}

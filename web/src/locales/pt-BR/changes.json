@@ -1,0 +1,65 @@
+{
+  "title": "Gestão de Mudanças",
+  "subtitle": "Rastrear e aprovar mudanças no seu sistema de gestão.",
+  "error": {
+    "load": "Falha ao carregar mudanças: {message}",
+    "create": "Falha ao criar solicitação de mudança: {message}",
+    "save": "Falha ao salvar: {message}",
+    "delete": "Falha ao excluir solicitação de mudança: {message}"
+  },
+  "action": {
+    "add": "Adicionar Solicitação de Mudança"
+  },
+  "create": {
+    "heading": "Adicionar Solicitação de Mudança",
+    "type_label": "Tipo",
+    "title_label": "Título",
+    "title_placeholder": "ex.: Migrar autenticação para OIDC",
+    "priority_label": "Prioridade",
+    "category_label": "Categoria",
+    "fill_in_later": "Você pode adicionar descrição, justificativa, data planejada, nível de risco, responsável, plano de reversão e notas após a criação.",
+    "submitting": "Criando...",
+    "submit": "Adicionar"
+  },
+  "filter": {
+    "empty": "Nenhuma solicitação de mudança encontrada"
+  },
+  "list": {
+    "requested_by": "Solicitada por {name}",
+    "assigned_to": "Atribuída a {name}",
+    "risk": "Risco: {level}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descrição",
+    "type": "Tipo",
+    "priority": "Prioridade",
+    "category": "Categoria",
+    "risk_level": "Nível de Risco",
+    "status": "Status",
+    "assigned_to": "Atribuída a",
+    "assignee": "Responsável",
+    "planned_for": "Planejada para",
+    "justification": "Justificativa",
+    "rollback_plan": "Plano de Reversão",
+    "requested_by": "Solicitada por",
+    "created": "Criado"
+  },
+  "placeholder": {
+    "description": "Descreva a mudança...",
+    "assignee": "Selecionar...",
+    "justification": "Por que esta mudança é necessária?",
+    "rollback_plan": "Como reverter?",
+    "notes": "Adicionar notas..."
+  },
+  "detail": {
+    "overview": "Visão geral",
+    "notes": "Notas",
+    "progress": "Progresso"
+  },
+  "danger": {
+    "warning": "Excluir esta solicitação de mudança é permanente e não pode ser desfeito.",
+    "delete": "Excluir solicitação de mudança",
+    "confirm": "Excluir esta solicitação de mudança? Esta ação não pode ser desfeita."
+  }
+}

@@ -1250,20 +1250,34 @@ paths:
           application/json:
             schema:
               type: object
-              required: [document_id]
+              required: [document_id, reviewers]
               properties:
                 document_id: { type: string }
-                document_type: { type: string }
-                title: { type: string }
-                assignees:
+                message: { type: string }
+                reviewers:
                   type: array
                   items: { type: string, format: email }
+                  minItems: 1
       responses:
         '201':
           description: Review created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Review' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: An open review already exists for this document
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  review_id: { type: integer }
+                  status: { type: string }
 
   /reviews/{id}:
     get:
@@ -1301,9 +1315,11 @@ paths:
                       properties:
                         id: { type: integer }
                         review_id: { type: integer }
-                        assignee: { type: string }
+                        reviewer: { type: string }
                         status: { type: string }
                         responded_at: { type: string, format: date-time }
+                        reviewed_at: { type: string, format: date-time }
+                        is_agent: { type: boolean }
 
   /reviews/{id}/status:
     put:
@@ -1336,19 +1352,24 @@ paths:
           application/json:
             schema:
               type: object
-              required: [assignees]
+              required: [reviewers]
               properties:
-                assignees:
+                reviewers:
                   type: array
                   items: { type: string, format: email }
+                message: { type: string }
       responses:
         '200':
           description: Review forwarded
 
-  /reviews/{docId}/send:
+  /documents/{docId}/reviews:
     post:
       tags: [Reviews & Comments]
       summary: Send a document for review (bumps version, records commit)
+      description: >-
+        Returns 201 when it creates a fresh review for the document. Returns
+        200 when the document already has an open review and this call adds
+        reviewers to it, or resubmits it after changes were requested.
       parameters:
         - $ref: '#/components/parameters/docId'
       requestBody:
@@ -1357,15 +1378,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [assignees]
+              required: [reviewers]
               properties:
-                assignees:
+                reviewers:
                   type: array
                   items: { type: string, format: email }
                 message: { type: string }
       responses:
-        '200':
+        '201':
           description: Review created and sent
+        '200':
+          description: Reviewers added to an existing open review, or the review was resubmitted
 
   /comments/open:
     get:

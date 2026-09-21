@@ -1035,8 +1035,9 @@ func (s *Server) handleAddReviewComment(c echo.Context) error {
 // handleReviewApprove records an approval/changes_requested decision on a review
 // and auto-transitions the review status based on all assignment statuses.
 func (s *Server) handleReviewApprove(c echo.Context) error {
-	// Anyone assigned to the review can approve/request changes.
-	// Admin/manager can always approve. Assignment check is below.
+	// Anyone assigned to the review can approve/request changes. Admin/manager may also
+	// record a decision without an assignment — it counts toward the merge approval
+	// policy (db/approval_policies.go) but does not by itself advance the review.
 
 	orgID := getOrgID(c)
 	id, err := strconv.Atoi(c.Param("id"))
@@ -1071,7 +1072,18 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 	// Verify the actor is an assigned reviewer or has admin/manager role.
 	// Also check if the reviewer already acted in this round (non-pending = already acted).
 	role, _ := c.Get("user_role").(string)
-	assignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, id)
+	assignments, listErr := s.db.ListAssignmentsForReview(ctx, orgID, id)
+	if listErr != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to load reviewer assignments")
+	}
+	// A review with no assigned reviewers can never advance: the status transition
+	// below is derived entirely from assignment rows, so a decision here would write
+	// an approval record and leave the review permanently stuck (#301). Refuse it and
+	// name the recovery path instead of returning a successful-looking no-op.
+	if len(assignments) == 0 {
+		return echo.NewHTTPError(http.StatusConflict,
+			"this review has no assigned reviewers; add reviewers to it before submitting a decision")
+	}
 	if role != "admin" && role != "manager" {
 		isAssigned := false
 		for _, a := range assignments {
@@ -4093,6 +4105,13 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		})
 	}
 
+	// Fresh review only: a resubmission above reuses assignments that already
+	// exist on the review, so it does not need this guard. A brand-new review
+	// with zero reviewers would otherwise never be approvable (#301).
+	if len(req.Reviewers) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "at least one reviewer required")
+	}
+
 	review, err := s.createReviewWithAssignments(ctx, st, orgID, actor, docID, title, version, docType, req.Message, req.Reviewers)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -4108,8 +4127,8 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 // POST /documents/:docId/reviews and POST /reviews: it flips the document to
 // in_review, creates the review row and its assignments in one transaction, then
 // fires the reviewer notifications and the activity log. Both entry points must
-// go through it — a review created without assignments cannot be approved by a
-// non-manager reviewer and can fail its approval policy at merge.
+// go through it — a review created without assignments cannot be approved by
+// anyone and can fail its approval policy at merge.
 //
 // The caller is responsible for resolving the document (title/version/docType)
 // and for rejecting the request when an open review already exists.

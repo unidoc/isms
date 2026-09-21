@@ -568,6 +568,10 @@
 
               <!-- Reviewer actions -->
               <template v-else-if="userCanReview">
+                <div v-if="!assignments.length" class="px-3 py-2 bg-amber-950/30 border border-amber-800/30 rounded-lg text-xs text-amber-400">
+                  {{ t('reviews.actions.no_reviewers_assigned') }}
+                </div>
+                <template v-else>
                 <!-- Already acted in this round -->
                 <div v-if="userAlreadyActed" class="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400">
                   <span v-if="userAssignmentStatus === 'approved'" class="text-emerald-400 font-medium">{{ t('reviews.actions.you_approved') }}</span>
@@ -637,6 +641,7 @@
                       <button @click="activeAction = null; changesComment = ''" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300">{{ t('common.action.cancel') }}</button>
                     </div>
                   </div>
+                </template>
                 </template>
               </template>
 

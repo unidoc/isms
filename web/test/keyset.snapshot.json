@@ -2026,6 +2026,7 @@
   "reviews.actions.confirm_approve",
   "reviews.actions.edit_and_resubmit",
   "reviews.actions.heading",
+  "reviews.actions.no_reviewers_assigned",
   "reviews.actions.not_a_reviewer",
   "reviews.actions.propose_new_revision",
   "reviews.actions.propose_revision",

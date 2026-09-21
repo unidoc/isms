@@ -138,7 +138,8 @@
     "submit_request": "Submit Request",
     "withdraw": "Withdraw Review",
     "close_without_merging": "Close Without Merging",
-    "not_a_reviewer": "You are not a reviewer on this request."
+    "not_a_reviewer": "You are not a reviewer on this request.",
+    "no_reviewers_assigned": "No reviewers are assigned to this review. Add a reviewer before approving or requesting changes."
   },
   "closed_state": {
     "merged": "Merged",

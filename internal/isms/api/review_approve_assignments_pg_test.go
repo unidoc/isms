@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -298,5 +299,57 @@ func TestZeroAssignmentReviewRecoversAfterReviewerAdded(t *testing.T) {
 	}
 	if approvals[0].ApprovedBy != "reviewer@recover-noassign.test" {
 		t.Errorf("expected approval by reviewer@recover-noassign.test, got %s", approvals[0].ApprovedBy)
+	}
+}
+
+// TestReviewSendRejectsEmptyReviewers is modeled on
+// TestCreateReviewRejectsEmptyReviewers (review_create_pg_test.go), scoped to
+// handleReviewSend (POST /documents/:docId/reviews) instead of
+// handleCreateReview (POST /reviews). This is the entry point that #301's fix
+// closed at api_collab.go — a fresh review sent with no reviewers used to
+// reach the zero-assignment state that made handleReviewApprove get stuck
+// (see the other tests in this file). Both shapes of an empty reviewers list
+// must be rejected: the field absent entirely, and an explicit empty array.
+func TestReviewSendRejectsEmptyReviewers(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+	}{
+		{name: "field absent", body: `{}`},
+		{name: "empty array", body: `{"reviewers":[]}`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testServer(t)
+			orgName := "reviewsend-empty-" + strings.ReplaceAll(tc.name, " ", "-")
+			orgID := newTestOrg(t, s, orgName)
+			seedRepoForOrg(t, s, orgID, "test-doc-send-empty")
+			seedReviewUser(t, s, orgID, "admin@"+orgName+".test", "admin")
+
+			c, rec := reviewCtxForPath(orgID, http.MethodPost, "/api/v1/documents/test-doc-send-empty/reviews", tc.body, "admin", "admin@"+orgName+".test")
+			c.SetParamNames("docId")
+			c.SetParamValues("test-doc-send-empty")
+
+			err := s.handleReviewSend(c)
+			if err == nil {
+				if rec.Code != http.StatusBadRequest {
+					t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+				}
+			} else {
+				he, ok := err.(*echo.HTTPError)
+				if !ok || he.Code != http.StatusBadRequest {
+					t.Fatalf("expected 400 echo.HTTPError, got %v", err)
+				}
+			}
+
+			existing, lerr := s.db.GetOpenReviewForDocument(context.Background(), orgID, "test-doc-send-empty")
+			if lerr != nil {
+				t.Fatalf("GetOpenReviewForDocument: %v", lerr)
+			}
+			if existing != nil {
+				t.Fatalf("expected no review created, found review %d", existing.ID)
+			}
+		})
 	}
 }

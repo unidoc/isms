@@ -1,0 +1,190 @@
+{
+  "title": "Prüfungen",
+  "subtitle": "Anfragen zur Dokumentprüfung",
+  "back": "Zurück zu den Prüfungen",
+  "not_found": "Prüfung nicht gefunden",
+  "opened_ago": "eröffnet {time}",
+  "ai": {
+    "active": "KI-Prüfung läuft",
+    "escalated": "Eskaliert — KI-Prüfung ins Stocken geraten"
+  },
+  "guide": {
+    "step_review": "Dokument und Änderungen prüfen",
+    "step_comment": "Kommentare hinzufügen oder Änderungen vorschlagen",
+    "step_decide": "Genehmigen oder Änderungen anfordern"
+  },
+  "tab": {
+    "changes": "Änderungen (Runde {round})",
+    "document": "Dokument",
+    "conversation": "Konversation"
+  },
+  "timeline": {
+    "suggested_edit": "hat eine Änderung vorgeschlagen",
+    "commented": "hat kommentiert",
+    "approved": "hat diese Prüfung genehmigt",
+    "proposed_revision": "hat eine Überarbeitung vorgeschlagen",
+    "requested_changes": "hat Änderungen angefordert",
+    "assigned": "{reviewer} wurde als Prüfer zugewiesen",
+    "empty": "Noch keine Aktivität.",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "hat diese Prüfung zusammengeführt",
+      "approved": "genehmigt (Entscheidungsdatensatz)",
+      "proposed_revision": "Überarbeitung vorgeschlagen (Entscheidungsdatensatz)",
+      "changes_requested": "Änderungen angefordert (Entscheidungsdatensatz)"
+    },
+    "content_hash": "SHA-256-Inhaltshash als Manipulationsnachweis",
+    "hide_changes": "Änderungen ausblenden",
+    "view_changes": "Änderungen anzeigen",
+    "diff_loading": "Änderungen werden geladen…",
+    "diff_error": "Der Diff dieser Revision konnte nicht geladen werden."
+  },
+  "updated": {
+    "heading": "Dokument seit dem Senden der Prüfung aktualisiert",
+    "last_modified_by": "Zuletzt geändert von {name}",
+    "last_modified_by_with_message": "Zuletzt geändert von {name} — {message}",
+    "note": "Der folgende Diff zeigt alle Änderungen seit der letzten genehmigten Version."
+  },
+  "diff": {
+    "summary_heading": "Änderungen in dieser Prüfung",
+    "never_approved_inline": "Vollständige Prüfung — dieses Dokument wurde noch nie genehmigt. Prüfen Sie das vollständige Dokument im Tab Dokument.",
+    "none_inline": "Kein Diff verfügbar — das Dokument wurde seit der Prüfungsbasis möglicherweise nicht geändert.",
+    "loading": "Änderungen werden geladen...",
+    "scope_round": "Änderungen in dieser Runde",
+    "scope_all": "Alle Änderungen in der Prüfung",
+    "mode_split": "Nebeneinander",
+    "mode_unified": "Vereint",
+    "never_approved_heading": "Vollständige Prüfung — dieses Dokument wurde noch nie genehmigt",
+    "never_approved_body": "Es gibt keine vorherige genehmigte Version für einen Vergleich. Prüfen Sie das vollständige Dokument im Tab Dokument.",
+    "none_in_round": "Keine Änderungen in dieser Runde gefunden."
+  },
+  "comment": {
+    "heading": "Kommentar hinzufügen",
+    "placeholder": "Kommentar hinterlassen..."
+  },
+  "edit": {
+    "save_and_resubmit": "Speichern & erneut einreichen",
+    "send_revision": "Vorgeschlagene Überarbeitung senden",
+    "draft_saved": "Entwurf gespeichert",
+    "note_placeholder": "Was haben Sie geändert und warum?",
+    "draft_recovered": "Entwurf aus vorheriger Sitzung wiederhergestellt."
+  },
+  "summary": {
+    "resubmitted": "Nach angeforderten Änderungen erneut eingereicht",
+    "initial": "Erste Prüfung",
+    "approved_count": "{approved} von {total}",
+    "waiting_on": "Wartet auf:",
+    "ready_to_merge": "Alle Prüfer haben genehmigt. Bereit zum Zusammenführen.",
+    "changes_requested_you": "Änderungen angefordert. Wartet auf Ihre Rückmeldung.",
+    "changes_requested_author": "Änderungen angefordert. Wartet auf Rückmeldung von {author}."
+  },
+  "suggestion": {
+    "count": "{count} Vorschlag | {count} Vorschläge",
+    "pending": "{count} ausstehend",
+    "accepted": "{count} akzeptiert",
+    "rejected": "{count} abgelehnt"
+  },
+  "assignment": {
+    "empty": "Keine Prüfer zugewiesen",
+    "status": {
+      "approved": "genehmigt",
+      "pending": "ausstehend",
+      "changes_requested": "Änderungen",
+      "proposed_revision": "Überarbeitung"
+    }
+  },
+  "policy": {
+    "heading": "Genehmigungsanforderungen",
+    "approvals": "{current}/{min} Genehmigungen",
+    "missing_roles": "Fehlt: Rolle {roles}",
+    "missing_users": "Ausstehend: {users}",
+    "blocked": "Zusammenführen blockiert, bis alle Anforderungen erfüllt sind",
+    "will_auto_merge": "Wird automatisch zusammengeführt, sobald alle Genehmigungen vorliegen",
+    "require_human": "Mindestens eine menschliche Genehmigung erforderlich",
+    "auto_merge": "Automatisches Zusammenführen für diese Richtlinie aktiviert"
+  },
+  "actions": {
+    "heading": "Aktionen",
+    "requirements_not_met": "Anforderungen nicht erfüllt",
+    "publish": "Veröffentlichen",
+    "publish_version": "{version} veröffentlichen",
+    "publish_note": "Dadurch wird {version} zum akzeptierten Dokument.",
+    "publish_note_this_version": "Dadurch wird diese Version zum akzeptierten Dokument.",
+    "awaiting_manager": "Alle Prüfer haben genehmigt. Wartet auf einen Manager zur Veröffentlichung.",
+    "revision_proposed_by": "{name} hat eine Überarbeitung dieses Dokuments vorgeschlagen.",
+    "publishing": "Wird veröffentlicht...",
+    "accept_and_publish": "Akzeptieren & veröffentlichen",
+    "request_another_review": "Weitere Prüfung anfordern",
+    "propose_new_revision": "Neue Überarbeitung vorschlagen",
+    "changes_were_requested": "Änderungen wurden angefordert. Bearbeiten Sie das Dokument und reichen Sie es erneut ein.",
+    "edit_and_resubmit": "Bearbeiten & erneut einreichen",
+    "you_sent_this": "Sie haben diese Prüfung gesendet.",
+    "waiting_for_feedback": "Wartet auf Rückmeldung der Prüfer.",
+    "you_approved": "Sie haben diese Runde genehmigt.",
+    "you_proposed_revision": "Sie haben eine Überarbeitung vorgeschlagen.",
+    "you_requested_changes": "Sie haben Änderungen angefordert.",
+    "waiting_for_author": "Wartet auf Rückmeldung von {author}.",
+    "waiting_for_reviewers": "Wartet auf weitere Prüfer.",
+    "stale_warning": "Das Dokument wurde nach dem Senden dieser Prüfung aktualisiert. Prüfen Sie die neuesten Änderungen vor der Genehmigung.",
+    "request_changes": "Änderungen anfordern",
+    "propose_revision": "Überarbeitung vorschlagen",
+    "approve_heading": "Dieses Dokument genehmigen",
+    "approve_placeholder": "Optionaler Kommentar...",
+    "approving": "Wird genehmigt...",
+    "confirm_approve": "Genehmigung bestätigen",
+    "changes_heading": "Änderungen anfordern",
+    "changes_placeholder": "Beschreiben Sie, was geändert werden muss... (erforderlich)",
+    "submitting": "Wird eingereicht...",
+    "submit_request": "Anfrage einreichen",
+    "withdraw": "Prüfung zurückziehen",
+    "close_without_merging": "Schließen ohne Zusammenführen",
+    "not_a_reviewer": "Sie sind kein Prüfer für diese Anfrage.",
+    "no_reviewers_assigned": "Dieser Prüfung sind keine Prüfer zugewiesen. Fügen Sie einen Prüfer hinzu, bevor Sie genehmigen oder Änderungen anfordern."
+  },
+  "closed_state": {
+    "merged": "Zusammengeführt",
+    "closed": "Geschlossen"
+  },
+  "document": {
+    "heading": "Dokument",
+    "id": "ID",
+    "comments": "Kommentare",
+    "open_comments": "Offen"
+  },
+  "list": {
+    "empty_open": "Keine offenen Prüfungen",
+    "empty_closed": "Keine geschlossenen Prüfungen",
+    "item_title": "Prüfung #{id} -- {title}",
+    "opened_by": "Eröffnet von {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "Autor",
+  "reviewer_fallback": "Ein Prüfer",
+  "revision_note_fallback": "Änderungen des Autors",
+  "toast": {
+    "revision_published": "Überarbeitung akzeptiert und veröffentlicht.",
+    "revision_accepted": "Vorgeschlagene Überarbeitung akzeptiert",
+    "decision_recorded": "Ihre Genehmigung wurde{round} erfasst. Warten auf {count} weiteren Prüfer. | Ihre Genehmigung wurde{round} erfasst. Warten auf {count} weitere Prüfer.",
+    "decision_recorded_changes": "Ihre Änderungsanfrage wurde{round} erfasst. Warten auf {count} weiteren Prüfer. | Ihre Änderungsanfrage wurde{round} erfasst. Warten auf {count} weitere Prüfer.",
+    "all_approved": "Alle Prüfer haben{round} genehmigt. Bereit zum Zusammenführen.",
+    "changes_requested": "Änderungen wurden{round} angefordert. Der Autor wird benachrichtigt.",
+    "for_round": " für Runde {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Trotzdem genehmigen",
+    "approve_stale_body": "Das Dokument wurde geändert, nachdem diese Prüfung gesendet wurde. Auf Basis der aktuellen Version genehmigen?",
+    "discard_changes": "Ungespeicherte Änderungen verwerfen?"
+  },
+  "error": {
+    "save_and_resubmit": "Speichern & erneut einreichen fehlgeschlagen: {message}",
+    "publish": "Veröffentlichung fehlgeschlagen: {message}",
+    "accept_revision": "Überarbeitung konnte nicht akzeptiert werden: {message}",
+    "submit_revision": "Überarbeitung konnte nicht eingereicht werden: {message}",
+    "load_list": "Prüfungen konnten nicht geladen werden: {message}",
+    "load_one": "Prüfung konnte nicht geladen werden: {message}",
+    "add_comment": "Kommentar konnte nicht hinzugefügt werden: {message}",
+    "submit_decision": "Entscheidung konnte nicht übermittelt werden: {message}",
+    "merge": "Prüfung konnte nicht zusammengeführt werden: {message}",
+    "close": "Prüfung konnte nicht geschlossen werden: {message}"
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "loading": "Dashboard wird geladen…",
+  "title": "Übersicht",
+  "subtitle": "Übersicht über ISO-27001-ISMS-Compliance und -Umsetzung",
+  "org_picker": {
+    "title": "Organisation auswählen",
+    "subtitle": "Wählen Sie, in welcher Organisation Sie arbeiten möchten.",
+    "create_toggle": "+ Neue Organisation erstellen"
+  },
+  "no_org": {
+    "title": "Sie sind in keiner Organisation",
+    "subtitle": "Erstellen Sie Ihre Organisation, um loszulegen, oder warten Sie auf eine Einladung."
+  },
+  "compliance": {
+    "title": "Gesamt-Compliance",
+    "approved_of_total": "{approved} von {total} Dokumenten genehmigt",
+    "draft": "{count} Entwurf",
+    "in_review": "{count} in Prüfung",
+    "approved": "{count} genehmigt"
+  },
+  "modules": {
+    "title": "Modulübersicht",
+    "documents": "Dokumente",
+    "risks": "Risiken",
+    "incidents": "Vorfälle",
+    "changes": "Änderungen",
+    "corrective_actions": "Korrekturmaßnahmen",
+    "suppliers": "Lieferanten",
+    "assets": "Vermögenswerte",
+    "legal": "Recht",
+    "systems": "Systeme",
+    "alert": {
+      "draft": "{count} Entwurf",
+      "high_critical": "{count} hoch/kritisch",
+      "open": "{count} offen",
+      "pending": "{count} ausstehend"
+    }
+  },
+  "bia": {
+    "title": "Business Impact Analyse",
+    "header": {
+      "system": "System",
+      "criticality": "Kritikalität",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Erfordert Ihre Aufmerksamkeit",
+    "reviews": {
+      "title": "Offene Prüfungen",
+      "detail": "{count} Prüfung wartet auf Rückmeldung | {count} Prüfungen warten auf Rückmeldung"
+    },
+    "risks": {
+      "title": "Hohe & kritische Risiken",
+      "detail": "{count} Risiko erfordert Behandlung oder Eskalation | {count} Risiken erfordern Behandlung oder Eskalation"
+    },
+    "overdue_documents": {
+      "title": "Überfällige Dokumente",
+      "detail": "{count} Richtlinie überfällig | {count} Richtlinien überfällig"
+    },
+    "incidents": {
+      "title": "Offene Vorfälle",
+      "detail": "{count} Vorfall erfordert Untersuchung | {count} Vorfälle erfordern Untersuchung"
+    },
+    "changes": {
+      "title": "Änderungen warten auf Genehmigung",
+      "detail": "{count} Änderung vorgeschlagen | {count} Änderungen vorgeschlagen"
+    },
+    "corrective_actions": {
+      "title": "Offene Korrekturmaßnahmen",
+      "detail": "{count} Korrekturmaßnahme in Bearbeitung | {count} Korrekturmaßnahmen in Bearbeitung"
+    }
+  },
+  "stats": {
+    "title": "Schnellübersicht",
+    "documents": "Dokumente",
+    "documents_detail": "{count} benötigen Prüfung",
+    "risks": "Risiken",
+    "risks_detail": "{count} hoch/kritisch",
+    "risks_none": "Alle im tolerierbaren Bereich",
+    "incidents": "Vorfälle",
+    "incidents_detail": "offene Vorfälle",
+    "corrective_actions": "Korrekturmaßnahmen",
+    "corrective_actions_detail": "offene Maßnahmen",
+    "changes": "Änderungen",
+    "changes_detail": "warten auf Genehmigung",
+    "changes_none": "keine ausstehend",
+    "overdue": "Überfällig",
+    "overdue_detail": "überfällige Elemente",
+    "overdue_none": "alles im Zeitplan"
+  },
+  "heatmap_title": "Risikokarte",
+  "calendar": {
+    "title": "Jahresplan",
+    "previous_year": "Vorheriges Jahr",
+    "next_year": "Nächstes Jahr",
+    "category": {
+      "audit": "Audits",
+      "risk": "Risikoprüfungen",
+      "supplier": "Lieferantenprüfungen",
+      "legal": "Rechtsprüfungen",
+      "task": "Aufgaben"
+    },
+    "untitled_audit": "Audit"
+  },
+  "activity": {
+    "title": "Letzte Aktivitäten",
+    "empty": "Aktivitäten erscheinen hier, sobald das Team arbeitet"
+  },
+  "error": {
+    "create_org": "Organisation konnte nicht erstellt werden",
+    "load": "Dashboard konnte nicht geladen werden"
+  }
+}

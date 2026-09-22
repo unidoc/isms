@@ -1,0 +1,232 @@
+{
+  "title": "Internes Audit",
+  "subtitle": "Auditprogramme, Zeitplan und Feststellungen",
+  "error": {
+    "load": "Audit-Modul konnte nicht geladen werden. {message}",
+    "load_programmes": "Programme konnten nicht geladen werden: {message}",
+    "load_audits": "Audits konnten nicht geladen werden: {message}",
+    "load_calendar": "Kalender konnte nicht geladen werden: {message}",
+    "load_findings": "Feststellungen konnten nicht geladen werden: {message}",
+    "load_audit_detail": "Audit-Details konnten nicht geladen werden: {message}",
+    "create_programme": "Programm konnte nicht erstellt werden: {message}",
+    "save_programme": "Programm konnte nicht gespeichert werden: {message}",
+    "delete_programme": "Programm konnte nicht gelöscht werden: {message}",
+    "create_audit": "Audit konnte nicht erstellt werden: {message}",
+    "save_audit": "Audit konnte nicht gespeichert werden: {message}",
+    "save_report": "Bericht konnte nicht gespeichert werden: {message}",
+    "add_item": "Element konnte nicht hinzugefügt werden: {message}",
+    "save_item": "Speichern fehlgeschlagen: {message}",
+    "remove_item": "Entfernen fehlgeschlagen: {message}",
+    "create_finding": "Feststellung konnte nicht hinzugefügt werden: {message}",
+    "save_finding": "Feststellung konnte nicht gespeichert werden: {message}",
+    "delete_finding": "Feststellung konnte nicht gelöscht werden: {message}"
+  },
+  "toast": {
+    "programme_added": "Programm hinzugefügt",
+    "programme_deleted": "Programm gelöscht",
+    "audit_added": "Audit hinzugefügt",
+    "report_saved": "Bericht gespeichert",
+    "item_added": "Element hinzugefügt",
+    "item_removed": "Element entfernt",
+    "finding_added": "Feststellung hinzugefügt",
+    "finding_deleted": "Feststellung gelöscht"
+  },
+  "tab": {
+    "calendar": "Kalender",
+    "programmes": "Programme",
+    "findings": "Feststellungen",
+    "audits": "Audits",
+    "items": "Elemente",
+    "report": "Bericht",
+    "discussion": "Diskussion",
+    "linked": "Verknüpfte Korrekturmaßnahmen"
+  },
+  "action": {
+    "add_programme": "Programm hinzufügen",
+    "add_finding": "Feststellung hinzufügen",
+    "add_audit": "Audit hinzufügen"
+  },
+  "calendar": {
+    "loading": "Kalender wird geladen...",
+    "audit_count": "{count} Audit | {count} Audits",
+    "month_empty": "Keine Audits für diesen Monat geplant",
+    "unscheduled": "Nicht geplant",
+    "unscheduled_count": "{count} Audit ohne geplantes Datum | {count} Audits ohne geplantes Datum",
+    "unscheduled_range": "nicht geplant",
+    "empty": "Keine Audits im Jahr {year}. Fügen Sie ein Audit aus einem Programm hinzu, um es hier zu sehen."
+  },
+  "programme": {
+    "search_placeholder": "Programme durchsuchen...",
+    "all_years": "Alle Jahre",
+    "empty_filtered": "Keine Programme entsprechen Ihrem Filter.",
+    "empty": "Noch keine Auditprogramme — klicken Sie auf Programm hinzufügen, um eines zu erstellen.",
+    "table": {
+      "id": "ID",
+      "title": "Titel",
+      "year": "Jahr",
+      "audits": "Audits",
+      "findings": "Feststellungen",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Programm hinzufügen",
+      "title_label": "Titel *",
+      "title_placeholder": "z. B. Jährliches Auditprogramm 2026",
+      "year_label": "Jahr *",
+      "fill_in_later": "Beschreibung, Status und Audits können nach dem Erstellen hinzugefügt werden.",
+      "submitting": "Wird hinzugefügt...",
+      "submit": "Hinzufügen"
+    },
+    "field": {
+      "title": "Titel",
+      "year": "Jahr",
+      "status": "Status",
+      "description": "Beschreibung",
+      "notes": "Notizen",
+      "audits": "Audits",
+      "created_by": "Erstellt von",
+      "created": "Erstellt"
+    },
+    "placeholder": {
+      "description": "Ziele und Umfang des Programms...",
+      "notes": "Interne Notizen..."
+    },
+    "audits_heading": "Audits in diesem Programm",
+    "add_audit": "+ Audit hinzufügen",
+    "audits_empty": "Noch keine Audits in diesem Programm.",
+    "open_findings": "{count} offen",
+    "danger": {
+      "warning": "Programme mit Audits können nicht gelöscht werden. Entfernen Sie zuerst alle Audits.",
+      "delete": "Programm löschen",
+      "confirm": "Programm „{title}“ löschen? Dies kann nicht rückgängig gemacht werden."
+    }
+  },
+  "audit": {
+    "loading_detail": "Audit-Details werden geladen...",
+    "create": {
+      "heading": "Audit hinzufügen",
+      "title_label": "Titel *",
+      "title_placeholder": "Audit-Titel",
+      "programme_label": "Programm",
+      "no_programme": "Kein Programm (Ad-hoc)",
+      "type_label": "Audit-Typ",
+      "fill_in_later": "Umfang, Auditor, Termine und Elemente können nach dem Erstellen hinzugefügt werden.",
+      "submitting": "Wird hinzugefügt...",
+      "submit": "Hinzufügen"
+    },
+    "field": {
+      "title": "Titel",
+      "scope": "Umfang",
+      "type": "Audit-Typ",
+      "status": "Status",
+      "auditor": "Auditor",
+      "programme": "Programm",
+      "planned_date": "Geplantes Datum",
+      "end_date": "Enddatum",
+      "planned": "Geplant",
+      "started": "Begonnen",
+      "completed": "Abgeschlossen",
+      "items": "Elemente",
+      "findings": "Feststellungen",
+      "notes": "Notizen"
+    },
+    "placeholder": {
+      "scope": "Beschreibung des Umfangs. /doc eingeben, um Maßnahmen oder Abschnitte zu verknüpfen...",
+      "auditor": "Auditor auswählen...",
+      "notes": "Interne Audit-Notizen..."
+    },
+    "open_count": "({count} offen)",
+    "danger": {
+      "warning": "Audits können derzeit nicht über die Benutzeroberfläche gelöscht werden. Verwalten Sie destruktive Aktionen über die CLI."
+    }
+  },
+  "items": {
+    "heading": "Audit-Elemente ({count})",
+    "add": "+ Element hinzufügen",
+    "search_placeholder": "Dokumente, Maßnahmen, Abschnitte, Risiken, Vermögenswerte durchsuchen...",
+    "searching": "Wird gesucht...",
+    "no_matches": "Keine Treffer.",
+    "empty": "Noch keine Elemente — fügen Sie Maßnahmen, Abschnitte, Risiken oder andere zu bewertende Elemente hinzu.",
+    "raise_finding": "Feststellung erstellen",
+    "raise_finding_title": "Feststellung aus diesem Element erstellen",
+    "delete_title": "Element löschen",
+    "evidence": "Nachweis",
+    "evidence_placeholder": "Referenz, Link oder Beschreibung des Nachweises...",
+    "notes": "Notizen",
+    "notes_empty": "Notizen (leer)",
+    "notes_placeholder": "Notizen im Text für dieses Element...",
+    "save_notes": "Notizen speichern",
+    "confirm_remove": "„{title}“ aus diesem Audit entfernen?",
+    "remove": "Entfernen"
+  },
+  "findings": {
+    "search_placeholder": "Feststellungen durchsuchen...",
+    "all_audits": "Alle Audits",
+    "overdue_toggle_title": "Umschalten: Nur überfällige",
+    "overdue_only": "Nur überfällige",
+    "overdue": "Überfällig",
+    "empty_filtered": "Keine Feststellungen entsprechen Ihrem Filter.",
+    "empty": "Noch keine Feststellungen erfasst.",
+    "heading_count": "Feststellungen ({count})",
+    "add": "+ Feststellung hinzufügen",
+    "audit_empty": "Noch keine Feststellungen für dieses Audit erfasst.",
+    "table": {
+      "id": "ID",
+      "title": "Titel",
+      "audit": "Audit",
+      "type": "Typ",
+      "owner": "Verantwortlicher",
+      "due": "Fällig",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Feststellung hinzufügen",
+      "title_label": "Titel *",
+      "title_placeholder": "Titel der Feststellung",
+      "audit_label": "Audit *",
+      "audit_placeholder": "Audit auswählen...",
+      "type_label": "Typ",
+      "fill_in_later": "Beschreibung, Verantwortlicher, Fälligkeitsdatum und Verknüpfungen zu Korrekturmaßnahmen können nach dem Erstellen hinzugefügt werden.",
+      "submitting": "Wird hinzugefügt...",
+      "submit": "Hinzufügen"
+    },
+    "field": {
+      "title": "Titel",
+      "description": "Beschreibung",
+      "type": "Typ",
+      "status": "Status",
+      "owner": "Verantwortlicher",
+      "due_date": "Fälligkeitsdatum",
+      "due_date_read": "Fälligkeitsdatum",
+      "audit": "Audit",
+      "audit_item": "Audit-Element",
+      "created": "Erstellt",
+      "closed": "Geschlossen"
+    },
+    "placeholder": {
+      "description": "Detaillierte Beschreibung der Feststellung, Nachweise, Ursachenanalyse...",
+      "owner": "Verantwortlichen auswählen..."
+    },
+    "item_ref": "Element #{id}",
+    "quick_action": "Schnellaktion",
+    "create_ca": "Korrekturmaßnahme aus Feststellung erstellen",
+    "create_ca_hint": "Erstellt eine Korrekturmaßnahme, vorausgefüllt mit Titel und Schweregrad dieser Feststellung.",
+    "danger": {
+      "warning": "Das Löschen dieser Feststellung ist endgültig. Verknüpfte Korrekturmaßnahmen bleiben bestehen, verlieren aber diese Rückverknüpfung.",
+      "delete": "Feststellung löschen",
+      "confirm": "Diese Feststellung löschen? Dies kann nicht rückgängig gemacht werden."
+    }
+  },
+  "report": {
+    "heading": "Auditbericht",
+    "placeholder": "Abschlussbericht des Auditors — Beobachtungen, Schlussfolgerungen, Empfehlungen. Verwenden Sie Slash-Befehle, um Maßnahmen, Abschnitte, Nachweise zu verknüpfen...",
+    "empty": "Noch kein Bericht verfasst."
+  },
+  "dirty": {
+    "report_switch_tab": "Sie haben ungespeicherte Änderungen am Bericht. Verwerfen und Tab wechseln?",
+    "report_close": "Sie haben ungespeicherte Änderungen am Bericht. Verwerfen und schließen?"
+  },
+  "detail": {
+    "overview": "Übersicht"
+  }
+}

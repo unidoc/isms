@@ -1,0 +1,581 @@
+{
+  "brand": {
+    "product_name": "ISMS"
+  },
+  "action": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "ok": "OK",
+    "close": "Schließen",
+    "create": "Erstellen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "copy": "Kopieren",
+    "search": "Suchen",
+    "clear": "Leeren",
+    "add_comment": "Kommentar hinzufügen",
+    "comment": "Kommentar",
+    "reply": "Antworten",
+    "resolve": "Lösen",
+    "approve": "Genehmigen",
+    "add": "Hinzufügen",
+    "discard_draft": "Entwurf verwerfen",
+    "discard": "Verwerfen"
+  },
+  "state": {
+    "loading": "Wird geladen…",
+    "saving": "Wird gespeichert...",
+    "empty": "Noch nichts vorhanden",
+    "error": "Etwas ist schiefgelaufen",
+    "unknown": "Unbekannt",
+    "outdated": "Veraltet",
+    "outdated_inline": "veraltet",
+    "resolved": "Gelöst",
+    "copied": "Kopiert",
+    "saved": "Gespeichert",
+    "overdue": "ÜBERFÄLLIG",
+    "no_notes": "Noch keine Notizen.",
+    "sending": "Wird gesendet...",
+    "creating": "Wird erstellt..."
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich"
+  },
+  "locale": {
+    "label": "Sprache",
+    "org_default": "Standard der Organisation"
+  },
+  "entity": {
+    "risk": "Risiko",
+    "supplier": "Lieferant",
+    "incident": "Vorfall",
+    "legal_requirement": "Rechtliche Anforderung",
+    "change_request": "Änderungsantrag",
+    "corrective_action": "Korrekturmaßnahme",
+    "objective": "Ziel",
+    "task": "Aufgabe",
+    "system": "System",
+    "asset": "Vermögenswert",
+    "audit": "Audit",
+    "audit_finding": "Audit-Feststellung",
+    "program": "Programm",
+    "checkin": "Messung",
+    "access_review": "Zugriffsüberprüfung",
+    "user": "Benutzer",
+    "organization": "Organisation",
+    "review": "Prüfung",
+    "document": "Dokument",
+    "comment": "Kommentar",
+    "suggestion": "Vorschlag",
+    "oidc_provider": "OIDC-Anbieter",
+    "policy": "Richtlinie",
+    "passkey": "Passkey",
+    "evidence": "Nachweis",
+    "item": "Element"
+  },
+  "entity_inline": {
+    "risk": "Risiko",
+    "supplier": "Lieferant",
+    "incident": "Vorfall",
+    "legal_requirement": "rechtliche Anforderung",
+    "change_request": "Änderungsantrag",
+    "corrective_action": "Korrekturmaßnahme",
+    "objective": "Ziel",
+    "task": "Aufgabe",
+    "system": "System",
+    "asset": "Vermögenswert",
+    "audit": "Audit",
+    "audit_finding": "Audit-Feststellung",
+    "program": "Programm",
+    "checkin": "Messung",
+    "access_review": "Zugriffsüberprüfung",
+    "user": "Benutzer",
+    "organization": "Organisation",
+    "review": "Prüfung",
+    "document": "Dokument",
+    "comment": "Kommentar",
+    "suggestion": "Vorschlag",
+    "oidc_provider": "OIDC-Anbieter",
+    "policy": "Richtlinie",
+    "passkey": "Passkey",
+    "evidence": "Nachweis",
+    "item": "Element"
+  },
+  "field": {
+    "title": "Titel",
+    "name": "Name",
+    "email": "E-Mail",
+    "token": "Token",
+    "key": "Schlüssel",
+    "notes": "Notizen",
+    "path_pattern": "Pfadmuster",
+    "current_password": "aktuelles Passwort",
+    "slug": "Slug",
+    "role": "Rolle",
+    "body": "Inhalt",
+    "reason": "Grund",
+    "file": "Datei",
+    "code": "Code",
+    "document_id": "Dokument-ID",
+    "new_email": "neue E-Mail",
+    "entity_type": "Objekttyp",
+    "suggestion_type": "Vorschlagstyp"
+  },
+  "enum": {
+    "status": {
+      "draft": "Entwurf",
+      "open": "Offen",
+      "in_review": "In Prüfung",
+      "approved": "Genehmigt",
+      "changes_requested": "Änderungen angefordert",
+      "proposed_revision": "Überarbeitung vorgeschlagen",
+      "merged": "Zusammengeführt",
+      "retired": "Stillgelegt",
+      "pending": "Ausstehend",
+      "accepted": "Akzeptiert",
+      "applied": "Angewendet",
+      "rejected": "Abgelehnt",
+      "withdrawn": "Zurückgezogen",
+      "resolved": "Gelöst",
+      "closed": "Geschlossen",
+      "investigating": "In Untersuchung",
+      "contained": "Eingedämmt",
+      "todo": "Zu erledigen",
+      "in_progress": "In Bearbeitung",
+      "done": "Erledigt",
+      "cancelled": "Abgebrochen",
+      "proposed": "Vorgeschlagen",
+      "not_started": "Nicht begonnen",
+      "implemented": "Umgesetzt",
+      "verified": "Verifiziert",
+      "planned": "Geplant",
+      "completed": "Abgeschlossen",
+      "active": "Aktiv",
+      "at_risk": "Gefährdet",
+      "paused": "Pausiert",
+      "complete": "Vollständig",
+      "assessment": "Bewertung",
+      "awaiting_approval": "Genehmigung ausstehend",
+      "implementation": "Umsetzung",
+      "monitoring": "Überwachung",
+      "under_review": "In Begutachtung",
+      "suspended": "Ausgesetzt",
+      "terminated": "Beendet",
+      "decommissioned": "Außer Betrieb genommen",
+      "archived": "Archiviert"
+    },
+    "severity": {
+      "critical": "Kritisch",
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig"
+    },
+    "criticality": {
+      "critical": "Kritisch",
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig"
+    },
+    "classification": {
+      "public": "Öffentlich",
+      "internal": "Intern",
+      "confidential": "Vertraulich",
+      "restricted": "Eingeschränkt"
+    },
+    "role": {
+      "admin": "Administrator",
+      "manager": "Manager",
+      "contributor": "Mitwirkender",
+      "reader": "Leser"
+    },
+    "audit_result": {
+      "not_assessed": "Nicht bewertet",
+      "conforming": "Konform",
+      "minor_nc": "Geringfügige Abweichung",
+      "major_nc": "Schwerwiegende Abweichung",
+      "observation": "Beobachtung",
+      "opportunity": "Verbesserungspotenzial"
+    },
+    "finding_type": {
+      "major_nc": "Schwerwiegende Abweichung",
+      "minor_nc": "Geringfügige Abweichung",
+      "observation": "Beobachtung",
+      "opportunity": "Verbesserungspotenzial"
+    },
+    "action": {
+      "applied": "angewendet",
+      "rejected": "abgelehnt"
+    },
+    "suggestion_type": {
+      "create": "Erstellen",
+      "update": "Aktualisieren",
+      "reassess": "Neu bewerten",
+      "link": "Verknüpfen",
+      "review": "Prüfen",
+      "reading": "Bewertung"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
+    },
+    "permissions": {
+      "read-write": "Lesen & Schreiben",
+      "read": "Nur lesen",
+      "write": "Nur schreiben"
+    },
+    "treatment": {
+      "mitigate": "Mindern",
+      "accept": "Akzeptieren",
+      "transfer": "Übertragen",
+      "avoid": "Vermeiden"
+    },
+    "risk_type": {
+      "threat": "Bedrohung",
+      "opportunity": "Chance"
+    },
+    "origin": {
+      "internal": "Intern",
+      "external": "Extern",
+      "internal and external": "Intern & extern"
+    },
+    "incident_type": {
+      "incident": "Vorfall",
+      "event": "Ereignis",
+      "weakness": "Schwachstelle"
+    },
+    "gdpr_role": {
+      "controller": "Verantwortlicher",
+      "processor": "Auftragsverarbeiter"
+    },
+    "notification_status": {
+      "not_required": "Nicht erforderlich",
+      "pending": "Ausstehend",
+      "notified": "Benachrichtigt"
+    },
+    "supplier_type": {
+      "cloud": "Cloud",
+      "saas": "SaaS",
+      "consulting": "Beratung",
+      "hosting": "Hosting",
+      "infrastructure": "Infrastruktur",
+      "software": "Software",
+      "contractor": "Auftragnehmer",
+      "other": "Sonstiges"
+    },
+    "asset_type": {
+      "infrastructure": "Infrastruktur",
+      "processing_devices": "Verarbeitungsgeräte",
+      "software": "Software",
+      "system": "System",
+      "network": "Netzwerk",
+      "service": "Dienstleistung",
+      "financial_info": "Finanzinformationen",
+      "personal_data": "Personenbezogene Daten",
+      "ipr": "Geistiges Eigentum",
+      "sales_marketing": "Vertrieb & Marketing",
+      "processing_facility": "Verarbeitungseinrichtung",
+      "products_services": "Produkte & Dienstleistungen",
+      "supply_chain": "Lieferkette",
+      "other": "Sonstiges"
+    },
+    "legal_category": {
+      "privacy": "Privatsphäre",
+      "security": "Sicherheit",
+      "sector": "Branche",
+      "contractual": "Vertraglich",
+      "other": "Sonstiges",
+      "data_protection": "Datenschutz",
+      "employment": "Arbeitsrecht",
+      "regulatory": "Regulatorische Compliance",
+      "intellectual_property": "Geistiges Eigentum",
+      "financial": "Finanzvorschriften",
+      "environmental": "Umwelt",
+      "corporate": "Unternehmensführung"
+    },
+    "audit_type": {
+      "internal": "Intern",
+      "external": "Extern",
+      "surveillance": "Überwachungsaudit",
+      "certification": "Zertifizierungsaudit",
+      "recertification": "Rezertifizierungsaudit"
+    },
+    "change_category": {
+      "process": "Prozess",
+      "technology": "Technologie",
+      "people": "Personal",
+      "documentation": "Dokumentation",
+      "infrastructure": "Infrastruktur",
+      "other": "Sonstiges"
+    },
+    "task_type": {
+      "general": "Allgemein",
+      "review": "Prüfung",
+      "incident_followup": "Vorfall-Nachverfolgung",
+      "audit_followup": "Audit-Nachverfolgung",
+      "ca_followup": "Nachverfolgung Korrekturmaßnahme",
+      "change_followup": "Nachverfolgung Änderung",
+      "onboarding": "Onboarding",
+      "offboarding": "Offboarding",
+      "training": "Schulung",
+      "other": "Sonstiges"
+    },
+    "source": {
+      "internal_audit": "Internes Audit",
+      "external_audit": "Externes Audit",
+      "risk_assessment": "Risikobewertung",
+      "security_incident": "Sicherheitsvorfall",
+      "objective": "Ziel",
+      "feedback": "Rückmeldung",
+      "other": "Sonstiges"
+    },
+    "priority": {
+      "critical": "Kritisch",
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig"
+    },
+    "outcome": {
+      "satisfactory": "Zufriedenstellend",
+      "concerns": "Bedenken",
+      "unsatisfactory": "Unzureichend"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "Änderung",
+      "access_request": "Zugriffsanfrage"
+    },
+    "risk_level": {
+      "critical": "Kritisch",
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig"
+    },
+    "document_type": {
+      "document": "Dokument",
+      "policy": "Richtlinie",
+      "procedure": "Verfahren",
+      "control": "Maßnahme",
+      "guideline": "Leitlinie",
+      "record": "Aufzeichnung",
+      "clause": "Abschnitt",
+      "requirement": "Anforderung"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "kritischer",
+      "high": "hoher",
+      "medium": "mittlerer",
+      "low": "niedriger"
+    },
+    "status": {
+      "draft": "Entwurf",
+      "open": "offen",
+      "investigating": "in Untersuchung",
+      "contained": "eingedämmt",
+      "resolved": "gelöst",
+      "closed": "geschlossen",
+      "in_review": "in Prüfung",
+      "approved": "genehmigt",
+      "changes_requested": "Änderungen angefordert",
+      "merged": "zusammengeführt"
+    },
+    "suggestion_type": {
+      "create": "Erstellung",
+      "update": "Aktualisierung",
+      "reassess": "Neubewertung",
+      "link": "Verknüpfung",
+      "review": "Prüfung",
+      "reading": "Bewertung"
+    },
+    "action": {
+      "applied": "angewendet",
+      "rejected": "abgelehnt"
+    }
+  },
+  "error": {
+    "not_found": "{entity} nicht gefunden",
+    "not_found_in_org": "{entity} in dieser Organisation nicht gefunden",
+    "invalid_entity_id": "ungültige ID für {entity}",
+    "required": "{field} ist erforderlich",
+    "field_empty": "{field} darf nicht leer sein",
+    "invalid_id": "ungültige ID",
+    "invalid_request": "ungültige Anfrage",
+    "invalid_role": "ungültige Rolle",
+    "invalid_status": "ungültiger Status: {value}",
+    "invalid_credentials": "ungültige Anmeldedaten",
+    "invalid_token": "ungültiges Token",
+    "invalid_otp_code": "ungültiger OTP-Code",
+    "invalid_confirm_link": "ungültiger oder abgelaufener Bestätigungslink",
+    "token_email_mismatch": "E-Mail stimmt nicht mit Token überein",
+    "not_authenticated": "nicht authentifiziert",
+    "too_many_attempts": "zu viele Versuche, bitte später erneut versuchen",
+    "password_too_short": "Passwort muss mindestens {count} Zeichen lang sein",
+    "current_password_required": "aktuelles Passwort erforderlich",
+    "current_password_incorrect": "aktuelles Passwort ist falsch",
+    "email_and_password_required": "E-Mail und Passwort erforderlich",
+    "email_in_use": "diese E-Mail-Adresse wird bereits verwendet",
+    "not_your_passkey": "nicht Ihr Passkey",
+    "api_key_required": "API-Schlüssel erforderlich. Verwenden Sie: isms server api-key create",
+    "api_key_wrong_org": "API-Schlüssel ist für diese Organisation nicht autorisiert",
+    "not_org_member": "kein Mitglied dieser Organisation",
+    "provider_other_org": "Anbieter gehört zu einer anderen Organisation",
+    "manager_or_admin_required": "erfordert die Rolle Manager oder Administrator",
+    "document_modified": "das Dokument wurde von einem anderen Benutzer geändert — bitte aktualisieren und erneut versuchen",
+    "document_file_not_found": "Dokumentdatei nicht gefunden",
+    "notes_required": "Notizen sind erforderlich — beschreiben Sie, was geprüft und bestätigt wurde",
+    "review_wrong_status": "Prüfung hat den Status {status}",
+    "review_already_status": "Prüfung hat bereits den Status {status}",
+    "ai_disabled": "KI-Funktionen sind für diese Organisation deaktiviert",
+    "unsupported_locale": "nicht unterstützte Sprache"
+  },
+  "region": {
+    "global": "Global",
+    "eu": "EU",
+    "eea": "EWR",
+    "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "Datenschutzerklärung",
+    "terms": "Nutzungsbedingungen",
+    "powered_by": "Bereitgestellt von isms.sh"
+  },
+  "count": {
+    "total": "{count} insgesamt",
+    "comments": "{count} Kommentar | {count} Kommentare",
+    "outdated_comments": "{count} veralteter Kommentar | {count} veraltete Kommentare",
+    "of": "{shown} von {total}"
+  },
+  "placeholder": {
+    "search": "Suchen...",
+    "select_owner": "Verantwortlichen auswählen..."
+  },
+  "tab": {
+    "overview": "Übersicht",
+    "treatment": "Behandlung",
+    "assessment": "Bewertung",
+    "notes": "Notizen",
+    "links": "Verknüpfungen",
+    "actions": "Aktionen",
+    "suggestions": "Vorschläge",
+    "comments": "Kommentare",
+    "history": "Verlauf"
+  },
+  "filter": {
+    "all_statuses": "Alle Status",
+    "all_types": "Alle Typen",
+    "all_levels": "Alle Stufen",
+    "all_criticality": "Alle Kritikalitäten",
+    "all_categories": "Alle Kategorien",
+    "all_severities": "Alle Schweregrade",
+    "all_priorities": "Alle Prioritäten",
+    "all_sources": "Alle Quellen",
+    "all_programs": "Alle Programme",
+    "all_owners": "Alle Verantwortlichen"
+  },
+  "option": {
+    "none": "Keine",
+    "not_decided": "Nicht entschieden"
+  },
+  "stat": {
+    "total": "Gesamt",
+    "overdue": "Überfällig"
+  },
+  "heading": {
+    "quick_actions": "Schnellaktionen",
+    "danger_zone": "Gefahrenzone"
+  },
+  "label": {
+    "version": "Version",
+    "version_number": "Version {version}",
+    "round": "Runde {round}",
+    "round_paren": "(Runde {round})",
+    "reviewers": "Prüfer",
+    "approved_prefix": "Genehmigt:"
+  },
+  "read_only": {
+    "actions": "Nur lesen — Aktionen erfordern die Rolle Manager oder Administrator."
+  },
+  "review": {
+    "last": "Letzte Prüfung: {date}",
+    "next": "Nächste Prüfung: {date}",
+    "overdue_since": "Prüfung überfällig seit {date}"
+  },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "A"
+  },
+  "cia": {
+    "not_assessed": "Nicht bewertet",
+    "insignificant": "Unerheblich",
+    "minor": "Gering",
+    "moderate": "Mittel",
+    "major": "Erheblich",
+    "severe": "Schwerwiegend",
+    "na": "Nicht zutreffend"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "Schwerw. Abw.",
+      "minor_nc": "Gering. Abw.",
+      "observation": "Beobachtung",
+      "opportunity": "VP"
+    },
+    "audit_result": {
+      "not_assessed": "Nicht bewertet",
+      "conforming": "Konform",
+      "minor_nc": "Gering. Abw.",
+      "major_nc": "Schwerw. Abw.",
+      "observation": "Beobachtung",
+      "opportunity": "Potenzial"
+    }
+  },
+  "dirty": {
+    "switch_tab": "Sie haben ungespeicherte Änderungen. Verwerfen und Tab wechseln?",
+    "close": "Sie haben ungespeicherte Änderungen. Verwerfen und schließen?",
+    "discard": "Verwerfen"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "Erstellt aus [{label}]({link})",
+    "created_from_audit_finding": "Erstellt aus Audit-Feststellung {label}"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "von {name}"
+  }
+}

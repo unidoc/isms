@@ -1,0 +1,20 @@
+{
+  "title": "Ihre Organisationen",
+  "empty": "Sie sind noch kein Mitglied einer Organisation.",
+  "create": "Organisation erstellen",
+  "form": {
+    "title": "Neue Organisation",
+    "name_label": "Name",
+    "name_placeholder": "Acme Corp",
+    "slug_label": "URL-Slug",
+    "slug_placeholder": "acme",
+    "template_label": "Vorlage (optional)",
+    "template_none": "Keine — ich richte die Dokumente selbst ein",
+    "template_iso27001": "ISO 27001 — vollständiger Dokumentensatz",
+    "template_soc2": "SOC 2 — Trust Services Criteria",
+    "template_nis2": "NIS2 — Anforderungen der EU-Richtlinie",
+    "template_hint": "Erstellt Dokumentvorlagen in Git. Weitere Vorlagen können später hinzugefügt werden.",
+    "creating": "Wird erstellt…",
+    "error_create": "Organisation konnte nicht erstellt werden"
+  }
+}

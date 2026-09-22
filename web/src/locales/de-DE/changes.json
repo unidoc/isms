@@ -1,0 +1,65 @@
+{
+  "title": "Änderungsmanagement",
+  "subtitle": "Änderungen an Ihrem Managementsystem nachverfolgen und genehmigen.",
+  "error": {
+    "load": "Änderungen konnten nicht geladen werden: {message}",
+    "create": "Änderungsantrag konnte nicht erstellt werden: {message}",
+    "save": "Speichern fehlgeschlagen: {message}",
+    "delete": "Änderungsantrag konnte nicht gelöscht werden: {message}"
+  },
+  "action": {
+    "add": "Änderungsantrag hinzufügen"
+  },
+  "create": {
+    "heading": "Änderungsantrag hinzufügen",
+    "type_label": "Typ",
+    "title_label": "Titel",
+    "title_placeholder": "z. B. Authentifizierung auf OIDC umstellen",
+    "priority_label": "Priorität",
+    "category_label": "Kategorie",
+    "fill_in_later": "Beschreibung, Begründung, geplantes Datum, Risikostufe, Verantwortlicher, Rollback-Plan und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submitting": "Wird erstellt...",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Keine Änderungsanträge gefunden"
+  },
+  "list": {
+    "requested_by": "Beantragt von {name}",
+    "assigned_to": "Zugewiesen an {name}",
+    "risk": "Risiko: {level}"
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "type": "Typ",
+    "priority": "Priorität",
+    "category": "Kategorie",
+    "risk_level": "Risikostufe",
+    "status": "Status",
+    "assigned_to": "Zugewiesen an",
+    "assignee": "Verantwortlicher",
+    "planned_for": "Geplant für",
+    "justification": "Begründung",
+    "rollback_plan": "Rollback-Plan",
+    "requested_by": "Beantragt von",
+    "created": "Erstellt"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie die Änderung...",
+    "assignee": "Auswählen...",
+    "justification": "Warum ist diese Änderung erforderlich?",
+    "rollback_plan": "Wie kann sie rückgängig gemacht werden?",
+    "notes": "Notizen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen",
+    "progress": "Fortschritt"
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Änderungsantrags ist endgültig und kann nicht rückgängig gemacht werden.",
+    "delete": "Änderungsantrag löschen",
+    "confirm": "Diesen Änderungsantrag löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

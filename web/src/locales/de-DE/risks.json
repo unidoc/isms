@@ -1,0 +1,94 @@
+{
+  "title": "Risikoregister",
+  "subtitle": "Bewertung und Behandlung von Informationssicherheitsrisiken",
+  "error": {
+    "load": "Risiken konnten nicht geladen werden. {message}",
+    "save": "Speichern fehlgeschlagen: {message}",
+    "create": "Risiko konnte nicht erstellt werden: {message}",
+    "delete": "Risiko konnte nicht gelöscht werden: {message}"
+  },
+  "action": {
+    "add": "Risiko hinzufügen",
+    "cancel": "Abbrechen"
+  },
+  "create": {
+    "heading": "Risiko hinzufügen",
+    "title_label": "Titel *",
+    "title_placeholder": "z. B. Ransomware-Angriff auf Produktionssysteme",
+    "category_label": "Kategorie",
+    "deselect_hint": "Klicken zum Abwählen",
+    "fill_in_later": "Beschreibung, Konsequenzen, Behandlung, Verantwortlicher und mehr können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "map": {
+    "heading": "Risikokarte"
+  },
+  "stat": {
+    "total": "Risiken gesamt"
+  },
+  "filter": {
+    "empty": "Keine Risiken entsprechen Ihrem Filter.",
+    "none_yet": "Noch keine Risiken — klicken Sie auf Hinzufügen, um das erste zu erstellen."
+  },
+  "table": {
+    "header": {
+      "risk": "Risiko",
+      "type": "Typ",
+      "score": "Punktzahl",
+      "cia": "C/I/A",
+      "owner": "Verantwortlicher",
+      "treatment": "Behandlung",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "was_score": "war {score}",
+    "cia_title": {
+      "confidentiality": "Vertraulichkeit: {level}",
+      "integrity": "Integrität: {level}",
+      "availability": "Verfügbarkeit: {level}"
+    },
+    "advisory_badge": "Prüfung",
+    "advisory_title": "CIA-Abweichung zu verknüpften Vermögenswerten — Neubewertung erforderlich"
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "status": "Status",
+    "owner": "Verantwortlicher",
+    "category": "Kategorie",
+    "risk_type": "Risikotyp",
+    "origin": "Ursprung",
+    "treatment": "Behandlung",
+    "treatment_plan": "Behandlungsplan",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "notes": "Notizen",
+    "external_id": "Externe ID"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie das Risiko...",
+    "treatment_plan": "Wie gehen wir mit diesem Risiko um?",
+    "notes": "Notizen, Beobachtungen, Besprechungsprotokolle, Referenzen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "treatment": "Behandlung",
+    "notes": "Notizen"
+  },
+  "assessment": {
+    "inherent": "Inhärent",
+    "current": "Aktuell"
+  },
+  "links": {
+    "linked_assets": "Verknüpfte Vermögenswerte"
+  },
+  "actions": {
+    "create_task": "Umsetzungsaufgabe erstellen",
+    "create_task_desc": "Erstellt eine Aufgabe zur Umsetzung des Behandlungsplans; automatisch mit diesem Risiko verknüpft."
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Risikos ist endgültig und kann nicht rückgängig gemacht werden. Verlauf, Kommentare und verknüpfte Referenzen gehen verloren.",
+    "delete": "Risiko löschen",
+    "confirm": "Dieses Risiko löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

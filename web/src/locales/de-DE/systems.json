@@ -1,0 +1,102 @@
+{
+  "title": "Systemregister",
+  "subtitle": "IT-Systeme, Wiederherstellungsziele, Zugriffskontrolle und Lieferantenverknüpfungen",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}",
+    "create": "System konnte nicht erstellt werden: {message}",
+    "delete": "Löschen fehlgeschlagen: {message}",
+    "record_review": "Prüfung konnte nicht erfasst werden: {message}"
+  },
+  "action": {
+    "add": "System hinzufügen"
+  },
+  "create": {
+    "heading": "System hinzufügen",
+    "name_label": "Name *",
+    "name_placeholder": "z. B. Produktions-ERP",
+    "classification_label": "Klassifizierung",
+    "criticality_label": "Kritikalität",
+    "supplier_label": "Lieferant",
+    "fill_in_later": "CIA-Klassifizierung, RPO/RTO und Verantwortlicher können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Keine Systeme gefunden"
+  },
+  "option": {
+    "no_supplier": "— Keiner —"
+  },
+  "table": {
+    "header": {
+      "system": "System",
+      "classification": "Klassifizierung",
+      "criticality": "Kritikalität",
+      "cia": "C/I/A",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Status",
+      "owner": "Verantwortlicher",
+      "next_review": "Nächste Prüfung"
+    },
+    "cia_title": {
+      "confidentiality": "Vertraulichkeit: {level}",
+      "integrity": "Integrität: {level}",
+      "availability": "Verfügbarkeit: {level}"
+    },
+    "hours": "{count} Std."
+  },
+  "field": {
+    "name": "Name",
+    "description": "Beschreibung",
+    "classification": "Klassifizierung",
+    "criticality": "Kritikalität",
+    "status": "Status",
+    "owner": "Verantwortlicher",
+    "department": "Abteilung",
+    "supplier": "Lieferant",
+    "rpo": "RPO (Stunden)",
+    "rto": "RTO (Stunden)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "external_id": "Externe ID"
+  },
+  "hint": {
+    "rpo": "Max. akzeptabler Datenverlust (Stunden)",
+    "rto": "Max. akzeptable Ausfallzeit (Stunden)"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie das System...",
+    "department": "IT, Entwicklung, Marketing...",
+    "notes": "Weitere Notizen... /doc eingeben, um ein Dokument zu verknüpfen"
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "tab": {
+    "reviews": "Zugriffsüberprüfungen"
+  },
+  "assessment": {
+    "confidentiality": "Vertraulichkeit",
+    "integrity": "Integrität",
+    "availability": "Verfügbarkeit"
+  },
+  "reviews": {
+    "heading": "Zugriffsüberprüfungen",
+    "add": "+ Prüfung erfassen",
+    "users_added": "Benutzer hinzugefügt",
+    "users_removed": "Benutzer entfernt",
+    "notes_label": "Notizen",
+    "notes_placeholder": "Ehemalige Mitarbeiter entfernt...",
+    "submit": "Prüfung erfassen",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "geprüft",
+    "empty": "Keine Zugriffsüberprüfungen erfasst."
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Systems ist endgültig und kann nicht rückgängig gemacht werden. Verlauf, Kommentare, Zugriffsüberprüfungen und verknüpfte Referenzen gehen verloren.",
+    "delete": "System löschen",
+    "confirm": "Dieses System löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

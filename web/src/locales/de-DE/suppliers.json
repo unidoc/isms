@@ -1,0 +1,84 @@
+{
+  "title": "Lieferantenregister",
+  "subtitle": "Externe Lieferanten, Kritikalität und Bewertung",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}",
+    "create": "Lieferant konnte nicht erstellt werden: {message}",
+    "delete": "Löschen fehlgeschlagen: {message}"
+  },
+  "action": {
+    "add": "Lieferant hinzufügen"
+  },
+  "create": {
+    "heading": "Lieferant hinzufügen",
+    "name_label": "Name *",
+    "name_placeholder": "z. B. AWS, Office 365",
+    "type_label": "Typ",
+    "criticality_label": "Kritikalität",
+    "fill_in_later": "CIA-Klassifizierung, Verantwortlicher und Vertragsdetails können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Keine Lieferanten gefunden"
+  },
+  "table": {
+    "header": {
+      "supplier": "Lieferant",
+      "type": "Typ",
+      "criticality": "Kritikalität",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Verantwortlicher",
+      "next_review": "Nächste Prüfung"
+    },
+    "cia_title": {
+      "confidentiality": "Vertraulichkeit: {level}",
+      "integrity": "Integrität: {level}",
+      "availability": "Verfügbarkeit: {level}"
+    }
+  },
+  "field": {
+    "name": "Name",
+    "type": "Typ",
+    "criticality": "Kritikalität",
+    "status": "Status",
+    "owner": "Verantwortlicher",
+    "contact": "Kontakt",
+    "contract_ref": "Vertragsreferenz",
+    "contract_expiry": "Vertragsablauf",
+    "data_access": "Datenzugriff",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "external_id": "Externe ID"
+  },
+  "placeholder": {
+    "contact": "kontakt{'@'}lieferant.de",
+    "contract_ref": "DPA-/Vertrags-URL",
+    "notes": "Weitere Notizen... /doc eingeben, um ein Dokument zu verknüpfen"
+  },
+  "data_access": {
+    "checkbox": "Lieferant hat Zugriff auf unsere Daten",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "tab": {
+    "reviews": "Prüfungen"
+  },
+  "assessment": {
+    "confidentiality": "Vertraulichkeit",
+    "integrity": "Integrität",
+    "availability": "Verfügbarkeit"
+  },
+  "linked_systems": {
+    "heading": "keine verknüpften Systeme | Verknüpftes System ({count}) | Verknüpfte Systeme ({count})"
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Lieferanten ist endgültig und kann nicht rückgängig gemacht werden. Verlauf, Kommentare, Prüfungen und verknüpfte Referenzen gehen verloren.",
+    "delete": "Lieferant löschen",
+    "confirm": "Diesen Lieferanten löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

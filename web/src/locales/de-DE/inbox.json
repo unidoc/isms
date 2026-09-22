@@ -1,0 +1,141 @@
+{
+  "title": "Posteingang",
+  "subtitle": "{count} Aufgabe erfordert Aufmerksamkeit | {count} Aufgaben erfordern Aufmerksamkeit",
+  "mark_all_read": "Alle als gelesen markieren",
+  "tab": {
+    "comments": "Kommentare",
+    "reviews": "Prüfungen",
+    "tasks": "Aufgaben",
+    "incidents": "Vorfälle",
+    "changes": "Änderungen",
+    "corrective_actions": "Korrekturmaßnahmen",
+    "suggestions": "Vorschläge"
+  },
+  "comments": {
+    "empty": "Keine offenen Kommentare",
+    "suggestion_badge": "Vorschlag",
+    "scope_inline": "Im Text",
+    "scope_document": "Dokument",
+    "view_in_document": "Im Dokument ansehen →"
+  },
+  "reviews": {
+    "empty": "Keine ausstehenden Prüfungen",
+    "untitled": "Unbenannte Prüfung",
+    "requested_by": "Angefragt von {name}",
+    "unknown_requester": "Unbekannt",
+    "meta": {
+      "status": "Status",
+      "document": "Dokument",
+      "version": "Version",
+      "requested_by": "Angefragt von"
+    },
+    "assigned_reviewers": "Zugewiesene Prüfer",
+    "recent_comments": "Neueste Kommentare",
+    "open_review": "Prüfung #{id} öffnen"
+  },
+  "tasks": {
+    "add": "Aufgabe hinzufügen",
+    "empty": "Keine Aufgaben gefunden",
+    "start": "Aufgabe starten",
+    "mark_done": "Als erledigt markieren",
+    "form": {
+      "title": "Titel",
+      "title_placeholder": "Aufgabentitel",
+      "description": "Beschreibung",
+      "description_placeholder": "Optionale Beschreibung",
+      "type": "Typ",
+      "priority": "Priorität",
+      "assignee": "Verantwortlicher",
+      "assignee_placeholder": "Verantwortlichen auswählen...",
+      "due_date": "Fälligkeitsdatum"
+    }
+  },
+  "incidents": {
+    "empty": "Keine Ihnen zugewiesenen Vorfälle"
+  },
+  "corrective_actions": {
+    "empty": "Keine Ihnen zugewiesenen Korrekturmaßnahmen"
+  },
+  "changes": {
+    "add": "Änderungsantrag hinzufügen",
+    "empty": "Keine Änderungsanträge",
+    "requested_by": "Beantragt von {name}",
+    "unknown_requester": "Unbekannt",
+    "form": {
+      "title": "Titel",
+      "title_placeholder": "Titel des Änderungsantrags",
+      "description": "Beschreibung",
+      "description_placeholder": "Beschreiben Sie die vorgeschlagene Änderung",
+      "justification": "Begründung",
+      "justification_placeholder": "Warum ist diese Änderung erforderlich?",
+      "impact": "Auswirkungsanalyse",
+      "impact_placeholder": "Erwartete Auswirkung auf das ISMS",
+      "assign_to": "Zuweisen an",
+      "assignee_placeholder": "Verantwortlichen auswählen..."
+    },
+    "detail": {
+      "description": "Beschreibung",
+      "justification": "Begründung",
+      "impact": "Auswirkungsanalyse",
+      "affected_documents": "Betroffene Dokumente"
+    },
+    "action": {
+      "approve": "Genehmigen",
+      "reject": "Ablehnen",
+      "mark_implemented": "Als umgesetzt markieren",
+      "close": "Schließen"
+    }
+  },
+  "suggestions": {
+    "empty": "Keine Vorschläge mit diesem Status.",
+    "filter": {
+      "open": "offen",
+      "applied": "angewendet",
+      "rejected": "abgelehnt"
+    },
+    "agent_badge": "KI",
+    "suggested_by": "Vorgeschlagen von {name} · {date}",
+    "apply": "Anwenden",
+    "reject": "Ablehnen",
+    "withdraw": "Zurückziehen",
+    "reject_placeholder": "Grund für die Ablehnung...",
+    "rejected_reason": "Abgelehnt: {reason}",
+    "applied_result": "Angewendet → {entity} {id}",
+    "payload_field": {
+      "title": "Titel",
+      "name": "Name",
+      "description": "Beschreibung",
+      "category": "Kategorie",
+      "risk_type": "Risikotyp",
+      "origin": "Ursprung",
+      "severity": "Schweregrad",
+      "priority": "Priorität",
+      "status": "Status",
+      "type": "Typ",
+      "criticality": "Kritikalität",
+      "jurisdiction": "Rechtsraum",
+      "classification": "Klassifizierung",
+      "finding_type": "Feststellungstyp",
+      "risk_level": "Risikostufe",
+      "source": "Quelle",
+      "incident_type": "Vorfalltyp",
+      "current_likelihood": "Eintrittswahrscheinlichkeit",
+      "current_impact": "Auswirkung"
+    }
+  },
+  "error": {
+    "resolve_comment": "Kommentar konnte nicht gelöst werden: {message}",
+    "mark_all_read": "Benachrichtigungen konnten nicht als gelesen markiert werden: {message}",
+    "approve_review": "Prüfung konnte nicht genehmigt werden: {message}",
+    "request_changes": "Änderungen konnten nicht angefordert werden: {message}",
+    "forward_review": "Prüfung konnte nicht weitergeleitet werden: {message}",
+    "claim_suggestion": "Vorschlag konnte nicht übernommen werden: {message}",
+    "apply_suggestion": "Vorschlag konnte nicht angewendet werden: {message}",
+    "reject_suggestion": "Vorschlag konnte nicht abgelehnt werden: {message}",
+    "withdraw_suggestion": "Vorschlag konnte nicht zurückgezogen werden: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Trotzdem anwenden",
+    "apply_stale_body": "Das Objekt hat sich geändert, seit dieser Vorschlag erstellt wurde. Trotzdem anwenden?"
+  }
+}

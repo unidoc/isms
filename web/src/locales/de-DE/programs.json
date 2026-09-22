@@ -1,0 +1,48 @@
+{
+  "title": "Programmregister",
+  "subtitle": "ISMS-Ziele zu Arbeitsprogrammen gruppieren",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}"
+  },
+  "action": {
+    "add": "Programm hinzufügen"
+  },
+  "create": {
+    "heading": "Programm hinzufügen",
+    "key_label": "Schlüssel (Großbuchstaben) *",
+    "key_placeholder": "AWARE",
+    "title_label": "Titel *",
+    "title_placeholder": "Sicherheitsbewusstsein",
+    "fill_in_later": "Beschreibung und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Noch keine Programme"
+  },
+  "table": {
+    "header": {
+      "key": "Schlüssel",
+      "title": "Titel",
+      "description": "Beschreibung"
+    }
+  },
+  "field": {
+    "key": "Schlüssel",
+    "title": "Titel",
+    "description": "Beschreibung",
+    "created": "Erstellt"
+  },
+  "placeholder": {
+    "description": "Worum geht es in diesem Programm?",
+    "notes": "Notizen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "danger": {
+    "warning": "Beim Löschen dieses Programms werden auch alle zugehörigen Ziele gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "delete": "Programm löschen",
+    "confirm": "Programm „{key}“ löschen? Alle zugehörigen Ziele werden ebenfalls gelöscht."
+  }
+}

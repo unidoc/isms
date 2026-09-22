@@ -422,7 +422,7 @@
   "error": {
     "not_found": "{entity} introuvable",
     "not_found_in_org": "{entity} introuvable dans cette organisation",
-    "invalid_entity_id": "identifiant de {entity} invalide",
+    "invalid_entity_id": "identifiant invalide ({entity})",
     "required": "{field} est obligatoire",
     "field_empty": "{field} ne peut pas être vide",
     "invalid_id": "identifiant invalide",
@@ -450,8 +450,8 @@
     "document_modified": "le document a été modifié par un autre utilisateur — veuillez actualiser et réessayer",
     "document_file_not_found": "fichier du document introuvable",
     "notes_required": "des notes sont requises — décrivez ce qui a été revu et confirmé",
-    "review_wrong_status": "la revue est {status}",
-    "review_already_status": "la revue est déjà {status}",
+    "review_wrong_status": "la revue est au statut « {status} »",
+    "review_already_status": "la revue est déjà au statut « {status} »",
     "ai_disabled": "les fonctionnalités d'IA sont désactivées pour cette organisation",
     "unsupported_locale": "langue non prise en charge"
   },

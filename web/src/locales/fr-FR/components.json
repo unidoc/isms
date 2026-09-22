@@ -403,7 +403,7 @@
     "submitting": "Envoi...",
     "submit": "Envoyer",
     "form_title_new": "Suggérer un nouvel élément : {entity}",
-    "form_title_change": "Suggérer une modification de {entity}",
+    "form_title_change": "Suggérer une modification : {entity}",
     "placeholder_new": "Décrivez le nouvel élément : {entity}...",
     "placeholder_reassess": "Justification de la réévaluation...",
     "placeholder_link": "Que faut-il lier et pourquoi...",

@@ -1,0 +1,64 @@
+{
+  "title": "Korrekturmaßnahmen",
+  "subtitle": "Abweichungen, Beobachtungen und Verbesserungspotenziale nachverfolgen",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}"
+  },
+  "action": {
+    "add": "Korrekturmaßnahme hinzufügen"
+  },
+  "filter": {
+    "assignee_placeholder": "Beliebiger Verantwortlicher",
+    "empty": "Keine Korrekturmaßnahmen entsprechen Ihrem Filter.",
+    "empty_all": "Noch keine Korrekturmaßnahmen — klicken Sie auf Hinzufügen, um die erste zu erstellen."
+  },
+  "create": {
+    "heading": "Korrekturmaßnahme hinzufügen",
+    "title_label": "Titel *",
+    "title_placeholder": "Kurzer Titel der Abweichung oder Verbesserung",
+    "fill_in_later": "Beschreibung, Verantwortlicher, Fälligkeitsdatum und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "source_option": {
+    "internal_audit": "Interne Audit-Feststellung",
+    "external_audit": "Externe Audit-Feststellung",
+    "risk_assessment": "Risikobewertung",
+    "security_incident": "Sicherheitsvorfall",
+    "objective": "Ziel",
+    "feedback": "Rückmeldung / Vorschlag",
+    "other": "Sonstiges"
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "source": "Quelle",
+    "severity": "Schweregrad",
+    "status": "Status",
+    "assignee": "Verantwortlicher",
+    "due_date": "Fälligkeitsdatum",
+    "root_cause": "Ursache",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "resolved": "Gelöst",
+    "external_id": "Externe ID"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie die Korrekturmaßnahme...",
+    "assignee": "Verantwortlichen auswählen...",
+    "root_cause": "Ursachenanalyse...",
+    "notes": "Notizen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "actions": {
+    "create_task": "Umsetzungsaufgabe erstellen",
+    "create_task_hint": "Erstellt eine Aufgabe für die Umsetzung; automatisch mit dieser Korrekturmaßnahme verknüpft."
+  },
+  "danger": {
+    "warning": "Das Löschen dieser Korrekturmaßnahme ist endgültig und kann nicht rückgängig gemacht werden.",
+    "delete": "Korrekturmaßnahme löschen",
+    "confirm": "Diese Korrekturmaßnahme löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

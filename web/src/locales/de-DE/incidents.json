@@ -1,0 +1,89 @@
+{
+  "title": "Vorfallmanagement",
+  "subtitle": "Sicherheitsvorfälle nachverfolgen, darauf reagieren und daraus lernen",
+  "error": {
+    "create": "Vorfall konnte nicht erstellt werden: {message}",
+    "save": "Speichern fehlgeschlagen: {message}",
+    "delete": "Vorfall konnte nicht gelöscht werden: {message}"
+  },
+  "action": {
+    "add": "Vorfall hinzufügen"
+  },
+  "create": {
+    "heading": "Vorfall hinzufügen",
+    "title_label": "Titel *",
+    "title_placeholder": "Kurzer Titel des Vorfalls",
+    "severity_label": "Schweregrad",
+    "type_label": "Typ",
+    "fill_in_later": "Beschreibung, Klassifizierung, Ursprung, Verantwortlicher, DSGVO-Details und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Keine Vorfälle gefunden"
+  },
+  "list": {
+    "source": "Quelle: {value}",
+    "reporter": "Meldender: {name}",
+    "assignee": "Verantwortlicher: {name}"
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "severity": "Schweregrad",
+    "type": "Typ",
+    "origin": "Ursprung",
+    "classification": "Klassifizierung",
+    "status": "Status",
+    "assignee": "Verantwortlicher",
+    "reporter": "Meldender",
+    "root_cause": "Ursache",
+    "lessons_learned": "Erkenntnisse",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "external_id": "Externe ID"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie den Vorfall...",
+    "root_cause": "Ursachenanalyse...",
+    "lessons_learned": "Was können wir verbessern?",
+    "assignee": "Verantwortlichen auswählen...",
+    "notes": "Notizen hinzufügen..."
+  },
+  "classification": {
+    "confidentiality": "Vertraulichkeit",
+    "integrity": "Integrität",
+    "availability": "Verfügbarkeit"
+  },
+  "data_breach_checkbox": "Dies ist eine Verletzung des Schutzes personenbezogener Daten (DSGVO)",
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "tab": {
+    "data_breach": "Datenschutzverletzung"
+  },
+  "timeline": {
+    "heading": "Zeitleiste",
+    "detected": "Erkannt:",
+    "contained": "Eingedämmt:",
+    "resolved": "Gelöst:",
+    "closed": "Geschlossen:"
+  },
+  "actions": {
+    "create_ca": "Korrekturmaßnahme erstellen",
+    "create_ca_desc": "Erstellt eine mit diesem Vorfall verknüpfte Korrekturmaßnahme."
+  },
+  "breach": {
+    "heading": "Verletzung des Schutzes personenbezogener Daten (DSGVO)",
+    "gdpr_role": "DSGVO-Rolle",
+    "authority_notification": "Meldung an Aufsichtsbehörde",
+    "subjects_notification": "Benachrichtigung betroffener Personen",
+    "authority": "Aufsichtsbehörde",
+    "subjects": "Betroffene Personen"
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Vorfalls ist endgültig und kann nicht rückgängig gemacht werden.",
+    "delete": "Vorfall löschen",
+    "confirm": "Vorfall „{title}“ löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

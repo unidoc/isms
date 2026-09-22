@@ -106,12 +106,12 @@ test('resolution precedence: user choice beats every weaker signal', () => {
 })
 
 test('resolution falls through unrenderable signals instead of stopping', () => {
-  // de-DE, nl and ja-JP are not shipped, so each must be skipped rather than
-  // returned; en-GB is the first signal that resolves.
+  // nl-NL, sv-SE and ja-JP are not shipped, so each must be skipped rather
+  // than returned; en-GB is the first signal that resolves.
   assert.equal(
     resolveInitialLocale({
-      userLocale: 'de-DE',
-      stored: 'nl',
+      userLocale: 'nl-NL',
+      stored: 'sv-SE',
       navigatorLocales: ['ja-JP', 'en-GB'],
       orgLocale: 'id-ID',
     }),
@@ -120,7 +120,7 @@ test('resolution falls through unrenderable signals instead of stopping', () => 
   // ...and with nothing renderable above it, the org default applies.
   assert.equal(
     resolveInitialLocale({
-      userLocale: 'de-DE',
+      userLocale: 'nl-NL',
       stored: null,
       navigatorLocales: ['ja-JP'],
       orgLocale: 'id-ID',
@@ -204,7 +204,7 @@ test('a failed chunk load does not persist the fallback over the stored tag', as
   // Mock tags, not the real id-ID: loading the shipped bundle would leave it
   // resident in availableLocales and silently change what later tests exercise.
   loaders['nl-NL'] = () => Promise.reject(new Error('chunk 404 — stale index.html'))
-  loaders['de-DE'] = async () => ({ default: { common: { action: { save: 'Speichern' } } } })
+  loaders['sv-SE'] = async () => ({ default: { common: { action: { save: 'Speichern' } } } })
   try {
     assert.equal(await setLocale('nl-NL', { persist: true }), FALLBACK)
     assert.deepEqual(writes, [], 'a failed load must leave stored state alone')
@@ -216,14 +216,14 @@ test('a failed chunk load does not persist the fallback over the stored tag', as
     assert.deepEqual(writes, [[STORAGE_KEY, 'en']])
     // ...and a load that actually succeeds still persists, so the guard is
     // scoped to the catch and has not disabled persistence at large.
-    assert.equal(await setLocale('de-DE', { persist: true }), 'de-DE')
+    assert.equal(await setLocale('sv-SE', { persist: true }), 'sv-SE')
     assert.deepEqual(writes, [
       [STORAGE_KEY, 'en'],
-      [STORAGE_KEY, 'de-DE'],
+      [STORAGE_KEY, 'sv-SE'],
     ])
   } finally {
     delete loaders['nl-NL']
-    delete loaders['de-DE']
+    delete loaders['sv-SE']
     if (original === undefined) delete globalThis.localStorage
     else globalThis.localStorage = original
     await setLocale(FALLBACK)

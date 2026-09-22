@@ -1,0 +1,141 @@
+{
+  "title": "Bandeja de entrada",
+  "subtitle": "{count} elemento de acción requiere atención | {count} elementos de acción requieren atención",
+  "mark_all_read": "Marcar todo como leído",
+  "tab": {
+    "comments": "Comentarios",
+    "reviews": "Revisiones",
+    "tasks": "Tareas",
+    "incidents": "Incidentes",
+    "changes": "Cambios",
+    "corrective_actions": "ACs",
+    "suggestions": "Sugerencias"
+  },
+  "comments": {
+    "empty": "Sin comentarios abiertos",
+    "suggestion_badge": "sugerencia",
+    "scope_inline": "En línea",
+    "scope_document": "Documento",
+    "view_in_document": "Ver en el documento →"
+  },
+  "reviews": {
+    "empty": "No hay revisiones pendientes",
+    "untitled": "Revisión sin título",
+    "requested_by": "Solicitada por {name}",
+    "unknown_requester": "Desconocido",
+    "meta": {
+      "status": "Estado",
+      "document": "Documento",
+      "version": "Versión",
+      "requested_by": "Solicitada Por"
+    },
+    "assigned_reviewers": "Revisores Asignados",
+    "recent_comments": "Comentarios Recientes",
+    "open_review": "Abrir Revisión #{id}"
+  },
+  "tasks": {
+    "add": "Añadir Tarea",
+    "empty": "No se encontraron tareas",
+    "start": "Iniciar tarea",
+    "mark_done": "Marcar como completada",
+    "form": {
+      "title": "Título",
+      "title_placeholder": "Título de la tarea",
+      "description": "Descripción",
+      "description_placeholder": "Descripción opcional",
+      "type": "Tipo",
+      "priority": "Prioridad",
+      "assignee": "Responsable",
+      "assignee_placeholder": "Seleccionar responsable...",
+      "due_date": "Fecha Límite"
+    }
+  },
+  "incidents": {
+    "empty": "No tiene incidentes asignados"
+  },
+  "corrective_actions": {
+    "empty": "No tiene acciones correctivas asignadas"
+  },
+  "changes": {
+    "add": "Añadir Solicitud de Cambio",
+    "empty": "No hay solicitudes de cambio",
+    "requested_by": "Solicitado por {name}",
+    "unknown_requester": "Desconocido",
+    "form": {
+      "title": "Título",
+      "title_placeholder": "Título de la solicitud de cambio",
+      "description": "Descripción",
+      "description_placeholder": "Describa el cambio propuesto",
+      "justification": "Justificación",
+      "justification_placeholder": "¿Por qué es necesario este cambio?",
+      "impact": "Evaluación de Impacto",
+      "impact_placeholder": "Impacto esperado en el SGSI",
+      "assign_to": "Asignar A",
+      "assignee_placeholder": "Seleccionar responsable..."
+    },
+    "detail": {
+      "description": "Descripción",
+      "justification": "Justificación",
+      "impact": "Evaluación de Impacto",
+      "affected_documents": "Documentos Afectados"
+    },
+    "action": {
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "mark_implemented": "Marcar como Implementado",
+      "close": "Cerrar"
+    }
+  },
+  "suggestions": {
+    "empty": "No hay sugerencias con este estado.",
+    "filter": {
+      "open": "abierta",
+      "applied": "aplicada",
+      "rejected": "rechazada"
+    },
+    "agent_badge": "IA",
+    "suggested_by": "Sugerido por {name} · {date}",
+    "apply": "Aplicar",
+    "reject": "Rechazar",
+    "withdraw": "Retirar",
+    "reject_placeholder": "Motivo del rechazo...",
+    "rejected_reason": "Rechazada: {reason}",
+    "applied_result": "Aplicada → {entity} {id}",
+    "payload_field": {
+      "title": "Título",
+      "name": "Nombre",
+      "description": "Descripción",
+      "category": "Categoría",
+      "risk_type": "Tipo de riesgo",
+      "origin": "Origen",
+      "severity": "Gravedad",
+      "priority": "Prioridad",
+      "status": "Estado",
+      "type": "Tipo",
+      "criticality": "Criticidad",
+      "jurisdiction": "Jurisdicción",
+      "classification": "Clasificación",
+      "finding_type": "Tipo de hallazgo",
+      "risk_level": "Nivel de riesgo",
+      "source": "Origen",
+      "incident_type": "Tipo de incidente",
+      "current_likelihood": "Probabilidad",
+      "current_impact": "Impacto"
+    }
+  },
+  "error": {
+    "resolve_comment": "No se pudo resolver el comentario: {message}",
+    "mark_all_read": "No se pudieron marcar todas las notificaciones como leídas: {message}",
+    "approve_review": "No se pudo aprobar la revisión: {message}",
+    "request_changes": "No se pudieron solicitar cambios: {message}",
+    "forward_review": "No se pudo reenviar la revisión: {message}",
+    "claim_suggestion": "No se pudo asumir la sugerencia: {message}",
+    "apply_suggestion": "No se pudo aplicar la sugerencia: {message}",
+    "reject_suggestion": "No se pudo rechazar la sugerencia: {message}",
+    "withdraw_suggestion": "No se pudo retirar la sugerencia: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Aplicar de todos modos",
+    "apply_stale_body": "La entidad ha cambiado desde que se creó esta sugerencia. ¿Aplicar de todos modos?"
+  }
+}

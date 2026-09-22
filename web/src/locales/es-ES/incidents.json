@@ -1,0 +1,89 @@
+{
+  "title": "Gestión de Incidentes",
+  "subtitle": "Seguimiento, respuesta y aprendizaje de los incidentes de seguridad",
+  "error": {
+    "create": "No se pudo crear el incidente: {message}",
+    "save": "No se pudo guardar: {message}",
+    "delete": "No se pudo eliminar el incidente: {message}"
+  },
+  "action": {
+    "add": "Añadir Incidente"
+  },
+  "create": {
+    "heading": "Añadir Incidente",
+    "title_label": "Título *",
+    "title_placeholder": "Título breve del incidente",
+    "severity_label": "Gravedad",
+    "type_label": "Tipo",
+    "fill_in_later": "Puede añadir descripción, clasificación, origen, responsable, detalles del RGPD y notas después de crearlo.",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "No se encontraron incidentes"
+  },
+  "list": {
+    "source": "Origen: {value}",
+    "reporter": "Notificado por: {name}",
+    "assignee": "Responsable: {name}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "severity": "Gravedad",
+    "type": "Tipo",
+    "origin": "Origen",
+    "classification": "Clasificación",
+    "status": "Estado",
+    "assignee": "Responsable",
+    "reporter": "Notificado por",
+    "root_cause": "Causa Raíz",
+    "lessons_learned": "Lecciones Aprendidas",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Describa el incidente...",
+    "root_cause": "Análisis de causa raíz...",
+    "lessons_learned": "¿Qué podemos mejorar?",
+    "assignee": "Seleccionar responsable...",
+    "notes": "Añadir notas..."
+  },
+  "classification": {
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad",
+    "availability": "Disponibilidad"
+  },
+  "data_breach_checkbox": "Se trata de una brecha de datos personales (RGPD)",
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "tab": {
+    "data_breach": "Brecha de Datos"
+  },
+  "timeline": {
+    "heading": "Cronología",
+    "detected": "Detectado:",
+    "contained": "Contenido:",
+    "resolved": "Resuelto:",
+    "closed": "Cerrado:"
+  },
+  "actions": {
+    "create_ca": "Crear Acción Correctiva",
+    "create_ca_desc": "Genera una acción correctiva vinculada a este incidente."
+  },
+  "breach": {
+    "heading": "Brecha de Datos Personales (RGPD)",
+    "gdpr_role": "Rol RGPD",
+    "authority_notification": "Notificación a la Autoridad",
+    "subjects_notification": "Notificación a los Interesados",
+    "authority": "Autoridad",
+    "subjects": "Interesados"
+  },
+  "danger": {
+    "warning": "Eliminar este incidente es permanente y no se puede deshacer.",
+    "delete": "Eliminar incidente",
+    "confirm": "¿Eliminar el incidente «{title}»? Esta acción no se puede deshacer."
+  }
+}

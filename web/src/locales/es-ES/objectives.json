@@ -1,0 +1,98 @@
+{
+  "title": "Objetivos",
+  "subtitle": "Seguimiento de objetivos medibles del SGSI y rendimiento de KPI",
+  "error": {
+    "save": "No se pudo guardar: {message}",
+    "download": "Error en la descarga: respuesta inesperada del servidor"
+  },
+  "action": {
+    "add": "Añadir Objetivo"
+  },
+  "filter": {
+    "all_programs": "Todos los programas",
+    "owner_placeholder": "Propietario...",
+    "empty": "No se encontraron objetivos"
+  },
+  "create": {
+    "heading": "Añadir Objetivo",
+    "program_label": "Programa *",
+    "program_placeholder": "Seleccionar programa...",
+    "owner_label": "Propietario",
+    "title_label": "Título *",
+    "title_placeholder": "Tasa mensual de finalización de la prueba de phishing",
+    "fill_in_later": "Puede añadir el valor objetivo, el origen, el método de medición, la descripción y notas después de crearlo.",
+    "submit": "Añadir"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Título",
+      "target": "Objetivo",
+      "status": "Estado",
+      "owner": "Propietario"
+    }
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "owner": "Propietario",
+    "source": "Origen",
+    "status": "Estado",
+    "measurement_method": "Método de medición",
+    "measurement": "Medición",
+    "operator": "Operador",
+    "target_value": "Valor objetivo",
+    "target": "Objetivo",
+    "unit": "Unidad",
+    "checkin_cycle_months": "Frecuencia de medición (meses)",
+    "checkin_cycle": "Frecuencia de medición",
+    "last_checkin": "Última medición",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "months": "{count} mes | {count} meses"
+  },
+  "placeholder": {
+    "description": "¿Qué es este objetivo?",
+    "owner": "Seleccionar propietario...",
+    "source": "ISO 27001 6.2, etc.",
+    "measurement_method": "¿Cómo se mide esto?",
+    "unit": "%, cantidad, horas...",
+    "notes": "Añadir notas..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "checkin": {
+    "heading": "Mediciones",
+    "summary": "{pass} superado · {fail} no superado · {total} total",
+    "record_heading": "Registrar medición",
+    "value_label": "Valor",
+    "value_placeholder": "97,5",
+    "result_label": "Resultado",
+    "result": {
+      "unspecified": "Sin especificar",
+      "pass": "Superado",
+      "fail": "No superado"
+    },
+    "message_label": "Nota interna",
+    "message_placeholder": "Contexto interno...",
+    "public_note_placeholder": "Nota pública (visible para las partes interesadas)",
+    "submit": "Registrar",
+    "empty": "Aún no se han registrado mediciones",
+    "pass_badge": "SUPERADO",
+    "fail_badge": "NO SUPERADO",
+    "public": "Pública: {note}",
+    "confirm_delete": "¿Eliminar esta medición?"
+  },
+  "evidence": {
+    "download": "Descargar",
+    "attach": "Adjuntar evidencia",
+    "confirm_delete": "¿Eliminar la evidencia «{title}»?"
+  },
+  "danger": {
+    "warning": "Eliminar este objetivo es permanente y no se puede deshacer.",
+    "delete": "Eliminar objetivo",
+    "confirm": "¿Eliminar el objetivo «{title}»? Esta acción no se puede deshacer."
+  }
+}

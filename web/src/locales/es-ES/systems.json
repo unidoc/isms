@@ -1,0 +1,102 @@
+{
+  "title": "Registro de Sistemas",
+  "subtitle": "Sistemas de TI, objetivos de recuperación, control de acceso y vínculos con proveedores",
+  "error": {
+    "save": "No se pudo guardar: {message}",
+    "create": "No se pudo crear el sistema: {message}",
+    "delete": "No se pudo eliminar: {message}",
+    "record_review": "No se pudo registrar la revisión: {message}"
+  },
+  "action": {
+    "add": "Añadir Sistema"
+  },
+  "create": {
+    "heading": "Añadir Sistema",
+    "name_label": "Nombre *",
+    "name_placeholder": "p. ej. ERP de producción",
+    "classification_label": "Clasificación",
+    "criticality_label": "Criticidad",
+    "supplier_label": "Proveedor",
+    "fill_in_later": "Puede añadir la clasificación C/I/D, el RPO/RTO y el propietario después de crearlo.",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "No se encontraron sistemas"
+  },
+  "option": {
+    "no_supplier": "— Ninguno —"
+  },
+  "table": {
+    "header": {
+      "system": "Sistema",
+      "classification": "Clasificación",
+      "criticality": "Criticidad",
+      "cia": "C/I/D",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Estado",
+      "owner": "Propietario",
+      "next_review": "Próxima Revisión"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidad: {level}",
+      "integrity": "Integridad: {level}",
+      "availability": "Disponibilidad: {level}"
+    },
+    "hours": "{count}h"
+  },
+  "field": {
+    "name": "Nombre",
+    "description": "Descripción",
+    "classification": "Clasificación",
+    "criticality": "Criticidad",
+    "status": "Estado",
+    "owner": "Propietario",
+    "department": "Departamento",
+    "supplier": "Proveedor",
+    "rpo": "RPO (horas)",
+    "rto": "RTO (horas)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "external_id": "ID Externo"
+  },
+  "hint": {
+    "rpo": "Pérdida máxima de datos aceptable (horas)",
+    "rto": "Tiempo de inactividad máximo aceptable (horas)"
+  },
+  "placeholder": {
+    "description": "Describa el sistema...",
+    "department": "TI, Ingeniería, Marketing...",
+    "notes": "Notas adicionales... Escriba /doc para vincular un documento"
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "tab": {
+    "reviews": "Revisiones de Acceso"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad",
+    "availability": "Disponibilidad"
+  },
+  "reviews": {
+    "heading": "Revisiones de Acceso",
+    "add": "+ Registrar revisión",
+    "users_added": "Usuarios Añadidos",
+    "users_removed": "Usuarios Eliminados",
+    "notes_label": "Notas",
+    "notes_placeholder": "Se eliminaron antiguos empleados...",
+    "submit": "Registrar Revisión",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "revisó",
+    "empty": "No se han registrado revisiones de acceso."
+  },
+  "danger": {
+    "warning": "Eliminar este sistema es permanente y no se puede deshacer. Se perderán el historial, los comentarios, las revisiones de acceso y las referencias vinculadas.",
+    "delete": "Eliminar sistema",
+    "confirm": "¿Eliminar este sistema? Esta acción no se puede deshacer."
+  }
+}

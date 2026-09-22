@@ -1,0 +1,75 @@
+{
+  "title": "Registro Legal",
+  "subtitle": "Legislación aplicable y evaluación del riesgo regulatorio",
+  "error": {
+    "save": "No se pudo guardar: {message}",
+    "create": "No se pudo crear el requisito legal: {message}",
+    "delete": "No se pudo eliminar: {message}"
+  },
+  "action": {
+    "add": "Añadir Requisito Legal"
+  },
+  "create": {
+    "heading": "Añadir Requisito Legal",
+    "title_label": "Título *",
+    "title_placeholder": "p. ej. RGPD, Directiva NIS2",
+    "category_label": "Categoría",
+    "deselect_hint": "Haga clic para deseleccionar",
+    "fill_in_later": "Puede añadir jurisdicción, responsable, tratamiento y más después de crearlo.",
+    "submit": "Añadir"
+  },
+  "map": {
+    "summary": "Mapa de Riesgos",
+    "heading": "Mapa de Riesgos de Cumplimiento"
+  },
+  "filter": {
+    "empty": "No se encontraron requisitos legales"
+  },
+  "table": {
+    "header": {
+      "title": "Título",
+      "jurisdiction": "Jurisdicción",
+      "score": "Puntuación",
+      "treatment": "Tratamiento",
+      "status": "Estado",
+      "owner": "Responsable"
+    }
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "jurisdiction": "Jurisdicción",
+    "category": "Categoría",
+    "status": "Estado",
+    "owner": "Responsable",
+    "reference": "Referencia",
+    "reference_label": "Referencia (artículo/sección)",
+    "url": "URL",
+    "treatment": "Tratamiento",
+    "treatment_plan": "Plan de Tratamiento",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Describa el requisito...",
+    "jurisdiction": "Escriba para buscar...",
+    "reference": "p. ej. Artículo 32, Sección 4.2",
+    "url": "https://...",
+    "treatment_plan": "¿Cómo estamos abordando este requisito? (controles, políticas, acciones...)",
+    "notes": "Notas adicionales, observaciones, interpretaciones... Escriba /doc para vincular un documento"
+  },
+  "detail": {
+    "overview": "Resumen",
+    "treatment": "Tratamiento",
+    "notes": "Notas"
+  },
+  "assessment": {
+    "current": "Actual"
+  },
+  "danger": {
+    "warning": "Eliminar este requisito legal es permanente y no se puede deshacer. Se perderán el historial, los comentarios y las referencias vinculadas.",
+    "delete": "Eliminar requisito",
+    "confirm": "¿Eliminar este requisito legal? Esta acción no se puede deshacer."
+  }
+}

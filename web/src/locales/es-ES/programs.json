@@ -1,0 +1,48 @@
+{
+  "title": "Registro de Programas",
+  "subtitle": "Agrupe los objetivos del SGSI en programas de trabajo",
+  "error": {
+    "save": "No se pudo guardar: {message}"
+  },
+  "action": {
+    "add": "Añadir Programa"
+  },
+  "create": {
+    "heading": "Añadir Programa",
+    "key_label": "Clave (mayúsculas) *",
+    "key_placeholder": "CONCIENCIA",
+    "title_label": "Título *",
+    "title_placeholder": "Concienciación en Seguridad",
+    "fill_in_later": "Puede añadir descripción y notas después de crearlo.",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "Aún no hay programas"
+  },
+  "table": {
+    "header": {
+      "key": "Clave",
+      "title": "Título",
+      "description": "Descripción"
+    }
+  },
+  "field": {
+    "key": "Clave",
+    "title": "Título",
+    "description": "Descripción",
+    "created": "Creado"
+  },
+  "placeholder": {
+    "description": "¿Qué es este programa?",
+    "notes": "Añadir notas..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "danger": {
+    "warning": "Eliminar este programa también elimina todos los objetivos que contiene. Esta acción no se puede deshacer.",
+    "delete": "Eliminar programa",
+    "confirm": "¿Eliminar el programa «{key}»? También se eliminarán todos los objetivos que contiene."
+  }
+}

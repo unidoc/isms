@@ -1,0 +1,232 @@
+{
+  "title": "Auditoría Interna",
+  "subtitle": "Programas de auditoría, calendario y hallazgos",
+  "error": {
+    "load": "No se pudo cargar el módulo de auditoría. {message}",
+    "load_programmes": "No se pudieron cargar los programas: {message}",
+    "load_audits": "No se pudieron cargar las auditorías: {message}",
+    "load_calendar": "No se pudo cargar el calendario: {message}",
+    "load_findings": "No se pudieron cargar los hallazgos: {message}",
+    "load_audit_detail": "No se pudieron cargar los detalles de la auditoría: {message}",
+    "create_programme": "No se pudo crear el programa: {message}",
+    "save_programme": "No se pudo guardar el programa: {message}",
+    "delete_programme": "No se pudo eliminar el programa: {message}",
+    "create_audit": "No se pudo crear la auditoría: {message}",
+    "save_audit": "No se pudo guardar la auditoría: {message}",
+    "save_report": "No se pudo guardar el informe: {message}",
+    "add_item": "No se pudo añadir el elemento: {message}",
+    "save_item": "No se pudo guardar: {message}",
+    "remove_item": "No se pudo eliminar: {message}",
+    "create_finding": "No se pudo añadir el hallazgo: {message}",
+    "save_finding": "No se pudo guardar el hallazgo: {message}",
+    "delete_finding": "No se pudo eliminar el hallazgo: {message}"
+  },
+  "toast": {
+    "programme_added": "Programa añadido",
+    "programme_deleted": "Programa eliminado",
+    "audit_added": "Auditoría añadida",
+    "report_saved": "Informe guardado",
+    "item_added": "Elemento añadido",
+    "item_removed": "Elemento eliminado",
+    "finding_added": "Hallazgo añadido",
+    "finding_deleted": "Hallazgo eliminado"
+  },
+  "tab": {
+    "calendar": "Calendario",
+    "programmes": "Programas",
+    "findings": "Hallazgos",
+    "audits": "Auditorías",
+    "items": "Elementos",
+    "report": "Informe",
+    "discussion": "Discusión",
+    "linked": "ACs Vinculadas"
+  },
+  "action": {
+    "add_programme": "Añadir Programa",
+    "add_finding": "Añadir Hallazgo",
+    "add_audit": "Añadir Auditoría"
+  },
+  "calendar": {
+    "loading": "Cargando calendario...",
+    "audit_count": "{count} auditoría | {count} auditorías",
+    "month_empty": "No hay auditorías planificadas este mes",
+    "unscheduled": "Sin programar",
+    "unscheduled_count": "{count} auditoría sin fecha planificada | {count} auditorías sin fecha planificada",
+    "unscheduled_range": "sin programar",
+    "empty": "No hay auditorías en {year}. Añada una auditoría desde un programa para verla aquí."
+  },
+  "programme": {
+    "search_placeholder": "Buscar programas...",
+    "all_years": "Todos los años",
+    "empty_filtered": "Ningún programa coincide con su filtro.",
+    "empty": "Aún no hay programas de auditoría — haga clic en Añadir Programa para crear uno.",
+    "table": {
+      "id": "ID",
+      "title": "Título",
+      "year": "Año",
+      "audits": "Auditorías",
+      "findings": "Hallazgos",
+      "status": "Estado"
+    },
+    "create": {
+      "heading": "Añadir Programa",
+      "title_label": "Título *",
+      "title_placeholder": "p. ej. Programa Anual de Auditoría 2026",
+      "year_label": "Año *",
+      "fill_in_later": "Puede añadir descripción, estado y auditorías después de crearlo.",
+      "submitting": "Añadiendo...",
+      "submit": "Añadir"
+    },
+    "field": {
+      "title": "Título",
+      "year": "Año",
+      "status": "Estado",
+      "description": "Descripción",
+      "notes": "Notas",
+      "audits": "Auditorías",
+      "created_by": "Creado por",
+      "created": "Creado"
+    },
+    "placeholder": {
+      "description": "Objetivos y alcance del programa...",
+      "notes": "Notas internas..."
+    },
+    "audits_heading": "Auditorías en este programa",
+    "add_audit": "+ Añadir Auditoría",
+    "audits_empty": "Aún no hay auditorías en este programa.",
+    "open_findings": "{count} abiertos",
+    "danger": {
+      "warning": "No se pueden eliminar programas con auditorías. Elimine primero todas las auditorías.",
+      "delete": "Eliminar programa",
+      "confirm": "¿Eliminar el programa «{title}»? Esta acción no se puede deshacer."
+    }
+  },
+  "audit": {
+    "loading_detail": "Cargando detalles de la auditoría...",
+    "create": {
+      "heading": "Añadir Auditoría",
+      "title_label": "Título *",
+      "title_placeholder": "Título de la auditoría",
+      "programme_label": "Programa",
+      "no_programme": "Sin programa (puntual)",
+      "type_label": "Tipo de Auditoría",
+      "fill_in_later": "Puede añadir alcance, auditor, fechas y elementos después de crearla.",
+      "submitting": "Añadiendo...",
+      "submit": "Añadir"
+    },
+    "field": {
+      "title": "Título",
+      "scope": "Alcance",
+      "type": "Tipo de Auditoría",
+      "status": "Estado",
+      "auditor": "Auditor",
+      "programme": "Programa",
+      "planned_date": "Fecha Planificada",
+      "end_date": "Fecha de Fin",
+      "planned": "Planificada",
+      "started": "Iniciada",
+      "completed": "Completada",
+      "items": "Elementos",
+      "findings": "Hallazgos",
+      "notes": "Notas"
+    },
+    "placeholder": {
+      "scope": "Descripción del alcance. Escriba /doc para vincular controles o cláusulas...",
+      "auditor": "Seleccionar auditor...",
+      "notes": "Notas internas de la auditoría..."
+    },
+    "open_count": "({count} abiertos)",
+    "danger": {
+      "warning": "Actualmente no se pueden eliminar auditorías desde la interfaz. Gestione las acciones destructivas mediante la CLI."
+    }
+  },
+  "items": {
+    "heading": "Elementos de la Auditoría ({count})",
+    "add": "+ Añadir Elemento",
+    "search_placeholder": "Buscar documentos, controles, cláusulas, riesgos, activos...",
+    "searching": "Buscando...",
+    "no_matches": "Sin coincidencias.",
+    "empty": "Aún no hay elementos — añada controles, cláusulas, riesgos u otros elementos a evaluar.",
+    "raise_finding": "Generar hallazgo",
+    "raise_finding_title": "Crear un hallazgo a partir de este elemento",
+    "delete_title": "Eliminar elemento",
+    "evidence": "Evidencia",
+    "evidence_placeholder": "Referencia, enlace o descripción de la evidencia...",
+    "notes": "Notas",
+    "notes_empty": "Notas (vacío)",
+    "notes_placeholder": "Notas en línea para este elemento...",
+    "save_notes": "Guardar notas",
+    "confirm_remove": "¿Eliminar «{title}» de esta auditoría?",
+    "remove": "Eliminar"
+  },
+  "findings": {
+    "search_placeholder": "Buscar hallazgos...",
+    "all_audits": "Todas las auditorías",
+    "overdue_toggle_title": "Alternar: Solo vencidos",
+    "overdue_only": "Solo vencidos",
+    "overdue": "Vencido",
+    "empty_filtered": "Ningún hallazgo coincide con su filtro.",
+    "empty": "Aún no hay hallazgos registrados.",
+    "heading_count": "Hallazgos ({count})",
+    "add": "+ Añadir Hallazgo",
+    "audit_empty": "Aún no hay hallazgos registrados para esta auditoría.",
+    "table": {
+      "id": "ID",
+      "title": "Título",
+      "audit": "Auditoría",
+      "type": "Tipo",
+      "owner": "Responsable",
+      "due": "Vence",
+      "status": "Estado"
+    },
+    "create": {
+      "heading": "Añadir Hallazgo",
+      "title_label": "Título *",
+      "title_placeholder": "Título del hallazgo",
+      "audit_label": "Auditoría *",
+      "audit_placeholder": "Seleccionar auditoría...",
+      "type_label": "Tipo",
+      "fill_in_later": "Puede añadir descripción, responsable, fecha límite y enlaces a acciones correctivas después de crearlo.",
+      "submitting": "Añadiendo...",
+      "submit": "Añadir"
+    },
+    "field": {
+      "title": "Título",
+      "description": "Descripción",
+      "type": "Tipo",
+      "status": "Estado",
+      "owner": "Responsable",
+      "due_date": "Fecha Límite",
+      "due_date_read": "Fecha límite",
+      "audit": "Auditoría",
+      "audit_item": "Elemento de Auditoría",
+      "created": "Creado",
+      "closed": "Cerrado"
+    },
+    "placeholder": {
+      "description": "Descripción detallada del hallazgo, evidencia, análisis de causa raíz...",
+      "owner": "Seleccionar responsable..."
+    },
+    "item_ref": "elemento #{id}",
+    "quick_action": "Acción rápida",
+    "create_ca": "Crear Acción Correctiva a partir del hallazgo",
+    "create_ca_hint": "Genera una AC prerellenada con el título y la gravedad de este hallazgo.",
+    "danger": {
+      "warning": "Eliminar este hallazgo es permanente. Las acciones correctivas vinculadas se mantienen pero pierden esta referencia inversa.",
+      "delete": "Eliminar hallazgo",
+      "confirm": "¿Eliminar este hallazgo? Esta acción no se puede deshacer."
+    }
+  },
+  "report": {
+    "heading": "Informe de Auditoría",
+    "placeholder": "Informe final del auditor — observaciones, conclusiones, recomendaciones. Use comandos de barra para vincular controles, cláusulas, evidencia...",
+    "empty": "Aún no se ha redactado ningún informe."
+  },
+  "dirty": {
+    "report_switch_tab": "Tiene cambios sin guardar en el informe. ¿Descartarlos y cambiar de pestaña?",
+    "report_close": "Tiene cambios sin guardar en el informe. ¿Descartarlos y cerrar?"
+  },
+  "detail": {
+    "overview": "Resumen"
+  }
+}

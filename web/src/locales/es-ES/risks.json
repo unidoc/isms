@@ -1,0 +1,94 @@
+{
+  "title": "Registro de Riesgos",
+  "subtitle": "Evaluación y tratamiento del riesgo de seguridad de la información",
+  "error": {
+    "load": "No se pudieron cargar los riesgos. {message}",
+    "save": "No se pudo guardar: {message}",
+    "create": "No se pudo crear el riesgo: {message}",
+    "delete": "No se pudo eliminar el riesgo: {message}"
+  },
+  "action": {
+    "add": "Añadir Riesgo",
+    "cancel": "Cancelar"
+  },
+  "create": {
+    "heading": "Añadir Riesgo",
+    "title_label": "Título *",
+    "title_placeholder": "p. ej. Ataque de ransomware a los sistemas de producción",
+    "category_label": "Categoría",
+    "deselect_hint": "Haga clic para deseleccionar",
+    "fill_in_later": "Puede añadir descripción, consecuencias, tratamiento, propietario y más después de crearlo.",
+    "submit": "Añadir"
+  },
+  "map": {
+    "heading": "Mapa de Riesgos"
+  },
+  "stat": {
+    "total": "Riesgos Totales"
+  },
+  "filter": {
+    "empty": "Ningún riesgo coincide con su filtro.",
+    "none_yet": "Aún no hay riesgos — haga clic en Añadir para crear el primero."
+  },
+  "table": {
+    "header": {
+      "risk": "Riesgo",
+      "type": "Tipo",
+      "score": "Puntuación",
+      "cia": "C/I/D",
+      "owner": "Propietario",
+      "treatment": "Tratamiento",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "was_score": "era {score}",
+    "cia_title": {
+      "confidentiality": "Confidencialidad: {level}",
+      "integrity": "Integridad: {level}",
+      "availability": "Disponibilidad: {level}"
+    },
+    "advisory_badge": "Revisar",
+    "advisory_title": "Discrepancia C/I/D con los activos vinculados — es necesaria una reevaluación"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "status": "Estado",
+    "owner": "Propietario",
+    "category": "Categoría",
+    "risk_type": "Tipo de Riesgo",
+    "origin": "Origen",
+    "treatment": "Tratamiento",
+    "treatment_plan": "Plan de Tratamiento",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "notes": "Notas",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Describa el riesgo...",
+    "treatment_plan": "¿Cómo estamos abordando este riesgo?",
+    "notes": "Añada notas, observaciones, actas de reuniones, referencias..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "treatment": "Tratamiento",
+    "notes": "Notas"
+  },
+  "assessment": {
+    "inherent": "Inherente",
+    "current": "Actual"
+  },
+  "links": {
+    "linked_assets": "Activos Vinculados"
+  },
+  "actions": {
+    "create_task": "Crear Tarea de Implementación",
+    "create_task_desc": "Genera una tarea para ejecutar el plan de tratamiento; se vincula automáticamente a este riesgo."
+  },
+  "danger": {
+    "warning": "Eliminar este riesgo es permanente y no se puede deshacer. Se perderán el historial, los comentarios y las referencias vinculadas.",
+    "delete": "Eliminar riesgo",
+    "confirm": "¿Eliminar este riesgo? Esta acción no se puede deshacer."
+  }
+}

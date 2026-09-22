@@ -561,6 +561,131 @@ grammatical correctness at every count — the same simplification English
 itself is not tested against, but Polish's plural system genuinely has more
 cases than the infrastructure can express today.
 
+### Worked example — Spanish (`es-ES`)
+
+Spain's national standards body, AENOR (Asociación Española de Normalización),
+publishes an official Spanish translation of the standard itself —
+UNE-EN ISO/IEC 27001 (also published as UNE-ISO/IEC 27001 in earlier editions),
+with the current 2023 edition confirmed available in Spanish through AENOR's
+own store. That text is paywalled and was not read clause-by-clause for this
+bundle — general management-system and audit vocabulary below follows
+established Spanish ISO/quality-management and infosec-industry usage instead,
+and this paragraph is that disclosure, not a claim of having checked the
+standard directly.
+
+**The CIA triad is a genuine judgment call in Spanish, closer to Polish's
+CIA-vs-PID toss-up than to French's settled DIC.** Spanish security writing
+attests both "tríada CIA" (the majority pattern in general blog and vendor
+content — borrowed English initials, three words translated) and "tríada CID"
+with real technical-reference weight: Mozilla Developer Network's own Spanish
+glossary entry is titled *Glossary/CID*, not *CIA*. Both are real; neither is
+wrong. For this app's structure the practical outcome does not depend on which
+way the prose leans, because it follows the same pattern already settled for
+`pt-BR` and `fr-FR`: the `confidentiality`/`integrity`/`availability` keys keep
+their fixed order everywhere, and only the letter each key maps to changes —
+*confidencialidad* → C, *integridad* → I, *disponibilidad* → D. So
+`cia_abbr.a` is **D**, and every abbreviated C/I/A badge and table header in
+the app reads **C/I/D**, the same shape as `pt-BR`'s CID.
+
+| English | Spanish |
+|---|---|
+| confidentiality | confidencialidad |
+| integrity | integridad |
+| availability | disponibilidad |
+| C / I / A | C / I / D |
+
+**Privacy and data-protection terms follow Spanish/EU law directly, not an
+ISO adoption.** Spain is an EU member state; GDPR applies directly, under its
+Spanish name **RGPD** (Reglamento General de Protección de Datos — this *is*
+the GDPR regulation's Spanish name, not a separate law, the same relationship
+the Icelandic, Polish and German sections describe for their own EEA/EU
+implementations), alongside the national implementing law **LOPDGDD** (Ley
+Orgánica de Protección de Datos y Garantía de los Derechos Digitales).
+
+| English | Spanish | Basis |
+|---|---|---|
+| controller | **responsable del tratamiento** | RGPD Art. 4 |
+| processor | **encargado del tratamiento** | RGPD Art. 4.8 |
+| data protection officer (DPO) | **delegado de protección de datos (DPD)** | RGPD Arts. 37–39; LOPDGDD Arts. 34–37 |
+| personal data | **datos personales** / **datos de carácter personal** | RGPD / LOPDGDD |
+
+Spanish practice abbreviates the DPO role as **DPD**, not **DPO** — a genuine
+naming difference from the French section's locale, which keeps *DPO* bare.
+Both spellings are correct for their own language; this is not an
+inconsistency in the bundle.
+
+**Nonconformity/audit-result grading is certification-body practice, not
+standard text** — same caveat as the sections above. *No conformidad mayor* /
+*no conformidad menor*, *observación* and *oportunidad de mejora* follow
+general Spanish audit usage, not standard-defined wording.
+
+**"Overdue" is deliberately never translated toward a false-friend root.**
+This bundle uses **vencido** throughout — badges, dashboard stats, review and
+document and task language, contract-expiry language — the ordinary Spanish
+word for a bill, task or document that has passed its due date. Swept every
+English "overdue" occurrence after the first draft (13 hits across `audit.json`,
+`dashboard.json`, `components.json`, `tasks.json` and `common.json`) and
+confirmed the Spanish is consistent throughout: no drift, and no confusion with
+*caducado* (used correctly elsewhere in this bundle for an *expired link or
+token*, a genuinely different concept from a task or review past its due date).
+
+**The objective check-in is not a hotel check-in.** "Check-in" here means a
+periodic measurement recorded against an objective's target, not an arrival —
+and Spanish, like the other Romance-language sections in this bundle, borrows
+"check-in" itself for hotels and flights, so a literal pass would land on
+exactly the wrong sense. This bundle uses **medición** ("measurement")
+throughout instead: check-in cycle is *frecuencia de medición*, last check-in
+is *última medición*, recording one is *registrar medición*.
+
+**The `suggestion_type`/`entity` juxtaposition, checked and confirmed
+necessary here too.** `notifications.json`'s `suggestion_new.body` is
+`"{actor} suggested: {title} ({suggestion_type} {entity})"` — two nouns
+resolved from `common.enum_inline.suggestion_type.*` and
+`common.entity_inline.*` sitting directly adjacent. Rendered real combinations
+(*creación* + *riesgo*, *actualización* + *tarea*, *vinculación* +
+*proveedor*) before deciding: bare juxtaposition reads as two stacked nouns in
+Spanish, the same shape as the bug alip's review caught in `pl-PL` and that
+turned out to reproduce verbatim in `is-IS`, `de-DE` and `fr-FR`. Fixed in this
+locale's frame only — `"({suggestion_type} de {entity})"`, using the genitive
+preposition Spanish actually wants here ("creación de riesgo" reads correctly;
+an en dash would also have worked, but "de" is more natural for this
+construction in Spanish specifically) — not in the shared `enum_inline`/
+`entity_inline` values, which are correctly nominative everywhere else they
+appear.
+
+**Notification-interpolation grammar was traced through the actual code, not
+assumed correct.** `useNotificationRender.js` resolves `severity`, `status`,
+and `action` through `common.enum_inline.*` before splicing them into a
+sentence frame; tracing the Go call sites in `api_incidents.go` confirmed
+`{severity}` is interpolated exactly once, in `"Nuevo incidente {severity}:
+{title}"`. "incidente" is masculine, and — like the French section's finding —
+Spanish places a descriptive adjective after the noun it modifies rather than
+before it, so the frame itself (not just the vocabulary) had to read
+noun-then-adjective: *incidente crítico*, not *crítico incidente*.
+`enum_inline.severity.*` carries the masculine forms (*crítico*, *alto*,
+*medio*, *bajo*) accordingly. `{status}` and `{action}` land in
+predicative/headline constructions ("Incidente {status}", "Sugerencia
+{action}") where the two frames disagree in gender — *incidente* (masculine)
+versus *sugerencia* (feminine) — which the shared `enum_inline.status`/
+`enum_inline.action` tables cannot both satisfy with one value each. Handled
+the same way as the two other generic-error frames in `common.error.*` that
+have the identical problem (`review_wrong_status`, `field_empty`,
+`not_found`): restructured the frame to a label-value shape or wrapped the
+interpolated value in a fixed-gender head noun, so no participle has to agree
+with a variable-gender entity. `enum_inline.status.{resolved,closed}` stay
+bare masculine forms (*resuelto*, *cerrado*) because only those two values are
+reachable in the one frame that still needs them predicatively (confirmed by
+reading `api_incidents.go`'s status-change guard, which gates the notification
+to `resolved`/`closed` only) — and `enum_inline.action` carries the feminine
+forms (*aplicada*, *rechazada*) to agree with "Sugerencia", the only frame
+that consumes it.
+
+**Pluralization is a clean two-way split here, unlike Polish.** Spanish
+grammar distinguishes singular from plural the same way English does — no
+Polish-style three-way case split — so this bundle's `{count} X | {count} Y`
+messages need no disclosed compromise; every count the infrastructure can
+express, Spanish can render correctly.
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

@@ -1,0 +1,65 @@
+{
+  "title": "Gestión de Cambios",
+  "subtitle": "Seguimiento y aprobación de cambios en su sistema de gestión.",
+  "error": {
+    "load": "No se pudieron cargar los cambios: {message}",
+    "create": "No se pudo crear la solicitud de cambio: {message}",
+    "save": "No se pudo guardar: {message}",
+    "delete": "No se pudo eliminar la solicitud de cambio: {message}"
+  },
+  "action": {
+    "add": "Añadir Solicitud de Cambio"
+  },
+  "create": {
+    "heading": "Añadir Solicitud de Cambio",
+    "type_label": "Tipo",
+    "title_label": "Título",
+    "title_placeholder": "p. ej. Migrar la autenticación a OIDC",
+    "priority_label": "Prioridad",
+    "category_label": "Categoría",
+    "fill_in_later": "Puede añadir descripción, justificación, fecha prevista, nivel de riesgo, responsable, plan de reversión y notas después de crearla.",
+    "submitting": "Creando...",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "No se encontraron solicitudes de cambio"
+  },
+  "list": {
+    "requested_by": "Solicitado por {name}",
+    "assigned_to": "Asignado a {name}",
+    "risk": "Riesgo: {level}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "type": "Tipo",
+    "priority": "Prioridad",
+    "category": "Categoría",
+    "risk_level": "Nivel de Riesgo",
+    "status": "Estado",
+    "assigned_to": "Asignado a",
+    "assignee": "Responsable",
+    "planned_for": "Previsto para",
+    "justification": "Justificación",
+    "rollback_plan": "Plan de Reversión",
+    "requested_by": "Solicitado por",
+    "created": "Creado"
+  },
+  "placeholder": {
+    "description": "Describa el cambio...",
+    "assignee": "Seleccionar...",
+    "justification": "¿Por qué es necesario este cambio?",
+    "rollback_plan": "¿Cómo revertirlo?",
+    "notes": "Añadir notas..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas",
+    "progress": "Progreso"
+  },
+  "danger": {
+    "warning": "Eliminar esta solicitud de cambio es permanente y no se puede deshacer.",
+    "delete": "Eliminar solicitud de cambio",
+    "confirm": "¿Eliminar esta solicitud de cambio? Esta acción no se puede deshacer."
+  }
+}

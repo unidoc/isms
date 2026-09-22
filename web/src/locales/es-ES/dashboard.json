@@ -1,0 +1,115 @@
+{
+  "loading": "Cargando panel…",
+  "title": "Resumen",
+  "subtitle": "Resumen de cumplimiento e implementación del SGSI ISO 27001",
+  "org_picker": {
+    "title": "Seleccione una organización",
+    "subtitle": "Elija en qué organización desea trabajar.",
+    "create_toggle": "+ Crear una nueva organización"
+  },
+  "no_org": {
+    "title": "No pertenece a ninguna organización",
+    "subtitle": "Cree su organización para empezar, o espere una invitación."
+  },
+  "compliance": {
+    "title": "Cumplimiento General",
+    "approved_of_total": "{approved} de {total} documentos aprobados",
+    "draft": "{count} en borrador",
+    "in_review": "{count} en revisión",
+    "approved": "{count} aprobados"
+  },
+  "modules": {
+    "title": "Resumen de Módulos",
+    "documents": "Documentos",
+    "risks": "Riesgos",
+    "incidents": "Incidentes",
+    "changes": "Cambios",
+    "corrective_actions": "Acciones Correctivas",
+    "suppliers": "Proveedores",
+    "assets": "Activos",
+    "legal": "Legal",
+    "systems": "Sistemas",
+    "alert": {
+      "draft": "{count} en borrador",
+      "high_critical": "{count} altos/críticos",
+      "open": "{count} abiertos",
+      "pending": "{count} pendientes"
+    }
+  },
+  "bia": {
+    "title": "Análisis de Impacto en el Negocio",
+    "header": {
+      "system": "Sistema",
+      "criticality": "Criticidad",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Requiere Su Atención",
+    "reviews": {
+      "title": "Revisiones abiertas",
+      "detail": "{count} revisión pendiente de respuesta | {count} revisiones pendientes de respuesta"
+    },
+    "risks": {
+      "title": "Riesgos altos y críticos",
+      "detail": "{count} riesgo requiere tratamiento o escalado | {count} riesgos requieren tratamiento o escalado"
+    },
+    "overdue_documents": {
+      "title": "Documentos vencidos",
+      "detail": "{count} política ha vencido su fecha de revisión | {count} políticas han vencido su fecha de revisión"
+    },
+    "incidents": {
+      "title": "Incidentes abiertos",
+      "detail": "{count} incidente necesita investigación | {count} incidentes necesitan investigación"
+    },
+    "changes": {
+      "title": "Cambios pendientes de aprobación",
+      "detail": "{count} cambio propuesto | {count} cambios propuestos"
+    },
+    "corrective_actions": {
+      "title": "Acciones correctivas abiertas",
+      "detail": "{count} acción correctiva en curso | {count} acciones correctivas en curso"
+    }
+  },
+  "stats": {
+    "title": "Estadísticas Rápidas",
+    "documents": "Documentos",
+    "documents_detail": "{count} requieren revisión",
+    "risks": "Riesgos",
+    "risks_detail": "{count} altos/críticos",
+    "risks_none": "Todo dentro de la tolerancia",
+    "incidents": "Incidentes",
+    "incidents_detail": "incidentes abiertos",
+    "corrective_actions": "ACs",
+    "corrective_actions_detail": "acciones abiertas",
+    "changes": "Cambios",
+    "changes_detail": "pendientes de aprobación",
+    "changes_none": "ninguno pendiente",
+    "overdue": "Vencidos",
+    "overdue_detail": "elementos vencidos",
+    "overdue_none": "todo al día"
+  },
+  "heatmap_title": "Mapa de Riesgos",
+  "calendar": {
+    "title": "Plan Anual",
+    "previous_year": "Año anterior",
+    "next_year": "Año siguiente",
+    "category": {
+      "audit": "Auditorías",
+      "risk": "Revisiones de Riesgos",
+      "supplier": "Revisiones de Proveedores",
+      "legal": "Revisiones Legales",
+      "task": "Tareas"
+    },
+    "untitled_audit": "Auditoría"
+  },
+  "activity": {
+    "title": "Actividad Reciente",
+    "empty": "La actividad aparecerá a medida que el equipo trabaje"
+  },
+  "error": {
+    "create_org": "No se pudo crear la organización",
+    "load": "No se pudo cargar el panel"
+  }
+}

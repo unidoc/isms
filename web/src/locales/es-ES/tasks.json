@@ -1,0 +1,69 @@
+{
+  "title": "Tareas",
+  "subtitle": "Tareas de revisión, seguimientos y elementos de trabajo operativo.",
+  "error": {
+    "create": "No se pudo crear la tarea: {message}",
+    "save": "No se pudo guardar: {message}",
+    "delete": "No se pudo eliminar la tarea: {message}"
+  },
+  "action": {
+    "add": "Añadir Tarea"
+  },
+  "create": {
+    "heading": "Añadir Tarea",
+    "title_label": "Título",
+    "title_placeholder": "p. ej. Revisar el registro de riesgos",
+    "priority_label": "Prioridad",
+    "type_label": "Tipo",
+    "visibility_label": "Visibilidad",
+    "fill_in_later": "Puede añadir descripción, responsable, fecha límite y notas después de crearla.",
+    "submitting": "Creando...",
+    "submit": "Añadir"
+  },
+  "visibility": {
+    "public": "Pública — todos en la organización",
+    "private": "Privada — responsable, creador y gestores",
+    "private_badge": "Privada",
+    "private_title": "Privada — visible para el responsable, el creador y los gestores"
+  },
+  "filter": {
+    "assignee_placeholder": "Cualquier responsable",
+    "empty": "Ninguna tarea coincide con su filtro.",
+    "empty_all": "Aún no hay tareas — haga clic en Añadir para crear la primera.",
+    "empty_hint": "Las tareas también se generan automáticamente a partir de ciclos de revisión vencidos."
+  },
+  "list": {
+    "due": "Vence el {date}",
+    "created_by": "por {name}"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "assignee": "Responsable",
+    "priority": "Prioridad",
+    "status": "Estado",
+    "due_date": "Fecha límite",
+    "type": "Tipo",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "completed": "Completado"
+  },
+  "placeholder": {
+    "description": "Describa la tarea...",
+    "assignee": "Seleccionar responsable...",
+    "notes": "Añadir notas..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas",
+    "progress": "Progreso"
+  },
+  "stat": {
+    "active": "Activas"
+  },
+  "danger": {
+    "warning": "Eliminar esta tarea es permanente y no se puede deshacer.",
+    "delete": "Eliminar tarea",
+    "confirm": "¿Eliminar la tarea «{title}»?"
+  }
+}

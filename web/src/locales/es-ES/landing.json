@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Documentación",
+    "sign_in": "Iniciar sesión"
+  },
+  "hero": {
+    "badge": "Código abierto · Apache 2.0",
+    "title_line1": "El Sistema de Gestión",
+    "title_line2": "Inteligente",
+    "subtitle": "Documentos vivos, revisiones controladas y ritmo operativo en una sola plataforma auditable. Elija un marco normativo o traiga el suyo propio. La IA ayuda con el trabajo. Las personas mantienen el control.",
+    "cta_cloud": "Empezar en la nube",
+    "cta_selfhost": "Autoalojar",
+    "cta_docs": "Leer la documentación"
+  },
+  "why": {
+    "heading": "¿Por qué otro sistema de gestión?",
+    "p1": "Porque los que tenemos son complejos, opacos y se tratan como un ejercicio de cumplimiento: relevantes para la auditoría, irrelevantes al día siguiente. Y lo que está en juego no deja de crecer: a medida que se acelera la adopción de la IA y se amplían las superficies de amenaza, un sistema de gestión que no se mantiene vivo es peor que inútil.",
+    "p2": "No tiene por qué ser así. La seguridad bien hecha empieza en la raíz: entender y gestionar de verdad sus riesgos, no disimularlos. Construido con la IA como base, con verdadera disciplina en su diseño y uso, un sistema de gestión debería ser una parte viva de cómo opera, no una carga añadida encima.",
+    "p3": "Por eso es de código abierto: pensado para organizaciones de cualquier tamaño, y por fin una opción creíble para las más pequeñas, que nunca han tenido un sistema de gestión sencillo, actualizado y que no les complique la vida. Lo construimos para cambiar eso."
+  },
+  "pillars": {
+    "documents_title": "Los documentos son activos operativos",
+    "documents_desc": "Las políticas viven en git como markdown. Cada edición es un commit. Cada versión es recuperable. Los documentos impulsan su SGSI, no se quedan olvidados en una carpeta.",
+    "reviews_title": "Las revisiones son decisiones registradas",
+    "reviews_desc": "Revisión por rondas con comentarios en línea. Apruebe, solicite cambios o proponga una revisión. Cada decisión es un registro inmutable con un hash SHA-256.",
+    "tasks_title": "Las tareas marcan el ritmo del año",
+    "tasks_desc": "El plan anual distribuye revisiones, auditorías y evaluaciones de riesgo a lo largo del calendario. El panel muestra lo que necesita atención este mes. Su SGSI nunca queda desactualizado."
+  },
+  "how": {
+    "heading": "Cinco minutos, no cinco reuniones",
+    "subtitle": "Del evento a la política actualizada y al documento aprobado. La plataforma se encarga del trabajo tedioso.",
+    "step1_title": "Ocurre algo",
+    "step1_desc": "Un incidente, un nuevo proveedor, un cambio normativo, un hallazgo de auditoría. Cualquier evento que afecte a su postura de seguridad.",
+    "step2_title": "Crear o actualizar",
+    "step2_desc": "Regístrelo en el registro correspondiente. La IA puede sugerir actualizaciones de riesgos, cambios de política y acciones correctivas. Usted revisa cada sugerencia.",
+    "step3_title": "Los documentos se actualizan en una rama",
+    "step3_desc": "Los cambios de política se registran en una rama de revisión con el diff completo. Sin ediciones misteriosas. Cinco documentos en cinco minutos.",
+    "step4_title": "Rondas de revisión",
+    "step4_desc": "Los revisores reciben una notificación. Aprueban o solicitan cambios. Tras las ediciones, se reenvía como una nueva ronda. Cada ronda muestra solo lo que cambió desde el último comentario.",
+    "step5_title": "Publicar",
+    "step5_desc": "Se fusiona con la rama principal. La versión se incrementa. Se crea el registro de decisión. Se guarda la evidencia. Listo."
+  },
+  "features": {
+    "heading": "Construido de forma diferente",
+    "subtitle": "No es un editor de documentos con complementos de cumplimiento. Es un sistema de gestión diseñado desde cero donde todo está conectado.",
+    "git_title": "Documentos nativos de git",
+    "git_desc": "Las políticas son archivos markdown en un repositorio git. Cada cambio es un commit con el diff completo. Rama para revisar, fusión para publicar. Sin formatos propietarios, sin dependencia de un proveedor.",
+    "review_title": "Revisión por rondas",
+    "review_desc": "Envíe un documento a revisión. Los revisores aprueban, solicitan cambios o proponen una revisión con comentarios en línea. Se reenvía como una nueva ronda: los revisores solo ven lo que cambió.",
+    "registers_title": "Registros conectados entre sí",
+    "registers_desc": "Los riesgos se vinculan a activos y controles. Los incidentes generan acciones correctivas. Los requisitos legales se vinculan a políticas. Cambie una cosa y vea el efecto en cadena en todas partes.",
+    "ai_title": "La IA sugiere, usted aprueba",
+    "ai_desc": "Los agentes de IA redactan políticas, evalúan riesgos y proponen actualizaciones de registros a través del mismo flujo de revisión. Servidor MCP con 22 herramientas. Identidad de agente e historial de auditoría completos. No es piloto automático: es un asistente capaz.",
+    "cadence_title": "Plan anual y ritmo de trabajo",
+    "cadence_desc": "El panel muestra lo que necesita atención este mes. Distribuya revisiones, auditorías y evaluaciones de riesgo a lo largo del año. Las tareas hacen seguimiento de la ejecución. Su SGSI se mantiene vivo.",
+    "audit_title": "Listo para el auditor desde el primer día",
+    "audit_desc": "Cada aprobación de revisión y publicación de documento crea un registro de decisión inmutable con hash de contenido SHA-256. Con marca de tiempo, atribuible y verificable criptográficamente."
+  },
+  "frameworks": {
+    "heading": "Cualquier marco normativo. Sus plantillas.",
+    "subtitle": "11 marcos integrados. O traiga sus propias plantillas: basta con una carpeta de archivos markdown. Gestione varios estándares en la misma plataforma."
+  },
+  "deploy": {
+    "cloud_title": "Nube gestionada",
+    "cloud_desc": "Regístrese, elija su marco normativo y empiece a trabajar. Nosotros nos encargamos de la infraestructura, las copias de seguridad y las actualizaciones. Multiinquilino con aislamiento de datos a nivel de fila.",
+    "cloud_cta": "Empezar gratis",
+    "cloud_cta_signin": "Iniciar sesión",
+    "selfhost_title": "Autoalojado",
+    "selfhost_desc": "Un único binario en Go. PostgreSQL y un directorio de datos. Despliéguelo donde quiera: su infraestructura, sus datos. Apache 2.0, sin límites artificiales, sin trucos de open-core.",
+    "selfhost_cta": "Ver en GitHub"
+  },
+  "cta": {
+    "heading": "Su auditor se lo agradecerá",
+    "subtitle": "Historial de versiones completo. Registros de aprobación inmutables. Decisiones verificables criptográficamente. Historial de auditoría completo desde el primer día."
+  },
+  "footer": {
+    "powered_by": "Desarrollado con {link}"
+  }
+}

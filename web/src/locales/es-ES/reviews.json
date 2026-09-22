@@ -1,0 +1,190 @@
+{
+  "title": "Revisiones",
+  "subtitle": "Solicitudes de revisión de documentos",
+  "back": "Volver a revisiones",
+  "not_found": "Revisión no encontrada",
+  "opened_ago": "abierta hace {time}",
+  "ai": {
+    "active": "Revisión de IA en curso",
+    "escalated": "Escalada — la revisión de IA se detuvo"
+  },
+  "guide": {
+    "step_review": "Revise el documento y los cambios",
+    "step_comment": "Añada comentarios o sugiera ediciones",
+    "step_decide": "Apruebe o solicite cambios"
+  },
+  "tab": {
+    "changes": "Cambios (Ronda {round})",
+    "document": "Documento",
+    "conversation": "Conversación"
+  },
+  "timeline": {
+    "suggested_edit": "sugirió una edición",
+    "commented": "comentó",
+    "approved": "aprobó esta revisión",
+    "proposed_revision": "propuso una revisión",
+    "requested_changes": "solicitó cambios",
+    "assigned": "Revisor asignado: {reviewer}",
+    "empty": "Aún no hay actividad.",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "fusionó esta revisión",
+      "approved": "aprobó (registro de decisión)",
+      "proposed_revision": "propuso una revisión (registro de decisión)",
+      "changes_requested": "solicitó cambios (registro de decisión)"
+    },
+    "content_hash": "Hash de contenido SHA-256 como evidencia contra manipulaciones",
+    "hide_changes": "Ocultar cambios",
+    "view_changes": "Ver cambios",
+    "diff_loading": "Cargando cambios…",
+    "diff_error": "No se pudo cargar el diff de esta revisión."
+  },
+  "updated": {
+    "heading": "Documento actualizado desde que se envió la revisión",
+    "last_modified_by": "Última modificación por {name}",
+    "last_modified_by_with_message": "Última modificación por {name} — {message}",
+    "note": "El siguiente diff muestra todos los cambios desde la última versión aprobada."
+  },
+  "diff": {
+    "summary_heading": "Cambios en esta revisión",
+    "never_approved_inline": "Revisión completa — este documento nunca ha sido aprobado. Revise el documento completo en la pestaña Documento.",
+    "none_inline": "No hay diff disponible — puede que el documento no se haya modificado desde la base de la revisión.",
+    "loading": "Cargando cambios...",
+    "scope_round": "Cambios en esta ronda",
+    "scope_all": "Todos los cambios de la revisión",
+    "mode_split": "Dividido",
+    "mode_unified": "Unificado",
+    "never_approved_heading": "Revisión completa — este documento nunca ha sido aprobado",
+    "never_approved_body": "No hay una versión aprobada previa con la que comparar. Revise el documento completo en la pestaña Documento.",
+    "none_in_round": "No se encontraron cambios en esta ronda."
+  },
+  "comment": {
+    "heading": "Añadir un comentario",
+    "placeholder": "Deje un comentario..."
+  },
+  "edit": {
+    "save_and_resubmit": "Guardar y Reenviar",
+    "send_revision": "Enviar revisión propuesta",
+    "draft_saved": "Borrador guardado",
+    "note_placeholder": "¿Qué cambió y por qué?",
+    "draft_recovered": "Borrador recuperado de la sesión anterior."
+  },
+  "summary": {
+    "resubmitted": "Reenviada tras los cambios solicitados",
+    "initial": "Revisión inicial",
+    "approved_count": "{approved} de {total}",
+    "waiting_on": "Pendiente de:",
+    "ready_to_merge": "Todos los revisores han aprobado. Lista para fusionar.",
+    "changes_requested_you": "Se solicitaron cambios. Esperando su respuesta.",
+    "changes_requested_author": "Se solicitaron cambios. Esperando la respuesta de {author}."
+  },
+  "suggestion": {
+    "count": "{count} sugerencia | {count} sugerencias",
+    "pending": "{count} pendientes",
+    "accepted": "{count} aceptadas",
+    "rejected": "{count} rechazadas"
+  },
+  "assignment": {
+    "empty": "Sin revisores asignados",
+    "status": {
+      "approved": "aprobado",
+      "pending": "pendiente",
+      "changes_requested": "cambios",
+      "proposed_revision": "revisión"
+    }
+  },
+  "policy": {
+    "heading": "Requisitos de Aprobación",
+    "approvals": "{current}/{min} aprobaciones",
+    "missing_roles": "Falta: rol {roles}",
+    "missing_users": "Pendiente de: {users}",
+    "blocked": "Fusión bloqueada hasta que se cumplan todos los requisitos",
+    "will_auto_merge": "Se fusionará automáticamente cuando se reúnan todas las aprobaciones",
+    "require_human": "Se requiere al menos una aprobación humana",
+    "auto_merge": "Fusión automática activada para esta política"
+  },
+  "actions": {
+    "heading": "Acciones",
+    "requirements_not_met": "Requisitos no cumplidos",
+    "publish": "Publicar",
+    "publish_version": "Publicar {version}",
+    "publish_note": "Esto convertirá la {version} en el documento aceptado.",
+    "publish_note_this_version": "Esto convertirá esta versión en el documento aceptado.",
+    "awaiting_manager": "Todos los revisores han aprobado. Esperando a que un gestor la publique.",
+    "revision_proposed_by": "{name} propuso una revisión de este documento.",
+    "publishing": "Publicando...",
+    "accept_and_publish": "Aceptar y Publicar",
+    "request_another_review": "Solicitar Otra Revisión",
+    "propose_new_revision": "Proponer Nueva Revisión",
+    "changes_were_requested": "Se solicitaron cambios. Edite el documento y reenvíelo.",
+    "edit_and_resubmit": "Editar y Reenviar",
+    "you_sent_this": "Usted envió esta revisión.",
+    "waiting_for_feedback": "Esperando la respuesta del revisor.",
+    "you_approved": "Usted aprobó esta ronda.",
+    "you_proposed_revision": "Usted propuso una revisión.",
+    "you_requested_changes": "Usted solicitó cambios.",
+    "waiting_for_author": "Esperando la respuesta de {author}.",
+    "waiting_for_reviewers": "Esperando a los demás revisores.",
+    "stale_warning": "El documento se actualizó después de enviar esta revisión. Revise los últimos cambios antes de aprobar.",
+    "request_changes": "Solicitar Cambios",
+    "propose_revision": "Proponer Revisión",
+    "approve_heading": "Aprobar este documento",
+    "approve_placeholder": "Comentario opcional...",
+    "approving": "Aprobando...",
+    "confirm_approve": "Confirmar Aprobación",
+    "changes_heading": "Solicitar cambios",
+    "changes_placeholder": "Describa qué necesita cambiar... (obligatorio)",
+    "submitting": "Enviando...",
+    "submit_request": "Enviar Solicitud",
+    "withdraw": "Retirar Revisión",
+    "close_without_merging": "Cerrar Sin Fusionar",
+    "not_a_reviewer": "No está entre los revisores de esta solicitud.",
+    "no_reviewers_assigned": "No hay revisores asignados a esta revisión. Añada un revisor antes de aprobar o solicitar cambios."
+  },
+  "closed_state": {
+    "merged": "Fusionada",
+    "closed": "Cerrada"
+  },
+  "document": {
+    "heading": "Documento",
+    "id": "ID",
+    "comments": "Comentarios",
+    "open_comments": "Abiertos"
+  },
+  "list": {
+    "empty_open": "No hay revisiones abiertas",
+    "empty_closed": "No hay revisiones cerradas",
+    "item_title": "Revisión #{id} -- {title}",
+    "opened_by": "Abierta por {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "autor",
+  "reviewer_fallback": "Un revisor",
+  "revision_note_fallback": "Ediciones del autor",
+  "toast": {
+    "revision_published": "Revisión aceptada y publicada.",
+    "revision_accepted": "Revisión propuesta aceptada",
+    "decision_recorded": "Su aprobación ha sido registrada{round}. Falta {count} revisor más. | Su aprobación ha sido registrada{round}. Faltan {count} revisores más.",
+    "decision_recorded_changes": "Su solicitud de cambios ha sido registrada{round}. Falta {count} revisor más. | Su solicitud de cambios ha sido registrada{round}. Faltan {count} revisores más.",
+    "all_approved": "Todos los revisores han aprobado{round}. Lista para fusionar.",
+    "changes_requested": "Se solicitaron cambios{round}. Se notificará al autor.",
+    "for_round": " para la Ronda {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Aprobar de todos modos",
+    "approve_stale_body": "El documento se modificó después de enviar esta revisión. ¿Aprobar según la versión actual?",
+    "discard_changes": "¿Descartar los cambios sin guardar?"
+  },
+  "error": {
+    "save_and_resubmit": "Error al guardar y reenviar: {message}",
+    "publish": "No se pudo publicar: {message}",
+    "accept_revision": "No se pudo aceptar la revisión: {message}",
+    "submit_revision": "No se pudo enviar la revisión: {message}",
+    "load_list": "No se pudieron cargar las revisiones: {message}",
+    "load_one": "No se pudo cargar la revisión: {message}",
+    "add_comment": "No se pudo añadir el comentario: {message}",
+    "submit_decision": "No se pudo enviar la decisión: {message}",
+    "merge": "No se pudo fusionar la revisión: {message}",
+    "close": "No se pudo cerrar la revisión: {message}"
+  }
+}

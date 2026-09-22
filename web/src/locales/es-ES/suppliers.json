@@ -1,0 +1,84 @@
+{
+  "title": "Registro de Proveedores",
+  "subtitle": "Proveedores externos, criticidad y evaluación",
+  "error": {
+    "save": "No se pudo guardar: {message}",
+    "create": "No se pudo crear el proveedor: {message}",
+    "delete": "No se pudo eliminar: {message}"
+  },
+  "action": {
+    "add": "Añadir Proveedor"
+  },
+  "create": {
+    "heading": "Añadir Proveedor",
+    "name_label": "Nombre *",
+    "name_placeholder": "p. ej. AWS, Office 365",
+    "type_label": "Tipo",
+    "criticality_label": "Criticidad",
+    "fill_in_later": "Puede añadir la clasificación C/I/D, el propietario y los datos del contrato después de crearlo.",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "No se encontraron proveedores"
+  },
+  "table": {
+    "header": {
+      "supplier": "Proveedor",
+      "type": "Tipo",
+      "criticality": "Criticidad",
+      "cia": "C/I/D",
+      "status": "Estado",
+      "owner": "Propietario",
+      "next_review": "Próxima Revisión"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidad: {level}",
+      "integrity": "Integridad: {level}",
+      "availability": "Disponibilidad: {level}"
+    }
+  },
+  "field": {
+    "name": "Nombre",
+    "type": "Tipo",
+    "criticality": "Criticidad",
+    "status": "Estado",
+    "owner": "Propietario",
+    "contact": "Contacto",
+    "contract_ref": "Referencia del Contrato",
+    "contract_expiry": "Vencimiento del Contrato",
+    "data_access": "Acceso a Datos",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "contact": "contacto{'@'}proveedor.com",
+    "contract_ref": "URL del DPA / contrato",
+    "notes": "Notas adicionales... Escriba /doc para vincular un documento"
+  },
+  "data_access": {
+    "checkbox": "El proveedor tiene acceso a nuestros datos",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "tab": {
+    "reviews": "Revisiones"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad",
+    "availability": "Disponibilidad"
+  },
+  "linked_systems": {
+    "heading": "sin sistemas vinculados | Sistema vinculado ({count}) | Sistemas vinculados ({count})"
+  },
+  "danger": {
+    "warning": "Eliminar este proveedor es permanente y no se puede deshacer. Se perderán el historial, los comentarios, las revisiones y las referencias vinculadas.",
+    "delete": "Eliminar proveedor",
+    "confirm": "¿Eliminar este proveedor? Esta acción no se puede deshacer."
+  }
+}

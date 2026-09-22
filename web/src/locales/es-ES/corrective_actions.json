@@ -1,0 +1,64 @@
+{
+  "title": "Acciones Correctivas",
+  "subtitle": "Seguimiento de no conformidades, observaciones y oportunidades de mejora",
+  "error": {
+    "save": "No se pudo guardar: {message}"
+  },
+  "action": {
+    "add": "Añadir Acción Correctiva"
+  },
+  "filter": {
+    "assignee_placeholder": "Cualquier responsable",
+    "empty": "Ninguna acción correctiva coincide con su filtro.",
+    "empty_all": "Aún no hay acciones correctivas — haga clic en Añadir para crear la primera."
+  },
+  "create": {
+    "heading": "Añadir Acción Correctiva",
+    "title_label": "Título *",
+    "title_placeholder": "Título breve de la no conformidad o mejora",
+    "fill_in_later": "Puede añadir descripción, responsable, fecha límite y notas después de crearla.",
+    "submit": "Añadir"
+  },
+  "source_option": {
+    "internal_audit": "Hallazgo de Auditoría Interna",
+    "external_audit": "Hallazgo de Auditoría Externa",
+    "risk_assessment": "Evaluación de Riesgos",
+    "security_incident": "Incidente de Seguridad",
+    "objective": "Objetivo",
+    "feedback": "Comentario / Sugerencia",
+    "other": "Otro"
+  },
+  "field": {
+    "title": "Título",
+    "description": "Descripción",
+    "source": "Origen",
+    "severity": "Gravedad",
+    "status": "Estado",
+    "assignee": "Responsable",
+    "due_date": "Fecha límite",
+    "root_cause": "Causa Raíz",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "resolved": "Resuelto",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Describa la acción correctiva...",
+    "assignee": "Seleccionar responsable...",
+    "root_cause": "Análisis de causa raíz...",
+    "notes": "Añadir notas..."
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "actions": {
+    "create_task": "Crear Tarea de Implementación",
+    "create_task_hint": "Genera una tarea para realizar el trabajo correctivo; se vincula automáticamente a esta acción correctiva."
+  },
+  "danger": {
+    "warning": "Eliminar esta acción correctiva es permanente y no se puede deshacer.",
+    "delete": "Eliminar acción correctiva",
+    "confirm": "¿Eliminar esta acción correctiva? Esta acción no se puede deshacer."
+  }
+}

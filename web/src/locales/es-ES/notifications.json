@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} le mencionó en un comentario"
+  },
+  "mention_review_comment": {
+    "title": "{actor} le mencionó en un comentario de revisión"
+  },
+  "mention_change_request": {
+    "title": "{actor} le mencionó en una solicitud de cambio"
+  },
+  "review_forwarded": {
+    "title": "Revisión reenviada: {title}",
+    "body": "{actor} le reenvió la revisión de {doc_id} ({title} v{version})",
+    "body_with_note": "{actor} le reenvió la revisión de {doc_id} ({title} v{version})\n\nNota: {note}"
+  },
+  "review_requested": {
+    "title": "Revisión: {title} v{version}",
+    "body": "{actor} quiere publicar {title} v{version} y ha solicitado su revisión",
+    "body_with_note": "{actor} quiere publicar {title} v{version} y ha solicitado su revisión\n\nNota: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Revisión enviada de nuevo: {title}",
+    "body": "{actor} volvió a enviar {doc_id} ({title} v{version}) para revisión",
+    "body_with_note": "{actor} volvió a enviar {doc_id} ({title} v{version}) para revisión\n\nNota: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "Revisión de IA escalada",
+    "body": "La revisión de IA de {doc_id} llegó a la ronda {round} sin alcanzar un acuerdo. Por favor, revise y decida."
+  },
+  "ca_assigned": {
+    "title": "Acción correctiva asignada: {title}"
+  },
+  "ca_resolved": {
+    "title": "Acción correctiva resuelta: {title}",
+    "body": "La acción correctiva #{id} ha sido resuelta por {actor}"
+  },
+  "suggestion_new": {
+    "title": "Nueva sugerencia",
+    "body": "{actor} sugirió: {title} ({suggestion_type} de {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Sugerencia {action}"
+  },
+  "suggestion_applied": {
+    "body": "Su sugerencia «{title}» fue aplicada por {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Su sugerencia «{title}» fue rechazada por {actor}: {reason}"
+  },
+  "incident_new": {
+    "title": "Nuevo incidente {severity}: {title}"
+  },
+  "incident_status": {
+    "title": "Incidente {status}: {title}",
+    "body": "El incidente #{id} ha sido {status}"
+  },
+  "supplier_contract_30": {
+    "title": "El contrato vence en 30 días: {title}",
+    "body": "El contrato de {title} ({id}) vence en 30 días."
+  },
+  "supplier_contract_7": {
+    "title": "El contrato vence en 7 días: {title}",
+    "body": "El contrato de {title} ({id}) vence en 7 días."
+  },
+  "supplier_contract_today": {
+    "title": "El contrato vence hoy: {title}",
+    "body": "El contrato de {title} ({id}) vence hoy."
+  }
+}

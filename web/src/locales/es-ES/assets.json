@@ -1,0 +1,72 @@
+{
+  "title": "Registro de Activos",
+  "subtitle": "Activos de información, clasificación y propiedad",
+  "error": {
+    "save": "No se pudo guardar: {message}",
+    "create": "No se pudo crear el activo: {message}",
+    "delete": "No se pudo eliminar: {message}"
+  },
+  "action": {
+    "add": "Añadir Activo"
+  },
+  "create": {
+    "heading": "Añadir Activo",
+    "name_label": "Nombre *",
+    "name_placeholder": "p. ej. Base de datos de producción, Portal de clientes",
+    "type_label": "Tipo",
+    "deselect_hint": "Haga clic para deseleccionar",
+    "fill_in_later": "Puede añadir la clasificación C/I/D, el propietario y más después de crearlo.",
+    "submit": "Añadir"
+  },
+  "filter": {
+    "empty": "No se encontraron activos"
+  },
+  "stat": {
+    "severe": "Grave (C/I/D = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Activo",
+      "type": "Tipo",
+      "cia": "C/I/D",
+      "status": "Estado",
+      "owner": "Propietario"
+    },
+    "cia_title": {
+      "confidentiality": "Confidencialidad: {level}",
+      "integrity": "Integridad: {level}",
+      "availability": "Disponibilidad: {level}"
+    }
+  },
+  "field": {
+    "name": "Nombre",
+    "description": "Descripción",
+    "type": "Tipo",
+    "status": "Estado",
+    "owner": "Propietario",
+    "primary_location": "Ubicación Principal",
+    "next_review": "Próxima Revisión",
+    "created": "Creado",
+    "created_by": "Creado por",
+    "external_id": "ID Externo"
+  },
+  "placeholder": {
+    "description": "Describa el activo...",
+    "primary_location": "p. ej. CPD de Madrid, AWS eu-west-1",
+    "notes": "Notas adicionales... Escriba /doc para vincular un documento"
+  },
+  "detail": {
+    "overview": "Resumen",
+    "notes": "Notas"
+  },
+  "assessment": {
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad",
+    "availability": "Disponibilidad"
+  },
+  "danger": {
+    "warning": "Eliminar este activo es permanente y no se puede deshacer. Se perderán el historial, los comentarios y las referencias vinculadas.",
+    "delete": "Eliminar activo",
+    "confirm": "¿Eliminar este activo? Esta acción no se puede deshacer."
+  }
+}

@@ -77,6 +77,8 @@ func TestCanonical(t *testing.T) {
 		{"underscore separator", "id_ID", "id-ID", true},
 		{"bare language", "id", "id-ID", true},
 		{"unsupported region falls back to same language", "id-SG", "id-ID", true},
+		{"bare language es", "es", "es-ES", true},
+		{"unsupported region falls back to es-ES", "es-MX", "es-ES", true},
 		{"bare language is", "is", "is-IS", true},
 		{"unsupported region falls back to is-IS", "is-NO", "is-IS", true},
 		{"bare language pl", "pl", "pl-PL", true},
@@ -269,6 +271,7 @@ func TestDefaultIsEnabled(t *testing.T) {
 func TestOnlyEnabledLocalesAreOffered(t *testing.T) {
 	want := []Locale{
 		{Tag: "en", Name: "English"},
+		{Tag: "es-ES", Name: "Español"},
 		{Tag: "id-ID", Name: "Bahasa Indonesia"},
 		{Tag: "is-IS", Name: "Íslenska"},
 		{Tag: "pl-PL", Name: "Polski"},

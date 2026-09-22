@@ -1,0 +1,115 @@
+{
+  "loading": "Chargement du tableau de bord…",
+  "title": "Vue d'ensemble",
+  "subtitle": "Vue d'ensemble de la conformité et de la mise en œuvre du SMSI ISO 27001",
+  "org_picker": {
+    "title": "Sélectionner une organisation",
+    "subtitle": "Choisissez l'organisation dans laquelle travailler.",
+    "create_toggle": "+ Créer une nouvelle organisation"
+  },
+  "no_org": {
+    "title": "Vous n'appartenez à aucune organisation",
+    "subtitle": "Créez votre organisation pour commencer, ou attendez une invitation."
+  },
+  "compliance": {
+    "title": "Conformité globale",
+    "approved_of_total": "{approved} document(s) approuvé(s) sur {total}",
+    "draft": "{count} brouillon(s)",
+    "in_review": "{count} en revue",
+    "approved": "{count} approuvé(s)"
+  },
+  "modules": {
+    "title": "Vue d'ensemble des modules",
+    "documents": "Documents",
+    "risks": "Risques",
+    "incidents": "Incidents",
+    "changes": "Changements",
+    "corrective_actions": "Actions correctives",
+    "suppliers": "Fournisseurs",
+    "assets": "Actifs",
+    "legal": "Juridique",
+    "systems": "Systèmes",
+    "alert": {
+      "draft": "{count} brouillon(s)",
+      "high_critical": "{count} élevé(s)/critique(s)",
+      "open": "{count} ouvert(s)",
+      "pending": "{count} en attente"
+    }
+  },
+  "bia": {
+    "title": "Analyse d'impact sur l'activité",
+    "header": {
+      "system": "Système",
+      "criticality": "Criticité",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Nécessite votre attention",
+    "reviews": {
+      "title": "Revues ouvertes",
+      "detail": "{count} revue en attente de réponse | {count} revues en attente de réponse"
+    },
+    "risks": {
+      "title": "Risques élevés et critiques",
+      "detail": "{count} risque nécessitant un traitement ou une escalade | {count} risques nécessitant un traitement ou une escalade"
+    },
+    "overdue_documents": {
+      "title": "Documents en retard",
+      "detail": "{count} politique dont la date de revue est dépassée | {count} politiques dont la date de revue est dépassée"
+    },
+    "incidents": {
+      "title": "Incidents ouverts",
+      "detail": "{count} incident nécessitant une investigation | {count} incidents nécessitant une investigation"
+    },
+    "changes": {
+      "title": "Changements en attente d'approbation",
+      "detail": "{count} changement proposé | {count} changements proposés"
+    },
+    "corrective_actions": {
+      "title": "Actions correctives ouvertes",
+      "detail": "{count} action corrective en cours | {count} actions correctives en cours"
+    }
+  },
+  "stats": {
+    "title": "Statistiques rapides",
+    "documents": "Documents",
+    "documents_detail": "{count} à revoir",
+    "risks": "Risques",
+    "risks_detail": "{count} élevé(s)/critique(s)",
+    "risks_none": "Tous dans la tolérance",
+    "incidents": "Incidents",
+    "incidents_detail": "incidents ouverts",
+    "corrective_actions": "AC",
+    "corrective_actions_detail": "actions ouvertes",
+    "changes": "Changements",
+    "changes_detail": "en attente d'approbation",
+    "changes_none": "aucun en attente",
+    "overdue": "En retard",
+    "overdue_detail": "éléments en retard",
+    "overdue_none": "tout est à jour"
+  },
+  "heatmap_title": "Cartographie des risques",
+  "calendar": {
+    "title": "Plan annuel",
+    "previous_year": "Année précédente",
+    "next_year": "Année suivante",
+    "category": {
+      "audit": "Audits",
+      "risk": "Revues de risques",
+      "supplier": "Revues de fournisseurs",
+      "legal": "Revues juridiques",
+      "task": "Tâches"
+    },
+    "untitled_audit": "Audit"
+  },
+  "activity": {
+    "title": "Activité récente",
+    "empty": "L'activité apparaîtra au fur et à mesure du travail de l'équipe"
+  },
+  "error": {
+    "create_org": "Échec de la création de l'organisation",
+    "load": "Échec du chargement du tableau de bord"
+  }
+}

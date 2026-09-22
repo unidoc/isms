@@ -26,6 +26,7 @@ export const STORAGE_KEY = 'isms_locale'
 export const loaders = {
   'de-DE': () => import('./locales/de-DE/index.js'),
   'es-ES': () => import('./locales/es-ES/index.js'),
+  'fr-FR': () => import('./locales/fr-FR/index.js'),
   'id-ID': () => import('./locales/id-ID/index.js'),
   'is-IS': () => import('./locales/is-IS/index.js'),
   'pl-PL': () => import('./locales/pl-PL/index.js'),

@@ -1,0 +1,433 @@
+{
+  "readings": {
+    "title": "Évaluations",
+    "submit": "Envoyer l'évaluation",
+    "form_for": "Évaluation pour {identifier}",
+    "impact_cia": "Impact (DIC)",
+    "cia_classification": "Classification DIC",
+    "confidentiality": "Confidentialité *",
+    "integrity": "Intégrité *",
+    "availability": "Disponibilité *",
+    "likelihood": "Probabilité *",
+    "impact": "Impact *",
+    "not_assessed": "Non évalué",
+    "select": "Sélectionner",
+    "risk_score": "Score de risque",
+    "score_hint": "Définir DIC + Probabilité",
+    "next_review": "Prochaine revue",
+    "notes": "Notes",
+    "notes_placeholder": "Notes d'évaluation...",
+    "save": "Enregistrer l'évaluation",
+    "empty": "Aucune évaluation pour le moment.",
+    "error_save": "Échec de l'enregistrement de l'évaluation",
+    "rating": {
+      "very_low": "Très faible (1)",
+      "low": "Faible (2)",
+      "medium": "Moyenne (3)",
+      "high": "Élevée (4)",
+      "very_high": "Très élevée (5)"
+    },
+    "cia": {
+      "insignificant": "Insignifiant (1)",
+      "minor": "Mineur (2)",
+      "moderate": "Modéré (3)",
+      "major": "Majeur (4)",
+      "severe": "Sévère (5)"
+    },
+    "table": {
+      "date": "Date",
+      "assessor": "Évaluateur",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "D",
+      "likelihood": "P",
+      "impact": "Imp",
+      "score": "Score",
+      "notes": "Notes"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Marquer comme revu",
+    "mark_unreviewed": "Marquer comme non revu",
+    "resolved_by": "Résolu par {name} {date}",
+    "unknown_user": "inconnu",
+    "suggested_edit": "Modification suggérée",
+    "suggestion_accepted": "Acceptée",
+    "suggestion_rejected": "Rejetée",
+    "accept": "Accepter",
+    "reject": "Rejeter",
+    "awaiting_author": "En attente de la décision de l'auteur",
+    "suggestion_resolved_by": "{status} par {name}",
+    "reply_placeholder": "Répondre... (tapez {'@'} pour mentionner)",
+    "suggest_edit": "Suggérer une modification",
+    "suggest": "Suggérer",
+    "suggestion_placeholder": "Proposez un texte de remplacement pour ce paragraphe...",
+    "comment_placeholder": "Ajouter un commentaire... (tapez {'@'} pour mentionner)",
+    "no_content": "Aucun contenu disponible.",
+    "status_inline": {
+      "pending": "en attente",
+      "accepted": "acceptée",
+      "rejected": "rejetée"
+    }
+  },
+  "editor": {
+    "undo": "Annuler (Ctrl+Z)",
+    "redo": "Rétablir (Ctrl+Shift+Z)",
+    "bold": "Gras (Ctrl+B)",
+    "italic": "Italique (Ctrl+I)",
+    "strikethrough": "Barré (Ctrl+Shift+X)",
+    "text_color": "Couleur du texte",
+    "heading": "Titre {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Liste à puces (Ctrl+Shift+8)",
+    "ordered_list": "Liste numérotée (Ctrl+Shift+7)",
+    "blockquote": "Citation (Ctrl+Shift+B)",
+    "code_block": "Bloc de code (Ctrl+Alt+C)",
+    "horizontal_rule": "Ligne horizontale",
+    "link": "Lien (Ctrl+K)",
+    "link_entity": "Lier {type}",
+    "link_placeholder": "https://...",
+    "insert_table": "Insérer un tableau",
+    "insert_block": "Insérer un bloc",
+    "no_commands": "Aucune commande correspondante",
+    "no_results": "Aucun résultat",
+    "cell_color_open": "Couleur de cellule...",
+    "cell_color": "Couleur de cellule",
+    "add_row_above": "Ajouter une ligne au-dessus",
+    "add_row_below": "Ajouter une ligne en dessous",
+    "add_column_left": "Ajouter une colonne à gauche",
+    "add_column_right": "Ajouter une colonne à droite",
+    "delete_row": "Supprimer la ligne",
+    "delete_column": "Supprimer la colonne",
+    "delete_table": "Supprimer le tableau",
+    "empty_placeholder": "Commencez à écrire..."
+  },
+  "slash": {
+    "table": {
+      "label": "Tableau",
+      "desc": "Insérer un tableau 3x3"
+    },
+    "h1": {
+      "label": "Titre 1",
+      "desc": "Grand titre de section"
+    },
+    "h2": {
+      "label": "Titre 2",
+      "desc": "Titre de section moyen"
+    },
+    "h3": {
+      "label": "Titre 3",
+      "desc": "Petit titre de section"
+    },
+    "bullet": {
+      "label": "Liste à puces",
+      "desc": "Liste non ordonnée"
+    },
+    "ordered": {
+      "label": "Liste numérotée",
+      "desc": "Liste ordonnée"
+    },
+    "quote": {
+      "label": "Citation",
+      "desc": "Bloc de citation indenté"
+    },
+    "code": {
+      "label": "Bloc de code",
+      "desc": "Bloc de code délimité"
+    },
+    "hr": {
+      "label": "Séparateur",
+      "desc": "Ligne horizontale"
+    },
+    "risk": {
+      "label": "Risque",
+      "desc": "Lier au registre des risques"
+    },
+    "legal": {
+      "label": "Juridique",
+      "desc": "Lier à une exigence légale"
+    },
+    "asset": {
+      "label": "Actif",
+      "desc": "Lier au registre des actifs"
+    },
+    "supplier": {
+      "label": "Fournisseur",
+      "desc": "Lier à un fournisseur"
+    },
+    "system": {
+      "label": "Système",
+      "desc": "Lier à un système informatique"
+    },
+    "doc": {
+      "label": "Document",
+      "desc": "Lier à un document"
+    },
+    "incident": {
+      "label": "Incident",
+      "desc": "Lier à un incident"
+    }
+  },
+  "markdown_field": {
+    "bold": "Gras (Ctrl+B)",
+    "italic": "Italique (Ctrl+I)",
+    "strikethrough": "Barré",
+    "heading": "Titre {level}",
+    "bullet_list": "Liste à puces",
+    "numbered_list": "Liste numérotée",
+    "blockquote": "Citation",
+    "code_block": "Bloc de code",
+    "divider": "Séparateur",
+    "link": "Lien (Ctrl+K)",
+    "link_entity_button": "Lier une entité",
+    "placeholder": "Tapez / pour les commandes..."
+  },
+  "suggestions": {
+    "empty": "Aucune suggestion pour le moment.",
+    "pending_notice": "Propositions en attente — ces modifications ne prennent effet qu'une fois appliquées par un manager.",
+    "agent_badge": "IA",
+    "suggested_by": "Suggéré par {name}",
+    "agent_suffix": "(IA)",
+    "apply": "Appliquer",
+    "reject": "Rejeter",
+    "reason_placeholder": "Motif...",
+    "rejected_with_reason": "Rejeté : {reason}",
+    "applied_entity": "{identifier} appliqué",
+    "type": "Type",
+    "title": "Titre",
+    "title_placeholder": "Description brève...",
+    "rationale": "Justification",
+    "rationale_placeholder": "Pourquoi ce changement est-il nécessaire ?",
+    "creating": "Création...",
+    "submit": "Envoyer",
+    "suggest": "Suggérer",
+    "created_toast": "Suggestion envoyée — un manager l'examinera avant qu'elle ne prenne effet.",
+    "stale_confirm": "L'entité a changé depuis la création de cette suggestion. Appliquer quand même ?",
+    "stale_confirm_action": "Appliquer quand même",
+    "error_create": "Échec de la création de la suggestion",
+    "error_apply": "Échec de l'application",
+    "error_reject": "Échec du rejet",
+    "error_claim": "Échec de la prise en charge de la suggestion : {message}",
+    "status": {
+      "open": "En attente de revue",
+      "in_review": "En cours de revue",
+      "applied": "Appliquée",
+      "rejected": "Rejetée",
+      "withdrawn": "Retirée"
+    },
+    "action": {
+      "update": "Mettre à jour des champs",
+      "reassess_rating": "Réévaluer la notation",
+      "reassess_criticality": "Réévaluer la criticité",
+      "link_entities": "Lier à d'autres entités",
+      "link_risks_systems": "Lier à des risques/systèmes",
+      "request_review": "Demander une revue",
+      "request_access_review": "Demander une revue d'accès"
+    }
+  },
+  "supplier_review": {
+    "title": "Revues fournisseurs",
+    "submit": "Envoyer la revue",
+    "outcome": "Résultat",
+    "outcome_value": {
+      "satisfactory": "Satisfaisant",
+      "concerns": "Préoccupations identifiées",
+      "unsatisfactory": "Insatisfaisant"
+    },
+    "certifications_verified": "Certifications vérifiées",
+    "data_handling_verified": "Traitement des données vérifié",
+    "sla_met": "SLA respecté",
+    "notes": "Notes de revue",
+    "notes_placeholder": "Décrivez ce qui a été revu et confirmé. Ceci constitue la preuve d'audit pour ce cycle de revue.",
+    "save": "Enregistrer la revue",
+    "empty": "Aucune revue pour le moment.",
+    "certs_verified_short": "Certifications vérifiées",
+    "sla_not_met": "SLA non respecté",
+    "error_save": "Échec de l'enregistrement de la revue"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} paragraphe modifié | {count} paragraphes modifiés",
+    "no_changes": "Aucune modification",
+    "document_view": "Vue du document",
+    "advanced_diff": "Différentiel avancé",
+    "previous": "Précédent",
+    "current": "Actuel",
+    "no_previous_version": "Aucune version précédente",
+    "outdated_from_previous_round": "{count} commentaire du cycle précédent | {count} commentaires du cycle précédent",
+    "comment_placeholder": "Ajouter un commentaire..."
+  },
+  "comment_sidebar": {
+    "title": "Commentaires",
+    "resolved_count": "{count} résolu(s)",
+    "comment_placeholder": "Ajouter un commentaire... (tapez {'@'} pour mentionner)",
+    "name_placeholder": "Votre nom",
+    "send": "Envoyer",
+    "empty": "Aucun commentaire pour le moment",
+    "reply_placeholder": "Rédiger une réponse... (tapez {'@'} pour mentionner)"
+  },
+  "track_changes": {
+    "added": "+{count} ajouté(s)",
+    "removed": "-{count} supprimé(s)",
+    "normal": "Normal",
+    "advanced": "Avancé",
+    "comment_placeholder": "Ajouter un commentaire..."
+  },
+  "references": {
+    "links": "Liens",
+    "referenced_in": "Référencé dans",
+    "add_link": "+ Ajouter un lien",
+    "search_placeholder": "Rechercher des documents, risques, incidents...",
+    "searching": "Recherche...",
+    "no_matches": "Aucune correspondance",
+    "no_linked_items": "Aucun élément lié",
+    "error_search": "Échec de la recherche : {message}",
+    "error_add": "Échec de l'ajout de la référence : {message}",
+    "error_remove": "Échec de la suppression de la référence : {message}",
+    "error_load": "Échec du chargement des références : {message}"
+  },
+  "code_block": {
+    "plain_text": "Texte brut",
+    "enable_wrap": "Activer le retour à la ligne",
+    "disable_wrap": "Désactiver le retour à la ligne",
+    "wrap": "Retour à la ligne",
+    "copy": "Copier",
+    "copy_aria": "Copier le code"
+  },
+  "color_picker": {
+    "remove_color": "Retirer la couleur"
+  },
+  "comments_panel": {
+    "empty": "Aucun commentaire pour le moment.",
+    "placeholder": "Ajouter un commentaire... (tapez {'@'} pour mentionner)",
+    "post": "Publier",
+    "error_add": "Échec de l'ajout du commentaire : {message}"
+  },
+  "copy_link": {
+    "copied": "Lien copié",
+    "copy": "Copier le lien vers cet élément"
+  },
+  "doc_tree": {
+    "review_required": "Revue requise"
+  },
+  "refresh": {
+    "refreshing": "Actualisation…",
+    "refresh": "Actualiser"
+  },
+  "diff": {
+    "removed": "- {count} supprimé(s)",
+    "added": "+ {count} ajouté(s)",
+    "split": "Côte à côte",
+    "unified": "Unifié",
+    "before": "Avant",
+    "after": "Après"
+  },
+  "global_search": {
+    "placeholder": "Rechercher des documents, risques, fournisseurs, incidents...",
+    "searching": "Recherche...",
+    "no_results": "Aucun résultat pour « {query} »",
+    "empty_state": "Tapez pour rechercher dans toutes les entités",
+    "hint_navigate": "naviguer",
+    "hint_open": "ouvrir",
+    "hint_close": "fermer"
+  },
+  "heat_map": {
+    "title": "Cartographie thermique des risques",
+    "total_items": "{count} élément au total | {count} éléments au total",
+    "likelihood": "Probabilité",
+    "impact": "Impact",
+    "unnamed": "Sans nom",
+    "more": "+{count} de plus",
+    "distribution_item": "{label} : {count}",
+    "likelihood_value": {
+      "rare": "Rare",
+      "unlikely": "Improbable",
+      "possible": "Possible",
+      "likely": "Probable",
+      "almost_certain": "Quasi certain"
+    },
+    "impact_value": {
+      "negligible": "Négligeable",
+      "minor": "Mineur",
+      "moderate": "Modéré",
+      "major": "Majeur",
+      "severe": "Sévère"
+    }
+  },
+  "history": {
+    "empty": "Aucun historique pour le moment.",
+    "field_count": "{count} champ | {count} champs",
+    "showing_limit": "Affichage de 50 sur {total}",
+    "more": "+{count} de plus",
+    "action": {
+      "create": "Créé",
+      "update": "Modifié",
+      "delete": "Supprimé",
+      "reading": "Évaluation",
+      "suggestion_applied": "Suggestion appliquée"
+    },
+    "tooltip": {
+      "from": "De : {value}",
+      "to": "À : {value}",
+      "reason": "Motif : {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "Aucun membre trouvé",
+    "placeholder": "Sélectionner un membre..."
+  },
+  "pagination": {
+    "showing": "Affichage de {start} à {end} sur {total}",
+    "per_page": "Par page"
+  },
+  "overdue": {
+    "title": "Revues en retard",
+    "creating": "Création...",
+    "create_tasks": "Créer des tâches",
+    "created": "{count} tâche créée | {count} tâches créées",
+    "created_skipped": ", {count} ignorée(s) (déjà existante(s))",
+    "days_late": "{count} j",
+    "overdue": "en retard",
+    "all_on_schedule": "Toutes les revues sont à jour",
+    "contract": "contrat",
+    "contract_expired": "il y a {count} j",
+    "contract_expires_in": "dans {count} j"
+  },
+  "suggest_new": {
+    "button": "Suggérer",
+    "close": "Fermer",
+    "action": "Action",
+    "title": "Titre",
+    "description": "Description",
+    "description_placeholder": "Description de la nouvelle entité...",
+    "rationale": "Pourquoi est-ce nécessaire ?",
+    "rationale_placeholder": "Justification de cette suggestion...",
+    "submitting": "Envoi...",
+    "submit": "Envoyer",
+    "form_title_new": "Suggérer un nouvel élément : {entity}",
+    "form_title_change": "Suggérer une modification : {entity}",
+    "placeholder_new": "Décrivez le nouvel élément : {entity}...",
+    "placeholder_reassess": "Justification de la réévaluation...",
+    "placeholder_link": "Que faut-il lier et pourquoi...",
+    "placeholder_review": "Pourquoi cela devrait-il être revu...",
+    "placeholder_update": "Que faut-il changer...",
+    "error_create": "Échec de la création de la suggestion",
+    "type": {
+      "edit_risk": "Modifier le risque",
+      "reassess_risk": "Réévaluer la notation du risque",
+      "edit_incident": "Modifier l'incident",
+      "link_entities": "Lier à d'autres entités",
+      "edit_supplier": "Modifier le fournisseur",
+      "reassess_supplier": "Réévaluer le fournisseur",
+      "edit_requirement": "Modifier l'exigence",
+      "edit_change_request": "Modifier la demande de changement",
+      "edit_corrective_action": "Modifier l'action corrective",
+      "edit_task": "Modifier la tâche",
+      "edit_objective": "Modifier l'objectif",
+      "request_review": "Demander une revue",
+      "edit_system": "Modifier le système",
+      "request_access_review": "Demander une revue d'accès",
+      "edit_asset": "Modifier l'actif",
+      "request_asset_review": "Demander une revue de l'actif",
+      "edit_entity": "Modifier {entity}"
+    }
+  }
+}

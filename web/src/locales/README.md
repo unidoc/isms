@@ -798,6 +798,110 @@ Polish-style three-way case split — so this bundle's `{count} X | {count} Y`
 messages need no disclosed compromise; every count the infrastructure can
 express, Spanish can render correctly.
 
+### Worked example — French (`fr-FR`)
+
+France's national standards body, Association Française de Normalisation
+(AFNOR), publishes an official French translation of the standard itself — NF
+EN ISO/IEC 27001 ("Technologies de l'information — Techniques de sécurité —
+Systèmes de management de la sécurité de l'information — Exigences"). That
+text is sold through AFNOR's own boutique and was not read clause-by-clause
+for this bundle — general management-system and audit vocabulary below
+follows established French ISO/quality-management and infosec-industry usage
+instead, and this paragraph is that disclosure, not a claim of having checked
+the standard directly.
+
+**The CIA triad is reordered in French, not just relettered.** French
+information-security practice (ANSSI, the national cybersecurity agency, and
+regulatory writing around RGPD/NIS2) overwhelmingly says **DIC** —
+Disponibilité, Intégrité, Confidentialité — in that order, not the English
+C-I-A order. This bundle does **not** reorder the application's own fields or
+keys to match: `confidentiality`/`integrity`/`availability` and their
+`common.cia_abbr.c`/`.i`/`.a` keys keep the app's fixed order everywhere
+(badges, table headers, per-field labels), the same way `pt-BR`'s "tríade
+CID" is expressed as `C/I/D` rather than a reordered badge. Only the letter
+each key maps to changes: `c → "C"` (Confidentialité), `i → "I"`
+(Intégrité), `a → "D"` (Disponibilité) — producing **C/I/D** badges. Prose
+that spells the concept out (rather than a compact badge) uses the spoken
+form, **DIC**, since that is what a French-reading practitioner actually
+expects to read.
+
+| English | French | Badge letter |
+|---|---|---|
+| confidentiality | Confidentialité | C |
+| integrity | Intégrité | I |
+| availability | Disponibilité | D |
+| C / I / A (spoken) | DIC | — |
+
+**Privacy and data-protection terms follow French/EU law directly, not an
+ISO adoption.** France is an EU member state; GDPR applies directly, under
+its French name **RGPD** (Règlement Général sur la Protection des Données —
+this *is* the GDPR regulation's French name, not a separate law, the same
+relationship the other locale sections in this bundle describe for their own
+countries), alongside the French implementing law, the **Loi Informatique et
+Libertés** (Loi n° 78-17 du 6 janvier 1978, as amended to align with GDPR —
+notably, France legislated on data protection before the EU did).
+
+| English | French | Basis |
+|---|---|---|
+| controller | **responsable du traitement** | RGPD Art. 4, Art. 24 |
+| processor | **sous-traitant** | RGPD Art. 4, Art. 28 |
+| data protection officer (DPO) | **délégué à la protection des données** | RGPD Art. 37 |
+| personal data | **données à caractère personnel** | RGPD statutory vocabulary |
+
+**Nonconformity/audit-result grading is certification-body practice, not
+standard text** — same caveat as the sections above. *Non-conformité
+majeure* / *non-conformité mineure*, *observation* and *opportunité
+d'amélioration* follow general French audit usage, not standard-defined
+wording.
+
+**"Overdue" is deliberately never translated toward a literal cognate that
+drifts from the concept.** This bundle uses **en retard** throughout —
+badges, dashboard stats, review/document/task/contract-expiry language — an
+invariant prepositional phrase that needs no gender or number agreement, so
+it composes safely with any noun it follows. Swept every English "overdue"
+occurrence after the first draft and confirmed the French is consistent
+throughout: 11 occurrences, no drift.
+
+**The objective check-in is not a hotel check-in.** "Check-in" here means a
+periodic measurement recorded against an objective's target, not an arrival
+— and French borrows "check-in" itself unambiguously for hotels and flights.
+This bundle uses **mesure** ("measurement") throughout instead: the heading
+is *Mesures*, recording one is *Enregistrer une mesure*, and so on.
+
+**A shared frame issue, found here after first appearing in the Polish
+review round, and confirmed present verbatim in `en`/`is-IS`/`pt-BR`/`pl-PL`
+(not fixed there — out of scope for this PR, noted as a cross-locale
+finding):** `notifications.json`'s `suggestion_new.body` is `"{actor}
+suggested: {title} ({suggestion_type} {entity})"` — two nominative nouns
+(`{suggestion_type}` via `common.enum_inline.suggestion_type.*`, `{entity}`
+via `common.entity_inline.*`) sit directly adjacent. Rendered with real
+values (e.g. *création*/*risque*, *mise à jour*/*tâche*), bare juxtaposition
+reads as two stacked nouns rather than French — French needs a preposition
+or separator between a deverbal noun and the noun it governs (*création de
+risque*, not *création risque*), and no single preposition/case agreement
+works cleanly across all ~120 `suggestion_type` × `entity` combinations this
+frame can produce. Fixed the same way the Polish PR did: an en dash in the
+`fr-FR/notifications.json` frame itself
+(`"({suggestion_type} – {entity})"`), not in the shared enum values, which
+are correctly nominative everywhere else they are used.
+
+**Notification-interpolation grammar was traced through the actual code,
+not assumed correct**, the same check that caught real bugs in the Polish
+and German rounds. `useNotificationRender.js` resolves `severity`, `status`,
+and `action` through `common.enum_inline.*` before splicing them into a
+sentence frame; tracing the Go call sites in `api_incidents.go` and
+`api_collab.go` found that French adjective placement differs from English
+word order, not just vocabulary: `{severity}` interpolates into "New
+{severity} incident: {title}", and French adjectives like *critique* /
+*élevé* / *moyen* / *faible* go **after** the noun they modify, not before
+— so the French frame is `"Nouvel incident {severity} : {title}"` (severity
+placed after "incident"), not a word-for-word transplant of the English slot
+order. `{status}` and `{action}`, by contrast, land in constructions where
+the noun already precedes the participle in both languages ("Incident
+{status}", "Suggestion {action}"), so no reordering was needed there —
+only correct gender agreement (*incident* is masculine: *résolu*, *fermé*;
+*suggestion* is feminine: *appliquée*, *rejetée*).
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

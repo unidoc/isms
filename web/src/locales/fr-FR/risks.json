@@ -1,0 +1,94 @@
+{
+  "title": "Registre des risques",
+  "subtitle": "Appréciation et traitement des risques de sécurité de l'information",
+  "error": {
+    "load": "Échec du chargement des risques. {message}",
+    "save": "Échec de l'enregistrement : {message}",
+    "create": "Échec de la création du risque : {message}",
+    "delete": "Échec de la suppression du risque : {message}"
+  },
+  "action": {
+    "add": "Ajouter un risque",
+    "cancel": "Annuler"
+  },
+  "create": {
+    "heading": "Ajouter un risque",
+    "title_label": "Titre *",
+    "title_placeholder": "ex. : attaque par rançongiciel sur les systèmes de production",
+    "category_label": "Catégorie",
+    "deselect_hint": "Cliquez pour désélectionner",
+    "fill_in_later": "Vous pourrez ajouter la description, les conséquences, le traitement, le responsable et plus après la création.",
+    "submit": "Ajouter"
+  },
+  "map": {
+    "heading": "Cartographie des risques"
+  },
+  "stat": {
+    "total": "Total des risques"
+  },
+  "filter": {
+    "empty": "Aucun risque ne correspond à votre filtre.",
+    "none_yet": "Aucun risque pour le moment — cliquez sur Ajouter pour créer le premier."
+  },
+  "table": {
+    "header": {
+      "risk": "Risque",
+      "type": "Type",
+      "score": "Score",
+      "cia": "C/I/D",
+      "owner": "Responsable",
+      "treatment": "Traitement",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "was_score": "était {score}",
+    "cia_title": {
+      "confidentiality": "Confidentialité : {level}",
+      "integrity": "Intégrité : {level}",
+      "availability": "Disponibilité : {level}"
+    },
+    "advisory_badge": "À revoir",
+    "advisory_title": "Écart DIC avec les actifs liés — réévaluation nécessaire"
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "status": "Statut",
+    "owner": "Responsable",
+    "category": "Catégorie",
+    "risk_type": "Type de risque",
+    "origin": "Origine",
+    "treatment": "Traitement",
+    "treatment_plan": "Plan de traitement",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "notes": "Notes",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "description": "Décrivez le risque...",
+    "treatment_plan": "Comment traitons-nous ce risque ?",
+    "notes": "Ajoutez des notes, observations, comptes rendus de réunion, références..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "treatment": "Traitement",
+    "notes": "Notes"
+  },
+  "assessment": {
+    "inherent": "Inhérent",
+    "current": "Actuel"
+  },
+  "links": {
+    "linked_assets": "Actifs liés"
+  },
+  "actions": {
+    "create_task": "Créer une tâche de mise en œuvre",
+    "create_task_desc": "Crée une tâche pour exécuter le plan de traitement ; liée automatiquement à ce risque."
+  },
+  "danger": {
+    "warning": "La suppression de ce risque est définitive et irréversible. L'historique, les commentaires et les références liées seront perdus.",
+    "delete": "Supprimer le risque",
+    "confirm": "Supprimer ce risque ? Cette action est irréversible."
+  }
+}

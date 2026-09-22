@@ -1,0 +1,64 @@
+{
+  "title": "Actions correctives",
+  "subtitle": "Suivre les non-conformités, observations et opportunités d'amélioration",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}"
+  },
+  "action": {
+    "add": "Ajouter une action corrective"
+  },
+  "filter": {
+    "assignee_placeholder": "Tous les responsables",
+    "empty": "Aucune action corrective ne correspond à votre filtre.",
+    "empty_all": "Aucune action corrective pour le moment — cliquez sur Ajouter pour créer la première."
+  },
+  "create": {
+    "heading": "Ajouter une action corrective",
+    "title_label": "Titre *",
+    "title_placeholder": "Titre bref de la non-conformité ou de l'amélioration",
+    "fill_in_later": "Vous pourrez ajouter une description, un responsable, une date d'échéance et des notes après la création.",
+    "submit": "Ajouter"
+  },
+  "source_option": {
+    "internal_audit": "Constat d'audit interne",
+    "external_audit": "Constat d'audit externe",
+    "risk_assessment": "Appréciation des risques",
+    "security_incident": "Incident de sécurité",
+    "objective": "Objectif",
+    "feedback": "Retour / Suggestion",
+    "other": "Autre"
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "source": "Source",
+    "severity": "Gravité",
+    "status": "Statut",
+    "assignee": "Responsable",
+    "due_date": "Date d'échéance",
+    "root_cause": "Cause racine",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "resolved": "Résolu",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "description": "Décrivez l'action corrective...",
+    "assignee": "Sélectionner un responsable...",
+    "root_cause": "Analyse de la cause racine...",
+    "notes": "Ajouter des notes..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "actions": {
+    "create_task": "Créer une tâche de mise en œuvre",
+    "create_task_hint": "Crée une tâche pour réaliser le travail correctif ; liée automatiquement à cette action corrective."
+  },
+  "danger": {
+    "warning": "La suppression de cette action corrective est définitive et irréversible.",
+    "delete": "Supprimer l'action corrective",
+    "confirm": "Supprimer cette action corrective ? Cette action est irréversible."
+  }
+}

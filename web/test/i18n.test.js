@@ -67,9 +67,9 @@ test('loadable locales always include the bundled fallback', () => {
   // A server list that omits `en` must not empty the set: `en` is bundled, so it
   // is always renderable, and a picker built from this function would otherwise
   // have no options.
-  // fr-FR, not id-ID: id-ID now ships a loader, so it would be renderable and
+  // nl-NL, not id-ID: id-ID now ships a loader, so it would be renderable and
   // the assertion would stop being about the fallback.
-  withServerLocales([{ tag: 'fr-FR', name: 'Français' }], () => {
+  withServerLocales([{ tag: 'nl-NL', name: 'Nederlands' }], () => {
     assert.deepEqual(loadableLocales(), ['en'])
   })
   // And a shipped tag is listed alongside it, in server order after the fallback.
@@ -81,7 +81,7 @@ test('loadable locales always include the bundled fallback', () => {
 test('loadable locales exclude a server tag this build cannot render', () => {
   // A newer server advertising a locale whose chunk does not exist in this
   // bundle must not become selectable — that renders raw keys.
-  withServerLocales([{ tag: 'en' }, { tag: 'fr-FR', name: 'Français' }], () => {
+  withServerLocales([{ tag: 'en' }, { tag: 'nl-NL', name: 'Nederlands' }], () => {
     assert.deepEqual(loadableLocales(), ['en'])
   })
 })
@@ -106,12 +106,12 @@ test('resolution precedence: user choice beats every weaker signal', () => {
 })
 
 test('resolution falls through unrenderable signals instead of stopping', () => {
-  // nl-NL, fr and ja-JP are not shipped, so each must be skipped rather than
-  // returned; en-GB is the first signal that resolves.
+  // nl-NL, sv-SE and ja-JP are not shipped, so each must be skipped rather
+  // than returned; en-GB is the first signal that resolves.
   assert.equal(
     resolveInitialLocale({
       userLocale: 'nl-NL',
-      stored: 'fr',
+      stored: 'sv-SE',
       navigatorLocales: ['ja-JP', 'en-GB'],
       orgLocale: 'id-ID',
     }),
@@ -203,10 +203,10 @@ test('a failed chunk load does not persist the fallback over the stored tag', as
   }
   // Mock tags, not the real id-ID: loading the shipped bundle would leave it
   // resident in availableLocales and silently change what later tests exercise.
-  loaders['fr-FR'] = () => Promise.reject(new Error('chunk 404 — stale index.html'))
+  loaders['nl-NL'] = () => Promise.reject(new Error('chunk 404 — stale index.html'))
   loaders['sv-SE'] = async () => ({ default: { common: { action: { save: 'Speichern' } } } })
   try {
-    assert.equal(await setLocale('fr-FR', { persist: true }), FALLBACK)
+    assert.equal(await setLocale('nl-NL', { persist: true }), FALLBACK)
     assert.deepEqual(writes, [], 'a failed load must leave stored state alone')
     // The app still renders rather than throwing or showing raw keys.
     assert.equal(i18n.global.t('common.action.save'), 'Save')
@@ -222,7 +222,7 @@ test('a failed chunk load does not persist the fallback over the stored tag', as
       [STORAGE_KEY, 'sv-SE'],
     ])
   } finally {
-    delete loaders['fr-FR']
+    delete loaders['nl-NL']
     delete loaders['sv-SE']
     if (original === undefined) delete globalThis.localStorage
     else globalThis.localStorage = original
@@ -244,20 +244,20 @@ test('a superseded locale load does not overwrite the newer one', async () => {
     await gate
     return { default: { common: { action: { save: 'Simpan' } } } }
   }
-  loaders['fr-FR'] = async () => ({ default: { common: { action: { save: 'Enregistrer' } } } })
+  loaders['nl-NL'] = async () => ({ default: { common: { action: { save: 'Opslaan' } } } })
   // No /config seeding here: with no server list, loadable() reports what is
   // bundled plus every registered loader, which is exactly these two.
   try {
     const slow = setLocale('id-ID')
-    const fast = await setLocale('fr-FR')
-    assert.equal(fast, 'fr-FR')
+    const fast = await setLocale('nl-NL')
+    assert.equal(fast, 'nl-NL')
     release()
     // The stale continuation reports null and leaves global state alone.
     assert.equal(await slow, null)
-    assert.equal(i18n.global.locale.value, 'fr-FR')
+    assert.equal(i18n.global.locale.value, 'nl-NL')
   } finally {
     loaders['id-ID'] = realIdLoader
-    delete loaders['fr-FR']
+    delete loaders['nl-NL']
     await setLocale(FALLBACK)
   }
 })

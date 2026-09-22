@@ -1,0 +1,48 @@
+{
+  "title": "Registre des programmes",
+  "subtitle": "Regrouper les objectifs du SMSI en programmes de travail",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}"
+  },
+  "action": {
+    "add": "Ajouter un programme"
+  },
+  "create": {
+    "heading": "Ajouter un programme",
+    "key_label": "Clé (majuscules) *",
+    "key_placeholder": "SENSIB",
+    "title_label": "Titre *",
+    "title_placeholder": "Sensibilisation à la sécurité",
+    "fill_in_later": "Vous pourrez ajouter une description et des notes après la création.",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucun programme pour le moment"
+  },
+  "table": {
+    "header": {
+      "key": "Clé",
+      "title": "Titre",
+      "description": "Description"
+    }
+  },
+  "field": {
+    "key": "Clé",
+    "title": "Titre",
+    "description": "Description",
+    "created": "Créé"
+  },
+  "placeholder": {
+    "description": "En quoi consiste ce programme ?",
+    "notes": "Ajouter des notes..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "danger": {
+    "warning": "La suppression de ce programme supprime aussi tous les objectifs qui lui sont rattachés. Cette action est irréversible.",
+    "delete": "Supprimer le programme",
+    "confirm": "Supprimer le programme « {key} » ? Tous les objectifs qui lui sont rattachés seront également supprimés."
+  }
+}

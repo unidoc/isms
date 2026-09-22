@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Documents",
+    "new": "Nouveau",
+    "new_folder": "Nouveau dossier",
+    "new_document": "Nouveau document",
+    "empty": "Aucun document pour le moment",
+    "import_template": "Importer un modèle",
+    "new_folder_placeholder": "nom du nouveau dossier...",
+    "folder_name_placeholder": "nom du dossier...",
+    "hide": "Masquer l'arborescence",
+    "show": "Afficher l'arborescence"
+  },
+  "empty": {
+    "heading": "Aucun document pour le moment",
+    "body": "Importez un modèle pour générer votre structure de documents, puis utilisez le menu arborescent pour ajouter des documents et des dossiers.",
+    "import_template": "Importer un modèle"
+  },
+  "dash": {
+    "tab": {
+      "review": "À revoir",
+      "recent": "Récemment modifiés",
+      "search": "Rechercher",
+      "templates": "Modèles"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Inclure les jamais approuvés ({count})",
+    "up_to_date": "Tous les documents sont à jour.",
+    "never_approved": "Jamais approuvé",
+    "changed": "Modifié",
+    "current": "Actuel : {commit} ({time})",
+    "approved": "Approuvé : {commit}",
+    "review": "Revoir",
+    "diff": "Différences"
+  },
+  "recent": {
+    "refresh": "Actualiser",
+    "empty": "Aucune modification récente.",
+    "meta": "{time} par {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Rechercher dans tous les documents...",
+    "hint": "Saisissez au moins 2 caractères pour rechercher dans tous les documents.",
+    "searching": "Recherche...",
+    "no_results": "Aucun résultat pour « {query} »"
+  },
+  "templates": {
+    "heading": "Modèles",
+    "subtitle": "Ajouter ou retirer la structure documentaire des référentiels.",
+    "installed": "Installé",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "remove_heading": "Retirer le modèle",
+    "remove_body": "Voulez-vous vraiment retirer {name} ? Cela supprimera tous les documents sous {path} du dépôt.",
+    "picker_heading": "Importer un modèle",
+    "picker_subtitle": "Choisissez un référentiel pour générer votre structure de documents.",
+    "picker_placeholder": "Rechercher des modèles...",
+    "picker_empty": "Aucun modèle trouvé.",
+    "import": "Importer",
+    "added": "Modèle {name} ajouté avec succès.",
+    "removed": "Modèle {name} retiré.",
+    "add_failed": "Échec de l'ajout du modèle : {message}",
+    "remove_failed": "Échec du retrait du modèle : {message}"
+  },
+  "toolbar": {
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "send_for_review": "Envoyer pour revue",
+    "version_history": "Historique des versions",
+    "comments": "Commentaires",
+    "print": "Imprimer le document",
+    "delete": "Supprimer le document"
+  },
+  "print": {
+    "version": "Version {version}",
+    "author": "Auteur : {name}",
+    "printed": "Imprimé le {date}"
+  },
+  "tab": {
+    "content": "Contenu",
+    "info": "Infos",
+    "versions": "Versions",
+    "links": "Liens",
+    "discussion": "Discussion",
+    "history": "Historique"
+  },
+  "meta": {
+    "status": "Statut",
+    "go_to_active_review": "Aller à la revue en cours",
+    "go_to_reviews": "Aller aux revues",
+    "type": "Type",
+    "author": "Auteur",
+    "author_placeholder": "Définir l'auteur...",
+    "version": "Version",
+    "owner": "Responsable",
+    "not_set": "Non défini",
+    "review_cycle": "Cycle de revue",
+    "review_cycle_months": "Tous les {count} mois | Tous les {count} mois",
+    "last_approved": "Dernière approbation",
+    "approved_version": "Version approuvée",
+    "next_review": "Prochaine revue",
+    "due_soon": "ÉCHÉANCE PROCHE"
+  },
+  "banner": {
+    "round_complete": "Cycle {round} terminé — modifications demandées",
+    "pending_suggestions": "{count} suggestion en attente à traiter. | {count} suggestions en attente à traiter.",
+    "feedback_waiting": "Le retour du relecteur est en attente dans la conversation.",
+    "then_resubmit": "Traitez le retour, puis resoumettez pour le prochain cycle.",
+    "open_review": "Ouvrir la revue",
+    "in_review": "Ce document est en revue.",
+    "in_review_round": "Ce document est en revue (cycle {round}).",
+    "view_review": "Voir la revue →",
+    "retired": "Ce document est retiré.",
+    "never_approved": "Ce document n'a jamais été approuvé.",
+    "send_for_review": "Envoyer pour revue →",
+    "changed_since_approval": "Modifié depuis la dernière approbation",
+    "last_approved": "— dernière approbation",
+    "last_approved_version": "— dernière version approuvée {version}",
+    "last_approved_on": "— dernière approbation le {date}",
+    "last_approved_version_on": "— dernière version approuvée {version} le {date}",
+    "hide_diff": "Masquer les différences",
+    "view_diff": "Voir les différences"
+  },
+  "versions": {
+    "heading": "Historique des versions",
+    "empty": "Aucun historique de version disponible",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Discussion du document",
+    "changelog": "Journal des modifications du document"
+  },
+  "content": {
+    "inline_comment_count": "{count} commentaire intégré sur ce document | {count} commentaires intégrés sur ce document",
+    "draft_recovered": "Brouillon non enregistré récupéré",
+    "mark_unreviewed": "Marquer comme non revu",
+    "mark_reviewed": "Marquer comme revu",
+    "comment_count": "{count} commentaire | {count} commentaires",
+    "add_comment": "Ajouter un commentaire",
+    "resolved": "Résolu",
+    "resolved_by": "Résolu par {name} {date}",
+    "resolved_by_unknown": "inconnu",
+    "inline_placeholder": "Ajouter un commentaire sur ce paragraphe... (tapez {'@'} pour mentionner)",
+    "no_users": "Aucun utilisateur trouvé",
+    "empty": "Aucun contenu disponible pour ce document."
+  },
+  "comments": {
+    "no_document": "Sélectionnez un document pour voir les commentaires",
+    "heading": "Commentaires",
+    "resolved_count": "{count} résolu(s)",
+    "general_placeholder": "Ajouter un commentaire général... (tapez {'@'} pour mentionner)",
+    "author_placeholder": "Votre nom",
+    "send": "Envoyer",
+    "inline_label": "Commentaire intégré",
+    "inline_label_short": "Intégré",
+    "document_label": "Commentaire de document",
+    "quote": "— « {quote} »",
+    "reply": "Répondre",
+    "reply_placeholder": "Rédiger une réponse...",
+    "resolved_toggle": "{count} commentaire résolu | {count} commentaires résolus",
+    "empty": "Aucun commentaire pour le moment"
+  },
+  "review_modal": {
+    "heading": "Envoyer pour revue",
+    "reviewers": "Relecteurs",
+    "search_members": "Rechercher des membres...",
+    "version_note": "Note de version",
+    "version_note_placeholder": "ex. : mise à jour des critères d'appréciation des risques. Ajout du tableau de classification des données.",
+    "version_note_hint": "Cette note fera partie de l'historique de version permanent du document après approbation.",
+    "send": "Envoyer à {count} relecteur | Envoyer à {count} relecteurs"
+  },
+  "new_doc": {
+    "heading": "Nouveau document",
+    "title": "Titre",
+    "title_placeholder": "ex. : Politique de classification des données",
+    "type": "Type",
+    "no_folder": "Aucun dossier sélectionné",
+    "change_folder": "changer",
+    "pick_folder": "choisir un dossier",
+    "folder_placeholder": "Saisissez ou sélectionnez un dossier",
+    "show_advanced": "Afficher les options avancées",
+    "hide_advanced": "Masquer les options avancées",
+    "document_id": "Identifiant du document",
+    "document_id_placeholder": "auto à partir du titre",
+    "document_id_exists": "Cet identifiant existe déjà",
+    "filename": "Nom de fichier",
+    "filename_placeholder": "auto à partir de l'identifiant",
+    "author": "Auteur",
+    "author_placeholder": "Sélectionner un auteur...",
+    "create": "Créer le document"
+  },
+  "confirm": {
+    "embedded_html_body": "Ce document contient du HTML/SVG intégré que l'éditeur ne peut pas préserver — modifier ici le supprimera à l'enregistrement. Modifiez la source via la ligne de commande pour le conserver. Modifier quand même ?",
+    "delete_body": "Supprimer « {name} » ? Cette action est irréversible."
+  },
+  "error": {
+    "load_diff": "Échec du chargement des différences",
+    "set_author": "Échec de la définition de l'auteur : {message}",
+    "set_type": "Échec de la définition du type : {message}",
+    "set_version": "Échec de la définition de la version : {message}",
+    "create_folder": "Échec de la création du dossier : {message}",
+    "create_document": "Échec de la création du document : {message}",
+    "delete": "Échec de la suppression : {message}",
+    "send_for_review": "Échec de l'envoi pour revue : {message}",
+    "load_content": "**Erreur lors du chargement du contenu :** {message}",
+    "submit_reply": "Échec de l'envoi de la réponse : {message}",
+    "submit_comment": "Échec de l'envoi du commentaire : {message}",
+    "resolve_comment": "Échec de la résolution du commentaire : {message}",
+    "load_documents": "Échec du chargement des documents : {message}",
+    "save": "Échec de l'enregistrement : {message}"
+  }
+}

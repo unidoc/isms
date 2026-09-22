@@ -1,0 +1,190 @@
+{
+  "title": "Revues",
+  "subtitle": "Demandes de revue de documents",
+  "back": "Retour aux revues",
+  "not_found": "Revue introuvable",
+  "opened_ago": "ouverte {time}",
+  "ai": {
+    "active": "Revue IA en cours",
+    "escalated": "Transmise — la revue IA est bloquée"
+  },
+  "guide": {
+    "step_review": "Examinez le document et les modifications",
+    "step_comment": "Ajoutez des commentaires ou proposez des modifications",
+    "step_decide": "Approuvez ou demandez des modifications"
+  },
+  "tab": {
+    "changes": "Modifications (cycle {round})",
+    "document": "Document",
+    "conversation": "Conversation"
+  },
+  "timeline": {
+    "suggested_edit": "a proposé une modification",
+    "commented": "a commenté",
+    "approved": "a approuvé cette revue",
+    "proposed_revision": "a proposé une révision",
+    "requested_changes": "a demandé des modifications",
+    "assigned": "{reviewer} a été assigné comme relecteur",
+    "empty": "Aucune activité pour le moment.",
+    "round_short": "C{round}",
+    "decision": {
+      "merged": "a fusionné cette revue",
+      "approved": "approuvé (registre de décision)",
+      "proposed_revision": "révision proposée (registre de décision)",
+      "changes_requested": "modifications demandées (registre de décision)"
+    },
+    "content_hash": "Empreinte SHA-256 du contenu pour preuve d'intégrité",
+    "hide_changes": "Masquer les modifications",
+    "view_changes": "Voir les modifications",
+    "diff_loading": "Chargement des modifications…",
+    "diff_error": "Impossible de charger les différences de cette révision."
+  },
+  "updated": {
+    "heading": "Document modifié depuis l'envoi de la revue",
+    "last_modified_by": "Dernière modification par {name}",
+    "last_modified_by_with_message": "Dernière modification par {name} — {message}",
+    "note": "Les différences ci-dessous montrent toutes les modifications depuis la dernière version approuvée."
+  },
+  "diff": {
+    "summary_heading": "Modifications dans cette revue",
+    "never_approved_inline": "Revue complète — ce document n'a jamais été approuvé. Examinez le document complet dans l'onglet Document.",
+    "none_inline": "Aucune différence disponible — le document n'a peut-être pas été modifié depuis la base de la revue.",
+    "loading": "Chargement des modifications...",
+    "scope_round": "Modifications de ce cycle",
+    "scope_all": "Toutes les modifications de la revue",
+    "mode_split": "Côte à côte",
+    "mode_unified": "Unifié",
+    "never_approved_heading": "Revue complète — ce document n'a jamais été approuvé",
+    "never_approved_body": "Il n'existe aucune version approuvée antérieure pour comparer. Examinez le document complet dans l'onglet Document.",
+    "none_in_round": "Aucune modification trouvée dans ce cycle."
+  },
+  "comment": {
+    "heading": "Ajouter un commentaire",
+    "placeholder": "Laissez un commentaire..."
+  },
+  "edit": {
+    "save_and_resubmit": "Enregistrer et resoumettre",
+    "send_revision": "Envoyer la révision proposée",
+    "draft_saved": "Brouillon enregistré",
+    "note_placeholder": "Qu'avez-vous modifié et pourquoi ?",
+    "draft_recovered": "Brouillon récupéré de la session précédente."
+  },
+  "summary": {
+    "resubmitted": "Resoumis après demande de modifications",
+    "initial": "Revue initiale",
+    "approved_count": "{approved} sur {total}",
+    "waiting_on": "En attente de :",
+    "ready_to_merge": "Tous les relecteurs ont approuvé. Prêt à fusionner.",
+    "changes_requested_you": "Modifications demandées. En attente de votre réponse.",
+    "changes_requested_author": "Modifications demandées. En attente de la réponse de {author}."
+  },
+  "suggestion": {
+    "count": "{count} suggestion | {count} suggestions",
+    "pending": "{count} en attente",
+    "accepted": "{count} acceptée(s)",
+    "rejected": "{count} rejetée(s)"
+  },
+  "assignment": {
+    "empty": "Aucun relecteur assigné",
+    "status": {
+      "approved": "approuvé",
+      "pending": "en attente",
+      "changes_requested": "modifications",
+      "proposed_revision": "révision"
+    }
+  },
+  "policy": {
+    "heading": "Exigences d'approbation",
+    "approvals": "{current}/{min} approbations",
+    "missing_roles": "Manquant : rôle {roles}",
+    "missing_users": "En attente de : {users}",
+    "blocked": "Fusion bloquée tant que toutes les exigences ne sont pas satisfaites",
+    "will_auto_merge": "Fusionnera automatiquement une fois toutes les approbations reçues",
+    "require_human": "Au moins une approbation humaine requise",
+    "auto_merge": "Fusion automatique activée pour cette politique"
+  },
+  "actions": {
+    "heading": "Actions",
+    "requirements_not_met": "Exigences non satisfaites",
+    "publish": "Publier",
+    "publish_version": "Publier {version}",
+    "publish_note": "Cela fera de {version} le document accepté.",
+    "publish_note_this_version": "Cela fera de cette version le document accepté.",
+    "awaiting_manager": "Tous les relecteurs ont approuvé. En attente d'un manager pour publier.",
+    "revision_proposed_by": "{name} a proposé une révision de ce document.",
+    "publishing": "Publication...",
+    "accept_and_publish": "Accepter et publier",
+    "request_another_review": "Demander une autre revue",
+    "propose_new_revision": "Proposer une nouvelle révision",
+    "changes_were_requested": "Des modifications ont été demandées. Modifiez le document et resoumettez.",
+    "edit_and_resubmit": "Modifier et resoumettre",
+    "you_sent_this": "Vous avez envoyé cette revue.",
+    "waiting_for_feedback": "En attente du retour du relecteur.",
+    "you_approved": "Vous avez approuvé ce cycle.",
+    "you_proposed_revision": "Vous avez proposé une révision.",
+    "you_requested_changes": "Vous avez demandé des modifications.",
+    "waiting_for_author": "En attente de la réponse de {author}.",
+    "waiting_for_reviewers": "En attente des autres relecteurs.",
+    "stale_warning": "Le document a été mis à jour après l'envoi de cette revue. Examinez les dernières modifications avant d'approuver.",
+    "request_changes": "Demander des modifications",
+    "propose_revision": "Proposer une révision",
+    "approve_heading": "Approuver ce document",
+    "approve_placeholder": "Commentaire facultatif...",
+    "approving": "Approbation...",
+    "confirm_approve": "Confirmer l'approbation",
+    "changes_heading": "Demander des modifications",
+    "changes_placeholder": "Décrivez ce qui doit changer... (requis)",
+    "submitting": "Envoi...",
+    "submit_request": "Envoyer la demande",
+    "withdraw": "Retirer la revue",
+    "close_without_merging": "Fermer sans fusionner",
+    "not_a_reviewer": "Vous n'êtes pas relecteur sur cette demande.",
+    "no_reviewers_assigned": "Aucun relecteur n'est assigné à cette revue. Ajoutez un relecteur avant d'approuver ou de demander des modifications."
+  },
+  "closed_state": {
+    "merged": "Fusionnée",
+    "closed": "Fermée"
+  },
+  "document": {
+    "heading": "Document",
+    "id": "ID",
+    "comments": "Commentaires",
+    "open_comments": "Ouvert(s)"
+  },
+  "list": {
+    "empty_open": "Aucune revue ouverte",
+    "empty_closed": "Aucune revue fermée",
+    "item_title": "Revue #{id} -- {title}",
+    "opened_by": "Ouverte par {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "auteur",
+  "reviewer_fallback": "Un relecteur",
+  "revision_note_fallback": "Modifications de l'auteur",
+  "toast": {
+    "revision_published": "Révision acceptée et publiée.",
+    "revision_accepted": "Révision proposée acceptée",
+    "decision_recorded": "Votre approbation a été enregistrée{round}. En attente de {count} relecteur supplémentaire. | Votre approbation a été enregistrée{round}. En attente de {count} relecteurs supplémentaires.",
+    "decision_recorded_changes": "Votre demande de modifications a été enregistrée{round}. En attente de {count} relecteur supplémentaire. | Votre demande de modifications a été enregistrée{round}. En attente de {count} relecteurs supplémentaires.",
+    "all_approved": "Tous les relecteurs ont approuvé{round}. Prêt à fusionner.",
+    "changes_requested": "Modifications demandées{round}. L'auteur sera notifié.",
+    "for_round": " pour le cycle {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Approuver quand même",
+    "approve_stale_body": "Le document a été modifié après l'envoi de cette revue. Approuver sur la base de la version actuelle ?",
+    "discard_changes": "Abandonner les modifications non enregistrées ?"
+  },
+  "error": {
+    "save_and_resubmit": "Échec de l'enregistrement et de la resoumission : {message}",
+    "publish": "Échec de la publication : {message}",
+    "accept_revision": "Échec de l'acceptation de la révision : {message}",
+    "submit_revision": "Échec de l'envoi de la révision : {message}",
+    "load_list": "Échec du chargement des revues : {message}",
+    "load_one": "Échec du chargement de la revue : {message}",
+    "add_comment": "Échec de l'ajout du commentaire : {message}",
+    "submit_decision": "Échec de l'envoi de la décision : {message}",
+    "merge": "Échec de la fusion de la revue : {message}",
+    "close": "Échec de la fermeture de la revue : {message}"
+  }
+}

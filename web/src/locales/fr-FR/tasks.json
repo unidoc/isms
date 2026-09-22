@@ -1,0 +1,69 @@
+{
+  "title": "Tâches",
+  "subtitle": "Tâches de revue, suivis et éléments de travail opérationnels.",
+  "error": {
+    "create": "Échec de la création de la tâche : {message}",
+    "save": "Échec de l'enregistrement : {message}",
+    "delete": "Échec de la suppression de la tâche : {message}"
+  },
+  "action": {
+    "add": "Ajouter une tâche"
+  },
+  "create": {
+    "heading": "Ajouter une tâche",
+    "title_label": "Titre",
+    "title_placeholder": "ex. : revoir le registre des risques",
+    "priority_label": "Priorité",
+    "type_label": "Type",
+    "visibility_label": "Visibilité",
+    "fill_in_later": "Vous pourrez ajouter une description, un responsable, une date d'échéance et des notes après la création.",
+    "submitting": "Création...",
+    "submit": "Ajouter"
+  },
+  "visibility": {
+    "public": "Publique — tout le monde dans l'organisation",
+    "private": "Privée — responsable, créateur et managers",
+    "private_badge": "Privée",
+    "private_title": "Privée — visible par le responsable, le créateur et les managers"
+  },
+  "filter": {
+    "assignee_placeholder": "Tous les responsables",
+    "empty": "Aucune tâche ne correspond à votre filtre.",
+    "empty_all": "Aucune tâche pour le moment — cliquez sur Ajouter pour créer la première.",
+    "empty_hint": "Des tâches sont aussi générées automatiquement à partir des cycles de revue en retard."
+  },
+  "list": {
+    "due": "Échéance {date}",
+    "created_by": "par {name}"
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "assignee": "Responsable",
+    "priority": "Priorité",
+    "status": "Statut",
+    "due_date": "Date d'échéance",
+    "type": "Type",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "completed": "Terminé"
+  },
+  "placeholder": {
+    "description": "Décrivez la tâche...",
+    "assignee": "Sélectionner un responsable...",
+    "notes": "Ajouter des notes..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes",
+    "progress": "Avancement"
+  },
+  "stat": {
+    "active": "Actives"
+  },
+  "danger": {
+    "warning": "La suppression de cette tâche est définitive et irréversible.",
+    "delete": "Supprimer la tâche",
+    "confirm": "Supprimer la tâche « {title} » ?"
+  }
+}

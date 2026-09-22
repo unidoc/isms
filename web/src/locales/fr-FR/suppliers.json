@@ -1,0 +1,84 @@
+{
+  "title": "Registre des fournisseurs",
+  "subtitle": "Fournisseurs tiers, criticité et évaluation",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}",
+    "create": "Échec de la création du fournisseur : {message}",
+    "delete": "Échec de la suppression : {message}"
+  },
+  "action": {
+    "add": "Ajouter un fournisseur"
+  },
+  "create": {
+    "heading": "Ajouter un fournisseur",
+    "name_label": "Nom *",
+    "name_placeholder": "ex. : AWS, Office 365",
+    "type_label": "Type",
+    "criticality_label": "Criticité",
+    "fill_in_later": "Vous pourrez ajouter la classification DIC, le responsable, les détails du contrat après la création.",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucun fournisseur trouvé"
+  },
+  "table": {
+    "header": {
+      "supplier": "Fournisseur",
+      "type": "Type",
+      "criticality": "Criticité",
+      "cia": "C/I/D",
+      "status": "Statut",
+      "owner": "Responsable",
+      "next_review": "Prochaine revue"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentialité : {level}",
+      "integrity": "Intégrité : {level}",
+      "availability": "Disponibilité : {level}"
+    }
+  },
+  "field": {
+    "name": "Nom",
+    "type": "Type",
+    "criticality": "Criticité",
+    "status": "Statut",
+    "owner": "Responsable",
+    "contact": "Contact",
+    "contract_ref": "Référence du contrat",
+    "contract_expiry": "Expiration du contrat",
+    "data_access": "Accès aux données",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "contact": "contact{'@'}fournisseur.com",
+    "contract_ref": "URL du DPA / contrat",
+    "notes": "Notes additionnelles... Tapez /doc pour lier un document"
+  },
+  "data_access": {
+    "checkbox": "Le fournisseur a accès à nos données",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "tab": {
+    "reviews": "Revues"
+  },
+  "assessment": {
+    "confidentiality": "Confidentialité",
+    "integrity": "Intégrité",
+    "availability": "Disponibilité"
+  },
+  "linked_systems": {
+    "heading": "aucun système lié | Système lié ({count}) | Systèmes liés ({count})"
+  },
+  "danger": {
+    "warning": "La suppression de ce fournisseur est définitive et irréversible. L'historique, les commentaires, les revues et les références liées seront perdus.",
+    "delete": "Supprimer le fournisseur",
+    "confirm": "Supprimer ce fournisseur ? Cette action est irréversible."
+  }
+}

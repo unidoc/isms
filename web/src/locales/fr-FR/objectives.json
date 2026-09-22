@@ -1,0 +1,98 @@
+{
+  "title": "Objectifs",
+  "subtitle": "Suivre les objectifs mesurables du SMSI et la performance des indicateurs",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}",
+    "download": "Échec du téléchargement : réponse inattendue du serveur"
+  },
+  "action": {
+    "add": "Ajouter un objectif"
+  },
+  "filter": {
+    "all_programs": "Tous les programmes",
+    "owner_placeholder": "Responsable...",
+    "empty": "Aucun objectif trouvé"
+  },
+  "create": {
+    "heading": "Ajouter un objectif",
+    "program_label": "Programme *",
+    "program_placeholder": "Sélectionner un programme...",
+    "owner_label": "Responsable",
+    "title_label": "Titre *",
+    "title_placeholder": "Taux mensuel de réussite du test de phishing",
+    "fill_in_later": "Vous pourrez ajouter la valeur cible, la source, la méthode de mesure, la description et des notes après la création.",
+    "submit": "Ajouter"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Titre",
+      "target": "Cible",
+      "status": "Statut",
+      "owner": "Responsable"
+    }
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "owner": "Responsable",
+    "source": "Source",
+    "status": "Statut",
+    "measurement_method": "Méthode de mesure",
+    "measurement": "Mesure",
+    "operator": "Opérateur",
+    "target_value": "Valeur cible",
+    "target": "Cible",
+    "unit": "Unité",
+    "checkin_cycle_months": "Fréquence de mesure (mois)",
+    "checkin_cycle": "Fréquence de mesure",
+    "last_checkin": "Dernière mesure",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "months": "{count} mois | {count} mois"
+  },
+  "placeholder": {
+    "description": "En quoi consiste cet objectif ?",
+    "owner": "Sélectionner un responsable...",
+    "source": "ISO 27001 6.2, etc.",
+    "measurement_method": "Comment est-ce mesuré ?",
+    "unit": "%, nombre, heures...",
+    "notes": "Ajouter des notes..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "checkin": {
+    "heading": "Mesures",
+    "summary": "{pass} réussite(s) · {fail} échec(s) · {total} au total",
+    "record_heading": "Enregistrer une mesure",
+    "value_label": "Valeur",
+    "value_placeholder": "97,5",
+    "result_label": "Résultat",
+    "result": {
+      "unspecified": "Non spécifié",
+      "pass": "Réussi",
+      "fail": "Échoué"
+    },
+    "message_label": "Note interne",
+    "message_placeholder": "Contexte interne...",
+    "public_note_placeholder": "Note publique (visible par les parties prenantes)",
+    "submit": "Enregistrer",
+    "empty": "Aucune mesure enregistrée pour le moment",
+    "pass_badge": "RÉUSSI",
+    "fail_badge": "ÉCHOUÉ",
+    "public": "Public : {note}",
+    "confirm_delete": "Supprimer cette mesure ?"
+  },
+  "evidence": {
+    "download": "Télécharger",
+    "attach": "Joindre une preuve",
+    "confirm_delete": "Supprimer la preuve « {title} » ?"
+  },
+  "danger": {
+    "warning": "La suppression de cet objectif est définitive et irréversible.",
+    "delete": "Supprimer l'objectif",
+    "confirm": "Supprimer l'objectif « {title} » ? Cette action est irréversible."
+  }
+}

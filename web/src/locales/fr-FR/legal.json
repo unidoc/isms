@@ -1,0 +1,75 @@
+{
+  "title": "Registre juridique",
+  "subtitle": "Législation applicable et appréciation des risques réglementaires",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}",
+    "create": "Échec de la création de l'exigence légale : {message}",
+    "delete": "Échec de la suppression : {message}"
+  },
+  "action": {
+    "add": "Ajouter une exigence légale"
+  },
+  "create": {
+    "heading": "Ajouter une exigence légale",
+    "title_label": "Titre *",
+    "title_placeholder": "ex. : RGPD, directive NIS2",
+    "category_label": "Catégorie",
+    "deselect_hint": "Cliquez pour désélectionner",
+    "fill_in_later": "Vous pourrez ajouter la juridiction, le responsable, le traitement et plus après la création.",
+    "submit": "Ajouter"
+  },
+  "map": {
+    "summary": "Carte des risques",
+    "heading": "Carte des risques de conformité"
+  },
+  "filter": {
+    "empty": "Aucune exigence légale trouvée"
+  },
+  "table": {
+    "header": {
+      "title": "Titre",
+      "jurisdiction": "Juridiction",
+      "score": "Score",
+      "treatment": "Traitement",
+      "status": "Statut",
+      "owner": "Responsable"
+    }
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "jurisdiction": "Juridiction",
+    "category": "Catégorie",
+    "status": "Statut",
+    "owner": "Responsable",
+    "reference": "Référence",
+    "reference_label": "Référence (article/section)",
+    "url": "URL",
+    "treatment": "Traitement",
+    "treatment_plan": "Plan de traitement",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "description": "Décrivez l'exigence...",
+    "jurisdiction": "Tapez pour rechercher...",
+    "reference": "ex. : Article 32, Section 4.2",
+    "url": "https://...",
+    "treatment_plan": "Comment répondons-nous à cette exigence ? (contrôles, politiques, actions...)",
+    "notes": "Notes additionnelles, observations, interprétations... Tapez /doc pour lier un document"
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "treatment": "Traitement",
+    "notes": "Notes"
+  },
+  "assessment": {
+    "current": "Actuel"
+  },
+  "danger": {
+    "warning": "La suppression de cette exigence légale est définitive et irréversible. L'historique, les commentaires et les références liées seront perdus.",
+    "delete": "Supprimer l'exigence",
+    "confirm": "Supprimer cette exigence légale ? Cette action est irréversible."
+  }
+}

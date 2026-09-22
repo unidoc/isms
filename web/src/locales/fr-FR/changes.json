@@ -1,0 +1,65 @@
+{
+  "title": "Gestion des changements",
+  "subtitle": "Suivre et approuver les changements apportés à votre système de management.",
+  "error": {
+    "load": "Échec du chargement des changements : {message}",
+    "create": "Échec de la création de la demande de changement : {message}",
+    "save": "Échec de l'enregistrement : {message}",
+    "delete": "Échec de la suppression de la demande de changement : {message}"
+  },
+  "action": {
+    "add": "Ajouter une demande de changement"
+  },
+  "create": {
+    "heading": "Ajouter une demande de changement",
+    "type_label": "Type",
+    "title_label": "Titre",
+    "title_placeholder": "ex. : migrer l'authentification vers OIDC",
+    "priority_label": "Priorité",
+    "category_label": "Catégorie",
+    "fill_in_later": "Vous pourrez ajouter la description, la justification, la date prévue, le niveau de risque, la personne assignée, le plan de retour arrière et des notes après la création.",
+    "submitting": "Création...",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucune demande de changement trouvée"
+  },
+  "list": {
+    "requested_by": "Demandé par {name}",
+    "assigned_to": "Assigné à {name}",
+    "risk": "Risque : {level}"
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "type": "Type",
+    "priority": "Priorité",
+    "category": "Catégorie",
+    "risk_level": "Niveau de risque",
+    "status": "Statut",
+    "assigned_to": "Assigné à",
+    "assignee": "Personne assignée",
+    "planned_for": "Prévu pour",
+    "justification": "Justification",
+    "rollback_plan": "Plan de retour arrière",
+    "requested_by": "Demandé par",
+    "created": "Créé"
+  },
+  "placeholder": {
+    "description": "Décrivez le changement...",
+    "assignee": "Sélectionner...",
+    "justification": "Pourquoi ce changement est-il nécessaire ?",
+    "rollback_plan": "Comment revenir en arrière ?",
+    "notes": "Ajouter des notes..."
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes",
+    "progress": "Avancement"
+  },
+  "danger": {
+    "warning": "La suppression de cette demande de changement est définitive et irréversible.",
+    "delete": "Supprimer la demande de changement",
+    "confirm": "Supprimer cette demande de changement ? Cette action est irréversible."
+  }
+}

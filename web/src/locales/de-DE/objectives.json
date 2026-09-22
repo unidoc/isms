@@ -1,0 +1,98 @@
+{
+  "title": "Ziele",
+  "subtitle": "Messbare ISMS-Ziele und KPI-Leistung nachverfolgen",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}",
+    "download": "Download fehlgeschlagen: unerwartete Antwort vom Server"
+  },
+  "action": {
+    "add": "Ziel hinzufügen"
+  },
+  "filter": {
+    "all_programs": "Alle Programme",
+    "owner_placeholder": "Verantwortlicher...",
+    "empty": "Keine Ziele gefunden"
+  },
+  "create": {
+    "heading": "Ziel hinzufügen",
+    "program_label": "Programm *",
+    "program_placeholder": "Programm auswählen...",
+    "owner_label": "Verantwortlicher",
+    "title_label": "Titel *",
+    "title_placeholder": "Monatliche Abschlussrate der Phishing-Tests",
+    "fill_in_later": "Zielwert, Quelle, Messmethode, Beschreibung und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Titel",
+      "target": "Zielwert",
+      "status": "Status",
+      "owner": "Verantwortlicher"
+    }
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "owner": "Verantwortlicher",
+    "source": "Quelle",
+    "status": "Status",
+    "measurement_method": "Messmethode",
+    "measurement": "Messung",
+    "operator": "Operator",
+    "target_value": "Zielwert",
+    "target": "Ziel",
+    "unit": "Einheit",
+    "checkin_cycle_months": "Messintervall (Monate)",
+    "checkin_cycle": "Messintervall",
+    "last_checkin": "Letzte Messung",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "months": "{count} Monat | {count} Monate"
+  },
+  "placeholder": {
+    "description": "Worum geht es bei diesem Ziel?",
+    "owner": "Verantwortlichen auswählen...",
+    "source": "ISO 27001 6.2 usw.",
+    "measurement_method": "Wie wird dies gemessen?",
+    "unit": "%, Anzahl, Stunden...",
+    "notes": "Notizen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "checkin": {
+    "heading": "Messungen",
+    "summary": "{pass} bestanden · {fail} nicht bestanden · {total} insgesamt",
+    "record_heading": "Messung erfassen",
+    "value_label": "Wert",
+    "value_placeholder": "97,5",
+    "result_label": "Ergebnis",
+    "result": {
+      "unspecified": "Nicht angegeben",
+      "pass": "Bestanden",
+      "fail": "Nicht bestanden"
+    },
+    "message_label": "Interne Notiz",
+    "message_placeholder": "Interner Kontext...",
+    "public_note_placeholder": "Öffentliche Notiz (für Stakeholder sichtbar)",
+    "submit": "Erfassen",
+    "empty": "Noch keine Messungen erfasst",
+    "pass_badge": "BESTANDEN",
+    "fail_badge": "NICHT BESTANDEN",
+    "public": "Öffentlich: {note}",
+    "confirm_delete": "Diese Messung löschen?"
+  },
+  "evidence": {
+    "download": "Herunterladen",
+    "attach": "Nachweis anhängen",
+    "confirm_delete": "Nachweis „{title}“ löschen?"
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Ziels ist endgültig und kann nicht rückgängig gemacht werden.",
+    "delete": "Ziel löschen",
+    "confirm": "Ziel „{title}“ löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

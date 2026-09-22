@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Dokumente",
+    "new": "Neu",
+    "new_folder": "Neuer Ordner",
+    "new_document": "Neues Dokument",
+    "empty": "Noch keine Dokumente",
+    "import_template": "Vorlage importieren",
+    "new_folder_placeholder": "Name des neuen Ordners...",
+    "folder_name_placeholder": "Ordnername...",
+    "hide": "Baum ausblenden",
+    "show": "Baum anzeigen"
+  },
+  "empty": {
+    "heading": "Noch keine Dokumente",
+    "body": "Importieren Sie eine Vorlage, um Ihre Dokumentstruktur zu erstellen, und verwenden Sie dann das Baummenü, um Dokumente und Ordner hinzuzufügen.",
+    "import_template": "Vorlage importieren"
+  },
+  "dash": {
+    "tab": {
+      "review": "Prüfung erforderlich",
+      "recent": "Kürzlich geändert",
+      "search": "Suchen",
+      "templates": "Vorlagen"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Nie genehmigte einschließen ({count})",
+    "up_to_date": "Alle Dokumente sind aktuell.",
+    "never_approved": "Nie genehmigt",
+    "changed": "Geändert",
+    "current": "Aktuell: {commit} ({time})",
+    "approved": "Genehmigt: {commit}",
+    "review": "Prüfen",
+    "diff": "Diff"
+  },
+  "recent": {
+    "refresh": "Aktualisieren",
+    "empty": "Keine kürzlichen Änderungen.",
+    "meta": "{time} von {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Alle Dokumente durchsuchen...",
+    "hint": "Geben Sie mindestens 2 Zeichen ein, um alle Dokumente zu durchsuchen.",
+    "searching": "Wird gesucht...",
+    "no_results": "Keine Ergebnisse für „{query}“"
+  },
+  "templates": {
+    "heading": "Vorlagen",
+    "subtitle": "Dokumentgerüste für Standards hinzufügen oder entfernen.",
+    "installed": "Installiert",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "remove_heading": "Vorlage entfernen",
+    "remove_body": "Sind Sie sicher, dass Sie {name} entfernen möchten? Dadurch werden alle Dokumente unter {path} aus dem Repository gelöscht.",
+    "picker_heading": "Vorlage importieren",
+    "picker_subtitle": "Wählen Sie einen Standard, um Ihre Dokumentstruktur zu erstellen.",
+    "picker_placeholder": "Vorlagen durchsuchen...",
+    "picker_empty": "Keine Vorlagen gefunden.",
+    "import": "Importieren",
+    "added": "Vorlage {name} erfolgreich hinzugefügt.",
+    "removed": "Vorlage {name} entfernt.",
+    "add_failed": "Vorlage konnte nicht hinzugefügt werden: {message}",
+    "remove_failed": "Vorlage konnte nicht entfernt werden: {message}"
+  },
+  "toolbar": {
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "send_for_review": "Zur Prüfung senden",
+    "version_history": "Versionshistorie",
+    "comments": "Kommentare",
+    "print": "Dokument drucken",
+    "delete": "Dokument löschen"
+  },
+  "print": {
+    "version": "Version {version}",
+    "author": "Autor: {name}",
+    "printed": "Gedruckt am {date}"
+  },
+  "tab": {
+    "content": "Inhalt",
+    "info": "Info",
+    "versions": "Versionen",
+    "links": "Verknüpfungen",
+    "discussion": "Diskussion",
+    "history": "Verlauf"
+  },
+  "meta": {
+    "status": "Status",
+    "go_to_active_review": "Zur aktiven Prüfung",
+    "go_to_reviews": "Zu den Prüfungen",
+    "type": "Typ",
+    "author": "Autor",
+    "author_placeholder": "Autor festlegen...",
+    "version": "Version",
+    "owner": "Verantwortlicher",
+    "not_set": "Nicht festgelegt",
+    "review_cycle": "Prüfzyklus",
+    "review_cycle_months": "Alle {count} Monat | Alle {count} Monate",
+    "last_approved": "Zuletzt genehmigt",
+    "approved_version": "Genehmigte Version",
+    "next_review": "Nächste Prüfung",
+    "due_soon": "BALD FÄLLIG"
+  },
+  "banner": {
+    "round_complete": "Runde {round} abgeschlossen — Änderungen angefordert",
+    "pending_suggestions": "{count} ausstehender Vorschlag zu bearbeiten. | {count} ausstehende Vorschläge zu bearbeiten.",
+    "feedback_waiting": "Rückmeldung der Prüfer steht in der Konversation aus.",
+    "then_resubmit": "Bearbeiten Sie die Rückmeldung und reichen Sie dann für die nächste Runde erneut ein.",
+    "open_review": "Prüfung öffnen",
+    "in_review": "Dieses Dokument wird geprüft.",
+    "in_review_round": "Dieses Dokument wird geprüft (Runde {round}).",
+    "view_review": "Prüfung ansehen →",
+    "retired": "Dieses Dokument ist stillgelegt.",
+    "never_approved": "Dieses Dokument wurde noch nie genehmigt.",
+    "send_for_review": "Zur Prüfung senden →",
+    "changed_since_approval": "Seit der letzten Genehmigung geändert",
+    "last_approved": "— zuletzt genehmigt",
+    "last_approved_version": "— zuletzt {version} genehmigt",
+    "last_approved_on": "— zuletzt genehmigt am {date}",
+    "last_approved_version_on": "— zuletzt {version} genehmigt am {date}",
+    "hide_diff": "Diff ausblenden",
+    "view_diff": "Diff anzeigen"
+  },
+  "versions": {
+    "heading": "Versionshistorie",
+    "empty": "Keine Versionshistorie verfügbar",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Dokumentdiskussion",
+    "changelog": "Dokument-Änderungsprotokoll"
+  },
+  "content": {
+    "inline_comment_count": "{count} Kommentar im Text zu diesem Dokument | {count} Kommentare im Text zu diesem Dokument",
+    "draft_recovered": "Ungespeicherter Entwurf wiederhergestellt",
+    "mark_unreviewed": "Als ungeprüft markieren",
+    "mark_reviewed": "Als geprüft markieren",
+    "comment_count": "{count} Kommentar | {count} Kommentare",
+    "add_comment": "Kommentar hinzufügen",
+    "resolved": "Gelöst",
+    "resolved_by": "Gelöst von {name} {date}",
+    "resolved_by_unknown": "unbekannt",
+    "inline_placeholder": "Kommentar zu diesem Absatz hinzufügen... ({'@'} eingeben, um zu erwähnen)",
+    "no_users": "Keine Benutzer gefunden",
+    "empty": "Kein Inhalt für dieses Dokument verfügbar."
+  },
+  "comments": {
+    "no_document": "Wählen Sie ein Dokument aus, um Kommentare anzuzeigen",
+    "heading": "Kommentare",
+    "resolved_count": "{count} gelöst",
+    "general_placeholder": "Allgemeinen Kommentar hinzufügen... ({'@'} eingeben, um zu erwähnen)",
+    "author_placeholder": "Ihr Name",
+    "send": "Senden",
+    "inline_label": "Kommentar im Text",
+    "inline_label_short": "Im Text",
+    "document_label": "Dokumentkommentar",
+    "quote": "— „{quote}“",
+    "reply": "Antworten",
+    "reply_placeholder": "Antwort schreiben...",
+    "resolved_toggle": "{count} gelöster Kommentar | {count} gelöste Kommentare",
+    "empty": "Noch keine Kommentare"
+  },
+  "review_modal": {
+    "heading": "Zur Prüfung senden",
+    "reviewers": "Prüfer",
+    "search_members": "Mitglieder durchsuchen...",
+    "version_note": "Versionshinweis",
+    "version_note_placeholder": "z. B. Kriterien der Risikobewertung aktualisiert. Tabelle zur Datenklassifizierung hinzugefügt.",
+    "version_note_hint": "Dies wird nach der Genehmigung Teil der dauerhaften Versionshistorie des Dokuments.",
+    "send": "An {count} Prüfer senden | An {count} Prüfer senden"
+  },
+  "new_doc": {
+    "heading": "Neues Dokument",
+    "title": "Titel",
+    "title_placeholder": "z. B. Richtlinie zur Datenklassifizierung",
+    "type": "Typ",
+    "no_folder": "Kein Ordner ausgewählt",
+    "change_folder": "ändern",
+    "pick_folder": "Ordner wählen",
+    "folder_placeholder": "Ordner eingeben oder auswählen",
+    "show_advanced": "Erweiterte Optionen anzeigen",
+    "hide_advanced": "Erweiterte Optionen ausblenden",
+    "document_id": "Dokument-ID",
+    "document_id_placeholder": "automatisch aus Titel",
+    "document_id_exists": "Diese ID existiert bereits",
+    "filename": "Dateiname",
+    "filename_placeholder": "automatisch aus ID",
+    "author": "Autor",
+    "author_placeholder": "Autor auswählen...",
+    "create": "Dokument erstellen"
+  },
+  "confirm": {
+    "embedded_html_body": "Dieses Dokument enthält eingebettetes HTML/SVG, das der Editor nicht erhalten kann — die Bearbeitung hier verwirft es beim Speichern. Bearbeiten Sie die Quelle über die CLI, um es zu erhalten. Trotzdem bearbeiten?",
+    "delete_body": "„{name}“ löschen? Dies kann nicht rückgängig gemacht werden."
+  },
+  "error": {
+    "load_diff": "Diff konnte nicht geladen werden",
+    "set_author": "Autor konnte nicht festgelegt werden: {message}",
+    "set_type": "Typ konnte nicht festgelegt werden: {message}",
+    "set_version": "Version konnte nicht festgelegt werden: {message}",
+    "create_folder": "Ordner konnte nicht erstellt werden: {message}",
+    "create_document": "Dokument konnte nicht erstellt werden: {message}",
+    "delete": "Löschen fehlgeschlagen: {message}",
+    "send_for_review": "Senden zur Prüfung fehlgeschlagen: {message}",
+    "load_content": "**Fehler beim Laden des Inhalts:** {message}",
+    "submit_reply": "Antwort konnte nicht übermittelt werden: {message}",
+    "submit_comment": "Kommentar konnte nicht übermittelt werden: {message}",
+    "resolve_comment": "Kommentar konnte nicht gelöst werden: {message}",
+    "load_documents": "Dokumente konnten nicht geladen werden: {message}",
+    "save": "Speichern fehlgeschlagen: {message}"
+  }
+}

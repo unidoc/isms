@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "search": "Suchen",
+    "overview": "Übersicht",
+    "documents": "Dokumente",
+    "reviews": "Prüfungen",
+    "inbox": "Posteingang",
+    "group_registers": "Register",
+    "risks": "Risiken",
+    "assets": "Vermögenswerte",
+    "suppliers": "Lieferanten",
+    "legal": "Recht",
+    "systems": "Systeme",
+    "group_operations": "Betrieb",
+    "objectives": "Ziele",
+    "programs": "Programme",
+    "audit": "Audit",
+    "corrective_actions": "Korrekturmaßnahmen",
+    "incidents": "Vorfälle",
+    "changes": "Änderungsmanagement",
+    "tasks": "Aufgaben",
+    "admin": "Verwaltung"
+  },
+  "sidebar": {
+    "expand": "Seitenleiste erweitern",
+    "collapse": "Seitenleiste einklappen"
+  },
+  "org": {
+    "none": "Keine Organisation",
+    "current_heading": "Aktuelle Organisation",
+    "current_heading_short": "Aktuell",
+    "settings": "Organisationseinstellungen",
+    "switch_to": "Wechseln zu",
+    "create": "Neue Organisation erstellen",
+    "switch": "Organisation wechseln"
+  },
+  "notifications": {
+    "heading": "Benachrichtigungen",
+    "mark_all_read": "Alle als gelesen markieren",
+    "empty": "Keine Benachrichtigungen"
+  },
+  "user": {
+    "settings": "Einstellungen",
+    "sign_out": "Abmelden"
+  }
+}

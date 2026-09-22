@@ -1,0 +1,433 @@
+{
+  "readings": {
+    "title": "Bewertungen",
+    "submit": "Bewertung übermitteln",
+    "form_for": "Bewertung für {identifier}",
+    "impact_cia": "Auswirkung (CIA)",
+    "cia_classification": "CIA-Klassifizierung",
+    "confidentiality": "Vertraulichkeit *",
+    "integrity": "Integrität *",
+    "availability": "Verfügbarkeit *",
+    "likelihood": "Eintrittswahrscheinlichkeit *",
+    "impact": "Auswirkung *",
+    "not_assessed": "Nicht bewertet",
+    "select": "Auswählen",
+    "risk_score": "Risikopunktzahl",
+    "score_hint": "CIA + Eintrittswahrscheinlichkeit festlegen",
+    "next_review": "Nächste Prüfung",
+    "notes": "Notizen",
+    "notes_placeholder": "Bewertungsnotizen...",
+    "save": "Bewertung speichern",
+    "empty": "Noch keine Bewertungen.",
+    "error_save": "Bewertung konnte nicht gespeichert werden",
+    "rating": {
+      "very_low": "Sehr niedrig (1)",
+      "low": "Niedrig (2)",
+      "medium": "Mittel (3)",
+      "high": "Hoch (4)",
+      "very_high": "Sehr hoch (5)"
+    },
+    "cia": {
+      "insignificant": "Unerheblich (1)",
+      "minor": "Gering (2)",
+      "moderate": "Mittel (3)",
+      "major": "Erheblich (4)",
+      "severe": "Schwerwiegend (5)"
+    },
+    "table": {
+      "date": "Datum",
+      "assessor": "Bewerter",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "A",
+      "likelihood": "EW",
+      "impact": "Ausw.",
+      "score": "Punktzahl",
+      "notes": "Notizen"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Als geprüft markieren",
+    "mark_unreviewed": "Als ungeprüft markieren",
+    "resolved_by": "Gelöst von {name} {date}",
+    "unknown_user": "unbekannt",
+    "suggested_edit": "Vorgeschlagene Änderung",
+    "suggestion_accepted": "Akzeptiert",
+    "suggestion_rejected": "Abgelehnt",
+    "accept": "Akzeptieren",
+    "reject": "Ablehnen",
+    "awaiting_author": "Entscheidung des Autors ausstehend",
+    "suggestion_resolved_by": "{status} von {name}",
+    "reply_placeholder": "Antworten... ({'@'} eingeben, um zu erwähnen)",
+    "suggest_edit": "Änderung vorschlagen",
+    "suggest": "Vorschlagen",
+    "suggestion_placeholder": "Ersatztext für diesen Absatz vorschlagen...",
+    "comment_placeholder": "Kommentar hinzufügen... ({'@'} eingeben, um zu erwähnen)",
+    "no_content": "Kein Inhalt verfügbar.",
+    "status_inline": {
+      "pending": "ausstehend",
+      "accepted": "akzeptiert",
+      "rejected": "abgelehnt"
+    }
+  },
+  "editor": {
+    "undo": "Rückgängig (Strg+Z)",
+    "redo": "Wiederholen (Strg+Umschalt+Z)",
+    "bold": "Fett (Strg+B)",
+    "italic": "Kursiv (Strg+I)",
+    "strikethrough": "Durchgestrichen (Strg+Umschalt+X)",
+    "text_color": "Textfarbe",
+    "heading": "Überschrift {level} (Strg+Alt+{level})",
+    "bullet_list": "Aufzählungsliste (Strg+Umschalt+8)",
+    "ordered_list": "Nummerierte Liste (Strg+Umschalt+7)",
+    "blockquote": "Blockzitat (Strg+Umschalt+B)",
+    "code_block": "Codeblock (Strg+Alt+C)",
+    "horizontal_rule": "Trennlinie",
+    "link": "Link (Strg+K)",
+    "link_entity": "{type} verknüpfen",
+    "link_placeholder": "https://...",
+    "insert_table": "Tabelle einfügen",
+    "insert_block": "Block einfügen",
+    "no_commands": "Keine passenden Befehle",
+    "no_results": "Keine Ergebnisse",
+    "cell_color_open": "Zellfarbe...",
+    "cell_color": "Zellfarbe",
+    "add_row_above": "Zeile oberhalb einfügen",
+    "add_row_below": "Zeile unterhalb einfügen",
+    "add_column_left": "Spalte links einfügen",
+    "add_column_right": "Spalte rechts einfügen",
+    "delete_row": "Zeile löschen",
+    "delete_column": "Spalte löschen",
+    "delete_table": "Tabelle löschen",
+    "empty_placeholder": "Beginnen Sie zu schreiben..."
+  },
+  "slash": {
+    "table": {
+      "label": "Tabelle",
+      "desc": "3x3-Tabelle einfügen"
+    },
+    "h1": {
+      "label": "Überschrift 1",
+      "desc": "Große Abschnittsüberschrift"
+    },
+    "h2": {
+      "label": "Überschrift 2",
+      "desc": "Mittlere Abschnittsüberschrift"
+    },
+    "h3": {
+      "label": "Überschrift 3",
+      "desc": "Kleine Abschnittsüberschrift"
+    },
+    "bullet": {
+      "label": "Aufzählungsliste",
+      "desc": "Unsortierte Liste"
+    },
+    "ordered": {
+      "label": "Nummerierte Liste",
+      "desc": "Sortierte Liste"
+    },
+    "quote": {
+      "label": "Blockzitat",
+      "desc": "Eingerückter Zitatblock"
+    },
+    "code": {
+      "label": "Codeblock",
+      "desc": "Umrandeter Codeblock"
+    },
+    "hr": {
+      "label": "Trenner",
+      "desc": "Trennlinie"
+    },
+    "risk": {
+      "label": "Risiko",
+      "desc": "Mit Risikoregister verknüpfen"
+    },
+    "legal": {
+      "label": "Recht",
+      "desc": "Mit rechtlicher Anforderung verknüpfen"
+    },
+    "asset": {
+      "label": "Vermögenswert",
+      "desc": "Mit Vermögenswerteregister verknüpfen"
+    },
+    "supplier": {
+      "label": "Lieferant",
+      "desc": "Mit Lieferant verknüpfen"
+    },
+    "system": {
+      "label": "System",
+      "desc": "Mit IT-System verknüpfen"
+    },
+    "doc": {
+      "label": "Dokument",
+      "desc": "Mit Dokument verknüpfen"
+    },
+    "incident": {
+      "label": "Vorfall",
+      "desc": "Mit Vorfall verknüpfen"
+    }
+  },
+  "markdown_field": {
+    "bold": "Fett (Strg+B)",
+    "italic": "Kursiv (Strg+I)",
+    "strikethrough": "Durchgestrichen",
+    "heading": "Überschrift {level}",
+    "bullet_list": "Aufzählungsliste",
+    "numbered_list": "Nummerierte Liste",
+    "blockquote": "Blockzitat",
+    "code_block": "Codeblock",
+    "divider": "Trenner",
+    "link": "Link (Strg+K)",
+    "link_entity_button": "Objekt verknüpfen",
+    "placeholder": "/ eingeben für Befehle..."
+  },
+  "suggestions": {
+    "empty": "Noch keine Vorschläge.",
+    "pending_notice": "Vorschläge ausstehend — diese Änderungen werden erst wirksam, sobald ein Manager sie anwendet.",
+    "agent_badge": "KI",
+    "suggested_by": "Vorgeschlagen von {name}",
+    "agent_suffix": "(KI)",
+    "apply": "Anwenden",
+    "reject": "Ablehnen",
+    "reason_placeholder": "Grund...",
+    "rejected_with_reason": "Abgelehnt: {reason}",
+    "applied_entity": "{identifier} angewendet",
+    "type": "Typ",
+    "title": "Titel",
+    "title_placeholder": "Kurze Beschreibung...",
+    "rationale": "Begründung",
+    "rationale_placeholder": "Warum ist diese Änderung erforderlich?",
+    "creating": "Wird erstellt...",
+    "submit": "Übermitteln",
+    "suggest": "Vorschlagen",
+    "created_toast": "Vorschlag übermittelt — ein Manager wird ihn prüfen, bevor er wirksam wird.",
+    "stale_confirm": "Das Objekt hat sich geändert, seit dieser Vorschlag erstellt wurde. Trotzdem anwenden?",
+    "stale_confirm_action": "Trotzdem anwenden",
+    "error_create": "Vorschlag konnte nicht erstellt werden",
+    "error_apply": "Anwenden fehlgeschlagen",
+    "error_reject": "Ablehnen fehlgeschlagen",
+    "error_claim": "Vorschlag konnte nicht übernommen werden: {message}",
+    "status": {
+      "open": "Prüfung ausstehend",
+      "in_review": "In Prüfung",
+      "applied": "Angewendet",
+      "rejected": "Abgelehnt",
+      "withdrawn": "Zurückgezogen"
+    },
+    "action": {
+      "update": "Felder aktualisieren",
+      "reassess_rating": "Einstufung neu bewerten",
+      "reassess_criticality": "Kritikalität neu bewerten",
+      "link_entities": "Mit anderen Objekten verknüpfen",
+      "link_risks_systems": "Mit Risiken/Systemen verknüpfen",
+      "request_review": "Prüfung anfordern",
+      "request_access_review": "Zugriffsüberprüfung anfordern"
+    }
+  },
+  "supplier_review": {
+    "title": "Lieferantenprüfungen",
+    "submit": "Prüfung übermitteln",
+    "outcome": "Ergebnis",
+    "outcome_value": {
+      "satisfactory": "Zufriedenstellend",
+      "concerns": "Bedenken festgestellt",
+      "unsatisfactory": "Unzureichend"
+    },
+    "certifications_verified": "Zertifizierungen verifiziert",
+    "data_handling_verified": "Datenverarbeitung verifiziert",
+    "sla_met": "SLA erfüllt",
+    "notes": "Prüfungsnotizen",
+    "notes_placeholder": "Beschreiben Sie, was geprüft und bestätigt wurde. Dies ist der Prüfnachweis für diesen Prüfzyklus.",
+    "save": "Prüfung speichern",
+    "empty": "Noch keine Prüfungen.",
+    "certs_verified_short": "Zertifikate verifiziert",
+    "sla_not_met": "SLA nicht erfüllt",
+    "error_save": "Prüfung konnte nicht gespeichert werden"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} geänderter Absatz | {count} geänderte Absätze",
+    "no_changes": "Keine Änderungen",
+    "document_view": "Dokumentansicht",
+    "advanced_diff": "Erweiterter Diff",
+    "previous": "Vorherige",
+    "current": "Aktuelle",
+    "no_previous_version": "Keine vorherige Version",
+    "outdated_from_previous_round": "{count} Kommentar aus vorheriger Runde | {count} Kommentare aus vorheriger Runde",
+    "comment_placeholder": "Kommentar hinzufügen..."
+  },
+  "comment_sidebar": {
+    "title": "Kommentare",
+    "resolved_count": "{count} gelöst",
+    "comment_placeholder": "Kommentar hinzufügen... ({'@'} eingeben, um zu erwähnen)",
+    "name_placeholder": "Ihr Name",
+    "send": "Senden",
+    "empty": "Noch keine Kommentare",
+    "reply_placeholder": "Antwort schreiben... ({'@'} eingeben, um zu erwähnen)"
+  },
+  "track_changes": {
+    "added": "+{count} hinzugefügt",
+    "removed": "-{count} entfernt",
+    "normal": "Normal",
+    "advanced": "Erweitert",
+    "comment_placeholder": "Kommentar hinzufügen..."
+  },
+  "references": {
+    "links": "Verknüpfungen",
+    "referenced_in": "Referenziert in",
+    "add_link": "+ Verknüpfung hinzufügen",
+    "search_placeholder": "Dokumente, Risiken, Vorfälle durchsuchen...",
+    "searching": "Wird gesucht...",
+    "no_matches": "Keine Treffer",
+    "no_linked_items": "Keine verknüpften Elemente",
+    "error_search": "Suche fehlgeschlagen: {message}",
+    "error_add": "Referenz konnte nicht hinzugefügt werden: {message}",
+    "error_remove": "Referenz konnte nicht entfernt werden: {message}",
+    "error_load": "Referenzen konnten nicht geladen werden: {message}"
+  },
+  "code_block": {
+    "plain_text": "Klartext",
+    "enable_wrap": "Zeilenumbruch aktivieren",
+    "disable_wrap": "Zeilenumbruch deaktivieren",
+    "wrap": "Umbruch",
+    "copy": "Kopieren",
+    "copy_aria": "Code kopieren"
+  },
+  "color_picker": {
+    "remove_color": "Farbe entfernen"
+  },
+  "comments_panel": {
+    "empty": "Noch keine Kommentare.",
+    "placeholder": "Kommentar hinzufügen... ({'@'} eingeben, um zu erwähnen)",
+    "post": "Senden",
+    "error_add": "Kommentar konnte nicht hinzugefügt werden: {message}"
+  },
+  "copy_link": {
+    "copied": "Link kopiert",
+    "copy": "Link zu diesem Element kopieren"
+  },
+  "doc_tree": {
+    "review_required": "Prüfung erforderlich"
+  },
+  "refresh": {
+    "refreshing": "Wird aktualisiert…",
+    "refresh": "Aktualisieren"
+  },
+  "diff": {
+    "removed": "- {count} entfernt",
+    "added": "+ {count} hinzugefügt",
+    "split": "Nebeneinander",
+    "unified": "Vereint",
+    "before": "Vorher",
+    "after": "Nachher"
+  },
+  "global_search": {
+    "placeholder": "Dokumente, Risiken, Lieferanten, Vorfälle durchsuchen...",
+    "searching": "Wird gesucht...",
+    "no_results": "Keine Ergebnisse für „{query}“",
+    "empty_state": "Tippen Sie, um alle Objekte zu durchsuchen",
+    "hint_navigate": "navigieren",
+    "hint_open": "öffnen",
+    "hint_close": "schließen"
+  },
+  "heat_map": {
+    "title": "Risiko-Heatmap",
+    "total_items": "{count} Element insgesamt | {count} Elemente insgesamt",
+    "likelihood": "Eintrittswahrscheinlichkeit",
+    "impact": "Auswirkung",
+    "unnamed": "Unbenannt",
+    "more": "+{count} weitere",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Selten",
+      "unlikely": "Unwahrscheinlich",
+      "possible": "Möglich",
+      "likely": "Wahrscheinlich",
+      "almost_certain": "Nahezu sicher"
+    },
+    "impact_value": {
+      "negligible": "Vernachlässigbar",
+      "minor": "Gering",
+      "moderate": "Mittel",
+      "major": "Erheblich",
+      "severe": "Schwerwiegend"
+    }
+  },
+  "history": {
+    "empty": "Noch kein Verlauf.",
+    "field_count": "{count} Feld | {count} Felder",
+    "showing_limit": "Zeige 50 von {total}",
+    "more": "+{count} weitere",
+    "action": {
+      "create": "Erstellt",
+      "update": "Geändert",
+      "delete": "Gelöscht",
+      "reading": "Bewertung",
+      "suggestion_applied": "Vorschlag angewendet"
+    },
+    "tooltip": {
+      "from": "Von: {value}",
+      "to": "Zu: {value}",
+      "reason": "Grund: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "Keine Mitglieder gefunden",
+    "placeholder": "Mitglied auswählen..."
+  },
+  "pagination": {
+    "showing": "Zeige {start}–{end} von {total}",
+    "per_page": "Pro Seite"
+  },
+  "overdue": {
+    "title": "Überfällige Prüfungen",
+    "creating": "Wird erstellt...",
+    "create_tasks": "Aufgaben erstellen",
+    "created": "{count} Aufgabe erstellt | {count} Aufgaben erstellt",
+    "created_skipped": ", {count} übersprungen (bereits vorhanden)",
+    "days_late": "{count} T",
+    "overdue": "überfällig",
+    "all_on_schedule": "Alle Prüfungen im Zeitplan",
+    "contract": "Vertrag",
+    "contract_expired": "vor {count} T",
+    "contract_expires_in": "in {count} T"
+  },
+  "suggest_new": {
+    "button": "Vorschlagen",
+    "close": "Schließen",
+    "action": "Aktion",
+    "title": "Titel",
+    "description": "Beschreibung",
+    "description_placeholder": "Beschreibung des neuen Objekts...",
+    "rationale": "Warum ist dies erforderlich?",
+    "rationale_placeholder": "Begründung für diesen Vorschlag...",
+    "submitting": "Wird übermittelt...",
+    "submit": "Übermitteln",
+    "form_title_new": "{entity}: neuer Vorschlag",
+    "form_title_change": "{entity}: Änderung vorschlagen",
+    "placeholder_new": "{entity}: Beschreibung...",
+    "placeholder_reassess": "Begründung für die Neubewertung...",
+    "placeholder_link": "Was soll verknüpft werden und warum...",
+    "placeholder_review": "Warum sollte dies geprüft werden...",
+    "placeholder_update": "Was soll geändert werden...",
+    "error_create": "Vorschlag konnte nicht erstellt werden",
+    "type": {
+      "edit_risk": "Risiko bearbeiten",
+      "reassess_risk": "Risikoeinstufung neu bewerten",
+      "edit_incident": "Vorfall bearbeiten",
+      "link_entities": "Mit anderen Objekten verknüpfen",
+      "edit_supplier": "Lieferant bearbeiten",
+      "reassess_supplier": "Lieferant neu bewerten",
+      "edit_requirement": "Anforderung bearbeiten",
+      "edit_change_request": "Änderungsantrag bearbeiten",
+      "edit_corrective_action": "Korrekturmaßnahme bearbeiten",
+      "edit_task": "Aufgabe bearbeiten",
+      "edit_objective": "Ziel bearbeiten",
+      "request_review": "Prüfung anfordern",
+      "edit_system": "System bearbeiten",
+      "request_access_review": "Zugriffsüberprüfung anfordern",
+      "edit_asset": "Vermögenswert bearbeiten",
+      "request_asset_review": "Prüfung des Vermögenswerts anfordern",
+      "edit_entity": "{entity}: Bearbeiten"
+    }
+  }
+}

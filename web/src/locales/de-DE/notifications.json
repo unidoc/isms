@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} hat Sie in einem Kommentar erwähnt"
+  },
+  "mention_review_comment": {
+    "title": "{actor} hat Sie in einem Prüfungskommentar erwähnt"
+  },
+  "mention_change_request": {
+    "title": "{actor} hat Sie in einem Änderungsantrag erwähnt"
+  },
+  "review_forwarded": {
+    "title": "Prüfung weitergeleitet: {title}",
+    "body": "{actor} hat die Prüfung von {doc_id} ({title} v{version}) an Sie weitergeleitet",
+    "body_with_note": "{actor} hat die Prüfung von {doc_id} ({title} v{version}) an Sie weitergeleitet\n\nHinweis: {note}"
+  },
+  "review_requested": {
+    "title": "Prüfung: {title} v{version}",
+    "body": "{actor} möchte {title} v{version} veröffentlichen und hat Sie um Prüfung gebeten",
+    "body_with_note": "{actor} möchte {title} v{version} veröffentlichen und hat Sie um Prüfung gebeten\n\nHinweis: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Prüfung erneut eingereicht: {title}",
+    "body": "{actor} hat {doc_id} ({title} v{version}) erneut zur Prüfung eingereicht",
+    "body_with_note": "{actor} hat {doc_id} ({title} v{version}) erneut zur Prüfung eingereicht\n\nHinweis: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "KI-Prüfung eskaliert",
+    "body": "Die KI-Prüfung von {doc_id} hat Runde {round} ohne Einigung erreicht. Bitte prüfen und entscheiden."
+  },
+  "ca_assigned": {
+    "title": "Korrekturmaßnahme zugewiesen: {title}"
+  },
+  "ca_resolved": {
+    "title": "Korrekturmaßnahme gelöst: {title}",
+    "body": "Korrekturmaßnahme #{id} wurde von {actor} gelöst"
+  },
+  "suggestion_new": {
+    "title": "Neuer Vorschlag",
+    "body": "{actor} hat vorgeschlagen: {title} ({suggestion_type} – {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Vorschlag {action}"
+  },
+  "suggestion_applied": {
+    "body": "Ihr Vorschlag „{title}“ wurde von {actor} angewendet → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Ihr Vorschlag „{title}“ wurde von {actor} abgelehnt: {reason}"
+  },
+  "incident_new": {
+    "title": "Neuer {severity} Vorfall: {title}"
+  },
+  "incident_status": {
+    "title": "Vorfall {status}: {title}",
+    "body": "Vorfall #{id} wurde {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Vertrag läuft in 30 Tagen ab: {title}",
+    "body": "Der Vertrag für {title} ({id}) läuft in 30 Tagen ab."
+  },
+  "supplier_contract_7": {
+    "title": "Vertrag läuft in 7 Tagen ab: {title}",
+    "body": "Der Vertrag für {title} ({id}) läuft in 7 Tagen ab."
+  },
+  "supplier_contract_today": {
+    "title": "Vertrag läuft heute ab: {title}",
+    "body": "Der Vertrag für {title} ({id}) läuft heute ab."
+  }
+}

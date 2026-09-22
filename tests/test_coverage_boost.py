@@ -375,7 +375,7 @@ class TestAuth:
         r = requests.get(f"{api_url}/config", headers=admin_headers)
         assert r.status_code == 200
         cfg = r.json()
-        assert [l["tag"] for l in cfg["locales"]] == ["en", "id-ID", "is-IS", "pl-PL", "pt-BR"]
+        assert [l["tag"] for l in cfg["locales"]] == ["en", "de-DE", "id-ID", "is-IS", "pl-PL", "pt-BR"]
         # Whatever the org default is stored as, it resolves to an enabled tag:
         # i18n.Resolve re-validates every tier, so a value that stopped being
         # supported degrades rather than reaching the client.

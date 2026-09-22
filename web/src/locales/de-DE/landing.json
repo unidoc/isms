@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Dokumentation",
+    "sign_in": "Anmelden"
+  },
+  "hero": {
+    "badge": "Open Source · Apache 2.0",
+    "title_line1": "Das intelligente",
+    "title_line2": "Managementsystem",
+    "subtitle": "Lebende Dokumente, nachverfolgte Prüfungen und ein operativer Rhythmus auf einer prüfbaren Plattform. Wählen Sie ein Framework oder bringen Sie Ihr eigenes mit. KI unterstützt bei der Arbeit. Menschen behalten die Kontrolle.",
+    "cta_cloud": "In der Cloud starten",
+    "cta_selfhost": "Selbst hosten",
+    "cta_docs": "Dokumentation lesen"
+  },
+  "why": {
+    "heading": "Warum ein weiteres Managementsystem?",
+    "p1": "Weil die vorhandenen komplex, undurchsichtig und als reine Compliance-Übung behandelt werden — relevant für das Audit, irrelevant am Tag danach. Und die Risiken steigen weiter: Mit zunehmender KI-Nutzung und wachsender Angriffsfläche ist ein Managementsystem, das nicht lebendig bleibt, schlechter als gar keins.",
+    "p2": "Das muss nicht so sein. Sicherheit, richtig gemacht, beginnt an der Wurzel — Risiken wirklich zu verstehen und zu steuern, statt sie nur zu übertünchen. KI-first entwickelt, mit echter Disziplin in Design und Einsatz, sollte ein Managementsystem ein lebendiger Teil Ihres Betriebs sein, kein nachträglich aufgesetztes Hindernis.",
+    "p3": "Deshalb ist es Open Source — gebaut für Organisationen jeder Größe, und endlich eine glaubwürdige Option für kleinere, die nie ein Managementsystem hatten, das einfach ist, aktuell bleibt und sich nicht querstellt. Genau das wollten wir ändern."
+  },
+  "pillars": {
+    "documents_title": "Dokumente sind aktiv genutzte Arbeitsmittel",
+    "documents_desc": "Richtlinien liegen als Markdown in Git. Jede Änderung ist ein Commit. Jede Version wiederherstellbar. Dokumente treiben Ihr ISMS an, statt in einem Ordner zu verstauben.",
+    "reviews_title": "Prüfungen sind nachvollziehbare Entscheidungen",
+    "reviews_desc": "Prüfung in Runden mit Kommentaren direkt im Text. Genehmigen, Änderungen anfordern oder eine Überarbeitung vorschlagen. Jede Entscheidung ist ein unveränderlicher Datensatz mit SHA-256-Hash.",
+    "tasks_title": "Aufgaben tragen das Jahr",
+    "tasks_desc": "Der Jahresplan verteilt Prüfungen, Audits und Risikobewertungen über den Kalender. Das Dashboard zeigt, was diesen Monat Aufmerksamkeit braucht. Ihr ISMS veraltet nie."
+  },
+  "how": {
+    "heading": "Fünf Minuten statt fünf Meetings",
+    "subtitle": "Vom Ereignis über die aktualisierte Richtlinie bis zum genehmigten Dokument. Die Plattform übernimmt die Fleißarbeit.",
+    "step1_title": "Etwas passiert",
+    "step1_desc": "Ein Vorfall, ein neuer Lieferant, eine Gesetzesänderung, eine Audit-Feststellung. Jedes Ereignis, das Ihre Sicherheitslage betrifft.",
+    "step2_title": "Erstellen oder aktualisieren",
+    "step2_desc": "Im richtigen Register erfassen. KI kann Risikoaktualisierungen, Richtlinienänderungen und Korrekturmaßnahmen vorschlagen. Sie prüfen jeden Vorschlag.",
+    "step3_title": "Dokumente werden auf einem Branch aktualisiert",
+    "step3_desc": "Richtlinienänderungen landen auf einem Prüfungs-Branch mit vollständigem Diff. Keine mysteriösen Änderungen. Fünf Dokumente in fünf Minuten.",
+    "step4_title": "Prüfungsrunden",
+    "step4_desc": "Prüfer werden benachrichtigt. Genehmigen oder Änderungen anfordern. Nach Überarbeitung erneut als neue Runde einreichen. Jede Runde zeigt nur, was sich seit dem letzten Feedback geändert hat.",
+    "step5_title": "Veröffentlichen",
+    "step5_desc": "In den Hauptzweig zusammenführen. Version erhöht. Entscheidungsdatensatz erstellt. Nachweise gespeichert. Fertig."
+  },
+  "features": {
+    "heading": "Anders gebaut",
+    "subtitle": "Kein Dokumenteneditor mit Compliance-Plugins. Ein von Grund auf entwickeltes Managementsystem, in dem alles miteinander verbunden ist.",
+    "git_title": "Git-native Dokumente",
+    "git_desc": "Richtlinien sind Markdown-Dateien in einem Git-Repository. Jede Änderung ist ein Commit mit vollständigem Diff. Branch für die Prüfung, Merge für die Veröffentlichung. Keine proprietären Formate, keine Abhängigkeit von einem Anbieter.",
+    "review_title": "Prüfung in Runden",
+    "review_desc": "Ein Dokument zur Prüfung senden. Prüfer genehmigen, fordern Änderungen an oder schlagen eine Überarbeitung mit Kommentaren direkt im Text vor. Erneutes Einreichen als neue Runde — Prüfer sehen nur, was sich geändert hat.",
+    "registers_title": "Register, die verbunden sind",
+    "registers_desc": "Risiken sind mit Vermögenswerten und Maßnahmen verknüpft. Vorfälle erzeugen Korrekturmaßnahmen. Rechtliche Anforderungen sind mit Richtlinien verknüpft. Ändern Sie eine Sache, sehen Sie die Auswirkungen überall.",
+    "ai_title": "KI schlägt vor, Sie genehmigen",
+    "ai_desc": "KI-Agenten entwerfen Richtlinien, bewerten Risiken und schlagen Registeraktualisierungen über denselben Prüfungsworkflow vor. MCP-Server mit 22 Werkzeugen. Vollständige Agentenidentität und Prüfpfad. Kein Autopilot — ein fähiger Assistent.",
+    "cadence_title": "Jahresplan und Rhythmus",
+    "cadence_desc": "Das Dashboard zeigt, was diesen Monat Aufmerksamkeit braucht. Prüfungen, Audits und Risikobewertungen über das Jahr verteilen. Aufgaben verfolgen die Umsetzung. Ihr ISMS bleibt lebendig.",
+    "audit_title": "Auditbereit ab dem ersten Tag",
+    "audit_desc": "Jede Prüfungsgenehmigung und jede Dokumentveröffentlichung erzeugt einen unveränderlichen Entscheidungsdatensatz mit SHA-256-Inhaltshash. Zeitgestempelt, zurückverfolgbar, kryptografisch nachweisbar."
+  },
+  "frameworks": {
+    "heading": "Jedes Framework. Ihre Vorlagen.",
+    "subtitle": "11 integrierte Frameworks. Oder bringen Sie Ihre eigenen Vorlagen mit — ein Ordner mit Markdown-Dateien genügt. Mehrere Standards auf derselben Plattform betreiben."
+  },
+  "deploy": {
+    "cloud_title": "Verwaltete Cloud",
+    "cloud_desc": "Registrieren, Framework wählen, loslegen. Wir kümmern uns um Infrastruktur, Backups und Updates. Mandantenfähig mit zeilenbasierter Datenisolierung.",
+    "cloud_cta": "Kostenlos starten",
+    "cloud_cta_signin": "Anmelden",
+    "selfhost_title": "Selbst gehostet",
+    "selfhost_desc": "Eine Go-Binärdatei. PostgreSQL und ein Datenverzeichnis. Überall bereitstellbar — Ihre Infrastruktur, Ihre Daten. Apache 2.0, keine künstlichen Beschränkungen, keine Open-Core-Tricks.",
+    "selfhost_cta": "Auf GitHub ansehen"
+  },
+  "cta": {
+    "heading": "Ihr Auditor wird es Ihnen danken",
+    "subtitle": "Vollständige Versionshistorie. Unveränderliche Genehmigungsdatensätze. Kryptografisch nachweisbare Entscheidungen. Vollständiger Prüfpfad ab dem ersten Tag."
+  },
+  "footer": {
+    "powered_by": "Bereitgestellt von {link}"
+  }
+}

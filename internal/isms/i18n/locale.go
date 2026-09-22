@@ -80,6 +80,7 @@ type entry struct {
 // canonicalization below treats them interchangeably (a browser sending either
 // resolves to the same entry), so this is a naming choice, not a functional one.
 var supported = map[string]entry{
+	"de-DE": {name: "Deutsch", enabled: true},
 	"en":    {name: "English", enabled: true},
 	"id-ID": {name: "Bahasa Indonesia", enabled: true},
 	"is-IS": {name: "Íslenska", enabled: true},

@@ -1,0 +1,72 @@
+{
+  "title": "Vermögenswerteregister",
+  "subtitle": "Informationswerte, Klassifizierung und Verantwortlichkeit",
+  "error": {
+    "save": "Speichern fehlgeschlagen: {message}",
+    "create": "Vermögenswert konnte nicht erstellt werden: {message}",
+    "delete": "Löschen fehlgeschlagen: {message}"
+  },
+  "action": {
+    "add": "Vermögenswert hinzufügen"
+  },
+  "create": {
+    "heading": "Vermögenswert hinzufügen",
+    "name_label": "Name *",
+    "name_placeholder": "z. B. Produktionsdatenbank, Kundenportal",
+    "type_label": "Typ",
+    "deselect_hint": "Klicken zum Abwählen",
+    "fill_in_later": "CIA-Klassifizierung, Verantwortlicher und mehr können nach dem Erstellen hinzugefügt werden.",
+    "submit": "Hinzufügen"
+  },
+  "filter": {
+    "empty": "Keine Vermögenswerte gefunden"
+  },
+  "stat": {
+    "severe": "Schwerwiegend (CIA = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Vermögenswert",
+      "type": "Typ",
+      "cia": "C/I/A",
+      "status": "Status",
+      "owner": "Verantwortlicher"
+    },
+    "cia_title": {
+      "confidentiality": "Vertraulichkeit: {level}",
+      "integrity": "Integrität: {level}",
+      "availability": "Verfügbarkeit: {level}"
+    }
+  },
+  "field": {
+    "name": "Name",
+    "description": "Beschreibung",
+    "type": "Typ",
+    "status": "Status",
+    "owner": "Verantwortlicher",
+    "primary_location": "Primärer Standort",
+    "next_review": "Nächste Prüfung",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "external_id": "Externe ID"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie den Vermögenswert...",
+    "primary_location": "z. B. Reykjavík DC, AWS eu-west-1",
+    "notes": "Weitere Notizen... /doc eingeben, um ein Dokument zu verknüpfen"
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen"
+  },
+  "assessment": {
+    "confidentiality": "Vertraulichkeit",
+    "integrity": "Integrität",
+    "availability": "Verfügbarkeit"
+  },
+  "danger": {
+    "warning": "Das Löschen dieses Vermögenswerts ist endgültig und kann nicht rückgängig gemacht werden. Verlauf, Kommentare und verknüpfte Referenzen gehen verloren.",
+    "delete": "Vermögenswert löschen",
+    "confirm": "Diesen Vermögenswert löschen? Dies kann nicht rückgängig gemacht werden."
+  }
+}

@@ -561,6 +561,115 @@ grammatical correctness at every count — the same simplification English
 itself is not tested against, but Polish's plural system genuinely has more
 cases than the infrastructure can express today.
 
+### Worked example — German (`de-DE`)
+
+Germany's national standards body, Deutsches Institut für Normung (DIN),
+publishes an official German edition of the standard itself — DIN EN ISO/IEC
+27001, currently "DIN EN ISO/IEC 27001:2024-01" (the German edition of
+ISO/IEC 27001:2022), maintained by committee DIN NIA-01-27
+"IT-Sicherheitsverfahren", which participates in the international committee
+ISO/IEC JTC 1/SC 27. That text is sold through Beuth Verlag and was not read
+clause-by-clause for this bundle — general management-system and audit
+vocabulary below follows established German ISO/quality-management and
+infosec-industry usage instead, and this paragraph is that disclosure, not a
+claim of having checked the standard directly.
+
+**The CIA triad is kept as "CIA" here, not translated — the opposite call
+from this bundle's Polish and Icelandic sections.** A search across German
+infosec writing (vendor blogs, security consultancies, university material)
+found "CIA-Triade" used essentially universally, with the three underlying
+words translated (Vertraulichkeit, Integrität, Verfügbarkeit) but the letters
+themselves kept as a borrowed English acronym — no German-native abbreviation
+turned up anywhere. So every full label is German, and every abbreviated
+badge or table header (`common.cia_abbr.*` and everywhere it is consumed)
+stays **C/I/A**. This is a finding, not a guess: it would have been easy to
+default to inventing a German-letter form the way the Polish section does
+with PID, and that would have been wrong here.
+
+| English | German |
+|---|---|
+| confidentiality | Vertraulichkeit |
+| integrity | Integrität |
+| availability | Verfügbarkeit |
+| C / I / A | C / I / A (kept, not translated — see above) |
+
+**Privacy and data-protection terms follow German/EU law directly, not an
+ISO adoption.** Germany is an EU member state; GDPR applies directly, under
+its German name **DSGVO** (Datenschutz-Grundverordnung — this *is* the GDPR
+regulation's German name, not a separate law, the same relationship the
+Icelandic and Polish sections describe for their own EEA/EU implementations),
+alongside the national implementing act, the **BDSG**
+(Bundesdatenschutzgesetz). One genuine German-specific wrinkle worth
+recording: Germany sets its own, lower mandatory-DPO-appointment threshold in
+§ 38 BDSG, on top of the baseline in GDPR Art. 37 — a difference from the
+bare regulation text, not an inconsistency in this bundle.
+
+| English | German | Basis |
+|---|---|---|
+| controller | **Verantwortlicher** | DSGVO Art. 4, Art. 24 |
+| processor | **Auftragsverarbeiter** | DSGVO Art. 4, Art. 28 |
+| data protection officer (DPO) | **Datenschutzbeauftragter (DSB)** | DSGVO Art. 37; § 38 BDSG (Germany's own lower threshold) |
+| personal data | **personenbezogene Daten** | DSGVO |
+
+**Nonconformity/audit-result grading is certification-body practice, not
+standard text** — same caveat as the sections above. *Abweichung*
+(nonconformity), *Beobachtung* (observation) and *Verbesserungspotenzial*
+(opportunity for improvement) follow general German audit usage, not
+standard-defined wording.
+
+**"Overdue" is deliberately never translated toward anything related to
+overflow.** This bundle uses **überfällig** throughout — badges, dashboard
+stats, review/document/task language, contract-expiry language — the
+ordinary German word for a bill, a task or a library book that has passed
+its due date, and unrelated in root to *Überlauf* ("overflow"), the
+false-friend trap an earlier locale in this bundle fell into before a review
+caught it. Swept every English "overdue" occurrence after the first draft
+and confirmed the German is consistent throughout: no drift.
+
+**The objective check-in is not a hotel check-in.** "Check-in" here means a
+periodic measurement recorded against an objective's target, not an arrival
+— and German borrows "Check-in" itself as an unambiguously hotel/flight word
+(*Einchecken*), so a literal pass would land on exactly the wrong sense. This
+bundle uses **Messung** ("measurement") throughout instead: check-in cycle is
+*Messintervall*, last check-in is *letzte Messung*, recording one is
+*Messung erfassen*.
+
+**Notification-interpolation grammar was traced through the actual code, not
+assumed correct**, the same way the Polish section's `enum_inline.action`
+finding was made. `useNotificationRender.js` resolves `severity`, `status`,
+and `action` through `common.enum_inline.*` before splicing them into a
+sentence frame; tracing the Go call sites in `api_incidents.go` and
+`api_collab.go` found that `{severity}` is interpolated exactly once, always
+attributively before the masculine noun *Vorfall* ("incident") — unlike a
+predicative German participle, an attributive German adjective inflects for
+case and gender, so `enum_inline.severity.*` carries the declined forms
+(*kritischer*, *hoher*, *mittlerer*, *niedriger*), not the bare stems a
+literal pass would produce. `{status}` and `{action}`, by contrast, land in
+predicative/headline constructions ("Vorfall {status}", "Vorschlag
+{action}") where German participles do not inflect at all regardless of the
+subject's gender, so the bare forms already used there are correct as
+drafted.
+
+**A shared frame issue, found here and confirmed present verbatim in other
+locales in this bundle, fixed only in `de-DE/notifications.json`:**
+`suggestion_new.body`'s `"{suggestion_type} {entity}"` juxtaposes two bare
+nouns with nothing between them. Rendered with real German values (e.g.
+*Erstellung* + *Risiko*, *Verknüpfung* + *Lieferant*), the pair reads as two
+stacked nouns rather than natural German — not as broken as the genitive
+case Polish requires there, but not idiomatic either. Fixed the same way the
+Polish PR fixed it: an en dash inside this one frame
+(`"{suggestion_type} – {entity}"`), leaving `enum_inline.suggestion_type.*`
+and `entity_inline.*` themselves untouched, since those values are shared
+correctly-nominative with other frames. `en/notifications.json` itself was
+not changed — this is a per-locale fix, and the same juxtaposition in
+`is-IS` and `pt-BR` is a pre-existing, shared issue this PR does not touch.
+
+**Pluralization is the simplest of this bundle's non-English locales.**
+German's plural system is close to English's — singular at exactly 1,
+plural everywhere else including 0 — so vue-i18n's default two-way rule
+fits cleanly with no compromise, unlike the Polish and (to a lesser extent)
+Icelandic sections above. No irregularity was found while translating.
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

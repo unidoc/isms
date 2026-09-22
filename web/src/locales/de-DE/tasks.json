@@ -1,0 +1,69 @@
+{
+  "title": "Aufgaben",
+  "subtitle": "Prüfaufgaben, Nachverfolgungen und operative Arbeitspakete.",
+  "error": {
+    "create": "Aufgabe konnte nicht erstellt werden: {message}",
+    "save": "Speichern fehlgeschlagen: {message}",
+    "delete": "Aufgabe konnte nicht gelöscht werden: {message}"
+  },
+  "action": {
+    "add": "Aufgabe hinzufügen"
+  },
+  "create": {
+    "heading": "Aufgabe hinzufügen",
+    "title_label": "Titel",
+    "title_placeholder": "z. B. Risikoregister prüfen",
+    "priority_label": "Priorität",
+    "type_label": "Typ",
+    "visibility_label": "Sichtbarkeit",
+    "fill_in_later": "Beschreibung, Verantwortlicher, Fälligkeitsdatum und Notizen können nach dem Erstellen hinzugefügt werden.",
+    "submitting": "Wird erstellt...",
+    "submit": "Hinzufügen"
+  },
+  "visibility": {
+    "public": "Öffentlich — alle in der Organisation",
+    "private": "Privat — Verantwortlicher, Ersteller & Manager",
+    "private_badge": "Privat",
+    "private_title": "Privat — sichtbar für Verantwortlichen, Ersteller & Manager"
+  },
+  "filter": {
+    "assignee_placeholder": "Beliebiger Verantwortlicher",
+    "empty": "Keine Aufgaben entsprechen Ihrem Filter.",
+    "empty_all": "Noch keine Aufgaben — klicken Sie auf Hinzufügen, um die erste zu erstellen.",
+    "empty_hint": "Aufgaben werden auch automatisch aus überfälligen Prüfzyklen erstellt."
+  },
+  "list": {
+    "due": "Fällig {date}",
+    "created_by": "von {name}"
+  },
+  "field": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "assignee": "Verantwortlicher",
+    "priority": "Priorität",
+    "status": "Status",
+    "due_date": "Fälligkeitsdatum",
+    "type": "Typ",
+    "created": "Erstellt",
+    "created_by": "Erstellt von",
+    "completed": "Abgeschlossen"
+  },
+  "placeholder": {
+    "description": "Beschreiben Sie die Aufgabe...",
+    "assignee": "Verantwortlichen auswählen...",
+    "notes": "Notizen hinzufügen..."
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "notes": "Notizen",
+    "progress": "Fortschritt"
+  },
+  "stat": {
+    "active": "Aktiv"
+  },
+  "danger": {
+    "warning": "Das Löschen dieser Aufgabe ist endgültig und kann nicht rückgängig gemacht werden.",
+    "delete": "Aufgabe löschen",
+    "confirm": "Aufgabe „{title}“ löschen?"
+  }
+}

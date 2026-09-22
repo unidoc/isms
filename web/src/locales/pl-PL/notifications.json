@@ -36,7 +36,7 @@
   },
   "suggestion_new": {
     "title": "Nowa sugestia",
-    "body": "{actor} zaproponował(a): {title} ({suggestion_type} {entity})"
+    "body": "{actor} zaproponował(a): {title} ({suggestion_type} – {entity})"
   },
   "suggestion_resolved": {
     "title": "Sugestia {action}"

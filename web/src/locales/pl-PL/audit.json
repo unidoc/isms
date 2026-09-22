@@ -1,0 +1,232 @@
+{
+  "title": "Audyt wewnętrzny",
+  "subtitle": "Programy audytów, harmonogram i ustalenia",
+  "error": {
+    "load": "Nie udało się wczytać modułu audytu. {message}",
+    "load_programmes": "Nie udało się wczytać programów: {message}",
+    "load_audits": "Nie udało się wczytać audytów: {message}",
+    "load_calendar": "Nie udało się wczytać kalendarza: {message}",
+    "load_findings": "Nie udało się wczytać ustaleń: {message}",
+    "load_audit_detail": "Nie udało się wczytać szczegółów audytu: {message}",
+    "create_programme": "Nie udało się utworzyć programu: {message}",
+    "save_programme": "Nie udało się zapisać programu: {message}",
+    "delete_programme": "Nie udało się usunąć programu: {message}",
+    "create_audit": "Nie udało się utworzyć audytu: {message}",
+    "save_audit": "Nie udało się zapisać audytu: {message}",
+    "save_report": "Nie udało się zapisać raportu: {message}",
+    "add_item": "Nie udało się dodać elementu: {message}",
+    "save_item": "Nie udało się zapisać: {message}",
+    "remove_item": "Nie udało się usunąć: {message}",
+    "create_finding": "Nie udało się dodać ustalenia: {message}",
+    "save_finding": "Nie udało się zapisać ustalenia: {message}",
+    "delete_finding": "Nie udało się usunąć ustalenia: {message}"
+  },
+  "toast": {
+    "programme_added": "Dodano program",
+    "programme_deleted": "Usunięto program",
+    "audit_added": "Dodano audyt",
+    "report_saved": "Zapisano raport",
+    "item_added": "Dodano element",
+    "item_removed": "Usunięto element",
+    "finding_added": "Dodano ustalenie",
+    "finding_deleted": "Usunięto ustalenie"
+  },
+  "tab": {
+    "calendar": "Kalendarz",
+    "programmes": "Programy",
+    "findings": "Ustalenia",
+    "audits": "Audyty",
+    "items": "Elementy",
+    "report": "Raport",
+    "discussion": "Dyskusja",
+    "linked": "Powiązane działania korygujące"
+  },
+  "action": {
+    "add_programme": "Dodaj program",
+    "add_finding": "Dodaj ustalenie",
+    "add_audit": "Dodaj audyt"
+  },
+  "calendar": {
+    "loading": "Wczytywanie kalendarza...",
+    "audit_count": "{count} audyt | {count} audytów",
+    "month_empty": "Brak audytów zaplanowanych w tym miesiącu",
+    "unscheduled": "Bez terminu",
+    "unscheduled_count": "{count} audyt bez zaplanowanej daty | {count} audytów bez zaplanowanej daty",
+    "unscheduled_range": "bez terminu",
+    "empty": "Brak audytów w {year}. Dodaj audyt z programu, aby zobaczyć go tutaj."
+  },
+  "programme": {
+    "search_placeholder": "Szukaj programów...",
+    "all_years": "Wszystkie lata",
+    "empty_filtered": "Żaden program nie pasuje do filtra.",
+    "empty": "Brak programów audytów — kliknij Dodaj program, aby go utworzyć.",
+    "table": {
+      "id": "ID",
+      "title": "Tytuł",
+      "year": "Rok",
+      "audits": "Audyty",
+      "findings": "Ustalenia",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Dodaj program",
+      "title_label": "Tytuł *",
+      "title_placeholder": "np. Roczny program audytów 2026",
+      "year_label": "Rok *",
+      "fill_in_later": "Opis, status i audyty możesz dodać po utworzeniu.",
+      "submitting": "Dodawanie...",
+      "submit": "Dodaj"
+    },
+    "field": {
+      "title": "Tytuł",
+      "year": "Rok",
+      "status": "Status",
+      "description": "Opis",
+      "notes": "Notatki",
+      "audits": "Audyty",
+      "created_by": "Utworzone przez",
+      "created": "Utworzono"
+    },
+    "placeholder": {
+      "description": "Cele i zakres programu...",
+      "notes": "Notatki wewnętrzne..."
+    },
+    "audits_heading": "Audyty w tym programie",
+    "add_audit": "+ Dodaj audyt",
+    "audits_empty": "Brak audytów w tym programie.",
+    "open_findings": "otwartych: {count}",
+    "danger": {
+      "warning": "Nie można usunąć programów zawierających audyty. Najpierw usuń wszystkie audyty.",
+      "delete": "Usuń program",
+      "confirm": "Usunąć program „{title}”? Tej operacji nie można cofnąć."
+    }
+  },
+  "audit": {
+    "loading_detail": "Wczytywanie szczegółów audytu...",
+    "create": {
+      "heading": "Dodaj audyt",
+      "title_label": "Tytuł *",
+      "title_placeholder": "Tytuł audytu",
+      "programme_label": "Program",
+      "no_programme": "Bez programu (doraźny)",
+      "type_label": "Typ audytu",
+      "fill_in_later": "Zakres, audytora, daty i elementy możesz dodać po utworzeniu.",
+      "submitting": "Dodawanie...",
+      "submit": "Dodaj"
+    },
+    "field": {
+      "title": "Tytuł",
+      "scope": "Zakres",
+      "type": "Typ audytu",
+      "status": "Status",
+      "auditor": "Audytor",
+      "programme": "Program",
+      "planned_date": "Planowana data",
+      "end_date": "Data zakończenia",
+      "planned": "Zaplanowany",
+      "started": "Rozpoczęty",
+      "completed": "Zakończony",
+      "items": "Elementy",
+      "findings": "Ustalenia",
+      "notes": "Notatki"
+    },
+    "placeholder": {
+      "scope": "Opis zakresu. Wpisz /doc, aby powiązać zabezpieczenia lub klauzule...",
+      "auditor": "Wybierz audytora...",
+      "notes": "Wewnętrzne notatki audytu..."
+    },
+    "open_count": "(otwartych: {count})",
+    "danger": {
+      "warning": "Audytów nie można obecnie usuwać z poziomu interfejsu. Działania destrukcyjne wykonuj przez CLI."
+    }
+  },
+  "items": {
+    "heading": "Elementy audytu ({count})",
+    "add": "+ Dodaj element",
+    "search_placeholder": "Szukaj dokumentów, zabezpieczeń, klauzul, ryzyk, aktywów...",
+    "searching": "Szukanie...",
+    "no_matches": "Brak wyników.",
+    "empty": "Brak elementów — dodaj zabezpieczenia, klauzule, ryzyka lub inne elementy do oceny.",
+    "raise_finding": "Zgłoś ustalenie",
+    "raise_finding_title": "Utwórz ustalenie na podstawie tego elementu",
+    "delete_title": "Usuń element",
+    "evidence": "Dowód",
+    "evidence_placeholder": "Odniesienie do dowodu, link lub opis...",
+    "notes": "Notatki",
+    "notes_empty": "Notatki (brak)",
+    "notes_placeholder": "Notatki wewnętrzne dla tego elementu...",
+    "save_notes": "Zapisz notatki",
+    "confirm_remove": "Usunąć „{title}” z tego audytu?",
+    "remove": "Usuń"
+  },
+  "findings": {
+    "search_placeholder": "Szukaj ustaleń...",
+    "all_audits": "Wszystkie audyty",
+    "overdue_toggle_title": "Pokaż tylko elementy po terminie",
+    "overdue_only": "Tylko po terminie",
+    "overdue": "Po terminie",
+    "empty_filtered": "Żadne ustalenie nie pasuje do filtra.",
+    "empty": "Nie zarejestrowano jeszcze żadnych ustaleń.",
+    "heading_count": "Ustalenia ({count})",
+    "add": "+ Dodaj ustalenie",
+    "audit_empty": "Nie zarejestrowano jeszcze ustaleń dla tego audytu.",
+    "table": {
+      "id": "ID",
+      "title": "Tytuł",
+      "audit": "Audyt",
+      "type": "Typ",
+      "owner": "Właściciel",
+      "due": "Termin",
+      "status": "Status"
+    },
+    "create": {
+      "heading": "Dodaj ustalenie",
+      "title_label": "Tytuł *",
+      "title_placeholder": "Tytuł ustalenia",
+      "audit_label": "Audyt *",
+      "audit_placeholder": "Wybierz audyt...",
+      "type_label": "Typ",
+      "fill_in_later": "Opis, właściciela, termin i powiązania z działaniami korygującymi możesz dodać po utworzeniu.",
+      "submitting": "Dodawanie...",
+      "submit": "Dodaj"
+    },
+    "field": {
+      "title": "Tytuł",
+      "description": "Opis",
+      "type": "Typ",
+      "status": "Status",
+      "owner": "Właściciel",
+      "due_date": "Termin",
+      "due_date_read": "Termin",
+      "audit": "Audyt",
+      "audit_item": "Element audytu",
+      "created": "Utworzono",
+      "closed": "Zamknięto"
+    },
+    "placeholder": {
+      "description": "Szczegółowy opis ustalenia, dowody, analiza przyczyny źródłowej...",
+      "owner": "Wybierz właściciela..."
+    },
+    "item_ref": "element #{id}",
+    "quick_action": "Szybkie działanie",
+    "create_ca": "Utwórz działanie korygujące z ustalenia",
+    "create_ca_hint": "Utwórz działanie korygujące wstępnie wypełnione tytułem i ważnością tego ustalenia.",
+    "danger": {
+      "warning": "Usunięcie tego ustalenia jest trwałe. Powiązane działania korygujące pozostają, ale tracą to odniesienie zwrotne.",
+      "delete": "Usuń ustalenie",
+      "confirm": "Usunąć to ustalenie? Tej operacji nie można cofnąć."
+    }
+  },
+  "report": {
+    "heading": "Raport z audytu",
+    "placeholder": "Końcowy raport audytora — spostrzeżenia, wnioski, zalecenia. Użyj poleceń ze slashem, aby powiązać zabezpieczenia, klauzule, dowody...",
+    "empty": "Nie napisano jeszcze raportu."
+  },
+  "dirty": {
+    "report_switch_tab": "Masz niezapisane zmiany w raporcie. Odrzucić je i przełączyć kartę?",
+    "report_close": "Masz niezapisane zmiany w raporcie. Odrzucić je i zamknąć?"
+  },
+  "detail": {
+    "overview": "Przegląd ogólny"
+  }
+}

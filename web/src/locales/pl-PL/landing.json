@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Dokumentacja",
+    "sign_in": "Zaloguj się"
+  },
+  "hero": {
+    "badge": "Open source · Apache 2.0",
+    "title_line1": "Inteligentny",
+    "title_line2": "System Zarządzania",
+    "subtitle": "Żywe dokumenty, śledzone przeglądy i roczny rytm pracy na jednej, audytowalnej platformie. Wybierz gotowy standard albo wykorzystaj własny. AI pomaga w pracy. Ludzie mają ostatnie słowo.",
+    "cta_cloud": "Zacznij w chmurze",
+    "cta_selfhost": "Zainstaluj samodzielnie",
+    "cta_docs": "Przeczytaj dokumentację"
+  },
+  "why": {
+    "heading": "Po co kolejny system zarządzania?",
+    "p1": "Ponieważ te, które mamy, są skomplikowane, nieprzejrzyste i traktowane jak formalność na potrzeby audytu — istotne na czas kontroli, zapomniane dzień później. A stawka rośnie: wraz z przyspieszającym wdrożeniem AI i rosnącą powierzchnią zagrożeń system zarządzania, który nie żyje na co dzień, jest gorszy niż żaden.",
+    "p2": "Nie musi tak być. Prawdziwe bezpieczeństwo zaczyna się u podstaw — od rzeczywistego rozumienia i zarządzania ryzykiem, a nie od maskowania go. Zbudowany z myślą o AI, z prawdziwą dyscypliną w projektowaniu i użyciu, system zarządzania powinien być żywą częścią codziennej pracy, a nie dodatkowym obciążeniem.",
+    "p3": "Dlatego jest open source — zbudowany dla organizacji każdej wielkości, i wreszcie realna opcja dla mniejszych firm, które nigdy nie miały systemu zarządzania, który byłby prosty, aktualny i nie utrudniał pracy. Zbudowaliśmy to, żeby to zmienić."
+  },
+  "pillars": {
+    "documents_title": "Dokumenty to aktywne narzędzia pracy",
+    "documents_desc": "Polityki żyją w git jako markdown. Każda edycja to commit. Każda wersja odzyskiwalna. Dokumenty napędzają Twój SZBI, zamiast leżeć w folderze.",
+    "reviews_title": "Przeglądy to śledzone decyzje",
+    "reviews_desc": "Przegląd rundowy z komentarzami w tekście. Zatwierdź, poproś o zmiany lub zaproponuj rewizję. Każda decyzja to niezmienny zapis ze skrótem SHA-256.",
+    "tasks_title": "Zadania napędzają cały rok",
+    "tasks_desc": "Plan roczny rozkłada przeglądy, audyty i oceny ryzyka na cały kalendarz. Panel pokazuje, co wymaga uwagi w tym miesiącu. Twój SZBI nigdy się nie dezaktualizuje."
+  },
+  "how": {
+    "heading": "Pięć minut, nie pięć spotkań",
+    "subtitle": "Od zdarzenia, przez zaktualizowaną politykę, po zatwierdzony dokument. Platforma zajmuje się rutynową pracą.",
+    "step1_title": "Coś się dzieje",
+    "step1_desc": "Incydent, nowy dostawca, zmiana przepisów, ustalenie z audytu. Każde zdarzenie wpływające na Twoje bezpieczeństwo.",
+    "step2_title": "Utwórz lub zaktualizuj",
+    "step2_desc": "Zarejestruj to we właściwym rejestrze. AI może zaproponować aktualizacje ryzyka, zmiany w politykach i działania korygujące. Ty przeglądasz każdą propozycję.",
+    "step3_title": "Dokumenty aktualizują się na osobnej gałęzi",
+    "step3_desc": "Zmiany w politykach trafiają na gałąź przeglądu z pełnym porównaniem. Żadnych tajemniczych edycji. Pięć dokumentów w pięć minut.",
+    "step4_title": "Rundy przeglądu",
+    "step4_desc": "Recenzenci otrzymują powiadomienie. Zatwierdzają lub proszą o zmiany. Po edycji wysyłasz ponownie jako nową rundę. Każda runda pokazuje tylko to, co zmieniło się od ostatniej opinii.",
+    "step5_title": "Publikacja",
+    "step5_desc": "Scalenie do głównej gałęzi. Wersja zwiększona. Utworzono zapis decyzji. Dowody zapisane. Gotowe."
+  },
+  "features": {
+    "heading": "Zbudowany inaczej",
+    "subtitle": "To nie edytor dokumentów z wtyczkami do zgodności. To system zarządzania zaprojektowany od podstaw tak, by wszystko się ze sobą łączyło.",
+    "git_title": "Dokumenty natywnie w git",
+    "git_desc": "Polityki to pliki markdown w repozytorium git. Każda zmiana to commit z pełnym porównaniem. Gałąź na czas przeglądu, scalenie przy publikacji. Żadnych zastrzeżonych formatów, żadnego uzależnienia od dostawcy.",
+    "review_title": "Przegląd rundowy",
+    "review_desc": "Wyślij dokument do przeglądu. Recenzenci zatwierdzają, proszą o zmiany lub proponują rewizję z komentarzami w tekście. Wysyłasz ponownie jako nową rundę — recenzenci widzą tylko to, co się zmieniło.",
+    "registers_title": "Rejestry, które się ze sobą łączą",
+    "registers_desc": "Ryzyka łączą się z aktywami i zabezpieczeniami. Incydenty tworzą działania korygujące. Wymogi prawne łączą się z politykami. Zmień jedną rzecz — zobacz efekt wszędzie.",
+    "ai_title": "AI proponuje, Ty zatwierdzasz",
+    "ai_desc": "Agenci AI przygotowują polityki, oceniają ryzyko i proponują aktualizacje rejestrów w tym samym procesie przeglądu. Serwer MCP z 22 narzędziami. Pełna tożsamość agenta i ślad audytowy. Nie autopilot — zdolny asystent.",
+    "cadence_title": "Plan roczny i rytm pracy",
+    "cadence_desc": "Panel pokazuje, co wymaga uwagi w tym miesiącu. Rozłóż przeglądy, audyty i oceny ryzyka na cały rok. Zadania śledzą realizację. Twój SZBI pozostaje żywy.",
+    "audit_title": "Gotowy dla audytora od pierwszego dnia",
+    "audit_desc": "Każde zatwierdzenie przeglądu i publikacja dokumentu tworzy niezmienny zapis decyzji ze skrótem treści SHA-256. Ostemplowane czasowo, przypisane do osoby, możliwe do zweryfikowania kryptograficznie."
+  },
+  "frameworks": {
+    "heading": "Dowolny standard. Twoje szablony.",
+    "subtitle": "11 wbudowanych standardów. Albo wykorzystaj własne szablony — wystarczy folder plików markdown. Prowadź wiele standardów na jednej platformie."
+  },
+  "deploy": {
+    "cloud_title": "Chmura zarządzana",
+    "cloud_desc": "Zarejestruj się, wybierz standard, zacznij pracę. My zajmujemy się infrastrukturą, kopiami zapasowymi i aktualizacjami. Architektura wielodostępna z izolacją danych na poziomie wierszy.",
+    "cloud_cta": "Zacznij za darmo",
+    "cloud_cta_signin": "Zaloguj się",
+    "selfhost_title": "Własny hosting",
+    "selfhost_desc": "Jeden plik binarny w Go. PostgreSQL i katalog danych. Wdrażaj gdziekolwiek — Twoja infrastruktura, Twoje dane. Apache 2.0, bez sztucznych ograniczeń, bez sztuczek open-core.",
+    "selfhost_cta": "Zobacz na GitHubie"
+  },
+  "cta": {
+    "heading": "Twój audytor Ci podziękuje",
+    "subtitle": "Pełna historia wersji. Niezmienne zapisy zatwierdzeń. Decyzje możliwe do zweryfikowania kryptograficznie. Pełny ślad audytowy od pierwszego dnia."
+  },
+  "footer": {
+    "powered_by": "Napędzane przez {link}"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "title": "Zarządzanie incydentami",
+  "subtitle": "Śledź incydenty bezpieczeństwa, reaguj na nie i wyciągaj wnioski",
+  "error": {
+    "create": "Nie udało się utworzyć incydentu: {message}",
+    "save": "Nie udało się zapisać: {message}",
+    "delete": "Nie udało się usunąć incydentu: {message}"
+  },
+  "action": {
+    "add": "Dodaj incydent"
+  },
+  "create": {
+    "heading": "Dodaj incydent",
+    "title_label": "Tytuł *",
+    "title_placeholder": "Krótki tytuł incydentu",
+    "severity_label": "Ważność",
+    "type_label": "Typ",
+    "fill_in_later": "Opis, klasyfikację, pochodzenie, przypisaną osobę, szczegóły RODO i notatki możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Nie znaleziono incydentów"
+  },
+  "list": {
+    "source": "Źródło: {value}",
+    "reporter": "Zgłaszający: {name}",
+    "assignee": "Przypisana osoba: {name}"
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "severity": "Ważność",
+    "type": "Typ",
+    "origin": "Pochodzenie",
+    "classification": "Klasyfikacja",
+    "status": "Status",
+    "assignee": "Przypisana osoba",
+    "reporter": "Zgłaszający",
+    "root_cause": "Przyczyna źródłowa",
+    "lessons_learned": "Wnioski",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "placeholder": {
+    "description": "Opisz incydent...",
+    "root_cause": "Analiza przyczyny źródłowej...",
+    "lessons_learned": "Co możemy poprawić?",
+    "assignee": "Wybierz osobę...",
+    "notes": "Dodaj notatki..."
+  },
+  "classification": {
+    "confidentiality": "Poufność",
+    "integrity": "Integralność",
+    "availability": "Dostępność"
+  },
+  "data_breach_checkbox": "To jest naruszenie ochrony danych osobowych (RODO)",
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "tab": {
+    "data_breach": "Naruszenie danych"
+  },
+  "timeline": {
+    "heading": "Oś czasu",
+    "detected": "Wykryto:",
+    "contained": "Opanowano:",
+    "resolved": "Rozwiązano:",
+    "closed": "Zamknięto:"
+  },
+  "actions": {
+    "create_ca": "Utwórz działanie korygujące",
+    "create_ca_desc": "Utwórz działanie korygujące powiązane z tym incydentem."
+  },
+  "breach": {
+    "heading": "Naruszenie ochrony danych osobowych (RODO)",
+    "gdpr_role": "Rola wg RODO",
+    "authority_notification": "Powiadomienie organu nadzorczego",
+    "subjects_notification": "Powiadomienie osób, których dane dotyczą",
+    "authority": "Organ nadzorczy",
+    "subjects": "Osoby, których dane dotyczą"
+  },
+  "danger": {
+    "warning": "Usunięcie tego incydentu jest trwałe i nie można go cofnąć.",
+    "delete": "Usuń incydent",
+    "confirm": "Usunąć incydent „{title}”? Tej operacji nie można cofnąć."
+  }
+}

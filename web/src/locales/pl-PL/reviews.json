@@ -1,0 +1,189 @@
+{
+  "title": "Przeglądy",
+  "subtitle": "Wnioski o przegląd dokumentów",
+  "back": "Wróć do przeglądów",
+  "not_found": "Nie znaleziono przeglądu",
+  "opened_ago": "otwarto {time}",
+  "ai": {
+    "active": "Przegląd AI w toku",
+    "escalated": "Eskalowano — przegląd AI utknął"
+  },
+  "guide": {
+    "step_review": "Przejrzyj dokument i zmiany",
+    "step_comment": "Dodaj komentarze lub zaproponuj zmiany",
+    "step_decide": "Zatwierdź lub poproś o zmiany"
+  },
+  "tab": {
+    "changes": "Zmiany (runda {round})",
+    "document": "Dokument",
+    "conversation": "Rozmowa"
+  },
+  "timeline": {
+    "suggested_edit": "zaproponował(a) edycję",
+    "commented": "skomentował(a)",
+    "approved": "zatwierdził(a) ten przegląd",
+    "proposed_revision": "zaproponował(a) rewizję",
+    "requested_changes": "poprosił(a) o zmiany",
+    "assigned": "{reviewer} został(a) przypisany(a) jako recenzent",
+    "empty": "Brak aktywności.",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "scalił(a) ten przegląd",
+      "approved": "zatwierdzono (wpis decyzji)",
+      "proposed_revision": "zaproponowano rewizję (wpis decyzji)",
+      "changes_requested": "poproszono o zmiany (wpis decyzji)"
+    },
+    "content_hash": "Skrót SHA-256 treści jako dowód integralności",
+    "hide_changes": "Ukryj zmiany",
+    "view_changes": "Zobacz zmiany",
+    "diff_loading": "Wczytywanie zmian…",
+    "diff_error": "Nie udało się wczytać porównania tej rewizji."
+  },
+  "updated": {
+    "heading": "Dokument zaktualizowany od wysłania przeglądu",
+    "last_modified_by": "Ostatnio zmienione przez {name}",
+    "last_modified_by_with_message": "Ostatnio zmienione przez {name} — {message}",
+    "note": "Poniższe porównanie pokazuje wszystkie zmiany od ostatniej zatwierdzonej wersji."
+  },
+  "diff": {
+    "summary_heading": "Zmiany w tym przeglądzie",
+    "never_approved_inline": "Pełny przegląd — ten dokument nigdy nie został zatwierdzony. Przejrzyj cały dokument w karcie Dokument.",
+    "none_inline": "Brak dostępnego porównania — dokument mógł nie zostać zmieniony od bazowej wersji przeglądu.",
+    "loading": "Wczytywanie zmian...",
+    "scope_round": "Zmiany w tej rundzie",
+    "scope_all": "Wszystkie zmiany w przeglądzie",
+    "mode_split": "Podzielony",
+    "mode_unified": "Scalony",
+    "never_approved_heading": "Pełny przegląd — ten dokument nigdy nie został zatwierdzony",
+    "never_approved_body": "Nie ma wcześniejszej zatwierdzonej wersji do porównania. Przejrzyj cały dokument w karcie Dokument.",
+    "none_in_round": "Nie znaleziono zmian w tej rundzie."
+  },
+  "comment": {
+    "heading": "Dodaj komentarz",
+    "placeholder": "Zostaw komentarz..."
+  },
+  "edit": {
+    "save_and_resubmit": "Zapisz i wyślij ponownie",
+    "send_revision": "Wyślij proponowaną rewizję",
+    "draft_saved": "Zapisano szkic",
+    "note_placeholder": "Co i dlaczego zmieniono?",
+    "draft_recovered": "Odzyskano szkic z poprzedniej sesji."
+  },
+  "summary": {
+    "resubmitted": "Wysłano ponownie po żądanych zmianach",
+    "initial": "Pierwszy przegląd",
+    "approved_count": "{approved} z {total}",
+    "waiting_on": "Oczekiwanie na:",
+    "ready_to_merge": "Wszyscy recenzenci zatwierdzili. Gotowe do scalenia.",
+    "changes_requested_you": "Poproszono o zmiany. Czeka się na Twoją odpowiedź.",
+    "changes_requested_author": "Poproszono o zmiany. Czeka się na odpowiedź {author}."
+  },
+  "suggestion": {
+    "count": "{count} sugestia | {count} sugestii",
+    "pending": "oczekujących: {count}",
+    "accepted": "zaakceptowanych: {count}",
+    "rejected": "odrzuconych: {count}"
+  },
+  "assignment": {
+    "empty": "Nie przypisano recenzentów",
+    "status": {
+      "approved": "zatwierdzono",
+      "pending": "oczekuje",
+      "changes_requested": "zmiany",
+      "proposed_revision": "rewizja"
+    }
+  },
+  "policy": {
+    "heading": "Wymagania zatwierdzenia",
+    "approvals": "zatwierdzenia: {current}/{min}",
+    "missing_roles": "Brakuje roli: {roles}",
+    "missing_users": "Oczekiwanie na: {users}",
+    "blocked": "Scalenie zablokowane do spełnienia wszystkich wymagań",
+    "will_auto_merge": "Zostanie scalone automatycznie po uzyskaniu wszystkich zatwierdzeń",
+    "require_human": "Wymagane jest co najmniej jedno zatwierdzenie przez osobę",
+    "auto_merge": "Automatyczne scalanie włączone dla tej polityki"
+  },
+  "actions": {
+    "heading": "Działania",
+    "requirements_not_met": "Wymagania niespełnione",
+    "publish": "Opublikuj",
+    "publish_version": "Opublikuj {version}",
+    "publish_note": "Spowoduje to, że {version} stanie się zaakceptowanym dokumentem.",
+    "publish_note_this_version": "Spowoduje to, że ta wersja stanie się zaakceptowanym dokumentem.",
+    "awaiting_manager": "Wszyscy recenzenci zatwierdzili. Oczekiwanie na publikację przez menedżera.",
+    "revision_proposed_by": "{name} zaproponował(a) rewizję tego dokumentu.",
+    "publishing": "Publikowanie...",
+    "accept_and_publish": "Zaakceptuj i opublikuj",
+    "request_another_review": "Poproś o kolejny przegląd",
+    "propose_new_revision": "Zaproponuj nową rewizję",
+    "changes_were_requested": "Poproszono o zmiany. Zmień dokument i wyślij ponownie.",
+    "edit_and_resubmit": "Edytuj i wyślij ponownie",
+    "you_sent_this": "Wysłałeś/aś ten przegląd.",
+    "waiting_for_feedback": "Oczekiwanie na opinię recenzenta.",
+    "you_approved": "Zatwierdziłeś/aś tę rundę.",
+    "you_proposed_revision": "Zaproponowałeś/aś rewizję.",
+    "you_requested_changes": "Poprosiłeś/aś o zmiany.",
+    "waiting_for_author": "Oczekiwanie na odpowiedź {author}.",
+    "waiting_for_reviewers": "Oczekiwanie na innych recenzentów.",
+    "stale_warning": "Dokument został zaktualizowany po wysłaniu tego przeglądu. Przejrzyj najnowsze zmiany przed zatwierdzeniem.",
+    "request_changes": "Poproś o zmiany",
+    "propose_revision": "Zaproponuj rewizję",
+    "approve_heading": "Zatwierdź ten dokument",
+    "approve_placeholder": "Opcjonalny komentarz...",
+    "approving": "Zatwierdzanie...",
+    "confirm_approve": "Potwierdź zatwierdzenie",
+    "changes_heading": "Poproś o zmiany",
+    "changes_placeholder": "Opisz, co należy zmienić... (wymagane)",
+    "submitting": "Wysyłanie...",
+    "submit_request": "Wyślij prośbę",
+    "withdraw": "Wycofaj przegląd",
+    "close_without_merging": "Zamknij bez scalania",
+    "not_a_reviewer": "Nie jesteś recenzentem tego wniosku."
+  },
+  "closed_state": {
+    "merged": "Scalono",
+    "closed": "Zamknięto"
+  },
+  "document": {
+    "heading": "Dokument",
+    "id": "ID",
+    "comments": "Komentarze",
+    "open_comments": "Otwarte"
+  },
+  "list": {
+    "empty_open": "Brak otwartych przeglądów",
+    "empty_closed": "Brak zamkniętych przeglądów",
+    "item_title": "Przegląd #{id} -- {title}",
+    "opened_by": "Otworzone przez {name}",
+    "reviewer_status": "{name} ({status})"
+  },
+  "author_fallback": "autor",
+  "reviewer_fallback": "Recenzent",
+  "revision_note_fallback": "Edycje autora",
+  "toast": {
+    "revision_published": "Rewizja zaakceptowana i opublikowana.",
+    "revision_accepted": "Zaakceptowano proponowaną rewizję",
+    "decision_recorded": "Twoje zatwierdzenie zostało zapisane{round}. Oczekiwanie na {count} kolejnego recenzenta. | Twoje zatwierdzenie zostało zapisane{round}. Oczekiwanie na {count} kolejnych recenzentów.",
+    "decision_recorded_changes": "Twoja prośba o zmiany została zapisana{round}. Oczekiwanie na {count} kolejnego recenzenta. | Twoja prośba o zmiany została zapisana{round}. Oczekiwanie na {count} kolejnych recenzentów.",
+    "all_approved": "Wszyscy recenzenci zatwierdzili{round}. Gotowe do scalenia.",
+    "changes_requested": "Poproszono o zmiany{round}. Autor zostanie powiadomiony.",
+    "for_round": " dla rundy {round}"
+  },
+  "confirm": {
+    "approve_stale_title": "Zatwierdź mimo to",
+    "approve_stale_body": "Dokument został zmieniony po wysłaniu tego przeglądu. Zatwierdzić na podstawie obecnej wersji?",
+    "discard_changes": "Odrzucić niezapisane zmiany?"
+  },
+  "error": {
+    "save_and_resubmit": "Zapisanie i ponowne wysłanie nie powiodło się: {message}",
+    "publish": "Nie udało się opublikować: {message}",
+    "accept_revision": "Nie udało się zaakceptować rewizji: {message}",
+    "submit_revision": "Nie udało się wysłać rewizji: {message}",
+    "load_list": "Nie udało się wczytać przeglądów: {message}",
+    "load_one": "Nie udało się wczytać przeglądu: {message}",
+    "add_comment": "Nie udało się dodać komentarza: {message}",
+    "submit_decision": "Nie udało się wysłać decyzji: {message}",
+    "merge": "Nie udało się scalić przeglądu: {message}",
+    "close": "Nie udało się zamknąć przeglądu: {message}"
+  }
+}

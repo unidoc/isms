@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} wspomniał(a) o Tobie w komentarzu"
+  },
+  "mention_review_comment": {
+    "title": "{actor} wspomniał(a) o Tobie w komentarzu do przeglądu"
+  },
+  "mention_change_request": {
+    "title": "{actor} wspomniał(a) o Tobie we wniosku o zmianę"
+  },
+  "review_forwarded": {
+    "title": "Przekazano przegląd: {title}",
+    "body": "{actor} przekazał(a) Ci przegląd {doc_id} ({title} w{version})",
+    "body_with_note": "{actor} przekazał(a) Ci przegląd {doc_id} ({title} w{version})\n\nNotatka: {note}"
+  },
+  "review_requested": {
+    "title": "Przegląd: {title} w{version}",
+    "body": "{actor} chce opublikować {title} w{version} i poprosił(a) Cię o przegląd",
+    "body_with_note": "{actor} chce opublikować {title} w{version} i poprosił(a) Cię o przegląd\n\nNotatka: {note}"
+  },
+  "review_resubmitted": {
+    "title": "Ponownie wysłano przegląd: {title}",
+    "body": "{actor} ponownie wysłał(a) {doc_id} ({title} w{version}) do przeglądu",
+    "body_with_note": "{actor} ponownie wysłał(a) {doc_id} ({title} w{version}) do przeglądu\n\nNotatka: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "Eskalowano przegląd AI",
+    "body": "Przegląd AI dokumentu {doc_id} osiągnął rundę {round} bez porozumienia. Przejrzyj i podejmij decyzję."
+  },
+  "ca_assigned": {
+    "title": "Przypisano działanie korygujące: {title}"
+  },
+  "ca_resolved": {
+    "title": "Rozwiązano działanie korygujące: {title}",
+    "body": "Działanie korygujące #{id} zostało rozwiązane przez {actor}"
+  },
+  "suggestion_new": {
+    "title": "Nowa sugestia",
+    "body": "{actor} zaproponował(a): {title} ({suggestion_type} {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Sugestia {action}"
+  },
+  "suggestion_applied": {
+    "body": "Twoja sugestia „{title}” została zastosowana przez {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Twoja sugestia „{title}” została odrzucona przez {actor}: {reason}"
+  },
+  "incident_new": {
+    "title": "Nowy {severity} incydent: {title}"
+  },
+  "incident_status": {
+    "title": "Incydent {status}: {title}",
+    "body": "Incydent #{id} został {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Umowa wygasa za 30 dni: {title}",
+    "body": "Umowa dla {title} ({id}) wygasa za 30 dni."
+  },
+  "supplier_contract_7": {
+    "title": "Umowa wygasa za 7 dni: {title}",
+    "body": "Umowa dla {title} ({id}) wygasa za 7 dni."
+  },
+  "supplier_contract_today": {
+    "title": "Umowa wygasa dzisiaj: {title}",
+    "body": "Umowa dla {title} ({id}) wygasa dzisiaj."
+  }
+}

@@ -1,0 +1,433 @@
+{
+  "readings": {
+    "title": "Pomiary",
+    "submit": "Zapisz pomiar",
+    "form_for": "Pomiar dla {identifier}",
+    "impact_cia": "Wpływ (PID)",
+    "cia_classification": "Klasyfikacja PID",
+    "confidentiality": "Poufność *",
+    "integrity": "Integralność *",
+    "availability": "Dostępność *",
+    "likelihood": "Prawdopodobieństwo *",
+    "impact": "Wpływ *",
+    "not_assessed": "Nieocenione",
+    "select": "Wybierz",
+    "risk_score": "Poziom ryzyka",
+    "score_hint": "Ustaw PID + prawdopodobieństwo",
+    "next_review": "Następny przegląd",
+    "notes": "Notatki",
+    "notes_placeholder": "Notatki z oceny...",
+    "save": "Zapisz pomiar",
+    "empty": "Brak pomiarów.",
+    "error_save": "Nie udało się zapisać pomiaru",
+    "rating": {
+      "very_low": "Bardzo niskie (1)",
+      "low": "Niskie (2)",
+      "medium": "Średnie (3)",
+      "high": "Wysokie (4)",
+      "very_high": "Bardzo wysokie (5)"
+    },
+    "cia": {
+      "insignificant": "Nieistotne (1)",
+      "minor": "Niewielkie (2)",
+      "moderate": "Umiarkowane (3)",
+      "major": "Poważne (4)",
+      "severe": "Bardzo poważne (5)"
+    },
+    "table": {
+      "date": "Data",
+      "assessor": "Oceniający",
+      "confidentiality": "P",
+      "integrity": "I",
+      "availability": "D",
+      "likelihood": "Praw",
+      "impact": "Wpł",
+      "score": "Wynik",
+      "notes": "Notatki"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "Oznacz jako przejrzane",
+    "mark_unreviewed": "Oznacz jako nieprzejrzane",
+    "resolved_by": "Rozwiązane przez {name} {date}",
+    "unknown_user": "nieznany",
+    "suggested_edit": "Zaproponowana edycja",
+    "suggestion_accepted": "Zaakceptowano",
+    "suggestion_rejected": "Odrzucono",
+    "accept": "Akceptuj",
+    "reject": "Odrzuć",
+    "awaiting_author": "Oczekuje na decyzję autora",
+    "suggestion_resolved_by": "{status} przez {name}",
+    "reply_placeholder": "Odpowiedz... (wpisz {'@'}, aby oznaczyć)",
+    "suggest_edit": "Zaproponuj edycję",
+    "suggest": "Zaproponuj",
+    "suggestion_placeholder": "Zaproponuj nowy tekst dla tego akapitu...",
+    "comment_placeholder": "Dodaj komentarz... (wpisz {'@'}, aby oznaczyć)",
+    "no_content": "Brak dostępnej treści.",
+    "status_inline": {
+      "pending": "oczekuje",
+      "accepted": "zaakceptowano",
+      "rejected": "odrzucono"
+    }
+  },
+  "editor": {
+    "undo": "Cofnij (Ctrl+Z)",
+    "redo": "Ponów (Ctrl+Shift+Z)",
+    "bold": "Pogrubienie (Ctrl+B)",
+    "italic": "Kursywa (Ctrl+I)",
+    "strikethrough": "Przekreślenie (Ctrl+Shift+X)",
+    "text_color": "Kolor tekstu",
+    "heading": "Nagłówek {level} (Ctrl+Alt+{level})",
+    "bullet_list": "Lista punktowana (Ctrl+Shift+8)",
+    "ordered_list": "Lista numerowana (Ctrl+Shift+7)",
+    "blockquote": "Cytat blokowy (Ctrl+Shift+B)",
+    "code_block": "Blok kodu (Ctrl+Alt+C)",
+    "horizontal_rule": "Linia pozioma",
+    "link": "Link (Ctrl+K)",
+    "link_entity": "Powiąż {type}",
+    "link_placeholder": "https://...",
+    "insert_table": "Wstaw tabelę",
+    "insert_block": "Wstaw blok",
+    "no_commands": "Brak pasujących poleceń",
+    "no_results": "Brak wyników",
+    "cell_color_open": "Kolor komórki...",
+    "cell_color": "Kolor komórki",
+    "add_row_above": "Dodaj wiersz powyżej",
+    "add_row_below": "Dodaj wiersz poniżej",
+    "add_column_left": "Dodaj kolumnę z lewej",
+    "add_column_right": "Dodaj kolumnę z prawej",
+    "delete_row": "Usuń wiersz",
+    "delete_column": "Usuń kolumnę",
+    "delete_table": "Usuń tabelę",
+    "empty_placeholder": "Zacznij pisać..."
+  },
+  "slash": {
+    "table": {
+      "label": "Tabela",
+      "desc": "Wstaw tabelę 3x3"
+    },
+    "h1": {
+      "label": "Nagłówek 1",
+      "desc": "Duży nagłówek sekcji"
+    },
+    "h2": {
+      "label": "Nagłówek 2",
+      "desc": "Średni nagłówek sekcji"
+    },
+    "h3": {
+      "label": "Nagłówek 3",
+      "desc": "Mały nagłówek sekcji"
+    },
+    "bullet": {
+      "label": "Lista punktowana",
+      "desc": "Lista nieuporządkowana"
+    },
+    "ordered": {
+      "label": "Lista numerowana",
+      "desc": "Lista uporządkowana"
+    },
+    "quote": {
+      "label": "Cytat blokowy",
+      "desc": "Wcięty blok cytatu"
+    },
+    "code": {
+      "label": "Blok kodu",
+      "desc": "Ogrodzony blok kodu"
+    },
+    "hr": {
+      "label": "Separator",
+      "desc": "Linia pozioma"
+    },
+    "risk": {
+      "label": "Ryzyko",
+      "desc": "Powiąż z rejestrem ryzyka"
+    },
+    "legal": {
+      "label": "Wymóg prawny",
+      "desc": "Powiąż z wymogiem prawnym"
+    },
+    "asset": {
+      "label": "Aktywo",
+      "desc": "Powiąż z rejestrem aktywów"
+    },
+    "supplier": {
+      "label": "Dostawca",
+      "desc": "Powiąż z dostawcą"
+    },
+    "system": {
+      "label": "System",
+      "desc": "Powiąż z systemem IT"
+    },
+    "doc": {
+      "label": "Dokument",
+      "desc": "Powiąż z dokumentem"
+    },
+    "incident": {
+      "label": "Incydent",
+      "desc": "Powiąż z incydentem"
+    }
+  },
+  "markdown_field": {
+    "bold": "Pogrubienie (Ctrl+B)",
+    "italic": "Kursywa (Ctrl+I)",
+    "strikethrough": "Przekreślenie",
+    "heading": "Nagłówek {level}",
+    "bullet_list": "Lista punktowana",
+    "numbered_list": "Lista numerowana",
+    "blockquote": "Cytat blokowy",
+    "code_block": "Blok kodu",
+    "divider": "Separator",
+    "link": "Link (Ctrl+K)",
+    "link_entity_button": "Powiąż encję",
+    "placeholder": "Wpisz / aby zobaczyć polecenia..."
+  },
+  "suggestions": {
+    "empty": "Brak sugestii.",
+    "pending_notice": "Propozycje oczekujące — te zmiany zaczną obowiązywać dopiero po zastosowaniu ich przez menedżera.",
+    "agent_badge": "AI",
+    "suggested_by": "Zaproponowane przez {name}",
+    "agent_suffix": "(AI)",
+    "apply": "Zastosuj",
+    "reject": "Odrzuć",
+    "reason_placeholder": "Powód...",
+    "rejected_with_reason": "Odrzucono: {reason}",
+    "applied_entity": "Zastosowano {identifier}",
+    "type": "Typ",
+    "title": "Tytuł",
+    "title_placeholder": "Krótki opis...",
+    "rationale": "Uzasadnienie",
+    "rationale_placeholder": "Dlaczego ta zmiana jest potrzebna?",
+    "creating": "Tworzenie...",
+    "submit": "Wyślij",
+    "suggest": "Zaproponuj",
+    "created_toast": "Sugestia wysłana — menedżer sprawdzi ją, zanim zacznie obowiązywać.",
+    "stale_confirm": "Encja została zmieniona od czasu utworzenia tej sugestii. Zastosować mimo to?",
+    "stale_confirm_action": "Zastosuj mimo to",
+    "error_create": "Nie udało się utworzyć sugestii",
+    "error_apply": "Zastosowanie nie powiodło się",
+    "error_reject": "Odrzucenie nie powiodło się",
+    "error_claim": "Nie udało się przejąć sugestii: {message}",
+    "status": {
+      "open": "Oczekuje na przegląd",
+      "in_review": "W trakcie przeglądu",
+      "applied": "Zastosowano",
+      "rejected": "Odrzucono",
+      "withdrawn": "Wycofano"
+    },
+    "action": {
+      "update": "Aktualizuj pola",
+      "reassess_rating": "Oceń ponownie",
+      "reassess_criticality": "Oceń ponownie krytyczność",
+      "link_entities": "Powiąż z innymi encjami",
+      "link_risks_systems": "Powiąż z ryzykami/systemami",
+      "request_review": "Poproś o przegląd",
+      "request_access_review": "Poproś o przegląd dostępu"
+    }
+  },
+  "supplier_review": {
+    "title": "Przeglądy dostawców",
+    "submit": "Wyślij przegląd",
+    "outcome": "Wynik",
+    "outcome_value": {
+      "satisfactory": "Zadowalający",
+      "concerns": "Stwierdzono zastrzeżenia",
+      "unsatisfactory": "Niezadowalający"
+    },
+    "certifications_verified": "Certyfikaty zweryfikowane",
+    "data_handling_verified": "Przetwarzanie danych zweryfikowane",
+    "sla_met": "SLA spełnione",
+    "notes": "Notatki z przeglądu",
+    "notes_placeholder": "Opisz, co zostało sprawdzone i potwierdzone. To jest dowód audytowy dla tego cyklu przeglądu.",
+    "save": "Zapisz przegląd",
+    "empty": "Brak przeglądów.",
+    "certs_verified_short": "Certyfikaty zweryfikowane",
+    "sla_not_met": "SLA niespełnione",
+    "error_save": "Nie udało się zapisać przeglądu"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "{count} zmieniony akapit | {count} zmienionych akapitów",
+    "no_changes": "Brak zmian",
+    "document_view": "Widok dokumentu",
+    "advanced_diff": "Zaawansowane porównanie",
+    "previous": "Poprzednia",
+    "current": "Obecna",
+    "no_previous_version": "Brak poprzedniej wersji",
+    "outdated_from_previous_round": "{count} komentarz z poprzedniej rundy | {count} komentarzy z poprzedniej rundy",
+    "comment_placeholder": "Dodaj komentarz..."
+  },
+  "comment_sidebar": {
+    "title": "Komentarze",
+    "resolved_count": "rozwiązanych: {count}",
+    "comment_placeholder": "Dodaj komentarz... (wpisz {'@'}, aby oznaczyć)",
+    "name_placeholder": "Twoje imię",
+    "send": "Wyślij",
+    "empty": "Brak komentarzy",
+    "reply_placeholder": "Napisz odpowiedź... (wpisz {'@'}, aby oznaczyć)"
+  },
+  "track_changes": {
+    "added": "+{count} dodano",
+    "removed": "-{count} usunięto",
+    "normal": "Zwykły",
+    "advanced": "Zaawansowany",
+    "comment_placeholder": "Dodaj komentarz..."
+  },
+  "references": {
+    "links": "Powiązania",
+    "referenced_in": "Przywołane w",
+    "add_link": "+ Dodaj powiązanie",
+    "search_placeholder": "Szukaj dokumentów, ryzyk, incydentów...",
+    "searching": "Szukanie...",
+    "no_matches": "Brak wyników",
+    "no_linked_items": "Brak powiązanych elementów",
+    "error_search": "Wyszukiwanie nie powiodło się: {message}",
+    "error_add": "Nie udało się dodać powiązania: {message}",
+    "error_remove": "Nie udało się usunąć powiązania: {message}",
+    "error_load": "Nie udało się wczytać powiązań: {message}"
+  },
+  "code_block": {
+    "plain_text": "Zwykły tekst",
+    "enable_wrap": "Włącz zawijanie wierszy",
+    "disable_wrap": "Wyłącz zawijanie wierszy",
+    "wrap": "Zawijaj",
+    "copy": "Kopiuj",
+    "copy_aria": "Kopiuj kod"
+  },
+  "color_picker": {
+    "remove_color": "Usuń kolor"
+  },
+  "comments_panel": {
+    "empty": "Brak komentarzy.",
+    "placeholder": "Dodaj komentarz... (wpisz {'@'}, aby oznaczyć)",
+    "post": "Wyślij",
+    "error_add": "Nie udało się dodać komentarza: {message}"
+  },
+  "copy_link": {
+    "copied": "Link skopiowany",
+    "copy": "Kopiuj link do tego elementu"
+  },
+  "doc_tree": {
+    "review_required": "Wymagany przegląd"
+  },
+  "refresh": {
+    "refreshing": "Odświeżanie…",
+    "refresh": "Odśwież"
+  },
+  "diff": {
+    "removed": "- {count} usunięto",
+    "added": "+ {count} dodano",
+    "split": "Podzielony",
+    "unified": "Scalony",
+    "before": "Przed",
+    "after": "Po"
+  },
+  "global_search": {
+    "placeholder": "Szukaj dokumentów, ryzyk, dostawców, incydentów...",
+    "searching": "Szukanie...",
+    "no_results": "Brak wyników dla „{query}”",
+    "empty_state": "Wpisz, aby wyszukać we wszystkich encjach",
+    "hint_navigate": "nawiguj",
+    "hint_open": "otwórz",
+    "hint_close": "zamknij"
+  },
+  "heat_map": {
+    "title": "Mapa cieplna ryzyka",
+    "total_items": "{count} element łącznie | {count} elementów łącznie",
+    "likelihood": "Prawdopodobieństwo",
+    "impact": "Wpływ",
+    "unnamed": "Bez nazwy",
+    "more": "+{count} więcej",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "Rzadkie",
+      "unlikely": "Mało prawdopodobne",
+      "possible": "Możliwe",
+      "likely": "Prawdopodobne",
+      "almost_certain": "Niemal pewne"
+    },
+    "impact_value": {
+      "negligible": "Pomijalny",
+      "minor": "Niewielki",
+      "moderate": "Umiarkowany",
+      "major": "Poważny",
+      "severe": "Bardzo poważny"
+    }
+  },
+  "history": {
+    "empty": "Brak historii.",
+    "field_count": "{count} pole | {count} pól",
+    "showing_limit": "Wyświetlono 50 z {total}",
+    "more": "+{count} więcej",
+    "action": {
+      "create": "Utworzono",
+      "update": "Zmieniono",
+      "delete": "Usunięto",
+      "reading": "Pomiar",
+      "suggestion_applied": "Zastosowano sugestię"
+    },
+    "tooltip": {
+      "from": "Z: {value}",
+      "to": "Na: {value}",
+      "reason": "Powód: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "Nie znaleziono członków",
+    "placeholder": "Wybierz członka..."
+  },
+  "pagination": {
+    "showing": "Wyświetlono {start}–{end} z {total}",
+    "per_page": "Na stronę"
+  },
+  "overdue": {
+    "title": "Przeglądy po terminie",
+    "creating": "Tworzenie...",
+    "create_tasks": "Utwórz zadania",
+    "created": "Utworzono {count} zadanie | Utworzono {count} zadań",
+    "created_skipped": ", pominięto {count} (już istnieje)",
+    "days_late": "{count}d",
+    "overdue": "po terminie",
+    "all_on_schedule": "Wszystkie przeglądy zgodne z harmonogramem",
+    "contract": "umowa",
+    "contract_expired": "{count}d temu",
+    "contract_expires_in": "za {count}d"
+  },
+  "suggest_new": {
+    "button": "Zaproponuj",
+    "close": "Zamknij",
+    "action": "Działanie",
+    "title": "Tytuł",
+    "description": "Opis",
+    "description_placeholder": "Opis nowej encji...",
+    "rationale": "Dlaczego jest to potrzebne?",
+    "rationale_placeholder": "Uzasadnienie tej sugestii...",
+    "submitting": "Wysyłanie...",
+    "submit": "Wyślij",
+    "form_title_new": "Zaproponuj nowy element: {entity}",
+    "form_title_change": "Zaproponuj zmianę: {entity}",
+    "placeholder_new": "Opisz nowy element: {entity}...",
+    "placeholder_reassess": "Uzasadnienie ponownej oceny...",
+    "placeholder_link": "Co powinno zostać powiązane i dlaczego...",
+    "placeholder_review": "Dlaczego to powinno zostać przejrzane...",
+    "placeholder_update": "Co powinno zostać zmienione...",
+    "error_create": "Nie udało się utworzyć sugestii",
+    "type": {
+      "edit_risk": "Edytuj ryzyko",
+      "reassess_risk": "Oceń ponownie poziom ryzyka",
+      "edit_incident": "Edytuj incydent",
+      "link_entities": "Powiąż z innymi encjami",
+      "edit_supplier": "Edytuj dostawcę",
+      "reassess_supplier": "Oceń ponownie dostawcę",
+      "edit_requirement": "Edytuj wymóg",
+      "edit_change_request": "Edytuj wniosek o zmianę",
+      "edit_corrective_action": "Edytuj działanie korygujące",
+      "edit_task": "Edytuj zadanie",
+      "edit_objective": "Edytuj cel",
+      "request_review": "Poproś o przegląd",
+      "edit_system": "Edytuj system",
+      "request_access_review": "Poproś o przegląd dostępu",
+      "edit_asset": "Edytuj aktywo",
+      "request_asset_review": "Poproś o przegląd aktywa",
+      "edit_entity": "Edytuj: {entity}"
+    }
+  }
+}

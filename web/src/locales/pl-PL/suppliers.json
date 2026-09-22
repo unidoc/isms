@@ -1,0 +1,84 @@
+{
+  "title": "Rejestr dostawców",
+  "subtitle": "Dostawcy zewnętrzni, krytyczność i ocena",
+  "error": {
+    "save": "Nie udało się zapisać: {message}",
+    "create": "Nie udało się utworzyć dostawcy: {message}",
+    "delete": "Nie udało się usunąć: {message}"
+  },
+  "action": {
+    "add": "Dodaj dostawcę"
+  },
+  "create": {
+    "heading": "Dodaj dostawcę",
+    "name_label": "Nazwa *",
+    "name_placeholder": "np. AWS, Office 365",
+    "type_label": "Typ",
+    "criticality_label": "Krytyczność",
+    "fill_in_later": "Klasyfikację PID, właściciela, szczegóły umowy możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Nie znaleziono dostawców"
+  },
+  "table": {
+    "header": {
+      "supplier": "Dostawca",
+      "type": "Typ",
+      "criticality": "Krytyczność",
+      "cia": "P/I/D",
+      "status": "Status",
+      "owner": "Właściciel",
+      "next_review": "Następny przegląd"
+    },
+    "cia_title": {
+      "confidentiality": "Poufność: {level}",
+      "integrity": "Integralność: {level}",
+      "availability": "Dostępność: {level}"
+    }
+  },
+  "field": {
+    "name": "Nazwa",
+    "type": "Typ",
+    "criticality": "Krytyczność",
+    "status": "Status",
+    "owner": "Właściciel",
+    "contact": "Kontakt",
+    "contract_ref": "Numer umowy",
+    "contract_expiry": "Wygaśnięcie umowy",
+    "data_access": "Dostęp do danych",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "placeholder": {
+    "contact": "kontakt{'@'}dostawca.com",
+    "contract_ref": "URL DPA / umowy",
+    "notes": "Dodatkowe notatki... Wpisz /doc, aby powiązać dokument"
+  },
+  "data_access": {
+    "checkbox": "Dostawca ma dostęp do naszych danych",
+    "yes": "Tak",
+    "no": "Nie"
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "tab": {
+    "reviews": "Przeglądy"
+  },
+  "assessment": {
+    "confidentiality": "Poufność",
+    "integrity": "Integralność",
+    "availability": "Dostępność"
+  },
+  "linked_systems": {
+    "heading": "brak powiązanych systemów | Powiązany system ({count}) | Powiązanych systemów ({count})"
+  },
+  "danger": {
+    "warning": "Usunięcie tego dostawcy jest trwałe i nie można go cofnąć. Historia, komentarze, przeglądy i powiązane odniesienia zostaną utracone.",
+    "delete": "Usuń dostawcę",
+    "confirm": "Usunąć tego dostawcę? Tej operacji nie można cofnąć."
+  }
+}

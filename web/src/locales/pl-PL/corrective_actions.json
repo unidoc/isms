@@ -1,0 +1,64 @@
+{
+  "title": "Działania korygujące",
+  "subtitle": "Śledź niezgodności, obserwacje i możliwości doskonalenia",
+  "error": {
+    "save": "Nie udało się zapisać: {message}"
+  },
+  "action": {
+    "add": "Dodaj działanie korygujące"
+  },
+  "filter": {
+    "assignee_placeholder": "Dowolna przypisana osoba",
+    "empty": "Żadne działanie korygujące nie pasuje do filtra.",
+    "empty_all": "Brak działań korygujących — kliknij Dodaj, aby utworzyć pierwsze."
+  },
+  "create": {
+    "heading": "Dodaj działanie korygujące",
+    "title_label": "Tytuł *",
+    "title_placeholder": "Krótki tytuł niezgodności lub usprawnienia",
+    "fill_in_later": "Opis, przypisaną osobę, termin i notatki możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "source_option": {
+    "internal_audit": "Ustalenie z audytu wewnętrznego",
+    "external_audit": "Ustalenie z audytu zewnętrznego",
+    "risk_assessment": "Ocena ryzyka",
+    "security_incident": "Incydent bezpieczeństwa",
+    "objective": "Cel",
+    "feedback": "Informacja zwrotna / sugestia",
+    "other": "Inne"
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "source": "Źródło",
+    "severity": "Ważność",
+    "status": "Status",
+    "assignee": "Przypisana osoba",
+    "due_date": "Termin",
+    "root_cause": "Przyczyna źródłowa",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "resolved": "Rozwiązano",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "placeholder": {
+    "description": "Opisz działanie korygujące...",
+    "assignee": "Wybierz osobę...",
+    "root_cause": "Analiza przyczyny źródłowej...",
+    "notes": "Dodaj notatki..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "actions": {
+    "create_task": "Utwórz zadanie wdrożeniowe",
+    "create_task_hint": "Utwórz zadanie realizujące działanie korygujące; automatycznie powiązane z tym DK."
+  },
+  "danger": {
+    "warning": "Usunięcie tego działania korygującego jest trwałe i nie można go cofnąć.",
+    "delete": "Usuń działanie korygujące",
+    "confirm": "Usunąć to działanie korygujące? Tej operacji nie można cofnąć."
+  }
+}

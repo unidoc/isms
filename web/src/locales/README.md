@@ -469,6 +469,98 @@ itself is not tested against, but Icelandic's plural rule genuinely differs
 from English's where English's does not (English "21 months" is idiomatic;
 "21 mánuðir" is not).
 
+### Worked example — Polish (`pl-PL`)
+
+Poland's national standards body, Polski Komitet Normalizacyjny (PKN), publishes
+an official Polish translation of the standard itself — PN-EN ISO/IEC 27001
+("Bezpieczeństwo informacji, cyberbezpieczeństwo i ochrona prywatności — Systemy
+zarządzania bezpieczeństwem informacji — Wymagania"), maintained by technical
+committee KT nr 182 (Ochrona Informacji w Systemach Teleinformatycznych). The
+2017-06 Polish edition is the most recent one confirmed publicly available at
+the time this bundle was written; PKN's Polish translation of the 2023-08
+English revision was still in progress. That text is sold through PKN's own
+store and was not read clause-by-clause for this bundle — the general
+management-system and audit vocabulary below follows established Polish
+ISO-9001-adjacent and infosec-industry usage rather than a clause citation,
+and this paragraph is that disclosure, not a claim of having checked the
+standard directly.
+
+**The CIA triad is a genuine judgment call in Polish, not a settled one.**
+Polish information-security writing overwhelmingly still says "triada CIA",
+borrowing the English initials, even in text that fully translates the three
+underlying words (poufność, integralność, dostępność). A second acronym,
+**PID**, is also independently attested — it is the form used as the base of
+the extended "PIDPAU" (Parker Hexad) acronym in Polish security literature.
+Both circulate; neither is wrong. This bundle uses **PID**, on the reasoning
+that every other CIA-adjacent string here — the three full words, the
+per-level labels — is already translated, so a lone untranslated "CIA"
+abbreviation would be the one Polish-reading inconsistency left in an
+otherwise fully localized set of badges and table headers. A reviewer who
+disagrees and prefers the borrowed "CIA" form is not wrong to; this is
+recorded as a decision made, not a fact established.
+
+| English | Polish |
+|---|---|
+| confidentiality | poufność |
+| integrity | integralność |
+| availability | dostępność |
+| C / I / A | P / I / D |
+
+**Privacy and data-protection terms follow Polish/EU law directly, not an ISO
+adoption.** Poland is an EU member state; GDPR applies directly, under its
+Polish name **RODO** (Rozporządzenie o Ochronie Danych Osobowych — RODO *is*
+the GDPR regulation's Polish name, not a separate national law, the same
+relationship Iceland's section describes for its own EEA implementation),
+alongside the national implementing act, *Ustawa z dnia 10 maja 2018 r. o
+ochronie danych osobowych*.
+
+| English | Polish | Basis |
+|---|---|---|
+| controller | **administrator danych** | RODO / ustawa z 10.05.2018 |
+| processor | **podmiot przetwarzający** | RODO / ustawa z 10.05.2018 |
+| data protection officer (DPO) | **inspektor ochrony danych (IOD)** | RODO / GDPR arts. 37–39 |
+| personal data | **dane osobowe** | RODO / ustawa z 10.05.2018 |
+
+**Nonconformity/audit-result grading is certification-body practice, not
+standard text** — same caveat as the Indonesian and Icelandic sections above.
+*Niezgodność większa* / *niezgodność mniejsza* (major/minor nonconformity),
+*obserwacja* (observation) and *możliwość doskonalenia* (opportunity for
+improvement) follow general Polish audit usage, not standard-defined wording.
+
+**"Overdue" is deliberately never translated as anything related to
+overflow.** A literal-minded pass could reach for a cognate of "excess" or
+"flooding" the way an earlier locale in this bundle initially did before a
+review round caught it; Polish has the same trap available and this bundle
+avoids it on purpose. Every occurrence — badges, dashboard stats, review and
+document and task language — uses **po terminie** ("past the deadline"), a
+prepositional phrase that needs no gender or number agreement, so it composes
+safely with any noun it follows.
+
+**The objective check-in is not a hotel check-in.** "Check-in" here means a
+periodic measurement recorded against an objective's target, not an arrival.
+This bundle uses **pomiar** ("measurement") throughout — check-in cycle is
+*częstotliwość pomiarów*, last check-in is *ostatni pomiar*, and so on —
+rather than a word that reads as checking into a hotel or a flight.
+
+**A known, undisclosed-elsewhere limitation of the bundle's pluralization,
+more severe for Polish than for the locales above:** every `{count} X | {count}
+Y` message in this app resolves through vue-i18n's default plural rule —
+two-way (index 0 at exactly 1, index 1 otherwise) for a two-form message, or
+zero/one/two-or-more for a three-form message where the English source
+happens to provide one (e.g. `suppliers.linked_systems.heading`). Polish
+grammar has neither shape: nouns take one form after 1, a second ("few") form
+after 2–4, and a third ("many") form after 0, 5–21, and most higher counts
+depending on the last digit — a genuine three-way split that does not align
+with vue-i18n's built-in zero/one/many rule at the 2–4 boundary. Where this
+bundle had two forms available, the second slot uses the **many/genitive**
+form (correct for 0 and 5+, the more common range in this app's counts, and
+merely non-idiomatic rather than wrong at 2–4). Where the English source
+already provides three forms, this bundle uses them as zero/one/many, which
+is a closer fit but still not Polish's real "few" case. Neither is a claim of
+grammatical correctness at every count — the same simplification English
+itself is not tested against, but Polish's plural system genuinely has more
+cases than the infrastructure can express today.
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

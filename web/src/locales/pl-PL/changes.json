@@ -1,0 +1,65 @@
+{
+  "title": "Zarządzanie zmianą",
+  "subtitle": "Śledź i zatwierdzaj zmiany w systemie zarządzania.",
+  "error": {
+    "load": "Nie udało się wczytać zmian: {message}",
+    "create": "Nie udało się utworzyć wniosku o zmianę: {message}",
+    "save": "Nie udało się zapisać: {message}",
+    "delete": "Nie udało się usunąć wniosku o zmianę: {message}"
+  },
+  "action": {
+    "add": "Dodaj wniosek o zmianę"
+  },
+  "create": {
+    "heading": "Dodaj wniosek o zmianę",
+    "type_label": "Typ",
+    "title_label": "Tytuł",
+    "title_placeholder": "np. Migracja uwierzytelniania do OIDC",
+    "priority_label": "Priorytet",
+    "category_label": "Kategoria",
+    "fill_in_later": "Opis, uzasadnienie, planowaną datę, poziom ryzyka, przypisaną osobę, plan wycofania i notatki możesz dodać po utworzeniu.",
+    "submitting": "Tworzenie...",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Nie znaleziono wniosków o zmianę"
+  },
+  "list": {
+    "requested_by": "Zażądane przez {name}",
+    "assigned_to": "Przypisane do {name}",
+    "risk": "Ryzyko: {level}"
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "type": "Typ",
+    "priority": "Priorytet",
+    "category": "Kategoria",
+    "risk_level": "Poziom ryzyka",
+    "status": "Status",
+    "assigned_to": "Przypisane do",
+    "assignee": "Przypisana osoba",
+    "planned_for": "Planowane na",
+    "justification": "Uzasadnienie",
+    "rollback_plan": "Plan wycofania",
+    "requested_by": "Zażądane przez",
+    "created": "Utworzono"
+  },
+  "placeholder": {
+    "description": "Opisz zmianę...",
+    "assignee": "Wybierz...",
+    "justification": "Dlaczego ta zmiana jest potrzebna?",
+    "rollback_plan": "Jak cofnąć zmianę?",
+    "notes": "Dodaj notatki..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki",
+    "progress": "Postęp"
+  },
+  "danger": {
+    "warning": "Usunięcie tego wniosku o zmianę jest trwałe i nie można go cofnąć.",
+    "delete": "Usuń wniosek o zmianę",
+    "confirm": "Usunąć ten wniosek o zmianę? Tej operacji nie można cofnąć."
+  }
+}

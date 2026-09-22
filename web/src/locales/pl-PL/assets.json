@@ -1,0 +1,72 @@
+{
+  "title": "Rejestr aktywów",
+  "subtitle": "Aktywa informacyjne, klasyfikacja i własność",
+  "error": {
+    "save": "Nie udało się zapisać: {message}",
+    "create": "Nie udało się utworzyć aktywa: {message}",
+    "delete": "Nie udało się usunąć: {message}"
+  },
+  "action": {
+    "add": "Dodaj aktywo"
+  },
+  "create": {
+    "heading": "Dodaj aktywo",
+    "name_label": "Nazwa *",
+    "name_placeholder": "np. Baza danych produkcyjna, Portal klienta",
+    "type_label": "Typ",
+    "deselect_hint": "Kliknij, aby odznaczyć",
+    "fill_in_later": "Klasyfikację PID, właściciela i więcej możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Nie znaleziono aktywów"
+  },
+  "stat": {
+    "severe": "Bardzo poważne (PID = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Aktywo",
+      "type": "Typ",
+      "cia": "P/I/D",
+      "status": "Status",
+      "owner": "Właściciel"
+    },
+    "cia_title": {
+      "confidentiality": "Poufność: {level}",
+      "integrity": "Integralność: {level}",
+      "availability": "Dostępność: {level}"
+    }
+  },
+  "field": {
+    "name": "Nazwa",
+    "description": "Opis",
+    "type": "Typ",
+    "status": "Status",
+    "owner": "Właściciel",
+    "primary_location": "Główna lokalizacja",
+    "next_review": "Następny przegląd",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "placeholder": {
+    "description": "Opisz aktywo...",
+    "primary_location": "np. Reykjavík DC, AWS eu-west-1",
+    "notes": "Dodatkowe notatki... Wpisz /doc, aby powiązać dokument"
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "assessment": {
+    "confidentiality": "Poufność",
+    "integrity": "Integralność",
+    "availability": "Dostępność"
+  },
+  "danger": {
+    "warning": "Usunięcie tego aktywa jest trwałe i nie można go cofnąć. Historia, komentarze i powiązane odniesienia zostaną utracone.",
+    "delete": "Usuń aktywo",
+    "confirm": "Usunąć to aktywo? Tej operacji nie można cofnąć."
+  }
+}

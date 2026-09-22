@@ -1,0 +1,102 @@
+{
+  "title": "Rejestr systemów",
+  "subtitle": "Systemy IT, cele odtworzeniowe, kontrola dostępu i powiązania z dostawcami",
+  "error": {
+    "save": "Nie udało się zapisać: {message}",
+    "create": "Nie udało się utworzyć systemu: {message}",
+    "delete": "Nie udało się usunąć: {message}",
+    "record_review": "Nie udało się zapisać przeglądu: {message}"
+  },
+  "action": {
+    "add": "Dodaj system"
+  },
+  "create": {
+    "heading": "Dodaj system",
+    "name_label": "Nazwa *",
+    "name_placeholder": "np. Produkcyjny system ERP",
+    "classification_label": "Klasyfikacja",
+    "criticality_label": "Krytyczność",
+    "supplier_label": "Dostawca",
+    "fill_in_later": "Klasyfikację PID, RPO/RTO i właściciela możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Nie znaleziono systemów"
+  },
+  "option": {
+    "no_supplier": "— Brak —"
+  },
+  "table": {
+    "header": {
+      "system": "System",
+      "classification": "Klasyfikacja",
+      "criticality": "Krytyczność",
+      "cia": "P/I/D",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Status",
+      "owner": "Właściciel",
+      "next_review": "Następny przegląd"
+    },
+    "cia_title": {
+      "confidentiality": "Poufność: {level}",
+      "integrity": "Integralność: {level}",
+      "availability": "Dostępność: {level}"
+    },
+    "hours": "{count}g"
+  },
+  "field": {
+    "name": "Nazwa",
+    "description": "Opis",
+    "classification": "Klasyfikacja",
+    "criticality": "Krytyczność",
+    "status": "Status",
+    "owner": "Właściciel",
+    "department": "Dział",
+    "supplier": "Dostawca",
+    "rpo": "RPO (godziny)",
+    "rto": "RTO (godziny)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "hint": {
+    "rpo": "Maksymalna akceptowalna utrata danych (godziny)",
+    "rto": "Maksymalny akceptowalny czas przestoju (godziny)"
+  },
+  "placeholder": {
+    "description": "Opisz system...",
+    "department": "IT, Inżynieria, Marketing...",
+    "notes": "Dodatkowe notatki... Wpisz /doc, aby powiązać dokument"
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "tab": {
+    "reviews": "Przeglądy dostępu"
+  },
+  "assessment": {
+    "confidentiality": "Poufność",
+    "integrity": "Integralność",
+    "availability": "Dostępność"
+  },
+  "reviews": {
+    "heading": "Przeglądy dostępu",
+    "add": "+ Zapisz przegląd",
+    "users_added": "Dodani użytkownicy",
+    "users_removed": "Usunięci użytkownicy",
+    "notes_label": "Notatki",
+    "notes_placeholder": "Usunięto byłych pracowników...",
+    "submit": "Zapisz przegląd",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "przejrzał(a)",
+    "empty": "Nie zarejestrowano żadnych przeglądów dostępu."
+  },
+  "danger": {
+    "warning": "Usunięcie tego systemu jest trwałe i nie można go cofnąć. Historia, komentarze, przeglądy dostępu i powiązane odniesienia zostaną utracone.",
+    "delete": "Usuń system",
+    "confirm": "Usunąć ten system? Tej operacji nie można cofnąć."
+  }
+}

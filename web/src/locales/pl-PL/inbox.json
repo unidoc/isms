@@ -1,0 +1,141 @@
+{
+  "title": "Skrzynka odbiorcza",
+  "subtitle": "{count} zadanie wymagające uwagi | {count} zadań wymagających uwagi",
+  "mark_all_read": "Oznacz wszystkie jako przeczytane",
+  "tab": {
+    "comments": "Komentarze",
+    "reviews": "Przeglądy",
+    "tasks": "Zadania",
+    "incidents": "Incydenty",
+    "changes": "Zmiany",
+    "corrective_actions": "DK",
+    "suggestions": "Sugestie"
+  },
+  "comments": {
+    "empty": "Brak otwartych komentarzy",
+    "suggestion_badge": "sugestia",
+    "scope_inline": "W tekście",
+    "scope_document": "Dokument",
+    "view_in_document": "Zobacz w dokumencie →"
+  },
+  "reviews": {
+    "empty": "Brak oczekujących przeglądów",
+    "untitled": "Przegląd bez tytułu",
+    "requested_by": "Zażądane przez {name}",
+    "unknown_requester": "Nieznany",
+    "meta": {
+      "status": "Status",
+      "document": "Dokument",
+      "version": "Wersja",
+      "requested_by": "Zażądane przez"
+    },
+    "assigned_reviewers": "Przypisani recenzenci",
+    "recent_comments": "Ostatnie komentarze",
+    "open_review": "Otwórz przegląd #{id}"
+  },
+  "tasks": {
+    "add": "Dodaj zadanie",
+    "empty": "Nie znaleziono zadań",
+    "start": "Rozpocznij zadanie",
+    "mark_done": "Oznacz jako wykonane",
+    "form": {
+      "title": "Tytuł",
+      "title_placeholder": "Tytuł zadania",
+      "description": "Opis",
+      "description_placeholder": "Opcjonalny opis",
+      "type": "Typ",
+      "priority": "Priorytet",
+      "assignee": "Przypisana osoba",
+      "assignee_placeholder": "Wybierz osobę...",
+      "due_date": "Termin"
+    }
+  },
+  "incidents": {
+    "empty": "Brak przypisanych Ci incydentów"
+  },
+  "corrective_actions": {
+    "empty": "Brak przypisanych Ci działań korygujących"
+  },
+  "changes": {
+    "add": "Dodaj wniosek o zmianę",
+    "empty": "Brak wniosków o zmianę",
+    "requested_by": "Zażądane przez {name}",
+    "unknown_requester": "Nieznany",
+    "form": {
+      "title": "Tytuł",
+      "title_placeholder": "Tytuł wniosku o zmianę",
+      "description": "Opis",
+      "description_placeholder": "Opisz proponowaną zmianę",
+      "justification": "Uzasadnienie",
+      "justification_placeholder": "Dlaczego ta zmiana jest potrzebna?",
+      "impact": "Ocena wpływu",
+      "impact_placeholder": "Oczekiwany wpływ na SZBI",
+      "assign_to": "Przypisz do",
+      "assignee_placeholder": "Wybierz osobę..."
+    },
+    "detail": {
+      "description": "Opis",
+      "justification": "Uzasadnienie",
+      "impact": "Ocena wpływu",
+      "affected_documents": "Dotknięte dokumenty"
+    },
+    "action": {
+      "approve": "Zatwierdź",
+      "reject": "Odrzuć",
+      "mark_implemented": "Oznacz jako wdrożone",
+      "close": "Zamknij"
+    }
+  },
+  "suggestions": {
+    "empty": "Brak sugestii o tym statusie.",
+    "filter": {
+      "open": "otwarte",
+      "applied": "zastosowane",
+      "rejected": "odrzucone"
+    },
+    "agent_badge": "AI",
+    "suggested_by": "Zaproponowane przez {name} · {date}",
+    "apply": "Zastosuj",
+    "reject": "Odrzuć",
+    "withdraw": "Wycofaj",
+    "reject_placeholder": "Powód odrzucenia...",
+    "rejected_reason": "Odrzucono: {reason}",
+    "applied_result": "Zastosowano → {entity} {id}",
+    "payload_field": {
+      "title": "Tytuł",
+      "name": "Nazwa",
+      "description": "Opis",
+      "category": "Kategoria",
+      "risk_type": "Typ ryzyka",
+      "origin": "Pochodzenie",
+      "severity": "Ważność",
+      "priority": "Priorytet",
+      "status": "Status",
+      "type": "Typ",
+      "criticality": "Krytyczność",
+      "jurisdiction": "Jurysdykcja",
+      "classification": "Klasyfikacja",
+      "finding_type": "Typ ustalenia",
+      "risk_level": "Poziom ryzyka",
+      "source": "Źródło",
+      "incident_type": "Typ incydentu",
+      "current_likelihood": "Prawdopodobieństwo",
+      "current_impact": "Wpływ"
+    }
+  },
+  "error": {
+    "resolve_comment": "Nie udało się rozwiązać komentarza: {message}",
+    "mark_all_read": "Nie udało się oznaczyć wszystkich powiadomień jako przeczytane: {message}",
+    "approve_review": "Nie udało się zatwierdzić przeglądu: {message}",
+    "request_changes": "Nie udało się poprosić o zmiany: {message}",
+    "forward_review": "Nie udało się przekazać przeglądu: {message}",
+    "claim_suggestion": "Nie udało się przejąć sugestii: {message}",
+    "apply_suggestion": "Nie udało się zastosować sugestii: {message}",
+    "reject_suggestion": "Nie udało się odrzucić sugestii: {message}",
+    "withdraw_suggestion": "Nie udało się wycofać sugestii: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Zastosuj mimo to",
+    "apply_stale_body": "Encja została zmieniona od czasu utworzenia tej sugestii. Zastosować mimo to?"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "title": "Rejestr ryzyka",
+  "subtitle": "Ocena i postępowanie z ryzykiem bezpieczeństwa informacji",
+  "error": {
+    "load": "Nie udało się wczytać ryzyk. {message}",
+    "save": "Nie udało się zapisać: {message}",
+    "create": "Nie udało się utworzyć ryzyka: {message}",
+    "delete": "Nie udało się usunąć ryzyka: {message}"
+  },
+  "action": {
+    "add": "Dodaj ryzyko",
+    "cancel": "Anuluj"
+  },
+  "create": {
+    "heading": "Dodaj ryzyko",
+    "title_label": "Tytuł *",
+    "title_placeholder": "np. Atak ransomware na systemy produkcyjne",
+    "category_label": "Kategoria",
+    "deselect_hint": "Kliknij, aby odznaczyć",
+    "fill_in_later": "Opis, konsekwencje, postępowanie, właściciela i więcej możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "map": {
+    "heading": "Mapa ryzyka"
+  },
+  "stat": {
+    "total": "Ryzyka razem"
+  },
+  "filter": {
+    "empty": "Żadne ryzyko nie pasuje do filtra.",
+    "none_yet": "Brak ryzyk — kliknij Dodaj, aby utworzyć pierwsze."
+  },
+  "table": {
+    "header": {
+      "risk": "Ryzyko",
+      "type": "Typ",
+      "score": "Wynik",
+      "cia": "P/I/D",
+      "owner": "Właściciel",
+      "treatment": "Postępowanie",
+      "status": "Status",
+      "actions": "Działania"
+    },
+    "was_score": "było {score}",
+    "cia_title": {
+      "confidentiality": "Poufność: {level}",
+      "integrity": "Integralność: {level}",
+      "availability": "Dostępność: {level}"
+    },
+    "advisory_badge": "Przegląd",
+    "advisory_title": "Niezgodność PID z powiązanymi aktywami — wymagana ponowna ocena"
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "status": "Status",
+    "owner": "Właściciel",
+    "category": "Kategoria",
+    "risk_type": "Typ ryzyka",
+    "origin": "Pochodzenie",
+    "treatment": "Postępowanie",
+    "treatment_plan": "Plan postępowania",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "notes": "Notatki",
+    "external_id": "Identyfikator zewnętrzny"
+  },
+  "placeholder": {
+    "description": "Opisz ryzyko...",
+    "treatment_plan": "Jak radzimy sobie z tym ryzykiem?",
+    "notes": "Dodaj notatki, spostrzeżenia, protokoły spotkań, odniesienia..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "treatment": "Postępowanie",
+    "notes": "Notatki"
+  },
+  "assessment": {
+    "inherent": "Pierwotne",
+    "current": "Obecne"
+  },
+  "links": {
+    "linked_assets": "Powiązane aktywa"
+  },
+  "actions": {
+    "create_task": "Utwórz zadanie wdrożeniowe",
+    "create_task_desc": "Utwórz zadanie realizujące plan postępowania; automatycznie powiązane z tym ryzykiem."
+  },
+  "danger": {
+    "warning": "Usunięcie tego ryzyka jest trwałe i nie można go cofnąć. Historia, komentarze i powiązane odniesienia zostaną utracone.",
+    "delete": "Usuń ryzyko",
+    "confirm": "Usunąć to ryzyko? Tej operacji nie można cofnąć."
+  }
+}

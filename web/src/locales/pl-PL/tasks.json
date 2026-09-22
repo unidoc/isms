@@ -1,0 +1,69 @@
+{
+  "title": "Zadania",
+  "subtitle": "Zadania przeglądowe, działania następcze i bieżące prace operacyjne.",
+  "error": {
+    "create": "Nie udało się utworzyć zadania: {message}",
+    "save": "Nie udało się zapisać: {message}",
+    "delete": "Nie udało się usunąć zadania: {message}"
+  },
+  "action": {
+    "add": "Dodaj zadanie"
+  },
+  "create": {
+    "heading": "Dodaj zadanie",
+    "title_label": "Tytuł",
+    "title_placeholder": "np. Przegląd rejestru ryzyka",
+    "priority_label": "Priorytet",
+    "type_label": "Typ",
+    "visibility_label": "Widoczność",
+    "fill_in_later": "Opis, przypisaną osobę, termin i notatki możesz dodać po utworzeniu.",
+    "submitting": "Tworzenie...",
+    "submit": "Dodaj"
+  },
+  "visibility": {
+    "public": "Publiczne — wszyscy w organizacji",
+    "private": "Prywatne — przypisana osoba, twórca i menedżerowie",
+    "private_badge": "Prywatne",
+    "private_title": "Prywatne — widoczne dla przypisanej osoby, twórcy i menedżerów"
+  },
+  "filter": {
+    "assignee_placeholder": "Dowolna przypisana osoba",
+    "empty": "Żadne zadanie nie pasuje do filtra.",
+    "empty_all": "Brak zadań — kliknij Dodaj, aby utworzyć pierwsze.",
+    "empty_hint": "Zadania są też tworzone automatycznie z cykli przeglądów po terminie."
+  },
+  "list": {
+    "due": "Termin {date}",
+    "created_by": "przez {name}"
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "assignee": "Przypisana osoba",
+    "priority": "Priorytet",
+    "status": "Status",
+    "due_date": "Termin",
+    "type": "Typ",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "completed": "Zakończono"
+  },
+  "placeholder": {
+    "description": "Opisz zadanie...",
+    "assignee": "Wybierz osobę...",
+    "notes": "Dodaj notatki..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki",
+    "progress": "Postęp"
+  },
+  "stat": {
+    "active": "Aktywne"
+  },
+  "danger": {
+    "warning": "Usunięcie tego zadania jest trwałe i nie można go cofnąć.",
+    "delete": "Usuń zadanie",
+    "confirm": "Usunąć zadanie „{title}”?"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Twoje organizacje",
+  "empty": "Nie jesteś jeszcze członkiem żadnej organizacji.",
+  "create": "Utwórz organizację",
+  "form": {
+    "title": "Nowa organizacja",
+    "name_label": "Nazwa",
+    "name_placeholder": "Acme Corp",
+    "slug_label": "Slug URL",
+    "slug_placeholder": "acme",
+    "template_label": "Szablon (opcjonalnie)",
+    "template_none": "Brak — dokumenty skonfiguruję samodzielnie",
+    "template_iso27001": "ISO 27001 — pełny zestaw dokumentów",
+    "template_soc2": "SOC 2 — Trust Services Criteria",
+    "template_nis2": "NIS2 — wymogi dyrektywy UE",
+    "template_hint": "Tworzy szkielet szablonów dokumentów w git. Więcej szablonów można dodać później.",
+    "creating": "Tworzenie…",
+    "error_create": "Nie udało się utworzyć organizacji"
+  }
+}

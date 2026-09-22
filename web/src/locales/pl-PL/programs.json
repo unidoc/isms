@@ -1,0 +1,48 @@
+{
+  "title": "Rejestr programów",
+  "subtitle": "Grupuj cele SZBI w programy prac",
+  "error": {
+    "save": "Nie udało się zapisać: {message}"
+  },
+  "action": {
+    "add": "Dodaj program"
+  },
+  "create": {
+    "heading": "Dodaj program",
+    "key_label": "Klucz (wielkie litery) *",
+    "key_placeholder": "SWIADOMOSC",
+    "title_label": "Tytuł *",
+    "title_placeholder": "Świadomość bezpieczeństwa",
+    "fill_in_later": "Opis i notatki możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "filter": {
+    "empty": "Brak programów"
+  },
+  "table": {
+    "header": {
+      "key": "Klucz",
+      "title": "Tytuł",
+      "description": "Opis"
+    }
+  },
+  "field": {
+    "key": "Klucz",
+    "title": "Tytuł",
+    "description": "Opis",
+    "created": "Utworzono"
+  },
+  "placeholder": {
+    "description": "Czym jest ten program?",
+    "notes": "Dodaj notatki..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "danger": {
+    "warning": "Usunięcie tego programu usuwa również wszystkie należące do niego cele. Tej operacji nie można cofnąć.",
+    "delete": "Usuń program",
+    "confirm": "Usunąć program „{key}”? Wszystkie należące do niego cele również zostaną usunięte."
+  }
+}

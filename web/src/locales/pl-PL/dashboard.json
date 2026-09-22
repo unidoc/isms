@@ -1,0 +1,115 @@
+{
+  "loading": "Wczytywanie panelu…",
+  "title": "Przegląd ogólny",
+  "subtitle": "Przegląd zgodności i wdrożenia SZBI wg ISO 27001",
+  "org_picker": {
+    "title": "Wybierz organizację",
+    "subtitle": "Wybierz organizację, w której chcesz pracować.",
+    "create_toggle": "+ Utwórz nową organizację"
+  },
+  "no_org": {
+    "title": "Nie należysz do żadnej organizacji",
+    "subtitle": "Utwórz swoją organizację, aby zacząć, lub poczekaj na zaproszenie."
+  },
+  "compliance": {
+    "title": "Ogólna zgodność",
+    "approved_of_total": "zatwierdzono {approved} z {total} dokumentów",
+    "draft": "szkiców: {count}",
+    "in_review": "w przeglądzie: {count}",
+    "approved": "zatwierdzonych: {count}"
+  },
+  "modules": {
+    "title": "Przegląd modułów",
+    "documents": "Dokumenty",
+    "risks": "Ryzyka",
+    "incidents": "Incydenty",
+    "changes": "Zmiany",
+    "corrective_actions": "Działania korygujące",
+    "suppliers": "Dostawcy",
+    "assets": "Aktywa",
+    "legal": "Wymogi prawne",
+    "systems": "Systemy",
+    "alert": {
+      "draft": "szkiców: {count}",
+      "high_critical": "wysokich/krytycznych: {count}",
+      "open": "otwartych: {count}",
+      "pending": "oczekujących: {count}"
+    }
+  },
+  "bia": {
+    "title": "Analiza wpływu na biznes",
+    "header": {
+      "system": "System",
+      "criticality": "Krytyczność",
+      "rpo": "RPO",
+      "rto": "RTO"
+    }
+  },
+  "attention": {
+    "title": "Wymaga Twojej uwagi",
+    "reviews": {
+      "title": "Otwarte przeglądy",
+      "detail": "{count} przegląd oczekuje na odpowiedź | {count} przeglądów oczekuje na odpowiedź"
+    },
+    "risks": {
+      "title": "Ryzyka wysokie i krytyczne",
+      "detail": "{count} ryzyko wymaga postępowania lub eskalacji | {count} ryzyk wymaga postępowania lub eskalacji"
+    },
+    "overdue_documents": {
+      "title": "Dokumenty po terminie",
+      "detail": "{count} polityka po terminie przeglądu | {count} polityk po terminie przeglądu"
+    },
+    "incidents": {
+      "title": "Otwarte incydenty",
+      "detail": "{count} incydent wymaga zbadania | {count} incydentów wymaga zbadania"
+    },
+    "changes": {
+      "title": "Zmiany oczekujące na zatwierdzenie",
+      "detail": "{count} zaproponowana zmiana | {count} zaproponowanych zmian"
+    },
+    "corrective_actions": {
+      "title": "Otwarte działania korygujące",
+      "detail": "{count} działanie korygujące w toku | {count} działań korygujących w toku"
+    }
+  },
+  "stats": {
+    "title": "Szybkie statystyki",
+    "documents": "Dokumenty",
+    "documents_detail": "wymagają przeglądu: {count}",
+    "risks": "Ryzyka",
+    "risks_detail": "wysokich/krytycznych: {count}",
+    "risks_none": "Wszystko w normie",
+    "incidents": "Incydenty",
+    "incidents_detail": "otwartych incydentów",
+    "corrective_actions": "DK",
+    "corrective_actions_detail": "otwartych działań",
+    "changes": "Zmiany",
+    "changes_detail": "oczekuje na zatwierdzenie",
+    "changes_none": "brak oczekujących",
+    "overdue": "Po terminie",
+    "overdue_detail": "elementów po terminie",
+    "overdue_none": "wszystko na czas"
+  },
+  "heatmap_title": "Mapa ryzyka",
+  "calendar": {
+    "title": "Plan roczny",
+    "previous_year": "Poprzedni rok",
+    "next_year": "Następny rok",
+    "category": {
+      "audit": "Audyty",
+      "risk": "Przeglądy ryzyka",
+      "supplier": "Przeglądy dostawców",
+      "legal": "Przeglądy prawne",
+      "task": "Zadania"
+    },
+    "untitled_audit": "Audyt"
+  },
+  "activity": {
+    "title": "Ostatnia aktywność",
+    "empty": "Aktywność pojawi się, gdy zespół zacznie pracę"
+  },
+  "error": {
+    "create_org": "Nie udało się utworzyć organizacji",
+    "load": "Nie udało się wczytać panelu"
+  }
+}

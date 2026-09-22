@@ -1,0 +1,98 @@
+{
+  "title": "Cele",
+  "subtitle": "Śledź mierzalne cele SZBI i wyniki KPI",
+  "error": {
+    "save": "Nie udało się zapisać: {message}",
+    "download": "Pobieranie nie powiodło się: nieoczekiwana odpowiedź serwera"
+  },
+  "action": {
+    "add": "Dodaj cel"
+  },
+  "filter": {
+    "all_programs": "Wszystkie programy",
+    "owner_placeholder": "Właściciel...",
+    "empty": "Nie znaleziono celów"
+  },
+  "create": {
+    "heading": "Dodaj cel",
+    "program_label": "Program *",
+    "program_placeholder": "Wybierz program...",
+    "owner_label": "Właściciel",
+    "title_label": "Tytuł *",
+    "title_placeholder": "Miesięczny wskaźnik ukończenia testu phishingowego",
+    "fill_in_later": "Wartość docelową, źródło, metodę pomiaru, opis i notatki możesz dodać po utworzeniu.",
+    "submit": "Dodaj"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "Tytuł",
+      "target": "Cel",
+      "status": "Status",
+      "owner": "Właściciel"
+    }
+  },
+  "field": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "owner": "Właściciel",
+    "source": "Źródło",
+    "status": "Status",
+    "measurement_method": "Metoda pomiaru",
+    "measurement": "Pomiar",
+    "operator": "Operator",
+    "target_value": "Wartość docelowa",
+    "target": "Cel",
+    "unit": "Jednostka",
+    "checkin_cycle_months": "Częstotliwość pomiarów (miesiące)",
+    "checkin_cycle": "Częstotliwość pomiarów",
+    "last_checkin": "Ostatni pomiar",
+    "created": "Utworzono",
+    "created_by": "Utworzone przez",
+    "months": "{count} miesiąc | {count} miesięcy"
+  },
+  "placeholder": {
+    "description": "Czym jest ten cel?",
+    "owner": "Wybierz właściciela...",
+    "source": "ISO 27001 6.2 itp.",
+    "measurement_method": "Jak to jest mierzone?",
+    "unit": "%, liczba, godziny...",
+    "notes": "Dodaj notatki..."
+  },
+  "detail": {
+    "overview": "Przegląd ogólny",
+    "notes": "Notatki"
+  },
+  "checkin": {
+    "heading": "Pomiary",
+    "summary": "zaliczone: {pass} · niezaliczone: {fail} · razem: {total}",
+    "record_heading": "Zapisz pomiar",
+    "value_label": "Wartość",
+    "value_placeholder": "97,5",
+    "result_label": "Wynik",
+    "result": {
+      "unspecified": "Nieokreślony",
+      "pass": "Zaliczony",
+      "fail": "Niezaliczony"
+    },
+    "message_label": "Notatka wewnętrzna",
+    "message_placeholder": "Kontekst wewnętrzny...",
+    "public_note_placeholder": "Notatka publiczna (widoczna dla interesariuszy)",
+    "submit": "Zapisz",
+    "empty": "Nie zapisano jeszcze żadnych pomiarów.",
+    "pass_badge": "ZALICZONY",
+    "fail_badge": "NIEZALICZONY",
+    "public": "Publiczne: {note}",
+    "confirm_delete": "Usunąć ten pomiar?"
+  },
+  "evidence": {
+    "download": "Pobierz",
+    "attach": "Dołącz dowód",
+    "confirm_delete": "Usunąć dowód „{title}”?"
+  },
+  "danger": {
+    "warning": "Usunięcie tego celu jest trwałe i nie można go cofnąć.",
+    "delete": "Usuń cel",
+    "confirm": "Usunąć cel „{title}”? Tej operacji nie można cofnąć."
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "Dokumenty",
+    "new": "Nowy",
+    "new_folder": "Nowy folder",
+    "new_document": "Nowy dokument",
+    "empty": "Brak dokumentów",
+    "import_template": "Importuj szablon",
+    "new_folder_placeholder": "nazwa nowego folderu...",
+    "folder_name_placeholder": "nazwa folderu...",
+    "hide": "Ukryj drzewo",
+    "show": "Pokaż drzewo"
+  },
+  "empty": {
+    "heading": "Brak dokumentów",
+    "body": "Zaimportuj szablon, aby zbudować strukturę dokumentów, a następnie użyj menu drzewa, aby dodać dokumenty i foldery.",
+    "import_template": "Importuj szablon"
+  },
+  "dash": {
+    "tab": {
+      "review": "Wymaga przeglądu",
+      "recent": "Ostatnio zmienione",
+      "search": "Szukaj",
+      "templates": "Szablony"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "Uwzględnij nigdy niezatwierdzone ({count})",
+    "up_to_date": "Wszystkie dokumenty są aktualne.",
+    "never_approved": "Nigdy niezatwierdzone",
+    "changed": "Zmienione",
+    "current": "Obecne: {commit} ({time})",
+    "approved": "Zatwierdzone: {commit}",
+    "review": "Przegląd",
+    "diff": "Porównanie"
+  },
+  "recent": {
+    "refresh": "Odśwież",
+    "empty": "Brak ostatnich zmian.",
+    "meta": "{time} przez {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "Szukaj we wszystkich dokumentach...",
+    "hint": "Wpisz co najmniej 2 znaki, aby wyszukać we wszystkich dokumentach.",
+    "searching": "Szukanie...",
+    "no_results": "Brak wyników dla „{query}”"
+  },
+  "templates": {
+    "heading": "Szablony",
+    "subtitle": "Dodaj lub usuń szkielet dokumentów dla standardów.",
+    "installed": "Zainstalowany",
+    "add": "Dodaj",
+    "remove": "Usuń",
+    "remove_heading": "Usuń szablon",
+    "remove_body": "Czy na pewno chcesz usunąć {name}? Spowoduje to usunięcie wszystkich dokumentów w {path} z repozytorium.",
+    "picker_heading": "Importuj szablon",
+    "picker_subtitle": "Wybierz standard, aby zbudować strukturę dokumentów.",
+    "picker_placeholder": "Szukaj szablonów...",
+    "picker_empty": "Nie znaleziono szablonów.",
+    "import": "Importuj",
+    "added": "Pomyślnie dodano szablon {name}.",
+    "removed": "Usunięto szablon {name}.",
+    "add_failed": "Nie udało się dodać szablonu: {message}",
+    "remove_failed": "Nie udało się usunąć szablonu: {message}"
+  },
+  "toolbar": {
+    "edit": "Edytuj",
+    "save": "Zapisz",
+    "send_for_review": "Wyślij do przeglądu",
+    "version_history": "Historia wersji",
+    "comments": "Komentarze",
+    "print": "Drukuj dokument",
+    "delete": "Usuń dokument"
+  },
+  "print": {
+    "version": "Wersja {version}",
+    "author": "Autor: {name}",
+    "printed": "Wydrukowano {date}"
+  },
+  "tab": {
+    "content": "Treść",
+    "info": "Informacje",
+    "versions": "Wersje",
+    "links": "Powiązania",
+    "discussion": "Dyskusja",
+    "history": "Historia"
+  },
+  "meta": {
+    "status": "Status",
+    "go_to_active_review": "Przejdź do aktywnego przeglądu",
+    "go_to_reviews": "Przejdź do przeglądów",
+    "type": "Typ",
+    "author": "Autor",
+    "author_placeholder": "Ustaw autora...",
+    "version": "Wersja",
+    "owner": "Właściciel",
+    "not_set": "Nie ustawiono",
+    "review_cycle": "Cykl przeglądu",
+    "review_cycle_months": "Co {count} miesiąc | Co {count} miesięcy",
+    "last_approved": "Ostatnio zatwierdzono",
+    "approved_version": "Zatwierdzona wersja",
+    "next_review": "Następny przegląd",
+    "due_soon": "WKRÓTCE TERMIN"
+  },
+  "banner": {
+    "round_complete": "Runda {round} zakończona — poproszono o zmiany",
+    "pending_suggestions": "{count} oczekująca sugestia do rozpatrzenia. | {count} oczekujących sugestii do rozpatrzenia.",
+    "feedback_waiting": "Opinia recenzenta czeka w dyskusji.",
+    "then_resubmit": "Odnieś się do opinii, a następnie wyślij ponownie do kolejnej rundy.",
+    "open_review": "Otwórz przegląd",
+    "in_review": "Ten dokument jest w trakcie przeglądu.",
+    "in_review_round": "Ten dokument jest w trakcie przeglądu (runda {round}).",
+    "view_review": "Zobacz przegląd →",
+    "retired": "Ten dokument jest wycofany.",
+    "never_approved": "Ten dokument nigdy nie został zatwierdzony.",
+    "send_for_review": "Wyślij do przeglądu →",
+    "changed_since_approval": "Zmieniono od ostatniego zatwierdzenia",
+    "last_approved": "— ostatnio zatwierdzono",
+    "last_approved_version": "— ostatnio zatwierdzono {version}",
+    "last_approved_on": "— ostatnio zatwierdzono {date}",
+    "last_approved_version_on": "— ostatnio zatwierdzono {version} dnia {date}",
+    "hide_diff": "Ukryj porównanie",
+    "view_diff": "Zobacz porównanie"
+  },
+  "versions": {
+    "heading": "Historia wersji",
+    "empty": "Brak dostępnej historii wersji",
+    "unknown_version": "w?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "Dyskusja o dokumencie",
+    "changelog": "Historia zmian dokumentu"
+  },
+  "content": {
+    "inline_comment_count": "{count} komentarz w tekście tego dokumentu | {count} komentarzy w tekście tego dokumentu",
+    "draft_recovered": "Odzyskano niezapisany szkic",
+    "mark_unreviewed": "Oznacz jako nieprzejrzane",
+    "mark_reviewed": "Oznacz jako przejrzane",
+    "comment_count": "{count} komentarz | {count} komentarzy",
+    "add_comment": "Dodaj komentarz",
+    "resolved": "Rozwiązano",
+    "resolved_by": "Rozwiązane przez {name} {date}",
+    "resolved_by_unknown": "nieznany",
+    "inline_placeholder": "Dodaj komentarz do tego akapitu... (wpisz {'@'}, aby oznaczyć)",
+    "no_users": "Nie znaleziono użytkowników",
+    "empty": "Brak dostępnej treści dla tego dokumentu."
+  },
+  "comments": {
+    "no_document": "Wybierz dokument, aby zobaczyć komentarze",
+    "heading": "Komentarze",
+    "resolved_count": "rozwiązanych: {count}",
+    "general_placeholder": "Dodaj ogólny komentarz... (wpisz {'@'}, aby oznaczyć)",
+    "author_placeholder": "Twoje imię",
+    "send": "Wyślij",
+    "inline_label": "Komentarz w tekście",
+    "inline_label_short": "W tekście",
+    "document_label": "Komentarz do dokumentu",
+    "quote": "— „{quote}”",
+    "reply": "Odpowiedz",
+    "reply_placeholder": "Napisz odpowiedź...",
+    "resolved_toggle": "{count} rozwiązany komentarz | {count} rozwiązanych komentarzy",
+    "empty": "Brak komentarzy"
+  },
+  "review_modal": {
+    "heading": "Wyślij do przeglądu",
+    "reviewers": "Recenzenci",
+    "search_members": "Szukaj członków...",
+    "version_note": "Notatka do wersji",
+    "version_note_placeholder": "np. Zaktualizowano kryteria oceny ryzyka. Dodano tabelę klasyfikacji danych.",
+    "version_note_hint": "Stanie się częścią trwałej historii wersji dokumentu po zatwierdzeniu.",
+    "send": "Wyślij do {count} recenzenta | Wyślij do {count} recenzentów"
+  },
+  "new_doc": {
+    "heading": "Nowy dokument",
+    "title": "Tytuł",
+    "title_placeholder": "np. Polityka klasyfikacji danych",
+    "type": "Typ",
+    "no_folder": "Nie wybrano folderu",
+    "change_folder": "zmień",
+    "pick_folder": "wybierz folder",
+    "folder_placeholder": "Wpisz lub wybierz folder",
+    "show_advanced": "Pokaż opcje zaawansowane",
+    "hide_advanced": "Ukryj opcje zaawansowane",
+    "document_id": "Identyfikator dokumentu",
+    "document_id_placeholder": "automatycznie z tytułu",
+    "document_id_exists": "Ten identyfikator już istnieje",
+    "filename": "Nazwa pliku",
+    "filename_placeholder": "automatycznie z identyfikatora",
+    "author": "Autor",
+    "author_placeholder": "Wybierz autora...",
+    "create": "Utwórz dokument"
+  },
+  "confirm": {
+    "embedded_html_body": "Ten dokument zawiera osadzony kod HTML/SVG, którego edytor nie może zachować — edycja tutaj usunie go przy zapisie. Aby go zachować, edytuj źródło przez CLI. Edytować mimo to?",
+    "delete_body": "Usunąć „{name}”? Tej operacji nie można cofnąć."
+  },
+  "error": {
+    "load_diff": "Nie udało się wczytać porównania",
+    "set_author": "Nie udało się ustawić autora: {message}",
+    "set_type": "Nie udało się ustawić typu: {message}",
+    "set_version": "Nie udało się ustawić wersji: {message}",
+    "create_folder": "Nie udało się utworzyć folderu: {message}",
+    "create_document": "Nie udało się utworzyć dokumentu: {message}",
+    "delete": "Nie udało się usunąć: {message}",
+    "send_for_review": "Nie udało się wysłać do przeglądu: {message}",
+    "load_content": "**Błąd wczytywania treści:** {message}",
+    "submit_reply": "Nie udało się wysłać odpowiedzi: {message}",
+    "submit_comment": "Nie udało się wysłać komentarza: {message}",
+    "resolve_comment": "Nie udało się rozwiązać komentarza: {message}",
+    "load_documents": "Nie udało się wczytać dokumentów: {message}",
+    "save": "Nie udało się zapisać: {message}"
+  }
+}

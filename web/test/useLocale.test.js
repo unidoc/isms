@@ -284,9 +284,9 @@ test('a locale this build cannot render is never offered', async (t) => {
   clearStored()
   await applyConfigLocales({
     ...CONFIG,
-    // A server newer than this bundle: it supports fr-FR, but there is no
+    // A server newer than this bundle: it supports nl-NL, but there is no
     // loader here, so selecting it would render raw message keys.
-    locales: [...CONFIG.locales, { tag: 'fr-FR', name: 'Français' }],
+    locales: [...CONFIG.locales, { tag: 'nl-NL', name: 'Nederlands' }],
   })
   assert.deepEqual(
     useLocale().options.value.map((l) => l.tag),

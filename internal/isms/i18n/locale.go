@@ -81,6 +81,7 @@ type entry struct {
 // resolves to the same entry), so this is a naming choice, not a functional one.
 var supported = map[string]entry{
 	"en":    {name: "English", enabled: true},
+	"fr-FR": {name: "Français", enabled: true},
 	"id-ID": {name: "Bahasa Indonesia", enabled: true},
 	"is-IS": {name: "Íslenska", enabled: true},
 	"pl-PL": {name: "Polski", enabled: true},

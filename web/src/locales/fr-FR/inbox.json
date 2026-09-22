@@ -1,0 +1,141 @@
+{
+  "title": "Boîte de réception",
+  "subtitle": "{count} élément d'action nécessitant votre attention | {count} éléments d'action nécessitant votre attention",
+  "mark_all_read": "Tout marquer comme lu",
+  "tab": {
+    "comments": "Commentaires",
+    "reviews": "Revues",
+    "tasks": "Tâches",
+    "incidents": "Incidents",
+    "changes": "Changements",
+    "corrective_actions": "AC",
+    "suggestions": "Suggestions"
+  },
+  "comments": {
+    "empty": "Aucun commentaire ouvert",
+    "suggestion_badge": "suggestion",
+    "scope_inline": "Intégré",
+    "scope_document": "Document",
+    "view_in_document": "Voir dans le document →"
+  },
+  "reviews": {
+    "empty": "Aucune revue en attente",
+    "untitled": "Revue sans titre",
+    "requested_by": "Demandée par {name}",
+    "unknown_requester": "Inconnu",
+    "meta": {
+      "status": "Statut",
+      "document": "Document",
+      "version": "Version",
+      "requested_by": "Demandée par"
+    },
+    "assigned_reviewers": "Relecteurs assignés",
+    "recent_comments": "Commentaires récents",
+    "open_review": "Ouvrir la revue #{id}"
+  },
+  "tasks": {
+    "add": "Ajouter une tâche",
+    "empty": "Aucune tâche trouvée",
+    "start": "Démarrer la tâche",
+    "mark_done": "Marquer comme terminée",
+    "form": {
+      "title": "Titre",
+      "title_placeholder": "Titre de la tâche",
+      "description": "Description",
+      "description_placeholder": "Description facultative",
+      "type": "Type",
+      "priority": "Priorité",
+      "assignee": "Responsable",
+      "assignee_placeholder": "Sélectionner un responsable...",
+      "due_date": "Date d'échéance"
+    }
+  },
+  "incidents": {
+    "empty": "Aucun incident ne vous est assigné"
+  },
+  "corrective_actions": {
+    "empty": "Aucune action corrective ne vous est assignée"
+  },
+  "changes": {
+    "add": "Ajouter une demande de changement",
+    "empty": "Aucune demande de changement",
+    "requested_by": "Demandée par {name}",
+    "unknown_requester": "Inconnu",
+    "form": {
+      "title": "Titre",
+      "title_placeholder": "Titre de la demande de changement",
+      "description": "Description",
+      "description_placeholder": "Décrivez le changement proposé",
+      "justification": "Justification",
+      "justification_placeholder": "Pourquoi ce changement est-il nécessaire ?",
+      "impact": "Évaluation d'impact",
+      "impact_placeholder": "Impact attendu sur le SMSI",
+      "assign_to": "Assigner à",
+      "assignee_placeholder": "Sélectionner un responsable..."
+    },
+    "detail": {
+      "description": "Description",
+      "justification": "Justification",
+      "impact": "Évaluation d'impact",
+      "affected_documents": "Documents concernés"
+    },
+    "action": {
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "mark_implemented": "Marquer comme mis en œuvre",
+      "close": "Fermer"
+    }
+  },
+  "suggestions": {
+    "empty": "Aucune suggestion avec ce statut.",
+    "filter": {
+      "open": "ouvertes",
+      "applied": "appliquées",
+      "rejected": "rejetées"
+    },
+    "agent_badge": "IA",
+    "suggested_by": "Suggéré par {name} · {date}",
+    "apply": "Appliquer",
+    "reject": "Rejeter",
+    "withdraw": "Retirer",
+    "reject_placeholder": "Motif du rejet...",
+    "rejected_reason": "Rejeté : {reason}",
+    "applied_result": "Appliqué → {entity} {id}",
+    "payload_field": {
+      "title": "Titre",
+      "name": "Nom",
+      "description": "Description",
+      "category": "Catégorie",
+      "risk_type": "Type de risque",
+      "origin": "Origine",
+      "severity": "Gravité",
+      "priority": "Priorité",
+      "status": "Statut",
+      "type": "Type",
+      "criticality": "Criticité",
+      "jurisdiction": "Juridiction",
+      "classification": "Classification",
+      "finding_type": "Type de constat",
+      "risk_level": "Niveau de risque",
+      "source": "Source",
+      "incident_type": "Type d'incident",
+      "current_likelihood": "Probabilité",
+      "current_impact": "Impact"
+    }
+  },
+  "error": {
+    "resolve_comment": "Échec de la résolution du commentaire : {message}",
+    "mark_all_read": "Échec du marquage de toutes les notifications comme lues : {message}",
+    "approve_review": "Échec de l'approbation de la revue : {message}",
+    "request_changes": "Échec de la demande de modifications : {message}",
+    "forward_review": "Échec de la transmission de la revue : {message}",
+    "claim_suggestion": "Échec de la prise en charge de la suggestion : {message}",
+    "apply_suggestion": "Échec de l'application de la suggestion : {message}",
+    "reject_suggestion": "Échec du rejet de la suggestion : {message}",
+    "withdraw_suggestion": "Échec du retrait de la suggestion : {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "Appliquer quand même",
+    "apply_stale_body": "L'entité a changé depuis la création de cette suggestion. Appliquer quand même ?"
+  }
+}

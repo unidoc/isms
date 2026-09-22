@@ -1,0 +1,102 @@
+{
+  "title": "Registre des systèmes",
+  "subtitle": "Systèmes informatiques, objectifs de reprise, contrôle d'accès et liens fournisseurs",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}",
+    "create": "Échec de la création du système : {message}",
+    "delete": "Échec de la suppression : {message}",
+    "record_review": "Échec de l'enregistrement de la revue : {message}"
+  },
+  "action": {
+    "add": "Ajouter un système"
+  },
+  "create": {
+    "heading": "Ajouter un système",
+    "name_label": "Nom *",
+    "name_placeholder": "ex. : ERP de production",
+    "classification_label": "Classification",
+    "criticality_label": "Criticité",
+    "supplier_label": "Fournisseur",
+    "fill_in_later": "Vous pourrez ajouter la classification DIC, le RPO/RTO et le responsable après la création.",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucun système trouvé"
+  },
+  "option": {
+    "no_supplier": "— Aucun —"
+  },
+  "table": {
+    "header": {
+      "system": "Système",
+      "classification": "Classification",
+      "criticality": "Criticité",
+      "cia": "C/I/D",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "Statut",
+      "owner": "Responsable",
+      "next_review": "Prochaine revue"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentialité : {level}",
+      "integrity": "Intégrité : {level}",
+      "availability": "Disponibilité : {level}"
+    },
+    "hours": "{count} h"
+  },
+  "field": {
+    "name": "Nom",
+    "description": "Description",
+    "classification": "Classification",
+    "criticality": "Criticité",
+    "status": "Statut",
+    "owner": "Responsable",
+    "department": "Service",
+    "supplier": "Fournisseur",
+    "rpo": "RPO (heures)",
+    "rto": "RTO (heures)",
+    "rpo_rto": "RPO / RTO",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "external_id": "Identifiant externe"
+  },
+  "hint": {
+    "rpo": "Perte de données maximale acceptable (heures)",
+    "rto": "Temps d'indisponibilité maximal acceptable (heures)"
+  },
+  "placeholder": {
+    "description": "Décrivez le système...",
+    "department": "IT, Ingénierie, Marketing...",
+    "notes": "Notes additionnelles... Tapez /doc pour lier un document"
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "tab": {
+    "reviews": "Revues d'accès"
+  },
+  "assessment": {
+    "confidentiality": "Confidentialité",
+    "integrity": "Intégrité",
+    "availability": "Disponibilité"
+  },
+  "reviews": {
+    "heading": "Revues d'accès",
+    "add": "+ Enregistrer une revue",
+    "users_added": "Utilisateurs ajoutés",
+    "users_removed": "Utilisateurs retirés",
+    "notes_label": "Notes",
+    "notes_placeholder": "Anciens employés retirés...",
+    "submit": "Enregistrer la revue",
+    "reviewed_by": "{reviewed} par {name}",
+    "reviewed": "Revu",
+    "empty": "Aucune revue d'accès enregistrée."
+  },
+  "danger": {
+    "warning": "La suppression de ce système est définitive et irréversible. L'historique, les commentaires, les revues d'accès et les références liées seront perdus.",
+    "delete": "Supprimer le système",
+    "confirm": "Supprimer ce système ? Cette action est irréversible."
+  }
+}

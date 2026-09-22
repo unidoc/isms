@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "docs": "Documentation",
+    "sign_in": "Se connecter"
+  },
+  "hero": {
+    "badge": "Open source · Apache 2.0",
+    "title_line1": "Le système de management",
+    "title_line2": "intelligent",
+    "subtitle": "Documents vivants, revues suivies et cadence opérationnelle réunis dans une seule plateforme auditable. Choisissez un référentiel ou apportez le vôtre. L'IA aide au travail. Les humains gardent le contrôle.",
+    "cta_cloud": "Démarrer dans le cloud",
+    "cta_selfhost": "Auto-hébergement",
+    "cta_docs": "Lire la documentation"
+  },
+  "why": {
+    "heading": "Pourquoi un système de management de plus ?",
+    "p1": "Parce que ceux qui existent sont complexes, opaques, et traités comme un exercice de conformité — pertinents pour l'audit, superflus le lendemain. Et les enjeux ne cessent de croître : à mesure que l'adoption de l'IA s'accélère et que les surfaces de menace s'élargissent, un système de management qui ne reste pas vivant est pire qu'inutile.",
+    "p2": "Il n'est pas obligatoire que cela se passe ainsi. La sécurité bien faite commence à la racine — comprendre et gérer réellement vos risques, pas les maquiller. Conçu d'abord pour l'IA, avec une véritable discipline dans sa conception et son usage, un système de management devrait faire partie intégrante de votre fonctionnement, et non un fardeau ajouté après coup.",
+    "p3": "C'est pourquoi il est open source — conçu pour les organisations de toute taille, et enfin une option crédible pour les plus petites, qui n'ont jamais eu de système de management simple, à jour, et qui ne leur résiste pas. Nous l'avons construit pour changer cela."
+  },
+  "pillars": {
+    "documents_title": "Les documents sont des actifs vivants",
+    "documents_desc": "Les politiques vivent dans git sous forme de markdown. Chaque modification est un commit. Chaque version est récupérable. Les documents pilotent votre SMSI, ils ne dorment pas dans un dossier.",
+    "reviews_title": "Les revues sont des décisions suivies",
+    "reviews_desc": "Revue par cycles avec commentaires intégrés. Approuvez, demandez des modifications ou proposez une révision. Chaque décision est un enregistrement immuable avec une empreinte SHA-256.",
+    "tasks_title": "Les tâches rythment l'année",
+    "tasks_desc": "Le plan annuel répartit les revues, audits et appréciations des risques sur le calendrier. Le tableau de bord montre ce qui nécessite votre attention ce mois-ci. Votre SMSI ne s'essouffle jamais."
+  },
+  "how": {
+    "heading": "Cinq minutes, pas cinq réunions",
+    "subtitle": "De l'événement à la politique mise à jour jusqu'au document approuvé. La plateforme s'occupe des tâches fastidieuses.",
+    "step1_title": "Quelque chose se produit",
+    "step1_desc": "Un incident, un nouveau fournisseur, un changement réglementaire, un constat d'audit. Tout événement affectant votre posture de sécurité.",
+    "step2_title": "Créer ou mettre à jour",
+    "step2_desc": "Enregistrez-le dans le bon registre. L'IA peut suggérer des mises à jour de risques, des changements de politique et des actions correctives. Vous examinez chaque suggestion.",
+    "step3_title": "Les documents se mettent à jour sur une branche",
+    "step3_desc": "Les changements de politique atterrissent sur une branche de revue avec un différentiel complet. Aucune modification mystérieuse. Cinq documents en cinq minutes.",
+    "step4_title": "Cycles de revue",
+    "step4_desc": "Les relecteurs sont notifiés. Ils approuvent ou demandent des modifications. Après les modifications, resoumettez comme nouveau cycle. Chaque cycle ne montre que ce qui a changé depuis le dernier retour.",
+    "step5_title": "Publier",
+    "step5_desc": "Fusionnez vers la branche principale. La version est incrémentée. Un enregistrement de décision est créé. Les preuves sont stockées. Terminé."
+  },
+  "features": {
+    "heading": "Conçu différemment",
+    "subtitle": "Pas un éditeur de documents avec des extensions de conformité. Un système de management conçu sur mesure où tout est connecté.",
+    "git_title": "Documents natifs git",
+    "git_desc": "Les politiques sont des fichiers markdown dans un dépôt git. Chaque modification est un commit avec différentiel complet. Créez une branche pour la revue, fusionnez pour publier. Aucun format propriétaire, aucune dépendance forcée.",
+    "review_title": "Revue par cycles",
+    "review_desc": "Envoyez un document en revue. Les relecteurs approuvent, demandent des modifications ou proposent une révision avec des commentaires intégrés. Resoumettez comme nouveau cycle — les relecteurs ne voient que ce qui a changé.",
+    "registers_title": "Des registres connectés",
+    "registers_desc": "Les risques se lient aux actifs et aux contrôles. Les incidents créent des actions correctives. Les exigences légales se lient aux politiques. Changez un élément, voyez la répercussion partout.",
+    "ai_title": "L'IA suggère, vous approuvez",
+    "ai_desc": "Les agents IA rédigent des politiques, évaluent les risques et proposent des mises à jour de registres via le même processus de revue. Serveur MCP à 22 outils. Identité d'agent et traçabilité complètes. Pas un pilote automatique — un assistant compétent.",
+    "cadence_title": "Plan annuel et cadence",
+    "cadence_desc": "Le tableau de bord montre ce qui nécessite votre attention ce mois-ci. Répartissez les revues, audits et appréciations des risques sur l'année. Les tâches suivent l'exécution. Votre SMSI reste vivant.",
+    "audit_title": "Prêt pour l'auditeur dès le premier jour",
+    "audit_desc": "Chaque approbation de revue et chaque publication de document crée un enregistrement de décision immuable avec une empreinte de contenu SHA-256. Horodaté, attribuable, vérifiable par cryptographie."
+  },
+  "frameworks": {
+    "heading": "Tout référentiel. Vos modèles.",
+    "subtitle": "11 référentiels intégrés. Ou apportez vos propres modèles — un dossier de fichiers markdown suffit. Exécutez plusieurs normes sur la même plateforme."
+  },
+  "deploy": {
+    "cloud_title": "Cloud managé",
+    "cloud_desc": "Inscrivez-vous, choisissez votre référentiel, commencez à travailler. Nous gérons l'infrastructure, les sauvegardes et les mises à jour. Multi-tenant avec isolation des données au niveau des lignes.",
+    "cloud_cta": "Commencer gratuitement",
+    "cloud_cta_signin": "Se connecter",
+    "selfhost_title": "Auto-hébergé",
+    "selfhost_desc": "Un seul binaire Go. PostgreSQL et un répertoire de données. Déployez où vous voulez — votre infrastructure, vos données. Apache 2.0, sans limite artificielle, sans stratégie open-core piégeuse.",
+    "selfhost_cta": "Voir sur GitHub"
+  },
+  "cta": {
+    "heading": "Votre auditeur vous remerciera",
+    "subtitle": "Historique de versions complet. Registres d'approbation immuables. Décisions vérifiables par cryptographie. Piste d'audit complète dès le premier jour."
+  },
+  "footer": {
+    "powered_by": "Propulsé par {link}"
+  }
+}

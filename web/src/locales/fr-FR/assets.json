@@ -1,0 +1,72 @@
+{
+  "title": "Registre des actifs",
+  "subtitle": "Actifs informationnels, classification et propriété",
+  "error": {
+    "save": "Échec de l'enregistrement : {message}",
+    "create": "Échec de la création de l'actif : {message}",
+    "delete": "Échec de la suppression : {message}"
+  },
+  "action": {
+    "add": "Ajouter un actif"
+  },
+  "create": {
+    "heading": "Ajouter un actif",
+    "name_label": "Nom *",
+    "name_placeholder": "ex. : base de données de production, portail client",
+    "type_label": "Type",
+    "deselect_hint": "Cliquez pour désélectionner",
+    "fill_in_later": "Vous pourrez ajouter la classification DIC, le responsable, et plus après la création.",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucun actif trouvé"
+  },
+  "stat": {
+    "severe": "Sévère (DIC = 5)"
+  },
+  "table": {
+    "header": {
+      "asset": "Actif",
+      "type": "Type",
+      "cia": "C/I/D",
+      "status": "Statut",
+      "owner": "Responsable"
+    },
+    "cia_title": {
+      "confidentiality": "Confidentialité : {level}",
+      "integrity": "Intégrité : {level}",
+      "availability": "Disponibilité : {level}"
+    }
+  },
+  "field": {
+    "name": "Nom",
+    "description": "Description",
+    "type": "Type",
+    "status": "Statut",
+    "owner": "Responsable",
+    "primary_location": "Emplacement principal",
+    "next_review": "Prochaine revue",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "description": "Décrivez l'actif...",
+    "primary_location": "ex. : DC Reykjavík, AWS eu-west-1",
+    "notes": "Notes additionnelles... Tapez /doc pour lier un document"
+  },
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "assessment": {
+    "confidentiality": "Confidentialité",
+    "integrity": "Intégrité",
+    "availability": "Disponibilité"
+  },
+  "danger": {
+    "warning": "La suppression de cet actif est définitive et irréversible. L'historique, les commentaires et les références liées seront perdus.",
+    "delete": "Supprimer l'actif",
+    "confirm": "Supprimer cet actif ? Cette action est irréversible."
+  }
+}

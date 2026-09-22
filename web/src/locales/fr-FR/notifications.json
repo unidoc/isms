@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} vous a mentionné dans un commentaire"
+  },
+  "mention_review_comment": {
+    "title": "{actor} vous a mentionné dans un commentaire de revue"
+  },
+  "mention_change_request": {
+    "title": "{actor} vous a mentionné dans une demande de changement"
+  },
+  "review_forwarded": {
+    "title": "Revue transmise : {title}",
+    "body": "{actor} vous a transmis la revue de {doc_id} ({title} v{version})",
+    "body_with_note": "{actor} vous a transmis la revue de {doc_id} ({title} v{version})\n\nNote : {note}"
+  },
+  "review_requested": {
+    "title": "Revue : {title} v{version}",
+    "body": "{actor} souhaite publier {title} v{version} et a demandé votre relecture",
+    "body_with_note": "{actor} souhaite publier {title} v{version} et a demandé votre relecture\n\nNote : {note}"
+  },
+  "review_resubmitted": {
+    "title": "Revue resoumise : {title}",
+    "body": "{actor} a resoumis {doc_id} ({title} v{version}) pour relecture",
+    "body_with_note": "{actor} a resoumis {doc_id} ({title} v{version}) pour relecture\n\nNote : {note}"
+  },
+  "ai_review_escalated": {
+    "title": "Revue IA transmise pour décision",
+    "body": "La revue IA de {doc_id} a atteint le cycle {round} sans accord. Merci de l'examiner et de trancher."
+  },
+  "ca_assigned": {
+    "title": "Action corrective assignée : {title}"
+  },
+  "ca_resolved": {
+    "title": "Action corrective résolue : {title}",
+    "body": "L'action corrective #{id} a été résolue par {actor}"
+  },
+  "suggestion_new": {
+    "title": "Nouvelle suggestion",
+    "body": "{actor} a proposé : {title} ({suggestion_type} – {entity})"
+  },
+  "suggestion_resolved": {
+    "title": "Suggestion {action}"
+  },
+  "suggestion_applied": {
+    "body": "Votre suggestion « {title} » a été appliquée par {actor} → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "Votre suggestion « {title} » a été rejetée par {actor} : {reason}"
+  },
+  "incident_new": {
+    "title": "Nouvel incident {severity} : {title}"
+  },
+  "incident_status": {
+    "title": "Incident {status} : {title}",
+    "body": "L'incident #{id} a été {status}"
+  },
+  "supplier_contract_30": {
+    "title": "Le contrat expire dans 30 jours : {title}",
+    "body": "Le contrat pour {title} ({id}) expire dans 30 jours."
+  },
+  "supplier_contract_7": {
+    "title": "Le contrat expire dans 7 jours : {title}",
+    "body": "Le contrat pour {title} ({id}) expire dans 7 jours."
+  },
+  "supplier_contract_today": {
+    "title": "Le contrat expire aujourd'hui : {title}",
+    "body": "Le contrat pour {title} ({id}) expire aujourd'hui."
+  }
+}

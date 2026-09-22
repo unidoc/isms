@@ -1,0 +1,89 @@
+{
+  "title": "Gestion des incidents",
+  "subtitle": "Suivre, répondre et tirer les enseignements des incidents de sécurité",
+  "error": {
+    "create": "Échec de la création de l'incident : {message}",
+    "save": "Échec de l'enregistrement : {message}",
+    "delete": "Échec de la suppression de l'incident : {message}"
+  },
+  "action": {
+    "add": "Ajouter un incident"
+  },
+  "create": {
+    "heading": "Ajouter un incident",
+    "title_label": "Titre *",
+    "title_placeholder": "Titre bref de l'incident",
+    "severity_label": "Gravité",
+    "type_label": "Type",
+    "fill_in_later": "Vous pourrez ajouter la description, la classification, l'origine, le responsable, les détails RGPD et des notes après la création.",
+    "submit": "Ajouter"
+  },
+  "filter": {
+    "empty": "Aucun incident trouvé"
+  },
+  "list": {
+    "source": "Source : {value}",
+    "reporter": "Déclarant : {name}",
+    "assignee": "Responsable : {name}"
+  },
+  "field": {
+    "title": "Titre",
+    "description": "Description",
+    "severity": "Gravité",
+    "type": "Type",
+    "origin": "Origine",
+    "classification": "Classification",
+    "status": "Statut",
+    "assignee": "Responsable",
+    "reporter": "Déclarant",
+    "root_cause": "Cause racine",
+    "lessons_learned": "Enseignements tirés",
+    "created": "Créé",
+    "created_by": "Créé par",
+    "external_id": "Identifiant externe"
+  },
+  "placeholder": {
+    "description": "Décrivez l'incident...",
+    "root_cause": "Analyse de la cause racine...",
+    "lessons_learned": "Que pouvons-nous améliorer ?",
+    "assignee": "Sélectionner un responsable...",
+    "notes": "Ajouter des notes..."
+  },
+  "classification": {
+    "confidentiality": "Confidentialité",
+    "integrity": "Intégrité",
+    "availability": "Disponibilité"
+  },
+  "data_breach_checkbox": "Il s'agit d'une violation de données personnelles (RGPD)",
+  "detail": {
+    "overview": "Vue d'ensemble",
+    "notes": "Notes"
+  },
+  "tab": {
+    "data_breach": "Violation de données"
+  },
+  "timeline": {
+    "heading": "Chronologie",
+    "detected": "Détecté :",
+    "contained": "Contenu :",
+    "resolved": "Résolu :",
+    "closed": "Fermé :"
+  },
+  "actions": {
+    "create_ca": "Créer une action corrective",
+    "create_ca_desc": "Crée une action corrective liée à cet incident."
+  },
+  "breach": {
+    "heading": "Violation de données personnelles (RGPD)",
+    "gdpr_role": "Rôle RGPD",
+    "authority_notification": "Notification à l'autorité",
+    "subjects_notification": "Notification aux personnes concernées",
+    "authority": "Autorité",
+    "subjects": "Personnes concernées"
+  },
+  "danger": {
+    "warning": "La suppression de cet incident est définitive et irréversible.",
+    "delete": "Supprimer l'incident",
+    "confirm": "Supprimer l'incident « {title} » ? Cette action est irréversible."
+  }
+}

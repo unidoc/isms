@@ -1,0 +1,232 @@
+{
+  "title": "Audit interne",
+  "subtitle": "Programmes d'audit, planning et constats",
+  "error": {
+    "load": "Échec du chargement du module audit. {message}",
+    "load_programmes": "Échec du chargement des programmes : {message}",
+    "load_audits": "Échec du chargement des audits : {message}",
+    "load_calendar": "Échec du chargement du calendrier : {message}",
+    "load_findings": "Échec du chargement des constats : {message}",
+    "load_audit_detail": "Échec du chargement des détails de l'audit : {message}",
+    "create_programme": "Échec de la création du programme : {message}",
+    "save_programme": "Échec de l'enregistrement du programme : {message}",
+    "delete_programme": "Échec de la suppression du programme : {message}",
+    "create_audit": "Échec de la création de l'audit : {message}",
+    "save_audit": "Échec de l'enregistrement de l'audit : {message}",
+    "save_report": "Échec de l'enregistrement du rapport : {message}",
+    "add_item": "Échec de l'ajout de l'élément : {message}",
+    "save_item": "Échec de l'enregistrement : {message}",
+    "remove_item": "Échec de la suppression : {message}",
+    "create_finding": "Échec de l'ajout du constat : {message}",
+    "save_finding": "Échec de l'enregistrement du constat : {message}",
+    "delete_finding": "Échec de la suppression du constat : {message}"
+  },
+  "toast": {
+    "programme_added": "Programme ajouté",
+    "programme_deleted": "Programme supprimé",
+    "audit_added": "Audit ajouté",
+    "report_saved": "Rapport enregistré",
+    "item_added": "Élément ajouté",
+    "item_removed": "Élément retiré",
+    "finding_added": "Constat ajouté",
+    "finding_deleted": "Constat supprimé"
+  },
+  "tab": {
+    "calendar": "Calendrier",
+    "programmes": "Programmes",
+    "findings": "Constats",
+    "audits": "Audits",
+    "items": "Éléments",
+    "report": "Rapport",
+    "discussion": "Discussion",
+    "linked": "AC liées"
+  },
+  "action": {
+    "add_programme": "Ajouter un programme",
+    "add_finding": "Ajouter un constat",
+    "add_audit": "Ajouter un audit"
+  },
+  "calendar": {
+    "loading": "Chargement du calendrier...",
+    "audit_count": "{count} audit | {count} audits",
+    "month_empty": "Aucun audit planifié ce mois-ci",
+    "unscheduled": "Non planifié",
+    "unscheduled_count": "{count} audit sans date planifiée | {count} audits sans date planifiée",
+    "unscheduled_range": "non planifié",
+    "empty": "Aucun audit en {year}. Ajoutez un audit depuis un programme pour le voir ici."
+  },
+  "programme": {
+    "search_placeholder": "Rechercher des programmes...",
+    "all_years": "Toutes les années",
+    "empty_filtered": "Aucun programme ne correspond à votre filtre.",
+    "empty": "Aucun programme d'audit pour le moment — cliquez sur Ajouter un programme pour en créer un.",
+    "table": {
+      "id": "ID",
+      "title": "Titre",
+      "year": "Année",
+      "audits": "Audits",
+      "findings": "Constats",
+      "status": "Statut"
+    },
+    "create": {
+      "heading": "Ajouter un programme",
+      "title_label": "Titre *",
+      "title_placeholder": "ex. : Programme d'audit annuel 2026",
+      "year_label": "Année *",
+      "fill_in_later": "Vous pourrez ajouter la description, le statut et des audits après la création.",
+      "submitting": "Ajout...",
+      "submit": "Ajouter"
+    },
+    "field": {
+      "title": "Titre",
+      "year": "Année",
+      "status": "Statut",
+      "description": "Description",
+      "notes": "Notes",
+      "audits": "Audits",
+      "created_by": "Créé par",
+      "created": "Créé"
+    },
+    "placeholder": {
+      "description": "Objectifs et périmètre du programme...",
+      "notes": "Notes internes..."
+    },
+    "audits_heading": "Audits de ce programme",
+    "add_audit": "+ Ajouter un audit",
+    "audits_empty": "Aucun audit dans ce programme pour le moment.",
+    "open_findings": "{count} ouvert(s)",
+    "danger": {
+      "warning": "Les programmes contenant des audits ne peuvent pas être supprimés. Retirez d'abord tous les audits.",
+      "delete": "Supprimer le programme",
+      "confirm": "Supprimer le programme « {title} » ? Cette action est irréversible."
+    }
+  },
+  "audit": {
+    "loading_detail": "Chargement des détails de l'audit...",
+    "create": {
+      "heading": "Ajouter un audit",
+      "title_label": "Titre *",
+      "title_placeholder": "Titre de l'audit",
+      "programme_label": "Programme",
+      "no_programme": "Aucun programme (ponctuel)",
+      "type_label": "Type d'audit",
+      "fill_in_later": "Vous pourrez ajouter le périmètre, l'auditeur, les dates et des éléments après la création.",
+      "submitting": "Ajout...",
+      "submit": "Ajouter"
+    },
+    "field": {
+      "title": "Titre",
+      "scope": "Périmètre",
+      "type": "Type d'audit",
+      "status": "Statut",
+      "auditor": "Auditeur",
+      "programme": "Programme",
+      "planned_date": "Date planifiée",
+      "end_date": "Date de fin",
+      "planned": "Planifié",
+      "started": "Commencé",
+      "completed": "Terminé",
+      "items": "Éléments",
+      "findings": "Constats",
+      "notes": "Notes"
+    },
+    "placeholder": {
+      "scope": "Description du périmètre. Tapez /doc pour lier des contrôles ou des clauses...",
+      "auditor": "Sélectionner un auditeur...",
+      "notes": "Notes internes d'audit..."
+    },
+    "open_count": "({count} ouvert(s))",
+    "danger": {
+      "warning": "Les audits ne peuvent pas être supprimés depuis l'interface actuellement. Gérez les actions destructrices via la ligne de commande."
+    }
+  },
+  "items": {
+    "heading": "Éléments d'audit ({count})",
+    "add": "+ Ajouter un élément",
+    "search_placeholder": "Rechercher des documents, contrôles, clauses, risques, actifs...",
+    "searching": "Recherche...",
+    "no_matches": "Aucune correspondance.",
+    "empty": "Aucun élément pour le moment — ajoutez des contrôles, clauses, risques ou autres éléments à évaluer.",
+    "raise_finding": "Signaler un constat",
+    "raise_finding_title": "Créer un constat à partir de cet élément",
+    "delete_title": "Supprimer l'élément",
+    "evidence": "Preuve",
+    "evidence_placeholder": "Référence, lien ou description de la preuve...",
+    "notes": "Notes",
+    "notes_empty": "Notes (vide)",
+    "notes_placeholder": "Notes intégrées pour cet élément...",
+    "save_notes": "Enregistrer les notes",
+    "confirm_remove": "Retirer « {title} » de cet audit ?",
+    "remove": "Retirer"
+  },
+  "findings": {
+    "search_placeholder": "Rechercher des constats...",
+    "all_audits": "Tous les audits",
+    "overdue_toggle_title": "Basculer : en retard uniquement",
+    "overdue_only": "En retard uniquement",
+    "overdue": "En retard",
+    "empty_filtered": "Aucun constat ne correspond à votre filtre.",
+    "empty": "Aucun constat enregistré pour le moment.",
+    "heading_count": "Constats ({count})",
+    "add": "+ Ajouter un constat",
+    "audit_empty": "Aucun constat enregistré pour cet audit pour le moment.",
+    "table": {
+      "id": "ID",
+      "title": "Titre",
+      "audit": "Audit",
+      "type": "Type",
+      "owner": "Responsable",
+      "due": "Échéance",
+      "status": "Statut"
+    },
+    "create": {
+      "heading": "Ajouter un constat",
+      "title_label": "Titre *",
+      "title_placeholder": "Titre du constat",
+      "audit_label": "Audit *",
+      "audit_placeholder": "Sélectionner un audit...",
+      "type_label": "Type",
+      "fill_in_later": "Vous pourrez ajouter la description, le responsable, la date d'échéance et des liens vers des actions correctives après la création.",
+      "submitting": "Ajout...",
+      "submit": "Ajouter"
+    },
+    "field": {
+      "title": "Titre",
+      "description": "Description",
+      "type": "Type",
+      "status": "Statut",
+      "owner": "Responsable",
+      "due_date": "Date d'échéance",
+      "due_date_read": "Date d'échéance",
+      "audit": "Audit",
+      "audit_item": "Élément d'audit",
+      "created": "Créé",
+      "closed": "Fermé"
+    },
+    "placeholder": {
+      "description": "Description détaillée du constat, preuves, analyse de la cause racine...",
+      "owner": "Sélectionner un responsable..."
+    },
+    "item_ref": "élément #{id}",
+    "quick_action": "Action rapide",
+    "create_ca": "Créer une action corrective à partir du constat",
+    "create_ca_hint": "Crée une action corrective préremplie avec le titre et la gravité de ce constat.",
+    "danger": {
+      "warning": "La suppression de ce constat est définitive. Les actions correctives liées sont conservées mais perdent cette référence.",
+      "delete": "Supprimer le constat",
+      "confirm": "Supprimer ce constat ? Cette action est irréversible."
+    }
+  },
+  "report": {
+    "heading": "Rapport d'audit",
+    "placeholder": "Rapport final de l'auditeur — observations, conclusions, recommandations. Utilisez les commandes slash pour lier des contrôles, clauses, preuves...",
+    "empty": "Aucun rapport rédigé pour le moment."
+  },
+  "dirty": {
+    "report_switch_tab": "Vous avez des modifications non enregistrées sur le rapport. Les abandonner et changer d'onglet ?",
+    "report_close": "Vous avez des modifications non enregistrées sur le rapport. Les abandonner et fermer ?"
+  },
+  "detail": {
+    "overview": "Vue d'ensemble"
+  }
+}

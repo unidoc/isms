@@ -138,7 +138,8 @@
     "submit_request": "Enviar Solicitação",
     "withdraw": "Retirar Revisão",
     "close_without_merging": "Fechar Sem Mesclar",
-    "not_a_reviewer": "Você não é revisor nesta solicitação."
+    "not_a_reviewer": "Você não é revisor nesta solicitação.",
+    "no_reviewers_assigned": "Nenhum revisor está atribuído a esta revisão. Adicione um revisor antes de aprovar ou solicitar alterações."
   },
   "closed_state": {
     "merged": "Mesclado",

@@ -138,7 +138,8 @@
     "submit_request": "Senda beiðni",
     "withdraw": "Draga yfirferð til baka",
     "close_without_merging": "Loka án sameiningar",
-    "not_a_reviewer": "Þú ert ekki yfirferðaraðili á þessari beiðni."
+    "not_a_reviewer": "Þú ert ekki yfirferðaraðili á þessari beiðni.",
+    "no_reviewers_assigned": "Engum yfirferðaraðilum hefur verið úthlutað þessari yfirferð. Bættu við yfirferðaraðila áður en þú samþykkir eða óskar eftir breytingum."
   },
   "closed_state": {
     "merged": "Sameinað",

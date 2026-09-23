@@ -138,7 +138,8 @@
     "submit_request": "Wyślij prośbę",
     "withdraw": "Wycofaj przegląd",
     "close_without_merging": "Zamknij bez scalania",
-    "not_a_reviewer": "Nie jesteś recenzentem tego wniosku."
+    "not_a_reviewer": "Nie jesteś recenzentem tego wniosku.",
+    "no_reviewers_assigned": "Do tego przeglądu nie przypisano żadnych recenzentów. Dodaj recenzenta przed zatwierdzeniem lub poproszeniem o zmiany."
   },
   "closed_state": {
     "merged": "Scalono",

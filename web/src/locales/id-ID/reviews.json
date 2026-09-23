@@ -138,7 +138,8 @@
     "submit_request": "Kirim Permintaan",
     "withdraw": "Tarik Tinjauan",
     "close_without_merging": "Tutup Tanpa Menggabungkan",
-    "not_a_reviewer": "Anda bukan peninjau pada permintaan ini."
+    "not_a_reviewer": "Anda bukan peninjau pada permintaan ini.",
+    "no_reviewers_assigned": "Belum ada peninjau yang ditugaskan untuk tinjauan ini. Tambahkan peninjau sebelum menyetujui atau meminta perubahan."
   },
   "closed_state": {
     "merged": "Digabungkan",

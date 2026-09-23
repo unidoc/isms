@@ -10,8 +10,9 @@ import (
 
 // openCAsLinkedError is returned by the unified incident write path when an
 // incident can't be resolved/closed because open corrective actions are still
-// linked. The HTTP handler maps it to 409; suggestion-apply surfaces it as the
-// apply failure. Same rule, one code path (#26).
+// linked. Both the HTTP update handler and suggestion-apply map it to 409, so
+// the same rule reports the same status through either door. Same rule, one
+// code path (#26).
 type openCAsLinkedError struct {
 	verb string
 	n    int

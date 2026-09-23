@@ -469,6 +469,12 @@ func pgxHTTPError(err error) error {
 	if err == nil {
 		return nil
 	}
+	// Input validation raised inside the db package (e.g. Risk.Validate) is a
+	// client error, not a server failure.
+	var ve *db.ValidationError
+	if errors.As(err, &ve) {
+		return echo.NewHTTPError(http.StatusBadRequest, ve.Error())
+	}
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {

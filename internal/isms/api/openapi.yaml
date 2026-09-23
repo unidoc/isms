@@ -664,6 +664,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Organization' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: An organization with this slug already exists
 
   # ── Config ──────────────────────────────────────────────────────────────
   /config:
@@ -1077,6 +1081,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Risk' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /risks/{id}:
     put:

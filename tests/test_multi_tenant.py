@@ -175,3 +175,17 @@ class TestMultiTenantIsolation:
             pass  # validateOrgMember may not be on all create paths yet
         else:
             assert r.status_code == 400
+
+
+def test_duplicate_org_slug_is_409(api_url, admin_headers):
+    """#296: a taken slug is a 409 and must not leak the DB constraint name."""
+    import uuid
+    slug = f"dup-{uuid.uuid4().hex[:8]}"
+    first = requests.post(f"{api_url}/organizations", headers=admin_headers,
+                          json={"name": "Dup Org", "slug": slug})
+    assert first.status_code == 201, first.text
+    second = requests.post(f"{api_url}/organizations", headers=admin_headers,
+                           json={"name": "Dup Org", "slug": slug})
+    assert second.status_code == 409, second.text
+    assert "uq_organizations" not in second.text, second.text
+    assert "SQLSTATE" not in second.text, second.text

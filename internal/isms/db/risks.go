@@ -105,28 +105,42 @@ func intVal(p *int) int {
 // intPtr returns a pointer to an int.
 func intPtr(v int) *int { return &v }
 
+// ValidationError marks an error caused by invalid caller input rather than by
+// the database or the server. The API layer maps it to 400 (see pgxHTTPError),
+// so a validation failure raised deep in the db package — e.g. from CreateRisk
+// or CreateRiskTx — is not reported as a 500.
+type ValidationError struct {
+	msg string
+}
+
+func (e *ValidationError) Error() string { return e.msg }
+
+func validationErrorf(format string, args ...any) error {
+	return &ValidationError{msg: fmt.Sprintf(format, args...)}
+}
+
 // Validate checks required fields.
 func (r *Risk) Validate() error {
 	if r.Title == "" {
-		return fmt.Errorf("title is required")
+		return validationErrorf("title is required")
 	}
 	if r.CurrentLikelihood != nil && (*r.CurrentLikelihood < 0 || *r.CurrentLikelihood > 5) {
-		return fmt.Errorf("current_likelihood must be 0-5")
+		return validationErrorf("current_likelihood must be 0-5")
 	}
 	if r.CurrentImpact != nil && (*r.CurrentImpact < 0 || *r.CurrentImpact > 5) {
-		return fmt.Errorf("current_impact must be 0-5")
+		return validationErrorf("current_impact must be 0-5")
 	}
 	validTypes := map[string]bool{"threat": true, "opportunity": true}
 	if r.RiskType == "" || !validTypes[r.RiskType] {
-		return fmt.Errorf("risk_type is required (threat or opportunity)")
+		return validationErrorf("risk_type is required (threat or opportunity)")
 	}
 	validOrigins := map[string]bool{"internal": true, "external": true, "internal and external": true}
 	if r.Origin == "" || !validOrigins[r.Origin] {
-		return fmt.Errorf("origin is required (internal, external, or internal and external)")
+		return validationErrorf("origin is required (internal, external, or internal and external)")
 	}
 	validStatuses := map[string]bool{"draft": true, "open": true, "closed": true}
 	if r.Status == "" || !validStatuses[r.Status] {
-		return fmt.Errorf("status is required (draft, open, or closed)")
+		return validationErrorf("status is required (draft, open, or closed)")
 	}
 	return nil
 }

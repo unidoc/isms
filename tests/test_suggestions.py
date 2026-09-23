@@ -397,3 +397,18 @@ class TestEntitySuggestionUpdateGuards:
         s = self._fetch(api_url, admin_headers, sid)
         assert s["title"] == "retitled", "Terminal suggestion was mutated"
         assert s.get("rationale") == "original rationale"
+
+
+def test_apply_risk_create_out_of_range_likelihood_is_400(api_url, admin_headers):
+    """#296: validation raised inside the apply transaction is a 400, not a 500."""
+    sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+        "entity_type": "risk",
+        "suggestion_type": "create",
+        "title": "Out of range risk",
+        "payload": {"title": "Out of range risk", "current_likelihood": 9},
+    })
+    assert sg.status_code in (200, 201), sg.text
+    r = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
+                      headers=admin_headers, json={"force": True})
+    assert r.status_code == 400, r.text
+    assert r.json().get("message") == "current_likelihood must be 0-5", r.text

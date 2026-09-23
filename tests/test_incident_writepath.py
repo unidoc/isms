@@ -62,9 +62,11 @@ def test_apply_path_blocks_resolve_with_open_ca(api_url, admin_headers):
     # force=true bypasses stale-detection so the ONLY thing that can block the
     # apply is the enforced open-CA guard (what we're testing).
     apply = requests.post(f"{api_url}/suggestions/{sid}/apply", headers=admin_headers, json={"force": True})
-    assert not (apply.status_code == 200 and apply.json().get("status") == "applied"), (
-        f"apply should be blocked by the open-CA guard, got {apply.status_code}: {apply.text}"
+    # #296: the same rule must report the same status as the direct endpoint (409).
+    assert apply.status_code == 409, (
+        f"apply should be blocked by the open-CA guard with 409, got {apply.status_code}: {apply.text}"
     )
+    assert "open corrective action" in apply.json().get("message", ""), apply.text
 
     # And the incident stays unresolved (guard held, no partial write).
     got = requests.get(f"{api_url}/incidents/{inc_id}", headers=admin_headers).json()

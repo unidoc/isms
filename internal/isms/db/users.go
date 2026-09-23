@@ -15,6 +15,10 @@ import (
 // belongs to another account.
 var ErrEmailTaken = errors.New("email address is already in use")
 
+// ErrSlugTaken is returned by CreateOrganization when another live organization
+// already uses the slug (case-insensitive).
+var ErrSlugTaken = errors.New("an organization with this slug already exists")
+
 // User represents an ISMS platform user.
 type User struct {
 	ID            int     `json:"id"`
@@ -443,11 +447,18 @@ func (d *DB) CheckAndSetTOTPUsed(ctx context.Context, userID int) (bool, error) 
 // CreateOrganization inserts a new organization. Slug is normalized to lowercase.
 func (d *DB) CreateOrganization(ctx context.Context, org *Organization) error {
 	org.Slug = strings.ToLower(org.Slug)
-	return d.pool.QueryRow(ctx, `
+	err := d.pool.QueryRow(ctx, `
 		INSERT INTO organizations (name, slug, repo_path, domain)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, uuid, created_at, updated_at
 	`, org.Name, org.Slug, org.RepoPath, org.Domain).Scan(&org.ID, &org.UUID, &org.CreatedAt, &org.UpdatedAt)
+	// Only the slug index maps to ErrSlugTaken: uq_organizations_domain is on the
+	// same table and a domain clash must not be reported as a slug clash.
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "uq_organizations_slug_lower" {
+		return ErrSlugTaken
+	}
+	return err
 }
 
 // DeleteOrganization soft-deletes an org. The slug/domain unique indexes

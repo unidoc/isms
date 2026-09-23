@@ -512,11 +512,17 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	})
 	if txErr != nil {
 		// Preserve an actionable status: validation returns *echo.HTTPError (400
-		// with the allowed list); a DB constraint violation maps to 400 via
-		// pgxHTTPError; anything else is a genuine 500.
+		// with the allowed list); the incident open-CA guard is a 409, the same
+		// status the direct incident endpoint returns for the same rule; a DB
+		// constraint violation or db.ValidationError maps via pgxHTTPError;
+		// anything else is a genuine 500.
 		var he *echo.HTTPError
 		if errors.As(txErr, &he) {
 			return he
+		}
+		var oce openCAsLinkedError
+		if errors.As(txErr, &oce) {
+			return echo.NewHTTPError(http.StatusConflict, oce.Error())
 		}
 		return pgxHTTPError(txErr)
 	}

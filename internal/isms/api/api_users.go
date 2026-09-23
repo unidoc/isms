@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -276,6 +277,9 @@ func (s *Server) handleCreateOrganization(c echo.Context) error {
 	// Create org in DB
 	org := &db.Organization{Name: req.Name, Slug: req.Slug, RepoPath: repoPath}
 	if err := s.db.CreateOrganization(ctx, org); err != nil {
+		if errors.Is(err, db.ErrSlugTaken) {
+			return echo.NewHTTPError(http.StatusConflict, db.ErrSlugTaken.Error())
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating organization: "+err.Error())
 	}
 

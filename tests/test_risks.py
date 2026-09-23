@@ -43,6 +43,14 @@ class TestRiskCRUD:
         assert data["origin"] == "internal"
         assert data["status"] == "open"
 
+    def test_create_risk_out_of_range_likelihood_is_400(self, api_url, admin_headers):
+        """#296: an out-of-range score is a client error, not a 500."""
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Out of range likelihood", "current_likelihood": 9,
+        })
+        assert r.status_code == 400, r.text
+        assert r.json().get("message") == "current_likelihood must be 0-5", r.text
+
     def test_list_risks(self, api_url, admin_headers):
         r = requests.get(f"{api_url}/risks", headers=admin_headers)
         assert r.status_code == 200

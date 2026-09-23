@@ -136,6 +136,18 @@ class TestRiskReadings:
         })
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
 
+    def test_09_readings_in_changelog(self, api_url, admin_headers):
+        """Each reading writes an entity_changelog row with action 'reading' (#295)."""
+        rid = TestRiskReadings.risk_id
+        r = requests.get(f"{api_url}/changelog/risk/{rid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        reasons = {e.get("reason") for e in entries if e["action"] == "reading"}
+        for reading_id in (TestRiskReadings.first_reading_id, TestRiskReadings.second_reading_id):
+            assert f"Reading #{reading_id} recorded" in reasons, (
+                f"no changelog row for reading {reading_id}: {entries}")
+        assert all(e["changed_by"] for e in entries if e["action"] == "reading")
+
 
 class TestLegalReadings:
     """Legal requirement reading lifecycle."""
@@ -186,6 +198,14 @@ class TestLegalReadings:
         readings = data.get("data") if isinstance(data, dict) else data
         assert isinstance(readings, list)
         assert len(readings) >= 1
+
+    def test_05_reading_in_changelog(self, api_url, admin_headers):
+        """A legal reading writes an entity_changelog row with action 'reading' (#295)."""
+        lid = TestLegalReadings.legal_id
+        r = requests.get(f"{api_url}/changelog/legal_requirement/{lid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        assert any(e["action"] == "reading" for e in entries), f"no reading row: {entries}"
 
 
 class TestSupplierReview:
@@ -307,6 +327,16 @@ class TestSupplierReadings:
             "notes": "Should be rejected",
         })
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
+
+    def test_06_reading_in_changelog(self, api_url, admin_headers):
+        """A supplier reading writes an entity_changelog row with action 'reading' (#295)."""
+        sid = TestSupplierReadings.supplier_id
+        r = requests.get(f"{api_url}/changelog/supplier/{sid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        expected = f"Reading #{TestSupplierReadings.reading_id} recorded"
+        assert any(e["action"] == "reading" and e.get("reason") == expected for e in entries), (
+            f"no changelog row for reading {TestSupplierReadings.reading_id}: {entries}")
 
 
 class TestReadingSuggestion:

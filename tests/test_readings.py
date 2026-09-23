@@ -136,6 +136,18 @@ class TestRiskReadings:
         })
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
 
+    def test_09_readings_in_changelog(self, api_url, admin_headers):
+        """Each reading writes an entity_changelog row with action 'reading' (#295)."""
+        rid = TestRiskReadings.risk_id
+        r = requests.get(f"{api_url}/changelog/risk/{rid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        reasons = {e.get("reason") for e in entries if e["action"] == "reading"}
+        for reading_id in (TestRiskReadings.first_reading_id, TestRiskReadings.second_reading_id):
+            assert f"Reading #{reading_id} recorded" in reasons, (
+                f"no changelog row for reading {reading_id}: {entries}")
+        assert all(e["changed_by"] for e in entries if e["action"] == "reading")
+
 
 class TestLegalReadings:
     """Legal requirement reading lifecycle."""
@@ -186,6 +198,14 @@ class TestLegalReadings:
         readings = data.get("data") if isinstance(data, dict) else data
         assert isinstance(readings, list)
         assert len(readings) >= 1
+
+    def test_05_reading_in_changelog(self, api_url, admin_headers):
+        """A legal reading writes an entity_changelog row with action 'reading' (#295)."""
+        lid = TestLegalReadings.legal_id
+        r = requests.get(f"{api_url}/changelog/legal_requirement/{lid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        assert any(e["action"] == "reading" for e in entries), f"no reading row: {entries}"
 
 
 class TestSupplierReview:
@@ -308,6 +328,16 @@ class TestSupplierReadings:
         })
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
 
+    def test_06_reading_in_changelog(self, api_url, admin_headers):
+        """A supplier reading writes an entity_changelog row with action 'reading' (#295)."""
+        sid = TestSupplierReadings.supplier_id
+        r = requests.get(f"{api_url}/changelog/supplier/{sid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        entries = r.json()["data"]
+        expected = f"Reading #{TestSupplierReadings.reading_id} recorded"
+        assert any(e["action"] == "reading" and e.get("reason") == expected for e in entries), (
+            f"no changelog row for reading {TestSupplierReadings.reading_id}: {entries}")
+
 
 class TestReadingSuggestion:
     """Reading via suggestion workflow: suggest reading -> apply -> verify."""
@@ -384,3 +414,120 @@ class TestReadingSuggestion:
         readings = data.get("data") if isinstance(data, dict) else data
         assert isinstance(readings, list)
         assert len(readings) >= 1, "Expected at least one reading from applied suggestion"
+
+
+def _reading_changelog_rows(api_url, headers, entity_type, entity_id):
+    """Changelog rows with action 'reading' for one entity, keyed by reason."""
+    r = requests.get(f"{api_url}/changelog/{entity_type}/{entity_id}", headers=headers)
+    assert r.status_code == 200, r.text
+    return {e.get("reason"): e for e in r.json()["data"] if e["action"] == "reading"}
+
+
+class TestAssetReadings:
+    """Asset CIA reading writes through and lands in the changelog (#295)."""
+
+    asset_id = None
+    reading_id = None
+
+    def test_01_create_asset(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/assets", headers=admin_headers, json={
+            "name": "Reading test - Customer database",
+            "asset_type": "system",
+            "status": "open",
+        })
+        assert r.status_code in [200, 201], f"Create asset failed: {r.text}"
+        TestAssetReadings.asset_id = r.json()["id"]
+
+    def test_02_submit_reading(self, api_url, admin_headers):
+        aid = TestAssetReadings.asset_id
+        r = requests.post(f"{api_url}/assets/{aid}/readings", headers=admin_headers, json={
+            "confidentiality": 4,
+            "integrity": 3,
+            "availability": 2,
+            "notes": "Initial asset CIA assessment",
+        })
+        assert r.status_code in [200, 201], f"Submit asset reading failed: {r.text}"
+        TestAssetReadings.reading_id = r.json()["id"]
+
+    def test_03_reading_in_changelog(self, api_url, admin_headers):
+        rows = _reading_changelog_rows(api_url, admin_headers, "asset", TestAssetReadings.asset_id)
+        expected = f"Reading #{TestAssetReadings.reading_id} recorded"
+        assert expected in rows, f"no changelog row for reading {TestAssetReadings.reading_id}: {rows}"
+        assert rows[expected]["changed_by"]
+
+
+class TestSystemReadings:
+    """System CIA reading writes through and lands in the changelog (#295)."""
+
+    system_id = None
+    reading_id = None
+
+    def test_01_create_system(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/systems", headers=admin_headers, json={
+            "name": "Reading test - Payroll system",
+            "classification": "confidential",
+            "criticality": "high",
+        })
+        assert r.status_code in [200, 201], f"Create system failed: {r.text}"
+        TestSystemReadings.system_id = r.json()["id"]
+
+    def test_02_submit_reading(self, api_url, admin_headers):
+        sid = TestSystemReadings.system_id
+        r = requests.post(f"{api_url}/systems/{sid}/readings", headers=admin_headers, json={
+            "confidentiality": 5,
+            "integrity": 4,
+            "availability": 3,
+            "notes": "Initial system CIA assessment",
+        })
+        assert r.status_code in [200, 201], f"Submit system reading failed: {r.text}"
+        TestSystemReadings.reading_id = r.json()["id"]
+
+    def test_03_reading_in_changelog(self, api_url, admin_headers):
+        rows = _reading_changelog_rows(api_url, admin_headers, "system", TestSystemReadings.system_id)
+        expected = f"Reading #{TestSystemReadings.reading_id} recorded"
+        assert expected in rows, f"no changelog row for reading {TestSystemReadings.reading_id}: {rows}"
+        assert rows[expected]["changed_by"]
+
+
+class TestReadingByIdentifier:
+    """A reading posted to /risks/RISK-n/readings is logged on the right risk (#295).
+
+    The identifier form resolves through a lookup, not arithmetic, so the row must
+    land on the risk's primary key and read back the same by id and by identifier.
+    """
+
+    risk_id = None
+    identifier = None
+    reading_id = None
+
+    def test_01_create_risk(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Reading test - identifier form",
+            "current_likelihood": 2,
+            "current_impact": 2,
+            "risk_type": "threat",
+            "origin": "external",
+            "status": "open",
+            "treatment": "mitigate",
+        })
+        assert r.status_code in [200, 201], f"Create risk failed: {r.text}"
+        data = r.json()
+        TestReadingByIdentifier.risk_id = data["id"]
+        TestReadingByIdentifier.identifier = data["identifier"]
+
+    def test_02_submit_reading_by_identifier(self, api_url, admin_headers):
+        ident = TestReadingByIdentifier.identifier
+        r = requests.post(f"{api_url}/risks/{ident}/readings", headers=admin_headers, json={
+            "current_likelihood": 3,
+            "current_impact": 3,
+            "notes": "Posted by identifier",
+        })
+        assert r.status_code in [200, 201], f"Submit reading by identifier failed: {r.text}"
+        TestReadingByIdentifier.reading_id = r.json()["id"]
+
+    def test_03_reading_in_changelog_by_id_and_identifier(self, api_url, admin_headers):
+        expected = f"Reading #{TestReadingByIdentifier.reading_id} recorded"
+        by_id = _reading_changelog_rows(api_url, admin_headers, "risk", TestReadingByIdentifier.risk_id)
+        by_ident = _reading_changelog_rows(api_url, admin_headers, "risk", TestReadingByIdentifier.identifier)
+        assert expected in by_id, f"no changelog row on risk {TestReadingByIdentifier.risk_id}: {by_id}"
+        assert by_ident == by_id

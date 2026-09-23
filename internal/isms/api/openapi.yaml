@@ -3385,7 +3385,7 @@ components:
         last_review: { type: string, format: date }
         next_review: { type: string, format: date, description: Auto-derived from current_level }
         notes: { type: string }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3407,7 +3407,7 @@ components:
         next_review: { type: string, format: date }
         notes: { type: string }
         tags: { type: array, items: { type: string } }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3431,7 +3431,7 @@ components:
         last_review: { type: string, format: date }
         next_review: { type: string, format: date, description: Auto-derived from criticality }
         notes: { type: string, description: "Markdown body. Includes ## Services (seeded on create when empty). Assessment status is derivable from last_review/next_review and supplier_reviews." }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3457,7 +3457,7 @@ components:
         owner: { type: string }
         assets: { type: array, items: { type: string } }
         notes: { type: string, description: "Markdown body. Includes ## Access control (seeded on create when empty)." }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3499,7 +3499,7 @@ components:
         target_likelihood: { type: integer }
         target_impact: { type: integer }
         completion: { type: integer, minimum: 0, maximum: 100 }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3530,7 +3530,7 @@ components:
         closed_at: { type: string, format: date-time }
         root_cause: { type: string }
         lessons_learned: { type: string }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3551,7 +3551,7 @@ components:
         # Cross-entity links live in entity_references (POST /references)
         resolved_at: { type: string, format: date-time }
         resolved_by: { type: string }
-        external_id: { type: string, description: The org's own reference for this record in an external system. Optional, free text, not unique. }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 

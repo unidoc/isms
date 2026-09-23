@@ -46,7 +46,8 @@ func TestHasIdentifierShape(t *testing.T) {
 // the failure mode is someone reintroducing the same shortcut under a new name:
 // strip an identifier prefix, treat the remainder as a primary key. It matches
 // both spellings that can do that here — strings.TrimPrefix and the package's own
-// stripPrefix, which this change made the sanctioned idiom at three sites.
+// stripPrefix, which this change made the sanctioned idiom at three sites —
+// and splitting on the dash (strings.SplitN et al.), which #334 found survived.
 //
 // "FIND-" and "AUDIT-" are the only allowed literals: those display ids ARE the
 // primary key (db.SoftDeleteAuditFinding mints "FIND-<id>" from the row id) and
@@ -76,7 +77,12 @@ func TestNoArithmeticIDStripSurvives(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parsing %s: %v", path, err)
 		}
+		var enclosing string
 		ast.Inspect(f, func(n ast.Node) bool {
+			if fd, ok := n.(*ast.FuncDecl); ok {
+				enclosing = fd.Name.Name
+				return true
+			}
 			call, ok := n.(*ast.CallExpr)
 			if !ok {
 				return true
@@ -89,6 +95,17 @@ func TestNoArithmeticIDStripSurvives(t *testing.T) {
 				}
 			case *ast.Ident:
 				name = fn.Name
+			}
+			if dashSplits[name] {
+				// Splitting on the dash is the other spelling of the same strip:
+				// parseEntityID did SplitN(s, "-", 2) and parsed the remainder, and
+				// wrote suggestion_applied rows onto the wrong entity (#334).
+				if enclosing != "hasIdentifierShape" && hasStringArg(call, "-") {
+					t.Errorf("%s: %s(..., \"-\") in %s — identifier prefixes must be resolved by "+
+						"lookup (resolve*ID), not split off to a primary key (#334)",
+						fset.Position(call.Pos()), name, enclosing)
+				}
+				return true
 			}
 			if name != "strings.TrimPrefix" && name != "stripPrefix" {
 				return true
@@ -112,6 +129,22 @@ func TestNoArithmeticIDStripSurvives(t *testing.T) {
 			return true
 		})
 	}
+}
+
+// dashSplits are the calls that can take "ASSET-3" apart at the dash. Only
+// hasIdentifierShape may do that, and it never parses the remainder.
+var dashSplits = map[string]bool{
+	"strings.Split": true, "strings.SplitN": true,
+	"strings.SplitAfter": true, "strings.SplitAfterN": true, "strings.Cut": true,
+}
+
+func hasStringArg(call *ast.CallExpr, want string) bool {
+	for _, arg := range call.Args {
+		if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING && strings.Trim(lit.Value, `"`) == want {
+			return true
+		}
+	}
+	return false
 }
 
 // TestEntityIDResolverKeysAreNameable: every type in entityIDResolvers is passed

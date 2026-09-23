@@ -170,7 +170,7 @@ func TestSuggestionApplyWithInvalidCustomValueRejectedNoRiskCreated(t *testing.T
 	}
 	defer tx.Rollback(ctx)
 
-	_, applyErr := applyRiskCreate(ctx, tx, s, orgID, sg, "admin@custom-fields.test")
+	_, _, applyErr := applyRiskCreate(ctx, tx, s, orgID, sg, "admin@custom-fields.test")
 	if applyErr == nil {
 		t.Fatal("expected an error for an invalid custom field value")
 	}
@@ -202,7 +202,7 @@ func TestSuggestionApplyRiskCreateSucceedsWithMissingRequiredField(t *testing.T)
 	}
 	defer tx.Rollback(ctx)
 
-	identifier, applyErr := applyRiskCreate(ctx, tx, s, orgID, sg, "admin@custom-fields.test")
+	identifier, _, applyErr := applyRiskCreate(ctx, tx, s, orgID, sg, "admin@custom-fields.test")
 	if applyErr != nil {
 		t.Fatalf("applyRiskCreate must succeed despite a missing required custom field: %v", applyErr)
 	}

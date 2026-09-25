@@ -1004,11 +1004,23 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
 	}
 
+	// Store the source under the incident's identifier, as POST /references
+	// requires: sg.EntityID may be the numeric row id, which resolveIncidentID
+	// accepts but which does not resolve as a reference (#341, #346).
+	inc, err := s.db.GetIncident(ctx, orgID, incID)
+	if err != nil {
+		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+	}
+	viewer := db.TaskViewer{Email: actor, CanSeeAll: true} // apply is manager/admin-only
+
 	var linked int
 	for _, link := range payload.Links {
+		if !s.referenceEntityExists(ctx, orgID, viewer, link.Type, link.ID) {
+			return "", 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(link.Type))
+		}
 		if err := db.CreateReferenceTx(ctx, tx, orgID, &db.EntityReference{
 			SourceType: "incident",
-			SourceID:   sg.EntityID,
+			SourceID:   inc.Identifier,
 			TargetType: link.Type,
 			TargetID:   link.ID,
 		}); err != nil {

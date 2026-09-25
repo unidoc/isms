@@ -8,9 +8,6 @@ used to do `parseEntityID` (strip → int) and then GetX(thatInt), so an
 identifier-form suggestion silently hit the wrong row (or 'not found'). They now
 resolve via GetXByIdentifier / GetObjectiveByDisplayID (mirrors #174 for
 task/incident/CA).
-
-force=true on apply bypasses stale-detection (a fresh entity's own create
-changelog would otherwise flag it), so the resolve/apply path is what's exercised.
 """
 import uuid
 
@@ -31,7 +28,7 @@ def _apply_update_by(api_url, headers, entity_type, entity_ref, fields):
     })
     assert sg.status_code in (200, 201), f"create suggestion ({entity_type}): {sg.text}"
     ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                       headers=headers, json={"force": True})
+                       headers=headers, json={})
     assert ap.status_code == 200 and ap.json().get("status") == "applied", \
         f"apply by identifier must resolve+succeed ({entity_type}, ref={entity_ref}): {ap.status_code} {ap.text}"
 

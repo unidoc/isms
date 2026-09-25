@@ -676,10 +676,10 @@
             <div v-if="sg.rationale" class="text-xs text-slate-400">{{ sg.rationale }}</div>
 
             <!-- Payload preview -->
-            <div v-if="payloadFields(sg).length > 0" class="mt-1 text-xs bg-slate-800/50 rounded px-3 py-2 space-y-0.5">
-              <div v-for="f in payloadFields(sg)" :key="f.key" class="flex gap-2">
+            <div v-if="payloadFields(sg.payload).length > 0" class="mt-1 text-xs bg-slate-800/50 rounded px-3 py-2 space-y-0.5">
+              <div v-for="f in payloadFields(sg.payload)" :key="f.key" class="flex gap-2">
                 <span class="text-slate-500 w-24 flex-shrink-0">{{ f.label }}</span>
-                <span class="text-slate-300">{{ f.value }}</span>
+                <span class="text-slate-300 min-w-0 break-words">{{ f.value }}</span>
               </div>
             </div>
 
@@ -718,9 +718,10 @@ import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate as formatDateValue, formatDay as formatDayValue, regionLabel } from '../composables/useFormat.js'
+import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
 import { enumLabel, enumLabelAbbr, entityLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { payloadFields } from '../composables/useSuggestionPayload.js'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -1309,50 +1310,6 @@ function entityIcon(type) {
 function entityIconBg(type) {
   const bgs = { risk: 'bg-red-500/10', incident: 'bg-orange-500/10', supplier: 'bg-emerald-500/10', legal_requirement: 'bg-purple-500/10', change_request: 'bg-sky-500/10', corrective_action: 'bg-pink-500/10', objective: 'bg-teal-500/10', task: 'bg-lime-500/10', system: 'bg-cyan-500/10', asset: 'bg-amber-500/10', audit_finding: 'bg-rose-500/10' }
   return bgs[type] || 'bg-slate-500/10'
-}
-
-// A module-scope label map is invisible to both scanners, which is exactly why
-// it survived this long. Keys are spelled out rather than built from the field
-// name so the keyset walk can see them.
-const PAYLOAD_FIELD_KEYS = {
-  title: 'inbox.suggestions.payload_field.title',
-  name: 'inbox.suggestions.payload_field.name',
-  description: 'inbox.suggestions.payload_field.description',
-  category: 'inbox.suggestions.payload_field.category',
-  risk_type: 'inbox.suggestions.payload_field.risk_type',
-  origin: 'inbox.suggestions.payload_field.origin',
-  severity: 'inbox.suggestions.payload_field.severity',
-  priority: 'inbox.suggestions.payload_field.priority',
-  status: 'inbox.suggestions.payload_field.status',
-  type: 'inbox.suggestions.payload_field.type',
-  criticality: 'inbox.suggestions.payload_field.criticality',
-  jurisdiction: 'inbox.suggestions.payload_field.jurisdiction',
-  classification: 'inbox.suggestions.payload_field.classification',
-  finding_type: 'inbox.suggestions.payload_field.finding_type',
-  risk_level: 'inbox.suggestions.payload_field.risk_level',
-  source: 'inbox.suggestions.payload_field.source',
-  incident_type: 'inbox.suggestions.payload_field.incident_type',
-  current_likelihood: 'inbox.suggestions.payload_field.current_likelihood',
-  current_impact: 'inbox.suggestions.payload_field.current_impact',
-}
-
-function payloadFields(sg) {
-  const raw = sg.payload
-  if (!raw) return []
-  try {
-    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!obj || typeof obj !== 'object') return []
-    return Object.entries(obj)
-      .filter(([, v]) => v !== null && v !== '' && v !== undefined)
-      .map(([k, v]) => ({
-        key: k,
-        label: PAYLOAD_FIELD_KEYS[k] ? t(PAYLOAD_FIELD_KEYS[k]) : k.replace(/_/g, ' '),
-        // `jurisdiction` holds a region code or sentinel, so it renders through
-        // the same seam the legal register uses. Historical suggestions hold the
-        // pre-migration English name and fall through regionLabel() unchanged.
-        value: k === 'jurisdiction' ? regionLabel(v) : v,
-      }))
-  } catch { return [] }
 }
 
 // ---------- Init ----------

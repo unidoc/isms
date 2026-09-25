@@ -20,6 +20,12 @@
           <span v-if="sg.suggested_by_type === 'agent'" class="px-1 py-0.5 rounded text-[9px] bg-purple-500/15 text-purple-400">{{ $t('components.suggestions.agent_badge') }}</span>
         </div>
         <div v-if="sg.rationale" class="text-sm text-slate-500">{{ sg.rationale }}</div>
+        <div v-if="payloadFields(sg.payload).length > 0" class="text-xs bg-slate-800/50 rounded px-3 py-2 space-y-0.5">
+          <div v-for="f in payloadFields(sg.payload)" :key="f.key" class="flex gap-2">
+            <span class="text-slate-500 w-24 flex-shrink-0">{{ f.label }}</span>
+            <span class="text-slate-300 min-w-0 break-words">{{ f.value }}</span>
+          </div>
+        </div>
         <div class="text-[10px] text-slate-600">{{ $t('components.suggestions.suggested_by', { name: sg.suggested_by }) }}<span v-if="sg.suggested_by_type === 'agent'"> {{ $t('components.suggestions.agent_suffix') }}</span> · {{ formatDate(sg.created_at) }}</div>
 
         <!-- Actions -->
@@ -90,6 +96,7 @@ import { useToast } from '../composables/useToast'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
+import { payloadFields } from '../composables/useSuggestionPayload.js'
 
 const { t } = useI18n()
 

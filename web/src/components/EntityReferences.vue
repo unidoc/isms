@@ -60,13 +60,13 @@ watch(() => [props.entityType, props.entityId], loadRefs)
 
 const typeColors = {
   risk: 'bg-red-900/40 text-red-300 border-red-800/50',
-  legal: 'bg-purple-900/40 text-purple-300 border-purple-800/50',
+  legal_requirement: 'bg-purple-900/40 text-purple-300 border-purple-800/50',
   document: 'bg-blue-900/40 text-blue-300 border-blue-800/50',
   asset: 'bg-amber-900/40 text-amber-300 border-amber-800/50',
   supplier: 'bg-emerald-900/40 text-emerald-300 border-emerald-800/50',
   system: 'bg-cyan-900/40 text-cyan-300 border-cyan-800/50',
   incident: 'bg-orange-900/40 text-orange-300 border-orange-800/50',
-  change: 'bg-sky-900/40 text-sky-300 border-sky-800/50',
+  change_request: 'bg-sky-900/40 text-sky-300 border-sky-800/50',
   audit: 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-800/50',
   audit_finding: 'bg-rose-900/40 text-rose-300 border-rose-800/50',
   corrective_action: 'bg-pink-900/40 text-pink-300 border-pink-800/50',
@@ -79,13 +79,13 @@ const typeColors = {
 
 const typeRoutes = {
   risk: 'risks',
-  legal: 'legal',
+  legal_requirement: 'legal',
   document: 'documents',
   asset: 'assets',
   supplier: 'suppliers',
   system: 'systems',
   incident: 'incidents',
-  change: 'changes',
+  change_request: 'changes',
   audit: 'audit',
   audit_finding: 'audit',
   corrective_action: 'corrective-actions',
@@ -122,8 +122,13 @@ function refRoute(r) {
   if (other.type === 'document' || other.type === 'control') {
     return orgPath(`/documents/${other.id}`)
   }
+  // Legal and Changes resolve the full identifier themselves; its numeric suffix
+  // is a per-org sequence, not the row id, so it must not be stripped (#201).
+  if ((other.type === 'legal_requirement' || other.type === 'change_request') && other.id) {
+    return orgPath(`/${routeBase}/${encodeURIComponent(other.id)}`)
+  }
   // Deep link for entity types that support /:id routes
-  const deepLinkTypes = ['change', 'incident', 'corrective_action', 'supplier', 'asset', 'task', 'risk', 'legal', 'system', 'program']
+  const deepLinkTypes = ['incident', 'corrective_action', 'supplier', 'asset', 'task', 'risk', 'system', 'program']
   if (deepLinkTypes.includes(other.type) && other.id) {
     const numId = other.id.replace(/^[A-Z]+-/, '')
     return orgPath(`/${routeBase}/${numId}`)

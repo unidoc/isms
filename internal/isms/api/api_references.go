@@ -102,6 +102,16 @@ func (s *Server) handleCreateReference(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
+	// Both sides are checked: the reverse row makes the source a target too, and a
+	// reference that does not resolve is stored permanently with a raw-id title (#341).
+	viewer := taskViewer(c)
+	if !s.referenceEntityExists(ctx, orgID, viewer, req.SourceType, req.SourceID) {
+		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(req.SourceType))
+	}
+	if !s.referenceEntityExists(ctx, orgID, viewer, req.TargetType, req.TargetID) {
+		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(req.TargetType))
+	}
+
 	// Create both forward and reverse references atomically with RLS
 	fwd := &db.EntityReference{
 		SourceType: req.SourceType,
@@ -178,8 +188,16 @@ func (s *Server) resolveDocumentSubtype(ctx context.Context, orgID int, docID st
 	return doc.Frontmatter.Type
 }
 
-// resolveEntityTitle looks up the display name for an entity by type and ID.
+// resolveEntityTitle looks up the display name for an entity by type and ID,
+// falling back to the ID itself when the entity cannot be resolved.
 func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) string {
+	title, _ := s.lookupEntityTitle(ctx, orgID, viewer, entityType, entityID)
+	return title
+}
+
+// lookupEntityTitle looks up the display name for an entity by type and ID,
+// and reports whether the entity was found.
+func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (string, bool) {
 	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
 	// the UI and createReferencesForEntity write that format. Resolve by
 	// identifier, never by numeric row id: the numeric part of an identifier
@@ -188,51 +206,51 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 	case "risk":
 		r, err := s.db.GetRiskByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return r.Title
+		return r.Title, true
 
 	case "legal_requirement":
 		l, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return l.Title
+		return l.Title, true
 
 	case "asset":
 		a, err := s.db.GetAssetByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return a.Name
+		return a.Name, true
 
 	case "supplier":
 		sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return sup.Name
+		return sup.Name, true
 
 	case "system":
 		sys, err := s.db.GetSystemByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return sys.Name
+		return sys.Name, true
 
 	case "incident":
 		inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return inc.Title
+		return inc.Title, true
 
 	case "corrective_action":
 		ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return ca.Title
+		return ca.Title, true
 
 	case "objective":
 		id, err := strconv.ParseInt(entityID, 10, 64)
@@ -240,15 +258,15 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 			// Try by display_id (e.g. "ISMS-1")
 			o, err := s.db.GetObjectiveByDisplayID(ctx, orgID, entityID)
 			if err != nil {
-				return entityID
+				return entityID, false
 			}
-			return o.Title
+			return o.Title, true
 		}
 		o, err := s.db.GetObjective(ctx, orgID, id)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return o.Title
+		return o.Title, true
 
 	case "program":
 		id, err := strconv.ParseInt(entityID, 10, 64)
@@ -256,51 +274,55 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 			// Try by key (e.g. "ISMS")
 			p, err := s.db.GetProgramByKey(ctx, orgID, entityID)
 			if err != nil {
-				return entityID
+				return entityID, false
 			}
-			return p.Title
+			return p.Title, true
 		}
 		p, err := s.db.GetProgram(ctx, orgID, id)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return p.Title
+		return p.Title, true
 
 	case "document":
 		st, err := s.storeForOrg(ctx, orgID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		if docPath := st.FindDocumentByID(entityID); docPath != "" {
-			if doc, err := st.LoadDocument(docPath); err == nil && doc.Frontmatter.Title != "" {
-				return doc.Frontmatter.Title
+			if doc, err := st.LoadDocument(docPath); err == nil {
+				if doc.Frontmatter.Title != "" {
+					return doc.Frontmatter.Title, true
+				}
+				return entityID, true
 			}
+			return entityID, false
 		}
-		return entityID
+		return entityID, false
 
 	case "audit":
 		// AUDIT-/FIND- are built from the row id (audits and audit_findings have
 		// no identifier column), so stripping is correct here — see api_audit.go.
 		id, err := strconv.Atoi(stripPrefix(entityID, "AUDIT-"))
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		a, err := s.db.GetAudit(ctx, orgID, id)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return a.Title
+		return a.Title, true
 
 	case "audit_finding":
 		id, err := strconv.Atoi(stripPrefix(entityID, "FIND-"))
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		f, err := s.db.GetAuditFinding(ctx, orgID, int64(id))
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return f.Title
+		return f.Title, true
 
 	case "change_request":
 		// CR- identifiers come from the per-org sequence, so the suffix is not
@@ -308,34 +330,54 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 		// title on the reference chip (#201, and the warning in db/changes.go).
 		id, err := s.resolveChangeID(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
-		return cr.Title
+		return cr.Title, true
 
 	case "task":
 		// As with CR- above: TASK- is a per-org sequence, not the primary key.
 		id, err := s.resolveTaskID(ctx, orgID, entityID)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		t, err := s.db.GetTask(ctx, orgID, id)
 		if err != nil {
-			return entityID
+			return entityID, false
 		}
 		// Don't leak a private task's title to someone who may not see it — fall
 		// back to the identifier (mirrors db.TaskViewer's rule).
 		if t.Private && !viewer.CanSeeAll && t.Assignee != viewer.Email && t.CreatedBy != viewer.Email {
-			return entityID
+			return entityID, true
 		}
-		return t.Title
+		return t.Title, true
 
 	default:
-		return entityID
+		return entityID, false
 	}
+}
+
+// sequenceIdentifierTypes are the reference types whose display identifier comes
+// from a per-org sequence. Its numeric suffix is not the primary key (#201), so a
+// bare number is never a valid reference id for them — even where the underlying
+// resolver (resolveTaskID, resolveChangeID) would accept one as a row id.
+var sequenceIdentifierTypes = map[string]bool{
+	"risk": true, "legal_requirement": true, "asset": true, "supplier": true,
+	"system": true, "incident": true, "corrective_action": true,
+	"change_request": true, "task": true,
+}
+
+// referenceEntityExists reports whether entityID names a real entity of
+// entityType in the org, in the form references store (see resolveEntityTitle).
+func (s *Server) referenceEntityExists(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) bool {
+	if sequenceIdentifierTypes[entityType] && !hasIdentifierShape(entityID) {
+		return false
+	}
+	_, found := s.lookupEntityTitle(ctx, orgID, viewer, entityType, entityID)
+	return found
 }
 
 // parseEntityNumericID strips a prefix like "RISK-" from "RISK-12" and returns 12.

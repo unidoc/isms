@@ -1,0 +1,581 @@
+{
+  "brand": {
+    "product_name": "ISMS"
+  },
+  "action": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "ok": "OK",
+    "close": "閉じる",
+    "create": "作成",
+    "edit": "編集",
+    "delete": "削除",
+    "copy": "コピー",
+    "search": "検索",
+    "clear": "クリア",
+    "add_comment": "コメントを追加",
+    "comment": "コメント",
+    "reply": "返信",
+    "resolve": "解決",
+    "approve": "承認",
+    "add": "追加",
+    "discard_draft": "下書きを破棄",
+    "discard": "破棄"
+  },
+  "state": {
+    "loading": "読み込み中…",
+    "saving": "保存中…",
+    "empty": "まだ項目はありません",
+    "error": "エラーが発生しました",
+    "unknown": "不明",
+    "outdated": "古い",
+    "outdated_inline": "古い",
+    "resolved": "解決済み",
+    "copied": "コピーしました",
+    "saved": "保存しました",
+    "overdue": "期限切れ",
+    "no_notes": "メモはまだありません。",
+    "sending": "送信中…",
+    "creating": "作成中…"
+  },
+  "validation": {
+    "required": "このフィールドは必須です"
+  },
+  "locale": {
+    "label": "言語",
+    "org_default": "組織のデフォルト"
+  },
+  "entity": {
+    "risk": "リスク",
+    "supplier": "サプライヤー",
+    "incident": "インシデント",
+    "legal_requirement": "法規制要件",
+    "change_request": "変更要求",
+    "corrective_action": "是正処置",
+    "objective": "目標",
+    "task": "タスク",
+    "system": "システム",
+    "asset": "資産",
+    "audit": "監査",
+    "audit_finding": "監査指摘事項",
+    "program": "プログラム",
+    "checkin": "チェックイン",
+    "access_review": "アクセスレビュー",
+    "user": "ユーザー",
+    "organization": "組織",
+    "review": "レビュー",
+    "document": "文書",
+    "comment": "コメント",
+    "suggestion": "提案",
+    "oidc_provider": "OIDCプロバイダー",
+    "policy": "ポリシー",
+    "passkey": "パスキー",
+    "evidence": "証跡",
+    "item": "項目"
+  },
+  "entity_inline": {
+    "risk": "リスク",
+    "supplier": "サプライヤー",
+    "incident": "インシデント",
+    "legal_requirement": "法規制要件",
+    "change_request": "変更要求",
+    "corrective_action": "是正処置",
+    "objective": "目標",
+    "task": "タスク",
+    "system": "システム",
+    "asset": "資産",
+    "audit": "監査",
+    "audit_finding": "監査指摘事項",
+    "program": "プログラム",
+    "checkin": "チェックイン",
+    "access_review": "アクセスレビュー",
+    "user": "ユーザー",
+    "organization": "組織",
+    "review": "レビュー",
+    "document": "文書",
+    "comment": "コメント",
+    "suggestion": "提案",
+    "oidc_provider": "OIDCプロバイダー",
+    "policy": "ポリシー",
+    "passkey": "パスキー",
+    "evidence": "証跡",
+    "item": "項目"
+  },
+  "field": {
+    "title": "タイトル",
+    "name": "名前",
+    "email": "メール",
+    "token": "トークン",
+    "key": "キー",
+    "notes": "メモ",
+    "path_pattern": "パスパターン",
+    "current_password": "現在のパスワード",
+    "slug": "スラッグ",
+    "role": "役割",
+    "body": "本文",
+    "reason": "理由",
+    "file": "ファイル",
+    "code": "コード",
+    "document_id": "文書ID",
+    "new_email": "新しいメール",
+    "entity_type": "エンティティ種別",
+    "suggestion_type": "提案種別"
+  },
+  "enum": {
+    "status": {
+      "draft": "下書き",
+      "open": "未処理",
+      "in_review": "レビュー中",
+      "approved": "承認済み",
+      "changes_requested": "変更要求あり",
+      "proposed_revision": "改訂案",
+      "merged": "マージ済み",
+      "retired": "廃止済み",
+      "pending": "保留中",
+      "accepted": "受容済み",
+      "applied": "適用済み",
+      "rejected": "却下済み",
+      "withdrawn": "撤回済み",
+      "resolved": "解決済み",
+      "closed": "クローズ済み",
+      "investigating": "調査中",
+      "contained": "封じ込め済み",
+      "todo": "未着手",
+      "in_progress": "進行中",
+      "done": "完了",
+      "cancelled": "キャンセル済み",
+      "proposed": "提案済み",
+      "not_started": "未開始",
+      "implemented": "実装済み",
+      "verified": "検証済み",
+      "planned": "計画済み",
+      "completed": "完了",
+      "active": "アクティブ",
+      "at_risk": "リスクあり",
+      "paused": "一時停止中",
+      "complete": "完了",
+      "assessment": "評価中",
+      "awaiting_approval": "承認待ち",
+      "implementation": "実装中",
+      "monitoring": "監視中",
+      "under_review": "レビュー中",
+      "suspended": "停止中",
+      "terminated": "終了済み",
+      "decommissioned": "廃止済み",
+      "archived": "アーカイブ済み"
+    },
+    "severity": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "criticality": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "classification": {
+      "public": "公開",
+      "internal": "内部",
+      "confidential": "秘密",
+      "restricted": "極秘"
+    },
+    "role": {
+      "admin": "管理者",
+      "manager": "マネージャー",
+      "contributor": "コントリビューター",
+      "reader": "閲覧者"
+    },
+    "audit_result": {
+      "not_assessed": "未評価",
+      "conforming": "適合",
+      "minor_nc": "軽微な不適合",
+      "major_nc": "重大な不適合",
+      "observation": "観察",
+      "opportunity": "改善の機会"
+    },
+    "finding_type": {
+      "major_nc": "重大な不適合",
+      "minor_nc": "軽微な不適合",
+      "observation": "観察",
+      "opportunity": "改善の機会"
+    },
+    "action": {
+      "applied": "適用済み",
+      "rejected": "却下済み"
+    },
+    "suggestion_type": {
+      "create": "作成",
+      "update": "更新",
+      "reassess": "再評価",
+      "link": "リンク",
+      "review": "レビュー",
+      "reading": "評価"
+    },
+    "entity_abbr": {
+      "document": "DOC",
+      "control": "CTRL",
+      "policy": "POL",
+      "procedure": "PROC",
+      "clause": "CLS",
+      "requirement": "REQ",
+      "record": "REC",
+      "guideline": "GUIDE",
+      "risk": "RISK",
+      "legal": "LEGAL",
+      "asset": "ASSET",
+      "supplier": "SUP",
+      "system": "SYS",
+      "incident": "INC",
+      "change": "CR",
+      "corrective_action": "CA",
+      "objective": "OBJ",
+      "task": "TASK",
+      "program": "PROG",
+      "audit": "AUDIT",
+      "audit_finding": "FINDING"
+    },
+    "permissions": {
+      "read-write": "読み書き",
+      "read": "読み取り専用",
+      "write": "書き込み専用"
+    },
+    "treatment": {
+      "mitigate": "低減",
+      "accept": "受容",
+      "transfer": "移転",
+      "avoid": "回避"
+    },
+    "risk_type": {
+      "threat": "脅威",
+      "opportunity": "機会"
+    },
+    "origin": {
+      "internal": "内部",
+      "external": "外部",
+      "internal and external": "内部および外部"
+    },
+    "incident_type": {
+      "incident": "インシデント",
+      "event": "事象",
+      "weakness": "弱点"
+    },
+    "gdpr_role": {
+      "controller": "管理者",
+      "processor": "処理者"
+    },
+    "notification_status": {
+      "not_required": "不要",
+      "pending": "保留中",
+      "notified": "通知済み"
+    },
+    "supplier_type": {
+      "cloud": "クラウド",
+      "saas": "SaaS",
+      "consulting": "コンサルティング",
+      "hosting": "ホスティング",
+      "infrastructure": "インフラストラクチャ",
+      "software": "ソフトウェア",
+      "contractor": "請負業者",
+      "other": "その他"
+    },
+    "asset_type": {
+      "infrastructure": "インフラストラクチャ",
+      "processing_devices": "処理装置",
+      "software": "ソフトウェア",
+      "system": "システム",
+      "network": "ネットワーク",
+      "service": "サービス",
+      "financial_info": "財務情報",
+      "personal_data": "個人データ",
+      "ipr": "知的財産",
+      "sales_marketing": "営業・マーケティング",
+      "processing_facility": "処理施設",
+      "products_services": "製品・サービス",
+      "supply_chain": "サプライチェーン",
+      "other": "その他"
+    },
+    "legal_category": {
+      "privacy": "プライバシー",
+      "security": "セキュリティ",
+      "sector": "セクター",
+      "contractual": "契約",
+      "other": "その他",
+      "data_protection": "データ保護",
+      "employment": "雇用法",
+      "regulatory": "規制遵守",
+      "intellectual_property": "知的財産",
+      "financial": "金融規制",
+      "environmental": "環境",
+      "corporate": "コーポレートガバナンス"
+    },
+    "audit_type": {
+      "internal": "内部",
+      "external": "外部",
+      "surveillance": "サーベイランス",
+      "certification": "認証",
+      "recertification": "再認証"
+    },
+    "change_category": {
+      "process": "プロセス",
+      "technology": "技術",
+      "people": "人",
+      "documentation": "文書化",
+      "infrastructure": "インフラストラクチャ",
+      "other": "その他"
+    },
+    "task_type": {
+      "general": "一般",
+      "review": "レビュー",
+      "incident_followup": "インシデントフォローアップ",
+      "audit_followup": "監査フォローアップ",
+      "ca_followup": "是正処置フォローアップ",
+      "change_followup": "変更フォローアップ",
+      "onboarding": "オンボーディング",
+      "offboarding": "オフボーディング",
+      "training": "トレーニング",
+      "other": "その他"
+    },
+    "source": {
+      "internal_audit": "内部監査",
+      "external_audit": "外部監査",
+      "risk_assessment": "リスクアセスメント",
+      "security_incident": "セキュリティインシデント",
+      "objective": "目標",
+      "feedback": "フィードバック",
+      "other": "その他"
+    },
+    "priority": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "outcome": {
+      "satisfactory": "良好",
+      "concerns": "懸念あり",
+      "unsatisfactory": "不十分"
+    },
+    "target_operator": {
+      "gte": "≥",
+      "lte": "≤",
+      "eq": "=",
+      "gt": ">",
+      "lt": "<"
+    },
+    "change_type": {
+      "change": "変更",
+      "access_request": "アクセス要求"
+    },
+    "risk_level": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "document_type": {
+      "document": "文書",
+      "policy": "ポリシー",
+      "procedure": "手順",
+      "control": "管理策",
+      "guideline": "ガイドライン",
+      "record": "記録",
+      "clause": "箇条",
+      "requirement": "要件"
+    }
+  },
+  "enum_inline": {
+    "severity": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "status": {
+      "draft": "下書き",
+      "open": "未処理",
+      "investigating": "調査中",
+      "contained": "封じ込め済み",
+      "resolved": "解決済み",
+      "closed": "クローズ済み",
+      "in_review": "レビュー中",
+      "approved": "承認済み",
+      "changes_requested": "変更要求あり",
+      "merged": "マージ済み"
+    },
+    "suggestion_type": {
+      "create": "作成",
+      "update": "更新",
+      "reassess": "再評価",
+      "link": "リンク",
+      "review": "レビュー",
+      "reading": "評価"
+    },
+    "action": {
+      "applied": "適用済み",
+      "rejected": "却下済み"
+    }
+  },
+  "error": {
+    "not_found": "{entity} が見つかりません",
+    "not_found_in_org": "{entity} はこの組織に見つかりません",
+    "invalid_entity_id": "無効な{entity} ID",
+    "required": "{field} は必須です",
+    "field_empty": "{field} は空にできません",
+    "invalid_id": "無効なID",
+    "invalid_request": "無効なリクエスト",
+    "invalid_role": "無効な役割",
+    "invalid_status": "無効な状態: {value}",
+    "invalid_credentials": "資格情報が無効です",
+    "invalid_token": "無効なトークン",
+    "invalid_otp_code": "無効なOTPコード",
+    "invalid_confirm_link": "確認リンクが無効または期限切れです",
+    "token_email_mismatch": "トークンのメールが一致しません",
+    "not_authenticated": "認証されていません",
+    "too_many_attempts": "試行回数が多すぎます。しばらくしてから再試行してください",
+    "password_too_short": "パスワードは少なくとも{count}文字必要です",
+    "current_password_required": "現在のパスワードが必要です",
+    "current_password_incorrect": "現在のパスワードが正しくありません",
+    "email_and_password_required": "メールとパスワードが必要です",
+    "email_in_use": "そのメールアドレスは既に使用されています",
+    "not_your_passkey": "あなたのパスキーではありません",
+    "api_key_required": "APIキーが必要です。使用方法: isms server api-key create",
+    "api_key_wrong_org": "APIキーはこの組織に対して認可されていません",
+    "not_org_member": "この組織のメンバーではありません",
+    "provider_other_org": "プロバイダーは別の組織に属しています",
+    "manager_or_admin_required": "マネージャーまたは管理者の役割が必要です",
+    "document_modified": "文書は別のユーザーによって変更されました — 更新して再試行してください",
+    "document_file_not_found": "文書ファイルが見つかりません",
+    "notes_required": "メモが必要です — レビューして確認した内容を記述してください",
+    "review_wrong_status": "レビューは{status}です",
+    "review_already_status": "レビューは既に{status}です",
+    "ai_disabled": "この組織ではAI機能が無効です",
+    "unsupported_locale": "サポートされていないロケール"
+  },
+  "region": {
+    "global": "グローバル",
+    "eu": "EU",
+    "eea": "EEA",
+    "apac": "APAC"
+  },
+  "footer": {
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "powered_by": "Powered by isms.sh"
+  },
+  "count": {
+    "total": "合計{count}",
+    "comments": "コメント{count}件 | コメント{count}件",
+    "outdated_comments": "古いコメント{count}件 | 古いコメント{count}件",
+    "of": "{shown} / {total}"
+  },
+  "placeholder": {
+    "search": "検索…",
+    "select_owner": "責任者を選択…"
+  },
+  "tab": {
+    "overview": "概要",
+    "treatment": "対応",
+    "assessment": "評価",
+    "notes": "メモ",
+    "links": "リンク",
+    "actions": "アクション",
+    "suggestions": "提案",
+    "comments": "コメント",
+    "history": "履歴"
+  },
+  "filter": {
+    "all_statuses": "すべての状態",
+    "all_types": "すべての種類",
+    "all_levels": "すべてのレベル",
+    "all_criticality": "すべての重要度",
+    "all_categories": "すべてのカテゴリ",
+    "all_severities": "すべての重大度",
+    "all_priorities": "すべての優先度",
+    "all_sources": "すべての発生源",
+    "all_programs": "すべてのプログラム",
+    "all_owners": "すべての責任者"
+  },
+  "option": {
+    "none": "なし",
+    "not_decided": "未決定"
+  },
+  "stat": {
+    "total": "合計",
+    "overdue": "期限切れ"
+  },
+  "heading": {
+    "quick_actions": "クイックアクション",
+    "danger_zone": "危険区域"
+  },
+  "label": {
+    "version": "バージョン",
+    "version_number": "バージョン {version}",
+    "round": "ラウンド {round}",
+    "round_paren": "（ラウンド {round}）",
+    "reviewers": "レビュー担当者",
+    "approved_prefix": "承認済み:"
+  },
+  "read_only": {
+    "actions": "読み取り専用 — 操作にはマネージャーまたは管理者の役割が必要です。"
+  },
+  "review": {
+    "last": "前回レビュー: {date}",
+    "next": "次回レビュー: {date}",
+    "overdue_since": "{date} 以降レビューが期限切れ"
+  },
+  "cia_abbr": {
+    "c": "C",
+    "i": "I",
+    "a": "A"
+  },
+  "cia": {
+    "not_assessed": "未評価",
+    "insignificant": "無視できる",
+    "minor": "軽微",
+    "moderate": "中程度",
+    "major": "重大",
+    "severe": "深刻",
+    "na": "N/A"
+  },
+  "enum_abbr": {
+    "finding_type": {
+      "major_nc": "重大NC",
+      "minor_nc": "軽微NC",
+      "observation": "観察",
+      "opportunity": "OFI"
+    },
+    "audit_result": {
+      "not_assessed": "未評価",
+      "conforming": "適合",
+      "minor_nc": "軽微NC",
+      "major_nc": "重大NC",
+      "observation": "観察",
+      "opportunity": "改善の機会"
+    }
+  },
+  "dirty": {
+    "switch_tab": "保存していない変更があります。破棄してタブを切り替えますか？",
+    "close": "保存していない変更があります。破棄して閉じますか？",
+    "discard": "破棄"
+  },
+  "bytes": {
+    "b": "{value} B",
+    "kb": "{value} KB",
+    "mb": "{value} MB"
+  },
+  "seed": {
+    "created_from": "[{label}]({link}) から作成",
+    "created_from_audit_finding": "監査指摘事項 {label} から作成"
+  },
+  "separator": {
+    "dot": "·"
+  },
+  "detail": {
+    "at_by": "{datetime} {by}",
+    "by": "{name} による"
+  }
+}

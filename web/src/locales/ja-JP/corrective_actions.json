@@ -1,0 +1,64 @@
+{
+  "title": "是正処置",
+  "subtitle": "不適合、観察事項、改善の機会を追跡します",
+  "error": {
+    "save": "保存に失敗しました: {message}"
+  },
+  "action": {
+    "add": "是正処置を追加"
+  },
+  "filter": {
+    "assignee_placeholder": "すべての担当者",
+    "empty": "フィルターに一致する是正処置がありません。",
+    "empty_all": "是正処置はまだありません — 「追加」をクリックして最初の是正処置を作成してください。"
+  },
+  "create": {
+    "heading": "是正処置を追加",
+    "title_label": "タイトル *",
+    "title_placeholder": "不適合または改善の簡単なタイトル",
+    "fill_in_later": "説明、担当者、期限、メモは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "source_option": {
+    "internal_audit": "内部監査の指摘事項",
+    "external_audit": "外部監査の指摘事項",
+    "risk_assessment": "リスクアセスメント",
+    "security_incident": "セキュリティインシデント",
+    "objective": "目標",
+    "feedback": "フィードバック / 提案",
+    "other": "その他"
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "source": "発生源",
+    "severity": "重大度",
+    "status": "状態",
+    "assignee": "担当者",
+    "due_date": "期限",
+    "root_cause": "根本原因",
+    "created": "作成日",
+    "created_by": "作成者",
+    "resolved": "解決日",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "description": "是正処置の内容を説明してください…",
+    "assignee": "担当者を選択…",
+    "root_cause": "根本原因の分析…",
+    "notes": "メモを追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "actions": {
+    "create_task": "実施タスクを作成",
+    "create_task_hint": "是正作業を行うタスクを作成します。この是正処置に自動的にリンクされます。"
+  },
+  "danger": {
+    "warning": "この是正処置の削除は永続的で、元に戻すことはできません。",
+    "delete": "是正処置を削除",
+    "confirm": "この是正処置を削除しますか？この操作は元に戻せません。"
+  }
+}

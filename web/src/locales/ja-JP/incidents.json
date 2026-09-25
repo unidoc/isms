@@ -1,0 +1,89 @@
+{
+  "title": "インシデント",
+  "subtitle": "セキュリティインシデントの追跡・対応・学習",
+  "error": {
+    "create": "インシデントの作成に失敗しました: {message}",
+    "save": "保存に失敗しました: {message}",
+    "delete": "インシデントの削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "インシデントを追加"
+  },
+  "create": {
+    "heading": "インシデントを追加",
+    "title_label": "タイトル *",
+    "title_placeholder": "インシデントのタイトル",
+    "severity_label": "重大度",
+    "type_label": "種別",
+    "fill_in_later": "説明、分類、発生元、担当者、GDPRの詳細、メモは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "インシデントは見つかりません"
+  },
+  "list": {
+    "source": "発生元: {value}",
+    "reporter": "報告者: {name}",
+    "assignee": "担当者: {name}"
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "severity": "重大度",
+    "type": "種別",
+    "origin": "発生元",
+    "classification": "分類",
+    "status": "状態",
+    "assignee": "担当者",
+    "reporter": "報告者",
+    "root_cause": "根本原因",
+    "lessons_learned": "教訓",
+    "created": "作成日",
+    "created_by": "作成者",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "description": "インシデントの内容を記入…",
+    "root_cause": "根本原因の分析…",
+    "lessons_learned": "改善できる点は？",
+    "assignee": "担当者を選択…",
+    "notes": "メモを追加…"
+  },
+  "classification": {
+    "confidentiality": "機密性",
+    "integrity": "完全性",
+    "availability": "可用性"
+  },
+  "data_breach_checkbox": "これは個人データ漏えいです（GDPR）",
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "tab": {
+    "data_breach": "データ漏えい"
+  },
+  "timeline": {
+    "heading": "タイムライン",
+    "detected": "検知:",
+    "contained": "封じ込め:",
+    "resolved": "解決:",
+    "closed": "クローズ:"
+  },
+  "actions": {
+    "create_ca": "是正処置を作成",
+    "create_ca_desc": "このインシデントにリンクした是正処置を作成します。"
+  },
+  "breach": {
+    "heading": "個人データ漏えい（GDPR）",
+    "gdpr_role": "GDPRの役割",
+    "authority_notification": "監督機関への通知",
+    "subjects_notification": "データ主体への通知",
+    "authority": "監督機関",
+    "subjects": "データ主体"
+  },
+  "danger": {
+    "warning": "このインシデントの削除は永続的で元に戻せません。",
+    "delete": "インシデントを削除",
+    "confirm": "インシデント「{title}」を削除しますか？元に戻せません。"
+  }
+}

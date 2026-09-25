@@ -1,0 +1,98 @@
+{
+  "title": "目標",
+  "subtitle": "測定可能なISMS目標とKPIパフォーマンスを追跡",
+  "error": {
+    "save": "保存に失敗しました: {message}",
+    "download": "ダウンロードに失敗しました: サーバーから予期しない応答がありました"
+  },
+  "action": {
+    "add": "目標を追加"
+  },
+  "filter": {
+    "all_programs": "すべてのプログラム",
+    "owner_placeholder": "責任者…",
+    "empty": "目標は見つかりません"
+  },
+  "create": {
+    "heading": "目標を追加",
+    "program_label": "プログラム *",
+    "program_placeholder": "プログラムを選択…",
+    "owner_label": "責任者",
+    "title_label": "タイトル *",
+    "title_placeholder": "毎月のフィッシングテスト完了率",
+    "fill_in_later": "目標値、出典、測定方法、説明、メモは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "table": {
+    "header": {
+      "id": "ID",
+      "title": "タイトル",
+      "target": "目標値",
+      "status": "状態",
+      "owner": "責任者"
+    }
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "owner": "責任者",
+    "source": "出典",
+    "status": "状態",
+    "measurement_method": "測定方法",
+    "measurement": "測定",
+    "operator": "演算子",
+    "target_value": "目標値",
+    "target": "目標値",
+    "unit": "単位",
+    "checkin_cycle_months": "チェックイン周期（月）",
+    "checkin_cycle": "チェックイン周期",
+    "last_checkin": "最終チェックイン",
+    "created": "作成日",
+    "created_by": "作成者",
+    "months": "{count} ヶ月 | {count} ヶ月"
+  },
+  "placeholder": {
+    "description": "この目標は何ですか？",
+    "owner": "責任者を選択…",
+    "source": "ISO 27001 6.2 など",
+    "measurement_method": "どのように測定しますか？",
+    "unit": "%、件数、時間…",
+    "notes": "メモを追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "checkin": {
+    "heading": "チェックイン",
+    "summary": "{pass} 合格・{fail} 不合格・{total} 合計",
+    "record_heading": "チェックインを記録",
+    "value_label": "値",
+    "value_placeholder": "97.5",
+    "result_label": "結果",
+    "result": {
+      "unspecified": "未指定",
+      "pass": "合格",
+      "fail": "不合格"
+    },
+    "message_label": "内部メモ",
+    "message_placeholder": "内部の文脈…",
+    "public_note_placeholder": "公開メモ（ステークホルダーに表示）",
+    "submit": "記録",
+    "empty": "まだチェックインは記録されていません",
+    "pass_badge": "合格",
+    "fail_badge": "不合格",
+    "public": "公開: {note}",
+    "confirm_delete": "このチェックインを削除しますか？"
+  },
+  "evidence": {
+    "download": "ダウンロード",
+    "attach": "証跡を添付",
+    "confirm_delete": "証跡「{title}」を削除しますか？"
+  },
+  "danger": {
+    "warning": "この目標の削除は永続的で元に戻せません。",
+    "delete": "目標を削除",
+    "confirm": "目標「{title}」を削除しますか？元に戻せません。"
+  }
+}

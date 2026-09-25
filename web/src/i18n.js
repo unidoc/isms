@@ -29,6 +29,7 @@ export const loaders = {
   'fr-FR': () => import('./locales/fr-FR/index.js'),
   'id-ID': () => import('./locales/id-ID/index.js'),
   'is-IS': () => import('./locales/is-IS/index.js'),
+  'ja-JP': () => import('./locales/ja-JP/index.js'),
   'pl-PL': () => import('./locales/pl-PL/index.js'),
   'pt-BR': () => import('./locales/pt-BR/index.js'),
 }

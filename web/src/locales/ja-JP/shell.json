@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "search": "検索",
+    "overview": "概要",
+    "documents": "文書",
+    "reviews": "レビュー",
+    "inbox": "受信トレイ",
+    "group_registers": "台帳",
+    "risks": "リスク",
+    "assets": "資産",
+    "suppliers": "サプライヤー",
+    "legal": "法規制",
+    "systems": "システム",
+    "group_operations": "運用",
+    "objectives": "目標",
+    "programs": "プログラム",
+    "audit": "監査",
+    "corrective_actions": "是正処置",
+    "incidents": "インシデント",
+    "changes": "変更管理",
+    "tasks": "タスク",
+    "admin": "管理"
+  },
+  "sidebar": {
+    "expand": "サイドバーを展開",
+    "collapse": "サイドバーを折りたたむ"
+  },
+  "org": {
+    "none": "組織なし",
+    "current_heading": "現在の組織",
+    "current_heading_short": "現在",
+    "settings": "組織設定",
+    "switch_to": "切り替え先",
+    "create": "新しい組織を作成",
+    "switch": "組織を切り替え"
+  },
+  "notifications": {
+    "heading": "通知",
+    "mark_all_read": "すべて既読にする",
+    "empty": "通知はありません"
+  },
+  "user": {
+    "settings": "設定",
+    "sign_out": "サインアウト"
+  }
+}

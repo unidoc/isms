@@ -1,0 +1,84 @@
+{
+  "title": "サプライヤー",
+  "subtitle": "第三者サプライヤー、重要度、評価",
+  "error": {
+    "save": "保存に失敗しました: {message}",
+    "create": "サプライヤーの作成に失敗しました: {message}",
+    "delete": "削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "サプライヤーを追加"
+  },
+  "create": {
+    "heading": "サプライヤーを追加",
+    "name_label": "名前 *",
+    "name_placeholder": "例：AWS、Office 365",
+    "type_label": "タイプ",
+    "criticality_label": "重要度",
+    "fill_in_later": "CIA分類、責任者、契約情報は作成後に追加できます。",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "サプライヤーが見つかりません"
+  },
+  "table": {
+    "header": {
+      "supplier": "サプライヤー",
+      "type": "タイプ",
+      "criticality": "重要度",
+      "cia": "C/I/A",
+      "status": "状態",
+      "owner": "責任者",
+      "next_review": "次回レビュー"
+    },
+    "cia_title": {
+      "confidentiality": "機密性: {level}",
+      "integrity": "完全性: {level}",
+      "availability": "可用性: {level}"
+    }
+  },
+  "field": {
+    "name": "名前",
+    "type": "タイプ",
+    "criticality": "重要度",
+    "status": "状態",
+    "owner": "責任者",
+    "contact": "連絡先",
+    "contract_ref": "契約参照",
+    "contract_expiry": "契約満了日",
+    "data_access": "データアクセス",
+    "created": "作成日",
+    "created_by": "作成者",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "contact": "contact{'@'}supplier.com",
+    "contract_ref": "DPA / 契約URL",
+    "notes": "追加メモ… 文書をリンクするには /doc と入力"
+  },
+  "data_access": {
+    "checkbox": "サプライヤーは当社のデータにアクセスできます",
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "tab": {
+    "reviews": "レビュー"
+  },
+  "assessment": {
+    "confidentiality": "機密性",
+    "integrity": "完全性",
+    "availability": "可用性"
+  },
+  "linked_systems": {
+    "heading": "リンクされたシステムなし | リンクされたシステム（{count}件） | リンクされたシステム（{count}件）"
+  },
+  "danger": {
+    "warning": "このサプライヤーの削除は永続的で元に戻せません。履歴、コメント、レビュー、リンクされた参照情報は失われます。",
+    "delete": "サプライヤーを削除",
+    "confirm": "このサプライヤーを削除しますか？元に戻せません。"
+  }
+}

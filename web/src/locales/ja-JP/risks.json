@@ -1,0 +1,94 @@
+{
+  "title": "リスク",
+  "subtitle": "情報セキュリティリスクの評価と対応",
+  "error": {
+    "load": "リスクの読み込みに失敗しました: {message}",
+    "save": "保存に失敗しました: {message}",
+    "create": "リスクの作成に失敗しました: {message}",
+    "delete": "リスクの削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "リスクを追加",
+    "cancel": "キャンセル"
+  },
+  "create": {
+    "heading": "リスクを追加",
+    "title_label": "タイトル *",
+    "title_placeholder": "例：本番システムへのランサムウェア攻撃",
+    "category_label": "カテゴリ",
+    "deselect_hint": "クリックして選択解除",
+    "fill_in_later": "説明、影響、対応、責任者などは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "map": {
+    "heading": "リスクマップ"
+  },
+  "stat": {
+    "total": "リスク総数"
+  },
+  "filter": {
+    "empty": "フィルタに一致するリスクはありません。",
+    "none_yet": "リスクはまだありません — 追加をクリックして最初のリスクを作成してください。"
+  },
+  "table": {
+    "header": {
+      "risk": "リスク",
+      "type": "タイプ",
+      "score": "スコア",
+      "cia": "C/I/A",
+      "owner": "責任者",
+      "treatment": "対応",
+      "status": "状態",
+      "actions": "アクション"
+    },
+    "was_score": "以前は {score}",
+    "cia_title": {
+      "confidentiality": "機密性: {level}",
+      "integrity": "完全性: {level}",
+      "availability": "可用性: {level}"
+    },
+    "advisory_badge": "レビュー",
+    "advisory_title": "リンクされた資産とのCIA不一致 — 再評価が必要です"
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "status": "状態",
+    "owner": "責任者",
+    "category": "カテゴリ",
+    "risk_type": "リスクタイプ",
+    "origin": "発生源",
+    "treatment": "対応",
+    "treatment_plan": "対応計画",
+    "created": "作成日",
+    "created_by": "作成者",
+    "notes": "メモ",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "description": "リスクを説明してください…",
+    "treatment_plan": "このリスクにどのように対応していますか？",
+    "notes": "メモ、観察事項、会議議事録、参照情報を追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "treatment": "対応",
+    "notes": "メモ"
+  },
+  "assessment": {
+    "inherent": "固有",
+    "current": "現在"
+  },
+  "links": {
+    "linked_assets": "リンクされた資産"
+  },
+  "actions": {
+    "create_task": "実装タスクを作成",
+    "create_task_desc": "対応計画を実行するタスクを生成します。このリスクに自動的にリンクされます。"
+  },
+  "danger": {
+    "warning": "このリスクの削除は永続的で元に戻せません。履歴、コメント、リンクされた参照情報は失われます。",
+    "delete": "リスクを削除",
+    "confirm": "このリスクを削除しますか？元に戻せません。"
+  }
+}

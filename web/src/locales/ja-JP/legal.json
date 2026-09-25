@@ -1,0 +1,75 @@
+{
+  "title": "法規制要件",
+  "subtitle": "適用される法令と規制リスク評価",
+  "error": {
+    "save": "保存に失敗しました: {message}",
+    "create": "法規制要件の作成に失敗しました: {message}",
+    "delete": "削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "法規制要件を追加"
+  },
+  "create": {
+    "heading": "法規制要件を追加",
+    "title_label": "タイトル *",
+    "title_placeholder": "例：GDPR、NIS2指令",
+    "category_label": "カテゴリ",
+    "deselect_hint": "クリックして選択解除",
+    "fill_in_later": "管轄、責任者、対応策などは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "map": {
+    "summary": "リスクマップ",
+    "heading": "コンプライアンスリスクマップ"
+  },
+  "filter": {
+    "empty": "法規制要件は見つかりません"
+  },
+  "table": {
+    "header": {
+      "title": "タイトル",
+      "jurisdiction": "管轄",
+      "score": "スコア",
+      "treatment": "対応策",
+      "status": "状態",
+      "owner": "責任者"
+    }
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "jurisdiction": "管轄",
+    "category": "カテゴリ",
+    "status": "状態",
+    "owner": "責任者",
+    "reference": "参照",
+    "reference_label": "参照（条項/節）",
+    "url": "URL",
+    "treatment": "対応策",
+    "treatment_plan": "対応計画",
+    "created": "作成日",
+    "created_by": "作成者",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "description": "要件の内容を記入…",
+    "jurisdiction": "検索して入力…",
+    "reference": "例：第32条、4.2節",
+    "url": "https://…",
+    "treatment_plan": "この要件にどう対応していますか？（管理策、ポリシー、アクション…）",
+    "notes": "追加メモ、所見、解釈… 文書をリンクするには /doc と入力"
+  },
+  "detail": {
+    "overview": "概要",
+    "treatment": "対応策",
+    "notes": "メモ"
+  },
+  "assessment": {
+    "current": "現在"
+  },
+  "danger": {
+    "warning": "この法規制要件の削除は永続的で元に戻せません。履歴、コメント、リンクされた参照は失われます。",
+    "delete": "要件を削除",
+    "confirm": "この法規制要件を削除しますか？元に戻せません。"
+  }
+}

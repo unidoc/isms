@@ -1,0 +1,433 @@
+{
+  "readings": {
+    "title": "評価",
+    "submit": "評価を送信",
+    "form_for": "{identifier} の評価",
+    "impact_cia": "影響（CIA）",
+    "cia_classification": "CIA分類",
+    "confidentiality": "機密性 *",
+    "integrity": "完全性 *",
+    "availability": "可用性 *",
+    "likelihood": "発生可能性 *",
+    "impact": "影響 *",
+    "not_assessed": "未評価",
+    "select": "選択",
+    "risk_score": "リスクスコア",
+    "score_hint": "CIA + 発生可能性を設定",
+    "next_review": "次回レビュー",
+    "notes": "メモ",
+    "notes_placeholder": "評価メモ…",
+    "save": "評価を保存",
+    "empty": "評価はまだありません。",
+    "error_save": "評価の保存に失敗しました",
+    "rating": {
+      "very_low": "非常に低い（1）",
+      "low": "低い（2）",
+      "medium": "中（3）",
+      "high": "高い（4）",
+      "very_high": "非常に高い（5）"
+    },
+    "cia": {
+      "insignificant": "無視できる（1）",
+      "minor": "軽微（2）",
+      "moderate": "中程度（3）",
+      "major": "重大（4）",
+      "severe": "深刻（5）"
+    },
+    "table": {
+      "date": "日付",
+      "assessor": "評価者",
+      "confidentiality": "C",
+      "integrity": "I",
+      "availability": "A",
+      "likelihood": "L",
+      "impact": "影響",
+      "score": "スコア",
+      "notes": "メモ"
+    }
+  },
+  "viewer": {
+    "mark_reviewed": "レビュー済みにする",
+    "mark_unreviewed": "未レビューにする",
+    "resolved_by": "{name} が {date} に解決",
+    "unknown_user": "不明",
+    "suggested_edit": "編集の提案",
+    "suggestion_accepted": "承認済み",
+    "suggestion_rejected": "却下済み",
+    "accept": "承認",
+    "reject": "却下",
+    "awaiting_author": "作成者の判断待ち",
+    "suggestion_resolved_by": "{name} が {status}",
+    "reply_placeholder": "返信…（{'@'}でメンション）",
+    "suggest_edit": "編集を提案",
+    "suggest": "提案",
+    "suggestion_placeholder": "この段落の置き換えテキストを提案…",
+    "comment_placeholder": "コメントを追加…（{'@'}でメンション）",
+    "no_content": "利用可能なコンテンツがありません。",
+    "status_inline": {
+      "pending": "保留中",
+      "accepted": "承認済み",
+      "rejected": "却下済み"
+    }
+  },
+  "editor": {
+    "undo": "元に戻す（Ctrl+Z）",
+    "redo": "やり直す（Ctrl+Shift+Z）",
+    "bold": "太字（Ctrl+B）",
+    "italic": "斜体（Ctrl+I）",
+    "strikethrough": "取り消し線（Ctrl+Shift+X）",
+    "text_color": "文字色",
+    "heading": "見出し {level}（Ctrl+Alt+{level}）",
+    "bullet_list": "箇条書き（Ctrl+Shift+8）",
+    "ordered_list": "番号付きリスト（Ctrl+Shift+7）",
+    "blockquote": "引用（Ctrl+Shift+B）",
+    "code_block": "コードブロック（Ctrl+Alt+C）",
+    "horizontal_rule": "水平線",
+    "link": "リンク（Ctrl+K）",
+    "link_entity": "{type} をリンク",
+    "link_placeholder": "https://…",
+    "insert_table": "表を挿入",
+    "insert_block": "ブロックを挿入",
+    "no_commands": "一致するコマンドがありません",
+    "no_results": "結果がありません",
+    "cell_color_open": "セルの色…",
+    "cell_color": "セルの色",
+    "add_row_above": "上に行を追加",
+    "add_row_below": "下に行を追加",
+    "add_column_left": "左に列を追加",
+    "add_column_right": "右に列を追加",
+    "delete_row": "行を削除",
+    "delete_column": "列を削除",
+    "delete_table": "表を削除",
+    "empty_placeholder": "書き始める…"
+  },
+  "slash": {
+    "table": {
+      "label": "表",
+      "desc": "3x3の表を挿入"
+    },
+    "h1": {
+      "label": "見出し1",
+      "desc": "大きなセクション見出し"
+    },
+    "h2": {
+      "label": "見出し2",
+      "desc": "中くらいのセクション見出し"
+    },
+    "h3": {
+      "label": "見出し3",
+      "desc": "小さなセクション見出し"
+    },
+    "bullet": {
+      "label": "箇条書き",
+      "desc": "順序なしリスト"
+    },
+    "ordered": {
+      "label": "番号付きリスト",
+      "desc": "順序付きリスト"
+    },
+    "quote": {
+      "label": "引用",
+      "desc": "インデントされた引用ブロック"
+    },
+    "code": {
+      "label": "コードブロック",
+      "desc": "フェンス付きコードブロック"
+    },
+    "hr": {
+      "label": "区切り線",
+      "desc": "水平線"
+    },
+    "risk": {
+      "label": "リスク",
+      "desc": "リスク台帳にリンク"
+    },
+    "legal": {
+      "label": "法規制",
+      "desc": "法規制要件にリンク"
+    },
+    "asset": {
+      "label": "資産",
+      "desc": "資産台帳にリンク"
+    },
+    "supplier": {
+      "label": "サプライヤー",
+      "desc": "サプライヤーにリンク"
+    },
+    "system": {
+      "label": "システム",
+      "desc": "ITシステムにリンク"
+    },
+    "doc": {
+      "label": "文書",
+      "desc": "文書にリンク"
+    },
+    "incident": {
+      "label": "インシデント",
+      "desc": "インシデントにリンク"
+    }
+  },
+  "markdown_field": {
+    "bold": "太字（Ctrl+B）",
+    "italic": "斜体（Ctrl+I）",
+    "strikethrough": "取り消し線",
+    "heading": "見出し {level}",
+    "bullet_list": "箇条書き",
+    "numbered_list": "番号付きリスト",
+    "blockquote": "引用",
+    "code_block": "コードブロック",
+    "divider": "区切り線",
+    "link": "リンク（Ctrl+K）",
+    "link_entity_button": "エンティティをリンク",
+    "placeholder": "コマンドには / と入力…"
+  },
+  "suggestions": {
+    "empty": "提案はまだありません。",
+    "pending_notice": "提案が保留中です — これらの変更はマネージャーが適用した後にのみ有効になります。",
+    "agent_badge": "AI",
+    "suggested_by": "{name} が提案",
+    "agent_suffix": "（AI）",
+    "apply": "適用",
+    "reject": "却下",
+    "reason_placeholder": "理由…",
+    "rejected_with_reason": "却下: {reason}",
+    "applied_entity": "{identifier} を適用しました",
+    "type": "種類",
+    "title": "タイトル",
+    "title_placeholder": "短い説明…",
+    "rationale": "根拠",
+    "rationale_placeholder": "この変更が必要な理由",
+    "creating": "作成中…",
+    "submit": "送信",
+    "suggest": "提案",
+    "created_toast": "提案を送信しました — マネージャーが有効にする前にレビューします。",
+    "stale_confirm": "この提案の作成後にエンティティが変更されています。それでも適用しますか？",
+    "stale_confirm_action": "それでも適用",
+    "error_create": "提案の作成に失敗しました",
+    "error_apply": "適用に失敗しました",
+    "error_reject": "却下に失敗しました",
+    "error_claim": "提案の取得に失敗しました: {message}",
+    "status": {
+      "open": "レビュー待ち",
+      "in_review": "レビュー中",
+      "applied": "適用済み",
+      "rejected": "却下済み",
+      "withdrawn": "撤回済み"
+    },
+    "action": {
+      "update": "フィールドを更新",
+      "reassess_rating": "評価を再評価",
+      "reassess_criticality": "重要度を再評価",
+      "link_entities": "他のエンティティにリンク",
+      "link_risks_systems": "リスク/システムにリンク",
+      "request_review": "レビューを依頼",
+      "request_access_review": "アクセスレビューを依頼"
+    }
+  },
+  "supplier_review": {
+    "title": "サプライヤーレビュー",
+    "submit": "レビューを送信",
+    "outcome": "結果",
+    "outcome_value": {
+      "satisfactory": "満足",
+      "concerns": "懸念事項あり",
+      "unsatisfactory": "不満足"
+    },
+    "certifications_verified": "認証を確認済み",
+    "data_handling_verified": "データ取扱いを確認済み",
+    "sla_met": "SLAを達成",
+    "notes": "レビューメモ",
+    "notes_placeholder": "レビューして確認した内容を記述してください。これはこのレビューサイクルの監査証跡です。",
+    "save": "レビューを保存",
+    "empty": "レビューはまだありません。",
+    "certs_verified_short": "認証確認済み",
+    "sla_not_met": "SLA未達成",
+    "error_save": "レビューの保存に失敗しました"
+  },
+  "side_by_side": {
+    "changed_paragraphs": "変更された段落{count}件 | 変更された段落{count}件",
+    "no_changes": "変更なし",
+    "document_view": "文書ビュー",
+    "advanced_diff": "詳細差分",
+    "previous": "前",
+    "current": "現在",
+    "no_previous_version": "前のバージョンがありません",
+    "outdated_from_previous_round": "前ラウンドからのコメント{count}件 | 前ラウンドからのコメント{count}件",
+    "comment_placeholder": "コメントを追加…"
+  },
+  "comment_sidebar": {
+    "title": "コメント",
+    "resolved_count": "解決済み{count}件",
+    "comment_placeholder": "コメントを追加…（{'@'}でメンション）",
+    "name_placeholder": "あなたの名前",
+    "send": "送信",
+    "empty": "コメントはまだありません",
+    "reply_placeholder": "返信を書く…（{'@'}でメンション）"
+  },
+  "track_changes": {
+    "added": "+{count} 追加",
+    "removed": "-{count} 削除",
+    "normal": "標準",
+    "advanced": "詳細",
+    "comment_placeholder": "コメントを追加…"
+  },
+  "references": {
+    "links": "リンク",
+    "referenced_in": "参照元",
+    "add_link": "+ リンクを追加",
+    "search_placeholder": "文書、リスク、インシデントを検索…",
+    "searching": "検索中…",
+    "no_matches": "一致するものがありません",
+    "no_linked_items": "リンクされた項目がありません",
+    "error_search": "検索に失敗しました: {message}",
+    "error_add": "参照の追加に失敗しました: {message}",
+    "error_remove": "参照の削除に失敗しました: {message}",
+    "error_load": "参照の読み込みに失敗しました: {message}"
+  },
+  "code_block": {
+    "plain_text": "プレーンテキスト",
+    "enable_wrap": "折り返しを有効にする",
+    "disable_wrap": "折り返しを無効にする",
+    "wrap": "折り返し",
+    "copy": "コピー",
+    "copy_aria": "コードをコピー"
+  },
+  "color_picker": {
+    "remove_color": "色を削除"
+  },
+  "comments_panel": {
+    "empty": "コメントはまだありません。",
+    "placeholder": "コメントを追加…（{'@'}でメンション）",
+    "post": "投稿",
+    "error_add": "コメントの追加に失敗しました: {message}"
+  },
+  "copy_link": {
+    "copied": "リンクをコピーしました",
+    "copy": "この項目へのリンクをコピー"
+  },
+  "doc_tree": {
+    "review_required": "レビューが必要"
+  },
+  "refresh": {
+    "refreshing": "更新中…",
+    "refresh": "更新"
+  },
+  "diff": {
+    "removed": "- {count} 削除",
+    "added": "+ {count} 追加",
+    "split": "分割",
+    "unified": "統合",
+    "before": "変更前",
+    "after": "変更後"
+  },
+  "global_search": {
+    "placeholder": "文書、リスク、サプライヤー、インシデントを検索…",
+    "searching": "検索中…",
+    "no_results": "「{query}」の結果がありません",
+    "empty_state": "すべてのエンティティを検索するには入力してください",
+    "hint_navigate": "移動",
+    "hint_open": "開く",
+    "hint_close": "閉じる"
+  },
+  "heat_map": {
+    "title": "リスクヒートマップ",
+    "total_items": "合計{count}項目 | 合計{count}項目",
+    "likelihood": "発生可能性",
+    "impact": "影響",
+    "unnamed": "名前なし",
+    "more": "+{count} 件",
+    "distribution_item": "{label}: {count}",
+    "likelihood_value": {
+      "rare": "まれ",
+      "unlikely": "起こりにくい",
+      "possible": "可能性がある",
+      "likely": "起こり得る",
+      "almost_certain": "ほぼ確実"
+    },
+    "impact_value": {
+      "negligible": "無視できる",
+      "minor": "軽微",
+      "moderate": "中程度",
+      "major": "重大",
+      "severe": "深刻"
+    }
+  },
+  "history": {
+    "empty": "履歴はまだありません。",
+    "field_count": "フィールド{count}件 | フィールド{count}件",
+    "showing_limit": "{total} 件中50件を表示",
+    "more": "+{count} 件",
+    "action": {
+      "create": "作成",
+      "update": "変更",
+      "delete": "削除",
+      "reading": "評価",
+      "suggestion_applied": "提案を適用"
+    },
+    "tooltip": {
+      "from": "変更前: {value}",
+      "to": "変更後: {value}",
+      "reason": "理由: {value}"
+    }
+  },
+  "member_picker": {
+    "empty": "メンバーが見つかりません",
+    "placeholder": "メンバーを選択…"
+  },
+  "pagination": {
+    "showing": "{total} 件中 {start}–{end} 件を表示",
+    "per_page": "1ページあたり"
+  },
+  "overdue": {
+    "title": "期限切れレビュー",
+    "creating": "作成中…",
+    "create_tasks": "タスクを作成",
+    "created": "タスク{count}件を作成しました | タスク{count}件を作成しました",
+    "created_skipped": "、{count}件はスキップ（既に存在）",
+    "days_late": "{count}日",
+    "overdue": "期限切れ",
+    "all_on_schedule": "すべてのレビューが予定どおり",
+    "contract": "契約",
+    "contract_expired": "{count}日前",
+    "contract_expires_in": "{count}日後"
+  },
+  "suggest_new": {
+    "button": "提案",
+    "close": "閉じる",
+    "action": "操作",
+    "title": "タイトル",
+    "description": "説明",
+    "description_placeholder": "新しいエンティティの説明…",
+    "rationale": "なぜ必要か？",
+    "rationale_placeholder": "この提案の根拠…",
+    "submitting": "送信中…",
+    "submit": "送信",
+    "form_title_new": "新しい{entity}を提案",
+    "form_title_change": "{entity}への変更を提案",
+    "placeholder_new": "新しい{entity}を説明…",
+    "placeholder_reassess": "再評価の根拠…",
+    "placeholder_link": "何をリンクすべきか、その理由…",
+    "placeholder_review": "なぜこれをレビューすべきか…",
+    "placeholder_update": "何を変更すべきか…",
+    "error_create": "提案の作成に失敗しました",
+    "type": {
+      "edit_risk": "リスクを編集",
+      "reassess_risk": "リスク評価を再評価",
+      "edit_incident": "インシデントを編集",
+      "link_entities": "他のエンティティにリンク",
+      "edit_supplier": "サプライヤーを編集",
+      "reassess_supplier": "サプライヤーを再評価",
+      "edit_requirement": "要件を編集",
+      "edit_change_request": "変更要求を編集",
+      "edit_corrective_action": "是正処置を編集",
+      "edit_task": "タスクを編集",
+      "edit_objective": "目標を編集",
+      "request_review": "レビューを依頼",
+      "edit_system": "システムを編集",
+      "request_access_review": "アクセスレビューを依頼",
+      "edit_asset": "資産を編集",
+      "request_asset_review": "資産レビューを依頼",
+      "edit_entity": "{entity}を編集"
+    }
+  }
+}

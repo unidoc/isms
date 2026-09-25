@@ -1,0 +1,48 @@
+{
+  "title": "プログラム",
+  "subtitle": "ISMSの目標を業務プログラムにグループ化",
+  "error": {
+    "save": "保存に失敗しました: {message}"
+  },
+  "action": {
+    "add": "プログラムを追加"
+  },
+  "create": {
+    "heading": "プログラムを追加",
+    "key_label": "キー（大文字）*",
+    "key_placeholder": "AWARE",
+    "title_label": "タイトル *",
+    "title_placeholder": "セキュリティ意識向上",
+    "fill_in_later": "説明とメモは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "まだプログラムはありません"
+  },
+  "table": {
+    "header": {
+      "key": "キー",
+      "title": "タイトル",
+      "description": "説明"
+    }
+  },
+  "field": {
+    "key": "キー",
+    "title": "タイトル",
+    "description": "説明",
+    "created": "作成日"
+  },
+  "placeholder": {
+    "description": "このプログラムは何ですか？",
+    "notes": "メモを追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "danger": {
+    "warning": "このプログラムを削除すると、その下のすべての目標も削除されます。元に戻せません。",
+    "delete": "プログラムを削除",
+    "confirm": "プログラム「{key}」を削除しますか？その下のすべての目標も削除されます。"
+  }
+}

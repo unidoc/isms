@@ -1,0 +1,214 @@
+{
+  "tree": {
+    "heading": "文書",
+    "new": "新規",
+    "new_folder": "新しいフォルダ",
+    "new_document": "新しい文書",
+    "empty": "文書はまだありません",
+    "import_template": "テンプレートをインポート",
+    "new_folder_placeholder": "新しいフォルダ名…",
+    "folder_name_placeholder": "フォルダ名…",
+    "hide": "ツリーを隠す",
+    "show": "ツリーを表示"
+  },
+  "empty": {
+    "heading": "文書はまだありません",
+    "body": "テンプレートをインポートして文書構造を作成し、ツリーメニューから文書やフォルダを追加してください。",
+    "import_template": "テンプレートをインポート"
+  },
+  "dash": {
+    "tab": {
+      "review": "レビューが必要",
+      "recent": "最近の変更",
+      "search": "検索",
+      "templates": "テンプレート"
+    }
+  },
+  "needs_review": {
+    "include_never_approved": "未承認を含める ({count})",
+    "up_to_date": "すべての文書は最新です。",
+    "never_approved": "未承認",
+    "changed": "変更済み",
+    "current": "現在: {commit} ({time})",
+    "approved": "承認済み: {commit}",
+    "review": "レビュー",
+    "diff": "差分"
+  },
+  "recent": {
+    "refresh": "更新",
+    "empty": "最近の変更はありません。",
+    "meta": "{time} {author} — {hash} {message}"
+  },
+  "search": {
+    "placeholder": "すべての文書を検索…",
+    "hint": "2文字以上入力して、すべての文書を検索してください。",
+    "searching": "検索中…",
+    "no_results": "\"{query}\" の結果はありません"
+  },
+  "templates": {
+    "heading": "テンプレート",
+    "subtitle": "規格の文書構造を追加または削除します。",
+    "installed": "インストール済み",
+    "add": "追加",
+    "remove": "削除",
+    "remove_heading": "テンプレートを削除",
+    "remove_body": "{name} を削除してもよろしいですか？リポジトリ内の {path} 配下のすべての文書が削除されます。",
+    "picker_heading": "テンプレートをインポート",
+    "picker_subtitle": "文書構造を作成する規格を選択してください。",
+    "picker_placeholder": "テンプレートを検索…",
+    "picker_empty": "テンプレートが見つかりません。",
+    "import": "インポート",
+    "added": "{name} テンプレートが正常に追加されました。",
+    "removed": "{name} テンプレートが削除されました。",
+    "add_failed": "テンプレートの追加に失敗しました: {message}",
+    "remove_failed": "テンプレートの削除に失敗しました: {message}"
+  },
+  "toolbar": {
+    "edit": "編集",
+    "save": "保存",
+    "send_for_review": "レビューに送信",
+    "version_history": "バージョン履歴",
+    "comments": "コメント",
+    "print": "文書を印刷",
+    "delete": "文書を削除"
+  },
+  "print": {
+    "version": "バージョン {version}",
+    "author": "作成者: {name}",
+    "printed": "印刷日 {date}"
+  },
+  "tab": {
+    "content": "コンテンツ",
+    "info": "情報",
+    "versions": "バージョン",
+    "links": "リンク",
+    "discussion": "ディスカッション",
+    "history": "履歴"
+  },
+  "meta": {
+    "status": "状態",
+    "go_to_active_review": "進行中のレビューへ",
+    "go_to_reviews": "レビューへ",
+    "type": "種別",
+    "author": "作成者",
+    "author_placeholder": "作成者を設定…",
+    "version": "バージョン",
+    "owner": "責任者",
+    "not_set": "未設定",
+    "review_cycle": "レビュー周期",
+    "review_cycle_months": "{count} か月ごと | {count} か月ごと",
+    "last_approved": "最終承認日",
+    "approved_version": "承認済みバージョン",
+    "next_review": "次回レビュー",
+    "due_soon": "期限間近"
+  },
+  "banner": {
+    "round_complete": "ラウンド {round} 完了 — 変更が要求されました",
+    "pending_suggestions": "対応すべき提案が {count} 件あります。 | 対応すべき提案が {count} 件あります。",
+    "feedback_waiting": "レビュー担当者のフィードバックが会話で待っています。",
+    "then_resubmit": "フィードバックに対応してから、次のラウンドに再提出してください。",
+    "open_review": "レビューを開く",
+    "in_review": "この文書はレビュー中です。",
+    "in_review_round": "この文書はレビュー中です（ラウンド {round}）。",
+    "view_review": "レビューを表示 →",
+    "retired": "この文書は廃止されています。",
+    "never_approved": "この文書は一度も承認されていません。",
+    "send_for_review": "レビューに送信 →",
+    "changed_since_approval": "最終承認以降に変更されました",
+    "last_approved": "— 最終承認済み",
+    "last_approved_version": "— 最終承認 {version}",
+    "last_approved_on": "— {date} に最終承認",
+    "last_approved_version_on": "— {date} に {version} を最終承認",
+    "hide_diff": "差分を隠す",
+    "view_diff": "差分を表示"
+  },
+  "versions": {
+    "heading": "バージョン履歴",
+    "empty": "バージョン履歴はありません",
+    "unknown_version": "v?",
+    "meta": "{author} — {date}"
+  },
+  "panel": {
+    "discussion": "文書ディスカッション",
+    "changelog": "文書変更ログ"
+  },
+  "content": {
+    "inline_comment_count": "この文書にインラインコメントが {count} 件あります | この文書にインラインコメントが {count} 件あります",
+    "draft_recovered": "未保存の下書きが復元されました",
+    "mark_unreviewed": "未レビューにする",
+    "mark_reviewed": "レビュー済みにする",
+    "comment_count": "{count} 件のコメント | {count} 件のコメント",
+    "add_comment": "コメントを追加",
+    "resolved": "解決済み",
+    "resolved_by": "{name} が {date} に解決",
+    "resolved_by_unknown": "不明",
+    "inline_placeholder": "この段落にコメントを追加…（{'@'} を入力してメンション）",
+    "no_users": "ユーザーが見つかりません",
+    "empty": "この文書のコンテンツはありません。"
+  },
+  "comments": {
+    "no_document": "コメントを表示する文書を選択してください",
+    "heading": "コメント",
+    "resolved_count": "{count} 件解決済み",
+    "general_placeholder": "一般的なコメントを追加…（{'@'} を入力してメンション）",
+    "author_placeholder": "あなたの名前",
+    "send": "送信",
+    "inline_label": "インラインコメント",
+    "inline_label_short": "インライン",
+    "document_label": "文書コメント",
+    "quote": "— \"{quote}\"",
+    "reply": "返信",
+    "reply_placeholder": "返信を書く…",
+    "resolved_toggle": "{count} 件の解決済みコメント | {count} 件の解決済みコメント",
+    "empty": "コメントはまだありません"
+  },
+  "review_modal": {
+    "heading": "レビューに送信",
+    "reviewers": "レビュー担当者",
+    "search_members": "メンバーを検索…",
+    "version_note": "バージョンノート",
+    "version_note_placeholder": "例：リスクアセスメント基準を更新。データ分類表を追加。",
+    "version_note_hint": "これは承認後に文書の永続的なバージョン履歴の一部になります。",
+    "send": "{count} 人のレビュー担当者に送信 | {count} 人のレビュー担当者に送信"
+  },
+  "new_doc": {
+    "heading": "新しい文書",
+    "title": "タイトル",
+    "title_placeholder": "例：データ分類ポリシー",
+    "type": "種別",
+    "no_folder": "フォルダが選択されていません",
+    "change_folder": "変更",
+    "pick_folder": "フォルダを選択",
+    "folder_placeholder": "フォルダを入力または選択",
+    "show_advanced": "詳細オプションを表示",
+    "hide_advanced": "詳細オプションを隠す",
+    "document_id": "文書ID",
+    "document_id_placeholder": "タイトルから自動生成",
+    "document_id_exists": "このIDはすでに存在します",
+    "filename": "ファイル名",
+    "filename_placeholder": "IDから自動生成",
+    "author": "作成者",
+    "author_placeholder": "作成者を選択…",
+    "create": "文書を作成"
+  },
+  "confirm": {
+    "embedded_html_body": "この文書にはエディターが保持できない埋め込みHTML/SVGが含まれています — ここで編集すると保存時に失われます。保持するにはCLIでソースを編集してください。それでも編集しますか？",
+    "delete_body": "「{name}」を削除しますか？この操作は元に戻せません。"
+  },
+  "error": {
+    "load_diff": "差分の読み込みに失敗しました",
+    "set_author": "作成者の設定に失敗しました: {message}",
+    "set_type": "種別の設定に失敗しました: {message}",
+    "set_version": "バージョンの設定に失敗しました: {message}",
+    "create_folder": "フォルダの作成に失敗しました: {message}",
+    "create_document": "文書の作成に失敗しました: {message}",
+    "delete": "削除に失敗しました: {message}",
+    "send_for_review": "レビューへの送信に失敗しました: {message}",
+    "load_content": "**コンテンツの読み込みエラー:** {message}",
+    "submit_reply": "返信の送信に失敗しました: {message}",
+    "submit_comment": "コメントの送信に失敗しました: {message}",
+    "resolve_comment": "コメントの解決に失敗しました: {message}",
+    "load_documents": "文書の読み込みに失敗しました: {message}",
+    "save": "保存に失敗しました: {message}"
+  }
+}

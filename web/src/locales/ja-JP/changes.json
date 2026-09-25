@@ -1,0 +1,65 @@
+{
+  "title": "変更管理",
+  "subtitle": "マネジメントシステムへの変更を追跡・承認します。",
+  "error": {
+    "load": "変更の読み込みに失敗しました: {message}",
+    "create": "変更要求の作成に失敗しました: {message}",
+    "save": "保存に失敗しました: {message}",
+    "delete": "変更要求の削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "変更要求を追加"
+  },
+  "create": {
+    "heading": "変更要求を追加",
+    "type_label": "種別",
+    "title_label": "タイトル",
+    "title_placeholder": "例：認証をOIDCに移行",
+    "priority_label": "優先度",
+    "category_label": "カテゴリ",
+    "fill_in_later": "説明、正当性、予定日、リスクレベル、担当者、ロールバック計画、メモは作成後に追加できます。",
+    "submitting": "作成中…",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "変更要求が見つかりません"
+  },
+  "list": {
+    "requested_by": "{name}が要求",
+    "assigned_to": "{name}に割り当て",
+    "risk": "リスク: {level}"
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "type": "種別",
+    "priority": "優先度",
+    "category": "カテゴリ",
+    "risk_level": "リスクレベル",
+    "status": "状態",
+    "assigned_to": "割り当て先",
+    "assignee": "担当者",
+    "planned_for": "予定日",
+    "justification": "正当性",
+    "rollback_plan": "ロールバック計画",
+    "requested_by": "要求者",
+    "created": "作成日"
+  },
+  "placeholder": {
+    "description": "変更内容を説明してください…",
+    "assignee": "選択…",
+    "justification": "この変更が必要な理由は？",
+    "rollback_plan": "元に戻す方法は？",
+    "notes": "メモを追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ",
+    "progress": "進捗"
+  },
+  "danger": {
+    "warning": "この変更要求の削除は永続的で、元に戻すことはできません。",
+    "delete": "変更要求を削除",
+    "confirm": "この変更要求を削除しますか？この操作は元に戻せません。"
+  }
+}

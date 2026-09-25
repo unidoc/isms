@@ -86,6 +86,7 @@ var supported = map[string]entry{
 	"fr-FR": {name: "Français", enabled: true},
 	"id-ID": {name: "Bahasa Indonesia", enabled: true},
 	"is-IS": {name: "Íslenska", enabled: true},
+	"ja-JP": {name: "日本語", enabled: false},
 	"pl-PL": {name: "Polski", enabled: true},
 	"pt-BR": {name: "Português (Brasil)", enabled: true},
 }

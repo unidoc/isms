@@ -902,6 +902,61 @@ the noun already precedes the participle in both languages ("Incident
 only correct gender agreement (*incident* is masculine: *résolu*, *fermé*;
 *suggestion* is feminine: *appliquée*, *rejetée*).
 
+### Worked example — Japanese (`ja-JP`)
+
+Japan's national adoption is JIS Q 27001:2023 (Japanese Industrial Standard,
+published by the Japanese Standards Association). JSA sells the standard as a
+bilingual EN/JA edition, so the term pairs below are taken from the Japanese
+text of the adopted clauses rather than produced by translating the English.
+The terms are also the ones used across JIS Q 9001 (the ISO 9001 adoption,
+which shares the Annex SL clauses verbatim), so the vocabulary is stable
+across both standards in Japanese.
+
+| English | Japanese | Clause |
+|---|---|---|
+| improvement | 改善 | 10 heading |
+| continual improvement | 継続的改善 | 10.3 heading |
+| opportunity for improvement | 改善の機会 | 10.1 a |
+| nonconformity | 不適合 | 10.2 heading |
+| corrective action | 是正処置 | 10.2 heading |
+| conformity | 適合 | throughout |
+| objective | 目標 | 6.2 |
+| monitoring | 監視 | 9.1 heading |
+| review (management) | マネジメントレビュー | 9.3 heading |
+| internal audit | 内部監査 | 9.2 heading |
+
+**是正処置 vs 是正措置 — both appear in JIS texts.** The 2014 edition of
+JIS Q 27001 printed clause 10.1 as 不適合及び是正措置 (措置), while the
+ISO 9001:2015 adoption (JIS Q 9001:2015) and current certification-body
+writing use 是正処置 (処置). This bundle follows 是正処置, the form the
+major JIS-certifying bodies use today, and discloses the split rather than
+claiming the standard settles it. The pair a fluent translator gets wrong
+invisibly — both read naturally, and only the adopted text arbitrates.
+
+**修正 is the trap.** Japanese has three near-interchangeable everyday words
+for fixing something (修正, 訂正, 是正), and only 是正 is the ISO term of art
+for correction applied to eliminate a nonconformity. Using 修正 anywhere in
+the finding/corrective-action vocabulary collapses the ISO distinction the
+procedure above exists to protect, so this bundle restricts 修正 to
+engineering contexts (edit a file, fix a typo) where it is genuinely the
+right word.
+
+**Nonconformity grading.** Major/minor/observation come from
+certification-body practice under ISO/IEC 17021, not from the standard. The
+bundle follows the usage of JAB (the Japanese accreditation body) and the
+major JIS-certifying bodies: 重大な不適合 (major), 軽微な不適合 (minor),
+観察 (observation).
+
+**Classification ladder.** The four levels follow standard Japanese
+information-security practice: 公開 (public) → 内部 (internal) → 秘密
+(confidential) → 極秘 (restricted). The rungs are ordered by increasing
+sensitivity the same way the English ladder is, and the badge letters in
+`common.cia_abbr` keep the app's fixed C/I/A order. Mainstream Japanese
+security writing (JIS-driven guides, vendor documentation) presents the triad
+as 機密性・完全性・可用性 — the English C-I-A order — so unlike the `pt-BR`
+and `fr-FR` cases there is no reordering to reconcile; this note records
+that check so the next translator does not go looking for one.
+
 ### Abbreviations are not always translatable, and that is a decision to record
 
 `common.enum.entity_abbr.*` and `common.cia_abbr.*` are badge codes, not copy:

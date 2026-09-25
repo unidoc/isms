@@ -106,13 +106,13 @@ test('resolution precedence: user choice beats every weaker signal', () => {
 })
 
 test('resolution falls through unrenderable signals instead of stopping', () => {
-  // nl-NL, sv-SE and ja-JP are not shipped, so each must be skipped rather
+  // nl-NL, sv-SE and ko-KR are not shipped, so each must be skipped rather
   // than returned; en-GB is the first signal that resolves.
   assert.equal(
     resolveInitialLocale({
       userLocale: 'nl-NL',
       stored: 'sv-SE',
-      navigatorLocales: ['ja-JP', 'en-GB'],
+      navigatorLocales: ['ko-KR', 'en-GB'],
       orgLocale: 'id-ID',
     }),
     'en',
@@ -122,7 +122,7 @@ test('resolution falls through unrenderable signals instead of stopping', () => 
     resolveInitialLocale({
       userLocale: 'nl-NL',
       stored: null,
-      navigatorLocales: ['ja-JP'],
+      navigatorLocales: ['ko-KR'],
       orgLocale: 'id-ID',
     }),
     'id-ID',

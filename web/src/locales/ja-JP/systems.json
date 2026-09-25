@@ -1,0 +1,102 @@
+{
+  "title": "システム",
+  "subtitle": "ITシステム、復旧目標、アクセス制御、サプライヤーリンク",
+  "error": {
+    "save": "保存に失敗しました: {message}",
+    "create": "システムの作成に失敗しました: {message}",
+    "delete": "削除に失敗しました: {message}",
+    "record_review": "レビューの記録に失敗しました: {message}"
+  },
+  "action": {
+    "add": "システムを追加"
+  },
+  "create": {
+    "heading": "システムを追加",
+    "name_label": "名前 *",
+    "name_placeholder": "例：本番ERP",
+    "classification_label": "分類",
+    "criticality_label": "重要度",
+    "supplier_label": "サプライヤー",
+    "fill_in_later": "CIA分類、RPO/RTO、責任者は作成後に追加できます。",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "システムが見つかりません"
+  },
+  "option": {
+    "no_supplier": "— なし —"
+  },
+  "table": {
+    "header": {
+      "system": "システム",
+      "classification": "分類",
+      "criticality": "重要度",
+      "cia": "C/I/A",
+      "rpo": "RPO",
+      "rto": "RTO",
+      "status": "状態",
+      "owner": "責任者",
+      "next_review": "次回レビュー"
+    },
+    "cia_title": {
+      "confidentiality": "機密性: {level}",
+      "integrity": "完全性: {level}",
+      "availability": "可用性: {level}"
+    },
+    "hours": "{count}時間"
+  },
+  "field": {
+    "name": "名前",
+    "description": "説明",
+    "classification": "分類",
+    "criticality": "重要度",
+    "status": "状態",
+    "owner": "責任者",
+    "department": "部門",
+    "supplier": "サプライヤー",
+    "rpo": "RPO（時間）",
+    "rto": "RTO（時間）",
+    "rpo_rto": "RPO / RTO",
+    "created": "作成日",
+    "created_by": "作成者",
+    "external_id": "外部ID"
+  },
+  "hint": {
+    "rpo": "許容される最大データ損失（時間）",
+    "rto": "許容される最大ダウンタイム（時間）"
+  },
+  "placeholder": {
+    "description": "システムを説明してください…",
+    "department": "IT、エンジニアリング、マーケティング…",
+    "notes": "追加メモ… 文書をリンクするには /doc と入力"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "tab": {
+    "reviews": "アクセスレビュー"
+  },
+  "assessment": {
+    "confidentiality": "機密性",
+    "integrity": "完全性",
+    "availability": "可用性"
+  },
+  "reviews": {
+    "heading": "アクセスレビュー",
+    "add": "+ レビューを記録",
+    "users_added": "追加されたユーザー",
+    "users_removed": "削除されたユーザー",
+    "notes_label": "メモ",
+    "notes_placeholder": "退職した元従業員を削除…",
+    "submit": "レビューを記録",
+    "reviewed_by": "{name} {reviewed}",
+    "reviewed": "レビュー済み",
+    "empty": "アクセスレビューは記録されていません。"
+  },
+  "danger": {
+    "warning": "このシステムの削除は永続的で元に戻せません。履歴、コメント、アクセスレビュー、リンクされた参照情報は失われます。",
+    "delete": "システムを削除",
+    "confirm": "このシステムを削除しますか？元に戻せません。"
+  }
+}

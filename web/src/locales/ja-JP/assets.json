@@ -1,0 +1,72 @@
+{
+  "title": "資産台帳",
+  "subtitle": "情報資産、分類、所有権",
+  "error": {
+    "save": "保存に失敗しました: {message}",
+    "create": "資産の作成に失敗しました: {message}",
+    "delete": "削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "資産を追加"
+  },
+  "create": {
+    "heading": "資産を追加",
+    "name_label": "名前 *",
+    "name_placeholder": "例：本番データベース、カスタマーポータル",
+    "type_label": "種類",
+    "deselect_hint": "クリックして選択解除",
+    "fill_in_later": "CIA分類、責任者などは作成後に追加できます。",
+    "submit": "追加"
+  },
+  "filter": {
+    "empty": "資産が見つかりません"
+  },
+  "stat": {
+    "severe": "重大（CIA = 5）"
+  },
+  "table": {
+    "header": {
+      "asset": "資産",
+      "type": "種類",
+      "cia": "C/I/A",
+      "status": "状態",
+      "owner": "責任者"
+    },
+    "cia_title": {
+      "confidentiality": "機密性: {level}",
+      "integrity": "完全性: {level}",
+      "availability": "可用性: {level}"
+    }
+  },
+  "field": {
+    "name": "名前",
+    "description": "説明",
+    "type": "種類",
+    "status": "状態",
+    "owner": "責任者",
+    "primary_location": "主な設置場所",
+    "next_review": "次回レビュー",
+    "created": "作成日",
+    "created_by": "作成者",
+    "external_id": "外部ID"
+  },
+  "placeholder": {
+    "description": "資産について説明…",
+    "primary_location": "例：Reykjavík DC、AWS eu-west-1",
+    "notes": "追加メモ… 文書をリンクするには /doc と入力"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ"
+  },
+  "assessment": {
+    "confidentiality": "機密性",
+    "integrity": "完全性",
+    "availability": "可用性"
+  },
+  "danger": {
+    "warning": "この資産の削除は永続的で元に戻せません。履歴、コメント、リンクされた参照は失われます。",
+    "delete": "資産を削除",
+    "confirm": "この資産を削除しますか？元に戻せません。"
+  }
+}

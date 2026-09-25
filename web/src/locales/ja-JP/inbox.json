@@ -1,0 +1,141 @@
+{
+  "title": "受信トレイ",
+  "subtitle": "対応が必要な項目が {count} 件あります | 対応が必要な項目が {count} 件あります",
+  "mark_all_read": "すべて既読にする",
+  "tab": {
+    "comments": "コメント",
+    "reviews": "レビュー",
+    "tasks": "タスク",
+    "incidents": "インシデント",
+    "changes": "変更",
+    "corrective_actions": "是正処置",
+    "suggestions": "提案"
+  },
+  "comments": {
+    "empty": "未処理のコメントはありません",
+    "suggestion_badge": "提案",
+    "scope_inline": "インライン",
+    "scope_document": "文書",
+    "view_in_document": "文書で表示 →"
+  },
+  "reviews": {
+    "empty": "保留中のレビューはありません",
+    "untitled": "無題のレビュー",
+    "requested_by": "{name}が要求",
+    "unknown_requester": "不明",
+    "meta": {
+      "status": "状態",
+      "document": "文書",
+      "version": "バージョン",
+      "requested_by": "要求者"
+    },
+    "assigned_reviewers": "割り当てられたレビュー担当者",
+    "recent_comments": "最近のコメント",
+    "open_review": "レビュー #{id} を開く"
+  },
+  "tasks": {
+    "add": "タスクを追加",
+    "empty": "タスクが見つかりません",
+    "start": "タスクを開始",
+    "mark_done": "完了にする",
+    "form": {
+      "title": "タイトル",
+      "title_placeholder": "タスクのタイトル",
+      "description": "説明",
+      "description_placeholder": "任意の説明",
+      "type": "種別",
+      "priority": "優先度",
+      "assignee": "担当者",
+      "assignee_placeholder": "担当者を選択…",
+      "due_date": "期限"
+    }
+  },
+  "incidents": {
+    "empty": "あなたに割り当てられたインシデントはありません"
+  },
+  "corrective_actions": {
+    "empty": "あなたに割り当てられた是正処置はありません"
+  },
+  "changes": {
+    "add": "変更要求を追加",
+    "empty": "変更要求はありません",
+    "requested_by": "{name}が要求",
+    "unknown_requester": "不明",
+    "form": {
+      "title": "タイトル",
+      "title_placeholder": "変更要求のタイトル",
+      "description": "説明",
+      "description_placeholder": "提案された変更を説明してください",
+      "justification": "正当性",
+      "justification_placeholder": "この変更が必要な理由は？",
+      "impact": "影響評価",
+      "impact_placeholder": "ISMSへの想定される影響",
+      "assign_to": "割り当て先",
+      "assignee_placeholder": "担当者を選択…"
+    },
+    "detail": {
+      "description": "説明",
+      "justification": "正当性",
+      "impact": "影響評価",
+      "affected_documents": "影響を受ける文書"
+    },
+    "action": {
+      "approve": "承認",
+      "reject": "却下",
+      "mark_implemented": "実装済みにする",
+      "close": "クローズ"
+    }
+  },
+  "suggestions": {
+    "empty": "この状態の提案はありません。",
+    "filter": {
+      "open": "未処理",
+      "applied": "適用済み",
+      "rejected": "却下済み"
+    },
+    "agent_badge": "AI",
+    "suggested_by": "{name}が提案 · {date}",
+    "apply": "適用",
+    "reject": "却下",
+    "withdraw": "撤回",
+    "reject_placeholder": "却下の理由…",
+    "rejected_reason": "却下済み: {reason}",
+    "applied_result": "適用済み → {entity} {id}",
+    "payload_field": {
+      "title": "タイトル",
+      "name": "名前",
+      "description": "説明",
+      "category": "カテゴリ",
+      "risk_type": "リスク種別",
+      "origin": "発生源",
+      "severity": "重大度",
+      "priority": "優先度",
+      "status": "状態",
+      "type": "種別",
+      "criticality": "重要度",
+      "jurisdiction": "管轄",
+      "classification": "分類",
+      "finding_type": "指摘事項種別",
+      "risk_level": "リスクレベル",
+      "source": "発生源",
+      "incident_type": "インシデント種別",
+      "current_likelihood": "可能性",
+      "current_impact": "影響"
+    }
+  },
+  "error": {
+    "resolve_comment": "コメントの解決に失敗しました: {message}",
+    "mark_all_read": "すべての通知を既読にするのに失敗しました: {message}",
+    "approve_review": "レビューの承認に失敗しました: {message}",
+    "request_changes": "変更の要求に失敗しました: {message}",
+    "forward_review": "レビューの転送に失敗しました: {message}",
+    "claim_suggestion": "提案の取得に失敗しました: {message}",
+    "apply_suggestion": "提案の適用に失敗しました: {message}",
+    "reject_suggestion": "提案の却下に失敗しました: {message}",
+    "withdraw_suggestion": "提案の撤回に失敗しました: {message}"
+  },
+  "confirm": {
+    "apply_stale_title": "それでも適用",
+    "apply_stale_body": "この提案の作成後にエンティティが変更されました。それでも適用しますか？"
+  }
+}

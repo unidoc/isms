@@ -1,0 +1,69 @@
+{
+  "mention_comment": {
+    "title": "{actor} がコメントであなたにメンションしました"
+  },
+  "mention_review_comment": {
+    "title": "{actor} がレビューコメントであなたにメンションしました"
+  },
+  "mention_change_request": {
+    "title": "{actor} が変更要求であなたにメンションしました"
+  },
+  "review_forwarded": {
+    "title": "レビュー転送: {title}",
+    "body": "{actor} が {doc_id}（{title} v{version}）のレビューをあなたに転送しました",
+    "body_with_note": "{actor} が {doc_id}（{title} v{version}）のレビューをあなたに転送しました\n\nメモ: {note}"
+  },
+  "review_requested": {
+    "title": "レビュー: {title} v{version}",
+    "body": "{actor} は {title} v{version} を公開したいと考え、あなたのレビューを依頼しました",
+    "body_with_note": "{actor} は {title} v{version} を公開したいと考え、あなたのレビューを依頼しました\n\nメモ: {note}"
+  },
+  "review_resubmitted": {
+    "title": "レビュー再提出: {title}",
+    "body": "{actor} が {doc_id}（{title} v{version}）をレビューのために再提出しました",
+    "body_with_note": "{actor} が {doc_id}（{title} v{version}）をレビューのために再提出しました\n\nメモ: {note}"
+  },
+  "ai_review_escalated": {
+    "title": "AIレビューがエスカレーションされました",
+    "body": "{doc_id} のAIレビューが合意なしにラウンド {round} に達しました。確認して判断してください。"
+  },
+  "ca_assigned": {
+    "title": "是正処置が割り当てられました: {title}"
+  },
+  "ca_resolved": {
+    "title": "是正処置が解決されました: {title}",
+    "body": "是正処置 #{id} が {actor} によって解決されました"
+  },
+  "suggestion_new": {
+    "title": "新しい提案",
+    "body": "{actor} が提案しました: {title}（{suggestion_type} {entity}）"
+  },
+  "suggestion_resolved": {
+    "title": "提案 {action}"
+  },
+  "suggestion_applied": {
+    "body": "あなたの提案「{title}」が {actor} によって適用されました → {entity} {id}"
+  },
+  "suggestion_rejected": {
+    "body": "あなたの提案「{title}」が {actor} によって却下されました: {reason}"
+  },
+  "incident_new": {
+    "title": "新しい{severity}インシデント: {title}"
+  },
+  "incident_status": {
+    "title": "インシデント {status}: {title}",
+    "body": "インシデント #{id} が {status} になりました"
+  },
+  "supplier_contract_30": {
+    "title": "契約が30日後に期限切れ: {title}",
+    "body": "{title}（{id}）の契約は30日後に期限切れになります。"
+  },
+  "supplier_contract_7": {
+    "title": "契約が7日後に期限切れ: {title}",
+    "body": "{title}（{id}）の契約は7日後に期限切れになります。"
+  },
+  "supplier_contract_today": {
+    "title": "契約が本日期限切れ: {title}",
+    "body": "{title}（{id}）の契約は本日期限切れになります。"
+  }
+}

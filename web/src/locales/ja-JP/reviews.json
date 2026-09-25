@@ -1,0 +1,190 @@
+{
+  "title": "レビュー",
+  "subtitle": "文書レビュー依頼",
+  "back": "レビュー一覧に戻る",
+  "not_found": "レビューが見つかりません",
+  "opened_ago": "{time}に開始",
+  "ai": {
+    "active": "AIレビュー実行中",
+    "escalated": "エスカレーション済み — AIレビューが停止しました"
+  },
+  "guide": {
+    "step_review": "文書と変更内容を確認する",
+    "step_comment": "コメントを追加するか編集を提案する",
+    "step_decide": "承認するか変更を要求する"
+  },
+  "tab": {
+    "changes": "変更（ラウンド {round}）",
+    "document": "文書",
+    "conversation": "会話"
+  },
+  "timeline": {
+    "suggested_edit": "編集を提案しました",
+    "commented": "コメントしました",
+    "approved": "このレビューを承認しました",
+    "proposed_revision": "改訂を提案しました",
+    "requested_changes": "変更を要求しました",
+    "assigned": "{reviewer} がレビュー担当者として割り当てられました",
+    "empty": "アクティビティはまだありません。",
+    "round_short": "R{round}",
+    "decision": {
+      "merged": "このレビューをマージしました",
+      "approved": "承認しました（決定記録）",
+      "proposed_revision": "改訂を提案しました（決定記録）",
+      "changes_requested": "変更を要求しました（決定記録）"
+    },
+    "content_hash": "改ざん証跡のためのSHA-256コンテンツハッシュ",
+    "hide_changes": "変更を隠す",
+    "view_changes": "変更を表示",
+    "diff_loading": "変更を読み込み中…",
+    "diff_error": "この改訂の差分を読み込めませんでした。"
+  },
+  "updated": {
+    "heading": "レビュー送信後に文書が更新されました",
+    "last_modified_by": "最終更新者: {name}",
+    "last_modified_by_with_message": "最終更新者: {name} — {message}",
+    "note": "以下の差分は、最後に承認されたバージョン以降のすべての変更を示しています。"
+  },
+  "diff": {
+    "summary_heading": "このレビューでの変更",
+    "never_approved_inline": "全量レビュー — この文書は承認されたことがありません。文書タブで全文を確認してください。",
+    "none_inline": "差分がありません — レビューベース以降に文書が変更されていない可能性があります。",
+    "loading": "変更を読み込み中…",
+    "scope_round": "このラウンドでの変更",
+    "scope_all": "レビュー内のすべての変更",
+    "mode_split": "分割",
+    "mode_unified": "統合",
+    "never_approved_heading": "全量レビュー — この文書は承認されたことがありません",
+    "never_approved_body": "差分を取るための以前の承認済みバージョンがありません。文書タブで全文を確認してください。",
+    "none_in_round": "このラウンドでは変更が見つかりませんでした。"
+  },
+  "comment": {
+    "heading": "コメントを追加",
+    "placeholder": "コメントを残す…"
+  },
+  "edit": {
+    "save_and_resubmit": "保存して再提出",
+    "send_revision": "改訂案を送信",
+    "draft_saved": "下書きを保存しました",
+    "note_placeholder": "何を変更し、なぜ変更したのですか？",
+    "draft_recovered": "前回のセッションから下書きを復元しました。"
+  },
+  "summary": {
+    "resubmitted": "変更要求後に再提出されました",
+    "initial": "初回レビュー",
+    "approved_count": "{approved} / {total}",
+    "waiting_on": "待機中:",
+    "ready_to_merge": "すべてのレビュー担当者が承認しました。マージの準備ができています。",
+    "changes_requested_you": "変更が要求されました。対応をお待ちしています。",
+    "changes_requested_author": "変更が要求されました。{author} の対応を待っています。"
+  },
+  "suggestion": {
+    "count": "{count} 件の提案 | {count} 件の提案",
+    "pending": "{count} 件保留中",
+    "accepted": "{count} 件承認済み",
+    "rejected": "{count} 件却下済み"
+  },
+  "assignment": {
+    "empty": "レビュー担当者が割り当てられていません",
+    "status": {
+      "approved": "承認済み",
+      "pending": "保留中",
+      "changes_requested": "変更",
+      "proposed_revision": "改訂"
+    }
+  },
+  "policy": {
+    "heading": "承認要件",
+    "approvals": "{current}/{min} 承認",
+    "missing_roles": "不足: {roles} 役割",
+    "missing_users": "待機中: {users}",
+    "blocked": "すべての要件が満たされるまでマージはブロックされます",
+    "will_auto_merge": "すべての承認が揃うと自動マージされます",
+    "require_human": "少なくとも1件の人間による承認が必要です",
+    "auto_merge": "このポリシーでは自動マージが有効です"
+  },
+  "actions": {
+    "heading": "アクション",
+    "requirements_not_met": "要件が満たされていません",
+    "publish": "公開",
+    "publish_version": "{version} を公開",
+    "publish_note": "これにより {version} が承認済み文書になります。",
+    "publish_note_this_version": "これによりこのバージョンが承認済み文書になります。",
+    "awaiting_manager": "すべてのレビュー担当者が承認しました。マネージャーによる公開を待っています。",
+    "revision_proposed_by": "{name} がこの文書への改訂を提案しました。",
+    "publishing": "公開中…",
+    "accept_and_publish": "承認して公開",
+    "request_another_review": "別のレビューを依頼",
+    "propose_new_revision": "新しい改訂を提案",
+    "changes_were_requested": "変更が要求されました。文書を編集して再提出してください。",
+    "edit_and_resubmit": "編集して再提出",
+    "you_sent_this": "このレビューを送信しました。",
+    "waiting_for_feedback": "レビュー担当者のフィードバックを待っています。",
+    "you_approved": "このラウンドを承認しました。",
+    "you_proposed_revision": "改訂を提案しました。",
+    "you_requested_changes": "変更を要求しました。",
+    "waiting_for_author": "{author} の対応を待っています。",
+    "waiting_for_reviewers": "他のレビュー担当者を待っています。",
+    "stale_warning": "このレビュー送信後に文書が更新されました。承認前に最新の変更を確認してください。",
+    "request_changes": "変更を要求",
+    "propose_revision": "改訂を提案",
+    "approve_heading": "この文書を承認",
+    "approve_placeholder": "任意のコメント…",
+    "approving": "承認中…",
+    "confirm_approve": "承認を確定",
+    "changes_heading": "変更を要求",
+    "changes_placeholder": "変更が必要な内容を記入してください…（必須）",
+    "submitting": "送信中…",
+    "submit_request": "リクエストを送信",
+    "withdraw": "レビューを取り下げ",
+    "close_without_merging": "マージせずにクローズ",
+    "not_a_reviewer": "このリクエストのレビュー担当者ではありません。",
+    "no_reviewers_assigned": "このレビューにレビュー担当者が割り当てられていません。承認または変更要求の前にレビュー担当者を追加してください。"
+  },
+  "closed_state": {
+    "merged": "マージ済み",
+    "closed": "クローズ済み"
+  },
+  "document": {
+    "heading": "文書",
+    "id": "ID",
+    "comments": "コメント",
+    "open_comments": "未解決"
+  },
+  "list": {
+    "empty_open": "未解決のレビューはありません",
+    "empty_closed": "クローズ済みのレビューはありません",
+    "item_title": "レビュー #{id} -- {title}",
+    "opened_by": "{name} が開始",
+    "reviewer_status": "{name}（{status}）"
+  },
+  "author_fallback": "作成者",
+  "reviewer_fallback": "レビュー担当者",
+  "revision_note_fallback": "作成者の編集",
+  "toast": {
+    "revision_published": "改訂が承認され公開されました。",
+    "revision_accepted": "提案された改訂を承認しました",
+    "decision_recorded": "承認が記録されました{round}。あと {count} 人のレビュー担当者を待っています。 | 承認が記録されました{round}。あと {count} 人のレビュー担当者を待っています。",
+    "decision_recorded_changes": "変更要求が記録されました{round}。あと {count} 人のレビュー担当者を待っています。 | 変更要求が記録されました{round}。あと {count} 人のレビュー担当者を待っています。",
+    "all_approved": "すべてのレビュー担当者が承認しました{round}。マージの準備ができています。",
+    "changes_requested": "変更が要求されました{round}。作成者に通知されます。",
+    "for_round": "（ラウンド {round}）"
+  },
+  "confirm": {
+    "approve_stale_title": "それでも承認",
+    "approve_stale_body": "このレビュー送信後に文書が変更されました。現在のバージョンに基づいて承認しますか？",
+    "discard_changes": "未保存の変更を破棄しますか？"
+  },
+  "error": {
+    "save_and_resubmit": "保存と再提出に失敗しました: {message}",
+    "publish": "公開に失敗しました: {message}",
+    "accept_revision": "改訂の承認に失敗しました: {message}",
+    "submit_revision": "改訂の送信に失敗しました: {message}",
+    "load_list": "レビューの読み込みに失敗しました: {message}",
+    "load_one": "レビューの読み込みに失敗しました: {message}",
+    "add_comment": "コメントの追加に失敗しました: {message}",
+    "submit_decision": "決定の送信に失敗しました: {message}",
+    "merge": "レビューのマージに失敗しました: {message}",
+    "close": "レビューのクローズに失敗しました: {message}"
+  }
+}

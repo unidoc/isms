@@ -1,0 +1,69 @@
+{
+  "title": "タスク",
+  "subtitle": "レビュータスク、フォローアップ、運用業務項目。",
+  "error": {
+    "create": "タスクの作成に失敗しました: {message}",
+    "save": "保存に失敗しました: {message}",
+    "delete": "タスクの削除に失敗しました: {message}"
+  },
+  "action": {
+    "add": "タスクを追加"
+  },
+  "create": {
+    "heading": "タスクを追加",
+    "title_label": "タイトル",
+    "title_placeholder": "例：リスク台帳をレビュー",
+    "priority_label": "優先度",
+    "type_label": "タイプ",
+    "visibility_label": "可視性",
+    "fill_in_later": "説明、担当者、期限、メモは作成後に追加できます。",
+    "submitting": "作成中…",
+    "submit": "追加"
+  },
+  "visibility": {
+    "public": "公開 — 組織内の全員",
+    "private": "非公開 — 担当者、作成者、マネージャー",
+    "private_badge": "非公開",
+    "private_title": "非公開 — 担当者、作成者、マネージャーにのみ表示"
+  },
+  "filter": {
+    "assignee_placeholder": "すべての担当者",
+    "empty": "フィルタに一致するタスクはありません。",
+    "empty_all": "タスクはまだありません — 追加をクリックして最初のタスクを作成してください。",
+    "empty_hint": "タスクは期限切れのレビューサイクルからも自動的に生成されます。"
+  },
+  "list": {
+    "due": "期限 {date}",
+    "created_by": "{name} が作成"
+  },
+  "field": {
+    "title": "タイトル",
+    "description": "説明",
+    "assignee": "担当者",
+    "priority": "優先度",
+    "status": "状態",
+    "due_date": "期限",
+    "type": "タイプ",
+    "created": "作成日",
+    "created_by": "作成者",
+    "completed": "完了"
+  },
+  "placeholder": {
+    "description": "タスクを説明してください…",
+    "assignee": "担当者を選択…",
+    "notes": "メモを追加…"
+  },
+  "detail": {
+    "overview": "概要",
+    "notes": "メモ",
+    "progress": "進捗"
+  },
+  "stat": {
+    "active": "アクティブ"
+  },
+  "danger": {
+    "warning": "このタスクの削除は永続的で元に戻せません。",
+    "delete": "タスクを削除",
+    "confirm": "タスク「{title}」を削除しますか？"
+  }
+}

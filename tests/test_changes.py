@@ -162,7 +162,7 @@ class TestChangeType:
             "rationale": "ready", "title": "approve"})
         assert sg.status_code in (200, 201), sg.text
         ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                           headers=admin_headers, json={"force": True})
+                           headers=admin_headers, json={})
         assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
         got = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers).json()
         assert got["status"] == "approved", got
@@ -184,7 +184,7 @@ class TestChangeType:
             "rationale": "ready", "title": "approve"})
         assert sg.status_code in (200, 201), sg.text
         ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                           headers=admin_headers, json={"force": True})
+                           headers=admin_headers, json={})
         assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
         # Search by the CR identifier so pagination on the persistent stack can't hide it.
         tr = requests.get(f"{api_url}/tasks",
@@ -212,7 +212,7 @@ class TestChangeType:
                 "rationale": status, "title": status})
             assert sg.status_code in (200, 201), sg.text
             ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                               headers=admin_headers, json={"force": True})
+                               headers=admin_headers, json={})
             assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
 
         apply_status("approved")
@@ -237,9 +237,8 @@ class TestChangeType:
             "payload": {"fields": {"type": "access_request"}},
             "rationale": "misclassified", "title": "reclassify"})
         assert sg.status_code in (200, 201), sg.text
-        # force=true bypasses the fresh entity's own create-changelog stale flag.
         ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                           headers=admin_headers, json={"force": True})
+                           headers=admin_headers, json={})
         assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
         r = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers)
         assert r.json()["type"] == "access_request", r.text

@@ -8,9 +8,6 @@ SetAuditFindingStatus closure path the HTTP handler uses.
 (Risk 'accepted' was intentionally left out: 'accepted' is not a valid risk
 status — RiskStatuses is draft/open/closed — so there is no real HTTP-vs-apply
 divergence there; the HTTP status=='accepted' block is vestigial.)
-
-force=true on apply bypasses stale-detection (a fresh entity's own create
-changelog would otherwise flag it), so the enforced path is what's exercised.
 """
 import uuid
 
@@ -28,7 +25,7 @@ def _suggest_update(api_url, headers, entity_type, entity_id, fields):
     })
     assert sg.status_code in (200, 201), sg.text
     ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                       headers=headers, json={"force": True})
+                       headers=headers, json={})
     assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
 
 

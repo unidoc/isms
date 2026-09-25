@@ -304,7 +304,15 @@ var tablesWithDeletedAt = map[string]bool{
 	"programs":           true,
 }
 
-// GetEntityUpdatedAt returns the updated_at timestamp for an entity, used for stale detection.
+// GetEntityUpdatedAt returns the snapshot used for suggestion stale detection:
+// the newer of the entity's updated_at and the newest entity_changelog row
+// filed against it. Plain updated_at is not enough, because register handlers
+// write the entity and then log the changelog row as a separate statement, so
+// the row's own created_at always lands after updated_at — comparing a
+// snapshot of updated_at against changelog created_at (what EntityChangesAfter
+// does) would count the entity's own latest row as a change on every suggestion.
+// GREATEST ignores NULL, so an entity with no changelog rows falls back to
+// updated_at.
 func (d *DB) GetEntityUpdatedAt(ctx context.Context, orgID int, entityType, entityID string) *Epoch {
 	table := entityTypeToTable(entityType)
 	if table == "" {
@@ -314,15 +322,21 @@ func (d *DB) GetEntityUpdatedAt(ctx context.Context, orgID int, entityType, enti
 	if entityType == "risk" || entityType == "supplier" {
 		idCol = "identifier"
 	}
-	var updatedAt Epoch
-	query := fmt.Sprintf(`SELECT updated_at FROM %s WHERE organization_id = $1 AND %s = $2`, table, idCol)
+	var snapshot Epoch
+	query := fmt.Sprintf(`
+		SELECT GREATEST(e.updated_at,
+		         (SELECT MAX(c.created_at) FROM entity_changelog c
+		           WHERE c.organization_id = e.organization_id
+		             AND c.entity_type = $3 AND c.entity_id = e.id))
+		  FROM %s e
+		 WHERE e.organization_id = $1 AND e.%s = $2`, table, idCol)
 	if tablesWithDeletedAt[table] {
-		query += ` AND deleted_at IS NULL`
+		query += ` AND e.deleted_at IS NULL`
 	}
-	if err := d.pool.QueryRow(ctx, query, orgID, entityID).Scan(&updatedAt); err != nil {
+	if err := d.pool.QueryRow(ctx, query, orgID, entityID, entityType).Scan(&snapshot); err != nil {
 		return nil
 	}
-	return &updatedAt
+	return &snapshot
 }
 
 func entityTypeToTable(entityType string) string {

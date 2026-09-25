@@ -46,8 +46,7 @@ def _apply(headers, body):
     sg = requests.post(f"{API}/suggestions", headers=headers, json={"title": "#334 regression", **body})
     assert sg.status_code in (200, 201), sg.text
     sg = sg.json()
-    # force=true bypasses the fresh entity's own create-changelog stale flag.
-    ap = requests.post(f"{API}/suggestions/{sg['id']}/apply", headers=headers, json={"force": True})
+    ap = requests.post(f"{API}/suggestions/{sg['id']}/apply", headers=headers, json={})
     assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
     return sg["id"], ap.json()["applied_entity_id"]
 

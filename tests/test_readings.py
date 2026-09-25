@@ -386,7 +386,7 @@ class TestReadingSuggestion:
     def test_02_apply_reading_suggestion(self, api_url, admin_headers):
         """Apply the reading suggestion, verify it succeeds."""
         sid = TestReadingSuggestion.suggestion_id
-        r = requests.post(f"{api_url}/suggestions/{sid}/apply", headers=admin_headers, json={"force": True})
+        r = requests.post(f"{api_url}/suggestions/{sid}/apply", headers=admin_headers, json={})
         assert r.status_code == 200, f"Apply reading suggestion failed: {r.text}"
         data = r.json()
         assert data.get("status") == "applied", f"Expected applied, got: {data}"

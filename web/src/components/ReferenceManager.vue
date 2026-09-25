@@ -127,7 +127,7 @@ const typeColors = {
 const typeRoutes = {
   risk: 'risks', legal_requirement: 'legal', document: 'documents', asset: 'assets',
   supplier: 'suppliers', system: 'systems', incident: 'incidents', change_request: 'changes',
-  audit: 'audit', corrective_action: 'corrective-actions',
+  corrective_action: 'corrective-actions',
   objective: 'objectives', program: 'programs', task: 'tasks',
 }
 
@@ -146,12 +146,18 @@ function refRoute(r) {
   const other = otherSide(r)
   const docTypes = ['document', 'control', 'policy', 'procedure', 'clause', 'requirement', 'record', 'guideline']
   if (docTypes.includes(other.type)) return orgPath(`/documents/${other.id}`)
+  // AUDIT-/FIND- are built from the row id, so here the number is the row id;
+  // Audit.vue reads it under its own tab (/audit/:tab/:itemId).
+  if (other.type === 'audit' || other.type === 'audit_finding') {
+    const tab = other.type === 'audit' ? 'audits' : 'findings'
+    return orgPath(`/audit/${tab}/${other.id.replace(/^[A-Z]+-/, '')}`)
+  }
   const base = typeRoutes[other.type]
   if (!base) return '#'
-  // Full identifier, not the stripped suffix — see EntityReferences.vue refRoute (#201).
-  if (other.type === 'legal_requirement' || other.type === 'change_request') return orgPath(`/${base}/${encodeURIComponent(other.id)}`)
-  const numId = other.id.replace(/^[A-Z]+-/, '')
-  return orgPath(`/${base}/${numId}`)
+  // Every register view resolves the full identifier (or program key / objective
+  // display id) itself. Its numeric suffix is a per-org sequence, not the row id,
+  // so stripping it opened another record (#201, #347).
+  return orgPath(`/${base}/${encodeURIComponent(other.id)}`)
 }
 
 async function doSearch() {

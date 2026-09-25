@@ -112,12 +112,12 @@ const typeColors = {
   record: 'bg-blue-900/40 text-blue-300 border-blue-800/50',
   guideline: 'bg-blue-900/40 text-blue-300 border-blue-800/50',
   risk: 'bg-red-900/40 text-red-300 border-red-800/50',
-  legal: 'bg-purple-900/40 text-purple-300 border-purple-800/50',
+  legal_requirement: 'bg-purple-900/40 text-purple-300 border-purple-800/50',
   asset: 'bg-amber-900/40 text-amber-300 border-amber-800/50',
   supplier: 'bg-emerald-900/40 text-emerald-300 border-emerald-800/50',
   system: 'bg-cyan-900/40 text-cyan-300 border-cyan-800/50',
   incident: 'bg-orange-900/40 text-orange-300 border-orange-800/50',
-  change: 'bg-sky-900/40 text-sky-300 border-sky-800/50',
+  change_request: 'bg-sky-900/40 text-sky-300 border-sky-800/50',
   corrective_action: 'bg-pink-900/40 text-pink-300 border-pink-800/50',
   objective: 'bg-teal-900/40 text-teal-300 border-teal-800/50',
   task: 'bg-lime-900/40 text-lime-300 border-lime-800/50',
@@ -125,8 +125,8 @@ const typeColors = {
 }
 
 const typeRoutes = {
-  risk: 'risks', legal: 'legal', document: 'documents', asset: 'assets',
-  supplier: 'suppliers', system: 'systems', incident: 'incidents', change: 'changes',
+  risk: 'risks', legal_requirement: 'legal', document: 'documents', asset: 'assets',
+  supplier: 'suppliers', system: 'systems', incident: 'incidents', change_request: 'changes',
   audit: 'audit', corrective_action: 'corrective-actions',
   objective: 'objectives', program: 'programs', task: 'tasks',
 }
@@ -148,6 +148,8 @@ function refRoute(r) {
   if (docTypes.includes(other.type)) return orgPath(`/documents/${other.id}`)
   const base = typeRoutes[other.type]
   if (!base) return '#'
+  // Full identifier, not the stripped suffix — see EntityReferences.vue refRoute (#201).
+  if (other.type === 'legal_requirement' || other.type === 'change_request') return orgPath(`/${base}/${encodeURIComponent(other.id)}`)
   const numId = other.id.replace(/^[A-Z]+-/, '')
   return orgPath(`/${base}/${numId}`)
 }
@@ -165,6 +167,7 @@ async function doSearch() {
         return o.type + ':' + o.id
       }))
       searchResults.value = (data || [])
+        .map(s => SEARCH_TYPE_TO_REF[s.type] ? { ...s, type: SEARCH_TYPE_TO_REF[s.type] } : s)
         .filter(s => !existing.has(s.type + ':' + s.id))
         .filter(s => !(s.type === props.entityType && s.id.toLowerCase() === props.entityId.toLowerCase()))
       selectedIdx.value = 0
@@ -184,6 +187,10 @@ function hideDropdown() {
 // Document subtypes (clause/control/policy/etc) are surface labels from frontmatter;
 // at the reference layer they all collapse to 'document' per the core "everything is a document" rule.
 const DOC_SUBTYPES = new Set(['document', 'control', 'policy', 'procedure', 'clause', 'requirement', 'record', 'guideline'])
+
+// Search labels these two types by their short names; the references API only
+// accepts the full entity types (DB CHECK on entity_references).
+const SEARCH_TYPE_TO_REF = { legal: 'legal_requirement', change: 'change_request' }
 
 async function pickResult(item) {
   try {

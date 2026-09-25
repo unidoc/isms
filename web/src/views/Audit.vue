@@ -2163,7 +2163,8 @@ watch(() => route.params.tab, (tab) => {
   }
 })
 
-watch(() => route.params.itemId, async (itemId) => {
+// Watch tab too: /audit/audits/8 → /audit/findings/8 keeps itemId, so an itemId-only watch never opened the finding (#352).
+watch(() => [route.params.tab, route.params.itemId], async ([, itemId]) => {
   if (!itemId) {
     selectedProgramme.value = null
     selectedAudit.value = null
@@ -2173,16 +2174,21 @@ watch(() => route.params.itemId, async (itemId) => {
   const id = parseInt(itemId)
   const tab = route.params.tab
   if (tab === 'programmes') {
+    selectedAudit.value = null
+    selectedFinding.value = null
     if (selectedProgramme.value?.id === id) return
     let p = programmes.value.find(x => x.id === id)
     if (!p) { try { p = await api.getAuditProgramme(id) } catch { return } }
     if (p) selectProgramme(p)
   } else if (tab === 'audits') {
+    selectedFinding.value = null
     if (selectedAudit.value?.id === id) return
     let a = audits.value.find(x => x.id === id)
     if (!a) { try { a = await api.getAudit(id) } catch { return } }
     if (a) selectAudit(a)
   } else if (tab === 'findings') {
+    selectedProgramme.value = null
+    selectedAudit.value = null
     if (selectedFinding.value?.id === id) return
     try {
       const f = await api.getAuditFinding(id)

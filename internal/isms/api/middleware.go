@@ -101,6 +101,9 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 							c.Set("api_key_id", tok.ID)
 							c.Set("api_key_permissions", tok.Permissions)
 
+							// Changelog rows read the key from the request context, not the echo context (#335).
+							c.SetRequest(c.Request().WithContext(db.WithAPIKeyID(c.Request().Context(), tok.ID)))
+
 							// If OrgResolverMiddleware already set org_id (from subdomain/domain/path),
 							// verify the user is a member and set their role.
 							if resolvedOrgID, ok := c.Get("org_id").(int); ok && resolvedOrgID > 0 {

@@ -23,6 +23,28 @@ type ChangelogEntry struct {
 	CreatedAt      Epoch   `json:"created_at"`
 }
 
+type apiKeyIDKey struct{}
+
+// WithAPIKeyID returns a context whose changelog writes are attributed to API
+// key id (#335). The auth middleware sets it on the request for isms_ bearer
+// tokens; JWT sessions, the CLI and background jobs never do, so their rows
+// keep api_key_id NULL, as the column's schema comment says.
+func WithAPIKeyID(ctx context.Context, id int) context.Context {
+	return context.WithValue(ctx, apiKeyIDKey{}, id)
+}
+
+// changelogAPIKeyID is the api_key_id a changelog row is written with: the
+// entry's own value when set, else the key carried by ctx, else nil.
+func changelogAPIKeyID(ctx context.Context, explicit *int) *int {
+	if explicit != nil {
+		return explicit
+	}
+	if id, ok := ctx.Value(apiKeyIDKey{}).(int); ok && id > 0 {
+		return &id
+	}
+	return nil
+}
+
 // LogChange inserts a single changelog entry.
 func (d *DB) LogChange(ctx context.Context, orgID int, entry *ChangelogEntry) error {
 	entry.OrganizationID = orgID
@@ -32,7 +54,7 @@ func (d *DB) LogChange(ctx context.Context, orgID int, entry *ChangelogEntry) er
 		RETURNING id, created_at
 	`, orgID, entry.EntityType, entry.EntityID, entry.Action,
 		nilIfEmpty(entry.Field), entry.OldValue, entry.NewValue,
-		entry.ChangedBy, entry.APIKeyID, nilIfEmpty(entry.Reason),
+		entry.ChangedBy, changelogAPIKeyID(ctx, entry.APIKeyID), nilIfEmpty(entry.Reason),
 	).Scan(&entry.ID, &entry.CreatedAt)
 }
 
@@ -55,7 +77,7 @@ func (d *DB) LogChanges(ctx context.Context, orgID int, entries []ChangelogEntry
 			base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8, base+8, base+9, base+10))
 		args = append(args, orgID, e.EntityType, e.EntityID, e.Action,
 			nilIfEmpty(e.Field), e.OldValue, e.NewValue,
-			e.ChangedBy, e.APIKeyID, nilIfEmpty(e.Reason))
+			e.ChangedBy, changelogAPIKeyID(ctx, e.APIKeyID), nilIfEmpty(e.Reason))
 	}
 
 	_, err := d.pool.Exec(ctx, b.String(), args...)

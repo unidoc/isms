@@ -307,7 +307,7 @@ func LogChangeTx(ctx context.Context, tx pgx.Tx, orgID int, entry *ChangelogEntr
 		RETURNING id, created_at
 	`, orgID, entry.EntityType, entry.EntityID, entry.Action,
 		nilIfEmpty(entry.Field), entry.OldValue, entry.NewValue,
-		entry.ChangedBy, entry.APIKeyID, nilIfEmpty(entry.Reason),
+		entry.ChangedBy, changelogAPIKeyID(ctx, entry.APIKeyID), nilIfEmpty(entry.Reason),
 	).Scan(&entry.ID, &entry.CreatedAt)
 }
 
@@ -330,7 +330,7 @@ func LogChangesTx(ctx context.Context, tx pgx.Tx, orgID int, entries []Changelog
 			base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8, base+8, base+9, base+10))
 		args = append(args, orgID, e.EntityType, e.EntityID, e.Action,
 			nilIfEmpty(e.Field), e.OldValue, e.NewValue,
-			e.ChangedBy, e.APIKeyID, nilIfEmpty(e.Reason))
+			e.ChangedBy, changelogAPIKeyID(ctx, e.APIKeyID), nilIfEmpty(e.Reason))
 	}
 
 	_, err := tx.Exec(ctx, b.String(), args...)

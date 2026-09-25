@@ -59,9 +59,9 @@ def test_apply_path_blocks_resolve_with_open_ca(api_url, admin_headers):
     assert sg.status_code in (200, 201), sg.text
     sid = sg.json()["id"]
 
-    # force=true bypasses stale-detection so the ONLY thing that can block the
-    # apply is the enforced open-CA guard (what we're testing).
-    apply = requests.post(f"{api_url}/suggestions/{sid}/apply", headers=admin_headers, json={"force": True})
+    # No force: a stale-detection regression here would show up as 200
+    # {"stale": true} instead of the 409 this test is actually checking for.
+    apply = requests.post(f"{api_url}/suggestions/{sid}/apply", headers=admin_headers, json={})
     # #296: the same rule must report the same status as the direct endpoint (409).
     assert apply.status_code == 409, (
         f"apply should be blocked by the open-CA guard with 409, got {apply.status_code}: {apply.text}"
@@ -88,7 +88,7 @@ def test_apply_path_sets_lifecycle_timestamp(api_url, admin_headers):
     })
     assert sg.status_code in (200, 201), sg.text
     apply = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
-                          headers=admin_headers, json={"force": True})
+                          headers=admin_headers, json={})
     assert apply.status_code == 200 and apply.json().get("status") == "applied", apply.text
 
     got = requests.get(f"{api_url}/incidents/{inc_id}", headers=admin_headers).json()

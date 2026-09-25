@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -118,6 +119,10 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 	if err := c.Bind(&sg); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	// entity_updated_at is server-computed only — below, once the entity is
+	// resolved. Without this reset, a client-sent value survives whenever
+	// entity_id is empty (the snapshot step is then skipped entirely).
+	sg.EntityUpdatedAt = nil
 	if sg.EntityType == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("entity_type"))
 	}
@@ -163,9 +168,23 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 		sg.Payload, _ = json.Marshal(p)
 	}
 
-	// Snapshot entity_updated_at for stale detection
+	// Snapshot entity_updated_at for stale detection, resolving entity_id (numeric
+	// id or per-type identifier, e.g. "ASSET-1") to a primary key the same way
+	// the stale check itself does. A resolve failure or a nil snapshot (entity
+	// not found, wrong org, ...) is logged but not fatal: the suggestion is still
+	// created, same as before this resolve step existed — it's just unchecked.
 	if sg.EntityID != "" {
-		sg.EntityUpdatedAt = s.db.GetEntityUpdatedAt(ctx, orgID, sg.EntityType, sg.EntityID)
+		entityPK, _, err := s.resolveEntityID(ctx, orgID, sg.EntityType, sg.EntityID)
+		if err != nil || entityPK <= 0 {
+			log.Printf("suggestion create: resolving entity for stale snapshot (org %d, %s %q): %v",
+				orgID, sg.EntityType, sg.EntityID, err)
+		} else {
+			sg.EntityUpdatedAt = s.db.EntityStaleSnapshot(ctx, orgID, sg.EntityType, entityPK)
+			if sg.EntityUpdatedAt == nil {
+				log.Printf("suggestion create: no stale snapshot for entity (org %d, %s %q, pk %d)",
+					orgID, sg.EntityType, sg.EntityID, entityPK)
+			}
+		}
 	}
 
 	if err := s.db.CreateSuggestion(ctx, orgID, &sg); err != nil {

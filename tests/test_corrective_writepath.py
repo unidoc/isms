@@ -61,9 +61,7 @@ def test_apply_resolve_sets_resolved_at(api_url, admin_headers):
         "payload": {"fields": {"status": "resolved"}},
     })
     assert sg.status_code in (200, 201), sg.text
-    # force=true bypasses stale-detection (the fresh CA's create changelog would
-    # otherwise flag it) so the enforced resolve path is what's exercised.
-    ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={"force": True})
+    ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={})
     assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
 
     got = requests.get(f"{api_url}/corrective-actions/{ca_id}", headers=admin_headers).json()

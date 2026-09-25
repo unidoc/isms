@@ -3,8 +3,12 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Suggestion represents a proposed change to an operational entity.
@@ -304,25 +308,44 @@ var tablesWithDeletedAt = map[string]bool{
 	"programs":           true,
 }
 
-// GetEntityUpdatedAt returns the updated_at timestamp for an entity, used for stale detection.
-func (d *DB) GetEntityUpdatedAt(ctx context.Context, orgID int, entityType, entityID string) *Epoch {
+// EntityStaleSnapshot returns the snapshot used for suggestion stale detection:
+// the newer of the entity's updated_at and the newest entity_changelog row
+// filed against it, looked up by primary key. Plain updated_at is not enough,
+// because register handlers write the entity and then log the changelog row as
+// a separate statement, so the row's own created_at always lands after
+// updated_at — comparing a snapshot of updated_at against changelog created_at
+// (what EntityChangesAfter does) would count the entity's own latest row as a
+// change on every suggestion. GREATEST ignores NULL, so an entity with no
+// changelog rows still falls back to updated_at.
+//
+// Returns nil when the entity doesn't exist, is soft-deleted, or belongs to
+// another org — all pgx.ErrNoRows. Any other error is logged rather than
+// swallowed: the caller treats a nil snapshot as "don't check", so a query or
+// connection error used to silently turn the check off for every type but
+// risk/supplier (#339).
+func (d *DB) EntityStaleSnapshot(ctx context.Context, orgID int, entityType string, entityID int64) *Epoch {
 	table := entityTypeToTable(entityType)
 	if table == "" {
 		return nil
 	}
-	idCol := "id"
-	if entityType == "risk" || entityType == "supplier" {
-		idCol = "identifier"
-	}
-	var updatedAt Epoch
-	query := fmt.Sprintf(`SELECT updated_at FROM %s WHERE organization_id = $1 AND %s = $2`, table, idCol)
+	var snapshot Epoch
+	query := fmt.Sprintf(`
+		SELECT GREATEST(e.updated_at,
+		         (SELECT MAX(c.created_at) FROM entity_changelog c
+		           WHERE c.organization_id = e.organization_id
+		             AND c.entity_type = $3 AND c.entity_id = e.id))
+		  FROM %s e
+		 WHERE e.organization_id = $1 AND e.id = $2`, table)
 	if tablesWithDeletedAt[table] {
-		query += ` AND deleted_at IS NULL`
+		query += ` AND e.deleted_at IS NULL`
 	}
-	if err := d.pool.QueryRow(ctx, query, orgID, entityID).Scan(&updatedAt); err != nil {
+	if err := d.pool.QueryRow(ctx, query, orgID, entityID, entityType).Scan(&snapshot); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			log.Printf("stale snapshot: org %d, entity %s %d: %v", orgID, entityType, entityID, err)
+		}
 		return nil
 	}
-	return &updatedAt
+	return &snapshot
 }
 
 func entityTypeToTable(entityType string) string {

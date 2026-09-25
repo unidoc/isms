@@ -365,6 +365,27 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 		return errRequired("key")
 	}
 
+	// Clearing a setting reverts it to the registry default. GetOrgSetting and
+	// GetOrgSettings resolve with COALESCE(os.value, s.default_value, ''), which
+	// cannot tell a stored '' from "no row": storing '' would be non-NULL and
+	// shadow the default forever (#290). So an empty value deletes the org's row
+	// instead, for every key. Every validator below only runs on non-empty
+	// values, so none of them is skipped by returning early here.
+	if strings.TrimSpace(req.Value) == "" {
+		if err := s.db.DeleteOrgSetting(ctx, orgID, req.Key); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
+		}
+
+		actor := getUserEmail(c)
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "setting_updated",
+			Detail: fmt.Sprintf("Updated setting %q", req.Key),
+		})
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "setting updated"})
+	}
+
 	// Validate the org default locale against the supported set. Resolve() would
 	// degrade an unsupported value to the fallback at read time, so this is not a
 	// correctness gate — it is a diagnosability one: silently accepting "ja-JP"
@@ -414,26 +435,6 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 	// Empty is allowed and meaningful: it reverts the org to the registry default.
 	if strings.HasPrefix(req.Key, "supplier_review_cycle_") || strings.HasPrefix(req.Key, "risk_review_cycle_") {
 		v := strings.TrimSpace(req.Value)
-		if v == "" {
-			// GetOrgSetting's COALESCE(os.value, s.default_value, '') cannot tell
-			// an explicitly-stored empty string apart from "no row": storing ''
-			// here would still be non-NULL and would shadow the registry default
-			// forever. Delete the row instead so the lookup falls through to
-			// s.default_value, which is what "revert to registry default" means.
-			if err := s.db.DeleteOrgSetting(ctx, orgID, req.Key); err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "updating setting: "+err.Error())
-			}
-
-			actor := getUserEmail(c)
-			s.logAndNotify(ctx, orgID, &db.Activity{
-				Actor:  actor,
-				Action: "setting_updated",
-				Detail: fmt.Sprintf("Updated setting %q", req.Key),
-			})
-
-			return c.JSON(http.StatusOK, map[string]string{"status": "setting updated"})
-		}
-
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 120 {
 			return echo.NewHTTPError(http.StatusBadRequest,

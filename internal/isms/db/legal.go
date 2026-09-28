@@ -241,10 +241,10 @@ func (d *DB) LegalStats(ctx context.Context, orgID int) (*LegalStats, error) {
 	err := d.pool.QueryRow(ctx, `
 		SELECT
 			count(*),
-			count(*) FILTER (WHERE current_level = 'critical'),
-			count(*) FILTER (WHERE current_level = 'high'),
-			count(*) FILTER (WHERE current_level = 'medium'),
-			count(*) FILTER (WHERE current_level = 'low'),
+			count(*) FILTER (WHERE current_level = 'critical' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'high' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'medium' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'low' AND status <> 'closed'),
 			count(*) FILTER (WHERE current_score IS NULL OR current_score = 0),
 			count(*) FILTER (WHERE status = 'open'),
 			count(*) FILTER (WHERE status = 'closed'),

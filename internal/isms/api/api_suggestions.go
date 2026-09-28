@@ -1015,16 +1015,19 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 
 	var linked int
 	for _, link := range payload.Links {
-		if !s.referenceEntityExists(ctx, orgID, viewer, link.Type, link.ID) {
+		// Store the canonical id (key / display id for program and objective), not
+		// the raw one: link.ID may be a numeric row id (#350).
+		targetID, found := s.canonicalReferenceID(ctx, orgID, viewer, link.Type, link.ID)
+		if !found {
 			return "", 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(link.Type))
 		}
 		if err := db.CreateReferenceTx(ctx, tx, orgID, &db.EntityReference{
 			SourceType: "incident",
 			SourceID:   inc.Identifier,
 			TargetType: link.Type,
-			TargetID:   link.ID,
+			TargetID:   targetID,
 		}); err != nil {
-			return "", 0, fmt.Errorf("failed to link %s %s: %w", link.Type, link.ID, err)
+			return "", 0, fmt.Errorf("failed to link %s %s: %w", link.Type, targetID, err)
 		}
 		linked++
 	}

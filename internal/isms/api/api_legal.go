@@ -134,7 +134,8 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateLegalRequirement(ctx, orgID, &lr); err != nil {
@@ -142,7 +143,7 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	}
 
 	actor := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "legal_requirement", lr.Identifier, actor, req.References)
+	s.createReferencesForEntity(ctx, orgID, "legal_requirement", lr.Identifier, actor, refs)
 
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "legal_requirement",

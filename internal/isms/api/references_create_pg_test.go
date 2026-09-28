@@ -146,10 +146,10 @@ func TestValidateReferenceInputs(t *testing.T) {
 	var s *Server
 	ctx := context.Background()
 
-	if err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, nil); err != nil {
+	if _, err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, nil); err != nil {
 		t.Errorf("no references: got %v, want nil", err)
 	}
-	if err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, []ReferenceInput{{}}); err != nil {
+	if _, err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, []ReferenceInput{{}}); err != nil {
 		t.Errorf("an all-blank entry is skipped: got %v, want nil", err)
 	}
 	for _, refs := range [][]ReferenceInput{
@@ -158,7 +158,7 @@ func TestValidateReferenceInputs(t *testing.T) {
 		{{Type: "", ID: "ASSET-1"}},
 		{{}, {Type: "risk", ID: "12"}},
 	} {
-		err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, refs)
+		_, err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, refs)
 		var he *echo.HTTPError
 		if !errors.As(err, &he) || he.Code != http.StatusBadRequest {
 			t.Errorf("validateReferenceInputs(%+v) = %v, want a 400", refs, err)

@@ -2290,14 +2290,15 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
 		t.Private = true
 	}
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateTask(ctx, orgID, &t); err != nil {
 		return pgxHTTPError(err)
 	}
 
-	s.createReferencesForEntity(ctx, orgID, "task", t.Identifier, t.CreatedBy, req.References)
+	s.createReferencesForEntity(ctx, orgID, "task", t.Identifier, t.CreatedBy, refs)
 
 	// A private task must not surface its title through the shared search index or
 	// the org-wide activity feed / chat webhooks (#178 review).
@@ -2732,14 +2733,15 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateChangeRequest(ctx, orgID, &cr); err != nil {
 		return pgxHTTPError(err)
 	}
 
-	s.createReferencesForEntity(ctx, orgID, "change_request", cr.Identifier, cr.RequestedBy, req.References)
+	s.createReferencesForEntity(ctx, orgID, "change_request", cr.Identifier, cr.RequestedBy, refs)
 	if out, err := s.db.GetChangeRequest(ctx, orgID, cr.ID); err == nil {
 		cr = *out
 	}

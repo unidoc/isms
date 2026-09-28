@@ -352,7 +352,8 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		return err
 	}
 
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateObjective(ctx, orgID, &o); err != nil {
@@ -360,7 +361,7 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "objective", o.DisplayID, user, req.References)
+	s.createReferencesForEntity(ctx, orgID, "objective", o.DisplayID, user, refs)
 
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "objective",

@@ -23,19 +23,29 @@ type ReferenceInput struct {
 // store (#341, #351). Create handlers call it before creating the entity, so a
 // bad entry fails the request with nothing written. Entries with both fields
 // blank are skipped, as createReferencesForEntity skips them.
-func (s *Server) validateReferenceInputs(ctx context.Context, orgID int, viewer db.TaskViewer, refs []ReferenceInput) error {
-	for _, r := range refs {
+//
+// It returns a new slice with each ID replaced by its canonical form (#350):
+// a program or objective sent as a row id comes back as its key / display id,
+// so createReferencesForEntity — called next, once the entity exists — never
+// sees the raw input. Returning a new slice rather than mutating refs in
+// place makes it hard for a caller to keep using the raw input by accident.
+func (s *Server) validateReferenceInputs(ctx context.Context, orgID int, viewer db.TaskViewer, refs []ReferenceInput) ([]ReferenceInput, error) {
+	canonical := make([]ReferenceInput, len(refs))
+	for i, r := range refs {
 		if r.Type == "" && r.ID == "" {
+			canonical[i] = r
 			continue
 		}
 		if r.Type == "" || r.ID == "" {
-			return apiError(http.StatusBadRequest, CodeInvalidRequest)
+			return nil, apiError(http.StatusBadRequest, CodeInvalidRequest)
 		}
-		if !s.referenceEntityExists(ctx, orgID, viewer, r.Type, r.ID) {
-			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(r.Type))
+		id, found := s.canonicalReferenceID(ctx, orgID, viewer, r.Type, r.ID)
+		if !found {
+			return nil, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(r.Type))
 		}
+		canonical[i] = ReferenceInput{Type: r.Type, ID: id}
 	}
-	return nil
+	return canonical, nil
 }
 
 // createReferencesForEntity creates bidirectional references for a newly created entity.
@@ -71,7 +81,19 @@ func (s *Server) handleListReferences(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, entityType, entityID)
+
+	// A program or objective may be asked for by row id (e.g. MCP's entity_id, or
+	// the program page's numeric id) while every row is stored under its key /
+	// display id (#350). Canonicalise the query id so those rows are found. If it
+	// doesn't resolve — a soft-deleted entity, or a legacy raw-id row from before
+	// this fix — fall back to the literal id so those rows still list.
+	lookupID := entityID
+	viewer := taskViewer(c)
+	if canonicalID, found := s.canonicalReferenceID(ctx, orgID, viewer, entityType, entityID); found {
+		lookupID = canonicalID
+	}
+
+	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, entityType, lookupID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -88,9 +110,11 @@ func (s *Server) handleListReferences(c echo.Context) error {
 	seen := make(map[string]bool)
 	result := make([]refWithTitle, 0, len(refs))
 	for _, r := range refs {
-		// Determine the "other" entity to resolve title for
+		// Determine the "other" entity to resolve title for. Rows came back
+		// matched against lookupID (the canonical form), so compare against that,
+		// not the literal query id.
 		otherType, otherID := r.TargetType, r.TargetID
-		if r.TargetType == entityType && r.TargetID == entityID {
+		if r.TargetType == entityType && r.TargetID == lookupID {
 			otherType, otherID = r.SourceType, r.SourceID
 		}
 		pairKey := otherType + ":" + otherID
@@ -99,7 +123,7 @@ func (s *Server) handleListReferences(c echo.Context) error {
 		}
 		seen[pairKey] = true
 		rwt := refWithTitle{EntityReference: r}
-		rwt.Title = s.resolveEntityTitle(ctx, orgID, taskViewer(c), otherType, otherID)
+		rwt.Title = s.resolveEntityTitle(ctx, orgID, viewer, otherType, otherID)
 		if otherType == "document" {
 			rwt.Subtype = s.resolveDocumentSubtype(ctx, orgID, otherID)
 		}
@@ -134,20 +158,24 @@ func (s *Server) handleCreateReference(c echo.Context) error {
 
 	// Both sides are checked: the reverse row makes the source a target too, and a
 	// reference that does not resolve is stored permanently with a raw-id title (#341).
+	// A program or objective can be either side, so both are canonicalised to key /
+	// display id before the write, not just checked for existence (#350).
 	viewer := taskViewer(c)
-	if !s.referenceEntityExists(ctx, orgID, viewer, req.SourceType, req.SourceID) {
+	sourceID, found := s.canonicalReferenceID(ctx, orgID, viewer, req.SourceType, req.SourceID)
+	if !found {
 		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(req.SourceType))
 	}
-	if !s.referenceEntityExists(ctx, orgID, viewer, req.TargetType, req.TargetID) {
+	targetID, found := s.canonicalReferenceID(ctx, orgID, viewer, req.TargetType, req.TargetID)
+	if !found {
 		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(req.TargetType))
 	}
 
 	// Create both forward and reverse references atomically with RLS
 	fwd := &db.EntityReference{
 		SourceType: req.SourceType,
-		SourceID:   req.SourceID,
+		SourceID:   sourceID,
 		TargetType: req.TargetType,
-		TargetID:   req.TargetID,
+		TargetID:   targetID,
 		CreatedBy:  email,
 	}
 	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -156,9 +184,9 @@ func (s *Server) handleCreateReference(c echo.Context) error {
 		}
 		rev := &db.EntityReference{
 			SourceType: req.TargetType,
-			SourceID:   req.TargetID,
+			SourceID:   targetID,
 			TargetType: req.SourceType,
-			TargetID:   req.SourceID,
+			TargetID:   sourceID,
 			CreatedBy:  email,
 		}
 		return db.CreateReferenceTx(ctx, tx, orgID, rev)
@@ -226,8 +254,22 @@ func (s *Server) resolveEntityTitle(ctx context.Context, orgID int, viewer db.Ta
 }
 
 // lookupEntityTitle looks up the display name for an entity by type and ID,
-// and reports whether the entity was found.
+// and reports whether the entity was found. It is a thin wrapper around
+// lookupEntity for callers that only need the title.
 func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (string, bool) {
+	title, _, found := s.lookupEntity(ctx, orgID, viewer, entityType, entityID)
+	return title, found
+}
+
+// lookupEntity looks up an entity by type and ID, and returns its display
+// title, its canonical reference ID, and whether it was found. For most types
+// the canonical ID is entityID unchanged. Programs and objectives can be
+// addressed by row id or by key / display id (#350); both forms resolve, but
+// the canonical ID returned is always the key / display id, since that is
+// the form the UI reads and writes and the form every reference must be
+// stored in. Callers that write references (canonicalReferenceID and its
+// callers) must store the returned canonicalID, never the input entityID.
+func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (title, canonicalID string, found bool) {
 	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
 	// the UI and createReferencesForEntity write that format. Resolve by
 	// identifier, never by numeric row id: the numeric part of an identifier
@@ -236,51 +278,51 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 	case "risk":
 		r, err := s.db.GetRiskByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return r.Title, true
+		return r.Title, entityID, true
 
 	case "legal_requirement":
 		l, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return l.Title, true
+		return l.Title, entityID, true
 
 	case "asset":
 		a, err := s.db.GetAssetByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return a.Name, true
+		return a.Name, entityID, true
 
 	case "supplier":
 		sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return sup.Name, true
+		return sup.Name, entityID, true
 
 	case "system":
 		sys, err := s.db.GetSystemByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return sys.Name, true
+		return sys.Name, entityID, true
 
 	case "incident":
 		inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return inc.Title, true
+		return inc.Title, entityID, true
 
 	case "corrective_action":
 		ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return ca.Title, true
+		return ca.Title, entityID, true
 
 	case "objective":
 		id, err := strconv.ParseInt(entityID, 10, 64)
@@ -288,15 +330,15 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 			// Try by display_id (e.g. "ISMS-1")
 			o, err := s.db.GetObjectiveByDisplayID(ctx, orgID, entityID)
 			if err != nil {
-				return entityID, false
+				return entityID, entityID, false
 			}
-			return o.Title, true
+			return o.Title, o.DisplayID, true
 		}
 		o, err := s.db.GetObjective(ctx, orgID, id)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return o.Title, true
+		return o.Title, o.DisplayID, true
 
 	case "program":
 		id, err := strconv.ParseInt(entityID, 10, 64)
@@ -304,55 +346,55 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 			// Try by key (e.g. "ISMS")
 			p, err := s.db.GetProgramByKey(ctx, orgID, entityID)
 			if err != nil {
-				return entityID, false
+				return entityID, entityID, false
 			}
-			return p.Title, true
+			return p.Title, p.Key, true
 		}
 		p, err := s.db.GetProgram(ctx, orgID, id)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return p.Title, true
+		return p.Title, p.Key, true
 
 	case "document":
 		st, err := s.storeForOrg(ctx, orgID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		if docPath := st.FindDocumentByID(entityID); docPath != "" {
 			if doc, err := st.LoadDocument(docPath); err == nil {
 				if doc.Frontmatter.Title != "" {
-					return doc.Frontmatter.Title, true
+					return doc.Frontmatter.Title, entityID, true
 				}
-				return entityID, true
+				return entityID, entityID, true
 			}
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return entityID, false
+		return entityID, entityID, false
 
 	case "audit":
 		// AUDIT-/FIND- are built from the row id (audits and audit_findings have
 		// no identifier column), so stripping is correct here — see api_audit.go.
 		id, err := strconv.Atoi(stripPrefix(entityID, "AUDIT-"))
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		a, err := s.db.GetAudit(ctx, orgID, id)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return a.Title, true
+		return a.Title, entityID, true
 
 	case "audit_finding":
 		id, err := strconv.Atoi(stripPrefix(entityID, "FIND-"))
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		f, err := s.db.GetAuditFinding(ctx, orgID, int64(id))
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return f.Title, true
+		return f.Title, entityID, true
 
 	case "change_request":
 		// CR- identifiers come from the per-org sequence, so the suffix is not
@@ -360,33 +402,33 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 		// title on the reference chip (#201, and the warning in db/changes.go).
 		id, err := s.resolveChangeID(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
-		return cr.Title, true
+		return cr.Title, entityID, true
 
 	case "task":
 		// As with CR- above: TASK- is a per-org sequence, not the primary key.
 		id, err := s.resolveTaskID(ctx, orgID, entityID)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		t, err := s.db.GetTask(ctx, orgID, id)
 		if err != nil {
-			return entityID, false
+			return entityID, entityID, false
 		}
 		// Don't leak a private task's title to someone who may not see it — fall
 		// back to the identifier (mirrors db.TaskViewer's rule).
 		if t.Private && !viewer.CanSeeAll && t.Assignee != viewer.Email && t.CreatedBy != viewer.Email {
-			return entityID, true
+			return entityID, entityID, true
 		}
-		return t.Title, true
+		return t.Title, entityID, true
 
 	default:
-		return entityID, false
+		return entityID, entityID, false
 	}
 }
 
@@ -400,13 +442,25 @@ var sequenceIdentifierTypes = map[string]bool{
 	"change_request": true, "task": true,
 }
 
-// referenceEntityExists reports whether entityID names a real entity of
-// entityType in the org, in the form references store (see resolveEntityTitle).
-func (s *Server) referenceEntityExists(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) bool {
+// canonicalReferenceID resolves entityID to the form a reference must store
+// it in, and reports whether it names a real entity of entityType in the org.
+// For a program or objective this is the key / display id, even when
+// entityID was the numeric row id (#350); every other type returns entityID
+// unchanged. Writers must store the returned id, never the input entityID.
+func (s *Server) canonicalReferenceID(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (string, bool) {
 	if sequenceIdentifierTypes[entityType] && !hasIdentifierShape(entityID) {
-		return false
+		return entityID, false
 	}
-	_, found := s.lookupEntityTitle(ctx, orgID, viewer, entityType, entityID)
+	_, canonicalID, found := s.lookupEntity(ctx, orgID, viewer, entityType, entityID)
+	return canonicalID, found
+}
+
+// referenceEntityExists reports whether entityID names a real entity of
+// entityType in the org, in a form references accept (see lookupEntity). It
+// is a bool wrapper around canonicalReferenceID for callers that only need
+// to validate, not store, the id.
+func (s *Server) referenceEntityExists(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) bool {
+	_, found := s.canonicalReferenceID(ctx, orgID, viewer, entityType, entityID)
 	return found
 }
 

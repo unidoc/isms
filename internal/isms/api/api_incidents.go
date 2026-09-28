@@ -202,14 +202,15 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		return err
 	}
 
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateIncident(ctx, orgID, &inc); err != nil {
 		return pgxHTTPError(err)
 	}
 
-	s.createReferencesForEntity(ctx, orgID, "incident", inc.Identifier, inc.Reporter, req.References)
+	s.createReferencesForEntity(ctx, orgID, "incident", inc.Identifier, inc.Reporter, refs)
 	// Re-read so caller gets the canonical record (with assignee verified via FK).
 	if out, err := s.db.GetIncident(ctx, orgID, inc.ID); err == nil {
 		inc = *out

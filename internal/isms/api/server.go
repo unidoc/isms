@@ -1948,14 +1948,15 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateAsset(ctx, orgID, &a); err != nil {
 		return pgxHTTPError(err)
 	}
 	actor := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "asset", a.Identifier, actor, req.References)
+	s.createReferencesForEntity(ctx, orgID, "asset", a.Identifier, actor, refs)
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "asset",
 		EntityID:   a.ID,
@@ -2094,14 +2095,15 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateSystem(ctx, orgID, &sys); err != nil {
 		return pgxHTTPError(err)
 	}
 	actor := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "system", sys.Identifier, actor, req.References)
+	s.createReferencesForEntity(ctx, orgID, "system", sys.Identifier, actor, refs)
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "system",
 		EntityID:   sys.ID,
@@ -2326,14 +2328,15 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 	if err := s.validateOrgMember(c, r.Owner); err != nil {
 		return err
 	}
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateRisk(ctx, orgID, &r); err != nil {
 		return pgxHTTPError(err)
 	}
 	actor := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "risk", r.Identifier, actor, req.References)
+	s.createReferencesForEntity(ctx, orgID, "risk", r.Identifier, actor, refs)
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "risk",
 		EntityID:   r.ID,
@@ -2581,14 +2584,15 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	if err := validateSupplierCreate(&sup); err != nil {
 		return err
 	}
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateSupplier(ctx, orgID, &sup); err != nil {
 		return pgxHTTPError(err)
 	}
 	actor := getUserEmail(c)
-	s.createReferencesForEntity(ctx, orgID, "supplier", sup.Identifier, actor, req.References)
+	s.createReferencesForEntity(ctx, orgID, "supplier", sup.Identifier, actor, refs)
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "supplier",
 		EntityID:   sup.ID,

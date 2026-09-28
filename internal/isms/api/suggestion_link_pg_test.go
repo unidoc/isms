@@ -208,3 +208,34 @@ func TestApplyIncidentLinkStoresCanonicalSource(t *testing.T) {
 		t.Fatalf("want source type incident, got %s", refs[0].SourceType)
 	}
 }
+
+// TestApplyIncidentLinkCanonicalisesProgramTarget is the #350 regression for
+// this apply path: a numeric program target must be stored as the program's
+// key, the same as every other reference writer.
+func TestApplyIncidentLinkCanonicalisesProgramTarget(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "suggestion-link-program-canonical")
+
+	inc := newLinkTestIncident(t, s, orgID, "incident for program canonicalisation test")
+	program := newRefTestProgram(t, s, orgID, "REGLINK", "program for incident link canonicalisation test")
+
+	sg := newIncidentLinkSuggestion(t, s, orgID, inc.Identifier, []map[string]string{
+		{"type": "program", "id": strconv.FormatInt(program.ID, 10)},
+	})
+
+	if err := applyIncidentLinkSuggestion(s, orgID, sg); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+
+	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, "incident", inc.Identifier)
+	if err != nil {
+		t.Fatalf("ListAllReferencesForEntity: %v", err)
+	}
+	if len(refs) != 1 {
+		t.Fatalf("want 1 reference row, got %d", len(refs))
+	}
+	if refs[0].TargetType != "program" || refs[0].TargetID != program.Key {
+		t.Fatalf("want reference targeting program %s, got %s %s", program.Key, refs[0].TargetType, refs[0].TargetID)
+	}
+}

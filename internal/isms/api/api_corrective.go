@@ -124,14 +124,15 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		return err
 	}
 
-	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
+	if err != nil {
 		return err
 	}
 	if err := s.db.CreateCorrectiveAction(ctx, orgID, &ca); err != nil {
 		return pgxHTTPError(err)
 	}
 
-	s.createReferencesForEntity(ctx, orgID, "corrective_action", ca.Identifier, ca.CreatedBy, req.References)
+	s.createReferencesForEntity(ctx, orgID, "corrective_action", ca.Identifier, ca.CreatedBy, refs)
 
 	// Re-read so caller gets the canonical record (with assignee FK confirmed).
 	if out, err := s.db.GetCorrectiveAction(ctx, orgID, ca.ID); err == nil {

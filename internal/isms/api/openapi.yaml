@@ -2716,6 +2716,14 @@ paths:
     post:
       tags: [References]
       summary: Create a cross-reference between entities
+      description: >-
+        Creates the forward and reverse rows atomically. source_id and
+        target_id accept either form documented on EntityReference (row id or
+        key / display id, for a program or objective); the response echoes
+        back the canonical form, so sending "1" for a program returns "REG".
+        Creating a pair that already exists, through either spelling, returns
+        201 with the existing row rather than an error — the same upsert
+        behavior as sending the exact same ids again.
       requestBody:
         required: true
         content:
@@ -3796,11 +3804,19 @@ components:
         source_type:
           type: string
           enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
-        source_id: { type: string }
+        source_id:
+          type: string
+          description: >-
+            For most types, the entity's per-org identifier (e.g. "RISK-12").
+            A program accepts its row id or key; an objective accepts its row
+            id or display id. Both are stored and returned in key / display
+            id form (e.g. "REG", "REG-1"), regardless of which form was sent.
         target_type:
           type: string
           enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
-        target_id: { type: string }
+        target_id:
+          type: string
+          description: Same rules as source_id.
         title: { type: string, description: Resolved display name }
         created_by: { type: string }
         created_at: { type: string, format: date-time }

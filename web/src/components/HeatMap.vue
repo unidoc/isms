@@ -2,7 +2,7 @@
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 max-w-2xl">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold text-slate-200">{{ title || $t('components.heat_map.title') }}</h2>
-      <div class="text-xs text-slate-500">{{ $t('components.heat_map.total_items', items.length) }}</div>
+      <div class="text-xs text-slate-500">{{ $t('components.heat_map.total_items', validItems.length) }}</div>
     </div>
 
     <!-- Grid -->
@@ -106,6 +106,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { plottableItems } from '../utils/heatMap.js'
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -137,10 +138,9 @@ const impactLabels = computed(() => ({
   5: t('components.heat_map.impact_value.severe'),
 }))
 
-// Only include items with valid likelihood and impact (1-5)
-const validItems = computed(() =>
-  props.items.filter(i => i.current_likelihood >= 1 && i.current_likelihood <= 5 && i.current_impact >= 1 && i.current_impact <= 5)
-)
+// Only live items with valid likelihood and impact (1-5); closed ones are
+// history, not current exposure (#360)
+const validItems = computed(() => plottableItems(props.items))
 
 function cellItems(x, y) {
   return validItems.value.filter(i => i.current_impact === x && i.current_likelihood === y)

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -17,17 +18,46 @@ type ReferenceInput struct {
 	ID   string `json:"id"`
 }
 
+// validateReferenceInputs applies the POST /references rule to the "references"
+// field of a create request: every target must resolve, in the form references
+// store (#341, #351). Create handlers call it before creating the entity, so a
+// bad entry fails the request with nothing written. Entries with both fields
+// blank are skipped, as createReferencesForEntity skips them.
+func (s *Server) validateReferenceInputs(ctx context.Context, orgID int, viewer db.TaskViewer, refs []ReferenceInput) error {
+	for _, r := range refs {
+		if r.Type == "" && r.ID == "" {
+			continue
+		}
+		if r.Type == "" || r.ID == "" {
+			return apiError(http.StatusBadRequest, CodeInvalidRequest)
+		}
+		if !s.referenceEntityExists(ctx, orgID, viewer, r.Type, r.ID) {
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity(r.Type))
+		}
+	}
+	return nil
+}
+
 // createReferencesForEntity creates bidirectional references for a newly created entity.
-// Called by create handlers that accept a "references" field in the request body.
+// Called by create handlers that accept a "references" field in the request body,
+// after validateReferenceInputs has accepted it. The entity already exists by
+// then, so a failed write is logged rather than failing the request.
 func (s *Server) createReferencesForEntity(ctx context.Context, orgID int, sourceType, sourceID, actor string, refs []ReferenceInput) {
 	for _, r := range refs {
 		if r.Type == "" || r.ID == "" {
 			continue
 		}
-		fwd := &db.EntityReference{SourceType: sourceType, SourceID: sourceID, TargetType: r.Type, TargetID: r.ID, CreatedBy: actor}
-		_ = s.db.CreateReference(ctx, orgID, fwd)
-		rev := &db.EntityReference{SourceType: r.Type, SourceID: r.ID, TargetType: sourceType, TargetID: sourceID, CreatedBy: actor}
-		_ = s.db.CreateReference(ctx, orgID, rev)
+		err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+			fwd := &db.EntityReference{SourceType: sourceType, SourceID: sourceID, TargetType: r.Type, TargetID: r.ID, CreatedBy: actor}
+			if err := db.CreateReferenceTx(ctx, tx, orgID, fwd); err != nil {
+				return err
+			}
+			rev := &db.EntityReference{SourceType: r.Type, SourceID: r.ID, TargetType: sourceType, TargetID: sourceID, CreatedBy: actor}
+			return db.CreateReferenceTx(ctx, tx, orgID, rev)
+		})
+		if err != nil {
+			log.Printf("references: linking %s %s to %s %s failed: %v", sourceType, sourceID, r.Type, r.ID, err)
+		}
 	}
 }
 

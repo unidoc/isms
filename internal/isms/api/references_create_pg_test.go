@@ -139,3 +139,94 @@ func TestCreateReferenceValidatesIDs(t *testing.T) {
 		t.Errorf("legal requirement %s has %d reference rows after rejected calls, want 2 (only the valid pair from case 1)", legal.Identifier, len(after))
 	}
 }
+
+// TestValidateReferenceInputs is DB-free, like TestReferenceEntityExists: every
+// rejected case fails before any lookup runs, so a nil receiver is safe.
+func TestValidateReferenceInputs(t *testing.T) {
+	var s *Server
+	ctx := context.Background()
+
+	if err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, nil); err != nil {
+		t.Errorf("no references: got %v, want nil", err)
+	}
+	if err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, []ReferenceInput{{}}); err != nil {
+		t.Errorf("an all-blank entry is skipped: got %v, want nil", err)
+	}
+	for _, refs := range [][]ReferenceInput{
+		{{Type: "legal_requirement", ID: "5"}},
+		{{Type: "asset", ID: ""}},
+		{{Type: "", ID: "ASSET-1"}},
+		{{}, {Type: "risk", ID: "12"}},
+	} {
+		err := s.validateReferenceInputs(ctx, 1, db.TaskViewer{}, refs)
+		var he *echo.HTTPError
+		if !errors.As(err, &he) || he.Code != http.StatusBadRequest {
+			t.Errorf("validateReferenceInputs(%+v) = %v, want a 400", refs, err)
+		}
+	}
+}
+
+// TestCreateEntityValidatesReferences is the live-Postgres regression for #351:
+// references sent with a create request used to be stored without checking the
+// target exists. A bad one must now fail the request before the entity is
+// created. All create handlers share validateReferenceInputs, so one is tested.
+func TestCreateEntityValidatesReferences(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "refs-on-create")
+
+	risk := &db.Risk{Title: "risk for create-references test", RiskType: db.RiskTypes[0], Origin: db.RiskOrigins[0], Status: db.RiskStatuses[0]}
+	if err := s.db.CreateRisk(ctx, orgID, risk); err != nil {
+		t.Fatalf("CreateRisk: %v", err)
+	}
+
+	create := func(title, targetID string) error {
+		body, err := json.Marshal(map[string]any{
+			"title":        title,
+			"jurisdiction": "EU",
+			"category":     "privacy",
+			"references":   []map[string]string{{"type": "risk", "id": targetID}},
+		})
+		if err != nil {
+			t.Fatalf("marshaling request body: %v", err)
+		}
+		c, _ := ctxForPath(orgID, http.MethodPost, "/api/v1/legal", string(body), "admin")
+		return s.handleCreateLegal(c)
+	}
+	legalCount := func() int {
+		t.Helper()
+		all, err := s.db.ListLegalRequirements(ctx, orgID, "")
+		if err != nil {
+			t.Fatalf("ListLegalRequirements: %v", err)
+		}
+		return len(all)
+	}
+
+	for name, targetID := range map[string]string{
+		"raw row id":             strconv.FormatInt(risk.ID, 10),
+		"nonexistent identifier": "RISK-99999",
+	} {
+		err := create("rejected: "+name, targetID)
+		var he *echo.HTTPError
+		if !errors.As(err, &he) || he.Code != http.StatusBadRequest {
+			t.Errorf("%s: err = %v, want a 400", name, err)
+		}
+	}
+	if n := legalCount(); n != 0 {
+		t.Errorf("%d legal requirements exist after rejected creates, want 0", n)
+	}
+
+	if err := create("accepted", risk.Identifier); err != nil {
+		t.Fatalf("create with a valid reference was rejected: %v", err)
+	}
+	if n := legalCount(); n != 1 {
+		t.Fatalf("%d legal requirements exist after a valid create, want 1", n)
+	}
+	refs, err := s.db.ListAllReferencesForEntity(ctx, orgID, "risk", risk.Identifier)
+	if err != nil {
+		t.Fatalf("ListAllReferencesForEntity: %v", err)
+	}
+	if len(refs) != 2 {
+		t.Errorf("risk %s has %d reference rows, want 2 (forward and reverse)", risk.Identifier, len(refs))
+	}
+}

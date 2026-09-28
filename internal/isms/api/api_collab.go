@@ -2290,6 +2290,9 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
 		t.Private = true
 	}
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateTask(ctx, orgID, &t); err != nil {
 		return pgxHTTPError(err)
 	}
@@ -2729,6 +2732,9 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateChangeRequest(ctx, orgID, &cr); err != nil {
 		return pgxHTTPError(err)
 	}

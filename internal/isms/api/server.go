@@ -1948,6 +1948,9 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateAsset(ctx, orgID, &a); err != nil {
 		return pgxHTTPError(err)
 	}
@@ -2090,6 +2093,9 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
 			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
+	}
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
 	}
 	if err := s.db.CreateSystem(ctx, orgID, &sys); err != nil {
 		return pgxHTTPError(err)
@@ -2318,6 +2324,9 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		return err
 	}
 	if err := s.validateOrgMember(c, r.Owner); err != nil {
+		return err
+	}
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
 		return err
 	}
 	if err := s.db.CreateRisk(ctx, orgID, &r); err != nil {
@@ -2570,6 +2579,9 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateSupplierCreate(&sup); err != nil {
+		return err
+	}
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
 		return err
 	}
 	if err := s.db.CreateSupplier(ctx, orgID, &sup); err != nil {

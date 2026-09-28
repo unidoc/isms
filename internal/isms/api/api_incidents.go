@@ -202,6 +202,9 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		return err
 	}
 
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateIncident(ctx, orgID, &inc); err != nil {
 		return pgxHTTPError(err)
 	}

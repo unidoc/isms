@@ -134,6 +134,9 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateLegalRequirement(ctx, orgID, &lr); err != nil {
 		return pgxHTTPError(err)
 	}

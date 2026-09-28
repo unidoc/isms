@@ -352,6 +352,9 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		return err
 	}
 
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateObjective(ctx, orgID, &o); err != nil {
 		return pgxHTTPError(err)
 	}

@@ -124,6 +124,9 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		return err
 	}
 
+	if err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References); err != nil {
+		return err
+	}
 	if err := s.db.CreateCorrectiveAction(ctx, orgID, &ca); err != nil {
 		return pgxHTTPError(err)
 	}

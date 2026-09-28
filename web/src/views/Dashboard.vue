@@ -536,6 +536,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import HeatMap from '../components/HeatMap.vue'
+import { isLiveExposure } from '../utils/heatMap.js'
 import OverdueItems from '../components/OverdueItems.vue'
 import { useCurrentOrg, orgEntryURL, isSubdomainMode } from '../composables/useCurrentOrg.js'
 import { formatDate, formatHours, formatMonthShort } from '../composables/useFormat.js'
@@ -606,7 +607,7 @@ const openReviewCount = computed(() =>
 )
 
 const highRiskCount = computed(() =>
-  asArray(risks.value).filter(r => r.current_level === 'high' || r.current_level === 'critical').length
+  asArray(risks.value).filter(r => isLiveExposure(r) && (r.current_level === 'high' || r.current_level === 'critical')).length
 )
 
 const overdueCount = computed(() => {

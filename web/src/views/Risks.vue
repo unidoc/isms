@@ -872,7 +872,7 @@ const treatedCount = computed(() => stats.value.closed)
 // dimensions), so they render as static StatStrip chips — the tall stat-card
 // grid was reclaimed for the list; the Risk Map stays in its collapsible "More".
 const summaryStats = computed(() => [
-  { key: 'total', label: t('risks.stat.total'), count: risks.value.length, color: 'text-slate-100', static: true },
+  { key: 'total', label: t('risks.stat.total'), count: stats.value.total, color: 'text-slate-100', static: true },
   { key: 'critical', label: levelLabel('critical'), count: criticalCount.value, color: criticalCount.value > 0 ? 'text-red-400' : 'text-slate-100', static: true },
   { key: 'high', label: levelLabel('high'), count: highCount.value, color: highCount.value > 0 ? 'text-orange-400' : 'text-slate-100', static: true },
   { key: 'closed', label: statusLabel('closed'), count: treatedCount.value, color: 'text-emerald-400', static: true },

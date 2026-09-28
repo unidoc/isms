@@ -516,10 +516,10 @@ func (d *DB) RiskStats(ctx context.Context, orgID int) (*RiskStats, error) {
 	err := d.pool.QueryRow(ctx, `
 		SELECT
 			count(*),
-			count(*) FILTER (WHERE current_level = 'critical'),
-			count(*) FILTER (WHERE current_level = 'high'),
-			count(*) FILTER (WHERE current_level = 'medium'),
-			count(*) FILTER (WHERE current_level = 'low'),
+			count(*) FILTER (WHERE current_level = 'critical' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'high' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'medium' AND status <> 'closed'),
+			count(*) FILTER (WHERE current_level = 'low' AND status <> 'closed'),
 			count(*) FILTER (WHERE status = 'open'),
 			count(*) FILTER (WHERE status = 'closed'),
 			count(*) FILTER (WHERE status = 'draft')

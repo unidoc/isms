@@ -22,6 +22,9 @@ The core is a **generic versioned document engine** — it knows nothing about s
 
 A hosted demo runs at **[demo.isms.sh](https://demo.isms.sh)** with a sample
 organization — **ACME Logistics** — pre-populated so you can explore every role.
+Go straight to **[demo.isms.sh/acme-logistics/login](https://demo.isms.sh/acme-logistics/login)**
+— if you land on a page asking for an organization instead, enter `acme-logistics`
+(not "ACME Logistics" or "acme").
 Every demo account uses the password `demo`:
 
 | Role | Email | Password |

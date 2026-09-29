@@ -348,7 +348,7 @@ from the base role.
 | `ISMS_CF_AUDIENCE` | Cloudflare Access application audience tag (required for CF Zero Trust) |
 | `ISMS_USER_SIGNUP` | Set to `1` to enable self-signup (dev mode) |
 | `ISMS_SKIP_EMAIL_VERIFY` | Set to `1` to skip email verification (dev mode) |
-| `ISMS_RATE_LIMIT` | Rate limit override (`0` to disable, dev mode) |
+| `ISMS_RATE_LIMIT` | Per-IP cap on failed logins per 15 minutes (default 20); `0` disables auth rate limiting (dev/test only) |
 
 **SMTP** (optional):
 

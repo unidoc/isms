@@ -169,7 +169,7 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 | `ISMS_WEB_DIR` | Path to the Vue `dist/` directory on disk. If unset, the server uses the embedded web UI built into the binary. Only needed for development or custom builds. |
 | `ISMS_CORS_ORIGIN` | Override CORS allowed origins (comma-separated). Defaults to `ISMS_BASE_URL`. Falls back to `http://localhost:*` if neither is set. |
 | `ISMS_DOMAIN` | Base domain for subdomain-based org resolution (e.g. `isms.sh` makes `acme.isms.sh` resolve to the `acme` org). Only needed for multi-tenant SaaS deployment. |
-| `ISMS_RATE_LIMIT` | Set to `0` to disable per-IP rate limiting (20 req/min default). For testing only. |
+| `ISMS_RATE_LIMIT` | Auth rate limiting. Unset: failed logins are capped at 5 per email and 20 per IP address in a 15-minute window. A positive number replaces the per-IP cap. `0` disables both limits; for testing only. See [Rate limiting in development/testing](#rate-limiting-in-developmenttesting). |
 | `ISMS_JWT_LIFETIME` | JWT session duration. Default: `24h`. Go duration format (e.g. `720h` for 30 days). |
 
 ### S3 storage (required when `ISMS_STORAGE_BACKEND=s3`)
@@ -580,7 +580,12 @@ Set `ISMS_BASE_URL` to the URL users access (e.g. `https://isms.company.com`). T
 
 ### Rate limiting in development/testing
 
-Disable with `ISMS_RATE_LIMIT=0`. The default is 20 requests per minute per IP.
+Rate limiting counts failed logins (a wrong email or password, or a failed passkey login) over a rolling 15-minute window. It does not limit ordinary API traffic. There are two limits:
+
+- **Per email:** after 5 failed logins, further logins for that email get `429 Too Many Requests`. A successful login clears that email's count.
+- **Per IP address:** after 20 failed logins, that address gets `429` from all the sign-in endpoints: login, signup, email verification, forgot-password, passkey login, OIDC sign-in and the Cloudflare Access session. Set `ISMS_RATE_LIMIT` to a positive number to change this cap. The per-email limit stays at 5.
+
+Disable both with `ISMS_RATE_LIMIT=0`. The integration test suite needs this on the server, because it runs many failed logins on purpose.
 
 ### CF Access warning: "ISMS_CF_AUDIENCE not set"
 

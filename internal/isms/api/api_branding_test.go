@@ -187,3 +187,37 @@ func TestHandlePasskeyRegisterBeginUsesOrgBrand(t *testing.T) {
 		t.Errorf("rp.id = %q, want unchanged %q", got, "localhost")
 	}
 }
+
+// TestOrgMailUsesBrandName pins #370: email carries the same brand name as the
+// web app and the auth surfaces, not organizations.name alone. Live Postgres,
+// skipped otherwise.
+func TestOrgMailUsesBrandName(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "mail-brand")
+
+	org, err := s.db.GetOrganization(ctx, orgID)
+	if err != nil {
+		t.Fatalf("GetOrganization: %v", err)
+	}
+
+	if got := s.orgMail(ctx, orgID).Branding.Name; got != org.Name {
+		t.Errorf("with branding_name unset: got %q, want org.Name %q", got, org.Name)
+	}
+
+	if err := s.db.SetOrgSetting(ctx, orgID, "branding_name", "Acme Security"); err != nil {
+		t.Fatalf("setting branding_name: %v", err)
+	}
+	if got := s.orgMail(ctx, orgID).Branding.Name; got != "Acme Security" {
+		t.Errorf("with branding_name set: got %q, want %q", got, "Acme Security")
+	}
+	if got, want := s.orgMail(ctx, orgID).Branding.Name, s.orgBrandName(ctx, orgID); got != want {
+		t.Errorf("email brand %q differs from auth-surface brand %q", got, want)
+	}
+
+	// No org: unbranded, so the mailer's own neutral default applies and no
+	// tenant's name can leak into another's mail.
+	if got := s.orgMail(ctx, 0).Branding.Name; got != "" {
+		t.Errorf("org 0: got %q, want empty (unbranded)", got)
+	}
+}

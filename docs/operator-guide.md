@@ -204,6 +204,8 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 
 Email is used for review notifications, invite links, and verification. Without SMTP configured, email-dependent features silently skip sending.
 
+Each org's email is sent under its own name: the sender display name and the brand in the subject and body are the org's **Organization Display Name** (Admin → Branding) when one is set, otherwise the org name. The envelope sender stays the `SMTP_FROM` address, so SPF and DKIM are unaffected. `isms server test-email --org <slug>` previews the From header a given org's mail will carry.
+
 ### Notifications
 
 Slack and Matrix notifications are configured **per-organization** in the web UI under **Admin > Settings**. There are no server-level env vars for notifications — each org manages its own webhook URLs and tokens.

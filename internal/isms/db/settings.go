@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // Setting is a known setting from the settings registry.
@@ -65,6 +66,31 @@ func (d *DB) GetOrgSetting(ctx context.Context, orgID int, key string) (string, 
 		return dec, nil
 	}
 	return value, nil
+}
+
+// DefaultBrandName is the neutral brand used when there is no org to name.
+const DefaultBrandName = "ISMS"
+
+// OrgBrandName returns the name an org's brand shows outside the web app:
+// email sender name and body, authenticator-app issuer, passkey prompt. The
+// precedence matches the web app (useSession.js loadBranding): the
+// "branding_name" setting when set and non-blank, then org.Name, then
+// DefaultBrandName. A nil org gives DefaultBrandName. It lives here, not in the
+// API, so the `server test-email --org` preview resolves the same name as real
+// mail.
+func (d *DB) OrgBrandName(ctx context.Context, org *Organization) string {
+	if org == nil {
+		return DefaultBrandName
+	}
+	if name, err := d.GetOrgSetting(ctx, org.ID, "branding_name"); err == nil {
+		if name = strings.TrimSpace(name); name != "" {
+			return name
+		}
+	}
+	if org.Name != "" {
+		return org.Name
+	}
+	return DefaultBrandName
 }
 
 // GetOrgSettings returns all settings for an org with values (or defaults).

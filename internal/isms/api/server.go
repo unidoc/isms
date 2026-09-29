@@ -87,7 +87,9 @@ type orgMailCtx struct {
 	PublicURL string
 }
 
-// orgMail resolves the per-org email context (brand + link bases). It falls back
+// orgMail resolves the per-org email context (brand + link bases). The brand
+// name is the org's display name (db.OrgBrandName: the branding_name setting,
+// then org.Name), the same one the web app and auth surfaces show. It falls back
 // to neutral defaults — the bare ISMS_BASE_URL and an "ISMS" brand — so a
 // tenant's mail never carries another org's identity, the operator's SMTP_FROM
 // display name (#16 sender leak), or a link into the wrong org.
@@ -98,7 +100,7 @@ func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
 	if err != nil || org == nil {
 		return m
 	}
-	m.Branding.Name = org.Name
+	m.Branding.Name = s.db.OrgBrandName(ctx, org)
 	if color, err := s.db.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
 		m.Branding.Color = color
 	}
@@ -107,26 +109,16 @@ func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
 }
 
 // orgBrandName resolves the display name an org wants shown wherever its brand
-// appears on auth surfaces (TOTP issuer, passkey RP display name), matching the
-// precedence the web app already uses (useSession.js loadBranding): the
-// "branding_name" setting when set and non-blank, then org.Name, then the
-// neutral "ISMS" default. Org 0 or a lookup error also gives "ISMS", the same
+// appears on auth surfaces (TOTP issuer, passkey RP display name). The rule is
+// db.OrgBrandName, which orgMail also uses for the email sender name, so every
+// surface shows the same name. Org 0 or a lookup error gives "ISMS", the same
 // safe fallback orgMail uses, so a brand accessor never returns an empty name.
 func (s *Server) orgBrandName(ctx context.Context, orgID int) string {
-	const fallback = "ISMS"
 	org, err := s.db.GetOrganization(ctx, orgID)
-	if err != nil || org == nil {
-		return fallback
+	if err != nil {
+		org = nil
 	}
-	if name, err := s.db.GetOrgSetting(ctx, orgID, "branding_name"); err == nil {
-		if name = strings.TrimSpace(name); name != "" {
-			return name
-		}
-	}
-	if org.Name != "" {
-		return org.Name
-	}
-	return fallback
+	return s.db.OrgBrandName(ctx, org)
 }
 
 // orgURLs returns the per-org base URLs for in-app (org-scoped) pages and for

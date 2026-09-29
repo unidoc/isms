@@ -20,8 +20,9 @@ variables. Useful for confirming Postmark / SendGrid / SES credentials are corre
 before relying on signup verification or review-notification emails.
 
 With --org <slug>, the email is sent the way a tenant's real mail is: the org's
-name becomes the From display name (e.g. "Acme" <noreply@host>) while the envelope
-sender stays SMTP_FROM, so SPF/DKIM alignment is preserved. Without --org, the
+display name (its Organization Display Name setting, else its name) becomes the
+From display name (e.g. "Acme" <noreply@host>) while the envelope sender stays
+SMTP_FROM, so SPF/DKIM alignment is preserved. Without --org, the
 raw SMTP_FROM is used as-is. --org needs DATABASE_URL set.
 
 Required env vars:
@@ -64,9 +65,9 @@ Required env vars:
 				if err != nil || org == nil {
 					return fmt.Errorf("organization %q not found", orgSlug)
 				}
-				branding.Name = org.Name
+				branding.Name = d.OrgBrandName(ctx, org)
 				header, envelope := mail.PreviewFrom(cfg.From, branding.Name)
-				fmt.Printf("Org context: %s (%s)\n", org.Name, org.Slug)
+				fmt.Printf("Org context: %s (%s), brand %q\n", org.Name, org.Slug, branding.Name)
 				fmt.Printf("From header: %s\n", header)
 				fmt.Printf("Envelope:    %s\n", envelope)
 			}

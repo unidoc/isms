@@ -305,14 +305,21 @@ function getOrgSlug() {
     // alone (/acme-logistics, no suffix) isn't one of orgScopedRoutes'
     // suffixed paths, so a bare visit there is the genuinely-unmatched case:
     // the org is otherwise lost, forcing a visitor to retype a slug that was
-    // right there in the URL they landed on. Fall back to the first path
-    // segment, same as step 3's own raw split — still just a text-field
-    // pre-fill the visitor can overtype, not a trusted value used for
-    // anything else. Path mode only: in subdomain mode a redirect target has
-    // no /:org prefix to begin with, so its first segment is a page name
-    // (e.g. "overview"), not an org slug.
+    // right there in the URL they landed on. This recovered value becomes
+    // the org context for the whole login form (hides the org picker, shows
+    // as the subtitle, and is sent as `organization` in the login request),
+    // not just an editable pre-fill — so it must be the actual path segment,
+    // not raw text off the query string. Split router.resolve()'s own
+    // `.path` rather than the raw `redirect` param: the guard builds
+    // `redirect` from `to.fullPath`, which carries the query string and hash
+    // along with the path (?redirect=/acme-logistics?utm_source=mail would
+    // otherwise yield the slug "acme-logistics?utm_source=mail"), while
+    // `.path` is already stripped down to the router's own path component.
+    // Path mode only: in subdomain mode a redirect target has no /:org
+    // prefix to begin with, so its first segment is a page name (e.g.
+    // "overview"), not an org slug.
     if (!resolved.matched.length && !isSubdomainMode()) {
-      const seg = redirect.split('/').filter(Boolean)[0]
+      const seg = resolved.path.split('/').filter(Boolean)[0]
       if (seg) return seg
     }
   }

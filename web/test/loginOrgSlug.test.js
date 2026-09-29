@@ -52,7 +52,7 @@ function getOrgSlug({ search, path, subSlug, router, subdomainMode = false }) {
     const resolved = router.resolve(redirect)
     if (resolved.params.org) return resolved.params.org
     if (!resolved.matched.length && !subdomainMode) {
-      const seg = redirect.split('/').filter(Boolean)[0]
+      const seg = resolved.path.split('/').filter(Boolean)[0]
       if (seg) return seg
     }
   }
@@ -96,6 +96,26 @@ test('?redirect=/acme-logistics/ (bare org root, no suffix) still recovers the o
 test('?redirect=/acme-logistics (no trailing slash) still recovers the org', () => {
   const router = buildRouter(false)
   const slug = getOrgSlug({ search: '?redirect=%2Facme-logistics', path: '/login', subSlug: null, router })
+  assert.equal(slug, 'acme-logistics')
+})
+
+// Review finding F2: the router guard builds `redirect` from `to.fullPath`,
+// which carries the query string and hash along with the path — a bare-org
+// visit with tracking params or a hash fragment is a plausible sales-demo
+// link (e.g. an email campaign link, or a deep link into a page section).
+// Splitting the raw `redirect` string's first segment (the pre-fix code)
+// swallows everything after the org, including the "?"/"#" separator, into
+// the recovered slug. Splitting router.resolve()'s own `.path` instead
+// avoids this: `.path` is already stripped down to the route path.
+test('?redirect=/acme-logistics?utm_source=mail does not leak the query string into the slug', () => {
+  const router = buildRouter(false)
+  const slug = getOrgSlug({ search: '?redirect=%2Facme-logistics%3Futm_source%3Dmail', path: '/login', subSlug: null, router })
+  assert.equal(slug, 'acme-logistics')
+})
+
+test('?redirect=/acme-logistics#pricing does not leak the hash into the slug', () => {
+  const router = buildRouter(false)
+  const slug = getOrgSlug({ search: '?redirect=%2Facme-logistics%23pricing', path: '/login', subSlug: null, router })
   assert.equal(slug, 'acme-logistics')
 })
 

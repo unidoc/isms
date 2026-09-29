@@ -537,16 +537,23 @@ func (f *AuditFinding) ToChangeMap() map[string]string {
 	}
 }
 
+// AddAuditFinding creates a finding, open or already closed. f.ClosedAt must
+// be set whenever f.Status is "closed" — chk_finding_closed enforces this at
+// the database level, matching the real close-a-finding path; this just lets
+// a caller create a finding in the closed state directly (e.g. seeding
+// historical/demo data) instead of opening then closing it in two calls.
 func (d *DB) AddAuditFinding(ctx context.Context, orgID int, f *AuditFinding) error {
 	f.OrganizationID = orgID
 	return d.pool.QueryRow(ctx, `
 		INSERT INTO audit_findings (organization_id, audit_id, audit_item_id, finding_type, title, description,
-			status, due_date, owner_id)
+			status, due_date, owner_id, closed_at, closed_by, closed_by_user_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-			CASE WHEN $9 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $9) END)
+			CASE WHEN $9 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $9) END,
+			$10, NULLIF($11, ''),
+			CASE WHEN $11 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $11) END)
 		RETURNING id, created_at, updated_at
 	`, orgID, f.AuditID, f.AuditItemID, f.FindingType, f.Title, f.Description,
-		f.Status, f.DueDate, f.Owner,
+		f.Status, f.DueDate, f.Owner, f.ClosedAt, f.ClosedBy,
 	).Scan(&f.ID, &f.CreatedAt, &f.UpdatedAt)
 }
 

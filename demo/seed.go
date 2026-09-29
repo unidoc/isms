@@ -104,8 +104,10 @@ func Run(ctx context.Context, database *DB, opts Options, content Content) error
 	}
 	if err := content.Apply(s); err != nil {
 		// Best-effort cleanup so a subsequent reseed isn't blocked by a
-		// half-populated org row left over from a failed Apply.
-		_ = database.DeleteOrganization(ctx, s.org.ID)
+		// half-populated org row left over from a failed Apply. Hard delete,
+		// not soft: this org never represented anything real, so a
+		// tombstone row would just be permanent clutter.
+		_ = database.HardDeleteOrganization(ctx, s.org.ID)
 		return fmt.Errorf("seeding content: %w", err)
 	}
 	return nil
@@ -200,6 +202,19 @@ func (s *Seeder) AddUser(email, name, role, tag string, isAgent bool) (*db.User,
 	return usr, nil
 }
 
+// SetUserLocale sets a user's explicit locale preference (a BCP 47 tag, e.g.
+// "es-ES"). This is the highest-priority tier in resolveInitialLocale's
+// precedence chain (web/src/i18n.js: userLocale, then localStorage, then the
+// visitor's own browser languages, then the org default) — without it, a
+// Spanish-content demo org's UI still renders in whatever language the
+// viewer's own browser reports, silently outranking the org's own
+// default_locale setting. A content package for a non-English org should
+// call this for every seeded user so the demo renders in the org's language
+// regardless of who's driving the browser.
+func (s *Seeder) SetUserLocale(user *db.User, locale string) error {
+	return s.db.UpdateLocale(s.ctx, user.ID, &locale)
+}
+
 func (s *Seeder) AddRisk(r *db.Risk) error          { return s.db.CreateRisk(s.ctx, s.org.ID, r) }
 func (s *Seeder) AddSupplier(sp *db.Supplier) error { return s.db.CreateSupplier(s.ctx, s.org.ID, sp) }
 func (s *Seeder) AddAsset(a *db.Asset) error        { return s.db.CreateAsset(s.ctx, s.org.ID, a) }
@@ -235,6 +250,14 @@ func (s *Seeder) AddAssetReview(ar *db.AssetReview) error {
 }
 func (s *Seeder) AddEntityReading(r *db.EntityReading) error {
 	return s.db.CreateEntityReading(s.ctx, s.org.ID, r)
+}
+
+// AddEntityReadingAt is AddEntityReading with an explicit past timestamp, for
+// content that wants an assessment trend to span real calendar time (e.g. a
+// risk whose score visibly moved over several months) rather than every
+// reading landing in the same instant at seed time.
+func (s *Seeder) AddEntityReadingAt(r *db.EntityReading, at time.Time) error {
+	return s.db.CreateEntityReadingAt(s.ctx, s.org.ID, r, at)
 }
 func (s *Seeder) AddReference(sourceType, sourceID, targetType, targetID, createdBy string) error {
 	return s.db.CreateReference(s.ctx, s.org.ID, &db.EntityReference{

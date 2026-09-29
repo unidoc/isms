@@ -463,10 +463,23 @@ func (d *DB) CreateOrganization(ctx context.Context, org *Organization) error {
 
 // DeleteOrganization soft-deletes an org. The slug/domain unique indexes
 // filter on `deleted_at IS NULL`, so the slug becomes available again for a
-// new org row — which is what the demo seeder relies on when cleaning up
-// after a failed Apply so the next reseed isn't blocked.
+// new org row. This is the real-world, reversible deletion path — use it
+// for an org that actually existed.
 func (d *DB) DeleteOrganization(ctx context.Context, orgID int) error {
 	_, err := d.pool.Exec(ctx, `UPDATE organizations SET deleted_at = now() WHERE id = $1`, orgID)
+	return err
+}
+
+// HardDeleteOrganization permanently removes an org row and, via ON DELETE
+// CASCADE (every organization_id foreign key in the schema cascades), every
+// row across every table that belonged to it. There is no undo.
+//
+// This exists for the demo seeder's failure-cleanup path: a seed attempt
+// that fails partway through never represented anything real, so leaving a
+// soft-deleted tombstone behind is just permanent clutter in `organizations`
+// with no audit-trail value. Never call this on an org that was ever live.
+func (d *DB) HardDeleteOrganization(ctx context.Context, orgID int) error {
+	_, err := d.pool.Exec(ctx, `DELETE FROM organizations WHERE id = $1`, orgID)
 	return err
 }
 

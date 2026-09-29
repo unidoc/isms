@@ -106,6 +106,29 @@ func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
 	return m
 }
 
+// orgBrandName resolves the display name an org wants shown wherever its brand
+// appears on auth surfaces (TOTP issuer, passkey RP display name), matching the
+// precedence the web app already uses (useSession.js loadBranding): the
+// "branding_name" setting when set and non-blank, then org.Name, then the
+// neutral "ISMS" default. Org 0 or a lookup error also gives "ISMS", the same
+// safe fallback orgMail uses, so a brand accessor never returns an empty name.
+func (s *Server) orgBrandName(ctx context.Context, orgID int) string {
+	const fallback = "ISMS"
+	org, err := s.db.GetOrganization(ctx, orgID)
+	if err != nil || org == nil {
+		return fallback
+	}
+	if name, err := s.db.GetOrgSetting(ctx, orgID, "branding_name"); err == nil {
+		if name = strings.TrimSpace(name); name != "" {
+			return name
+		}
+	}
+	if org.Name != "" {
+		return org.Name
+	}
+	return fallback
+}
+
 // orgURLs returns the per-org base URLs for in-app (org-scoped) pages and for
 // public pages, mirroring the SPA router's mounting rules:
 //   - custom domain:  https://<domain> for both
@@ -267,6 +290,8 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	if baseURL := os.Getenv("ISMS_BASE_URL"); baseURL != "" {
 		rpID := extractHostname(baseURL)
 		wconfig := &gowebauthn.Config{
+			// Non-empty fallback the library requires; registration overrides
+			// this per org with orgBrandName (see handlePasskeyRegisterBegin).
 			RPDisplayName: "ISMS",
 			RPID:          rpID,
 			RPOrigins:     []string{baseURL},

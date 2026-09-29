@@ -339,7 +339,7 @@ paths:
                 type: object
                 properties:
                   secret: { type: string }
-                  url: { type: string, description: otpauth:// URI for QR code }
+                  uri: { type: string, description: "otpauth:// URI for QR code; issuer is the org's display name" }
 
   /auth/otp/verify:
     post:

@@ -572,6 +572,8 @@ OTP secrets are encrypted with `ISMS_SECRET`. An admin needs to disable OTP for 
 
 Passkeys require `ISMS_BASE_URL` to be set correctly. The Relying Party ID is derived from the hostname in `ISMS_BASE_URL`. If this doesn't match the domain users access, passkey registration and login will fail.
 
+The passkey prompt shows the org's display name (the `branding_name` setting, or the org name), fixed at the time the passkey was registered. Renaming the org afterwards doesn't change what already-registered passkeys show.
+
 ### CORS errors in browser
 
 Set `ISMS_BASE_URL` to the URL users access (e.g. `https://isms.company.com`). The server uses this as the CORS allowed origin. For multiple origins, use `ISMS_CORS_ORIGIN=https://origin1.com,https://origin2.com`.

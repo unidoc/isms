@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	netmail "net/mail"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -737,19 +738,37 @@ func (s *Server) handleOTPSetup(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "saving OTP secret")
 	}
 
-	// Build otpauth URI — org name from DB
-	orgID := getOrgID(c)
-	issuer := "ISMS"
-	if org, orgErr := s.db.GetOrganization(ctx, orgID); orgErr == nil && org.Name != "" {
-		issuer = org.Name
-	}
-	uri := fmt.Sprintf("otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
-		issuer, user.Email, b32Secret, issuer)
+	// Build otpauth URI — issuer is the org's brand (branding_name, then
+	// org.Name, then "ISMS"; see orgBrandName).
+	issuer := s.orgBrandName(ctx, getOrgID(c))
+	uri := buildOTPAuthURI(issuer, user.Email, b32Secret)
 
 	return c.JSON(http.StatusOK, otpSetupResponse{
 		Secret: b32Secret,
 		URI:    uri,
 	})
+}
+
+// otpAuthEscape percent-encodes a label or query-value part of an otpauth URI.
+// url.QueryEscape alone leaves spaces as "+", which some authenticator apps
+// (e.g. Google Authenticator) render as a literal plus sign instead of a
+// space, so spaces are re-encoded as "%20". QueryEscape already encodes the
+// characters that matter here — ":" (the label separator, so a colon inside
+// the issuer can't split the label in the wrong place), "&" and "#" (query/
+// fragment delimiters) and "?" — unlike url.PathEscape, which leaves ":" and
+// "&" unescaped.
+func otpAuthEscape(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
+// buildOTPAuthURI builds the otpauth:// URI an authenticator app scans to
+// enroll a TOTP secret. issuer and account are percent-encoded so a display
+// name or email containing a space, "&", "#", "?", ":" or "+" can't corrupt
+// the label or query string.
+func buildOTPAuthURI(issuer, account, secret string) string {
+	encIssuer := otpAuthEscape(issuer)
+	return fmt.Sprintf("otpauth://totp/%s:%s?secret=%s&issuer=%s&digits=6&period=30",
+		encIssuer, otpAuthEscape(account), secret, encIssuer)
 }
 
 // --- Self-service: OTP verify (first time) ---

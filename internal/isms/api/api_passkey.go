@@ -89,8 +89,12 @@ func (s *Server) handlePasskeyRegisterBegin(c echo.Context) error {
 		}
 	}
 
+	// Per-org relying party display name, shown by the browser/authenticator's
+	// passkey prompt. Falls back to the global "ISMS" (server.go) if this
+	// override is ever left out, since the library requires a non-empty name.
 	creation, session, err := s.webauthn.BeginRegistration(wanUser,
 		webauthn.WithExclusions(excludeList),
+		webauthn.WithRegistrationRelyingPartyName(s.orgBrandName(ctx, getOrgID(c))),
 	)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "begin registration: "+err.Error())

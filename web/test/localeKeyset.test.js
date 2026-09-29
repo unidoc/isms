@@ -70,6 +70,65 @@ test('no locale carries a key absent from the fallback', async () => {
   }
 })
 
+// The named slots a message interpolates: `{email}` gives "email". A quoted
+// literal such as `{'@'}` is text, not a slot, and the pattern cannot match it.
+// A list slot (`{0}`) counts by its index. This agrees with vue-i18n's own
+// parser (@intlify/message-compiler) on every message in every locale. The
+// syntax is safe to read this way because messageCompile.test.js already
+// fails on any message that doesn't compile. Plural forms (`a | b`) are
+// pooled: a language with fewer forms still has to use the same slots.
+function slots(message) {
+  const names = [...message.matchAll(/\{\s*([A-Za-z_$][\w$]*|\d+)\s*\}/g)].map((m) => m[1])
+  return [...new Set(names)].sort()
+}
+
+function listSlots(names) {
+  return names.length ? names.map((n) => `{${n}}`).join(', ') : 'no placeholders'
+}
+
+function valueAt(messages, key) {
+  return key.split('.').reduce((node, part) => (node == null ? undefined : node[part]), messages)
+}
+
+// A translator who renames `{email}` to `{surel}`, or drops it, gets a message
+// that still resolves and still compiles, and renders a blank where the address
+// should be. The keyset checks above can't see that, because the key is fine.
+// The Go side has the same check for common.error.* only
+// (TestPlaceholdersMatchInEveryLocale); this covers the whole UI keyset.
+//
+// Same policy as the keyset: a key missing from a translation is skipped
+// (fallbackLocale renders it in en, slots and all), and an extra key is the
+// test above's failure, not this one's. Adding a slot to an en message fails
+// here until every translation that has the key uses it too.
+test('every translation uses the same placeholders as the fallback', async () => {
+  const reference = await load(FALLBACK)
+  const referenceKeys = leafKeys(reference)
+  const mismatches = []
+
+  for (const locale of localeDirs().filter((l) => l !== FALLBACK)) {
+    const messages = await load(locale)
+    for (const key of referenceKeys) {
+      const want = valueAt(reference, key)
+      const got = valueAt(messages, key)
+      if (typeof want !== 'string' || typeof got !== 'string') continue
+      const wantSlots = slots(want)
+      const gotSlots = slots(got)
+      if (wantSlots.join() !== gotSlots.join()) {
+        mismatches.push(`${locale} ${key}: ${listSlots(gotSlots)}, but ${FALLBACK} has ${listSlots(wantSlots)}`)
+      }
+    }
+  }
+
+  assert.deepEqual(
+    mismatches,
+    [],
+    `translations whose placeholders differ from ${FALLBACK}. A slot the caller doesn't ` +
+      `pass renders as an empty string, and a dropped one loses what it named. Use exactly ` +
+      `the slots the ${FALLBACK} message has; order doesn't matter:\n  ` +
+      mismatches.join('\n  '),
+  )
+})
+
 // The freeze, as a test rather than a promise.
 //
 // Failing here is not a defect: adding a key is ordinary feature work. The fix

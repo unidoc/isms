@@ -135,10 +135,12 @@ export function useSession() {
       // Network errors (abort from F5, connection refused) keep the token.
       if (e?.status === 401) {
         clearApiToken()
-        // Don't kick the user away from a public auth page they're trying
-        // to complete (signup / forgot-password / verify-email / login).
-        const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/verify-email', '/']
-        if (!publicAuthPaths.includes(route.path)) {
+        // Don't kick the user away from a public auth page they're trying to
+        // complete. Gated on the route's own `meta.public` flag (router.js),
+        // not a hardcoded path list — a hardcoded '/login' never matches
+        // path-mode's org-scoped '/<org>/login', which is what actually
+        // dropped the org prefix here on a stale/absent token.
+        if (!route.meta.public) {
           router.push('/login')
         }
       }

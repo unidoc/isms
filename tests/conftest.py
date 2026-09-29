@@ -6,7 +6,9 @@ No pre-existing users or CLI setup needed.
 Server requirements:
     ISMS_USER_SIGNUP=1          Enable self-registration
     ISMS_SKIP_EMAIL_VERIFY=1    Skip email verification (users active immediately)
-    ISMS_RATE_LIMIT=0           Disable rate limiting for tests
+    ISMS_RATE_LIMIT=0           Disable rate limiting for tests (the pytest
+                                env does not need it; see
+                                test_security.test_brute_force_protection)
 
 Usage:
     ISMS_TEST_URL=http://localhost:9090 pytest tests/ -v

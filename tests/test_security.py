@@ -79,16 +79,22 @@ def test_xss_in_risk_title(api_url, admin_headers):
 
 
 @pytest.mark.skipif(
-    os.environ.get("ISMS_RATE_LIMIT") == "0",
-    reason="rate limiting disabled on the test server (ISMS_RATE_LIMIT=0); "
-    "limiter logic is covered by internal/isms/api/rate_limit_test.go",
+    os.environ.get("ISMS_RATE_LIMIT", "0") == "0",
+    reason="the suite runs against a server with rate limiting disabled "
+    "(ISMS_RATE_LIMIT=0, see conftest.py); to run this against a limited "
+    "server, set ISMS_RATE_LIMIT to any non-zero value in the pytest env. "
+    "Limiter logic is covered by internal/isms/api/rate_limit_test.go",
 )
 def test_brute_force_protection(api_url):
     """Multiple failed logins should be rate limited.
 
-    Skipped when ISMS_RATE_LIMIT=0 (the test/dev default) — you can't
-    integration-test a limiter that's turned off, and enabling it here would trip
-    the per-IP cap during the full suite. The switch + limits are unit-tested.
+    The server reads ISMS_RATE_LIMIT from its own environment, which pytest
+    cannot see, and the server is usually started from a different shell. So
+    this runs only when the pytest env explicitly says the server is limited
+    (ISMS_RATE_LIMIT set and not "0"). Unset means the documented setup, where
+    the limiter is off: you can't integration-test a limiter that's turned off,
+    and enabling it for the full suite would trip the per-IP cap. The switch and
+    limits are unit-tested.
     """
     for i in range(6):
         requests.post(f"{api_url}/auth/login", json={

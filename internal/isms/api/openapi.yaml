@@ -1337,7 +1337,14 @@ paths:
   /reviews/{id}/status:
     put:
       tags: [Reviews & Comments]
-      summary: Update review status
+      summary: Close a review
+      description: >
+        Closes an active review. `closed` is the only accepted status; any other
+        value is rejected with 400. Other review status changes have their own
+        endpoints: approving or requesting changes is `POST /reviews/{id}/approve`,
+        merging is `POST /reviews/{id}/merge`, and resubmitting after changes were
+        requested is `POST /documents/{docId}/reviews`. Requires the admin or
+        manager role.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -1348,10 +1355,24 @@ paths:
               type: object
               required: [status]
               properties:
-                status: { type: string, enum: [open, in_review, approved, changes_requested, closed] }
+                status: { type: string, enum: [closed] }
       responses:
         '200':
-          description: Status updated
+          description: Review closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [closed] }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The review is already closed or merged
 
   /reviews/{id}/forward:
     post:
@@ -3579,7 +3600,7 @@ components:
         version: { type: string }
         commit_hash: { type: string }
         requested_by: { type: string }
-        status: { type: string, enum: [open, in_review, approved, changes_requested, closed] }
+        status: { type: string, enum: [open, changes_requested, approved, merged, closed] }
         comment_count: { type: integer }
         open_comments: { type: integer }
         created_at: { type: string, format: date-time }

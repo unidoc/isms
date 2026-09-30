@@ -583,17 +583,20 @@ func CreateCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, ca *Cor
 }
 
 // UpdateCorrectiveActionTx updates a corrective action within an existing transaction.
+// It is the only corrective-action update statement: the HTTP handler and
+// suggestion-apply both reach it through enforceCorrectiveActionWriteTx.
 func UpdateCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, ca *CorrectiveAction) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE corrective_actions SET title = $2, description = $3, source = $4, severity = $5, status = $6,
 			assignee_id = CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END,
 			root_cause = $8,
-			notes = $9, external_id = $11, updated_at = now()
+			notes = $9, external_id = $11, due_date = $12, updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, ca.ID, ca.Title, ca.Description, ca.Source, ca.Severity, ca.Status,
 		ca.Assignee,
 		nilIfEmpty(ca.RootCause), nilIfEmpty(ca.Notes), orgID,
-		nilIfEmpty(strings.TrimSpace(ca.ExternalID)))
+		nilIfEmpty(strings.TrimSpace(ca.ExternalID)),
+		ca.DueDate)
 	return err
 }
 

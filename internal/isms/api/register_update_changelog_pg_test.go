@@ -184,3 +184,78 @@ func TestRegisterUpdatesWriteChangelogRow(t *testing.T) {
 		}
 	})
 }
+
+// Regression for #377: PUT /corrective-actions/:id returned 200 but never stored
+// a new due_date, because the transactional UPDATE had no due_date column.
+func TestCorrectiveActionPutStoresDueDate(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "ca-due-date")
+	const actor = "admin@id-resolution.test"
+
+	ca := &db.CorrectiveAction{Title: "ca due date", CreatedBy: actor}
+	applyCorrectiveActionDefaults(ca)
+	if err := s.db.CreateCorrectiveAction(ctx, orgID, ca); err != nil {
+		t.Fatalf("CreateCorrectiveAction: %v", err)
+	}
+
+	assertDueDate := func(t *testing.T, want string) {
+		t.Helper()
+		got, err := s.db.GetCorrectiveAction(ctx, orgID, ca.ID)
+		if err != nil {
+			t.Fatalf("GetCorrectiveAction: %v", err)
+		}
+		if got.DueDate == nil || got.DueDate.Time.UTC().Format("2006-01-02") != want {
+			t.Fatalf("due_date = %v, want %s", got.DueDate, want)
+		}
+	}
+
+	t.Run("PUT stores due_date and logs history", func(t *testing.T) {
+		c, rec := ctxFor(orgID, http.MethodPut, fmt.Sprintf("%d", ca.ID), `{"due_date":"2027-01-15"}`)
+		if err := s.handleUpdateCorrectiveAction(c); err != nil {
+			t.Fatalf("handler: %v", err)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body %s", rec.Code, rec.Body.String())
+		}
+		assertDueDate(t, "2027-01-15")
+
+		// History must record it too (#196 re-reads the stored row).
+		entries, err := s.db.ListEntityChangelog(ctx, orgID, "corrective_action", ca.ID)
+		if err != nil {
+			t.Fatalf("ListEntityChangelog: %v", err)
+		}
+		found := false
+		for _, e := range entries {
+			if e.Action == "update" && e.Field == "due_date" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("no due_date changelog row")
+		}
+	})
+
+	t.Run("status change keeps due_date", func(t *testing.T) {
+		// The status endpoint goes through the same UPDATE statement.
+		c, rec := ctxFor(orgID, http.MethodPut, fmt.Sprintf("%d", ca.ID), `{"status":"assessment"}`)
+		if err := s.handleUpdateCorrectiveActionStatus(c); err != nil {
+			t.Fatalf("status handler: %v", err)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body %s", rec.Code, rec.Body.String())
+		}
+		assertDueDate(t, "2027-01-15")
+	})
+
+	t.Run("PUT without due_date keeps it", func(t *testing.T) {
+		c, rec := ctxFor(orgID, http.MethodPut, fmt.Sprintf("%d", ca.ID), `{"title":"ca due date renamed"}`)
+		if err := s.handleUpdateCorrectiveAction(c); err != nil {
+			t.Fatalf("handler: %v", err)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body %s", rec.Code, rec.Body.String())
+		}
+		assertDueDate(t, "2027-01-15")
+	})
+}

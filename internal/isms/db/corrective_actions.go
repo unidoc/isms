@@ -183,21 +183,6 @@ func (d *DB) ListCorrectiveActions(ctx context.Context, orgID int, status, sever
 	return actions, nil
 }
 
-func (d *DB) UpdateCorrectiveAction(ctx context.Context, orgID int, ca *CorrectiveAction) error {
-	_, err := d.pool.Exec(ctx, `
-		UPDATE corrective_actions SET title = $2, description = $3, source = $4, severity = $5,
-			assignee_id = CASE WHEN $6 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $6) END, due_date = $7,
-			root_cause = $8,
-			notes = $9, external_id = $11, updated_at = now()
-		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
-	`, ca.ID, ca.Title, ca.Description, ca.Source, ca.Severity,
-		ca.Assignee, ca.DueDate,
-		nilIfEmpty(ca.RootCause),
-		nilIfEmpty(ca.Notes), orgID,
-		nilIfEmpty(strings.TrimSpace(ca.ExternalID)))
-	return err
-}
-
 // CountOpenCAsByIncident returns the number of corrective actions linked to an incident
 // (via entity_references) that are not yet resolved.
 // CountOpenCAsByIncident counts unresolved corrective actions linked to the

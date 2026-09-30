@@ -226,8 +226,9 @@ func TestExplicitNextReviewIsStored(t *testing.T) {
 }
 
 // TestAbsentOrNullNextReviewRecalculates pins the other half of the contract:
-// without a date in the request, update still works the date out, and it
-// replaces a date that an earlier request set.
+// without a new date in the request (absent, null, or the stored date echoed
+// back), update still works the date out, and it replaces a date that an
+// earlier request set.
 func TestAbsentOrNullNextReviewRecalculates(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
@@ -272,6 +273,9 @@ func TestAbsentOrNullNextReviewRecalculates(t *testing.T) {
 	for _, tc := range []struct{ name, body string }{
 		{"absent", `{"notes":"x"}`},
 		{"null", `{"next_review":null}`},
+		// A client that sends the whole record back echoes the stored date;
+		// that must not pin it, or a change of criticality stops moving it.
+		{"echo of the stored date", fmt.Sprintf(`{"notes":"y","next_review":%q}`, explicitReviewDate)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			put(t, fmt.Sprintf(`{"next_review":%q}`, explicitReviewDate))

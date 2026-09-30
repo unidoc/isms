@@ -2868,12 +2868,9 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
-	// An explicit next_review wins over the calculated one; null or absent
-	// means "calculate it" (#202).
-	var explicitNextReview *db.Epoch
-	if req.NextReview != nil {
-		explicitNextReview = *req.NextReview
-	}
+	// A new next_review from the request wins over the calculated one; absent,
+	// null or an echo of the stored date means "calculate it" (#202).
+	explicitNextReview := requestedNextReview(req.NextReview, old.NextReview)
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
 	}
@@ -3008,12 +3005,9 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
-	// An explicit next_review wins over the calculated one; null or absent
-	// means "calculate it" (#202).
-	var explicitNextReview *db.Epoch
-	if req.NextReview != nil {
-		explicitNextReview = *req.NextReview
-	}
+	// A new next_review from the request wins over the calculated one; absent,
+	// null or an echo of the stored date means "calculate it" (#202).
+	explicitNextReview := requestedNextReview(req.NextReview, old.NextReview)
 	if req.Owner != nil {
 		updated.Owner = *req.Owner
 	}
@@ -3231,12 +3225,9 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
-	// An explicit next_review wins over the calculated one; null or absent
-	// means "calculate it" (#202).
-	var explicitNextReview *db.Epoch
-	if req.NextReview != nil {
-		explicitNextReview = *req.NextReview
-	}
+	// A new next_review from the request wins over the calculated one; absent,
+	// null or an echo of the stored date means "calculate it" (#202).
+	explicitNextReview := requestedNextReview(req.NextReview, old.NextReview)
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
 	}

@@ -188,3 +188,19 @@ type riskUpdateRequest struct {
 	Notes                         *string         `json:"notes"`
 	ExternalID                    *string         `json:"external_id"`
 }
+
+// requestedNextReview returns the next_review an update request asks for, or
+// nil when the date should be recalculated: the key is absent, null, or names
+// the same calendar day as the stored date. The last case matters because a
+// client that GETs a record, edits it and PUTs the whole body back echoes the
+// stored next_review; treating that echo as a choice would pin a stale date
+// and stop it following a change of level or criticality (#202).
+func requestedNextReview(sent **db.Epoch, stored *db.Epoch) *db.Epoch {
+	if sent == nil || *sent == nil {
+		return nil
+	}
+	if stored != nil && (*sent).Time.UTC().Format("2006-01-02") == stored.Time.UTC().Format("2006-01-02") {
+		return nil
+	}
+	return *sent
+}

@@ -251,12 +251,9 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if req.LastReview != nil {
 		existing.LastReview = *req.LastReview
 	}
-	// An explicit next_review wins over the calculated one; null or absent
-	// means "calculate it" (#202).
-	var explicitNextReview *db.Epoch
-	if req.NextReview != nil {
-		explicitNextReview = *req.NextReview
-	}
+	// A new next_review from the request wins over the calculated one; absent,
+	// null or an echo of the stored date means "calculate it" (#202).
+	explicitNextReview := requestedNextReview(req.NextReview, existing.NextReview)
 	if req.Notes != nil {
 		existing.Notes = *req.Notes
 	}

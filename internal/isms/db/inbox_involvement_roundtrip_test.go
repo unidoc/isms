@@ -434,3 +434,56 @@ func TestUnscopedListsLeaveInboxColumnsEmpty(t *testing.T) {
 		t.Errorf("active suggestions = %d err=%v, want 2 (S3 is applied)", len(active), err)
 	}
 }
+
+// Comments on a review that is merged or closed have nothing left to act on,
+// so they leave every involved user's inbox, whichever branch matched them.
+// Document-level comments (no review) are unaffected.
+func TestInboxCommentsDropWhenTheReviewEnds(t *testing.T) {
+	f := newInboxFixture(t, "inbox-ended-review")
+	ctx := context.Background()
+
+	// K1 is C's comment on R1 (requested by M, reviewer C). Add one on R2 and a
+	// document-level comment, both by C.
+	k2 := &Comment{ReviewID: &f.r2, DocumentID: "inv-r2", Author: f.contributor, Body: "K2"}
+	if err := f.d.AddComment(ctx, f.org, k2); err != nil {
+		t.Fatalf("AddComment K2: %v", err)
+	}
+	doc := &Comment{DocumentID: "inv-doc-level", Author: f.contributor, Body: "doc level"}
+	if err := f.d.AddComment(ctx, f.org, doc); err != nil {
+		t.Fatalf("AddComment doc level: %v", err)
+	}
+
+	for who, email := range map[string]string{"requester": f.manager, "commenter": f.contributor} {
+		got := f.comments(t, email)
+		if _, ok := got[f.k1]; !ok {
+			t.Errorf("%s: K1 missing while R1 is open", who)
+		}
+	}
+
+	setStatus := func(reviewID int, status string) {
+		t.Helper()
+		if _, err := f.d.pool.Exec(ctx, `UPDATE reviews SET status = $2 WHERE id = $1`, reviewID, status); err != nil {
+			t.Fatalf("setting review %d to %s: %v", reviewID, status, err)
+		}
+	}
+	setStatus(f.r1, "closed")
+	setStatus(f.r2, "merged")
+
+	for who, email := range map[string]string{"requester": f.manager, "commenter": f.contributor} {
+		got := f.comments(t, email)
+		if _, ok := got[f.k1]; ok {
+			t.Errorf("%s: K1 still listed after R1 was closed", who)
+		}
+		if _, ok := got[int(k2.ID)]; ok {
+			t.Errorf("%s: K2 still listed after R2 was merged", who)
+		}
+	}
+
+	// Its author still has the document-level comment; nobody else matches it.
+	if _, ok := f.comments(t, f.contributor)[doc.ID]; !ok {
+		t.Error("author lost their document-level comment")
+	}
+	if _, ok := f.comments(t, f.manager)[doc.ID]; ok {
+		t.Error("requester sees someone else's document-level comment")
+	}
+}

@@ -864,7 +864,9 @@ func (d *DB) AllOpenComments(ctx context.Context, orgID int) ([]Comment, error) 
 // part of: they wrote it, replied in its thread, requested the review it sits
 // on, or hold an assignment on that review. NeedsAction is true when the
 // newest message in the thread (the comment or its latest reply) is not the
-// user's own. Document-level comments with no review are left out: their owner
+// user's own. Comments on a merged or closed review are left out, for every
+// branch: nothing is left to act on there. Document-level comments with no
+// review are returned only to people who wrote or answered them: their owner
 // lives in git frontmatter and cannot be matched in SQL.
 func (d *DB) OpenCommentsInvolving(ctx context.Context, orgID int, email string) ([]Comment, error) {
 	rows, err := d.pool.Query(ctx, `
@@ -875,7 +877,9 @@ func (d *DB) OpenCommentsInvolving(ctx context.Context, orgID int, email string)
 				WHERE r.parent_id = c.id AND r.organization_id = c.organization_id
 				ORDER BY r.created_at DESC, r.id DESC LIMIT 1), c.author) <> $2
 		FROM comments c
+		LEFT JOIN reviews rv ON rv.id = c.review_id AND rv.organization_id = c.organization_id
 		WHERE c.organization_id = $1 AND c.status = 'open' AND c.parent_id IS NULL
+			AND (c.review_id IS NULL OR rv.status NOT IN ('merged','closed'))
 			AND (
 				c.author = $2
 				OR EXISTS (SELECT 1 FROM comments r WHERE r.parent_id = c.id AND r.organization_id = c.organization_id AND r.author = $2)

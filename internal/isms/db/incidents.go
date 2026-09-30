@@ -116,9 +116,9 @@ func (d *DB) CreateIncident(ctx context.Context, orgID int, inc *Incident) error
 // getIncidentWhere runs the canonical single-incident query with the given
 // match column ("id" or "identifier") — shared by GetIncident and
 // GetIncidentByIdentifier so the column/scan lists live in one place.
-func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, matchVal any) (*Incident, error) {
+func getIncidentWhere(ctx context.Context, q rowQuerier, orgID int, matchCol string, matchVal any) (*Incident, error) {
 	var inc Incident
-	err := d.pool.QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		SELECT id, organization_id, identifier, title, description, severity, status,
 			affects_c, affects_i, affects_a,
 			incident_type, source,
@@ -151,13 +151,13 @@ func (d *DB) getIncidentWhere(ctx context.Context, orgID int, matchCol string, m
 }
 
 func (d *DB) GetIncident(ctx context.Context, orgID int, id int64) (*Incident, error) {
-	return d.getIncidentWhere(ctx, orgID, "id", id)
+	return getIncidentWhere(ctx, d.pool, orgID, "id", id)
 }
 
 // GetIncidentByIdentifier resolves an incident by its per-org identifier
 // (e.g. "INC-12") — the canonical ID format used in entity_references.
 func (d *DB) GetIncidentByIdentifier(ctx context.Context, orgID int, identifier string) (*Incident, error) {
-	return d.getIncidentWhere(ctx, orgID, "identifier", identifier)
+	return getIncidentWhere(ctx, d.pool, orgID, "identifier", identifier)
 }
 
 func (d *DB) ListIncidents(ctx context.Context, orgID int, status, severity string, limit int) ([]Incident, error) {
@@ -237,50 +237,6 @@ func (d *DB) UpdateIncident(ctx context.Context, orgID int, inc *Incident) error
 func (d *DB) DeleteIncident(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE incidents SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err
-}
-
-func (d *DB) UpdateIncidentStatus(ctx context.Context, orgID int, id int64, status string) error {
-	return d.UpdateIncidentStatusWithDetails(ctx, orgID, id, status, "", "")
-}
-
-// UpdateIncidentStatusWithDetails performs the status update and (optionally) sets
-// root_cause / lessons_learned in a single SET clause. Combining these lets us
-// avoid the 1-3 sequential UPDATE pattern that previously lived in the API tx,
-// which churned through the connection pool and could partially apply on error.
-//
-// Empty rootCause / lessonsLearned leave the existing values unchanged.
-// Returns an error if no rows were affected (incident not found / already deleted).
-func (d *DB) UpdateIncidentStatusWithDetails(ctx context.Context, orgID int, id int64, status, rootCause, lessonsLearned string) error {
-	// Lifecycle: draft → open → investigating → contained → resolved → closed.
-	// Forward transitions stamp the relevant timestamp; reopens clear timestamps
-	// for stages AT OR AFTER the new state so closure metadata reflects reality.
-	query := `UPDATE incidents SET status = $2, updated_at = now()`
-	switch status {
-	case "draft", "open":
-		// Reopen: clear all closure timestamps.
-		query += `, contained_at = NULL, resolved_at = NULL, closed_at = NULL`
-	case "investigating":
-		// Reopen from contained/resolved/closed: clear those timestamps.
-		query += `, contained_at = NULL, resolved_at = NULL, closed_at = NULL`
-	case "contained":
-		query += `, contained_at = COALESCE(contained_at, now()), resolved_at = NULL, closed_at = NULL`
-	case "resolved":
-		query += `, resolved_at = COALESCE(resolved_at, now()), closed_at = NULL`
-	case "closed":
-		query += `, closed_at = COALESCE(closed_at, now())`
-	}
-	// Use COALESCE on the parameters: empty string means "leave existing value alone".
-	query += `, root_cause = COALESCE(NULLIF($4, ''), root_cause),
-		lessons_learned = COALESCE(NULLIF($5, ''), lessons_learned)`
-	query += ` WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`
-	tag, err := d.pool.Exec(ctx, query, id, status, orgID, rootCause, lessonsLearned)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("incident %d not found in org %d", id, orgID)
-	}
-	return nil
 }
 
 // IncidentStats are aggregate counts across the entire register, independent of pagination.

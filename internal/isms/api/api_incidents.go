@@ -44,9 +44,9 @@ type incidentCreateRequest struct {
 }
 
 // incidentUpdateRequest is the API contract for updating an incident. nil = leave alone.
-// Status, when present, is routed through UpdateIncidentStatus so closure
-// metadata (contained_at, resolved_at, closed_at) is cleared correctly on
-// reverse transitions — never inline-set via UpdateIncident.
+// Status, when present, goes through enforceIncidentWriteTx, whose
+// SetIncidentLifecycleTx stamps or clears closure metadata (contained_at,
+// resolved_at, closed_at) on forward and reverse transitions.
 type incidentUpdateRequest struct {
 	Title               *string    `json:"title"`
 	Description         *string    `json:"description"`
@@ -295,6 +295,9 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		return errNotFound("incident")
 	}
 	prevStatus := existing.Status
+	// Snapshot BEFORE the request is applied onto existing below (#196):
+	// ToChangeMap returns a fresh map, so later field assignments can't touch it.
+	oldMap := existing.ToChangeMap()
 
 	var req incidentUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -408,28 +411,28 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		existing.ExternalID = *req.ExternalID
 	}
 
-	oldMap := existing.ToChangeMap()
 	existing.ID = id
 	// Single enforced incident write path (#26): open-CA guard on resolve/close
-	// + lifecycle timestamps, shared verbatim with suggestion-apply.
+	// + lifecycle timestamps, shared verbatim with suggestion-apply. The
+	// changelog is written in the same transaction, diffed against the row as
+	// stored, so the change and its history commit or fail together (#196).
+	var after *db.Incident
 	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		return enforceIncidentWriteTx(ctx, tx, orgID, existing, prevStatus)
+		if err := enforceIncidentWriteTx(ctx, tx, orgID, existing, prevStatus); err != nil {
+			return err
+		}
+		var err error
+		if after, err = db.GetIncidentTx(ctx, tx, orgID, id); err != nil {
+			return err
+		}
+		changes := db.DiffFields("incident", int64(id), getUserEmail(c), c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
 	}); err != nil {
 		var oce openCAsLinkedError
 		if errors.As(err, &oce) {
 			return echo.NewHTTPError(http.StatusConflict, oce.Error())
 		}
 		return pgxHTTPError(err)
-	}
-
-	after, _ := s.db.GetIncident(ctx, orgID, id)
-	if after != nil {
-		actor := getUserEmail(c)
-		reason := c.QueryParam("reason")
-		changes := db.DiffFields("incident", int64(id), actor, reason, oldMap, after.ToChangeMap())
-		if len(changes) > 0 {
-			s.logChanges(ctx, orgID, changes)
-		}
 	}
 
 	s.searchUpsert(orgID, "incident", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
@@ -488,23 +491,46 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	// Block closing/resolving if there are still-open corrective actions linked to this incident.
-	if req.Status == "closed" || req.Status == "resolved" {
-		existing, err := s.db.GetIncident(ctx, orgID, id)
-		if err != nil || existing == nil {
-			return errNotFound("incident")
-		}
-		if n, err := s.db.CountOpenCAsByIncident(ctx, orgID, existing.Identifier); err == nil && n > 0 {
-			return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot %s incident: %d open corrective action(s) still linked", statusVerb(req.Status), n))
-		}
+	existing, err := s.db.GetIncident(ctx, orgID, id)
+	if err != nil || existing == nil {
+		return errNotFound("incident")
 	}
+	prevStatus := existing.Status
+	oldMap := existing.ToChangeMap()
 
-	// Status update + optional field updates in a single SQL statement.
-	if err := s.db.UpdateIncidentStatusWithDetails(ctx, orgID, id, req.Status, req.RootCause, req.LessonsLearned); err != nil {
+	existing.Status = req.Status
+	// Empty means "leave the current value alone", the contract the old
+	// single-statement UPDATE had (COALESCE(NULLIF($4, ''), root_cause)).
+	if req.RootCause != "" {
+		existing.RootCause = req.RootCause
+	}
+	if req.LessonsLearned != "" {
+		existing.LessonsLearned = req.LessonsLearned
+	}
+	existing.ID = id
+
+	actor := getUserEmail(c)
+	// Same enforced write path as PUT /incidents/:id and suggestion-apply (#26):
+	// transactional open-CA guard + lifecycle timestamps, with the changelog
+	// written in the same transaction (#196).
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := enforceIncidentWriteTx(ctx, tx, orgID, existing, prevStatus); err != nil {
+			return err
+		}
+		after, err := db.GetIncidentTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		changes := db.DiffFields("incident", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		var oce openCAsLinkedError
+		if errors.As(err, &oce) {
+			return echo.NewHTTPError(http.StatusConflict, oce.Error())
+		}
 		return pgxHTTPError(err)
 	}
 
-	actor := getUserEmail(c)
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "incident_status_changed",

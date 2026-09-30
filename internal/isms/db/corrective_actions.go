@@ -91,8 +91,12 @@ func (d *DB) CreateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 }
 
 func (d *DB) GetCorrectiveAction(ctx context.Context, orgID int, id int64) (*CorrectiveAction, error) {
+	return getCorrectiveAction(ctx, d.pool, orgID, id)
+}
+
+func getCorrectiveAction(ctx context.Context, q rowQuerier, orgID int, id int64) (*CorrectiveAction, error) {
 	var ca CorrectiveAction
-	err := d.pool.QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		SELECT `+correctiveActionSelectCols+`
 		FROM corrective_actions WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
 	`, id, orgID).Scan(&ca.ID, &ca.OrganizationID, &ca.Identifier, &ca.Title, &ca.Description,
@@ -191,21 +195,6 @@ func (d *DB) UpdateCorrectiveAction(ctx context.Context, orgID int, ca *Correcti
 		nilIfEmpty(ca.RootCause),
 		nilIfEmpty(ca.Notes), orgID,
 		nilIfEmpty(strings.TrimSpace(ca.ExternalID)))
-	return err
-}
-
-func (d *DB) UpdateCorrectiveActionStatus(ctx context.Context, orgID int, id int64, status, actor string) error {
-	if status == "resolved" {
-		_, err := d.pool.Exec(ctx, `
-			UPDATE corrective_actions SET status = $2, resolved_at = now(), resolved_by_id = (SELECT id FROM users WHERE email = $4), updated_at = now()
-			WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL
-		`, id, status, orgID, actor)
-		return err
-	}
-	_, err := d.pool.Exec(ctx, `
-		UPDATE corrective_actions SET status = $2, updated_at = now()
-		WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL
-	`, id, status, orgID)
 	return err
 }
 

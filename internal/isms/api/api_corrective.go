@@ -31,8 +31,8 @@ type correctiveActionCreateRequest struct {
 }
 
 // correctiveActionUpdateRequest is the API contract. nil = leave alone.
-// Status, when present, is routed through UpdateCorrectiveActionStatus so the
-// resolved_at / resolved_by_id closure metadata is set/cleared correctly.
+// Status, when present, goes through enforceCorrectiveActionWriteTx, which
+// stamps resolved_at / resolved_by_id on a transition to resolved.
 type correctiveActionUpdateRequest struct {
 	Title       *string    `json:"title"`
 	Description *string    `json:"description"`
@@ -209,6 +209,9 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		return errNotFound("corrective_action")
 	}
 	prevStatus := existing.Status
+	// Snapshot BEFORE the request is applied onto existing below (#196):
+	// ToChangeMap returns a fresh map, so later field assignments can't touch it.
+	oldMap := existing.ToChangeMap()
 
 	var req correctiveActionUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -272,29 +275,28 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		existing.ExternalID = *req.ExternalID
 	}
 
-	oldMap := existing.ToChangeMap()
 	existing.ID = id
 	// Single enforced CA write path (#26): open-task guard on resolve +
-	// resolved_at/by, shared verbatim with suggestion-apply.
+	// resolved_at/by, shared verbatim with suggestion-apply. The changelog is
+	// written in the same transaction, diffed against the row as stored (not
+	// the request), so the change and its history commit or fail together (#196).
+	var after *db.CorrectiveAction
 	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		return enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, getUserEmail(c))
+		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, getUserEmail(c)); err != nil {
+			return err
+		}
+		var err error
+		if after, err = db.GetCorrectiveActionTx(ctx, tx, orgID, id); err != nil {
+			return err
+		}
+		changes := db.DiffFields("corrective_action", int64(id), getUserEmail(c), c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
 	}); err != nil {
 		var ote openTasksLinkedError
 		if errors.As(err, &ote) {
 			return echo.NewHTTPError(http.StatusConflict, ote.Error())
 		}
 		return pgxHTTPError(err)
-	}
-
-	// Re-read so the response is canonical (assignee FK confirmed, updated_at, etc.).
-	after, _ := s.db.GetCorrectiveAction(ctx, orgID, id)
-	if after != nil {
-		actor := getUserEmail(c)
-		reason := c.QueryParam("reason")
-		changes := db.DiffFields("corrective_action", int64(id), actor, reason, oldMap, after.ToChangeMap())
-		if len(changes) > 0 {
-			s.logChanges(ctx, orgID, changes)
-		}
 	}
 
 	s.searchUpsert(orgID, "corrective_action", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
@@ -336,23 +338,33 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
-	// Block resolving if there are still-open implementation tasks linked to this CA.
-	if req.Status == "resolved" {
-		existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
-		if err != nil || existing == nil {
-			return errNotFound("corrective_action")
-		}
-		// An empty identifier is corrupt data — the open-task query can't
-		// match anything, so skipping would silently disable enforcement.
-		if existing.Identifier == "" {
-			return echo.NewHTTPError(http.StatusInternalServerError, "corrective action has no identifier")
-		}
-		if n, err := s.db.CountOpenTasksByCA(ctx, orgID, existing.Identifier); err == nil && n > 0 {
-			return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("cannot resolve %s: %d open implementation task(s) still linked", existing.Identifier, n))
-		}
+	existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
+	if err != nil || existing == nil {
+		return errNotFound("corrective_action")
 	}
+	prevStatus := existing.Status
+	oldMap := existing.ToChangeMap()
+	existing.Status = req.Status
+	existing.ID = id
 
-	if err := s.db.UpdateCorrectiveActionStatus(ctx, orgID, id, req.Status, actor); err != nil {
+	// Same enforced write path as PUT /corrective-actions/:id and suggestion-apply
+	// (#26): transactional open-task guard + resolved_at/by on →resolved, with
+	// the changelog written in the same transaction (#196).
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, actor); err != nil {
+			return err
+		}
+		after, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		changes := db.DiffFields("corrective_action", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		var ote openTasksLinkedError
+		if errors.As(err, &ote) {
+			return echo.NewHTTPError(http.StatusConflict, ote.Error())
+		}
 		return pgxHTTPError(err)
 	}
 

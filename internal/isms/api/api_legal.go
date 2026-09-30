@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -195,6 +197,9 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if err != nil {
 		return errNotFound("legal_requirement")
 	}
+	// Snapshot BEFORE the request is applied onto existing below (#196):
+	// ToChangeMap returns a fresh map, so later field assignments can't touch it.
+	oldMap := existing.ToChangeMap()
 
 	var req legalUpdateRequest
 	if err := c.Bind(&req); err != nil {
@@ -280,21 +285,25 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		existing.ExternalID = *req.ExternalID
 	}
 
-	oldMap := existing.ToChangeMap()
 	existing.ID = id
-	// UpdateLegalRequirement recomputes inherent/current scores internally.
-	if err := s.db.UpdateLegalRequirement(ctx, orgID, existing); err != nil {
-		return pgxHTTPError(err)
-	}
-
-	after, _ := s.db.GetLegalRequirement(ctx, orgID, id)
-	if after != nil {
-		actor := getUserEmail(c)
-		reason := c.QueryParam("reason")
-		changes := db.DiffFields("legal_requirement", int64(id), actor, reason, oldMap, after.ToChangeMap())
-		if len(changes) > 0 {
-			s.logChanges(ctx, orgID, changes)
+	// UpdateLegalRequirementTx recomputes current score/level and next_review
+	// from the org's review cycles. The
+	// changelog is written in the same transaction, diffed against the row as
+	// stored, so the change and its history commit or fail together (#196).
+	cycles := s.db.RiskReviewCycles(ctx, orgID)
+	var after *db.LegalRequirement
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, existing, cycles, nil); err != nil {
+			return err
 		}
+		var err error
+		if after, err = db.GetLegalRequirementTx(ctx, tx, orgID, id); err != nil {
+			return err
+		}
+		changes := db.DiffFields("legal_requirement", int64(id), getUserEmail(c), c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		return pgxHTTPError(err)
 	}
 
 	s.logAndNotify(ctx, orgID, &db.Activity{

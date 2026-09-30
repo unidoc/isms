@@ -233,8 +233,8 @@ func CountOpenCAsByIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inciden
 	return n, err
 }
 
-// SetIncidentLifecycleTx stamps/clears the lifecycle timestamps for a status,
-// mirroring UpdateIncidentStatusWithDetails (incidents.go) but on a transaction.
+// SetIncidentLifecycleTx stamps/clears the lifecycle timestamps for a status.
+// It is the only place incident lifecycle timestamps are written.
 // UpdateIncidentTx writes status but NOT the timestamps, so the unified write
 // path (#26) calls this right after it to keep contained/resolved/closed_at
 // correct on both forward transitions and reopens.
@@ -270,9 +270,8 @@ func CountOpenTasksByCATx(ctx context.Context, tx pgx.Tx, orgID int, caIdentifie
 	return n, err
 }
 
-// SetCorrectiveActionResolvedTx stamps resolved_at / resolved_by_id, mirroring
-// UpdateCorrectiveActionStatus's resolved branch (corrective_actions.go) but on a
-// transaction. UpdateCorrectiveActionTx writes status but NOT this closure
+// SetCorrectiveActionResolvedTx stamps resolved_at / resolved_by_id.
+// UpdateCorrectiveActionTx writes status but NOT this closure
 // metadata, so the unified CA write path (#26) calls this on a →resolved
 // transition — the exact field suggestion-apply previously skipped.
 func SetCorrectiveActionResolvedTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, actor string) error {
@@ -999,4 +998,37 @@ func RecordVersionTx(ctx context.Context, tx pgx.Tx, orgID int, v *DocumentVersi
 	`, orgID, v.DocumentID, v.Version, v.CommitHash, v.FilePath, v.ContentHash, v.Message,
 		nilIfEmpty(v.Owner), v.ReviewCycleMonths, v.CreatedBy,
 	).Scan(&v.ID, &v.CreatedAt)
+}
+
+// rowQuerier is satisfied by both *pgxpool.Pool and pgx.Tx, so one getter body
+// can read through either. Handlers use the Tx getters to re-read an entity
+// inside the transaction that updated it, so its changelog diff is taken
+// against what was actually stored (#196).
+type rowQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// GetIncidentTx is the transaction-aware twin of GetIncident (incidents.go).
+func GetIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*Incident, error) {
+	return getIncidentWhere(ctx, tx, orgID, "id", id)
+}
+
+// GetCorrectiveActionTx is the transaction-aware twin of GetCorrectiveAction
+// (corrective_actions.go).
+func GetCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*CorrectiveAction, error) {
+	return getCorrectiveAction(ctx, tx, orgID, id)
+}
+
+// GetLegalRequirementTx is the transaction-aware twin of GetLegalRequirement
+// (legal.go).
+func GetLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*LegalRequirement, error) {
+	var lr LegalRequirement
+	err := scanLegal(tx.QueryRow(ctx, `
+		SELECT `+legalSelectCols+`
+		FROM legal_requirements WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+	`, id, orgID), &lr)
+	if err != nil {
+		return nil, err
+	}
+	return &lr, nil
 }

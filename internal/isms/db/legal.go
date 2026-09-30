@@ -350,32 +350,6 @@ func (d *DB) GetLegalRequirementByIdentifier(ctx context.Context, orgID int, ide
 	return d.GetLegalRequirement(ctx, orgID, id)
 }
 
-func (d *DB) UpdateLegalRequirement(ctx context.Context, orgID int, lr *LegalRequirement) error {
-	lr.CalculateRiskScore(d.RiskReviewCycles(ctx, orgID))
-	_, err := d.pool.Exec(ctx, `
-		UPDATE legal_requirements SET title = $2, description = $3, jurisdiction = $4, category = $5,
-			reference = $6, url = $7,
-			status = $8,
-			owner_id = CASE WHEN $9 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $9) END,
-			last_review = $10, next_review = $11, notes = $12,
-			current_likelihood = $13, current_impact = $14, current_score = $15, current_level = $16, treatment = $17, treatment_plan = $18,
-			target_likelihood = $19, target_impact = $20, completion = $21,
-			external_id = $23,
-			updated_at = now()
-		WHERE id = $1 AND organization_id = $22 AND deleted_at IS NULL
-	`, lr.ID, lr.Title, nilIfEmpty(lr.Description), lr.Jurisdiction, lr.Category,
-		nilIfEmpty(lr.Reference), nilIfEmpty(lr.URL),
-		lr.Status,
-		lr.Owner,
-		lr.LastReview, lr.NextReview,
-		nilIfEmpty(lr.Notes),
-		lr.CurrentLikelihood, lr.CurrentImpact, lr.CurrentScore, nilIfEmpty(lr.CurrentLevel), nilIfEmpty(lr.Treatment), nilIfEmpty(lr.TreatmentPlan),
-		lr.TargetLikelihood, lr.TargetImpact, lr.Completion,
-		orgID,
-		nilIfEmpty(strings.TrimSpace(lr.ExternalID)))
-	return err
-}
-
 func (d *DB) DeleteLegalRequirement(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `UPDATE legal_requirements SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
 	return err

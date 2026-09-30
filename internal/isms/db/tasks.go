@@ -25,6 +25,28 @@ type TaskListParams struct {
 	Priority string
 	TaskType string
 	Assignee string
+	// Involving is the viewer's email. When set, the list is narrowed to the
+	// tasks assigned to the viewer and the ones they delegated, and Status is
+	// ignored. It is ANDed with the TaskViewer privacy rule, never replacing it.
+	Involving string
+}
+
+// inboxDelegatedDoneWindow is how long a task the viewer delegated stays in
+// their inbox after the assignee marks it done.
+const inboxDelegatedDoneWindow = "14 days"
+
+// taskAssignedExpr is the inbox "assigned to me" predicate; n is the
+// placeholder of the involving email.
+func taskAssignedExpr(n int) string {
+	return fmt.Sprintf(`(t.assignee_id = (SELECT id FROM users WHERE email = $%d) AND t.status IN ('open','in_progress'))`, n)
+}
+
+// taskDelegatedExpr is the inbox "delegated by me" predicate: still open, or
+// done within inboxDelegatedDoneWindow. Cancelled tasks are left out.
+func taskDelegatedExpr(n int) string {
+	return fmt.Sprintf(`(t.created_by = $%[1]d AND t.assignee_id IS DISTINCT FROM (SELECT id FROM users WHERE email = $%[1]d)
+		AND (t.status IN ('open','in_progress')
+			OR (t.status = 'done' AND t.completed_at > now() - interval '%[2]s')))`, n, inboxDelegatedDoneWindow)
 }
 
 var taskSortable = map[string]string{
@@ -58,6 +80,10 @@ type Task struct {
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`
 	Private        bool   `json:"private"`
+	// InboxGroup ("assigned" | "delegated") and NeedsAction are filled only by
+	// PaginatedTasks, and only when TaskListParams.Involving is set.
+	InboxGroup  string `json:"inbox_group,omitempty"`
+	NeedsAction bool   `json:"needs_action,omitempty"`
 }
 
 // TaskViewer scopes task reads under the privacy rule: managers/admins (CanSeeAll)
@@ -337,11 +363,12 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
-	if p.Status == "active" {
+	// The inbox scope (Involving) owns the status set, so Status is ignored then.
+	if p.Involving == "" && p.Status == "active" {
 		// "active" is a filter pseudo-status: open + in_progress (the work that
 		// still needs attention), so done/cancelled don't clutter the default view.
 		where += ` AND t.status IN ('open','in_progress')`
-	} else if p.Status != "" {
+	} else if p.Involving == "" && p.Status != "" {
 		where += fmt.Sprintf(` AND t.status = $%d`, idx)
 		args = append(args, p.Status)
 		idx++
@@ -366,6 +393,13 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p
 		args = append(args, cargs...)
 		idx++
 	}
+	// The involving email is always bound (possibly empty) so the computed inbox
+	// columns keep one fixed SELECT list and scan path.
+	inv := idx
+	args = append(args, p.Involving)
+	idx++
+	assigned, delegated := taskAssignedExpr(inv), taskDelegatedExpr(inv)
+	where += fmt.Sprintf(` AND ($%d::text = '' OR %s OR %s)`, inv, assigned, delegated)
 
 	var total int
 	if err := d.pool.QueryRow(ctx, `SELECT count(*) FROM tasks t`+where, args...).Scan(&total); err != nil {
@@ -387,7 +421,12 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p
 	offset := (p.Page - 1) * p.Limit
 	args = append(args, p.Limit, offset)
 
-	query := `SELECT ` + taskSelectCols + ` FROM tasks t` + where +
+	// Appended here, not to taskSelectCols, which ListTasks/GetTask share.
+	query := `SELECT ` + taskSelectCols + fmt.Sprintf(`,
+		CASE WHEN $%[1]d::text = '' THEN '' WHEN %[2]s THEN 'assigned' WHEN %[3]s THEN 'delegated' ELSE '' END,
+		CASE WHEN $%[1]d::text = '' THEN false WHEN %[2]s THEN true
+			WHEN %[3]s AND t.status = 'done' THEN true ELSE false END`, inv, assigned, delegated) +
+		` FROM tasks t` + where +
 		` ORDER BY ` + sortField + ` ` + sortDir + `, t.due_date ASC NULLS LAST, t.id DESC` +
 		fmt.Sprintf(` LIMIT $%d OFFSET $%d`, idx, idx+1)
 
@@ -402,7 +441,7 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p
 		var t Task
 		if err := rows.Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 			&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
-			&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private); err != nil {
+			&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private, &t.InboxGroup, &t.NeedsAction); err != nil {
 			return nil, 0, err
 		}
 		tasks = append(tasks, t)

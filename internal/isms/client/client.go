@@ -722,13 +722,14 @@ func (c *Client) ListAssignmentsForReview(reviewID int) ([]db.ReviewAssignment, 
 // --- Inbox ---
 
 type InboxItem struct {
-	Type       string `json:"type"` // review, comment, task
-	ID         int    `json:"id"`
-	DocumentID string `json:"document_id"`
-	Title      string `json:"title"`
-	Status     string `json:"status"`
-	From       string `json:"from"`
-	CreatedAt  string `json:"created_at"`
+	Type       string   `json:"type"` // review, comment, task
+	ID         int      `json:"id"`
+	DocumentID string   `json:"document_id"`
+	Title      string   `json:"title"`
+	Status     string   `json:"status"`
+	From       string   `json:"from"`
+	CreatedAt  db.Epoch `json:"created_at"`     // the server sends epoch seconds
+	Role       string   `json:"role,omitempty"` // reviews only: reviewer or author
 }
 
 func (c *Client) InboxList() ([]InboxItem, error) {

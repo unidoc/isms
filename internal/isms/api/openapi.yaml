@@ -1236,6 +1236,13 @@ paths:
     get:
       tags: [Reviews & Comments]
       summary: List all reviews
+      parameters:
+        - $ref: '#/components/parameters/involving'
+      description: >-
+        With `involving=me`: reviews where the caller holds a pending reviewer
+        assignment (`inbox_group: to_review`) and reviews the caller requested
+        that are open, awaiting changes or approved (`inbox_group: sent`).
+        Every row lists its assigned `reviewers`.
       responses:
         '200':
           description: List of reviews
@@ -1428,6 +1435,13 @@ paths:
     get:
       tags: [Reviews & Comments]
       summary: List all open comments across documents
+      description: >-
+        With `involving=me`: only top-level comments the caller wrote, replied
+        to, or that sit on a review the caller requested or is assigned to.
+        `needs_action` is true when the newest message in the thread is not the
+        caller's.
+      parameters:
+        - $ref: '#/components/parameters/involving'
       responses:
         '200':
           description: Open comments
@@ -1517,7 +1531,13 @@ paths:
     get:
       tags: [Tasks]
       summary: List tasks
+      description: >-
+        With `involving=me`: open or in-progress tasks assigned to the caller
+        (`inbox_group: assigned`) plus tasks the caller created for someone else
+        that are open or were completed in the last 14 days
+        (`inbox_group: delegated`). Private-task visibility still applies.
       parameters:
+        - $ref: '#/components/parameters/involving'
         - name: assignee
           in: query
           schema: { type: string, format: email }
@@ -1587,12 +1607,58 @@ paths:
         '200':
           description: Status updated
 
+  /suggestions:
+    get:
+      tags: [Inbox]
+      summary: List entity suggestions
+      description: >-
+        Suggestions proposed against register entities. `status=active` is a
+        pseudo-status meaning open plus in review. With `involving=me`:
+        contributors and readers get their own suggestions; managers and admins
+        get every open suggestion plus the ones they claimed (`needs_action`),
+        and the applied and rejected filters show their own suggestions.
+      parameters:
+        - $ref: '#/components/parameters/involving'
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, open, in_review, applied, rejected, withdrawn] }
+        - name: entity_type
+          in: query
+          schema: { type: string }
+        - name: entity_id
+          in: query
+          schema: { type: string }
+        - name: suggested_by
+          in: query
+          schema: { type: string, format: email }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Suggestion' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   # ── Changes ─────────────────────────────────────────────────────────────
   /changes:
     get:
       tags: [Changes]
       summary: List change requests
+      description: >-
+        With `involving=me`: proposed, approved or in-progress changes assigned
+        to or requested by the caller. Managers and admins also get every
+        proposed change, because they approve them.
       parameters:
+        - $ref: '#/components/parameters/involving'
         - name: status
           in: query
           schema: { type: string, enum: [proposed, approved, rejected, in_progress, implemented, closed] }
@@ -3258,6 +3324,18 @@ components:
       description: "Personal API key (isms_ prefix)"
 
   parameters:
+    involving:
+      name: involving
+      in: query
+      required: false
+      description: >-
+        Scope the list to the caller's own inbox. The only accepted value is the
+        literal `me`; any other value (including another user's email) returns
+        400. Without it the list is org-wide, as before. When set, the response
+        rows also carry `needs_action` (true when the caller has to act on the
+        row), and `status` filters are ignored because the inbox scope decides
+        which statuses are active.
+      schema: { type: string, enum: [me] }
     id:
       name: id
       in: path
@@ -3603,6 +3681,9 @@ components:
         status: { type: string, enum: [open, changes_requested, approved, merged, closed] }
         comment_count: { type: integer }
         open_comments: { type: integer }
+        reviewers: { type: array, items: { type: string, format: email }, description: Emails of the assigned reviewers (list endpoint only) }
+        inbox_group: { type: string, enum: [to_review, sent], description: "Only with involving=me" }
+        needs_action: { type: boolean, description: "Only with involving=me; true when the caller has to act" }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3621,6 +3702,7 @@ components:
         status: { type: string, enum: [open, resolved] }
         resolved_by: { type: string }
         resolved_at: { type: string, format: date-time }
+        needs_action: { type: boolean, description: "Only with involving=me; true when the newest message in the thread is not the caller's" }
         created_at: { type: string, format: date-time }
 
     Approval:
@@ -3650,6 +3732,8 @@ components:
         due_date: { type: string, format: date-time }
         completed_at: { type: string, format: date-time }
         recurrence_days: { type: integer, description: Recurrence interval in days }
+        inbox_group: { type: string, enum: [assigned, delegated], description: "Only with involving=me" }
+        needs_action: { type: boolean, description: "Only with involving=me; true when the caller has to act" }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 
@@ -3669,6 +3753,25 @@ components:
         planned_at: { type: string, format: date-time }
         implemented_at: { type: string, format: date-time }
         document_ids: { type: array, items: { type: string } }
+        needs_action: { type: boolean, description: "Only with involving=me; true when the caller has to act" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Suggestion:
+      type: object
+      properties:
+        id: { type: integer }
+        entity_type: { type: string }
+        entity_id: { type: string }
+        suggestion_type: { type: string }
+        title: { type: string }
+        payload: { type: object }
+        rationale: { type: string }
+        status: { type: string, enum: [open, in_review, applied, rejected, withdrawn] }
+        suggested_by: { type: string }
+        suggested_by_type: { type: string, enum: [user, agent] }
+        reviewed_by: { type: string }
+        needs_action: { type: boolean, description: "Only with involving=me; true for the open and claimed suggestions a manager or admin has to review" }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
 

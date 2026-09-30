@@ -291,6 +291,12 @@ type Review struct {
 	// Computed fields for API
 	CommentCount int `json:"comment_count,omitempty"`
 	OpenComments int `json:"open_comments,omitempty"`
+	// Reviewers, InboxGroup and NeedsAction are filled only by PaginatedReviews.
+	// InboxGroup ("to_review" | "sent") and NeedsAction are set only when the
+	// query is scoped with ReviewListParams.Involving.
+	Reviewers   []string `json:"reviewers,omitempty"`
+	InboxGroup  string   `json:"inbox_group,omitempty"`
+	NeedsAction bool     `json:"needs_action,omitempty"`
 }
 
 func (d *DB) CreateReview(ctx context.Context, orgID int, r *Review) error {
@@ -363,13 +369,17 @@ func (d *DB) ListReviews(ctx context.Context, orgID int, status string, limit in
 //	"closed" → merged / closed
 //
 // Use Status for an exact single-status match instead.
+//
+// Involving is the viewer's email. When set, the list is narrowed to the
+// reviews the viewer has to act on or has sent, and Status/Phase are ignored.
 type ReviewListParams struct {
-	Page   int
-	Limit  int
-	Sort   string
-	Search string
-	Status string
-	Phase  string
+	Page      int
+	Limit     int
+	Sort      string
+	Search    string
+	Status    string
+	Phase     string
+	Involving string
 }
 
 var reviewSortable = map[string]string{
@@ -386,6 +396,18 @@ const reviewSelectCols = `r.id, r.organization_id, r.document_id, r.document_typ
 	COALESCE(r.message, ''), r.status, r.created_at, r.updated_at,
 	(SELECT COUNT(*) FROM comments c WHERE c.review_id = r.id),
 	(SELECT COUNT(*) FROM comments c WHERE c.review_id = r.id AND c.status = 'open')`
+
+// Inbox predicates over reviews. $2 is always the involving email (see
+// PaginatedReviews); an empty email matches no row through the subselects.
+const (
+	// reviewToReviewExpr: the viewer holds a pending assignment on an active review.
+	reviewToReviewExpr = `(r.status IN ('open','changes_requested') AND EXISTS (
+		SELECT 1 FROM review_assignments ra WHERE ra.review_id = r.id AND ra.organization_id = r.organization_id
+			AND ra.status = 'pending' AND ra.reviewer_id = (SELECT id FROM users WHERE email = $2)))`
+	// reviewSentExpr: the viewer requested the review and it is still in flight.
+	reviewSentExpr = `(r.status IN ('open','changes_requested','approved')
+		AND r.requested_by_id = (SELECT id FROM users WHERE email = $2))`
+)
 
 // ReviewStats returns counts per status for the org.
 func (d *DB) ReviewStats(ctx context.Context, orgID int) (map[string]int, error) {
@@ -421,22 +443,29 @@ func (d *DB) PaginatedReviews(ctx context.Context, orgID int, p ReviewListParams
 		p.Limit = 200
 	}
 
+	// $2 is always the involving email (possibly empty) so the computed inbox
+	// columns keep one fixed SELECT list and scan path.
 	where := ` WHERE r.organization_id = $1`
-	args := []interface{}{orgID}
-	idx := 2
+	args := []interface{}{orgID, p.Involving}
+	idx := 3
 	if p.Search != "" {
 		where += fmt.Sprintf(` AND (r.title ILIKE $%d OR r.document_id ILIKE $%d OR r.message ILIKE $%d)`, idx, idx, idx)
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
-	if p.Status != "" {
-		where += fmt.Sprintf(` AND r.status = $%d`, idx)
-		args = append(args, p.Status)
-		idx++
-	} else if p.Phase == "open" {
-		where += ` AND r.status IN ('open','changes_requested','approved')`
-	} else if p.Phase == "closed" {
-		where += ` AND r.status IN ('merged','closed')`
+	// Always present so every statement that shares these args references $2.
+	where += ` AND ($2::text = '' OR ` + reviewToReviewExpr + ` OR ` + reviewSentExpr + `)`
+	// The inbox scope owns the status set, so Status/Phase apply only without it.
+	if p.Involving == "" {
+		if p.Status != "" {
+			where += fmt.Sprintf(` AND r.status = $%d`, idx)
+			args = append(args, p.Status)
+			idx++
+		} else if p.Phase == "open" {
+			where += ` AND r.status IN ('open','changes_requested','approved')`
+		} else if p.Phase == "closed" {
+			where += ` AND r.status IN ('merged','closed')`
+		}
 	}
 
 	var total int
@@ -459,7 +488,16 @@ func (d *DB) PaginatedReviews(ctx context.Context, orgID int, p ReviewListParams
 	args = append(args, p.Limit, offset)
 	limitIdx, offsetIdx := idx, idx+1
 
-	q := `SELECT ` + reviewSelectCols + ` FROM reviews r` + where +
+	// The extra columns are appended here, not to reviewSelectCols, so a future
+	// caller of the const does not inherit columns its Scan does not expect.
+	q := `SELECT ` + reviewSelectCols + `,
+		ARRAY(SELECT u.email FROM review_assignments ra JOIN users u ON u.id = ra.reviewer_id
+			WHERE ra.review_id = r.id AND ra.organization_id = r.organization_id ORDER BY u.email),
+		CASE WHEN $2::text = '' THEN '' WHEN ` + reviewToReviewExpr + ` THEN 'to_review'
+			WHEN ` + reviewSentExpr + ` THEN 'sent' ELSE '' END,
+		CASE WHEN $2::text = '' THEN false WHEN ` + reviewToReviewExpr + ` THEN true
+			WHEN ` + reviewSentExpr + ` AND r.status IN ('changes_requested','approved') THEN true ELSE false END
+		FROM reviews r` + where +
 		` ORDER BY ` + sortField + ` ` + sortDir + `, r.id DESC` +
 		fmt.Sprintf(` LIMIT $%d OFFSET $%d`, limitIdx, offsetIdx)
 
@@ -475,7 +513,7 @@ func (d *DB) PaginatedReviews(ctx context.Context, orgID int, p ReviewListParams
 		if err := rows.Scan(&r.ID, &r.OrganizationID, &r.DocumentID, &r.DocumentType, &r.Title, &r.Version,
 			&r.CommitHash, &r.SentHead, &r.MergeCommit, &r.Round,
 			&r.RequestedBy, &r.Message, &r.Status, &r.CreatedAt, &r.UpdatedAt,
-			&r.CommentCount, &r.OpenComments); err != nil {
+			&r.CommentCount, &r.OpenComments, &r.Reviewers, &r.InboxGroup, &r.NeedsAction); err != nil {
 			return nil, 0, err
 		}
 		reviews = append(reviews, r)
@@ -658,6 +696,9 @@ type Comment struct {
 	SuggestionResolvedAt *Epoch  `json:"suggestion_resolved_at,omitempty"`
 	IsOutdated           bool    `json:"is_outdated"`
 	CreatedAt            Epoch   `json:"created_at"`
+	// NeedsAction is the inbox "your turn" flag. Only OpenCommentsInvolving
+	// sets it; every other read leaves it false and the JSON omits it.
+	NeedsAction bool `json:"needs_action,omitempty"`
 }
 
 func (d *DB) AddComment(ctx context.Context, orgID int, c *Comment) error {
@@ -793,7 +834,8 @@ func (d *DB) OpenCommentCounts(ctx context.Context, orgID int) (map[string]int, 
 	return counts, nil
 }
 
-// AllOpenComments returns all open comments across all documents.
+// AllOpenComments returns all open comments across all documents of the org.
+// It is org-wide and is NOT the inbox query; the inbox uses OpenCommentsInvolving.
 func (d *DB) AllOpenComments(ctx context.Context, orgID int) ([]Comment, error) {
 	rows, err := d.pool.Query(ctx, `
 		SELECT id, organization_id, review_id, document_id, author, body, COALESCE(section, ''), paragraph_index, COALESCE(paragraph_hash, ''),
@@ -814,6 +856,51 @@ func (d *DB) AllOpenComments(ctx context.Context, orgID int) ([]Comment, error) 
 			return nil, err
 		}
 		comments = append(comments, c)
+	}
+	return comments, nil
+}
+
+// OpenCommentsInvolving returns the open top-level comments the given user is
+// part of: they wrote it, replied in its thread, requested the review it sits
+// on, or hold an assignment on that review. NeedsAction is true when the
+// newest message in the thread (the comment or its latest reply) is not the
+// user's own. Document-level comments with no review are left out: their owner
+// lives in git frontmatter and cannot be matched in SQL.
+func (d *DB) OpenCommentsInvolving(ctx context.Context, orgID int, email string) ([]Comment, error) {
+	rows, err := d.pool.Query(ctx, `
+		SELECT c.id, c.organization_id, c.review_id, c.document_id, c.author, c.body, COALESCE(c.section, ''), c.paragraph_index, COALESCE(c.paragraph_hash, ''),
+			COALESCE(c.quote, ''), c.parent_id, c.status, COALESCE((SELECT email FROM users WHERE id = c.resolved_by_id), ''), c.resolved_at,
+			c.suggestion_body, c.suggestion_status, COALESCE((SELECT email FROM users WHERE id = c.suggestion_resolved_by_id), ''), c.suggestion_resolved_at, c.is_outdated, c.created_at,
+			COALESCE((SELECT r.author FROM comments r
+				WHERE r.parent_id = c.id AND r.organization_id = c.organization_id
+				ORDER BY r.created_at DESC, r.id DESC LIMIT 1), c.author) <> $2
+		FROM comments c
+		WHERE c.organization_id = $1 AND c.status = 'open' AND c.parent_id IS NULL
+			AND (
+				c.author = $2
+				OR EXISTS (SELECT 1 FROM comments r WHERE r.parent_id = c.id AND r.organization_id = c.organization_id AND r.author = $2)
+				OR c.review_id IN (SELECT id FROM reviews WHERE organization_id = $1
+					AND requested_by_id = (SELECT id FROM users WHERE email = $2))
+				OR c.review_id IN (SELECT review_id FROM review_assignments WHERE organization_id = $1
+					AND reviewer_id = (SELECT id FROM users WHERE email = $2))
+			)
+		ORDER BY c.created_at DESC
+	`, orgID, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var c Comment
+		if err := rows.Scan(&c.ID, &c.OrganizationID, &c.ReviewID, &c.DocumentID, &c.Author, &c.Body, &c.Section, &c.ParagraphIndex, &c.ParagraphHash, &c.Quote, &c.ParentID, &c.Status, &c.ResolvedBy, &c.ResolvedAt, &c.SuggestionBody, &c.SuggestionStatus, &c.SuggestionResolvedBy, &c.SuggestionResolvedAt, &c.IsOutdated, &c.CreatedAt, &c.NeedsAction); err != nil {
+			return nil, err
+		}
+		comments = append(comments, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return comments, nil
 }

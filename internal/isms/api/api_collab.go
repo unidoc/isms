@@ -221,6 +221,33 @@ func taskViewer(c echo.Context) db.TaskViewer {
 	}
 }
 
+// involvingParam resolves the `involving` inbox query parameter. It returns ""
+// when the parameter is absent (the list stays org-wide), the caller's email for
+// the literal value "me", and a 400 for anything else: an inbox is always your
+// own, so another user's email is never accepted. An unresolvable caller is
+// rejected rather than treated as "absent", which would widen the scope.
+func involvingParam(c echo.Context) (string, error) {
+	v := c.QueryParam("involving")
+	if v == "" {
+		return "", nil
+	}
+	if v != "me" {
+		return "", apiError(http.StatusBadRequest, CodeInvalidRequest)
+	}
+	email := getUserEmail(c)
+	if email == "" {
+		return "", apiError(http.StatusBadRequest, CodeInvalidRequest)
+	}
+	return email, nil
+}
+
+// involvingCanApprove reports whether the caller holds a role that approves
+// changes and reviews suggestions (admin or manager).
+func involvingCanApprove(c echo.Context) bool {
+	role, _ := c.Get("user_role").(string)
+	return role == "manager" || role == "admin"
+}
+
 // canViewTask mirrors db.TaskViewer for single by-id fetches (which aren't
 // SQL-filtered): reports whether the caller may see this task under the privacy
 // rule. A hidden task is treated as not-found (404), never 403 — don't reveal it.
@@ -258,13 +285,18 @@ func (s *Server) handleListReviews(c echo.Context) error {
 	// Server-side filter / search / sort / pagination — match the gold pattern.
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+	involving, err := involvingParam(c)
+	if err != nil {
+		return err
+	}
 	params := db.ReviewListParams{
-		Page:   page,
-		Limit:  limit,
-		Sort:   c.QueryParam("sort"),
-		Search: c.QueryParam("q"),
-		Status: c.QueryParam("status"),
-		Phase:  c.QueryParam("phase"),
+		Page:      page,
+		Limit:     limit,
+		Sort:      c.QueryParam("sort"),
+		Search:    c.QueryParam("q"),
+		Status:    c.QueryParam("status"),
+		Phase:     c.QueryParam("phase"),
+		Involving: involving,
 	}
 	items, total, err := s.db.PaginatedReviews(c.Request().Context(), orgID, params)
 	if err != nil {
@@ -1789,7 +1821,16 @@ func (s *Server) handleGetReviewContent(c echo.Context) error {
 
 func (s *Server) handleAllOpenComments(c echo.Context) error {
 	orgID := getOrgID(c)
-	comments, err := s.db.AllOpenComments(c.Request().Context(), orgID)
+	involving, err := involvingParam(c)
+	if err != nil {
+		return err
+	}
+	var comments []db.Comment
+	if involving != "" {
+		comments, err = s.db.OpenCommentsInvolving(c.Request().Context(), orgID, involving)
+	} else {
+		comments, err = s.db.AllOpenComments(c.Request().Context(), orgID)
+	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -2199,15 +2240,20 @@ func (s *Server) handleListTasks(c echo.Context) error {
 	orgID := getOrgID(c)
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+	involving, err := involvingParam(c)
+	if err != nil {
+		return err
+	}
 	params := db.TaskListParams{
-		Page:     page,
-		Limit:    limit,
-		Sort:     c.QueryParam("sort"),
-		Search:   c.QueryParam("q"),
-		Status:   c.QueryParam("status"),
-		Priority: c.QueryParam("priority"),
-		TaskType: c.QueryParam("task_type"),
-		Assignee: c.QueryParam("assignee"),
+		Page:      page,
+		Limit:     limit,
+		Sort:      c.QueryParam("sort"),
+		Search:    c.QueryParam("q"),
+		Status:    c.QueryParam("status"),
+		Priority:  c.QueryParam("priority"),
+		TaskType:  c.QueryParam("task_type"),
+		Assignee:  c.QueryParam("assignee"),
+		Involving: involving,
 	}
 	items, total, err := s.db.PaginatedTasks(c.Request().Context(), orgID, taskViewer(c), params)
 	if err != nil {
@@ -2623,15 +2669,21 @@ func (s *Server) handleListChanges(c echo.Context) error {
 	orgID := getOrgID(c)
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+	involving, err := involvingParam(c)
+	if err != nil {
+		return err
+	}
 	params := db.ChangeRequestListParams{
-		Page:     page,
-		Limit:    limit,
-		Sort:     c.QueryParam("sort"),
-		Search:   c.QueryParam("q"),
-		Status:   c.QueryParam("status"),
-		Priority: c.QueryParam("priority"),
-		Category: c.QueryParam("category"),
-		Assignee: c.QueryParam("assignee"),
+		Page:                page,
+		Limit:               limit,
+		Sort:                c.QueryParam("sort"),
+		Search:              c.QueryParam("q"),
+		Status:              c.QueryParam("status"),
+		Priority:            c.QueryParam("priority"),
+		Category:            c.QueryParam("category"),
+		Assignee:            c.QueryParam("assignee"),
+		Involving:           involving,
+		InvolvingCanApprove: involvingCanApprove(c),
 	}
 	items, total, err := s.db.PaginatedChangeRequests(c.Request().Context(), orgID, params)
 	if err != nil {
@@ -3509,6 +3561,9 @@ type inboxItem struct {
 	Status     string   `json:"status"`
 	From       string   `json:"from"`
 	CreatedAt  db.Epoch `json:"created_at"`
+	// Role is set on reviews: "reviewer" (assigned to the caller) or "author"
+	// (requested by the caller).
+	Role string `json:"role,omitempty"`
 }
 
 func (s *Server) handleInbox(c echo.Context) error {
@@ -3521,25 +3576,38 @@ func (s *Server) handleInbox(c echo.Context) error {
 
 	var items []inboxItem
 
-	// Open reviews requested by this user with open comments
-	reviews, _ := s.db.ListReviews(ctx, orgID, "open", 50)
-	for _, r := range reviews {
-		if r.RequestedBy == actor && r.OpenComments > 0 {
-			items = append(items, inboxItem{
-				Type: "review", ID: r.ID, DocumentID: r.DocumentID,
-				Title: r.Title, Status: r.Status, From: r.RequestedBy, CreatedAt: r.CreatedAt,
-			})
+	// Reviews. Everything comes from the viewer-scoped queries, so the result
+	// does not depend on how many reviews the org has. A review the caller both
+	// sent and is assigned to is listed once, as "reviewer".
+	seenReview := map[int]bool{}
+	addReview := func(r db.Review, role string) {
+		if seenReview[r.ID] {
+			return
 		}
+		seenReview[r.ID] = true
+		items = append(items, inboxItem{
+			Type: "review", ID: r.ID, DocumentID: r.DocumentID,
+			Title: r.Title, Status: r.Status, From: r.RequestedBy, CreatedAt: r.CreatedAt, Role: role,
+		})
 	}
 
-	// Changes-requested reviews owned by this user
-	changesRequested, _ := s.db.ListReviews(ctx, orgID, "changes_requested", 50)
+	// Reviews assigned to this user with a pending decision
+	assigned, _ := s.db.ListPendingAssignmentsForReviewer(ctx, orgID, actor)
+	for _, r := range assigned {
+		addReview(r, "reviewer")
+	}
+
+	// Changes-requested reviews owned by this user (they need to resubmit)
+	changesRequested, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, "changes_requested")
 	for _, r := range changesRequested {
-		if r.RequestedBy == actor {
-			items = append(items, inboxItem{
-				Type: "review", ID: r.ID, DocumentID: r.DocumentID,
-				Title: r.Title, Status: r.Status, From: r.RequestedBy, CreatedAt: r.CreatedAt,
-			})
+		addReview(r, "author")
+	}
+
+	// Open reviews requested by this user with open comments
+	openReviews, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, "open")
+	for _, r := range openReviews {
+		if r.OpenComments > 0 {
+			addReview(r, "author")
 		}
 	}
 
@@ -3554,8 +3622,9 @@ func (s *Server) handleInbox(c echo.Context) error {
 		})
 	}
 
-	// All open comments on documents the user has reviewed
-	allComments, _ := s.db.AllOpenComments(ctx, orgID)
+	// Open comments the user wrote, replied to, or that sit on a review they
+	// requested or are assigned to
+	allComments, _ := s.db.OpenCommentsInvolving(ctx, orgID, actor)
 	for _, cm := range allComments {
 		items = append(items, inboxItem{
 			Type: "comment", ID: cm.ID, DocumentID: cm.DocumentID,
@@ -3608,6 +3677,7 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		Version      string `json:"version"`
 		Status       string `json:"status"`
 		OpenComments int    `json:"open_comments"`
+		Role         string `json:"role"` // "reviewer" (assigned to actor) or "author" (requested by actor)
 	}
 
 	type taskInfo struct {
@@ -3628,8 +3698,8 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 
 	dump := inboxDump{User: actor}
 
-	// All open comments — enriched with file paths, titles, and replies
-	allOpenComments, _ := s.db.AllOpenComments(ctx, orgID)
+	// Open comments the actor is part of — enriched with file paths, titles, and replies
+	allOpenComments, _ := s.db.OpenCommentsInvolving(ctx, orgID, actor)
 
 	// Load all comments per document to find replies
 	allDocComments := map[string][]db.Comment{}
@@ -3670,19 +3740,29 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		dump.Comments = append(dump.Comments, ci)
 	}
 
-	// Reviews with open/changes_requested status owned by actor
-	reviews, _ := s.db.ListReviews(ctx, orgID, "", 100)
-	for _, r := range reviews {
-		if r.RequestedBy != actor {
-			continue
+	// Reviews assigned to actor with a pending decision, then the ones actor
+	// requested that are open or awaiting a resubmit. A review that is both is
+	// listed once, as "reviewer".
+	seenReview := map[int]bool{}
+	addReview := func(r db.Review, role string) {
+		if seenReview[r.ID] {
+			return
 		}
-		if r.Status != "open" && r.Status != "changes_requested" {
-			continue
-		}
+		seenReview[r.ID] = true
 		dump.Reviews = append(dump.Reviews, reviewInfo{
 			ID: r.ID, DocumentID: r.DocumentID, Title: r.Title,
-			Version: r.Version, Status: r.Status, OpenComments: r.OpenComments,
+			Version: r.Version, Status: r.Status, OpenComments: r.OpenComments, Role: role,
 		})
+	}
+	assigned, _ := s.db.ListPendingAssignmentsForReviewer(ctx, orgID, actor)
+	for _, r := range assigned {
+		addReview(r, "reviewer")
+	}
+	for _, status := range []string{"open", "changes_requested"} {
+		authored, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, status)
+		for _, r := range authored {
+			addReview(r, "author")
+		}
 	}
 
 	// Tasks assigned to actor

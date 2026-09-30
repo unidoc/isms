@@ -144,3 +144,29 @@ func TestDoPassesThroughANonAPIErrorBody(t *testing.T) {
 		t.Errorf("err = %q, want %q", err.Error(), want)
 	}
 }
+
+// GET /inbox sends created_at as epoch seconds (db.Epoch), as every other list
+// does. InboxItem used to declare it a string, so `isms inbox list` failed to
+// decode the response for every user.
+func TestInboxListDecodesNumericCreatedAt(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[` +
+			`{"type":"review","id":7,"document_id":"pol-1","title":"Access policy","status":"open","from":"m@x.io","created_at":1790000000,"role":"reviewer"},` +
+			`{"type":"task","id":3,"title":"Patch","status":"open","from":"a@x.io","created_at":1790000500}]}`))
+	}))
+	defer srv.Close()
+
+	items, err := New(Config{BaseURL: srv.URL}).InboxList()
+	if err != nil {
+		t.Fatalf("InboxList: %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("got %d items, want 2", len(items))
+	}
+	if got := items[0].CreatedAt.Unix(); got != 1790000000 {
+		t.Errorf("created_at = %d, want 1790000000", got)
+	}
+	if items[0].Role != "reviewer" || items[1].Role != "" {
+		t.Errorf("roles = %q, %q, want reviewer and empty", items[0].Role, items[1].Role)
+	}
+}

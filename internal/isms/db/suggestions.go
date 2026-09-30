@@ -33,6 +33,9 @@ type Suggestion struct {
 	RejectReason    string          `json:"reject_reason,omitempty"`
 	CreatedAt       Epoch           `json:"created_at"`
 	UpdatedAt       Epoch           `json:"updated_at"`
+	// NeedsAction is filled only by ListSuggestions, and only when
+	// SuggestionFilters.Involving is set.
+	NeedsAction bool `json:"needs_action,omitempty"`
 }
 
 const suggestionSelectCols = `
@@ -46,8 +49,8 @@ const suggestionSelectCols = `
 
 func scanSuggestion(scanner interface {
 	Scan(dest ...interface{}) error
-}, s *Suggestion) error {
-	return scanner.Scan(
+}, s *Suggestion, extra ...interface{}) error {
+	dest := []interface{}{
 		&s.ID, &s.OrganizationID, &s.EntityType, &s.EntityID,
 		&s.SuggestionType, &s.Title, &s.Payload, &s.Rationale,
 		&s.SourceRefs, &s.EntityUpdatedAt,
@@ -55,7 +58,8 @@ func scanSuggestion(scanner interface {
 		&s.ReviewedBy, &s.ReviewedAt, &s.AppliedAt,
 		&s.AppliedEntityID, &s.RejectReason,
 		&s.CreatedAt, &s.UpdatedAt,
-	)
+	}
+	return scanner.Scan(append(dest, extra...)...)
 }
 
 func (d *DB) CreateSuggestion(ctx context.Context, orgID int, s *Suggestion) error {
@@ -107,15 +111,44 @@ func (d *DB) GetSuggestion(ctx context.Context, orgID int, id int64) (*Suggestio
 }
 
 // ListSuggestions returns suggestions with optional filters.
+//
+// Status "active" is a pseudo-status: open + in_review. Involving scopes the
+// list to the viewer's inbox (see SuggestionFilters).
 func (d *DB) ListSuggestions(ctx context.Context, orgID int, filters SuggestionFilters) ([]Suggestion, error) {
-	query := `SELECT ` + suggestionSelectCols + ` FROM suggestions WHERE organization_id = $1`
-	args := []interface{}{orgID}
-	n := 1
+	// $2 is always the involving email (possibly empty) so the computed
+	// needs_action column keeps one fixed SELECT list and scan path.
+	canReview := "false"
+	if filters.InvolvingCanReview {
+		canReview = "true"
+	}
+	// An inbox without a status tab means the work still in flight.
+	if filters.Involving != "" && filters.Status == "" {
+		filters.Status = "active"
+	}
+	query := `SELECT ` + suggestionSelectCols + `,
+		($2::text <> '' AND ` + canReview + ` AND status IN ('open','in_review'))
+		FROM suggestions WHERE organization_id = $1`
+	args := []interface{}{orgID, filters.Involving}
+	n := 2
 
-	if filters.Status != "" {
+	if filters.Status == "active" {
+		query += ` AND status IN ('open','in_review')`
+	} else if filters.Status != "" {
 		n++
 		query += fmt.Sprintf(` AND status = $%d`, n)
 		args = append(args, filters.Status)
+	}
+	if filters.Involving != "" {
+		switch {
+		case !filters.InvolvingCanReview:
+			query += ` AND suggested_by = $2`
+		case filters.Status == "active" || filters.Status == "open" || filters.Status == "in_review":
+			// Reviewers see every open suggestion, plus the ones they claimed.
+			query += ` AND (status = 'open' OR (status = 'in_review' AND reviewed_by = $2))`
+		default:
+			// A terminal tab: what happened to the viewer's own suggestions.
+			query += ` AND suggested_by = $2`
+		}
 	}
 	if filters.EntityType != "" {
 		n++
@@ -154,7 +187,7 @@ func (d *DB) ListSuggestions(ctx context.Context, orgID int, filters SuggestionF
 	var suggestions []Suggestion
 	for rows.Next() {
 		var s Suggestion
-		if err := scanSuggestion(rows, &s); err != nil {
+		if err := scanSuggestion(rows, &s, &s.NeedsAction); err != nil {
 			return nil, err
 		}
 		suggestions = append(suggestions, s)
@@ -162,13 +195,21 @@ func (d *DB) ListSuggestions(ctx context.Context, orgID int, filters SuggestionF
 	return suggestions, nil
 }
 
+// SuggestionFilters narrows ListSuggestions.
+//
+// Involving is the viewer's email and scopes the list to their inbox:
+// without InvolvingCanReview only their own suggestions (suggested_by); with
+// it, every open suggestion plus the in_review ones they claimed, while the
+// terminal statuses (applied/rejected) fall back to their own suggestions.
 type SuggestionFilters struct {
-	Status          string
-	EntityType      string
-	EntityID        string
-	SuggestedBy     string
-	SuggestedByType string
-	Limit           int
+	Status             string
+	EntityType         string
+	EntityID           string
+	SuggestedBy        string
+	SuggestedByType    string
+	Limit              int
+	Involving          string
+	InvolvingCanReview bool
 }
 
 // UpdateSuggestion updates editable fields on an open or in_review suggestion.

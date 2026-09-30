@@ -27,6 +27,12 @@ type ChangeRequestListParams struct {
 	Priority string
 	Category string
 	Assignee string
+	// Involving is the viewer's email. When set, the list is narrowed to the
+	// active changes assigned to or requested by the viewer, and Status is
+	// ignored. InvolvingCanApprove also includes every proposed change, because
+	// the viewer is one of the roles that can approve it.
+	Involving           string
+	InvolvingCanApprove bool
 }
 
 var changeRequestSortable = map[string]string{
@@ -68,6 +74,9 @@ type ChangeRequest struct {
 	ImplementedAt  *Epoch `json:"implemented_at,omitempty"`
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`
+	// NeedsAction is filled only by PaginatedChangeRequests, and only when
+	// ChangeRequestListParams.Involving is set.
+	NeedsAction bool `json:"needs_action,omitempty"`
 }
 
 func (d *DB) CreateChangeRequest(ctx context.Context, orgID int, cr *ChangeRequest) error {
@@ -288,7 +297,8 @@ func (d *DB) PaginatedChangeRequests(ctx context.Context, orgID int, p ChangeReq
 		args = append(args, "%"+p.Search+"%")
 		idx++
 	}
-	if p.Status != "" {
+	// The inbox scope (Involving) owns the status set, so Status is ignored then.
+	if p.Involving == "" && p.Status != "" {
 		where += fmt.Sprintf(` AND status = $%d`, idx)
 		args = append(args, p.Status)
 		idx++
@@ -309,6 +319,19 @@ func (d *DB) PaginatedChangeRequests(ctx context.Context, orgID int, p ChangeReq
 		idx++
 	}
 
+	// The involving email is always bound (possibly empty) so the computed
+	// needs_action column keeps one fixed SELECT list and scan path.
+	inv := idx
+	args = append(args, p.Involving)
+	idx++
+	uid := fmt.Sprintf(`(SELECT id FROM users WHERE email = $%d)`, inv)
+	canApprove := "false"
+	if p.InvolvingCanApprove {
+		canApprove = "true"
+	}
+	where += fmt.Sprintf(` AND ($%[1]d::text = '' OR (status IN ('proposed','approved','in_progress')
+		AND (assigned_to_id = %[2]s OR requested_by_id = %[2]s OR (status = 'proposed' AND %[3]s))))`, inv, uid, canApprove)
+
 	var total int
 	if err := d.pool.QueryRow(ctx, `SELECT count(*) FROM change_requests`+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
@@ -328,7 +351,13 @@ func (d *DB) PaginatedChangeRequests(ctx context.Context, orgID int, p ChangeReq
 	offset := (p.Page - 1) * p.Limit
 	args = append(args, p.Limit, offset)
 
-	query := `SELECT ` + changeRequestSelectCols + ` FROM change_requests` + where +
+	// Appended here, not to changeRequestSelectCols, so other callers of the
+	// const do not inherit a column their Scan does not expect.
+	query := `SELECT ` + changeRequestSelectCols + fmt.Sprintf(`,
+		CASE WHEN $%[1]d::text = '' THEN false
+			WHEN status IN ('approved','in_progress') AND assigned_to_id = %[2]s THEN true
+			WHEN status = 'proposed' AND %[3]s THEN true ELSE false END`, inv, uid, canApprove) +
+		` FROM change_requests` + where +
 		` ORDER BY ` + sortField + ` ` + sortDir + `, change_requests.id DESC` +
 		fmt.Sprintf(` LIMIT $%d OFFSET $%d`, idx, idx+1)
 
@@ -344,7 +373,7 @@ func (d *DB) PaginatedChangeRequests(ctx context.Context, orgID int, p ChangeReq
 		if err := rows.Scan(&cr.ID, &cr.OrganizationID, &cr.Identifier, &cr.Title, &cr.Description, &cr.Justification,
 			&cr.Priority, &cr.Category, &cr.RiskLevel, &cr.RollbackPlan, &cr.Notes,
 			&cr.RequestedBy, &cr.AssignedTo, &cr.Status, &cr.ApprovedBy,
-			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type); err != nil {
+			&cr.ApprovedAt, &cr.PlannedAt, &cr.ImplementedAt, &cr.CreatedAt, &cr.UpdatedAt, &cr.Type, &cr.NeedsAction); err != nil {
 			return nil, 0, err
 		}
 		crs = append(crs, cr)

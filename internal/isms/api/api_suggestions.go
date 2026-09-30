@@ -229,12 +229,18 @@ func (s *Server) taskSuggestionHidden(c echo.Context, orgID int, sg *db.Suggesti
 func (s *Server) handleListEntitySuggestions(c echo.Context) error {
 	orgID := getOrgID(c)
 
+	involving, err := involvingParam(c)
+	if err != nil {
+		return err
+	}
 	filters := db.SuggestionFilters{
-		Status:          c.QueryParam("status"),
-		EntityType:      c.QueryParam("entity_type"),
-		EntityID:        c.QueryParam("entity_id"),
-		SuggestedBy:     c.QueryParam("suggested_by"),
-		SuggestedByType: c.QueryParam("suggested_by_type"),
+		Status:             c.QueryParam("status"),
+		EntityType:         c.QueryParam("entity_type"),
+		EntityID:           c.QueryParam("entity_id"),
+		SuggestedBy:        c.QueryParam("suggested_by"),
+		SuggestedByType:    c.QueryParam("suggested_by_type"),
+		Involving:          involving,
+		InvolvingCanReview: involvingCanApprove(c),
 	}
 	if v := c.QueryParam("limit"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {

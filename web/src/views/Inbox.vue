@@ -337,7 +337,7 @@
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium text-slate-200">{{ task.title }}</div>
                 <div v-if="task.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</div>
-                <div v-if="isCompletedTask(task)" class="text-xs text-emerald-400/80 mt-0.5">{{ t('inbox.tasks.completed_on', { date: formatDay(task.completed_at) }) }}</div>
+                <div v-if="isCompletedTask(task)" class="text-xs text-emerald-400/80 mt-0.5">{{ t('inbox.tasks.completed_on', { date: formatDate(task.completed_at) }) }}</div>
               </div>
               <span v-if="group.badge && task.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
 
@@ -735,7 +735,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api, getCurrentUser } from '../api'
@@ -796,6 +796,11 @@ const changes = ref([])
 const validTabs = ['comments', 'reviews', 'tasks', 'changes', 'suggestions', 'incidents', 'corrective_actions']
 const initialTab = validTabs.includes(route.params.tab) ? route.params.tab : 'comments'
 const activeTab = ref(initialTab)
+// Follow the URL too: a notification links to /inbox/tasks, and clicking it
+// while already on the Inbox changes the param without re-running setup.
+watch(() => route.params.tab, (tab) => {
+  if (validTabs.includes(tab)) activeTab.value = tab
+})
 const highlightSuggestionId = ref(route.query.id ? parseInt(route.query.id) : null)
 
 // Reviews

@@ -90,10 +90,9 @@ func (d *DB) SupplierReviewCycles(ctx context.Context, orgID int) map[string]int
 // (1/3/6/12). Resolve a real map with DB.SupplierReviewCycles — do not pass nil
 // from outside this package, or the org's configured cycles are ignored (#43).
 //
-// NB: callers that set NextReview explicitly do NOT survive this — UpdateSupplier
-// and UpdateSupplierTx recalculate unconditionally, so a user-supplied date is
-// overwritten. That is pre-existing behaviour, tracked separately; this function
-// deliberately does not change it.
+// A caller-supplied date survives because the write paths re-apply it after
+// this runs (UpdateSupplier / UpdateSupplierTx take explicitNextReview;
+// CreateSupplier keeps a pre-set NextReview).
 func (s *Supplier) CalculateNextReview(cycles map[string]int) {
 	if cycles == nil {
 		cycles = reviewCycleDefaults
@@ -137,7 +136,12 @@ func scanSupplier(scanner interface {
 
 func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 	s.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := s.NextReview
 	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
+	if explicitNextReview != nil {
+		s.NextReview = explicitNextReview
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "supplier")
 	if err != nil {
 		return err
@@ -322,8 +326,16 @@ func (d *DB) GetSupplierByIdentifier(ctx context.Context, orgID int, identifier 
 	return d.GetSupplier(ctx, orgID, id)
 }
 
-func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier) error {
+// UpdateSupplier updates a supplier.
+//
+// explicitNextReview, when non-nil, is a caller-supplied date that wins over the
+// criticality-derived one. CalculateNextReview always recomputes NextReview, so
+// the override has to come after it (#202). Pass nil to keep the derived date.
+func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier, explicitNextReview *Epoch) error {
 	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
+	if explicitNextReview != nil {
+		s.NextReview = explicitNextReview
+	}
 	_, err := d.pool.Exec(ctx, `
 		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
 			data_access = $5, contact = $6, contract_ref = $7,

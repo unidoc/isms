@@ -44,7 +44,7 @@ func (d *DB) CreateSupplierReview(ctx context.Context, orgID int, sr *SupplierRe
 		if sr.Outcome == "unsatisfactory" {
 			sup.Status = "under_review"
 		}
-		_ = d.UpdateSupplier(ctx, orgID, sup)
+		_ = d.UpdateSupplier(ctx, orgID, sup, nil)
 	}
 	return nil
 }

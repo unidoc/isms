@@ -2868,8 +2868,11 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
+	// An explicit next_review wins over the calculated one; null or absent
+	// means "calculate it" (#202).
+	var explicitNextReview *db.Epoch
 	if req.NextReview != nil {
-		updated.NextReview = *req.NextReview
+		explicitNextReview = *req.NextReview
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
@@ -2898,7 +2901,7 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		updated.AcceptedByID = nil
 	}
 
-	if err := s.db.UpdateRisk(ctx, orgID, &updated); err != nil {
+	if err := s.db.UpdateRisk(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, _ := s.db.GetRisk(ctx, orgID, id)
@@ -3005,8 +3008,11 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
+	// An explicit next_review wins over the calculated one; null or absent
+	// means "calculate it" (#202).
+	var explicitNextReview *db.Epoch
 	if req.NextReview != nil {
-		updated.NextReview = *req.NextReview
+		explicitNextReview = *req.NextReview
 	}
 	if req.Owner != nil {
 		updated.Owner = *req.Owner
@@ -3017,7 +3023,7 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
-	if err := s.db.UpdateSystem(ctx, orgID, &updated); err != nil {
+	if err := s.db.UpdateSystem(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, _ := s.db.GetSystem(ctx, orgID, id)
@@ -3225,8 +3231,11 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.LastReview != nil {
 		updated.LastReview = *req.LastReview
 	}
+	// An explicit next_review wins over the calculated one; null or absent
+	// means "calculate it" (#202).
+	var explicitNextReview *db.Epoch
 	if req.NextReview != nil {
-		updated.NextReview = *req.NextReview
+		explicitNextReview = *req.NextReview
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
@@ -3234,7 +3243,7 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
-	if err := s.db.UpdateSupplier(ctx, orgID, &updated); err != nil {
+	if err := s.db.UpdateSupplier(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, _ := s.db.GetSupplier(ctx, orgID, id)

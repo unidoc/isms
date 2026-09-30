@@ -36,7 +36,7 @@ func (d *DB) CreateAccessReview(ctx context.Context, orgID int, ar *AccessReview
 	if err == nil {
 		sys.LastReview = &ar.ReviewedAt
 		sys.CalculateNextReview()
-		_ = d.UpdateSystem(ctx, orgID, sys)
+		_ = d.UpdateSystem(ctx, orgID, sys, nil)
 	}
 	return nil
 }

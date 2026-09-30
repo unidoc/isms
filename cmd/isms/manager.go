@@ -105,7 +105,7 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 			if s.NextReview == nil || s.NextReview.IsZero() {
 				before := s.ToChangeMap()
 				s.CalculateNextReview(cycles)
-				if err := d.UpdateSupplier(ctx, orgID, &s); err == nil {
+				if err := d.UpdateSupplier(ctx, orgID, &s, nil); err == nil {
 					backfilled++
 					if changes := db.DiffFields("supplier", int64(s.ID), "system", "automated next_review backfill", before, s.ToChangeMap()); len(changes) > 0 {
 						// Unlike an HTTP handler (which has a response as a signal),
@@ -127,7 +127,7 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 			if sys.NextReview == nil || sys.NextReview.IsZero() {
 				before := sys.ToChangeMap()
 				sys.CalculateNextReview()
-				if err := d.UpdateSystem(ctx, orgID, &sys); err == nil {
+				if err := d.UpdateSystem(ctx, orgID, &sys, nil); err == nil {
 					backfilled++
 					if changes := db.DiffFields("system", int64(sys.ID), "system", "automated next_review backfill", before, sys.ToChangeMap()); len(changes) > 0 {
 						if err := d.LogChanges(ctx, orgID, changes); err != nil && !quiet {

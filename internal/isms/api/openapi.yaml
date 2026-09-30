@@ -3418,7 +3418,7 @@ components:
         owner: { type: string }
         status: { type: string, enum: [draft, open, closed] }
         last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: Auto-derived from current_level }
+        next_review: { type: string, format: date, description: "Derived from current_level unless the request sets it; an explicit date is stored as sent." }
         notes: { type: string }
         external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
@@ -3464,7 +3464,7 @@ components:
         integrity: { type: integer, minimum: 0, maximum: 5 }
         availability: { type: integer, minimum: 0, maximum: 5 }
         last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: Auto-derived from criticality }
+        next_review: { type: string, format: date, description: "Derived from criticality unless the request sets it; an explicit date is stored as sent." }
         notes: { type: string, description: "Markdown body. Includes ## Services (seeded on create when empty). Assessment status is derivable from last_review/next_review and supplier_reviews." }
         external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
         created_at: { type: string, format: date-time }
@@ -3488,7 +3488,7 @@ components:
         integrity: { type: integer, minimum: 0, maximum: 5 }
         availability: { type: integer, minimum: 0, maximum: 5 }
         last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: Auto-derived from criticality }
+        next_review: { type: string, format: date, description: "Derived from criticality unless the request sets it; an explicit date is stored as sent." }
         owner: { type: string }
         assets: { type: array, items: { type: string } }
         notes: { type: string, description: "Markdown body. Includes ## Access control (seeded on create when empty)." }
@@ -3523,7 +3523,7 @@ components:
         owner: { type: string }
         documents: { type: array, items: { type: string } }
         last_review: { type: string, format: date }
-        next_review: { type: string, format: date }
+        next_review: { type: string, format: date, description: "Derived from current_level and last_review unless the request sets it; an explicit date is stored as sent." }
         notes: { type: string }
         current_likelihood: { type: integer, minimum: 1, maximum: 5 }
         current_impact: { type: integer, minimum: 1, maximum: 5 }

@@ -118,7 +118,7 @@ func systemReviewMonths(criticality string) int {
 }
 
 // CalculateNextReview sets next_review based on criticality.
-// Cycle is purely derived — users override the date through readings/access reviews.
+// Cycle is derived; an explicit next_review on create, update or a reading overrides it.
 func (sys *System) CalculateNextReview() {
 	months := systemReviewMonths(sys.Criticality)
 	base := time.Now()
@@ -171,7 +171,12 @@ func scanSystem(scanner interface {
 
 func (d *DB) CreateSystem(ctx context.Context, orgID int, sys *System) error {
 	sys.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := sys.NextReview
 	sys.CalculateNextReview()
+	if explicitNextReview != nil {
+		sys.NextReview = explicitNextReview
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "system")
 	if err != nil {
 		return err
@@ -365,8 +370,16 @@ func (d *DB) PaginatedSystems(ctx context.Context, orgID int, p SystemListParams
 	return systems, total, nil
 }
 
-func (d *DB) UpdateSystem(ctx context.Context, orgID int, sys *System) error {
+// UpdateSystem updates a system.
+//
+// explicitNextReview, when non-nil, is a caller-supplied date that wins over the
+// criticality-derived one. CalculateNextReview always recomputes NextReview, so
+// the override has to come after it (#202). Pass nil to keep the derived date.
+func (d *DB) UpdateSystem(ctx context.Context, orgID int, sys *System, explicitNextReview *Epoch) error {
 	sys.CalculateNextReview()
+	if explicitNextReview != nil {
+		sys.NextReview = explicitNextReview
+	}
 	if sys.Status == "" {
 		sys.Status = "active"
 	}

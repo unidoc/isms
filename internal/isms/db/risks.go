@@ -383,7 +383,13 @@ func (d *DB) CreateRisk(ctx context.Context, orgID int, r *Risk) error {
 	if err := r.Validate(); err != nil {
 		return err
 	}
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := r.NextReview
 	r.CalculateScore(d.RiskReviewCycles(ctx, orgID))
+	if explicitNextReview != nil {
+		r.NextReview = explicitNextReview
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "risk")
 	if err != nil {
 		return err
@@ -621,8 +627,16 @@ func (d *DB) PaginatedRisks(ctx context.Context, orgID int, p RiskListParams) ([
 	return risks, total, nil
 }
 
-func (d *DB) UpdateRisk(ctx context.Context, orgID int, r *Risk) error {
+// UpdateRisk updates a risk.
+//
+// explicitNextReview, when non-nil, is a caller-supplied date that wins over the
+// level-derived one. CalculateScore always recomputes NextReview, so the
+// override has to come after it (#202). Pass nil to keep the derived date.
+func (d *DB) UpdateRisk(ctx context.Context, orgID int, r *Risk, explicitNextReview *Epoch) error {
 	r.CalculateScore(d.RiskReviewCycles(ctx, orgID))
+	if explicitNextReview != nil {
+		r.NextReview = explicitNextReview
+	}
 	_, err := d.pool.Exec(ctx, `
 		UPDATE risks SET title = $2, description = $3, risk_type = $4, origin = $5, category = $6,
 			current_likelihood = $7, current_impact = $8, current_score = $9, current_level = $10,

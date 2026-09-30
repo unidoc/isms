@@ -251,8 +251,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if req.LastReview != nil {
 		existing.LastReview = *req.LastReview
 	}
+	// An explicit next_review wins over the calculated one; null or absent
+	// means "calculate it" (#202).
+	var explicitNextReview *db.Epoch
 	if req.NextReview != nil {
-		existing.NextReview = *req.NextReview
+		explicitNextReview = *req.NextReview
 	}
 	if req.Notes != nil {
 		existing.Notes = *req.Notes
@@ -287,13 +290,14 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 
 	existing.ID = id
 	// UpdateLegalRequirementTx recomputes current score/level and next_review
-	// from the org's review cycles. The
-	// changelog is written in the same transaction, diffed against the row as
-	// stored, so the change and its history commit or fail together (#196).
+	// from the org's review cycles; an explicit next_review from the request
+	// wins over the recomputed one. The changelog is written in the same
+	// transaction, diffed against the row as stored, so the change and its
+	// history commit or fail together (#196).
 	cycles := s.db.RiskReviewCycles(ctx, orgID)
 	var after *db.LegalRequirement
 	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, existing, cycles, nil); err != nil {
+		if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, existing, cycles, explicitNextReview); err != nil {
 			return err
 		}
 		var err error

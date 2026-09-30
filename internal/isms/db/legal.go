@@ -67,9 +67,11 @@ type LegalRequirement struct {
 	ExternalID string `json:"external_id,omitempty"`
 }
 
-// CalculateReviewDate sets next_review based on current_level (risk-driven).
-// When level is unknown, defaults to 12 months from now.
-// This is just a default suggestion — users can always override the date manually.
+// CalculateReviewDate sets next_review from current_level and the review cycle
+// months, counted from last_review when it is set and from now otherwise, the
+// same anchor risk, supplier and system use. An unassessed requirement (no
+// level) defaults to 12 months. Without the anchor a backdated last_review
+// never made a legal requirement overdue (#202).
 // cycles maps level name → months; pass nil to use built-in defaults from reviewCycleDefaults.
 func (lr *LegalRequirement) CalculateReviewDate(cycles map[string]int) {
 	if cycles == nil {
@@ -81,8 +83,11 @@ func (lr *LegalRequirement) CalculateReviewDate(cycles map[string]int) {
 			months = m
 		}
 	}
-	next := time.Now().AddDate(0, months, 0)
-	lr.NextReview = &Epoch{Time: next}
+	base := time.Now()
+	if lr.LastReview != nil && !lr.LastReview.IsZero() {
+		base = lr.LastReview.Time
+	}
+	lr.NextReview = &Epoch{Time: base.AddDate(0, months, 0)}
 }
 
 // CalculateRiskScore computes current_score and current_level for a legal requirement.
@@ -152,7 +157,13 @@ func scanLegal(scanner interface {
 
 func (d *DB) CreateLegalRequirement(ctx context.Context, orgID int, lr *LegalRequirement) error {
 	lr.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := lr.NextReview
 	lr.CalculateRiskScore(d.RiskReviewCycles(ctx, orgID))
+	if explicitNextReview != nil {
+		lr.NextReview = explicitNextReview
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "legal_requirement")
 	if err != nil {
 		return err

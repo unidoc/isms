@@ -385,6 +385,7 @@ func supplierReviewedCmd() *cobra.Command {
 				rd = &e
 			}
 			sup.LastReview = rd
+			sup.NextReview = nil // send no date so the server recalculates it from last_review
 			// next_review will be auto-calculated server-side
 
 			result, err := c.UpdateSupplier(fmt.Sprintf("%d", sup.ID), sup)

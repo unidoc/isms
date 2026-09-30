@@ -51,7 +51,7 @@ func TestRiskCustomFieldsRoundTrip(t *testing.T) {
 	updated := *got
 	updated.CustomFields = map[string]any{"vendor": "Acme", "cost": float64(750)}
 	updated.Notes = "reviewed"
-	if err := d.UpdateRisk(ctx, orgID, &updated); err != nil {
+	if err := d.UpdateRisk(ctx, orgID, &updated, nil); err != nil {
 		t.Fatalf("UpdateRisk: %v", err)
 	}
 

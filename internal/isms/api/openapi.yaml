@@ -1537,7 +1537,9 @@ paths:
         With `involving=me`: open or in-progress tasks assigned to the caller
         (`inbox_group: assigned`) plus tasks the caller created for someone else
         that are open or were completed in the last 14 days
-        (`inbox_group: delegated`). Private-task visibility still applies.
+        (`inbox_group: delegated`). Only assigned tasks have `needs_action`;
+        delegated ones are listed but not counted, because the creator is
+        notified when the assignee acts. Private-task visibility still applies.
       parameters:
         - $ref: '#/components/parameters/involving'
         - name: assignee

@@ -81,7 +81,10 @@ type Task struct {
 	UpdatedAt      Epoch  `json:"updated_at"`
 	Private        bool   `json:"private"`
 	// InboxGroup ("assigned" | "delegated") and NeedsAction are filled only by
-	// PaginatedTasks, and only when TaskListParams.Involving is set.
+	// PaginatedTasks, and only when TaskListParams.Involving is set. NeedsAction
+	// is true only for tasks assigned to the viewer: a delegated task is listed
+	// but never counted, because its creator is told by a notification when the
+	// assignee acts on it.
 	InboxGroup  string `json:"inbox_group,omitempty"`
 	NeedsAction bool   `json:"needs_action,omitempty"`
 }
@@ -424,8 +427,7 @@ func (d *DB) PaginatedTasks(ctx context.Context, orgID int, viewer TaskViewer, p
 	// Appended here, not to taskSelectCols, which ListTasks/GetTask share.
 	query := `SELECT ` + taskSelectCols + fmt.Sprintf(`,
 		CASE WHEN $%[1]d::text = '' THEN '' WHEN %[2]s THEN 'assigned' WHEN %[3]s THEN 'delegated' ELSE '' END,
-		CASE WHEN $%[1]d::text = '' THEN false WHEN %[2]s THEN true
-			WHEN %[3]s AND t.status = 'done' THEN true ELSE false END`, inv, assigned, delegated) +
+		CASE WHEN $%[1]d::text = '' THEN false WHEN %[2]s THEN true ELSE false END`, inv, assigned, delegated) +
 		` FROM tasks t` + where +
 		` ORDER BY ` + sortField + ` ` + sortDir + `, t.due_date ASC NULLS LAST, t.id DESC` +
 		fmt.Sprintf(` LIMIT $%d OFFSET $%d`, idx, idx+1)

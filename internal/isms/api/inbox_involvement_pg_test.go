@@ -342,14 +342,15 @@ func TestInboxCLIEndpointsMatchTheWebQueries(t *testing.T) {
 		}
 	})
 
-	t.Run("the creator sees the finished delegated task", func(t *testing.T) {
-		item, ok := listItems(admin, "admin")[fmt.Sprintf("task:%d", done.ID)]
-		if !ok || item["role"] != "delegated" {
-			t.Errorf("list item = %v (present %v), want the task with role delegated", item, ok)
+	t.Run("a finished delegated task is shown but not counted", func(t *testing.T) {
+		// The creator was notified when the assignee finished it, so it is not
+		// an action item: absent from the list, present in the dump unflagged.
+		if item, ok := listItems(admin, "admin")[fmt.Sprintf("task:%d", done.ID)]; ok {
+			t.Errorf("list carries the finished delegated task: %v", item)
 		}
 		getDump(admin, "admin")
-		if r := find(dump.Tasks, int(done.ID)); r == nil || r.InboxGroup != "delegated" || !r.NeedsAction {
-			t.Errorf("dump task = %+v, want delegated/needs_action", r)
+		if r := find(dump.Tasks, int(done.ID)); r == nil || r.InboxGroup != "delegated" || r.NeedsAction {
+			t.Errorf("dump task = %+v, want delegated with needs_action=false", r)
 		}
 	})
 

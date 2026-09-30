@@ -274,7 +274,9 @@ func TestInboxScopedQueriesRoundTrip(t *testing.T) {
 		}
 	})
 
-	// 3. The admin delegated three tasks to the contributor.
+	// 3. The admin delegated three tasks to the contributor. Delegated rows are
+	// listed but never counted: the creator is told by a notification when the
+	// assignee finishes one, so a done task is not an action item (#205).
 	t.Run("task creator", func(t *testing.T) {
 		tasks := f.tasks(t, TaskViewer{Email: f.admin, CanSeeAll: true}, f.admin)
 		if _, ok := tasks[f.t3]; ok {
@@ -286,7 +288,7 @@ func TestInboxScopedQueriesRoundTrip(t *testing.T) {
 			action bool
 		}{
 			{"T1 still open", f.t1, false},
-			{"T2 done today", f.t2, true},
+			{"T2 done today", f.t2, false},
 			{"T6 private, open", f.t6, false},
 		} {
 			got, ok := tasks[tc.id]

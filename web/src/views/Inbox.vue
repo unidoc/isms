@@ -339,7 +339,6 @@
                 <div v-if="task.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</div>
                 <div v-if="isCompletedTask(task)" class="text-xs text-emerald-400/80 mt-0.5">{{ t('inbox.tasks.completed_on', { date: formatDate(task.completed_at) }) }}</div>
               </div>
-              <span v-if="group.badge && task.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
 
               <!-- Type badge -->
               <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">
@@ -875,13 +874,8 @@ const priorityClasses = {
 // ---------- Computed ----------
 const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
 
-// Rows that wait on me come first (a delegated task that was finished), then
-// overdue ones, then by priority.
 function sortTasks(list) {
   return [...list].sort((a, b) => {
-    const aAct = a.needs_action ? 0 : 1
-    const bAct = b.needs_action ? 0 : 1
-    if (aAct !== bAct) return aAct - bAct
     // Overdue first
     const aOver = isOverdue(a) ? 0 : 1
     const bOver = isOverdue(b) ? 0 : 1
@@ -892,13 +886,15 @@ function sortTasks(list) {
 }
 
 // The server says which group a row belongs to (inbox_group); the page only
-// presents it. `badge` marks the group where "action needed" tells rows apart.
+// presents it. Delegated tasks are listed but never counted (the creator is
+// notified when the assignee acts), so only the review groups carry `badge`,
+// which marks the group where "action needed" tells rows apart.
 const taskGroups = computed(() => {
   const mine = tasks.value.filter((x) => x.inbox_group !== 'delegated')
   const delegated = tasks.value.filter((x) => x.inbox_group === 'delegated')
   return [
-    { key: 'assigned', label: t('inbox.tasks.group.assigned'), items: sortTasks(mine), badge: false },
-    { key: 'delegated', label: t('inbox.tasks.group.delegated'), items: sortTasks(delegated), badge: true },
+    { key: 'assigned', label: t('inbox.tasks.group.assigned'), items: sortTasks(mine) },
+    { key: 'delegated', label: t('inbox.tasks.group.delegated'), items: sortTasks(delegated) },
   ].filter((g) => g.items.length > 0)
 })
 

@@ -307,11 +307,24 @@ Examples:
 {
   "fields": {
     "owner": "new-owner@example.com",
-    "next_review": "2027-01-15",
     "notes": "Updated after quarterly reassessment."
   }
 }
 ```
+
+Only the fields the entity's update handler applies are accepted, as JSON strings
+(incident `affects_c` / `affects_i` / `affects_a` as booleans). Anything else is
+refused with a 400 that lists the supported fields, at create, at edit and at
+apply time, so a suggestion is never marked `applied` with part of its proposal
+silently dropped. Values must be under `fields`; top-level values are refused.
+
+An update suggestion with no `fields` is a free-text suggestion (the entity
+page's Suggest panel creates these). It can be created and discussed, but not
+applied: apply returns 400 and it stays open. A manager acts on it by hand and
+rejects it with a reason, or edits it to add values.
+
+Create payloads are decoded strictly the same way: a key the create handler
+does not read, or a wrongly typed value, is refused with a 400.
 
 ---
 

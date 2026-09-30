@@ -115,3 +115,17 @@ export function payloadFields(payload) {
     return []
   }
 }
+
+// Option A (#298): an update suggestion is applicable only when it proposes
+// values under `fields`. A free-text one (title + rationale only) is acted on by
+// hand and rejected; the server refuses to apply it. Other suggestion types
+// are always offered Apply.
+export function hasProposedValues(sg) {
+  if (!sg || sg.suggestion_type !== 'update') return true
+  let payload = sg.payload
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload) } catch { return false }
+  }
+  const fields = payload && typeof payload === 'object' ? payload.fields : null
+  return !!fields && typeof fields === 'object' && !Array.isArray(fields) && Object.keys(fields).length > 0
+}

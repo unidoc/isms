@@ -280,6 +280,23 @@ APPLY_REQUIRES_IDENTIFIER = {"risk", "supplier", "legal_requirement"}
 # Suggestion helpers
 # ─────────────────────────────────────────────────────────────────────────
 
+# One field each entity's update handler applies, so a probe suggestion can be
+# applied: an update with no values is refused (#298).
+PROBE_FIELD = {
+    "risk": "notes",
+    "incident": "root_cause",
+    "supplier": "notes",
+    "legal_requirement": "notes",
+    "change_request": "rollback_plan",
+    "corrective_action": "notes",
+    "task": "title",
+    "objective": "description",
+    "system": "notes",
+    "asset": "notes",
+    "audit_finding": "description",
+}
+
+
 def _suggest(api_url, headers, entity_type, entity_ref):
     sg = requests.post(f"{api_url}/suggestions", headers=headers, json={
         "entity_type": entity_type,
@@ -287,7 +304,7 @@ def _suggest(api_url, headers, entity_type, entity_ref):
         "entity_id": str(entity_ref),
         "title": "stale-detection probe",
         "rationale": "#338/#339",
-        "payload": {"fields": {}},
+        "payload": {"fields": {PROBE_FIELD[entity_type]: f"stale-probe-{_uid()}"}},
     })
     assert sg.status_code in (200, 201), f"create suggestion ({entity_type}, {entity_ref}): {sg.text}"
     return sg.json()

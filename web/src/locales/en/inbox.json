@@ -96,6 +96,7 @@
     "agent_badge": "AI",
     "suggested_by": "Suggested by {name} · {date}",
     "apply": "Apply",
+    "nothing_to_apply": "No proposed values. Act on it by hand, then reject it with a reason.",
     "reject": "Reject",
     "withdraw": "Withdraw",
     "reject_placeholder": "Reason for rejection...",

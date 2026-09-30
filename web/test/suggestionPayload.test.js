@@ -7,7 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { payloadFields } from '../src/composables/useSuggestionPayload.js'
+import { payloadFields, hasProposedValues } from '../src/composables/useSuggestionPayload.js'
 import { regionLabel } from '../src/composables/useFormat.js'
 
 const rowsHaveNoObjectValues = (rows) => rows.every((r) => typeof r.value !== 'object')
@@ -128,4 +128,16 @@ test('the panel and the inbox both still call payloadFields(sg.payload)', () => 
   const inbox = readFileSync(new URL('src/views/Inbox.vue', webRoot), 'utf8')
   assert.ok(panel.includes('payloadFields(sg.payload)'))
   assert.ok(inbox.includes('payloadFields(sg.payload)'))
+})
+
+test('#298: only an update with values under `fields` offers Apply', () => {
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: {} }), false)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: null }), false)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: { fields: {} } }), false)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: { title: 'x', description: 'y' } }), false)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: { fields: { status: 'resolved' } } }), true)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: '{"fields":{"status":"resolved"}}' }), true)
+  assert.equal(hasProposedValues({ suggestion_type: 'update', payload: 'not json' }), false)
+  assert.equal(hasProposedValues({ suggestion_type: 'create', payload: {} }), true)
+  assert.equal(hasProposedValues({ suggestion_type: 'link', payload: { links: [] } }), true)
 })

@@ -662,8 +662,9 @@
               <!-- Actions -->
               <div v-if="sg.status === 'open'" class="flex items-center gap-1 flex-shrink-0">
                 <template v-if="canReviewSuggestions">
-                  <button @click="applySuggestion(sg.id)"
+                  <button v-if="hasProposedValues(sg)" @click="applySuggestion(sg.id)"
                     class="text-[10px] px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ t('inbox.suggestions.apply') }}</button>
+                  <span v-else class="text-[10px] text-slate-500">{{ t('inbox.suggestions.nothing_to_apply') }}</span>
                   <button @click="rejectingId = sg.id; rejectReason = ''"
                     class="text-[10px] px-2 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">{{ t('inbox.suggestions.reject') }}</button>
                 </template>
@@ -721,7 +722,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
 import { enumLabel, enumLabelAbbr, entityLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
-import { payloadFields } from '../composables/useSuggestionPayload.js'
+import { payloadFields, hasProposedValues } from '../composables/useSuggestionPayload.js'
 
 const { t } = useI18n()
 const route = useRoute()

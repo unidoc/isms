@@ -30,7 +30,8 @@
 
         <!-- Actions -->
         <div v-if="canReview && sg.status === 'open'" class="flex items-center gap-1.5 pt-1">
-          <button @click="apply(sg.id)" class="text-[10px] px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ $t('components.suggestions.apply') }}</button>
+          <button v-if="hasProposedValues(sg)" @click="apply(sg.id)" class="text-[10px] px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ $t('components.suggestions.apply') }}</button>
+          <span v-else class="text-[10px] text-slate-500">{{ $t('components.suggestions.nothing_to_apply') }}</span>
           <button v-if="rejecting !== sg.id" @click="rejecting = sg.id; rejectReason = ''"
             class="text-[10px] px-2.5 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">{{ $t('components.suggestions.reject') }}</button>
           <span v-if="applyError" class="text-[10px] text-red-400 ml-1">{{ applyError }}</span>
@@ -96,7 +97,7 @@ import { useToast } from '../composables/useToast'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
-import { payloadFields } from '../composables/useSuggestionPayload.js'
+import { payloadFields, hasProposedValues } from '../composables/useSuggestionPayload.js'
 
 const { t } = useI18n()
 

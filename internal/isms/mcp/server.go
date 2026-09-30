@@ -181,7 +181,7 @@ func toolDefinitions() []mcpTool {
 				"entity_id":       {Type: "string", Desc: "Target entity ID (omit for 'create' suggestions)"},
 				"suggestion_type": {Type: "string", Desc: "Type: create, update, reassess, link, review"},
 				"title":           {Type: "string", Desc: "Short descriptive title for the suggestion"},
-				"payload":         {Type: "object", Desc: "Module-specific payload (fields to create/update)"},
+				"payload":         {Type: "object", Desc: `Proposed values. For "create": the new entity's fields at the top level, e.g. {"title":"...","description":"..."}. For "update": the changed fields nested under "fields", e.g. {"fields":{"status":"resolved"}}. Unknown fields, wrongly typed values and values outside "fields" on an update are rejected with a 400 that lists the supported fields.`},
 				"rationale":       {Type: "string", Desc: "Why this change is being suggested"},
 				"source_refs":     {Type: "array", Desc: "Evidence: array of {type, id} objects linking to supporting entities"},
 			}, []string{"entity_type", "suggestion_type", "title", "payload"}),

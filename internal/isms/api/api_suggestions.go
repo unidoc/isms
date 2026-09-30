@@ -144,8 +144,10 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 		sg.SuggestedByType = "user"
 	}
 
-	// Auto-populate payload title/description from suggestion fields for web UI suggestions
-	if sg.Payload != nil {
+	// Auto-populate payload title/description from suggestion fields for web UI
+	// suggestions. Never for "update": its proposed values live under "fields",
+	// and top-level keys would be refused below as the wrong shape (#298).
+	if sg.Payload != nil && sg.SuggestionType != "update" {
 		var p map[string]interface{}
 		json.Unmarshal(sg.Payload, &p)
 		if p == nil {
@@ -162,10 +164,16 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 				p["title"] = sg.Title
 			}
 		}
-		if _, ok := p["description"]; !ok && sg.Rationale != "" {
+		// Suppliers have no description (services text lives in notes).
+		if _, ok := p["description"]; !ok && sg.Rationale != "" && sg.EntityType != "supplier" {
 			p["description"] = sg.Rationale
 		}
 		sg.Payload, _ = json.Marshal(p)
+	}
+
+	// Refuse a payload the apply handler would silently drop (#298, #200).
+	if err := validateSuggestionPayload(sg.EntityType, sg.SuggestionType, sg.Payload); err != nil {
+		return err
 	}
 
 	// Snapshot entity_updated_at for stale detection, resolving entity_id (numeric
@@ -352,6 +360,11 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 		update.Title = *req.Title
 	}
 	if payload := normalizeRawJSON(req.Payload); payload != nil {
+		// Same check as create (#298, #200): an edit must not turn a suggestion
+		// into one whose apply would silently drop what it proposes.
+		if err := validateSuggestionPayload(existing.EntityType, existing.SuggestionType, payload); err != nil {
+			return err
+		}
 		update.Payload = payload
 	}
 	// rationale and source_refs are optional free-form fields: sending them
@@ -470,6 +483,15 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	}
 	if sg.Status != "open" && sg.Status != "in_review" {
 		return echo.NewHTTPError(http.StatusConflict, "suggestion is in terminal state: "+sg.Status)
+	}
+
+	// An update is only "applied" if it proposes values the handler writes
+	// (#298, #200). Checked here too, not only at create, because suggestions
+	// stored before this check can hold any payload. The suggestion stays open.
+	if sg.SuggestionType == "update" {
+		if err := validateUpdatePayload(sg.EntityType, sg.Payload, true); err != nil {
+			return err
+		}
 	}
 
 	// Check for force flag if stale
@@ -701,20 +723,24 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 // APPLY HANDLERS: RISKS
 // ═══════════════════════════════════════════════════════════════════════
 
+// riskCreatePayload is the payload of a risk:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type riskCreatePayload struct {
+	Title             string         `json:"title"`
+	Description       string         `json:"description"`
+	RiskType          string         `json:"risk_type"`
+	Origin            string         `json:"origin"`
+	Category          string         `json:"category"`
+	CurrentLikelihood *int           `json:"current_likelihood"`
+	CurrentImpact     *int           `json:"current_impact"`
+	TreatmentPlan     string         `json:"treatment_plan"`
+	Treatment         string         `json:"treatment"`
+	CustomFields      map[string]any `json:"custom_fields"`
+}
+
 func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title             string         `json:"title"`
-		Description       string         `json:"description"`
-		RiskType          string         `json:"risk_type"`
-		Origin            string         `json:"origin"`
-		Category          string         `json:"category"`
-		CurrentLikelihood *int           `json:"current_likelihood"`
-		CurrentImpact     *int           `json:"current_impact"`
-		TreatmentPlan     string         `json:"treatment_plan"`
-		Treatment         string         `json:"treatment"`
-		CustomFields      map[string]any `json:"custom_fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload riskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid risk payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -870,18 +896,22 @@ func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 // APPLY HANDLERS: INCIDENTS
 // ═══════════════════════════════════════════════════════════════════════
 
+// incidentCreatePayload is the payload of an incident:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type incidentCreatePayload struct {
+	Title           string   `json:"title"`
+	Summary         string   `json:"summary"`
+	Description     string   `json:"description"`
+	Severity        string   `json:"severity"`
+	AffectsC        bool     `json:"affects_c"`
+	AffectsI        bool     `json:"affects_i"`
+	AffectsA        bool     `json:"affects_a"`
+	AffectedSystems []string `json:"affected_systems"`
+}
+
 func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title           string   `json:"title"`
-		Summary         string   `json:"summary"`
-		Description     string   `json:"description"`
-		Severity        string   `json:"severity"`
-		AffectsC        bool     `json:"affects_c"`
-		AffectsI        bool     `json:"affects_i"`
-		AffectsA        bool     `json:"affects_a"`
-		AffectedSystems []string `json:"affected_systems"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload incidentCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid incident payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1042,15 +1072,23 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: SUPPLIERS
 // ═══════════════════════════════════════════════════════════════════════
 
+// supplierCreatePayload is the payload of a supplier:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type supplierCreatePayload struct {
+	Name         string `json:"name"`
+	SupplierType string `json:"supplier_type"`
+	Criticality  string `json:"criticality"`
+	Owner        string `json:"owner"`
+	Notes        string `json:"notes"`
+	// Suppliers have no description; the services text lives in notes. Accepted
+	// and ignored only so supplier suggestions stored before #298, when the server
+	// copied the rationale in as "description", can still be applied.
+	Description string `json:"description"`
+}
+
 func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Name         string `json:"name"`
-		SupplierType string `json:"supplier_type"`
-		Criticality  string `json:"criticality"`
-		Owner        string `json:"owner"`
-		Notes        string `json:"notes"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload supplierCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid supplier payload: %w", err)
 	}
 	if payload.Name == "" {
@@ -1123,16 +1161,20 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 // APPLY HANDLERS: LEGAL
 // ═══════════════════════════════════════════════════════════════════════
 
+// legalCreatePayload is the payload of a legal_requirement:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type legalCreatePayload struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	Jurisdiction string `json:"jurisdiction"`
+	Category     string `json:"category"`
+	Owner        string `json:"owner"`
+	Notes        string `json:"notes"`
+}
+
 func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title        string `json:"title"`
-		Description  string `json:"description"`
-		Jurisdiction string `json:"jurisdiction"`
-		Category     string `json:"category"`
-		Owner        string `json:"owner"`
-		Notes        string `json:"notes"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload legalCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid legal payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1201,18 +1243,22 @@ func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 // APPLY HANDLERS: CHANGE REQUESTS
 // ═══════════════════════════════════════════════════════════════════════
 
+// changeCreatePayload is the payload of a change_request:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type changeCreatePayload struct {
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Justification string `json:"justification"`
+	Priority      string `json:"priority"`
+	Category      string `json:"category"`
+	RiskLevel     string `json:"risk_level"`
+	RollbackPlan  string `json:"rollback_plan"`
+	AssignedTo    string `json:"assigned_to"`
+}
+
 func applyChangeCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title         string `json:"title"`
-		Description   string `json:"description"`
-		Justification string `json:"justification"`
-		Priority      string `json:"priority"`
-		Category      string `json:"category"`
-		RiskLevel     string `json:"risk_level"`
-		RollbackPlan  string `json:"rollback_plan"`
-		AssignedTo    string `json:"assigned_to"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload changeCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid change payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1319,17 +1365,21 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: CORRECTIVE ACTIONS
 // ═══════════════════════════════════════════════════════════════════════
 
+// correctiveActionCreatePayload is the payload of a corrective_action:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type correctiveActionCreatePayload struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Source      string `json:"source"`
+	Severity    string `json:"severity"`
+	Assignee    string `json:"assignee"`
+	Notes       string `json:"notes"`
+	RootCause   string `json:"root_cause"`
+}
+
 func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Source      string `json:"source"`
-		Severity    string `json:"severity"`
-		Assignee    string `json:"assignee"`
-		Notes       string `json:"notes"`
-		RootCause   string `json:"root_cause"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload correctiveActionCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid CA payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1406,15 +1456,19 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 // APPLY HANDLERS: TASKS
 // ═══════════════════════════════════════════════════════════════════════
 
+// taskCreatePayload is the payload of a task:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type taskCreatePayload struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Assignee    string `json:"assignee"`
+	Priority    string `json:"priority"`
+	TaskType    string `json:"task_type"`
+}
+
 func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Assignee    string `json:"assignee"`
-		Priority    string `json:"priority"`
-		TaskType    string `json:"task_type"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload taskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid task payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1491,17 +1545,21 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 // APPLY HANDLERS: OBJECTIVES
 // ═══════════════════════════════════════════════════════════════════════
 
+// objectiveCreatePayload is the payload of an objective:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type objectiveCreatePayload struct {
+	Title             string   `json:"title"`
+	Description       string   `json:"description"`
+	ProgramID         int64    `json:"program_id"`
+	Owner             string   `json:"owner"`
+	MeasurementMethod string   `json:"measurement_method"`
+	TargetValue       *float64 `json:"target_value"`
+	Unit              string   `json:"unit"`
+}
+
 func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Title             string   `json:"title"`
-		Description       string   `json:"description"`
-		ProgramID         int64    `json:"program_id"`
-		Owner             string   `json:"owner"`
-		MeasurementMethod string   `json:"measurement_method"`
-		TargetValue       *float64 `json:"target_value"`
-		Unit              string   `json:"unit"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload objectiveCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid objective payload: %w", err)
 	}
 	if payload.Title == "" {
@@ -1589,17 +1647,21 @@ func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 // APPLY HANDLERS: SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+// systemCreatePayload is the payload of a system:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type systemCreatePayload struct {
+	Name           string `json:"name"`
+	Title          string `json:"title"` // alias: web UI may send title instead of name
+	Description    string `json:"description"`
+	Classification string `json:"classification"`
+	Criticality    string `json:"criticality"`
+	Department     string `json:"department"`
+	Owner          string `json:"owner"`
+}
+
 func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Name           string `json:"name"`
-		Title          string `json:"title"` // alias: web UI may send title instead of name
-		Description    string `json:"description"`
-		Classification string `json:"classification"`
-		Criticality    string `json:"criticality"`
-		Department     string `json:"department"`
-		Owner          string `json:"owner"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload systemCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid system payload: %w", err)
 	}
 	// Systems use "name" not "title" — accept either
@@ -1692,15 +1754,19 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: ASSETS
 // ═══════════════════════════════════════════════════════════════════════
 
+// assetCreatePayload is the payload of an asset:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type assetCreatePayload struct {
+	Name        string `json:"name"`
+	Title       string `json:"title"` // alias: web UI may send title instead of name
+	Description string `json:"description"`
+	AssetType   string `json:"asset_type"`
+	Owner       string `json:"owner"`
+}
+
 func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Name        string `json:"name"`
-		Title       string `json:"title"` // alias: web UI may send title instead of name
-		Description string `json:"description"`
-		AssetType   string `json:"asset_type"`
-		Owner       string `json:"owner"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload assetCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid asset payload: %w", err)
 	}
 	// Assets use "name" not "title" — accept either
@@ -1781,14 +1847,18 @@ func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 // APPLY HANDLERS: AUDIT FINDINGS
 // ═══════════════════════════════════════════════════════════════════════
 
+// auditFindingCreatePayload is the payload of an audit_finding:create suggestion. Decoded strictly,
+// so a key not listed here is refused instead of silently dropped (#200).
+type auditFindingCreatePayload struct {
+	AuditID     int    `json:"audit_id"`
+	FindingType string `json:"finding_type"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
 func applyAuditFindingCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		AuditID     int    `json:"audit_id"`
-		FindingType string `json:"finding_type"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
+	var payload auditFindingCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
 		return "", 0, fmt.Errorf("invalid finding payload: %w", err)
 	}
 	if payload.Title == "" {

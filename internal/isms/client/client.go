@@ -729,7 +729,10 @@ type InboxItem struct {
 	Status     string   `json:"status"`
 	From       string   `json:"from"`
 	CreatedAt  db.Epoch `json:"created_at"`     // the server sends epoch seconds
-	Role       string   `json:"role,omitempty"` // reviews only: reviewer or author
+	Role       string   `json:"role,omitempty"` // reviews: reviewer or author; tasks: assigned or delegated
+	// NeedsAction is true on every row GET /inbox returns: the list carries only
+	// what the caller has to act on.
+	NeedsAction bool `json:"needs_action,omitempty"`
 }
 
 func (c *Client) InboxList() ([]InboxItem, error) {

@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/labstack/echo/v4"
 
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/store"
 )
 
 // Requires a migrated Postgres; skipped otherwise so `go test ./...` stays green
@@ -202,6 +205,168 @@ func TestInboxInvolvingParam(t *testing.T) {
 		c, rec = inboxCtx(orgID, reader, "reader", "/inbox")
 		if rows := listRows(t, s.handleInbox, c, rec); len(rows) != 0 {
 			t.Errorf("reader GET /inbox = %v, want none", rows)
+		}
+	})
+}
+
+// #205 follow-up: `isms inbox list` and `dump` ran their own narrower queries,
+// so the terminal disagreed with the web Inbox (an approved review waiting to be
+// merged and a finished delegated task were missing, and a thread the viewer
+// wrote last was listed as work). Both now call the web's queries: list keeps
+// only the rows that need the caller, dump carries every involved row flagged.
+func TestInboxCLIEndpointsMatchTheWebQueries(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "inbox-cli")
+
+	// handleInboxDump reads the org's repo; an empty bare one is enough.
+	repoDir := t.TempDir()
+	if _, err := git.PlainInit(repoDir, true); err != nil {
+		t.Fatalf("initialising repo: %v", err)
+	}
+	st, err := store.NewBare(repoDir)
+	if err != nil {
+		t.Fatalf("opening repo: %v", err)
+	}
+	s.stores.Store(orgID, st)
+
+	admin := "admin@inbox-cli.test"
+	manager := "manager@inbox-cli.test"
+	contributor := "contributor@inbox-cli.test"
+	reader := "reader@inbox-cli.test"
+	contractTestUser(t, s, orgID, admin, "admin")
+	contractTestUser(t, s, orgID, manager, "manager")
+	contractTestUser(t, s, orgID, contributor, "contributor")
+	contractTestUser(t, s, orgID, reader, "reader")
+
+	mkReview := func(doc, status string) *db.Review {
+		t.Helper()
+		r := &db.Review{DocumentID: doc, DocumentType: "policy", Title: doc, Version: "1", RequestedBy: manager, Status: "open"}
+		if err := s.db.CreateReview(ctx, orgID, r); err != nil {
+			t.Fatalf("CreateReview %s: %v", doc, err)
+		}
+		if status != "open" {
+			if err := s.db.UpdateReviewStatus(ctx, orgID, r.ID, status); err != nil {
+				t.Fatalf("setting %s to %s: %v", doc, status, err)
+			}
+		}
+		return r
+	}
+	approved := mkReview("cli-approved", "approved") // the manager has to merge it
+	waiting := mkReview("cli-waiting", "open")       // the manager is only waiting on reviewers
+	if err := s.db.AddReviewAssignment(ctx, orgID, &db.ReviewAssignment{ReviewID: waiting.ID, Reviewer: contributor, Status: "pending"}); err != nil {
+		t.Fatalf("AddReviewAssignment: %v", err)
+	}
+
+	// The manager wrote this document-level comment last, so it is theirs but
+	// waits on nobody.
+	own := &db.Comment{DocumentID: "cli-doc", Author: manager, Body: "my own note"}
+	if err := s.db.AddComment(ctx, orgID, own); err != nil {
+		t.Fatalf("AddComment: %v", err)
+	}
+
+	// The admin delegated a task to the contributor, who finished it.
+	done := &db.Task{Title: "Delegated and done", TaskType: "general", Assignee: contributor, CreatedBy: admin, Status: "open", Priority: "medium"}
+	if err := s.db.CreateTask(ctx, orgID, done); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+	if err := s.db.UpdateTaskStatus(ctx, orgID, done.ID, "done"); err != nil {
+		t.Fatalf("finishing task: %v", err)
+	}
+
+	listItems := func(email, role string) map[string]map[string]any {
+		t.Helper()
+		c, rec := inboxCtx(orgID, email, role, "/inbox")
+		out := map[string]map[string]any{}
+		for _, r := range listRows(t, s.handleInbox, c, rec) {
+			out[fmt.Sprintf("%v:%d", r["type"], int(r["id"].(float64)))] = r
+		}
+		return out
+	}
+	type dumpRow struct {
+		ID          int    `json:"id"`
+		NeedsAction bool   `json:"needs_action"`
+		Role        string `json:"role"`
+		InboxGroup  string `json:"inbox_group"`
+	}
+	var dump struct {
+		Reviews  []dumpRow `json:"reviews"`
+		Comments []dumpRow `json:"comments"`
+		Tasks    []dumpRow `json:"tasks"`
+	}
+	getDump := func(email, role string) {
+		t.Helper()
+		dump.Reviews, dump.Comments, dump.Tasks = nil, nil, nil
+		c, rec := inboxCtx(orgID, email, role, "/inbox/dump")
+		if err := s.handleInboxDump(c); err != nil {
+			t.Fatalf("dump as %s: %v", email, err)
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &dump); err != nil {
+			t.Fatalf("decoding dump: %v; body %s", err, rec.Body.String())
+		}
+	}
+	find := func(rows []dumpRow, id int) *dumpRow {
+		for i := range rows {
+			if rows[i].ID == id {
+				return &rows[i]
+			}
+		}
+		return nil
+	}
+
+	t.Run("the manager sees the approved review to merge", func(t *testing.T) {
+		list := listItems(manager, "manager")
+		item, ok := list[fmt.Sprintf("review:%d", approved.ID)]
+		if !ok {
+			t.Fatalf("list = %v, want the approved review", list)
+		}
+		if item["role"] != "author" || item["needs_action"] != true {
+			t.Errorf("approved review item = %v, want role author and needs_action", item)
+		}
+		if _, ok := list[fmt.Sprintf("review:%d", waiting.ID)]; ok {
+			t.Error("list carries a review the manager is only waiting on")
+		}
+		if _, ok := list[fmt.Sprintf("comment:%d", own.ID)]; ok {
+			t.Error("list carries a comment the manager wrote last")
+		}
+
+		getDump(manager, "manager")
+		if r := find(dump.Reviews, approved.ID); r == nil || !r.NeedsAction || r.InboxGroup != "sent" || r.Role != "author" {
+			t.Errorf("dump approved review = %+v, want sent/author/needs_action", r)
+		}
+		if r := find(dump.Reviews, waiting.ID); r == nil || r.NeedsAction {
+			t.Errorf("dump waiting review = %+v, want present with needs_action=false", r)
+		}
+		if cm := find(dump.Comments, int(own.ID)); cm == nil || cm.NeedsAction {
+			t.Errorf("dump own comment = %+v, want present with needs_action=false", cm)
+		}
+	})
+
+	t.Run("the creator sees the finished delegated task", func(t *testing.T) {
+		item, ok := listItems(admin, "admin")[fmt.Sprintf("task:%d", done.ID)]
+		if !ok || item["role"] != "delegated" {
+			t.Errorf("list item = %v (present %v), want the task with role delegated", item, ok)
+		}
+		getDump(admin, "admin")
+		if r := find(dump.Tasks, int(done.ID)); r == nil || r.InboxGroup != "delegated" || !r.NeedsAction {
+			t.Errorf("dump task = %+v, want delegated/needs_action", r)
+		}
+	})
+
+	t.Run("the assigned reviewer has a review to do", func(t *testing.T) {
+		item, ok := listItems(contributor, "contributor")[fmt.Sprintf("review:%d", waiting.ID)]
+		if !ok || item["role"] != "reviewer" {
+			t.Errorf("list item = %v (present %v), want the review with role reviewer", item, ok)
+		}
+	})
+
+	t.Run("an uninvolved reader has an empty inbox", func(t *testing.T) {
+		if list := listItems(reader, "reader"); len(list) != 0 {
+			t.Errorf("list = %v, want none", list)
+		}
+		getDump(reader, "reader")
+		if len(dump.Reviews)+len(dump.Comments)+len(dump.Tasks) != 0 {
+			t.Errorf("dump = %+v, want empty", dump)
 		}
 	})
 }

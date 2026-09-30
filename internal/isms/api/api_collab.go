@@ -3574,9 +3574,22 @@ type inboxItem struct {
 	Status     string   `json:"status"`
 	From       string   `json:"from"`
 	CreatedAt  db.Epoch `json:"created_at"`
-	// Role is set on reviews: "reviewer" (assigned to the caller) or "author"
-	// (requested by the caller).
+	// Role is set on reviews ("reviewer": assigned to the caller, "author":
+	// requested by the caller) and tasks ("assigned" to the caller, or
+	// "delegated" by them).
 	Role string `json:"role,omitempty"`
+	// NeedsAction is always true in the list handleInbox returns, which only
+	// carries the rows the caller has to act on; it is here so a client can
+	// tell.
+	NeedsAction bool `json:"needs_action,omitempty"`
+}
+
+// reviewRole maps a review's inbox_group to the role the CLI shows.
+func reviewRole(group string) string {
+	if group == "sent" {
+		return "author"
+	}
+	return "reviewer"
 }
 
 func (s *Server) handleInbox(c echo.Context) error {
@@ -3587,61 +3600,53 @@ func (s *Server) handleInbox(c echo.Context) error {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
 	}
 
+	// The same scoped queries the web Inbox uses, so the two cannot disagree
+	// about what is "mine". This list carries only the rows the caller has to
+	// act on; `isms inbox dump` returns everything they are involved in.
 	var items []inboxItem
 
-	// Reviews. Everything comes from the viewer-scoped queries, so the result
-	// does not depend on how many reviews the org has. A review the caller both
-	// sent and is assigned to is listed once, as "reviewer".
-	seenReview := map[int]bool{}
-	addReview := func(r db.Review, role string) {
-		if seenReview[r.ID] {
-			return
+	reviews, _, err := s.db.PaginatedReviews(ctx, orgID, db.ReviewListParams{Involving: actor, Limit: 200})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	for _, r := range reviews {
+		if !r.NeedsAction {
+			continue
 		}
-		seenReview[r.ID] = true
 		items = append(items, inboxItem{
 			Type: "review", ID: r.ID, DocumentID: r.DocumentID,
-			Title: r.Title, Status: r.Status, From: r.RequestedBy, CreatedAt: r.CreatedAt, Role: role,
+			Title: r.Title, Status: r.Status, From: r.RequestedBy, CreatedAt: r.CreatedAt,
+			Role: reviewRole(r.InboxGroup), NeedsAction: true,
 		})
 	}
 
-	// Reviews assigned to this user with a pending decision
-	assigned, _ := s.db.ListPendingAssignmentsForReviewer(ctx, orgID, actor)
-	for _, r := range assigned {
-		addReview(r, "reviewer")
+	tasks, _, err := s.db.PaginatedTasks(ctx, orgID, taskViewer(c), db.TaskListParams{Involving: actor, Limit: 200})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
-	// Changes-requested reviews owned by this user (they need to resubmit)
-	changesRequested, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, "changes_requested")
-	for _, r := range changesRequested {
-		addReview(r, "author")
-	}
-
-	// Open reviews requested by this user with open comments
-	openReviews, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, "open")
-	for _, r := range openReviews {
-		if r.OpenComments > 0 {
-			addReview(r, "author")
-		}
-	}
-
-	// Open tasks assigned to this user
-	tasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "open", 50)
-	inProgressTasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "in_progress", 50)
-	tasks = append(tasks, inProgressTasks...)
 	for _, t := range tasks {
+		if !t.NeedsAction {
+			continue
+		}
 		items = append(items, inboxItem{
 			Type: "task", ID: int(t.ID),
 			Title: t.Title, Status: t.Status, From: t.CreatedBy, CreatedAt: t.CreatedAt,
+			Role: t.InboxGroup, NeedsAction: true,
 		})
 	}
 
-	// Open comments the user wrote, replied to, or that sit on a review they
-	// requested or are assigned to
-	allComments, _ := s.db.OpenCommentsInvolving(ctx, orgID, actor)
-	for _, cm := range allComments {
+	comments, err := s.db.OpenCommentsInvolving(ctx, orgID, actor)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	for _, cm := range comments {
+		if !cm.NeedsAction {
+			continue
+		}
 		items = append(items, inboxItem{
 			Type: "comment", ID: cm.ID, DocumentID: cm.DocumentID,
 			Title: cm.Body, Status: cm.Status, From: cm.Author, CreatedAt: cm.CreatedAt,
+			NeedsAction: true,
 		})
 	}
 
@@ -3681,6 +3686,7 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		ParagraphIndex *int        `json:"paragraph_index,omitempty"`
 		Quote          string      `json:"quote,omitempty"`
 		Replies        []replyInfo `json:"replies,omitempty"`
+		NeedsAction    bool        `json:"needs_action"`
 	}
 
 	type reviewInfo struct {
@@ -3690,7 +3696,9 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		Version      string `json:"version"`
 		Status       string `json:"status"`
 		OpenComments int    `json:"open_comments"`
-		Role         string `json:"role"` // "reviewer" (assigned to actor) or "author" (requested by actor)
+		Role         string `json:"role"`        // "reviewer" (assigned to actor) or "author" (requested by actor)
+		InboxGroup   string `json:"inbox_group"` // "to_review" or "sent"
+		NeedsAction  bool   `json:"needs_action"`
 	}
 
 	type taskInfo struct {
@@ -3700,6 +3708,8 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		TaskType    string `json:"task_type"`
 		Priority    string `json:"priority"`
 		Status      string `json:"status"`
+		InboxGroup  string `json:"inbox_group"` // "assigned" to actor, or "delegated" by them
+		NeedsAction bool   `json:"needs_action"`
 	}
 
 	type inboxDump struct {
@@ -3712,7 +3722,10 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 	dump := inboxDump{User: actor}
 
 	// Open comments the actor is part of — enriched with file paths, titles, and replies
-	allOpenComments, _ := s.db.OpenCommentsInvolving(ctx, orgID, actor)
+	allOpenComments, err := s.db.OpenCommentsInvolving(ctx, orgID, actor)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 
 	// Load all comments per document to find replies
 	allDocComments := map[string][]db.Comment{}
@@ -3731,7 +3744,7 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 
 		ci := commentInfo{
 			ID: cm.ID, DocumentID: cm.DocumentID, Author: cm.Author,
-			Body: cm.Body, Section: cm.Section, Quote: cm.Quote,
+			Body: cm.Body, Section: cm.Section, Quote: cm.Quote, NeedsAction: cm.NeedsAction,
 		}
 		if cm.ParagraphIndex != nil {
 			ci.ParagraphIndex = cm.ParagraphIndex
@@ -3753,40 +3766,30 @@ func (s *Server) handleInboxDump(c echo.Context) error {
 		dump.Comments = append(dump.Comments, ci)
 	}
 
-	// Reviews assigned to actor with a pending decision, then the ones actor
-	// requested that are open or awaiting a resubmit. A review that is both is
-	// listed once, as "reviewer".
-	seenReview := map[int]bool{}
-	addReview := func(r db.Review, role string) {
-		if seenReview[r.ID] {
-			return
-		}
-		seenReview[r.ID] = true
+	// Everything actor is involved in, from the same queries the web Inbox
+	// uses. needs_action tells the rows to act on from the ones only waiting.
+	reviews, _, err := s.db.PaginatedReviews(ctx, orgID, db.ReviewListParams{Involving: actor, Limit: 200})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	for _, r := range reviews {
 		dump.Reviews = append(dump.Reviews, reviewInfo{
 			ID: r.ID, DocumentID: r.DocumentID, Title: r.Title,
-			Version: r.Version, Status: r.Status, OpenComments: r.OpenComments, Role: role,
+			Version: r.Version, Status: r.Status, OpenComments: r.OpenComments,
+			Role: reviewRole(r.InboxGroup), InboxGroup: r.InboxGroup, NeedsAction: r.NeedsAction,
 		})
 	}
-	assigned, _ := s.db.ListPendingAssignmentsForReviewer(ctx, orgID, actor)
-	for _, r := range assigned {
-		addReview(r, "reviewer")
-	}
-	for _, status := range []string{"open", "changes_requested"} {
-		authored, _ := s.db.ListReviewsByAuthorStatus(ctx, orgID, actor, status)
-		for _, r := range authored {
-			addReview(r, "author")
-		}
-	}
 
-	// Tasks assigned to actor
-	tasks, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "open", 50)
-	inProgress, _ := s.db.ListTasks(ctx, orgID, taskViewer(c), actor, "in_progress", 50)
-	tasks = append(tasks, inProgress...)
+	tasks, _, err := s.db.PaginatedTasks(ctx, orgID, taskViewer(c), db.TaskListParams{Involving: actor, Limit: 200})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 	for _, t := range tasks {
 		dump.Tasks = append(dump.Tasks, taskInfo{
 			ID: int(t.ID), Title: t.Title, Description: t.Description,
 			TaskType: t.TaskType,
 			Priority: t.Priority, Status: t.Status,
+			InboxGroup: t.InboxGroup, NeedsAction: t.NeedsAction,
 		})
 	}
 

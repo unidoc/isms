@@ -59,7 +59,7 @@ func inboxDumpCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "dump",
 		Short: "Dump all open items as JSON (for Claude Code to read)",
-		Long:  "Outputs all open reviews, comments, and tasks as structured JSON that Claude can process.",
+		Long:  "Outputs every review, comment, and task you are involved in as structured JSON that Claude can process. Each row has needs_action: true when it is waiting on you, false when you are only waiting on someone else.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := requireAPI()
 			data, err := c.InboxDump()

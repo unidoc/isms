@@ -151,7 +151,7 @@ func TestDoPassesThroughANonAPIErrorBody(t *testing.T) {
 func TestInboxListDecodesNumericCreatedAt(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"data":[` +
-			`{"type":"review","id":7,"document_id":"pol-1","title":"Access policy","status":"open","from":"m@x.io","created_at":1790000000,"role":"reviewer"},` +
+			`{"type":"review","id":7,"document_id":"pol-1","title":"Access policy","status":"open","from":"m@x.io","created_at":1790000000,"role":"reviewer","needs_action":true},` +
 			`{"type":"task","id":3,"title":"Patch","status":"open","from":"a@x.io","created_at":1790000500}]}`))
 	}))
 	defer srv.Close()
@@ -168,5 +168,8 @@ func TestInboxListDecodesNumericCreatedAt(t *testing.T) {
 	}
 	if items[0].Role != "reviewer" || items[1].Role != "" {
 		t.Errorf("roles = %q, %q, want reviewer and empty", items[0].Role, items[1].Role)
+	}
+	if !items[0].NeedsAction || items[1].NeedsAction {
+		t.Errorf("needs_action = %v, %v, want true and false", items[0].NeedsAction, items[1].NeedsAction)
 	}
 }

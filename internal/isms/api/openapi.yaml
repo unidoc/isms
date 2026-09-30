@@ -68,6 +68,8 @@ tags:
     description: Work items and task tracking
   - name: Changes
     description: Change management requests
+  - name: Suggestions
+    description: Proposed changes to register entities, reviewed by managers
   - name: Implementation
     description: Implementation status tracking
   - name: Notifications
@@ -1609,7 +1611,7 @@ paths:
 
   /suggestions:
     get:
-      tags: [Inbox]
+      tags: [Suggestions]
       summary: List entity suggestions
       description: >-
         Suggestions proposed against register entities. `status=active` is a

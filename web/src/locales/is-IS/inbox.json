@@ -12,14 +12,14 @@
     "suggestions": "Tillögur"
   },
   "comments": {
-    "empty": "Engar opnar athugasemdir",
+    "empty": "Engar opnar athugasemdir þarfnast athygli þinnar",
     "suggestion_badge": "tillaga",
     "scope_inline": "Innskotsathugasemd",
     "scope_document": "Skjal",
     "view_in_document": "Skoða í skjali →"
   },
   "reviews": {
-    "empty": "Engar yfirferðir í bið",
+    "empty": "Engar yfirferðir þarfnast athygli þinnar",
     "untitled": "Ónefnd yfirferð",
     "requested_by": "Óskað af {name}",
     "unknown_requester": "Óþekkt",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Úthlutaðir yfirferðaraðilar",
     "recent_comments": "Nýlegar athugasemdir",
-    "open_review": "Opna yfirferð #{id}"
+    "open_review": "Opna yfirferð #{id}",
+    "view_all": "Sjá allar yfirferðir",
+    "group": {
+      "to_review": "Til yfirferðar",
+      "sent": "Sent af mér"
+    }
   },
   "tasks": {
     "add": "Bæta við verkefni",
-    "empty": "Engin verkefni fundust",
+    "empty": "Engin verkefni þarfnast athygli þinnar",
     "start": "Hefja verkefni",
     "mark_done": "Merkja lokið",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Ábyrgðaraðili",
       "assignee_placeholder": "Velja ábyrgðaraðila...",
       "due_date": "Skiladagur"
-    }
+    },
+    "view_all": "Sjá öll verkefni",
+    "group": {
+      "assigned": "Úthlutað til mín",
+      "delegated": "Framselt af mér"
+    },
+    "completed_on": "Lokið {date}"
   },
   "incidents": {
-    "empty": "Engin atvik úthlutuð þér"
+    "empty": "Engin atvik úthlutuð þér",
+    "view_all": "Sjá öll atvik"
   },
   "corrective_actions": {
-    "empty": "Engar úrbætur úthlutaðar þér"
+    "empty": "Engar úrbætur úthlutaðar þér",
+    "view_all": "Sjá allar úrbætur"
   },
   "changes": {
     "add": "Bæta við breytingabeiðni",
-    "empty": "Engar breytingabeiðnir",
+    "empty": "Engar breytingabeiðnir þarfnast athygli þinnar",
     "requested_by": "Óskað af {name}",
     "unknown_requester": "Óþekkt",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Hafna",
       "mark_implemented": "Merkja innleitt",
       "close": "Loka"
-    }
+    },
+    "view_all": "Sjá allar breytingar"
   },
   "suggestions": {
-    "empty": "Engar tillögur með þessa stöðu.",
+    "empty": "Ekkert þarfnast athygli þinnar með þessa stöðu.",
     "filter": {
       "open": "opnar",
       "applied": "beitt",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Beita samt",
     "apply_stale_body": "Færslunni hefur verið breytt síðan þessi tillaga var stofnuð. Beita samt?"
-  }
+  },
+  "needs_action": "Aðgerða þörf"
 }

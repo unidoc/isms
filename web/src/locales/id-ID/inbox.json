@@ -12,14 +12,14 @@
     "suggestions": "Saran"
   },
   "comments": {
-    "empty": "Tidak ada komentar terbuka",
+    "empty": "Tidak ada komentar terbuka yang memerlukan perhatian Anda",
     "suggestion_badge": "saran",
     "scope_inline": "Sebaris",
     "scope_document": "Dokumen",
     "view_in_document": "Lihat di dokumen →"
   },
   "reviews": {
-    "empty": "Tidak ada tinjauan yang tertunda",
+    "empty": "Tidak ada tinjauan yang memerlukan perhatian Anda",
     "untitled": "Tinjauan tanpa judul",
     "requested_by": "Diminta oleh {name}",
     "unknown_requester": "Tidak diketahui",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Peninjau yang Ditugaskan",
     "recent_comments": "Komentar Terbaru",
-    "open_review": "Buka Tinjauan #{id}"
+    "open_review": "Buka Tinjauan #{id}",
+    "view_all": "Lihat semua tinjauan",
+    "group": {
+      "to_review": "Perlu ditinjau",
+      "sent": "Dikirim oleh saya"
+    }
   },
   "tasks": {
     "add": "Tambah Tugas",
-    "empty": "Tugas tidak ditemukan",
+    "empty": "Tidak ada tugas yang memerlukan perhatian Anda",
     "start": "Mulai tugas",
     "mark_done": "Tandai selesai",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Penanggung jawab",
       "assignee_placeholder": "Pilih penanggung jawab…",
       "due_date": "Tenggat"
-    }
+    },
+    "view_all": "Lihat semua tugas",
+    "group": {
+      "assigned": "Ditugaskan kepada saya",
+      "delegated": "Didelegasikan oleh saya"
+    },
+    "completed_on": "Selesai pada {date}"
   },
   "incidents": {
-    "empty": "Tidak ada insiden yang ditugaskan kepada Anda"
+    "empty": "Tidak ada insiden yang ditugaskan kepada Anda",
+    "view_all": "Lihat semua insiden"
   },
   "corrective_actions": {
-    "empty": "Tidak ada tindakan korektif yang ditugaskan kepada Anda"
+    "empty": "Tidak ada tindakan korektif yang ditugaskan kepada Anda",
+    "view_all": "Lihat semua tindakan korektif"
   },
   "changes": {
     "add": "Tambah Permintaan Perubahan",
-    "empty": "Tidak ada permintaan perubahan",
+    "empty": "Tidak ada permintaan perubahan yang memerlukan perhatian Anda",
     "requested_by": "Diminta oleh {name}",
     "unknown_requester": "Tidak diketahui",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Tolak",
       "mark_implemented": "Tandai Sudah Diimplementasikan",
       "close": "Tutup"
-    }
+    },
+    "view_all": "Lihat semua perubahan"
   },
   "suggestions": {
-    "empty": "Tidak ada saran dengan status ini.",
+    "empty": "Tidak ada yang memerlukan perhatian Anda dengan status ini.",
     "filter": {
       "open": "terbuka",
       "applied": "diterapkan",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Tetap terapkan",
     "apply_stale_body": "Entitas telah berubah sejak saran ini dibuat. Tetap terapkan?"
-  }
+  },
+  "needs_action": "Perlu tindakan"
 }

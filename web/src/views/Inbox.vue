@@ -70,6 +70,7 @@
               <span class="text-sm font-medium text-slate-200">{{ c.author }}</span>
               <span class="text-xs text-slate-600">{{ formatDate(c.created_at) }}</span>
               <span v-if="c.suggestion_body" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-800/40 text-amber-300">{{ t('inbox.comments.suggestion_badge') }}</span>
+              <span v-if="c.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
               <router-link :to="orgPath(`/documents/${encodeURIComponent(c.document_id)}`)"
                 class="ml-auto text-xs text-blue-400 hover:text-blue-300 bg-slate-800 px-2 py-0.5 rounded font-mono" @click.stop>{{ c.document_id }}</router-link>
             </div>
@@ -99,6 +100,10 @@
 
       <!-- ===================== REVIEWS TAB ===================== -->
       <template v-if="activeTab === 'reviews'">
+        <div class="flex justify-end">
+          <router-link :to="orgPath('/reviews')" class="text-xs text-blue-400 hover:text-blue-300">{{ t('inbox.reviews.view_all') }} →</router-link>
+        </div>
+
         <!-- Empty state -->
         <div v-if="reviews.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
           <svg class="w-10 h-10 text-slate-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -107,133 +112,139 @@
           <div class="text-sm text-slate-500">{{ t('inbox.reviews.empty') }}</div>
         </div>
 
-        <!-- Review cards -->
-        <div v-else class="space-y-3">
-          <div
-            v-for="review in reviews"
-            :key="review.id"
-            class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden"
-          >
-            <!-- Review header -->
+        <!-- Review cards, grouped: what waits on me first, then what I sent -->
+        <div v-else class="space-y-5">
+          <section v-for="group in reviewGroups" :key="group.key" class="space-y-3">
+            <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ group.label }}</h2>
             <div
-              role="button" tabindex="0"
-              @click="toggleReviewExpand(review.id)"
-              @keydown.enter="toggleReviewExpand(review.id)"
-              @keydown.space.prevent="toggleReviewExpand(review.id)"
-              :aria-expanded="expandedReviewId === review.id"
-              class="flex items-center gap-4 px-5 py-4 hover:bg-slate-800/30 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded"
+              v-for="review in group.items"
+              :key="review.id"
+              class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden"
             >
-              <StatusBadge :status="review.status" />
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-slate-200">{{ review.title || review.document_id || t('inbox.reviews.untitled') }}</span>
-                  <span v-if="review.round > 1" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium">{{ t('common.label.round', { round: review.round }) }}</span>
-                </div>
-                <div class="text-xs text-slate-500 mt-0.5">
-                  {{ t('inbox.reviews.requested_by', { name: review.requested_by || t('inbox.reviews.unknown_requester') }) }}
-                  <span class="mx-1.5 text-slate-700">|</span>
-                  {{ formatDate(review.created_at) }}
-                  <span v-if="review.version" class="mx-1.5 text-slate-700">|</span>
-                  <span v-if="review.version" class="text-slate-400">v{{ review.version }}</span>
-                </div>
-              </div>
-              <div v-if="reviewCommentCounts[review.id]" class="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                {{ reviewCommentCounts[review.id] }}
-              </div>
-              <svg
-                class="w-4 h-4 text-slate-600 flex-shrink-0 transition-transform duration-200"
-                :class="{ 'rotate-180': expandedReviewId === review.id }"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+              <!-- Review header -->
+              <div
+                role="button" tabindex="0"
+                @click="toggleReviewExpand(review.id)"
+                @keydown.enter="toggleReviewExpand(review.id)"
+                @keydown.space.prevent="toggleReviewExpand(review.id)"
+                :aria-expanded="expandedReviewId === review.id"
+                class="flex items-center gap-4 px-5 py-4 hover:bg-slate-800/30 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-
-            <!-- Expanded review detail -->
-            <div
-              v-if="expandedReviewId === review.id"
-              class="border-t border-slate-800 px-5 py-5 space-y-5"
-            >
-              <!-- Metadata -->
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.status') }}</div>
-                  <StatusBadge :status="review.status" />
-                </div>
-                <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.document') }}</div>
-                  <div class="text-sm text-slate-300 font-mono">{{ review.document_id || '-' }}</div>
-                </div>
-                <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.version') }}</div>
-                  <div class="text-sm text-slate-300">{{ review.version || '-' }}</div>
-                </div>
-                <div>
-                  <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.requested_by') }}</div>
-                  <div class="text-sm text-slate-300">{{ review.requested_by || '-' }}</div>
-                </div>
-              </div>
-
-              <!-- Reviewers -->
-              <div v-if="review.reviewers && review.reviewers.length">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.assigned_reviewers') }}</div>
-                <div class="flex flex-wrap gap-2">
-                  <span
-                    v-for="reviewer in review.reviewers"
-                    :key="reviewer"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-md text-sm text-slate-300"
-                  >
-                    <div class="w-5 h-5 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10px] font-bold">
-                      {{ reviewer.charAt(0).toUpperCase() }}
-                    </div>
-                    {{ reviewer }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Recent comments -->
-              <div v-if="expandedReviewComments.length">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.recent_comments') }}</div>
-                <div class="space-y-2">
-                  <div
-                    v-for="comment in expandedReviewComments.slice(0, 3)"
-                    :key="comment.id"
-                    class="bg-slate-800/50 rounded-lg px-4 py-3"
-                  >
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="text-xs font-semibold text-slate-300">{{ comment.author }}</span>
-                      <span class="text-[10px] text-slate-600">{{ formatDate(comment.created_at) }}</span>
-                    </div>
-                    <div class="text-sm text-slate-400">{{ comment.body }}</div>
+                <StatusBadge :status="review.status" />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-slate-200">{{ review.title || review.document_id || t('inbox.reviews.untitled') }}</span>
+                    <span v-if="review.round > 1" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium">{{ t('common.label.round', { round: review.round }) }}</span>
+                    <span v-if="group.badge && review.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-0.5">
+                    {{ t('inbox.reviews.requested_by', { name: review.requested_by || t('inbox.reviews.unknown_requester') }) }}
+                    <span class="mx-1.5 text-slate-700">|</span>
+                    {{ formatDate(review.created_at) }}
+                    <span v-if="review.version" class="mx-1.5 text-slate-700">|</span>
+                    <span v-if="review.version" class="text-slate-400">v{{ review.version }}</span>
                   </div>
                 </div>
+                <div v-if="reviewCommentCounts[review.id]" class="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  {{ reviewCommentCounts[review.id] }}
+                </div>
+                <svg
+                  class="w-4 h-4 text-slate-600 flex-shrink-0 transition-transform duration-200"
+                  :class="{ 'rotate-180': expandedReviewId === review.id }"
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
 
-              <!-- Link to Review Request -->
-              <div class="pt-2 border-t border-slate-800">
-                <router-link
-                  :to="orgPath(`/reviews/${review.id}`)"
-                  class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                  {{ t('inbox.reviews.open_review', { id: review.id }) }}
-                </router-link>
+              <!-- Expanded review detail -->
+              <div
+                v-if="expandedReviewId === review.id"
+                class="border-t border-slate-800 px-5 py-5 space-y-5"
+              >
+                <!-- Metadata -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.status') }}</div>
+                    <StatusBadge :status="review.status" />
+                  </div>
+                  <div>
+                    <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.document') }}</div>
+                    <div class="text-sm text-slate-300 font-mono">{{ review.document_id || '-' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.version') }}</div>
+                    <div class="text-sm text-slate-300">{{ review.version || '-' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.requested_by') }}</div>
+                    <div class="text-sm text-slate-300">{{ review.requested_by || '-' }}</div>
+                  </div>
+                </div>
+
+                <!-- Reviewers -->
+                <div v-if="review.reviewers && review.reviewers.length">
+                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.assigned_reviewers') }}</div>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="reviewer in review.reviewers"
+                      :key="reviewer"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-md text-sm text-slate-300"
+                    >
+                      <div class="w-5 h-5 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10px] font-bold">
+                        {{ reviewer.charAt(0).toUpperCase() }}
+                      </div>
+                      {{ reviewer }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Recent comments -->
+                <div v-if="expandedReviewComments.length">
+                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t('inbox.reviews.recent_comments') }}</div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="comment in expandedReviewComments.slice(0, 3)"
+                      :key="comment.id"
+                      class="bg-slate-800/50 rounded-lg px-4 py-3"
+                    >
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-semibold text-slate-300">{{ comment.author }}</span>
+                        <span class="text-[10px] text-slate-600">{{ formatDate(comment.created_at) }}</span>
+                      </div>
+                      <div class="text-sm text-slate-400">{{ comment.body }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Link to Review Request -->
+                <div class="pt-2 border-t border-slate-800">
+                  <router-link
+                    :to="orgPath(`/reviews/${review.id}`)"
+                    class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    {{ t('inbox.reviews.open_review', { id: review.id }) }}
+                  </router-link>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </template>
 
       <!-- ===================== TASKS TAB ===================== -->
       <template v-if="activeTab === 'tasks'">
-        <!-- Create task button -->
-        <div v-if="canManageInbox" class="flex justify-end">
+        <!-- View all + create task button -->
+        <div class="flex items-center justify-between">
+          <router-link :to="orgPath('/tasks')" class="text-xs text-blue-400 hover:text-blue-300">{{ t('inbox.tasks.view_all') }} →</router-link>
           <button
+            v-if="canManageInbox"
             @click="showTaskForm = !showTaskForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
@@ -312,61 +323,69 @@
           <div class="text-sm text-slate-500">{{ t('inbox.tasks.empty') }}</div>
         </div>
 
-        <!-- Tasks list (overdue first, then by priority) -->
-        <div v-else-if="tasks.length > 0" class="space-y-2">
-          <div
-            v-for="task in sortedTasks"
-            :key="task.id"
-            class="bg-slate-900 border rounded-lg px-5 py-4 flex items-center gap-4 transition-colors"
-            :class="isOverdue(task) ? 'border-red-900/50 bg-red-900/20' : 'border-slate-800'"
-          >
-            <!-- Title + description -->
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-200">{{ task.title }}</div>
-              <div v-if="task.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</div>
+        <!-- Tasks, grouped: what is assigned to me, then what I delegated -->
+        <div v-else-if="tasks.length > 0" class="space-y-5">
+          <section v-for="group in taskGroups" :key="group.key" class="space-y-2">
+            <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ group.label }}</h2>
+            <div
+              v-for="task in group.items"
+              :key="task.id"
+              class="bg-slate-900 border rounded-lg px-5 py-4 flex items-center gap-4 transition-colors"
+              :class="isOverdue(task) ? 'border-red-900/50 bg-red-900/20' : 'border-slate-800'"
+            >
+              <!-- Title + description -->
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-slate-200">{{ task.title }}</div>
+                <div v-if="task.description" class="text-xs text-slate-500 mt-0.5 truncate">{{ task.description }}</div>
+                <div v-if="isCompletedTask(task)" class="text-xs text-emerald-400/80 mt-0.5">{{ t('inbox.tasks.completed_on', { date: formatDay(task.completed_at) }) }}</div>
+              </div>
+              <span v-if="group.badge && task.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
+
+              <!-- Type badge -->
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">
+                {{ taskTypeLabel(task.task_type) }}
+              </span>
+
+              <!-- Priority badge -->
+              <span
+                class="inline-block px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0"
+                :class="priorityClasses[task.priority] || 'bg-slate-700 text-slate-300'"
+              >
+                {{ priorityLabel(task.priority) }}
+              </span>
+
+              <!-- Assignee -->
+              <span class="text-xs text-slate-500 flex-shrink-0 w-28 truncate text-right">{{ resolveUserName(task.assignee) }}</span>
+
+              <!-- Due date -->
+              <span
+                class="text-xs flex-shrink-0 w-24 text-right"
+                :class="isOverdue(task) ? 'text-red-400 font-medium' : 'text-slate-500'"
+              >
+                {{ formatDay(task.due_date) }}
+                <span v-if="isOverdue(task)" class="block text-[10px] text-red-500">{{ t('common.state.overdue') }}</span>
+              </span>
+
+              <!-- Status button (click to advance) -->
+              <button
+                v-if="task.status !== 'done' && canAdvanceTask(task)"
+                @click="advanceTaskStatus(task)"
+                class="flex-shrink-0"
+                :title="taskAdvanceTitle(task)"
+              >
+                <StatusBadge :status="task.status" class="cursor-pointer hover:opacity-80 transition-opacity" />
+              </button>
+              <StatusBadge v-else :status="task.status" class="flex-shrink-0" />
             </div>
-
-            <!-- Type badge -->
-            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400 flex-shrink-0">
-              {{ taskTypeLabel(task.task_type) }}
-            </span>
-
-            <!-- Priority badge -->
-            <span
-              class="inline-block px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0"
-              :class="priorityClasses[task.priority] || 'bg-slate-700 text-slate-300'"
-            >
-              {{ priorityLabel(task.priority) }}
-            </span>
-
-            <!-- Assignee -->
-            <span class="text-xs text-slate-500 flex-shrink-0 w-28 truncate text-right">{{ resolveUserName(task.assignee) }}</span>
-
-            <!-- Due date -->
-            <span
-              class="text-xs flex-shrink-0 w-24 text-right"
-              :class="isOverdue(task) ? 'text-red-400 font-medium' : 'text-slate-500'"
-            >
-              {{ formatDay(task.due_date) }}
-              <span v-if="isOverdue(task)" class="block text-[10px] text-red-500">{{ t('common.state.overdue') }}</span>
-            </span>
-
-            <!-- Status button (click to advance) -->
-            <button
-              v-if="task.status !== 'done' && canAdvanceTask(task)"
-              @click="advanceTaskStatus(task)"
-              class="flex-shrink-0"
-              :title="taskAdvanceTitle(task)"
-            >
-              <StatusBadge :status="task.status" class="cursor-pointer hover:opacity-80 transition-opacity" />
-            </button>
-            <StatusBadge v-else :status="task.status" class="flex-shrink-0" />
-          </div>
+          </section>
         </div>
       </template>
 
       <!-- ===================== INCIDENTS TAB ===================== -->
       <template v-if="activeTab === 'incidents'">
+        <div class="flex justify-end">
+          <router-link :to="orgPath('/incidents')" class="text-xs text-blue-400 hover:text-blue-300">{{ t('inbox.incidents.view_all') }} →</router-link>
+        </div>
         <div v-if="incidents.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
           <div class="text-sm text-slate-500">{{ t('inbox.incidents.empty') }}</div>
         </div>
@@ -392,6 +411,9 @@
 
       <!-- ===================== CORRECTIVE ACTIONS TAB ===================== -->
       <template v-if="activeTab === 'corrective_actions'">
+        <div class="flex justify-end">
+          <router-link :to="orgPath('/corrective-actions')" class="text-xs text-blue-400 hover:text-blue-300">{{ t('inbox.corrective_actions.view_all') }} →</router-link>
+        </div>
         <div v-if="correctiveActions.length === 0" class="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
           <div class="text-sm text-slate-500">{{ t('inbox.corrective_actions.empty') }}</div>
         </div>
@@ -421,9 +443,11 @@
 
       <!-- ===================== CHANGES TAB ===================== -->
       <template v-if="activeTab === 'changes'">
-        <!-- Create change button -->
-        <div v-if="canManageInbox" class="flex justify-end">
+        <!-- View all + create change button -->
+        <div class="flex items-center justify-between">
+          <router-link :to="orgPath('/changes')" class="text-xs text-blue-400 hover:text-blue-300">{{ t('inbox.changes.view_all') }} →</router-link>
           <button
+            v-if="canManageInbox"
             @click="showChangeForm = !showChangeForm"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
@@ -506,7 +530,10 @@
             >
               <StatusBadge :status="change.status" />
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-slate-200">{{ change.title }}</div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-slate-200">{{ change.title }}</span>
+                  <span v-if="change.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
+                </div>
                 <div class="text-xs text-slate-500 mt-0.5">
                   {{ t('inbox.changes.requested_by', { name: change.requested_by || t('inbox.changes.unknown_requester') }) }}
                   <span class="mx-1.5 text-slate-700">|</span>
@@ -653,6 +680,7 @@
                     {{ suggestionStatusLabel(sg.status) }}
                   </span>
                   <span v-if="sg.suggested_by_type === 'agent'" class="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/15 text-purple-400">{{ t('inbox.suggestions.agent_badge') }}</span>
+                  <span v-if="sg.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
                 </div>
                 <div class="text-sm text-slate-300 mt-0.5">{{ sg.title }}</div>
                 <div class="text-xs text-slate-500 mt-1">
@@ -660,7 +688,7 @@
                 </div>
               </div>
               <!-- Actions -->
-              <div v-if="sg.status === 'open'" class="flex items-center gap-1 flex-shrink-0">
+              <div v-if="isActiveSuggestion(sg)" class="flex items-center gap-1 flex-shrink-0">
                 <template v-if="canReviewSuggestions">
                   <button v-if="hasProposedValues(sg)" @click="applySuggestion(sg.id)"
                     class="text-[10px] px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition-colors">{{ t('inbox.suggestions.apply') }}</button>
@@ -668,7 +696,7 @@
                   <button @click="rejectingId = sg.id; rejectReason = ''"
                     class="text-[10px] px-2 py-1 rounded bg-slate-700 hover:bg-red-800 text-slate-300 hover:text-red-200 font-medium transition-colors">{{ t('inbox.suggestions.reject') }}</button>
                 </template>
-                <button v-if="sg.suggested_by === currentUserEmail" @click="withdrawSuggestion(sg.id)"
+                <button v-if="canWithdrawSuggestion(sg)" @click="withdrawSuggestion(sg.id)"
                   class="text-[10px] px-2 py-1 rounded text-slate-600 hover:text-slate-300 transition-colors">{{ t('inbox.suggestions.withdraw') }}</button>
               </div>
             </div>
@@ -731,6 +759,11 @@ const { orgSlug, orgPath } = useCurrentOrg()
 
 const { ask } = useConfirm()
 const { success: showSaved, error: showError } = useToast()
+
+// Every list below is scoped on the server to the viewer: the work assigned to
+// them, plus their own work that someone else acted on. The page never filters
+// by involvement itself. `limit` is the API's page cap.
+const MINE = { involving: 'me', limit: 200 }
 
 // ---------- State ----------
 const loading = ref(true)
@@ -809,7 +842,11 @@ const newChange = ref({
 
 // Suggestions
 const suggestions = ref([])
-const suggestionFilter = ref('open')
+// The open + in-review rows, whichever status tab is showing, so the tab badge
+// and the banner do not change when the viewer looks at applied or rejected.
+const activeSuggestions = ref([])
+// "active" is open plus in review; the tab's label is still "open".
+const suggestionFilter = ref('active')
 const rejectingId = ref(null)
 const rejectReason = ref('')
 
@@ -833,8 +870,13 @@ const priorityClasses = {
 // ---------- Computed ----------
 const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
 
-const sortedTasks = computed(() => {
-  return [...tasks.value].sort((a, b) => {
+// Rows that wait on me come first (a delegated task that was finished), then
+// overdue ones, then by priority.
+function sortTasks(list) {
+  return [...list].sort((a, b) => {
+    const aAct = a.needs_action ? 0 : 1
+    const bAct = b.needs_action ? 0 : 1
+    if (aAct !== bAct) return aAct - bAct
     // Overdue first
     const aOver = isOverdue(a) ? 0 : 1
     const bOver = isOverdue(b) ? 0 : 1
@@ -842,7 +884,30 @@ const sortedTasks = computed(() => {
     // Then by priority
     return (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9)
   })
+}
+
+// The server says which group a row belongs to (inbox_group); the page only
+// presents it. `badge` marks the group where "action needed" tells rows apart.
+const taskGroups = computed(() => {
+  const mine = tasks.value.filter((x) => x.inbox_group !== 'delegated')
+  const delegated = tasks.value.filter((x) => x.inbox_group === 'delegated')
+  return [
+    { key: 'assigned', label: t('inbox.tasks.group.assigned'), items: sortTasks(mine), badge: false },
+    { key: 'delegated', label: t('inbox.tasks.group.delegated'), items: sortTasks(delegated), badge: true },
+  ].filter((g) => g.items.length > 0)
 })
+
+const reviewGroups = computed(() => {
+  const toReview = reviews.value.filter((x) => x.inbox_group !== 'sent')
+  const sent = reviews.value.filter((x) => x.inbox_group === 'sent')
+  return [
+    { key: 'to_review', label: t('inbox.reviews.group.to_review'), items: toReview, badge: false },
+    { key: 'sent', label: t('inbox.reviews.group.sent'), items: sent, badge: true },
+  ].filter((g) => g.items.length > 0)
+})
+
+// A finished task the viewer delegated: show when it was completed.
+const isCompletedTask = (task) => task.status === 'done' && !!task.completed_at
 
 // Base role predicate. The computeds below stay separate because each mirrors a
 // different server-side rule; they happen to share this base today, but they are
@@ -872,10 +937,23 @@ function canResolveComment(c) {
   if (isManagerOrAdmin.value) return true
   return !!c?.author && c.author === currentUserEmail.value
 }
-const openSuggestions = computed(() => suggestions.value.filter(s => s.status === 'open' || s.status === 'in_review'))
+const openSuggestions = computed(() => activeSuggestions.value.filter(s => s.status === 'open' || s.status === 'in_review'))
 
+// An in-flight suggestion can be acted on from its card; a claimed one is still
+// the reviewer's to apply or reject, but only an unclaimed one can be withdrawn.
+const isActiveSuggestion = (sg) => sg.status === 'open' || sg.status === 'in_review'
+const canWithdrawSuggestion = (sg) => sg.status === 'open' && sg.suggested_by === currentUserEmail.value
+
+// The banner counts what needs ME to act, not everything listed: the server
+// marks each row (needs_action), and incidents and corrective actions are
+// fetched by assignee, so every one of those is mine. The pane badges below
+// count all the rows in a pane, so the two can differ (a review I sent and am
+// only waiting on is listed but not counted).
+const needsActionCount = (list) => list.filter((x) => x.needs_action).length
 const totalActionItems = computed(() => {
-  return reviews.value.length + tasks.value.length + changes.value.length + openComments.value.length + openSuggestions.value.length + incidents.value.length + correctiveActions.value.length
+  return needsActionCount(reviews.value) + needsActionCount(tasks.value) + needsActionCount(changes.value) +
+    needsActionCount(openComments.value) + needsActionCount(activeSuggestions.value) +
+    incidents.value.length + correctiveActions.value.length
 })
 
 // The whole bar stays in inbox.* rather than common.tab.*, including the two
@@ -928,7 +1006,7 @@ const priorityOptions = computed(
   () => PRIORITY_VALUES.map((value) => ({ value, label: priorityLabel(value) })))
 
 const suggestionFilters = computed(() => [
-  { value: 'open', label: t('inbox.suggestions.filter.open') },
+  { value: 'active', label: t('inbox.suggestions.filter.open') },
   { value: 'applied', label: t('inbox.suggestions.filter.applied') },
   { value: 'rejected', label: t('inbox.suggestions.filter.rejected') },
 ])
@@ -1087,7 +1165,7 @@ async function loadData() {
 
 async function loadOpenComments() {
   try {
-    const all = await api.getAllOpenComments()
+    const all = await api.getAllOpenComments({ involving: 'me' })
     openComments.value = (all || []).filter(c => !c.parent_id)
   } catch {
     openComments.value = []
@@ -1096,16 +1174,13 @@ async function loadOpenComments() {
 
 async function loadReviews() {
   try {
-    const r = await api.getReviews()
-    const all = Array.isArray(r) ? r : []
-    // Filter to only show reviews where current user is assigned or is the requester
-    const me = currentUserEmail.value
-    reviews.value = all.filter(rev =>
-      rev.requested_by === me ||
-      (rev._assignments || []).some(a => a.reviewer === me || a.reviewer_email === me)
-    )
     // If user email not loaded yet, don't show any (wait for identity)
-    if (!me) reviews.value = []
+    if (!currentUserEmail.value) {
+      reviews.value = []
+      return
+    }
+    const r = await api.getReviews('', MINE)
+    reviews.value = Array.isArray(r) ? r : []
     // Fetch comment counts for each review with a document_id
     for (const review of reviews.value) {
       if (review.document_id) {
@@ -1127,7 +1202,8 @@ async function advanceTaskStatus(task) {
   const next = task.status === 'open' ? 'in_progress' : 'done'
   try {
     await api.updateTaskStatus(task.id, next)
-    task.status = next
+    // Reload rather than patch the row: a finished task leaves the list.
+    await loadTasks()
   } catch (e) {
     error.value = renderApiError(e)
   }
@@ -1154,7 +1230,7 @@ async function createTask() {
 
 async function loadTasks() {
   try {
-    const res = await api.getTasks()
+    const res = await api.getTasks('', '', MINE)
     tasks.value = Array.isArray(res) ? res : []
   } catch (e) {
     error.value = renderApiError(e)
@@ -1203,7 +1279,7 @@ async function submitChange() {
 
 async function loadChanges() {
   try {
-    const ch = await api.getChanges()
+    const ch = await api.getChanges('', MINE)
     changes.value = Array.isArray(ch) ? ch : []
   } catch (e) {
     error.value = renderApiError(e)
@@ -1230,11 +1306,21 @@ async function loadCAs() {
   }
 }
 
+async function fetchSuggestions(status) {
+  const data = await api.getSuggestions({ status, ...MINE })
+  return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+}
+
 async function loadSuggestions() {
   try {
-    const data = await api.getSuggestions({ status: suggestionFilter.value })
-    suggestions.value = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+    suggestions.value = await fetchSuggestions(suggestionFilter.value)
   } catch { suggestions.value = [] }
+  // The badge and the banner follow the active rows, not the tab being viewed.
+  try {
+    activeSuggestions.value = suggestionFilter.value === 'active'
+      ? suggestions.value
+      : await fetchSuggestions('active')
+  } catch { activeSuggestions.value = [] }
 }
 
 const suggestionError = ref('')

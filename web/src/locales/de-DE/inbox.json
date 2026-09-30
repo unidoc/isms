@@ -12,14 +12,14 @@
     "suggestions": "Vorschläge"
   },
   "comments": {
-    "empty": "Keine offenen Kommentare",
+    "empty": "Keine offenen Kommentare erfordern Ihre Aufmerksamkeit",
     "suggestion_badge": "Vorschlag",
     "scope_inline": "Im Text",
     "scope_document": "Dokument",
     "view_in_document": "Im Dokument ansehen →"
   },
   "reviews": {
-    "empty": "Keine ausstehenden Prüfungen",
+    "empty": "Keine Prüfungen erfordern Ihre Aufmerksamkeit",
     "untitled": "Unbenannte Prüfung",
     "requested_by": "Angefragt von {name}",
     "unknown_requester": "Unbekannt",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Zugewiesene Prüfer",
     "recent_comments": "Neueste Kommentare",
-    "open_review": "Prüfung #{id} öffnen"
+    "open_review": "Prüfung #{id} öffnen",
+    "view_all": "Alle Prüfungen anzeigen",
+    "group": {
+      "to_review": "Zu prüfen",
+      "sent": "Von mir gesendet"
+    }
   },
   "tasks": {
     "add": "Aufgabe hinzufügen",
-    "empty": "Keine Aufgaben gefunden",
+    "empty": "Keine Aufgaben erfordern Ihre Aufmerksamkeit",
     "start": "Aufgabe starten",
     "mark_done": "Als erledigt markieren",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Verantwortlicher",
       "assignee_placeholder": "Verantwortlichen auswählen...",
       "due_date": "Fälligkeitsdatum"
-    }
+    },
+    "view_all": "Alle Aufgaben anzeigen",
+    "group": {
+      "assigned": "Mir zugewiesen",
+      "delegated": "Von mir delegiert"
+    },
+    "completed_on": "Erledigt am {date}"
   },
   "incidents": {
-    "empty": "Keine Ihnen zugewiesenen Vorfälle"
+    "empty": "Keine Ihnen zugewiesenen Vorfälle",
+    "view_all": "Alle Vorfälle anzeigen"
   },
   "corrective_actions": {
-    "empty": "Keine Ihnen zugewiesenen Korrekturmaßnahmen"
+    "empty": "Keine Ihnen zugewiesenen Korrekturmaßnahmen",
+    "view_all": "Alle Korrekturmaßnahmen anzeigen"
   },
   "changes": {
     "add": "Änderungsantrag hinzufügen",
-    "empty": "Keine Änderungsanträge",
+    "empty": "Keine Änderungsanträge erfordern Ihre Aufmerksamkeit",
     "requested_by": "Beantragt von {name}",
     "unknown_requester": "Unbekannt",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Ablehnen",
       "mark_implemented": "Als umgesetzt markieren",
       "close": "Schließen"
-    }
+    },
+    "view_all": "Alle Änderungen anzeigen"
   },
   "suggestions": {
-    "empty": "Keine Vorschläge mit diesem Status.",
+    "empty": "Mit diesem Status erfordert nichts Ihre Aufmerksamkeit.",
     "filter": {
       "open": "offen",
       "applied": "angewendet",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Trotzdem anwenden",
     "apply_stale_body": "Das Objekt hat sich geändert, seit dieser Vorschlag erstellt wurde. Trotzdem anwenden?"
-  }
+  },
+  "needs_action": "Handlungsbedarf"
 }

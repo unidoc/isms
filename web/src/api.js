@@ -204,6 +204,15 @@ async function login(email, password, otp, organization) {
 
 export { login }
 
+// Appends a query string built from the non-empty entries of `params`, or
+// nothing at all when none remain, so an empty call keeps the bare URL.
+function withQuery(url, params) {
+  const qs = new URLSearchParams(
+    Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+  ).toString()
+  return qs ? `${url}?${qs}` : url
+}
+
 export const api = {
   // Raw helpers for custom calls
   postJSON,
@@ -271,7 +280,9 @@ export const api = {
   createSupplierReading: (id, data) => postJSON(`${API}/suppliers/${id}/readings`, data),
 
   // Reviews
-  getReviews: (status) => fetchJSON(`${API}/reviews${status ? '?status=' + status : ''}`),
+  // `params` adds query parameters, e.g. { involving: 'me', limit: 200 } for the
+  // viewer's own work (the Inbox).
+  getReviews: (status, params) => fetchJSON(withQuery(`${API}/reviews`, { ...(status && { status }), ...params })),
   // Paginated endpoint — use fetchRaw to keep the full {data, total, page, page_size}
   // shape. fetchJSON unwraps `data` into a bare array, which loses pagination metadata.
   getReviewsPaginated: (params) => fetchRaw(`${API}/reviews?${new URLSearchParams(params || {})}`),
@@ -298,7 +309,7 @@ export const api = {
   updateReviewContent: (id, content) => putJSON(`${API}/reviews/${id}/content`, { content }),
 
   // Comments
-  getAllOpenComments: () => fetchJSON(`${API}/comments/open`),
+  getAllOpenComments: (params) => fetchJSON(withQuery(`${API}/comments/open`, params)),
   getDocComments: (docId) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/comments`),
   addComment: (comment) => postJSON(`${API}/comments`, comment),
   resolveComment: (id) => postJSON(`${API}/comments/${id}/resolve`),
@@ -324,7 +335,7 @@ export const api = {
   getReviewDecisions: (reviewId) => fetchJSON(`${API}/reviews/${reviewId}/decisions`),
 
   // Tasks
-  getTasks: (assignee, status) => fetchJSON(`${API}/tasks?${new URLSearchParams({ ...(assignee && { assignee }), ...(status && { status }) })}`),
+  getTasks: (assignee, status, params) => fetchJSON(`${API}/tasks?${new URLSearchParams({ ...(assignee && { assignee }), ...(status && { status }), ...params })}`),
   listTasksLinked: (params) => fetchJSON(`${API}/tasks?${new URLSearchParams(params || {})}`),
   getTask: (id) => fetchJSON(`${API}/tasks/${id}`),
   createTask: (task) => postJSON(`${API}/tasks`, task),
@@ -351,7 +362,7 @@ export const api = {
   getReviewPolicyStatus: (reviewId) => fetchJSON(`${API}/reviews/${reviewId}/policy-status`),
 
   // Changes
-  getChanges: (status) => fetchJSON(`${API}/changes${status ? '?status=' + status : ''}`),
+  getChanges: (status, params) => fetchJSON(withQuery(`${API}/changes`, { ...(status && { status }), ...params })),
   getChange: (id) => fetchJSON(`${API}/changes/${id}`),
   createChange: (change) => postJSON(`${API}/changes`, change),
   updateChange: (id, data) => putJSON(`${API}/changes/${id}`, data),

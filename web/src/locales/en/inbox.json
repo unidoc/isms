@@ -12,14 +12,14 @@
     "suggestions": "Suggestions"
   },
   "comments": {
-    "empty": "No open comments",
+    "empty": "No open comments need your attention",
     "suggestion_badge": "suggestion",
     "scope_inline": "Inline",
     "scope_document": "Document",
     "view_in_document": "View in document →"
   },
   "reviews": {
-    "empty": "No reviews pending",
+    "empty": "No reviews need your attention",
     "untitled": "Untitled review",
     "requested_by": "Requested by {name}",
     "unknown_requester": "Unknown",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Assigned Reviewers",
     "recent_comments": "Recent Comments",
-    "open_review": "Open Review #{id}"
+    "open_review": "Open Review #{id}",
+    "view_all": "View all reviews",
+    "group": {
+      "to_review": "To review",
+      "sent": "Sent by me"
+    }
   },
   "tasks": {
     "add": "Add Task",
-    "empty": "No tasks found",
+    "empty": "No tasks need your attention",
     "start": "Start task",
     "mark_done": "Mark done",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Assignee",
       "assignee_placeholder": "Select assignee...",
       "due_date": "Due Date"
-    }
+    },
+    "view_all": "View all tasks",
+    "group": {
+      "assigned": "Assigned to me",
+      "delegated": "Delegated by me"
+    },
+    "completed_on": "Completed {date}"
   },
   "incidents": {
-    "empty": "No incidents assigned to you"
+    "empty": "No incidents assigned to you",
+    "view_all": "View all incidents"
   },
   "corrective_actions": {
-    "empty": "No corrective actions assigned to you"
+    "empty": "No corrective actions assigned to you",
+    "view_all": "View all corrective actions"
   },
   "changes": {
     "add": "Add Change Request",
-    "empty": "No change requests",
+    "empty": "No change requests need your attention",
     "requested_by": "Requested by {name}",
     "unknown_requester": "Unknown",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Reject",
       "mark_implemented": "Mark Implemented",
       "close": "Close"
-    }
+    },
+    "view_all": "View all changes"
   },
   "suggestions": {
-    "empty": "No suggestions with this status.",
+    "empty": "Nothing needs your attention with this status.",
     "filter": {
       "open": "open",
       "applied": "applied",
@@ -138,5 +152,6 @@
   "confirm": {
     "apply_stale_title": "Apply anyway",
     "apply_stale_body": "Entity has changed since this suggestion was created. Apply anyway?"
-  }
+  },
+  "needs_action": "Action needed"
 }

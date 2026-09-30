@@ -12,14 +12,14 @@
     "suggestions": "Sugestie"
   },
   "comments": {
-    "empty": "Brak otwartych komentarzy",
+    "empty": "Żadne otwarte komentarze nie wymagają Twojej uwagi",
     "suggestion_badge": "sugestia",
     "scope_inline": "W tekście",
     "scope_document": "Dokument",
     "view_in_document": "Zobacz w dokumencie →"
   },
   "reviews": {
-    "empty": "Brak oczekujących przeglądów",
+    "empty": "Żadne przeglądy nie wymagają Twojej uwagi",
     "untitled": "Przegląd bez tytułu",
     "requested_by": "Zażądane przez {name}",
     "unknown_requester": "Nieznany",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Przypisani recenzenci",
     "recent_comments": "Ostatnie komentarze",
-    "open_review": "Otwórz przegląd #{id}"
+    "open_review": "Otwórz przegląd #{id}",
+    "view_all": "Pokaż wszystkie przeglądy",
+    "group": {
+      "to_review": "Do przeglądu",
+      "sent": "Wysłane przeze mnie"
+    }
   },
   "tasks": {
     "add": "Dodaj zadanie",
-    "empty": "Nie znaleziono zadań",
+    "empty": "Żadne zadania nie wymagają Twojej uwagi",
     "start": "Rozpocznij zadanie",
     "mark_done": "Oznacz jako wykonane",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Przypisana osoba",
       "assignee_placeholder": "Wybierz osobę...",
       "due_date": "Termin"
-    }
+    },
+    "view_all": "Pokaż wszystkie zadania",
+    "group": {
+      "assigned": "Przypisane do mnie",
+      "delegated": "Zlecone przeze mnie"
+    },
+    "completed_on": "Zakończone {date}"
   },
   "incidents": {
-    "empty": "Brak przypisanych Ci incydentów"
+    "empty": "Brak przypisanych Ci incydentów",
+    "view_all": "Pokaż wszystkie incydenty"
   },
   "corrective_actions": {
-    "empty": "Brak przypisanych Ci działań korygujących"
+    "empty": "Brak przypisanych Ci działań korygujących",
+    "view_all": "Pokaż wszystkie działania korygujące"
   },
   "changes": {
     "add": "Dodaj wniosek o zmianę",
-    "empty": "Brak wniosków o zmianę",
+    "empty": "Żadne wnioski o zmianę nie wymagają Twojej uwagi",
     "requested_by": "Zażądane przez {name}",
     "unknown_requester": "Nieznany",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Odrzuć",
       "mark_implemented": "Oznacz jako wdrożone",
       "close": "Zamknij"
-    }
+    },
+    "view_all": "Pokaż wszystkie zmiany"
   },
   "suggestions": {
-    "empty": "Brak sugestii o tym statusie.",
+    "empty": "Nic nie wymaga Twojej uwagi przy tym statusie.",
     "filter": {
       "open": "otwarte",
       "applied": "zastosowane",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Zastosuj mimo to",
     "apply_stale_body": "Encja została zmieniona od czasu utworzenia tej sugestii. Zastosować mimo to?"
-  }
+  },
+  "needs_action": "Wymaga działania"
 }

@@ -12,14 +12,14 @@
     "suggestions": "提案"
   },
   "comments": {
-    "empty": "未処理のコメントはありません",
+    "empty": "対応が必要な未処理のコメントはありません",
     "suggestion_badge": "提案",
     "scope_inline": "インライン",
     "scope_document": "文書",
     "view_in_document": "文書で表示 →"
   },
   "reviews": {
-    "empty": "保留中のレビューはありません",
+    "empty": "対応が必要なレビューはありません",
     "untitled": "無題のレビュー",
     "requested_by": "{name}が要求",
     "unknown_requester": "不明",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "割り当てられたレビュー担当者",
     "recent_comments": "最近のコメント",
-    "open_review": "レビュー #{id} を開く"
+    "open_review": "レビュー #{id} を開く",
+    "view_all": "すべてのレビューを表示",
+    "group": {
+      "to_review": "レビュー待ち",
+      "sent": "自分が送信"
+    }
   },
   "tasks": {
     "add": "タスクを追加",
-    "empty": "タスクが見つかりません",
+    "empty": "対応が必要なタスクはありません",
     "start": "タスクを開始",
     "mark_done": "完了にする",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "担当者",
       "assignee_placeholder": "担当者を選択…",
       "due_date": "期限"
-    }
+    },
+    "view_all": "すべてのタスクを表示",
+    "group": {
+      "assigned": "自分に割り当て",
+      "delegated": "自分が委任"
+    },
+    "completed_on": "{date}に完了"
   },
   "incidents": {
-    "empty": "あなたに割り当てられたインシデントはありません"
+    "empty": "あなたに割り当てられたインシデントはありません",
+    "view_all": "すべてのインシデントを表示"
   },
   "corrective_actions": {
-    "empty": "あなたに割り当てられた是正処置はありません"
+    "empty": "あなたに割り当てられた是正処置はありません",
+    "view_all": "すべての是正処置を表示"
   },
   "changes": {
     "add": "変更要求を追加",
-    "empty": "変更要求はありません",
+    "empty": "対応が必要な変更要求はありません",
     "requested_by": "{name}が要求",
     "unknown_requester": "不明",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "却下",
       "mark_implemented": "実装済みにする",
       "close": "クローズ"
-    }
+    },
+    "view_all": "すべての変更を表示"
   },
   "suggestions": {
-    "empty": "この状態の提案はありません。",
+    "empty": "この状態で対応が必要なものはありません。",
     "filter": {
       "open": "未処理",
       "applied": "適用済み",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "それでも適用",
     "apply_stale_body": "この提案の作成後にエンティティが変更されました。それでも適用しますか？"
-  }
+  },
+  "needs_action": "対応が必要"
 }

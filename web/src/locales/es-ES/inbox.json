@@ -12,14 +12,14 @@
     "suggestions": "Sugerencias"
   },
   "comments": {
-    "empty": "Sin comentarios abiertos",
+    "empty": "Ningún comentario abierto requiere su atención",
     "suggestion_badge": "sugerencia",
     "scope_inline": "En línea",
     "scope_document": "Documento",
     "view_in_document": "Ver en el documento →"
   },
   "reviews": {
-    "empty": "No hay revisiones pendientes",
+    "empty": "Ninguna revisión requiere su atención",
     "untitled": "Revisión sin título",
     "requested_by": "Solicitada por {name}",
     "unknown_requester": "Desconocido",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Revisores Asignados",
     "recent_comments": "Comentarios Recientes",
-    "open_review": "Abrir Revisión #{id}"
+    "open_review": "Abrir Revisión #{id}",
+    "view_all": "Ver todas las revisiones",
+    "group": {
+      "to_review": "Por revisar",
+      "sent": "Enviadas por mí"
+    }
   },
   "tasks": {
     "add": "Añadir Tarea",
-    "empty": "No se encontraron tareas",
+    "empty": "Ninguna tarea requiere su atención",
     "start": "Iniciar tarea",
     "mark_done": "Marcar como completada",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Responsable",
       "assignee_placeholder": "Seleccionar responsable...",
       "due_date": "Fecha Límite"
-    }
+    },
+    "view_all": "Ver todas las tareas",
+    "group": {
+      "assigned": "Asignadas a mí",
+      "delegated": "Delegadas por mí"
+    },
+    "completed_on": "Completada el {date}"
   },
   "incidents": {
-    "empty": "No tiene incidentes asignados"
+    "empty": "No tiene incidentes asignados",
+    "view_all": "Ver todos los incidentes"
   },
   "corrective_actions": {
-    "empty": "No tiene acciones correctivas asignadas"
+    "empty": "No tiene acciones correctivas asignadas",
+    "view_all": "Ver todas las acciones correctivas"
   },
   "changes": {
     "add": "Añadir Solicitud de Cambio",
-    "empty": "No hay solicitudes de cambio",
+    "empty": "Ninguna solicitud de cambio requiere su atención",
     "requested_by": "Solicitado por {name}",
     "unknown_requester": "Desconocido",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Rechazar",
       "mark_implemented": "Marcar como Implementado",
       "close": "Cerrar"
-    }
+    },
+    "view_all": "Ver todos los cambios"
   },
   "suggestions": {
-    "empty": "No hay sugerencias con este estado.",
+    "empty": "Nada requiere su atención con este estado.",
     "filter": {
       "open": "abierta",
       "applied": "aplicada",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Aplicar de todos modos",
     "apply_stale_body": "La entidad ha cambiado desde que se creó esta sugerencia. ¿Aplicar de todos modos?"
-  }
+  },
+  "needs_action": "Requiere acción"
 }

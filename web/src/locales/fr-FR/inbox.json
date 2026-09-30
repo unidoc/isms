@@ -12,14 +12,14 @@
     "suggestions": "Suggestions"
   },
   "comments": {
-    "empty": "Aucun commentaire ouvert",
+    "empty": "Aucun commentaire ouvert ne requiert votre attention",
     "suggestion_badge": "suggestion",
     "scope_inline": "Intégré",
     "scope_document": "Document",
     "view_in_document": "Voir dans le document →"
   },
   "reviews": {
-    "empty": "Aucune revue en attente",
+    "empty": "Aucune revue ne requiert votre attention",
     "untitled": "Revue sans titre",
     "requested_by": "Demandée par {name}",
     "unknown_requester": "Inconnu",
@@ -31,11 +31,16 @@
     },
     "assigned_reviewers": "Relecteurs assignés",
     "recent_comments": "Commentaires récents",
-    "open_review": "Ouvrir la revue #{id}"
+    "open_review": "Ouvrir la revue #{id}",
+    "view_all": "Voir toutes les revues",
+    "group": {
+      "to_review": "À examiner",
+      "sent": "Envoyées par moi"
+    }
   },
   "tasks": {
     "add": "Ajouter une tâche",
-    "empty": "Aucune tâche trouvée",
+    "empty": "Aucune tâche ne requiert votre attention",
     "start": "Démarrer la tâche",
     "mark_done": "Marquer comme terminée",
     "form": {
@@ -48,17 +53,25 @@
       "assignee": "Responsable",
       "assignee_placeholder": "Sélectionner un responsable...",
       "due_date": "Date d'échéance"
-    }
+    },
+    "view_all": "Voir toutes les tâches",
+    "group": {
+      "assigned": "Assignées à moi",
+      "delegated": "Déléguées par moi"
+    },
+    "completed_on": "Terminée le {date}"
   },
   "incidents": {
-    "empty": "Aucun incident ne vous est assigné"
+    "empty": "Aucun incident ne vous est assigné",
+    "view_all": "Voir tous les incidents"
   },
   "corrective_actions": {
-    "empty": "Aucune action corrective ne vous est assignée"
+    "empty": "Aucune action corrective ne vous est assignée",
+    "view_all": "Voir toutes les actions correctives"
   },
   "changes": {
     "add": "Ajouter une demande de changement",
-    "empty": "Aucune demande de changement",
+    "empty": "Aucune demande de changement ne requiert votre attention",
     "requested_by": "Demandée par {name}",
     "unknown_requester": "Inconnu",
     "form": {
@@ -84,10 +97,11 @@
       "reject": "Rejeter",
       "mark_implemented": "Marquer comme mis en œuvre",
       "close": "Fermer"
-    }
+    },
+    "view_all": "Voir tous les changements"
   },
   "suggestions": {
-    "empty": "Aucune suggestion avec ce statut.",
+    "empty": "Rien ne requiert votre attention avec ce statut.",
     "filter": {
       "open": "ouvertes",
       "applied": "appliquées",
@@ -137,5 +151,6 @@
   "confirm": {
     "apply_stale_title": "Appliquer quand même",
     "apply_stale_body": "L'entité a changé depuis la création de cette suggestion. Appliquer quand même ?"
-  }
+  },
+  "needs_action": "Action requise"
 }

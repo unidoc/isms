@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "El contrato vence hoy: {title}",
     "body": "El contrato de {title} ({id}) vence hoy."
+  },
+  "task_status_changed": {
+    "title": "Tarea {status}: {title}",
+    "body": "{actor} cambió la tarea #{id} a {status}"
   }
 }

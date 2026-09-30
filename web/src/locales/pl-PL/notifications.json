@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "Umowa wygasa dzisiaj: {title}",
     "body": "Umowa dla {title} ({id}) wygasa dzisiaj."
+  },
+  "task_status_changed": {
+    "title": "Zadanie {status}: {title}",
+    "body": "{actor} zmienił(a) zadanie #{id} na {status}"
   }
 }

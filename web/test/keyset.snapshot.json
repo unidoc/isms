@@ -1938,6 +1938,8 @@
   "notifications.supplier_contract_7.title",
   "notifications.supplier_contract_today.body",
   "notifications.supplier_contract_today.title",
+  "notifications.task_status_changed.body",
+  "notifications.task_status_changed.title",
   "objectives.action.add",
   "objectives.checkin.confirm_delete",
   "objectives.checkin.empty",

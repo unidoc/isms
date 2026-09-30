@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "Contrato expira hoje: {title}",
     "body": "O contrato para {title} ({id}) expira hoje."
+  },
+  "task_status_changed": {
+    "title": "Tarefa {status}: {title}",
+    "body": "{actor} alterou a tarefa #{id} para {status}"
   }
 }

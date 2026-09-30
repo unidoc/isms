@@ -95,6 +95,11 @@ const (
 	NotifyKeySupplierContract7Body     = "notifications.supplier_contract_7.body"
 	NotifyKeySupplierContractToday     = "notifications.supplier_contract_today"
 	NotifyKeySupplierContractTodayBody = "notifications.supplier_contract_today.body"
+
+	// Tasks (#205). Sent to the task's creator when someone else changes its
+	// status; the assignee already knows, so they are never told.
+	NotifyKeyTaskStatusChanged     = "notifications.task_status_changed"
+	NotifyKeyTaskStatusChangedBody = "notifications.task_status_changed.body"
 )
 
 // NotificationKeys is every wire key this build can write. Adding a constant
@@ -140,6 +145,9 @@ var NotificationKeys = []string{
 	NotifyKeySupplierContract7Body,
 	NotifyKeySupplierContractToday,
 	NotifyKeySupplierContractTodayBody,
+
+	NotifyKeyTaskStatusChanged,
+	NotifyKeyTaskStatusChangedBody,
 }
 
 // NotificationKeyParams is the set of param names each wire key's call sites
@@ -231,4 +239,7 @@ var NotificationKeyParams = map[string][]string{
 	NotifyKeySupplierContract7Body:     {"title", "id"},
 	NotifyKeySupplierContractToday:     {"title", "id"},
 	NotifyKeySupplierContractTodayBody: {"title", "id"},
+
+	NotifyKeyTaskStatusChanged:     {"actor", "title", "id", "status"},
+	NotifyKeyTaskStatusChangedBody: {"actor", "title", "id", "status"},
 }

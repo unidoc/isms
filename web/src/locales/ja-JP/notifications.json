@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "契約が本日期限切れ: {title}",
     "body": "{title}（{id}）の契約は本日期限切れになります。"
+  },
+  "task_status_changed": {
+    "title": "タスク {status}: {title}",
+    "body": "{actor} がタスク #{id} を {status} に変更しました"
   }
 }

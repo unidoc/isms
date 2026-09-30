@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "Vertrag läuft heute ab: {title}",
     "body": "Der Vertrag für {title} ({id}) läuft heute ab."
+  },
+  "task_status_changed": {
+    "title": "Aufgabe {status}: {title}",
+    "body": "{actor} hat Aufgabe #{id} auf {status} gesetzt"
   }
 }

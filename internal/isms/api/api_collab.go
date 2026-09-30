@@ -2424,6 +2424,19 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 		Action: "task_status_changed",
 		Detail: fmt.Sprintf("Task #%d status changed to %s", id, req.Status),
 	})
+	// Tell the creator when someone else moves their task (#205). Not the actor
+	// themselves, and not on a repeat of the same status. An unknown creator
+	// email resolves to no user and writes nothing.
+	if before.CreatedBy != "" && before.CreatedBy != actor && before.Status != req.Status {
+		s.db.CreateNotificationContentByEmail(ctx, orgID, before.CreatedBy, db.NotificationContent{
+			Title:    fmt.Sprintf("Task %s: %s", strings.ReplaceAll(req.Status, "_", " "), before.Title),
+			TitleKey: NotifyKeyTaskStatusChanged,
+			Body:     fmt.Sprintf("%s changed task #%d to %s", actor, id, strings.ReplaceAll(req.Status, "_", " ")),
+			BodyKey:  NotifyKeyTaskStatusChangedBody,
+			Params:   map[string]any{"actor": actor, "title": before.Title, "id": id, "status": req.Status},
+			Link:     "/inbox/tasks",
+		})
+	}
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
 }
 

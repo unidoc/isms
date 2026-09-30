@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "Samningur rennur út í dag: {title}",
     "body": "Samningurinn fyrir {title} ({id}) rennur út í dag."
+  },
+  "task_status_changed": {
+    "title": "Verkefni {status}: {title}",
+    "body": "{actor} breytti verkefni #{id} í {status}"
   }
 }

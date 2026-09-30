@@ -65,5 +65,9 @@
   "supplier_contract_today": {
     "title": "Kontrak berakhir hari ini: {title}",
     "body": "Kontrak untuk {title} ({id}) berakhir hari ini."
+  },
+  "task_status_changed": {
+    "title": "Tugas {status}: {title}",
+    "body": "{actor} mengubah tugas #{id} menjadi {status}"
   }
 }

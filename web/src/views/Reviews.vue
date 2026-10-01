@@ -375,8 +375,17 @@
                 </div>
                 <!-- No overflow-hidden: it breaks the toolbar's `position: sticky` (same fix
                      as Documents.vue's edit mode) — the toolbar and tiptap content already
-                     round their own top/bottom corners. -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl">
+                     round their own top/bottom corners.
+
+                     --sticky-toolbar-top is set here, unlike Documents.vue: this page has no
+                     own `overflow-y-auto` scroll container (Documents.vue's does, under its
+                     own <main>), so this content scrolls in the same context as the app
+                     shell's header (App.vue's `<header class="h-14 ... sticky top-0 z-40">`).
+                     Without an offset the toolbar sticks at the same top:0 and lands behind
+                     that header — same z-index fight the Documents.vue breadcrumb bar would
+                     have had, just against the header instead. 3.5rem = the header's own h-14;
+                     if that height ever changes, this needs to change with it. -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl" style="--sticky-toolbar-top: 3.5rem">
                   <DocumentEditor v-model="reviewEditContent" :editable="true" :documentId="review.document_id" @save="saveReviewEdit" />
                 </div>
               </div>

@@ -1618,8 +1618,8 @@ const activeBreadcrumb = computed(() => {
 // it — both are `position: sticky` at the same scroll container, so without
 // this the toolbar would land at the same `top: 0` and cover the breadcrumb
 // once both are stuck. Measured rather than hardcoded because the row's
-// height depends on its content (edit-mode swaps Edit for Save/Cancel, the
-// breadcrumb can wrap on a narrow viewport).
+// height depends on its content: edit mode swaps the Edit button for
+// Save/Cancel, which isn't guaranteed to render at an identical height.
 const breadcrumbBarRef = ref(null)
 const breadcrumbBarHeight = ref(0)
 let breadcrumbBarObserver = null
@@ -1631,7 +1631,13 @@ watch(breadcrumbBarRef, (el) => {
   breadcrumbBarObserver?.disconnect()
   if (!el) return
   breadcrumbBarObserver = new ResizeObserver(([entry]) => {
-    breadcrumbBarHeight.value = entry.contentRect.height
+    // contentRect excludes padding. The bar is `pt-2 pb-3` (20px of it), so
+    // contentRect under-measured the real height by exactly that much — the
+    // toolbar stuck 20px too high and covered the bar's own bottom edge,
+    // Save/Cancel buttons included. borderBoxSize (or offsetHeight, for the
+    // one browser path where a ResizeObserver entry might not carry it) is
+    // the full rendered box, what's actually needed to clear it.
+    breadcrumbBarHeight.value = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.offsetHeight
   })
   breadcrumbBarObserver.observe(el)
 })

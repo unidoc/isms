@@ -500,6 +500,18 @@
   color: rgb(241 245 249);
   font-weight: 600;
 }
+/* A cell carrying the editor's has-text-color class (see
+   DocumentEditor.vue's CustomTableCell/CustomTableHeader) has its own
+   explicit text color and needs bold text inside it to inherit that color
+   instead of the generic rule above — otherwise a document edited and saved
+   in the WYSIWYG editor (which can turn a cell's own inline font-weight into
+   a real <strong> — see tableCellStyle.js's hasExplicitTextColor) renders
+   correctly right up until the first save, then stays unreadable in this
+   read-only view from then on. (0,2,2) beats the rule above's (0,1,2), so
+   this doesn't need `!important` or reordering to win. */
+.doc-prose :is(td, th).has-text-color strong {
+  color: inherit;
+}
 .doc-prose hr {
   border: none;
   border-top: 1px solid rgb(30 41 59);

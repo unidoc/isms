@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseBackgroundColor, parseExtraStyle } from '../src/components/tableCellStyle.js'
+import { parseBackgroundColor, parseExtraStyle, hasExplicitTextColor } from '../src/components/tableCellStyle.js'
 
 // Regression: a table cell's inline style used to lose everything but
 // background-color the moment it loaded into the editor (tiptap's
@@ -40,6 +40,31 @@ test('no style attribute at all yields both as null', () => {
   assert.equal(parseExtraStyle(null), null)
   assert.equal(parseBackgroundColor(undefined), null)
   assert.equal(parseExtraStyle(undefined), null)
+})
+
+// Regression (review finding F5 on #388): parseBackgroundColor only matched
+// lowercase "background-color", while parseExtraStyle already stripped it
+// case-insensitively. An upper-case `BACKGROUND-COLOR:` would be stripped by
+// one and picked up by neither — the background vanishes completely.
+test('an upper-case BACKGROUND-COLOR is still extracted, and still stripped from extraStyle', () => {
+  const style = 'BACKGROUND-COLOR:#ddf0cd; color:#1f1f1f;'
+  assert.equal(parseBackgroundColor(style), '#ddf0cd')
+  assert.doesNotMatch(parseExtraStyle(style), /background-color/i)
+})
+
+// Regression (review finding F3 on #388): hasExplicitTextColor flags the
+// cells where a bold mark's generic color would otherwise override the
+// cell's own, preserved color (see DocumentEditor.vue's has-text-color CSS).
+test('hasExplicitTextColor', () => {
+  assert.equal(hasExplicitTextColor('color:#1f1f1f; font-weight:600;'), true)
+  assert.equal(hasExplicitTextColor('font-weight:600; color: #1f1f1f;'), true)
+  assert.equal(hasExplicitTextColor('BACKGROUND-COLOR:#ddf0cd; COLOR:#1f1f1f;'), true)
+  // Must not fire on "background-color" alone — it contains the substring
+  // "color:" but is not a color declaration of its own.
+  assert.equal(hasExplicitTextColor('background-color:#ddf0cd;'), false)
+  assert.equal(hasExplicitTextColor('font-weight:600;'), false)
+  assert.equal(hasExplicitTextColor(null), false)
+  assert.equal(hasExplicitTextColor(''), false)
 })
 
 // tiptap's mergeAttributes (@tiptap/core) concatenates multiple `style`

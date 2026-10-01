@@ -265,7 +265,7 @@ import ColorPicker from './ColorPicker.vue'
 import { api } from '../api.js'
 import { translatedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
-import { parseBackgroundColor, parseExtraStyle } from './tableCellStyle.js'
+import { parseBackgroundColor, parseExtraStyle, hasExplicitTextColor } from './tableCellStyle.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -341,8 +341,13 @@ function onCellRightClick(e) {
 // exactly this one property, in isolation from everything else on the cell).
 // extraStyle carries every OTHER inline style declaration the cell arrived
 // with (see tableCellStyle.js for why this exists). tiptap's mergeAttributes
-// concatenates multiple `style` contributions property-by-property rather
-// than letting one overwrite the other, so the two combine cleanly.
+// concatenates multiple `style` contributions property-by-property, with the
+// LATER-declared attribute's value winning on a collision (confirmed via
+// @tiptap/core's getRenderedAttributes, which reduces each attribute's
+// renderHTML output in addAttributes()'s own key order) — extraStyle is
+// declared first so a picker-set backgroundColor always wins over a legacy
+// `background:` shorthand the cell's extraStyle might carry; the two don't
+// otherwise overlap.
 const cellBackgroundColorAttr = {
   default: null,
   parseHTML: element => parseBackgroundColor(element.getAttribute('style')),
@@ -356,7 +361,23 @@ const cellExtraStyleAttr = {
   parseHTML: element => parseExtraStyle(element.getAttribute('style')),
   renderHTML: attributes => {
     if (!attributes.extraStyle) return {}
-    return { style: attributes.extraStyle }
+    const out = { style: attributes.extraStyle }
+    // tiptap's Bold extension treats ANY ancestor's font-weight (600+, or the
+    // word "bold"/"bolder") as a bold mark on the text inside — including a
+    // cell's own inline font-weight, not just an authored <strong>/<b>. The
+    // resulting <strong> then hits the hardcoded `.editor-content .tiptap
+    // strong` color below (and `.doc-prose td strong` in the read-only
+    // view), which wins over whatever color this cell's own style carries:
+    // a cell with an explicit text color AND a bold weight stays unreadable
+    // even with that color preserved. Worse, once the mark exists in the
+    // document, saving writes a real <strong> into storage where there was
+    // none before, so the read-only view breaks too from then on, for a
+    // document that rendered correctly before anyone opened the editor. The
+    // has-text-color class flags exactly the cells this applies to, so the
+    // CSS can make their <strong> inherit instead of using the generic bold
+    // color — see the matching rule below and in style.css.
+    if (hasExplicitTextColor(attributes.extraStyle)) out.class = 'has-text-color'
+    return out
   },
 }
 
@@ -364,8 +385,8 @@ const CustomTableCell = TableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      backgroundColor: cellBackgroundColorAttr,
       extraStyle: cellExtraStyleAttr,
+      backgroundColor: cellBackgroundColorAttr,
     }
   },
 })
@@ -374,8 +395,8 @@ const CustomTableHeader = TableHeader.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      backgroundColor: cellBackgroundColorAttr,
       extraStyle: cellExtraStyleAttr,
+      backgroundColor: cellBackgroundColorAttr,
     }
   },
 })
@@ -884,6 +905,13 @@ onBeforeUnmount(() => {
   background-color: #1e293b;
   font-weight: 600;
 }
+/* A cell with its own explicit text color (has-text-color, set in the
+   CustomTableCell/CustomTableHeader extensions above) needs its bold text to
+   inherit that color instead of the generic `strong` rule above — otherwise
+   a bold, explicitly-colored cell stays unreadable even though the color
+   itself now survives the editor round-trip. See style.css for the matching
+   read-only-view rule. */
+.editor-content .tiptap table :is(td, th).has-text-color strong { color: inherit; }
 .editor-content .tiptap table .selectedCell {
   background-color: rgba(59, 130, 246, 0.15);
   outline: 2px solid rgba(59, 130, 246, 0.4);

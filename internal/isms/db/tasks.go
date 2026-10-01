@@ -207,10 +207,11 @@ func (d *DB) UpdateTask(ctx context.Context, orgID int, t *Task) error {
 			END,
 			notes = $9,
 			private = $11,
+			recurrence_days = $12,
 			updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, t.ID, t.Title, nilIfEmpty(t.Description), t.Assignee,
-		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID, t.Private)
+		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID, t.Private, t.RecurrenceDays)
 	return err
 }
 

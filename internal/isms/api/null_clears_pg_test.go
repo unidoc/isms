@@ -21,8 +21,7 @@ import (
 // "absent, null, value", but encoding/json decodes null into a **T as an outer
 // nil, the same as an absent key, so an explicit null never cleared anything
 // and the handler answered 200 with nothing changed. Every nullable field of
-// the 13 update requests now has to behave the same way, except task
-// recurrence_days, which db.UpdateTask never writes (see the task case):
+// the 13 update requests now has to behave the same way:
 //
 //   - {} changes nothing.
 //   - {"<field>": null} clears that field and leaves its siblings alone.
@@ -357,14 +356,13 @@ func nullCases() []nullEntity {
 				if err != nil {
 					t.Fatalf("GetTask: %v", err)
 				}
-				// recurrence_days is deliberately absent: db.UpdateTask does not
-				// write that column, so the handler cannot change it with any
-				// value, null or not. The request field is converted like the
-				// others, but there is nothing to observe until UpdateTask
-				// persists it.
-				return map[string]string{"due_date": ptrStr(x.DueDate)}
+				return map[string]string{"due_date": ptrStr(x.DueDate), "recurrence_days": ptrStr(x.RecurrenceDays)}
 			},
 			dates: []string{"due_date"},
+			zeros: []nullZero{
+				{"recurrence_days", `{"recurrence_days":7}`, "7"},
+				{"recurrence_days", `{"recurrence_days":0}`, "0"},
+			},
 		},
 		{
 			name:    "change request",

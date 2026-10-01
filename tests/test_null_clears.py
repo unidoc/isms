@@ -132,3 +132,22 @@ def test_empty_body_changes_nothing(api_url, admin_headers):
     assert got_risk.get("current_impact") == 5
     got_ca = _get(api_url, admin_headers, f"/corrective-actions/{ca['id']}")
     assert got_ca.get("due_date"), "an empty body must not clear the due date"
+
+
+def test_recurrence_days_can_be_set_and_cleared(api_url, admin_headers):
+    task = _create(api_url, admin_headers, "/tasks", {
+        "title": _name("recur-task"), "task_type": "general",
+        "assignee": CONTRIBUTOR_EMAIL,
+    })
+    path = f"/tasks/{task['id']}"
+
+    _put(api_url, admin_headers, path, {"recurrence_days": 7})
+    assert _get(api_url, admin_headers, path).get("recurrence_days") == 7
+
+    _put(api_url, admin_headers, path, {"title": task["title"]})
+    assert _get(api_url, admin_headers, path).get("recurrence_days") == 7, \
+        "an update that does not mention recurrence_days must keep it"
+
+    _put(api_url, admin_headers, path, {"recurrence_days": None})
+    assert not _get(api_url, admin_headers, path).get("recurrence_days"), \
+        "null must clear recurrence_days"

@@ -171,6 +171,108 @@ class TestResolveAuthorization:
         assert any(row["id"] == cid for row in rows), "comment should still be open"
 
 
+class TestReplyInheritsReviewGate:
+    """A reply belongs to its parent's thread, so omitting review_id must not skip the gate.
+
+    POST /comments used to run the review gate only when the body carried
+    review_id. A reply that left it out passed no participant check, ignored the
+    merged/closed lock, and — because the client also chose document_id — could
+    land on any document.
+    """
+
+    open_review = None       # reviewer: CONTRIBUTOR (reader is not on it)
+    open_parent = None
+    assigned_review = None   # reviewer: READER
+    assigned_parent = None
+    merged_review = None
+    merged_parent = None
+    open_doc = "iso27001-a-8-17"
+    assigned_doc = "iso27001-a-8-18"
+    merged_doc = "iso27001-a-8-19"
+    other_doc = "iso27001-4-1"
+
+    def test_01_setup_reviews_with_a_parent_comment_each(self, api_url, admin_headers, reader_headers):
+        def open_with_comment(doc_id, reviewer):
+            r = requests.post(f"{api_url}/documents/{doc_id}/reviews", headers=admin_headers,
+                              json={"reviewers": [reviewer], "message": "reply gate"})
+            assert r.status_code in [200, 201], f"Failed: {r.text}"
+            rid = r.json()["review_id"]
+            r = requests.post(f"{api_url}/reviews/{rid}/comment", headers=admin_headers,
+                              json={"body": "thread starter"})
+            assert r.status_code == 201, r.text
+            return rid, r.json()["id"]
+
+        c = TestReplyInheritsReviewGate
+        c.open_review, c.open_parent = open_with_comment(self.open_doc, CONTRIBUTOR_EMAIL)
+        c.assigned_review, c.assigned_parent = open_with_comment(self.assigned_doc, READER_EMAIL)
+        c.merged_review, c.merged_parent = open_with_comment(self.merged_doc, READER_EMAIL)
+
+        assert requests.post(f"{api_url}/reviews/{c.merged_review}/approve", headers=reader_headers,
+                             json={"decision": "approved", "comment": "ok"}).status_code == 200
+        assert requests.post(f"{api_url}/reviews/{c.merged_review}/merge", headers=admin_headers,
+                             json={}).status_code in [200, 201]
+
+    def test_02_unassigned_reader_reply_without_review_id_is_refused(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"parent_id": self.open_parent, "body": "reply without review_id"})
+        assert r.status_code == 403, f"Reply bypass still open: {r.status_code} {r.text}"
+
+    def test_03_unassigned_reader_cannot_redirect_a_reply_to_another_document(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"parent_id": self.open_parent, "document_id": self.other_doc,
+                                "body": "reply claiming another document"})
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
+
+    def test_04_assigned_reader_reply_inherits_review_and_document(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"parent_id": self.assigned_parent, "document_id": self.other_doc,
+                                "body": "assigned reviewer reply"})
+        assert r.status_code == 201, f"Assigned reader blocked: {r.text}"
+        body = r.json()
+        assert body["review_id"] == self.assigned_review
+        assert body["document_id"] == self.assigned_doc
+        assert body["parent_id"] == self.assigned_parent
+
+    def test_05_reply_echoing_the_parents_review_id_is_accepted(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"parent_id": self.assigned_parent, "review_id": self.assigned_review,
+                                "body": "reply that echoes review_id"})
+        assert r.status_code == 201, r.text
+
+    def test_06_reply_naming_a_different_review_is_rejected(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/comments", headers=admin_headers,
+                          json={"parent_id": self.assigned_parent, "review_id": self.open_review,
+                                "body": "reply moved to another review"})
+        assert r.status_code == 400, f"Expected 400, got {r.status_code}: {r.text}"
+
+    def test_07_reply_on_a_merged_review_is_rejected(self, api_url, reader_headers, admin_headers):
+        for headers in (reader_headers, admin_headers):
+            r = requests.post(f"{api_url}/comments", headers=headers,
+                              json={"parent_id": self.merged_parent, "body": "reply on a merged review"})
+            assert r.status_code == 400, f"Expected 400, got {r.status_code}: {r.text}"
+            assert "merged" in r.text
+
+    def test_08_missing_parent_is_404_without_database_text(self, api_url, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"document_id": self.open_doc, "parent_id": 999999,
+                                "body": "reply to nothing"})
+        assert r.status_code == 404, f"Expected 404, got {r.status_code}: {r.text}"
+        assert "constraint" not in r.text.lower() and "foreign key" not in r.text.lower()
+
+    def test_09_reply_to_a_document_comment_stays_open_to_readers(self, api_url, admin_headers, reader_headers):
+        r = requests.post(f"{api_url}/comments", headers=admin_headers,
+                          json={"document_id": self.other_doc, "body": "plain document comment"})
+        assert r.status_code == 201, r.text
+        parent = r.json()["id"]
+
+        r = requests.post(f"{api_url}/comments", headers=reader_headers,
+                          json={"parent_id": parent, "document_id": self.open_doc,
+                                "body": "reader reply to a document comment"})
+        assert r.status_code == 201, f"Reader lost document-level replies: {r.text}"
+        assert r.json().get("review_id") is None
+        assert r.json()["document_id"] == self.other_doc
+
+
 class TestEntityCommentAuthorization:
     """POST /entity-comments is a contributor-and-above write (#23)."""
 

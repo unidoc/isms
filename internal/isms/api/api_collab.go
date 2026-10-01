@@ -1822,10 +1822,30 @@ func (s *Server) handleAddCommentDB(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	comment.Author = getUserEmail(c) // always use authenticated user
-	// review_id arrives from the client, so a comment aimed at a review must pass
-	// the same gate as POST /reviews/:id/comment — otherwise this route is a way
-	// around it. Plain document comments (no review_id) stay open to every role,
-	// which is what the reader exemption in RoleMiddleware exists for.
+	// A reply belongs to its parent's thread: the parent, not the client, decides
+	// which review and document it lands on. Without this a reply that simply
+	// omits review_id would skip the gate below.
+	if comment.ParentID != nil {
+		parent, err := s.db.GetComment(c.Request().Context(), orgID, *comment.ParentID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		// Echoing the parent's own review_id stays valid (existing clients send
+		// it); naming a different one is a client error, not something to rewrite.
+		if comment.ReviewID != nil && (parent.ReviewID == nil || *comment.ReviewID != *parent.ReviewID) {
+			return apiError(http.StatusBadRequest, CodeInvalidRequest)
+		}
+		comment.ReviewID = parent.ReviewID
+		comment.DocumentID = parent.DocumentID
+	}
+	// review_id arrives from the client (or, for a reply, from its parent), so a
+	// comment aimed at a review must pass the same gate as POST
+	// /reviews/:id/comment — otherwise this route is a way around it. Plain
+	// document comments (no review_id) stay open to every role, which is what the
+	// reader exemption in RoleMiddleware exists for.
 	if comment.ReviewID != nil {
 		role, _ := c.Get("user_role").(string)
 		review, err := s.authorizeReviewComment(c.Request().Context(), orgID, *comment.ReviewID, comment.Author, role)

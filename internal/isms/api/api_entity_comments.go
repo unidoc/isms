@@ -1,10 +1,12 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -53,6 +55,21 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 	}
 	if req.Body == "" {
 		return errRequired("body")
+	}
+
+	// A reply stays on its parent's record. Unlike document comments the client
+	// has to name the entity anyway, so a mismatch is an error, not rewritten.
+	if req.ParentID != nil {
+		parent, err := s.db.GetEntityComment(ctx, orgID, *req.ParentID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		if parent.EntityType != req.EntityType || parent.EntityID != req.EntityID {
+			return apiError(http.StatusBadRequest, CodeInvalidRequest)
+		}
 	}
 
 	comment := &db.EntityComment{

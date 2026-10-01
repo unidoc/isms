@@ -304,3 +304,50 @@ class TestEntityCommentAuthorization:
                           json={"entity_type": "risk", "entity_id": identifier,
                                 "body": "contributor comment"})
         assert r.status_code in [200, 201], f"Contributor blocked: {r.text}"
+
+    def test_03_reply_must_stay_on_its_parents_entity(self, api_url, admin_headers, contributor_headers):
+        def new_risk(title):
+            r = requests.post(f"{api_url}/risks", headers=admin_headers,
+                              json={"title": title, "likelihood": 2, "impact": 2})
+            assert r.status_code in [200, 201], r.text
+            risk = r.json()
+            return risk.get("identifier") or str(risk.get("id"))
+
+        risk_a = new_risk("reply parent risk")
+        risk_b = new_risk("reply other risk")
+
+        r = requests.post(f"{api_url}/entity-comments", headers=contributor_headers,
+                          json={"entity_type": "risk", "entity_id": risk_a, "body": "thread starter"})
+        assert r.status_code in [200, 201], r.text
+        parent = r.json()["id"]
+
+        # same record: fine
+        r = requests.post(f"{api_url}/entity-comments", headers=contributor_headers,
+                          json={"entity_type": "risk", "entity_id": risk_a,
+                                "parent_id": parent, "body": "reply on the same risk"})
+        assert r.status_code in [200, 201], f"Same-entity reply blocked: {r.text}"
+        assert r.json()["parent_id"] == parent
+
+        # another entity of the same type, or another type: refused
+        for payload in ({"entity_type": "risk", "entity_id": risk_b},
+                        {"entity_type": "incident", "entity_id": risk_a}):
+            r = requests.post(f"{api_url}/entity-comments", headers=contributor_headers,
+                              json={**payload, "parent_id": parent, "body": "reply on another record"})
+            assert r.status_code == 400, f"Expected 400, got {r.status_code}: {r.text}"
+
+        r = requests.get(f"{api_url}/entity-comments/risk/{risk_b}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        assert not (r.json().get("data") or []), "a refused reply must not be stored"
+
+    def test_04_reply_to_a_missing_entity_comment_is_404(self, api_url, admin_headers, contributor_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers,
+                          json={"title": "missing parent risk", "likelihood": 2, "impact": 2})
+        assert r.status_code in [200, 201], r.text
+        risk = r.json()
+        identifier = risk.get("identifier") or str(risk.get("id"))
+
+        r = requests.post(f"{api_url}/entity-comments", headers=contributor_headers,
+                          json={"entity_type": "risk", "entity_id": identifier,
+                                "parent_id": 999999, "body": "reply to nothing"})
+        assert r.status_code == 404, f"Expected 404, got {r.status_code}: {r.text}"
+        assert "constraint" not in r.text.lower() and "foreign key" not in r.text.lower()

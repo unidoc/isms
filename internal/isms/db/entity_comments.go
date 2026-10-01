@@ -66,6 +66,23 @@ func (d *DB) ListEntityComments(ctx context.Context, orgID int, entityType, enti
 	return comments, nil
 }
 
+// GetEntityComment returns one comment in the org, or pgx.ErrNoRows.
+func (d *DB) GetEntityComment(ctx context.Context, orgID int, id int64) (*EntityComment, error) {
+	var c EntityComment
+	err := d.pool.QueryRow(ctx, `
+		SELECT id, organization_id, entity_type, entity_id, parent_id, author, body, status,
+			COALESCE(resolved_by, ''), resolved_at, created_at, updated_at
+		FROM entity_comments
+		WHERE id = $1 AND organization_id = $2
+	`, id, orgID).Scan(&c.ID, &c.OrganizationID, &c.EntityType, &c.EntityID, &c.ParentID,
+		&c.Author, &c.Body, &c.Status, &c.ResolvedBy, &c.ResolvedAt,
+		&c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (d *DB) ResolveEntityComment(ctx context.Context, orgID int, id int64, resolvedBy string) error {
 	_, err := d.pool.Exec(ctx, `
 		UPDATE entity_comments SET status = 'resolved', resolved_by = $3, resolved_at = now(), updated_at = now()

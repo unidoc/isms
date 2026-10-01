@@ -376,8 +376,8 @@ func (c *Client) GetRiskCustomFields() ([]db.CustomFieldDef, error) {
 	return result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateRisk(id string, risk *db.Risk) (*db.Risk, error) {
-	data, err := c.put("/v1/risks/"+id, risk)
+func (c *Client) UpdateRisk(id string, body any) (*db.Risk, error) {
+	data, err := c.put("/v1/risks/"+id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -459,8 +459,8 @@ func (c *Client) CreateSystem(system *db.System) (*db.System, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateSystem(id string, system *db.System) (*db.System, error) {
-	data, err := c.put("/v1/systems/"+id, system)
+func (c *Client) UpdateSystem(id string, body any) (*db.System, error) {
+	data, err := c.put("/v1/systems/"+id, body)
 	if err != nil {
 		return nil, err
 	}

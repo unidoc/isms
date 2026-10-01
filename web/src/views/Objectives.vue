@@ -779,7 +779,8 @@ async function saveSection() {
   saving.value = true
   try {
     const payload = { ...editForm.value }
-    if (payload.target_value === '' || payload.target_value === null) delete payload.target_value
+    // null clears the target; an empty number input must not be sent as "".
+    if (payload.target_value === '' || payload.target_value === null) payload.target_value = null
     await api.updateObjective(selectedObjective.value.id, payload)
     await loadObjectives()
     const fresh = objectives.value.find(o => o.id === selectedObjective.value.id)

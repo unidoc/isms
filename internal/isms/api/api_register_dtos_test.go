@@ -14,22 +14,21 @@ func TestRequestedNextReview(t *testing.T) {
 	stored := db.NewEpoch(time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC))
 	sameDayLater := db.NewEpoch(time.Date(2027, 3, 1, 15, 30, 0, 0, time.UTC))
 	other := db.NewEpoch(time.Date(2031, 2, 14, 0, 0, 0, 0, time.UTC))
-	var nullDate *db.Epoch
 
-	ptr := func(e db.Epoch) **db.Epoch { p := &e; return &p }
+	val := func(e db.Epoch) Optional[db.Epoch] { return Optional[db.Epoch]{Set: true, Value: &e} }
 
 	cases := []struct {
 		name   string
-		sent   **db.Epoch
+		sent   Optional[db.Epoch]
 		stored *db.Epoch
 		want   string
 	}{
-		{"absent", nil, &stored, ""},
-		{"null", &nullDate, &stored, ""},
-		{"echo of the stored date", ptr(stored), &stored, ""},
-		{"same day, different time", ptr(sameDayLater), &stored, ""},
-		{"a different date", ptr(other), &stored, "2031-02-14"},
-		{"a date when nothing is stored", ptr(other), nil, "2031-02-14"},
+		{"absent", Optional[db.Epoch]{}, &stored, ""},
+		{"null", Optional[db.Epoch]{Set: true}, &stored, ""},
+		{"echo of the stored date", val(stored), &stored, ""},
+		{"same day, different time", val(sameDayLater), &stored, ""},
+		{"a different date", val(other), &stored, "2031-02-14"},
+		{"a date when nothing is stored", val(other), nil, "2031-02-14"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

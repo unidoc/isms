@@ -13,8 +13,9 @@ import (
 )
 
 // --- Request DTOs ---
-// Pointer fields use *string / **db.Epoch / **int so an explicit empty body can
-// clear, and an absent body leaves the existing value alone.
+// Update fields are *string, or Optional[T] for nullable dates and numbers. A
+// nil *string or an Optional that was not Set leaves the stored value alone;
+// an empty string or a null Optional clears it.
 
 type correctiveActionCreateRequest struct {
 	Title       string           `json:"title"`
@@ -30,20 +31,21 @@ type correctiveActionCreateRequest struct {
 	References  []ReferenceInput `json:"references"`
 }
 
-// correctiveActionUpdateRequest is the API contract. nil = leave alone.
+// correctiveActionUpdateRequest is the API contract. nil / not Set = leave
+// alone; null clears due_date.
 // Status, when present, goes through enforceCorrectiveActionWriteTx, which
 // stamps resolved_at / resolved_by_id on a transition to resolved.
 type correctiveActionUpdateRequest struct {
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	Source      *string    `json:"source"`
-	Severity    *string    `json:"severity"`
-	Status      *string    `json:"status"`
-	Assignee    *string    `json:"assignee"`
-	DueDate     **db.Epoch `json:"due_date"`
-	RootCause   *string    `json:"root_cause"`
-	Notes       *string    `json:"notes"`
-	ExternalID  *string    `json:"external_id"`
+	Title       *string            `json:"title"`
+	Description *string            `json:"description"`
+	Source      *string            `json:"source"`
+	Severity    *string            `json:"severity"`
+	Status      *string            `json:"status"`
+	Assignee    *string            `json:"assignee"`
+	DueDate     Optional[db.Epoch] `json:"due_date"`
+	RootCause   *string            `json:"root_cause"`
+	Notes       *string            `json:"notes"`
+	ExternalID  *string            `json:"external_id"`
 }
 
 func (s *Server) handleListCorrectiveActions(c echo.Context) error {
@@ -262,8 +264,8 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	if req.Assignee != nil {
 		existing.Assignee = *req.Assignee
 	}
-	if req.DueDate != nil {
-		existing.DueDate = *req.DueDate
+	if req.DueDate.Set {
+		existing.DueDate = req.DueDate.Value
 	}
 	if req.RootCause != nil {
 		existing.RootCause = *req.RootCause

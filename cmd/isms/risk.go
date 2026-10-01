@@ -263,6 +263,22 @@ func riskListCmd() *cobra.Command {
 	return cmd
 }
 
+// riskAssessPayload is the wire shape for `risk assess`: pointer fields with
+// omitempty so an unset flag is left off the request. Sending a bare db.Risk
+// would write every nullable field as null, and the server now reads null as
+// "clear this field" (#381).
+type riskAssessPayload struct {
+	CurrentLikelihood *int `json:"current_likelihood,omitempty"`
+	CurrentImpact     *int `json:"current_impact,omitempty"`
+}
+
+// riskTreatPayload is the wire shape for `risk treat`; see riskAssessPayload
+// for why this is not a db.Risk.
+type riskTreatPayload struct {
+	Treatment string `json:"treatment"`
+	Status    string `json:"status"`
+}
+
 func riskAssessCmd() *cobra.Command {
 	var (
 		currentLikelihood int
@@ -277,7 +293,7 @@ func riskAssessCmd() *cobra.Command {
 			id := args[0]
 
 			c := requireAPI()
-			update := &db.Risk{}
+			update := &riskAssessPayload{}
 			if cmd.Flags().Changed("likelihood") {
 				update.CurrentLikelihood = &currentLikelihood
 			}
@@ -311,7 +327,7 @@ func riskTreatCmd() *cobra.Command {
 			id := args[0]
 
 			c := requireAPI()
-			update := &db.Risk{
+			update := &riskTreatPayload{
 				Treatment: decision,
 			}
 			if decision == "accept" {

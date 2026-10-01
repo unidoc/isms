@@ -202,7 +202,7 @@ func TestSupplierAddOmitsUnsetCIA(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	// Unset → null (not assessed); the **int update DTO treats null as skip.
+	// Unset → null (not assessed); the create DTO stores that as NULL.
 	if b := (*got)[len(*got)-1].body; b["confidentiality"] != nil {
 		t.Errorf("unset confidentiality should be null, got %v", b["confidentiality"])
 	}

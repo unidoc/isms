@@ -55,20 +55,20 @@ type objectiveCreateRequest struct {
 }
 
 type objectiveUpdateRequest struct {
-	Title             *string    `json:"title"`
-	Description       *string    `json:"description"`
-	Owner             *string    `json:"owner"`
-	Source            *string    `json:"source"`
-	MeasurementMethod *string    `json:"measurement_method"`
-	TargetValue       **float64  `json:"target_value"`
-	TargetOperator    *string    `json:"target_operator"`
-	Unit              *string    `json:"unit"`
-	WindowSeconds     **int      `json:"window_seconds"`
-	GraceSeconds      *int       `json:"grace_seconds"`
-	CheckinCycle      *int       `json:"checkin_cycle"`
-	Status            *string    `json:"status"`
-	StartedAt         **db.Epoch `json:"started_at"`
-	Notes             *string    `json:"notes"`
+	Title             *string            `json:"title"`
+	Description       *string            `json:"description"`
+	Owner             *string            `json:"owner"`
+	Source            *string            `json:"source"`
+	MeasurementMethod *string            `json:"measurement_method"`
+	TargetValue       Optional[float64]  `json:"target_value"`
+	TargetOperator    *string            `json:"target_operator"`
+	Unit              *string            `json:"unit"`
+	WindowSeconds     Optional[int]      `json:"window_seconds"`
+	GraceSeconds      *int               `json:"grace_seconds"`
+	CheckinCycle      *int               `json:"checkin_cycle"`
+	Status            *string            `json:"status"`
+	StartedAt         Optional[db.Epoch] `json:"started_at"`
+	Notes             *string            `json:"notes"`
 }
 
 type checkinCreateRequest struct {
@@ -80,11 +80,11 @@ type checkinCreateRequest struct {
 }
 
 type checkinUpdateRequest struct {
-	OccurredAt   *db.Epoch `json:"occurred_at"`
-	Success      **bool    `json:"success"`
-	ValueNumeric **float64 `json:"value_numeric"`
-	Message      *string   `json:"message"`
-	PublicNote   *string   `json:"public_note"`
+	OccurredAt   *db.Epoch         `json:"occurred_at"`
+	Success      Optional[bool]    `json:"success"`
+	ValueNumeric Optional[float64] `json:"value_numeric"`
+	Message      *string           `json:"message"`
+	PublicNote   *string           `json:"public_note"`
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -448,8 +448,8 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	if req.MeasurementMethod != nil {
 		o.MeasurementMethod = *req.MeasurementMethod
 	}
-	if req.TargetValue != nil {
-		o.TargetValue = *req.TargetValue
+	if req.TargetValue.Set {
+		o.TargetValue = req.TargetValue.Value
 	}
 	if req.TargetOperator != nil {
 		o.TargetOperator = *req.TargetOperator
@@ -457,8 +457,8 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	if req.Unit != nil {
 		o.Unit = *req.Unit
 	}
-	if req.WindowSeconds != nil {
-		o.WindowSeconds = *req.WindowSeconds
+	if req.WindowSeconds.Set {
+		o.WindowSeconds = req.WindowSeconds.Value
 	}
 	if req.GraceSeconds != nil {
 		o.GraceSeconds = *req.GraceSeconds
@@ -469,8 +469,8 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	if req.Status != nil {
 		o.Status = *req.Status
 	}
-	if req.StartedAt != nil {
-		o.StartedAt = *req.StartedAt
+	if req.StartedAt.Set {
+		o.StartedAt = req.StartedAt.Value
 	}
 	if req.Notes != nil {
 		o.Notes = *req.Notes
@@ -752,11 +752,11 @@ func (s *Server) handleUpdateCheckin(c echo.Context) error {
 	if req.OccurredAt != nil && !req.OccurredAt.IsZero() {
 		ci.OccurredAt = *req.OccurredAt
 	}
-	if req.Success != nil {
-		ci.Success = *req.Success
+	if req.Success.Set {
+		ci.Success = req.Success.Value
 	}
-	if req.ValueNumeric != nil {
-		ci.ValueNumeric = *req.ValueNumeric
+	if req.ValueNumeric.Set {
+		ci.ValueNumeric = req.ValueNumeric.Value
 	}
 	if req.Message != nil {
 		ci.Message = *req.Message

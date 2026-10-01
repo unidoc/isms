@@ -37,25 +37,25 @@ type legalCreateRequest struct {
 }
 
 type legalUpdateRequest struct {
-	Title             *string    `json:"title"`
-	Description       *string    `json:"description"`
-	Jurisdiction      *string    `json:"jurisdiction"`
-	Category          *string    `json:"category"`
-	Reference         *string    `json:"reference"`
-	URL               *string    `json:"url"`
-	Status            *string    `json:"status"`
-	Owner             *string    `json:"owner"`
-	LastReview        **db.Epoch `json:"last_review"`
-	NextReview        **db.Epoch `json:"next_review"`
-	Notes             *string    `json:"notes"`
-	CurrentLikelihood **int      `json:"current_likelihood"`
-	CurrentImpact     **int      `json:"current_impact"`
-	Treatment         *string    `json:"treatment"`
-	TreatmentPlan     *string    `json:"treatment_plan"`
-	TargetLikelihood  **int      `json:"target_likelihood"`
-	TargetImpact      **int      `json:"target_impact"`
-	Completion        *int       `json:"completion"`
-	ExternalID        *string    `json:"external_id"`
+	Title             *string            `json:"title"`
+	Description       *string            `json:"description"`
+	Jurisdiction      *string            `json:"jurisdiction"`
+	Category          *string            `json:"category"`
+	Reference         *string            `json:"reference"`
+	URL               *string            `json:"url"`
+	Status            *string            `json:"status"`
+	Owner             *string            `json:"owner"`
+	LastReview        Optional[db.Epoch] `json:"last_review"`
+	NextReview        Optional[db.Epoch] `json:"next_review"`
+	Notes             *string            `json:"notes"`
+	CurrentLikelihood Optional[int]      `json:"current_likelihood"`
+	CurrentImpact     Optional[int]      `json:"current_impact"`
+	Treatment         *string            `json:"treatment"`
+	TreatmentPlan     *string            `json:"treatment_plan"`
+	TargetLikelihood  Optional[int]      `json:"target_likelihood"`
+	TargetImpact      Optional[int]      `json:"target_impact"`
+	Completion        *int               `json:"completion"`
+	ExternalID        *string            `json:"external_id"`
 }
 
 func (s *Server) handleLegalStats(c echo.Context) error {
@@ -248,8 +248,8 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if req.Owner != nil {
 		existing.Owner = *req.Owner
 	}
-	if req.LastReview != nil {
-		existing.LastReview = *req.LastReview
+	if req.LastReview.Set {
+		existing.LastReview = req.LastReview.Value
 	}
 	// A new next_review from the request wins over the calculated one; absent,
 	// null or an echo of the stored date means "calculate it" (#202).
@@ -257,11 +257,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if req.Notes != nil {
 		existing.Notes = *req.Notes
 	}
-	if req.CurrentLikelihood != nil {
-		existing.CurrentLikelihood = *req.CurrentLikelihood
+	if req.CurrentLikelihood.Set {
+		existing.CurrentLikelihood = req.CurrentLikelihood.Value
 	}
-	if req.CurrentImpact != nil {
-		existing.CurrentImpact = *req.CurrentImpact
+	if req.CurrentImpact.Set {
+		existing.CurrentImpact = req.CurrentImpact.Value
 	}
 	if req.Treatment != nil {
 		existing.Treatment = *req.Treatment
@@ -272,11 +272,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if req.Status != nil {
 		existing.Status = *req.Status
 	}
-	if req.TargetLikelihood != nil {
-		existing.TargetLikelihood = *req.TargetLikelihood
+	if req.TargetLikelihood.Set {
+		existing.TargetLikelihood = req.TargetLikelihood.Value
 	}
-	if req.TargetImpact != nil {
-		existing.TargetImpact = *req.TargetImpact
+	if req.TargetImpact.Set {
+		existing.TargetImpact = req.TargetImpact.Value
 	}
 	if req.Completion != nil {
 		existing.Completion = *req.Completion

@@ -2540,11 +2540,11 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	if req.Priority != nil {
 		t.Priority = *req.Priority
 	}
-	if req.DueDate != nil {
-		t.DueDate = *req.DueDate
+	if req.DueDate.Set {
+		t.DueDate = req.DueDate.Value
 	}
-	if req.RecurrenceDays != nil {
-		t.RecurrenceDays = *req.RecurrenceDays
+	if req.RecurrenceDays.Set {
+		t.RecurrenceDays = req.RecurrenceDays.Value
 	}
 	if req.Notes != nil {
 		t.Notes = *req.Notes
@@ -2648,16 +2648,16 @@ type taskCreateRequest struct {
 }
 
 type taskUpdateRequest struct {
-	Title          *string    `json:"title"`
-	Description    *string    `json:"description"`
-	TaskType       *string    `json:"task_type"`
-	Assignee       *string    `json:"assignee"`
-	Status         *string    `json:"status"`
-	Priority       *string    `json:"priority"`
-	DueDate        **db.Epoch `json:"due_date"`
-	RecurrenceDays **int      `json:"recurrence_days"`
-	Notes          *string    `json:"notes"`
-	Private        *bool      `json:"private"`
+	Title          *string            `json:"title"`
+	Description    *string            `json:"description"`
+	TaskType       *string            `json:"task_type"`
+	Assignee       *string            `json:"assignee"`
+	Status         *string            `json:"status"`
+	Priority       *string            `json:"priority"`
+	DueDate        Optional[db.Epoch] `json:"due_date"`
+	RecurrenceDays Optional[int]      `json:"recurrence_days"`
+	Notes          *string            `json:"notes"`
+	Private        *bool              `json:"private"`
 }
 
 // --- Change Requests ---
@@ -2679,23 +2679,24 @@ type changeCreateRequest struct {
 	References    []ReferenceInput `json:"references"`
 }
 
-// changeUpdateRequest is the API contract for updating a change request. nil = leave alone.
+// changeUpdateRequest is the API contract for updating a change request. nil /
+// not Set = leave alone; null clears planned_at.
 // Status, when present, is routed through UpdateChangeRequestStatus so closure
 // metadata (approved_at, approved_by, implemented_at) is cleared correctly on
 // reverse transitions — never inline-set via UpdateChangeRequest.
 type changeUpdateRequest struct {
-	Type          *string    `json:"type"`
-	Title         *string    `json:"title"`
-	Description   *string    `json:"description"`
-	Justification *string    `json:"justification"`
-	Priority      *string    `json:"priority"`
-	Category      *string    `json:"category"`
-	RiskLevel     *string    `json:"risk_level"`
-	Status        *string    `json:"status"`
-	RollbackPlan  *string    `json:"rollback_plan"`
-	Notes         *string    `json:"notes"`
-	AssignedTo    *string    `json:"assigned_to"`
-	PlannedAt     **db.Epoch `json:"planned_at"`
+	Type          *string            `json:"type"`
+	Title         *string            `json:"title"`
+	Description   *string            `json:"description"`
+	Justification *string            `json:"justification"`
+	Priority      *string            `json:"priority"`
+	Category      *string            `json:"category"`
+	RiskLevel     *string            `json:"risk_level"`
+	Status        *string            `json:"status"`
+	RollbackPlan  *string            `json:"rollback_plan"`
+	Notes         *string            `json:"notes"`
+	AssignedTo    *string            `json:"assigned_to"`
+	PlannedAt     Optional[db.Epoch] `json:"planned_at"`
 }
 
 func (s *Server) handleListChanges(c echo.Context) error {
@@ -2957,8 +2958,8 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	if req.AssignedTo != nil {
 		cr.AssignedTo = *req.AssignedTo
 	}
-	if req.PlannedAt != nil {
-		cr.PlannedAt = *req.PlannedAt
+	if req.PlannedAt.Set {
+		cr.PlannedAt = req.PlannedAt.Value
 	}
 	if err := s.db.UpdateChangeRequest(ctx, orgID, id, &cr); err != nil {
 		return pgxHTTPError(err)

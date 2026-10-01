@@ -13,8 +13,9 @@ import (
 )
 
 // --- Request DTOs ---
-// Pointer fields use *string / **db.Epoch so an explicit empty body can clear,
-// and an absent body leaves the existing value alone.
+// Update fields are *string, or Optional[T] for nullable dates. A nil *string
+// or an Optional that was not Set leaves the stored value alone; an empty
+// string or a null Optional clears it.
 
 type auditProgrammeCreateRequest struct {
 	Title       string `json:"title"`
@@ -43,19 +44,20 @@ type auditCreateRequest struct {
 	Notes       string    `json:"notes"`
 }
 
-// auditUpdateRequest is the API contract for updating an audit. nil = leave alone.
+// auditUpdateRequest is the API contract for updating an audit. nil / not Set =
+// leave alone; null clears planned_date and end_date.
 // Status, when present, is routed through UpdateAuditStatus so it goes through
 // the same code path used by tools/CLI.
 type auditUpdateRequest struct {
-	Title       *string    `json:"title"`
-	Scope       *string    `json:"scope"`
-	Auditor     *string    `json:"auditor"`
-	AuditType   *string    `json:"audit_type"`
-	Status      *string    `json:"status"`
-	Summary     *string    `json:"summary"`
-	Notes       *string    `json:"notes"`
-	PlannedDate **db.Epoch `json:"planned_date"`
-	EndDate     **db.Epoch `json:"end_date"`
+	Title       *string            `json:"title"`
+	Scope       *string            `json:"scope"`
+	Auditor     *string            `json:"auditor"`
+	AuditType   *string            `json:"audit_type"`
+	Status      *string            `json:"status"`
+	Summary     *string            `json:"summary"`
+	Notes       *string            `json:"notes"`
+	PlannedDate Optional[db.Epoch] `json:"planned_date"`
+	EndDate     Optional[db.Epoch] `json:"end_date"`
 }
 
 type auditItemCreateRequest struct {
@@ -84,11 +86,11 @@ type auditFindingCreateRequest struct {
 }
 
 type auditFindingUpdateRequest struct {
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	Owner       *string    `json:"owner"`
-	DueDate     **db.Epoch `json:"due_date"`
-	Status      *string    `json:"status"`
+	Title       *string            `json:"title"`
+	Description *string            `json:"description"`
+	Owner       *string            `json:"owner"`
+	DueDate     Optional[db.Epoch] `json:"due_date"`
+	Status      *string            `json:"status"`
 }
 
 // --- Audit Programmes ---
@@ -351,7 +353,7 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 			return pgxHTTPError(err)
 		}
 	}
-	if err := s.db.UpdateAudit(ctx, orgID, id, req.Title, req.Scope, req.Auditor, req.AuditType, req.Summary, req.Notes, req.PlannedDate, req.EndDate); err != nil {
+	if err := s.db.UpdateAudit(ctx, orgID, id, req.Title, req.Scope, req.Auditor, req.AuditType, req.Summary, req.Notes, req.PlannedDate.Ptr(), req.EndDate.Ptr()); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, err := s.db.GetAudit(ctx, orgID, id)
@@ -757,8 +759,8 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 
 	// Apply field updates and (optionally) status update atomically per RLS.
 	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, _ pgx.Tx) error {
-		if req.Title != nil || req.Description != nil || req.Owner != nil || req.DueDate != nil {
-			if err := s.db.UpdateAuditFindingPartial(ctx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate); err != nil {
+		if req.Title != nil || req.Description != nil || req.Owner != nil || req.DueDate.Set {
+			if err := s.db.UpdateAuditFindingPartial(ctx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate.Ptr()); err != nil {
 				return err
 			}
 		}

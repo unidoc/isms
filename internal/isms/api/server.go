@@ -2679,20 +2679,20 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	if req.PrimaryLocation != nil {
 		updated.PrimaryLocation = *req.PrimaryLocation
 	}
-	if req.Confidentiality != nil {
-		updated.Confidentiality = *req.Confidentiality
+	if req.Confidentiality.Set {
+		updated.Confidentiality = req.Confidentiality.Value
 	}
-	if req.Integrity != nil {
-		updated.Integrity = *req.Integrity
+	if req.Integrity.Set {
+		updated.Integrity = req.Integrity.Value
 	}
-	if req.Availability != nil {
-		updated.Availability = *req.Availability
+	if req.Availability.Set {
+		updated.Availability = req.Availability.Value
 	}
-	if req.LastReview != nil {
-		updated.LastReview = *req.LastReview
+	if req.LastReview.Set {
+		updated.LastReview = req.LastReview.Value
 	}
-	if req.NextReview != nil {
-		updated.NextReview = *req.NextReview
+	if req.NextReview.Set {
+		updated.NextReview = req.NextReview.Value
 	}
 	if req.Notes != nil {
 		updated.Notes = *req.Notes
@@ -2814,41 +2814,41 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		// to changedCustomFields above.
 		updated.CustomFields = db.NormalizeCustomFieldValues(defs, *req.CustomFields)
 	}
-	if req.CurrentLikelihood != nil {
-		updated.CurrentLikelihood = *req.CurrentLikelihood
+	if req.CurrentLikelihood.Set {
+		updated.CurrentLikelihood = req.CurrentLikelihood.Value
 	}
-	if req.CurrentImpact != nil {
-		updated.CurrentImpact = *req.CurrentImpact
+	if req.CurrentImpact.Set {
+		updated.CurrentImpact = req.CurrentImpact.Value
 	}
-	if req.ConfidentialityImpact != nil {
-		updated.ConfidentialityImpact = *req.ConfidentialityImpact
+	if req.ConfidentialityImpact.Set {
+		updated.ConfidentialityImpact = req.ConfidentialityImpact.Value
 	}
-	if req.IntegrityImpact != nil {
-		updated.IntegrityImpact = *req.IntegrityImpact
+	if req.IntegrityImpact.Set {
+		updated.IntegrityImpact = req.IntegrityImpact.Value
 	}
-	if req.AvailabilityImpact != nil {
-		updated.AvailabilityImpact = *req.AvailabilityImpact
+	if req.AvailabilityImpact.Set {
+		updated.AvailabilityImpact = req.AvailabilityImpact.Value
 	}
-	if req.InherentLikelihood != nil {
-		updated.InherentLikelihood = *req.InherentLikelihood
+	if req.InherentLikelihood.Set {
+		updated.InherentLikelihood = req.InherentLikelihood.Value
 	}
-	if req.InherentImpact != nil {
-		updated.InherentImpact = *req.InherentImpact
+	if req.InherentImpact.Set {
+		updated.InherentImpact = req.InherentImpact.Value
 	}
-	if req.InherentConfidentialityImpact != nil {
-		updated.InherentConfidentialityImpact = *req.InherentConfidentialityImpact
+	if req.InherentConfidentialityImpact.Set {
+		updated.InherentConfidentialityImpact = req.InherentConfidentialityImpact.Value
 	}
-	if req.InherentIntegrityImpact != nil {
-		updated.InherentIntegrityImpact = *req.InherentIntegrityImpact
+	if req.InherentIntegrityImpact.Set {
+		updated.InherentIntegrityImpact = req.InherentIntegrityImpact.Value
 	}
-	if req.InherentAvailabilityImpact != nil {
-		updated.InherentAvailabilityImpact = *req.InherentAvailabilityImpact
+	if req.InherentAvailabilityImpact.Set {
+		updated.InherentAvailabilityImpact = req.InherentAvailabilityImpact.Value
 	}
-	if req.TargetLikelihood != nil {
-		updated.TargetLikelihood = *req.TargetLikelihood
+	if req.TargetLikelihood.Set {
+		updated.TargetLikelihood = req.TargetLikelihood.Value
 	}
-	if req.TargetImpact != nil {
-		updated.TargetImpact = *req.TargetImpact
+	if req.TargetImpact.Set {
+		updated.TargetImpact = req.TargetImpact.Value
 	}
 	if req.Treatment != nil {
 		updated.Treatment = *req.Treatment
@@ -2856,8 +2856,8 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	if req.TreatmentPlan != nil {
 		updated.TreatmentPlan = *req.TreatmentPlan
 	}
-	if req.TreatmentDueDate != nil {
-		updated.TreatmentDueDate = *req.TreatmentDueDate
+	if req.TreatmentDueDate.Set {
+		updated.TreatmentDueDate = req.TreatmentDueDate.Value
 	}
 	if req.Owner != nil {
 		updated.Owner = *req.Owner
@@ -2865,8 +2865,8 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	if req.Status != nil {
 		updated.Status = *req.Status
 	}
-	if req.LastReview != nil {
-		updated.LastReview = *req.LastReview
+	if req.LastReview.Set {
+		updated.LastReview = req.LastReview.Value
 	}
 	// A new next_review from the request wins over the calculated one; absent,
 	// null or an echo of the stored date means "calculate it" (#202).
@@ -2954,8 +2954,9 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 			return err
 		}
 	}
-	if req.SupplierID != nil && *req.SupplierID != nil && **req.SupplierID > 0 {
-		if _, err := s.db.GetSupplier(ctx, orgID, **req.SupplierID); err != nil {
+	// A null supplier_id unlinks the supplier, so only a real id needs checking.
+	if req.SupplierID.Set && req.SupplierID.Value != nil && *req.SupplierID.Value > 0 {
+		if _, err := s.db.GetSupplier(ctx, orgID, *req.SupplierID.Value); err != nil {
 			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
@@ -2972,8 +2973,8 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.Description != nil {
 		updated.Description = *req.Description
 	}
-	if req.SupplierID != nil {
-		updated.SupplierID = *req.SupplierID
+	if req.SupplierID.Set {
+		updated.SupplierID = req.SupplierID.Value
 	}
 	if req.Department != nil {
 		updated.Department = *req.Department
@@ -2993,17 +2994,17 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.RTOHours != nil {
 		updated.RTOHours = *req.RTOHours
 	}
-	if req.Confidentiality != nil {
-		updated.Confidentiality = *req.Confidentiality
+	if req.Confidentiality.Set {
+		updated.Confidentiality = req.Confidentiality.Value
 	}
-	if req.Integrity != nil {
-		updated.Integrity = *req.Integrity
+	if req.Integrity.Set {
+		updated.Integrity = req.Integrity.Value
 	}
-	if req.Availability != nil {
-		updated.Availability = *req.Availability
+	if req.Availability.Set {
+		updated.Availability = req.Availability.Value
 	}
-	if req.LastReview != nil {
-		updated.LastReview = *req.LastReview
+	if req.LastReview.Set {
+		updated.LastReview = req.LastReview.Value
 	}
 	// A new next_review from the request wins over the calculated one; absent,
 	// null or an echo of the stored date means "calculate it" (#202).
@@ -3210,20 +3211,20 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.Owner != nil {
 		updated.Owner = *req.Owner
 	}
-	if req.ContractExpiry != nil {
-		updated.ContractExpiry = *req.ContractExpiry
+	if req.ContractExpiry.Set {
+		updated.ContractExpiry = req.ContractExpiry.Value
 	}
-	if req.Confidentiality != nil {
-		updated.Confidentiality = *req.Confidentiality
+	if req.Confidentiality.Set {
+		updated.Confidentiality = req.Confidentiality.Value
 	}
-	if req.Integrity != nil {
-		updated.Integrity = *req.Integrity
+	if req.Integrity.Set {
+		updated.Integrity = req.Integrity.Value
 	}
-	if req.Availability != nil {
-		updated.Availability = *req.Availability
+	if req.Availability.Set {
+		updated.Availability = req.Availability.Value
 	}
-	if req.LastReview != nil {
-		updated.LastReview = *req.LastReview
+	if req.LastReview.Set {
+		updated.LastReview = req.LastReview.Value
 	}
 	// A new next_review from the request wins over the calculated one; absent,
 	// null or an echo of the stored date means "calculate it" (#202).

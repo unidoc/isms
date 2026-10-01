@@ -14,8 +14,9 @@ import (
 )
 
 // --- Request DTOs ---
-// Pointer fields use *string / *bool / **db.Epoch so an explicit empty body can clear,
-// and an absent body leaves the existing value alone.
+// Update fields are *string / *bool, or Optional[T] for nullable dates. A nil
+// pointer or an Optional that was not Set leaves the stored value alone; an
+// empty string or a null Optional clears it.
 
 type incidentCreateRequest struct {
 	Title               string           `json:"title"`
@@ -43,31 +44,32 @@ type incidentCreateRequest struct {
 	References          []ReferenceInput `json:"references"`
 }
 
-// incidentUpdateRequest is the API contract for updating an incident. nil = leave alone.
+// incidentUpdateRequest is the API contract for updating an incident. nil / not Set =
+// leave alone; null clears authority_notified_at and subjects_notified_at.
 // Status, when present, goes through enforceIncidentWriteTx, whose
 // SetIncidentLifecycleTx stamps or clears closure metadata (contained_at,
 // resolved_at, closed_at) on forward and reverse transitions.
 type incidentUpdateRequest struct {
-	Title               *string    `json:"title"`
-	Description         *string    `json:"description"`
-	Severity            *string    `json:"severity"`
-	AffectsC            *bool      `json:"affects_c"`
-	AffectsI            *bool      `json:"affects_i"`
-	AffectsA            *bool      `json:"affects_a"`
-	IncidentType        *string    `json:"incident_type"`
-	Source              *string    `json:"source"`
-	Status              *string    `json:"status"`
-	Notes               *string    `json:"notes"`
-	DataBreach          *bool      `json:"data_breach"`
-	GDPRRole            *string    `json:"gdpr_role"`
-	AuthorityNotified   *string    `json:"authority_notified"`
-	AuthorityNotifiedAt **db.Epoch `json:"authority_notified_at"`
-	SubjectsNotified    *string    `json:"subjects_notified"`
-	SubjectsNotifiedAt  **db.Epoch `json:"subjects_notified_at"`
-	Assignee            *string    `json:"assignee"`
-	RootCause           *string    `json:"root_cause"`
-	LessonsLearned      *string    `json:"lessons_learned"`
-	ExternalID          *string    `json:"external_id"`
+	Title               *string            `json:"title"`
+	Description         *string            `json:"description"`
+	Severity            *string            `json:"severity"`
+	AffectsC            *bool              `json:"affects_c"`
+	AffectsI            *bool              `json:"affects_i"`
+	AffectsA            *bool              `json:"affects_a"`
+	IncidentType        *string            `json:"incident_type"`
+	Source              *string            `json:"source"`
+	Status              *string            `json:"status"`
+	Notes               *string            `json:"notes"`
+	DataBreach          *bool              `json:"data_breach"`
+	GDPRRole            *string            `json:"gdpr_role"`
+	AuthorityNotified   *string            `json:"authority_notified"`
+	AuthorityNotifiedAt Optional[db.Epoch] `json:"authority_notified_at"`
+	SubjectsNotified    *string            `json:"subjects_notified"`
+	SubjectsNotifiedAt  Optional[db.Epoch] `json:"subjects_notified_at"`
+	Assignee            *string            `json:"assignee"`
+	RootCause           *string            `json:"root_cause"`
+	LessonsLearned      *string            `json:"lessons_learned"`
+	ExternalID          *string            `json:"external_id"`
 }
 
 func (s *Server) handleListIncidents(c echo.Context) error {
@@ -389,14 +391,14 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	if req.AuthorityNotified != nil {
 		existing.AuthorityNotified = *req.AuthorityNotified
 	}
-	if req.AuthorityNotifiedAt != nil {
-		existing.AuthorityNotifiedAt = *req.AuthorityNotifiedAt
+	if req.AuthorityNotifiedAt.Set {
+		existing.AuthorityNotifiedAt = req.AuthorityNotifiedAt.Value
 	}
 	if req.SubjectsNotified != nil {
 		existing.SubjectsNotified = *req.SubjectsNotified
 	}
-	if req.SubjectsNotifiedAt != nil {
-		existing.SubjectsNotifiedAt = *req.SubjectsNotifiedAt
+	if req.SubjectsNotifiedAt.Set {
+		existing.SubjectsNotifiedAt = req.SubjectsNotifiedAt.Value
 	}
 	if req.Assignee != nil {
 		existing.Assignee = *req.Assignee

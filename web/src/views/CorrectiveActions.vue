@@ -794,7 +794,8 @@ async function saveSection() {
   saving.value = true
   try {
     const payload = { ...editForm.value }
-    if (!payload.due_date) delete payload.due_date
+    // null clears the due date; leaving the key out would keep the old one.
+    if (!payload.due_date) payload.due_date = null
     await api.updateCorrectiveAction(selectedCA.value.id, payload)
     await loadActions()
     const fresh = actions.value.find(a => a.id === selectedCA.value.id)

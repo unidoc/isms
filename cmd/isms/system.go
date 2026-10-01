@@ -126,6 +126,26 @@ func systemListCmd() *cobra.Command {
 	return cmd
 }
 
+// systemEditPayload is the partial-update wire shape for `system edit`: pointer
+// fields with omitempty so an unset flag is left off the request. Sending a
+// bare db.System would write the CIA ratings as null, and the server now reads
+// null as "clear this field" (#381). Mirrors the server's systemUpdateRequest.
+type systemEditPayload struct {
+	Name            *string `json:"name,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	SupplierID      *int64  `json:"supplier_id,omitempty"`
+	Department      *string `json:"department,omitempty"`
+	Classification  *string `json:"classification,omitempty"`
+	Criticality     *string `json:"criticality,omitempty"`
+	RPOHours        *int    `json:"rpo_hours,omitempty"`
+	RTOHours        *int    `json:"rto_hours,omitempty"`
+	Confidentiality *int    `json:"confidentiality,omitempty"`
+	Integrity       *int    `json:"integrity,omitempty"`
+	Availability    *int    `json:"availability,omitempty"`
+	Owner           *string `json:"owner,omitempty"`
+	Notes           *string `json:"notes,omitempty"`
+}
+
 func systemEditCmd() *cobra.Command {
 	var (
 		name            string
@@ -151,30 +171,30 @@ func systemEditCmd() *cobra.Command {
 			id := args[0]
 
 			c := requireAPI()
-			update := &db.System{}
+			update := &systemEditPayload{}
 			if cmd.Flags().Changed("name") {
-				update.Name = name
+				update.Name = &name
 			}
 			if cmd.Flags().Changed("desc") {
-				update.Description = description
+				update.Description = &description
 			}
 			if cmd.Flags().Changed("supplier-id") {
 				update.SupplierID = &supplierID
 			}
 			if cmd.Flags().Changed("department") {
-				update.Department = department
+				update.Department = &department
 			}
 			if cmd.Flags().Changed("classification") {
-				update.Classification = classification
+				update.Classification = &classification
 			}
 			if cmd.Flags().Changed("criticality") {
-				update.Criticality = criticality
+				update.Criticality = &criticality
 			}
 			if cmd.Flags().Changed("rpo") {
-				update.RPOHours = rpoHours
+				update.RPOHours = &rpoHours
 			}
 			if cmd.Flags().Changed("rto") {
-				update.RTOHours = rtoHours
+				update.RTOHours = &rtoHours
 			}
 			if cmd.Flags().Changed("cia-c") {
 				update.Confidentiality = &confidentiality
@@ -186,10 +206,10 @@ func systemEditCmd() *cobra.Command {
 				update.Availability = &availability
 			}
 			if cmd.Flags().Changed("owner") {
-				update.Owner = owner
+				update.Owner = &owner
 			}
 			if cmd.Flags().Changed("notes") {
-				update.Notes = notes
+				update.Notes = &notes
 			}
 			if _, err := c.UpdateSystem(id, update); err != nil {
 				return err

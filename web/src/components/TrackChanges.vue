@@ -26,10 +26,10 @@
             <div class="w-32 flex-shrink-0 pr-3 text-right">
               <div v-if="block.blame && (bi === 0 || para.blocks[bi-1]?.blameKey !== block.blameKey)"
                 class="text-[10px] leading-snug pt-1 cursor-default group/blame relative">
-                <div class="text-slate-500 truncate">{{ shortName(block.blame.author) }}</div>
+                <div class="text-slate-500 truncate">{{ nameFor(block.blame.author) }}</div>
                 <div class="text-slate-700 font-mono">{{ relTime(block.blame.date) }}</div>
                 <div class="absolute right-0 top-full mt-1 z-30 hidden group-hover/blame:block bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-xl whitespace-nowrap text-left">
-                  <div class="text-slate-300 text-[11px] font-medium">{{ block.blame.author }}</div>
+                  <div class="text-slate-300 text-[11px] font-medium">{{ labelFor(block.blame.author) }}</div>
                   <div class="text-slate-500 text-[10px] mt-0.5">{{ fullDate(block.blame.date) }}</div>
                   <div class="text-slate-600 text-[10px] font-mono mt-0.5">{{ block.blame.hash }}</div>
                 </div>
@@ -83,7 +83,7 @@
               <div v-if="showOutdated[para.paragraphIndex]" class="mt-2 opacity-50">
                 <div v-for="c in outdatedCommentsForParagraph(para.paragraphIndex)" :key="c.id" class="mb-2">
                   <div class="flex items-center gap-2 text-[11px]">
-                    <span class="font-medium text-slate-500">{{ c.author?.split('@')[0] }}</span>
+                    <span class="font-medium text-slate-500" :title="c.author">{{ nameFor(c.author) }}</span>
                     <span class="text-slate-700 text-[10px]">{{ formatTime(c.created_at) }}</span>
                     <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">{{ $t('common.state.outdated_inline') }}</span>
                   </div>
@@ -94,7 +94,7 @@
             <!-- Active comments -->
             <div v-for="c in activeCommentsForParagraph(para.paragraphIndex)" :key="c.id" class="mb-2">
               <div class="flex items-center gap-2 text-[11px]">
-                <span class="font-medium text-slate-300">{{ c.author?.split('@')[0] }}</span>
+                <span class="font-medium text-slate-300" :title="c.author">{{ nameFor(c.author) }}</span>
                 <span class="text-slate-600 text-[10px]">{{ formatTime(c.created_at) }}</span>
               </div>
               <div class="text-sm text-slate-400 mt-0.5">{{ c.body }}</div>
@@ -127,8 +127,10 @@ import { diffTables } from '../composables/useTableDiff'
 import DiffView from './DiffView.vue'
 import api from '../api'
 import { formatDate, formatRecent } from '../composables/useFormat.js'
+import { useMembers } from '../composables/useMembers.js'
 
 const emit = defineEmits(['comment'])
+const { nameFor, labelFor } = useMembers()
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -259,12 +261,6 @@ function relTime(dateStr) {
 }
 
 const fullDate = (dateStr) => formatDate(dateStr, 'datetime')
-
-function shortName(email) {
-  if (!email) return ''
-  const at = email.indexOf('@')
-  return at > 0 ? email.substring(0, at) : email
-}
 
 const segments = computed(() => {
   const oldText = (props.oldBody || '').trim()

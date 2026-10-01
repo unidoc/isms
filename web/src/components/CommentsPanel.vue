@@ -6,7 +6,7 @@
     <div v-else class="space-y-3">
       <div v-for="c in comments" :key="c.id" class="bg-slate-800/40 border border-slate-700/40 rounded-lg px-4 py-3">
         <div class="text-sm text-slate-300" v-html="renderMention(c.body)"></div>
-        <div class="text-[10px] text-slate-600 mt-1.5">{{ c.author }} · {{ formatDate(c.created_at) }}</div>
+        <div class="text-[10px] text-slate-600 mt-1.5"><span :title="c.author">{{ nameFor(c.author) }}</span> · {{ formatDate(c.created_at) }}</div>
       </div>
     </div>
 
@@ -43,7 +43,7 @@ const { t } = useI18n()
 
 const { show: showError } = useToast()
 
-const { members } = useMembers()
+const { members, nameFor } = useMembers()
 
 // Commenting on a register entity is a contributor-and-above write; readers are
 // read-only (#23). Same rule and same reason as SuggestNewButton.vue — hide the

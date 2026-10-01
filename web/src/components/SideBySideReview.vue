@@ -93,7 +93,7 @@
                     <div v-if="showOutdated[i]" class="mt-2 opacity-50">
                       <div v-for="c in outdatedCommentsForParagraph(i)" :key="c.id" class="mb-2">
                         <div class="flex items-center gap-2 text-[11px]">
-                          <span class="font-medium text-slate-500">{{ c.author?.split('@')[0] }}</span>
+                          <span class="font-medium text-slate-500" :title="c.author">{{ nameFor(c.author) }}</span>
                           <span class="text-slate-700 text-[10px]">{{ formatTime(c.created_at) }}</span>
                           <span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-600">{{ $t('common.state.outdated_inline') }}</span>
                         </div>
@@ -105,7 +105,7 @@
                   <!-- Active comments (current round) -->
                   <div v-for="c in activeCommentsForParagraph(i)" :key="c.id" class="mb-2">
                     <div class="flex items-center gap-2 text-[11px]">
-                      <span class="font-medium text-slate-300">{{ c.author?.split('@')[0] }}</span>
+                      <span class="font-medium text-slate-300" :title="c.author">{{ nameFor(c.author) }}</span>
                       <span class="text-slate-600 text-[10px]">{{ formatTime(c.created_at) }}</span>
                     </div>
                     <div class="text-sm text-slate-400 mt-0.5">{{ c.body }}</div>
@@ -140,6 +140,7 @@ import DiffView from './DiffView.vue'
 import { parseMd } from '../composables/useRenderMd'
 import { diffTables, isTableBlock } from '../composables/useTableDiff'
 import { formatDate } from '../composables/useFormat.js'
+import { useMembers } from '../composables/useMembers.js'
 
 const props = defineProps({
   oldBody: { type: String, default: '' },
@@ -152,6 +153,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['comment'])
+const { nameFor } = useMembers()
 const showAdvanced = ref(false)
 
 // Synchronised scrolling between the two panes (GitHub-style): scroll one and

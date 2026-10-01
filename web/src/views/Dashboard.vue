@@ -516,7 +516,7 @@
               <div class="text-sm text-slate-300 leading-snug">{{ a.detail || a.action }}</div>
               <div class="text-xs text-slate-600 mt-0.5">
                 <!-- i18n-ignore -->
-                {{ a.actor }} &middot; {{ formatDate(a.created_at) }}
+                <span :title="a.actor">{{ nameFor(a.actor) }}</span> &middot; {{ formatDate(a.created_at) }}
               </div>
             </div>
           </div>
@@ -542,8 +542,10 @@ import { useCurrentOrg, orgEntryURL, isSubdomainMode } from '../composables/useC
 import { formatDate, formatHours, formatMonthShort } from '../composables/useFormat.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { useMembers } from '../composables/useMembers.js'
 
 const { t } = useI18n()
+const { nameFor } = useMembers()
 const route = useRoute()
 const router = useRouter()
 const { orgSlug: currentOrgSlug, orgPath } = useCurrentOrg()

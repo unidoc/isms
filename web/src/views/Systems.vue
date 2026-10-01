@@ -429,7 +429,7 @@
                       <div>
                         <div class="text-xs text-slate-300">
                           <i18n-t keypath="systems.reviews.reviewed_by" scope="global">
-                            <template #name>{{ ar.reviewed_by }}</template>
+                            <template #name><span :title="ar.reviewed_by">{{ resolveUserName(ar.reviewed_by) }}</span></template>
                             <template #reviewed><span class="text-slate-600">{{ t('systems.reviews.reviewed') }}</span></template>
                           </i18n-t>
                         </div>

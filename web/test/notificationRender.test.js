@@ -149,3 +149,12 @@ test('missing params and null rows degrade instead of throwing', () => {
   const out = notificationTitle({ title_key: 'notifications.ca_assigned', title: STORED })
   assert.ok(typeof out === 'string')
 })
+
+test('an actor email that is not a known member renders as the email', () => {
+  const out = notificationTitle({
+    title_key: 'notifications.mention_comment',
+    title: STORED,
+    params: ROWS['notifications.mention_comment'],
+  })
+  assert.ok(out.includes('ana@x.io'), `expected the actor email, got: ${out}`)
+})

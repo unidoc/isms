@@ -76,7 +76,7 @@
               :class="{ 'opacity-40 border-emerald-900/30': comment.status === 'resolved' }"
             >
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-semibold text-slate-300">{{ comment.author }}</span>
+                <span class="text-xs font-semibold text-slate-300" :title="comment.author">{{ nameFor(comment.author) }}</span>
                 <span class="text-[10px] text-slate-600">{{ formatDate(comment.created_at) }}</span>
                 <div v-if="comment.status === 'resolved'" class="ml-auto flex items-center gap-1">
                   <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -93,7 +93,7 @@
               <!-- Resolved: collapsed -->
               <template v-if="comment.status === 'resolved'">
                 <div class="text-[10px] text-emerald-500/70 flex items-center gap-1 mb-1">
-                  {{ $t('components.viewer.resolved_by', { name: comment.resolved_by || $t('components.viewer.unknown_user'), date: formatDate(comment.resolved_at) }) }}
+                  {{ $t('components.viewer.resolved_by', { name: nameFor(comment.resolved_by) || $t('components.viewer.unknown_user'), date: formatDate(comment.resolved_at) }) }}
                 </div>
                 <div
                   v-if="!expandedResolved.has(comment.id)"
@@ -129,7 +129,7 @@
                   </div>
                   <div v-else-if="comment.suggestion_status === 'pending'" class="text-[10px] text-amber-400/70">{{ $t('components.viewer.awaiting_author') }}</div>
                   <div v-else class="text-[10px] text-slate-600">
-                    {{ $t('components.viewer.suggestion_resolved_by', { status: suggestionStatusLabel(comment.suggestion_status), name: comment.suggestion_resolved_by || $t('components.viewer.unknown_user') }) }}
+                    {{ $t('components.viewer.suggestion_resolved_by', { status: suggestionStatusLabel(comment.suggestion_status), name: nameFor(comment.suggestion_resolved_by) || $t('components.viewer.unknown_user') }) }}
                   </div>
                 </div>
                 <!-- Regular comment body -->
@@ -140,7 +140,7 @@
               <div v-if="repliesFor(comment.id).length > 0" class="mt-2 ml-3 border-l border-slate-800 pl-3 space-y-2">
                 <div v-for="reply in repliesFor(comment.id)" :key="reply.id" class="bg-slate-950/60 rounded p-2 border border-slate-800/30">
                   <div class="flex items-center gap-2 mb-0.5">
-                    <span class="text-[11px] font-semibold text-slate-400">{{ reply.author }}</span>
+                    <span class="text-[11px] font-semibold text-slate-400" :title="reply.author">{{ nameFor(reply.author) }}</span>
                     <span class="text-[10px] text-slate-600">{{ formatDate(reply.created_at) }}</span>
                   </div>
                   <div class="text-[12px] text-slate-400" v-html="sanitize(renderCommentBody(reply.body))"></div>
@@ -255,7 +255,7 @@ function suggestionStatusLabel(status) {
   return t('components.viewer.status_inline.pending')
 }
 
-const { members } = useMembers()
+const { members, nameFor } = useMembers()
 
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style'] })
 

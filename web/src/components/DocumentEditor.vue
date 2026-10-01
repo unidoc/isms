@@ -265,6 +265,7 @@ import ColorPicker from './ColorPicker.vue'
 import { api } from '../api.js'
 import { translatedSlashCommands, fetchPickerItems, resolveEntity } from '../composables/useSlashCommands.js'
 import { markdownToHtml, htmlToMarkdown } from '../composables/useMarkdownConvert.js'
+import { parseBackgroundColor, parseExtraStyle } from './tableCellStyle.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -335,19 +336,36 @@ function onCellRightClick(e) {
   cellMenu.show = true
 }
 
-// --- Custom TableCell with backgroundColor ---
+// --- Custom TableCell / TableHeader: round-trip the cell's own inline style ---
+// backgroundColor stays its own attribute (the cell-color picker reads/writes
+// exactly this one property, in isolation from everything else on the cell).
+// extraStyle carries every OTHER inline style declaration the cell arrived
+// with (see tableCellStyle.js for why this exists). tiptap's mergeAttributes
+// concatenates multiple `style` contributions property-by-property rather
+// than letting one overwrite the other, so the two combine cleanly.
+const cellBackgroundColorAttr = {
+  default: null,
+  parseHTML: element => parseBackgroundColor(element.getAttribute('style')),
+  renderHTML: attributes => {
+    if (!attributes.backgroundColor) return {}
+    return { style: `background-color: ${attributes.backgroundColor}` }
+  },
+}
+const cellExtraStyleAttr = {
+  default: null,
+  parseHTML: element => parseExtraStyle(element.getAttribute('style')),
+  renderHTML: attributes => {
+    if (!attributes.extraStyle) return {}
+    return { style: attributes.extraStyle }
+  },
+}
+
 const CustomTableCell = TableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      backgroundColor: {
-        default: null,
-        parseHTML: element => element.getAttribute('style')?.match(/background-color:\s*([^;]+)/)?.[1]?.trim() || null,
-        renderHTML: attributes => {
-          if (!attributes.backgroundColor) return {}
-          return { style: `background-color: ${attributes.backgroundColor}` }
-        },
-      },
+      backgroundColor: cellBackgroundColorAttr,
+      extraStyle: cellExtraStyleAttr,
     }
   },
 })
@@ -356,14 +374,8 @@ const CustomTableHeader = TableHeader.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      backgroundColor: {
-        default: null,
-        parseHTML: element => element.getAttribute('style')?.match(/background-color:\s*([^;]+)/)?.[1]?.trim() || null,
-        renderHTML: attributes => {
-          if (!attributes.backgroundColor) return {}
-          return { style: `background-color: ${attributes.backgroundColor}` }
-        },
-      },
+      backgroundColor: cellBackgroundColorAttr,
+      extraStyle: cellExtraStyleAttr,
     }
   },
 })

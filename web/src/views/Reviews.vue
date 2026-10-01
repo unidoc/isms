@@ -373,7 +373,10 @@
                   <span>{{ t('reviews.edit.draft_recovered') }}</span>
                   <button @click="reviewEditContent = documentContent; discardRevisionDraft(); revisionDraftRecovered = false" class="text-slate-500 hover:text-slate-300 ml-auto">{{ t('common.action.discard_draft') }}</button>
                 </div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <!-- No overflow-hidden: it breaks the toolbar's `position: sticky` (same fix
+                     as Documents.vue's edit mode) — the toolbar and tiptap content already
+                     round their own top/bottom corners. -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl">
                   <DocumentEditor v-model="reviewEditContent" :editable="true" :documentId="review.document_id" @save="saveReviewEdit" />
                 </div>
               </div>

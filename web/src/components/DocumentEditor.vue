@@ -1,7 +1,11 @@
 <template>
   <div class="document-editor" ref="editorRoot">
-    <!-- Toolbar (sticky) -->
-    <div class="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 px-3 py-2 bg-slate-900 border-b border-slate-800 rounded-t-xl">
+    <!-- Toolbar (sticky). `top` reads a CSS variable an ancestor may set (Documents.vue
+         sets it to its own sticky breadcrumb bar's measured height, so the two stack
+         instead of overlapping); it's unset elsewhere (e.g. Reviews.vue), where there's
+         nothing above this component to stack under, so it falls back to 0. -->
+    <div class="sticky z-20 flex flex-wrap items-center gap-0.5 px-3 py-2 bg-slate-900 border-b border-slate-800 rounded-t-xl"
+      style="top: var(--sticky-toolbar-top, 0px)">
       <!-- History -->
       <button @click="editor?.chain().focus().undo().run()" :disabled="!editor?.can().undo()"
         class="toolbar-btn" :title="$t('components.editor.undo')">

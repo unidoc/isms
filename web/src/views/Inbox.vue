@@ -65,9 +65,9 @@
             class="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-colors">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                {{ (c.author || '?').charAt(0).toUpperCase() }}
+                {{ (c.author ? resolveUserName(c.author) : '?').charAt(0).toUpperCase() }}
               </div>
-              <span class="text-sm font-medium text-slate-200">{{ c.author }}</span>
+              <span class="text-sm font-medium text-slate-200" :title="c.author">{{ resolveUserName(c.author) }}</span>
               <span class="text-xs text-slate-600">{{ formatDate(c.created_at) }}</span>
               <span v-if="c.suggestion_body" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-800/40 text-amber-300">{{ t('inbox.comments.suggestion_badge') }}</span>
               <span v-if="c.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
@@ -138,7 +138,7 @@
                     <span v-if="group.badge && review.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
                   </div>
                   <div class="text-xs text-slate-500 mt-0.5">
-                    {{ t('inbox.reviews.requested_by', { name: review.requested_by || t('inbox.reviews.unknown_requester') }) }}
+                    {{ t('inbox.reviews.requested_by', { name: review.requested_by ? resolveUserName(review.requested_by) : t('inbox.reviews.unknown_requester') }) }}
                     <span class="mx-1.5 text-slate-700">|</span>
                     {{ formatDate(review.created_at) }}
                     <span v-if="review.version" class="mx-1.5 text-slate-700">|</span>
@@ -181,7 +181,7 @@
                   </div>
                   <div>
                     <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('inbox.reviews.meta.requested_by') }}</div>
-                    <div class="text-sm text-slate-300">{{ review.requested_by || '-' }}</div>
+                    <div class="text-sm text-slate-300" :title="review.requested_by">{{ resolveUserName(review.requested_by) }}</div>
                   </div>
                 </div>
 
@@ -193,11 +193,12 @@
                       v-for="reviewer in review.reviewers"
                       :key="reviewer"
                       class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-md text-sm text-slate-300"
+                      :title="reviewer"
                     >
                       <div class="w-5 h-5 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10px] font-bold">
-                        {{ reviewer.charAt(0).toUpperCase() }}
+                        {{ resolveUserName(reviewer).charAt(0).toUpperCase() }}
                       </div>
-                      {{ reviewer }}
+                      {{ resolveUserName(reviewer) }}
                     </span>
                   </div>
                 </div>
@@ -212,7 +213,7 @@
                       class="bg-slate-800/50 rounded-lg px-4 py-3"
                     >
                       <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-semibold text-slate-300">{{ comment.author }}</span>
+                        <span class="text-xs font-semibold text-slate-300" :title="comment.author">{{ resolveUserName(comment.author) }}</span>
                         <span class="text-[10px] text-slate-600">{{ formatDate(comment.created_at) }}</span>
                       </div>
                       <div class="text-sm text-slate-400">{{ comment.body }}</div>
@@ -534,7 +535,7 @@
                   <span v-if="change.needs_action" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 flex-shrink-0">{{ t('inbox.needs_action') }}</span>
                 </div>
                 <div class="text-xs text-slate-500 mt-0.5">
-                  {{ t('inbox.changes.requested_by', { name: change.requested_by || t('inbox.changes.unknown_requester') }) }}
+                  {{ t('inbox.changes.requested_by', { name: change.requested_by ? resolveUserName(change.requested_by) : t('inbox.changes.unknown_requester') }) }}
                   <span class="mx-1.5 text-slate-700">|</span>
                   {{ formatDate(change.created_at) }}
                 </div>
@@ -683,7 +684,7 @@
                 </div>
                 <div class="text-sm text-slate-300 mt-0.5">{{ sg.title }}</div>
                 <div class="text-xs text-slate-500 mt-1">
-                  {{ t('inbox.suggestions.suggested_by', { name: sg.suggested_by?.split('@')[0], date: formatDate(sg.created_at) }) }}
+                  {{ t('inbox.suggestions.suggested_by', { name: resolveUserName(sg.suggested_by), date: formatDate(sg.created_at) }) }}
                 </div>
               </div>
               <!-- Actions -->

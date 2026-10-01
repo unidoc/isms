@@ -60,7 +60,7 @@
                     :class="avatarColor(review.requested_by)">
                     {{ initial(review.requested_by) }}
                   </div>
-                  <span class="text-sm text-slate-400">{{ review.requested_by }}</span>
+                  <span class="text-sm text-slate-400" :title="review.requested_by">{{ nameFor(review.requested_by) }}</span>
                 </div>
                 <span class="text-xs text-slate-600">{{ t('reviews.opened_ago', { time: timeAgo(review.created_at) }) }}</span>
               </div>
@@ -139,7 +139,7 @@
                         :class="avatarColor(entry.actor)">
                         {{ initial(entry.actor) }}
                       </div>
-                      <span class="text-sm font-medium text-slate-200">{{ entry.actor }}</span>
+                      <span class="text-sm font-medium text-slate-200" :title="entry.actor">{{ nameFor(entry.actor) }}</span>
                       <span class="text-xs text-slate-600">{{ entry.data?.suggestion_body ? t('reviews.timeline.suggested_edit') : t('reviews.timeline.commented') }} {{ timeAgo(entry.created_at) }}</span>
                       <span v-if="entry.data?.suggestion_status"
                         class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
@@ -167,7 +167,7 @@
                       :class="avatarColor(entry.actor)">
                       {{ initial(entry.actor) }}
                     </div>
-                    <span class="text-sm font-medium text-slate-200">{{ entry.actor }}</span>
+                    <span class="text-sm font-medium text-slate-200" :title="entry.actor">{{ nameFor(entry.actor) }}</span>
                     <span v-if="entry.decision === 'approved'" class="text-sm text-emerald-400 font-medium">{{ t('reviews.timeline.approved') }}</span>
                     <span v-else-if="entry.decision === 'proposed_revision'" class="text-sm text-blue-400 font-medium">{{ t('reviews.timeline.proposed_revision') }}</span>
                     <span v-else-if="entry.decision === 'changes_requested'" class="text-sm text-amber-400 font-medium">{{ t('reviews.timeline.requested_changes') }}</span>
@@ -191,7 +191,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
                     </svg>
                     <i18n-t keypath="reviews.timeline.assigned" tag="span" class="text-slate-400" scope="global">
-                      <template #reviewer><span class="text-slate-300 font-medium">{{ entry.reviewer }}</span></template>
+                      <template #reviewer><span class="text-slate-300 font-medium" :title="entry.reviewer">{{ nameFor(entry.reviewer) }}</span></template>
                     </i18n-t>
                     <span class="text-xs text-slate-600">{{ timeAgo(entry.created_at) }}</span>
                   </div>
@@ -206,7 +206,7 @@
                         :class="avatarColor(entry.actor)">
                         {{ initial(entry.actor) }}
                       </div>
-                      <span class="text-sm font-medium text-slate-200">{{ entry.actor }}</span>
+                      <span class="text-sm font-medium text-slate-200" :title="entry.actor">{{ nameFor(entry.actor) }}</span>
                       <span class="text-sm font-medium" :class="entry.decision === 'merged' ? 'text-purple-400' : entry.decision === 'approved' ? 'text-emerald-400' : entry.decision === 'proposed_revision' ? 'text-blue-400' : 'text-amber-400'">
                         {{ decisionLabel(entry.decision) }}
                       </span>
@@ -248,8 +248,8 @@
                   <div class="text-sm text-blue-300 font-medium">{{ t('reviews.updated.heading') }}</div>
                   <div v-if="lastModifiedBy" class="text-xs text-blue-400/70 mt-0.5">
                     {{ lastCommitMsg
-                      ? t('reviews.updated.last_modified_by_with_message', { name: lastModifiedBy, message: lastCommitMsg })
-                      : t('reviews.updated.last_modified_by', { name: lastModifiedBy }) }}
+                      ? t('reviews.updated.last_modified_by_with_message', { name: nameFor(lastModifiedBy), message: lastCommitMsg })
+                      : t('reviews.updated.last_modified_by', { name: nameFor(lastModifiedBy) }) }}
                   </div>
                   <div class="text-xs text-slate-500 mt-0.5">{{ t('reviews.updated.note') }}</div>
                 </div>
@@ -448,7 +448,8 @@
                     {{ initial(a.reviewer) }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm text-slate-300 truncate">{{ a.reviewer }}</div>
+                    <div class="text-sm text-slate-300 truncate">{{ nameFor(a.reviewer) }}</div>
+                    <div v-if="nameFor(a.reviewer) !== a.reviewer" class="text-[10px] text-slate-500 truncate">{{ a.reviewer }}</div>
                   </div>
                   <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
                     :class="assignmentStatusClass(a.status)">
@@ -802,7 +803,7 @@
               <div class="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
                 <span>{{ r.version }}</span>
                 <span class="text-slate-700">*</span>
-                <span>{{ t('reviews.list.opened_by', { name: r.requested_by }) }}</span>
+                <span :title="r.requested_by">{{ t('reviews.list.opened_by', { name: nameFor(r.requested_by) }) }}</span>
                 <span class="text-slate-700">*</span>
                 <span>{{ timeAgo(r.created_at) }}</span>
                 <span v-if="r.comment_count > 0" class="flex items-center gap-1 ml-2 text-slate-500">
@@ -819,9 +820,9 @@
                     :class="avatarColor(a.reviewer)">
                     {{ initial(a.reviewer) }}
                   </div>
-                  <span class="text-[11px]"
+                  <span class="text-[11px]" :title="a.reviewer"
                     :class="a.status === 'approved' ? 'text-emerald-400' : a.status === 'changes_requested' ? 'text-amber-400' : 'text-slate-500'">
-                    {{ t('reviews.list.reviewer_status', { name: a.reviewer.split('@')[0], status: assignmentStatusLabel(a.status) }) }}
+                    {{ t('reviews.list.reviewer_status', { name: nameFor(a.reviewer), status: assignmentStatusLabel(a.status) }) }}
                   </span>
                 </div>
               </div>
@@ -868,6 +869,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatRelative } from '../composables/useFormat.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { useMembers } from '../composables/useMembers.js'
 const DocumentEditor = defineAsyncComponent(() => import('../components/DocumentEditor.vue'))
 
 const { t } = useI18n()
@@ -875,6 +877,7 @@ const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
 const { show: showError, success: showSaved } = useToast()
+const { nameFor } = useMembers()
 
 // State
 const userRole = ref('')
@@ -921,14 +924,14 @@ const hasProposedRevision = computed(() => {
 
 const proposedRevisionBy = computed(() => {
   const a = assignments.value.find(a => a.status === 'proposed_revision')
-  return a?.reviewer?.split('@')[0] || t('reviews.reviewer_fallback')
+  return nameFor(a?.reviewer) || t('reviews.reviewer_fallback')
 })
 
-// The author's local-part, or the translated word "author" when the review
+// The author's display name, or the translated word "author" when the review
 // carries no requester. Two sentences splice it and both used to build the
 // fallback inline.
 const authorShortName = computed(
-  () => review.value?.requested_by?.split('@')[0] || t('reviews.author_fallback'))
+  () => nameFor(review.value?.requested_by) || t('reviews.author_fallback'))
 
 const approvedAssignmentCount = computed(
   () => assignments.value.filter(a => a.status === 'approved').length)
@@ -938,7 +941,7 @@ const approvedAssignmentCount = computed(
 // are copy.
 const pendingReviewerNames = computed(() => assignments.value
   .filter(a => a.status === 'pending')
-  .map(a => a.reviewer.split('@')[0])
+  .map(a => nameFor(a.reviewer))
   .join(', '))
 
 // Three states in one button, so the ternary lives here rather than in the
@@ -1328,8 +1331,9 @@ function avatarColor(email) {
 }
 
 function initial(email) {
-  if (!email) return '?'
-  return email.charAt(0).toUpperCase()
+  const name = nameFor(email)
+  if (!name) return '?'
+  return name.charAt(0).toUpperCase()
 }
 
 const timeAgo = (dateStr) => formatRelative(dateStr)

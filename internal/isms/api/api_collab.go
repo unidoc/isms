@@ -210,6 +210,31 @@ func getUserEmail(c echo.Context) string {
 	return ""
 }
 
+// userDisplayName returns the user's name, or the email when there is no name or no user.
+func (s *Server) userDisplayName(ctx context.Context, email string) string {
+	if u, err := s.db.GetUserByEmail(ctx, email); err == nil && u != nil && u.Name != "" {
+		return u.Name
+	}
+	return email
+}
+
+// userLabel returns "Name (email)", or just the email when there is no name.
+func (s *Server) userLabel(ctx context.Context, email string) string {
+	if name := s.userDisplayName(ctx, email); name != email {
+		return fmt.Sprintf("%s (%s)", name, email)
+	}
+	return email
+}
+
+// userLabels maps each email through userLabel.
+func (s *Server) userLabels(ctx context.Context, emails []string) []string {
+	out := make([]string, len(emails))
+	for i, e := range emails {
+		out[i] = s.userLabel(ctx, e)
+	}
+	return out
+}
+
 // taskViewer builds the task-visibility scope for the current caller: managers
 // and admins see every task; everyone else sees only public tasks plus their own
 // (assigned to them or created by them).
@@ -605,11 +630,11 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
 			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, review.DocumentID, review.Title, review.Version, m.AppURL, id, req.Message, m.Branding)
+			_ = s.mailer.SendReviewRequestBranded(reviewer, s.userDisplayName(ctx, reviewer), s.userLabel(ctx, actor), review.DocumentID, review.Title, review.Version, m.AppURL, id, req.Message, m.Branding)
 		}
 	}
 
-	detail := fmt.Sprintf("Forwarded review #%d (%s) to %s", id, review.DocumentID, strings.Join(req.Reviewers, ", "))
+	detail := fmt.Sprintf("Forwarded review #%d (%s) to %s", id, review.DocumentID, strings.Join(s.userLabels(ctx, req.Reviewers), ", "))
 	if req.Message != "" {
 		detail += " — " + req.Message
 	}
@@ -1309,7 +1334,7 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 		// Normal flow: email the review author (human or mixed)
 		if s.mailer != nil && s.mailer.Enabled() {
 			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendReviewDecisionBranded(review.RequestedBy, review.RequestedBy, actor, review.DocumentID, review.Title, review.Version, req.Decision, m.AppURL, m.Branding)
+			_ = s.mailer.SendReviewDecisionBranded(review.RequestedBy, s.userDisplayName(ctx, review.RequestedBy), s.userLabel(ctx, actor), review.DocumentID, review.Title, review.Version, req.Decision, m.AppURL, m.Branding)
 		}
 	}
 
@@ -2391,7 +2416,7 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 	// Email assignee if set
 	if t.Assignee != "" && s.mailer != nil && s.mailer.Enabled() {
 		m := s.orgMail(ctx, orgID)
-		_ = s.mailer.SendTaskAssignedBranded(t.Assignee, t.Assignee, t.CreatedBy, t.Title, t.Priority, m.AppURL, m.Branding)
+		_ = s.mailer.SendTaskAssignedBranded(t.Assignee, s.userDisplayName(ctx, t.Assignee), s.userLabel(ctx, t.CreatedBy), t.Title, t.Priority, m.AppURL, m.Branding)
 	}
 
 	return c.JSON(http.StatusCreated, t)
@@ -3096,12 +3121,8 @@ func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, update
 			Detail: fmt.Sprintf("Auto-task %s for approved change %s", t.Identifier, updated.Identifier),
 		})
 		if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
-			displayName := assignee
-			if u, err := s.db.GetUserByEmail(ctx, assignee); err == nil && u != nil && u.Name != "" {
-				displayName = u.Name
-			}
 			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendTaskAssignedBranded(assignee, displayName, actor, t.Title, t.Priority, m.AppURL, m.Branding)
+			_ = s.mailer.SendTaskAssignedBranded(assignee, s.userDisplayName(ctx, assignee), s.userLabel(ctx, actor), t.Title, t.Priority, m.AppURL, m.Branding)
 		}
 	}
 }
@@ -4155,7 +4176,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 					Link:     fmt.Sprintf("/reviews/%d", existingReview.ID),
 				})
 				if s.mailer != nil && s.mailer.Enabled() {
-					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, a.Reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
+					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, s.userDisplayName(ctx, a.Reviewer), s.userLabel(ctx, actor), docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 				}
 			}
 			s.logAndNotify(ctx, orgID, &db.Activity{
@@ -4213,7 +4234,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			})
 			if s.mailer != nil && s.mailer.Enabled() {
 				m := s.orgMail(ctx, orgID)
-				_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
+				_ = s.mailer.SendReviewRequestBranded(reviewer, s.userDisplayName(ctx, reviewer), s.userLabel(ctx, actor), docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
 			}
 		}
 		s.logAndNotify(ctx, orgID, &db.Activity{
@@ -4221,7 +4242,7 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			ReviewID:   &existingReview.ID,
 			Actor:      actor,
 			Action:     "reviewers_added",
-			Detail:     fmt.Sprintf("Added reviewers %s to existing review #%d", strings.Join(req.Reviewers, ", "), existingReview.ID),
+			Detail:     fmt.Sprintf("Added reviewers %s to existing review #%d", strings.Join(s.userLabels(ctx, req.Reviewers), ", "), existingReview.ID),
 		})
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"review_id": existingReview.ID,
@@ -4339,14 +4360,14 @@ func (s *Server) createReviewWithAssignments(
 		// Send email notification to reviewer
 		if s.mailer != nil && s.mailer.Enabled() {
 			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendReviewRequestBranded(reviewer, reviewer, actor, docID, title, version, m.AppURL, review.ID, message, m.Branding)
+			_ = s.mailer.SendReviewRequestBranded(reviewer, s.userDisplayName(ctx, reviewer), s.userLabel(ctx, actor), docID, title, version, m.AppURL, review.ID, message, m.Branding)
 		}
 	}
 
 	// h. Log activity
 	detail := fmt.Sprintf("Created review for %s v%s", docID, version)
 	if len(reviewers) > 0 {
-		detail += fmt.Sprintf(", assigned to %s", strings.Join(reviewers, ", "))
+		detail += fmt.Sprintf(", assigned to %s", strings.Join(s.userLabels(ctx, reviewers), ", "))
 	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		DocumentID: docID,

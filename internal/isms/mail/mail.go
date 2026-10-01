@@ -3,6 +3,7 @@ package mail
 
 import (
 	"fmt"
+	"html"
 	"net"
 	netmail "net/mail"
 	"net/smtp"
@@ -204,6 +205,8 @@ func (m *Mailer) SendReviewRequest(to, reviewerName, actor, docID, title, versio
 
 // SendReviewRequestBranded sends a review request with org branding.
 func (m *Mailer) SendReviewRequestBranded(to, reviewerName, actor, docID, title, version, baseURL string, reviewID int, message string, b Branding) error {
+	reviewerName = html.EscapeString(reviewerName)
+	actor = html.EscapeString(actor)
 	link := fmt.Sprintf("%s/reviews/%d", strings.TrimRight(baseURL, "/"), reviewID)
 
 	note := ""
@@ -231,6 +234,8 @@ func (m *Mailer) SendReviewDecision(to, authorName, reviewer, docID, title, vers
 
 // SendReviewDecisionBranded sends a review decision with org branding.
 func (m *Mailer) SendReviewDecisionBranded(to, authorName, reviewer, docID, title, version, decision, baseURL string, b Branding) error {
+	authorName = html.EscapeString(authorName)
+	reviewer = html.EscapeString(reviewer)
 	link := fmt.Sprintf("%s/documents/%s", strings.TrimRight(baseURL, "/"), docID)
 
 	icon := "approved"
@@ -258,6 +263,8 @@ func (m *Mailer) SendTaskAssigned(to, assigneeName, actor, taskTitle, priority, 
 
 // SendTaskAssignedBranded sends a task assignment with org branding.
 func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, priority, baseURL string, b Branding) error {
+	assigneeName = html.EscapeString(assigneeName)
+	actor = html.EscapeString(actor)
 	link := fmt.Sprintf("%s/tasks", strings.TrimRight(baseURL, "/"))
 
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">

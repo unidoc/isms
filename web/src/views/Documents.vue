@@ -3026,6 +3026,9 @@ onBeforeUnmount(() => {
   color: rgb(241 245 249);
   font-weight: 600;
 }
+.doc-prose :deep(.tbl-cell.has-text-color strong) {
+  color: inherit;
+}
 /* First header block gets top border + rounded top */
 .comment-block:has(.tbl-grid:not(.tbl-row)) {
   margin-bottom: 0 !important;

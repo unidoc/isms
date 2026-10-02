@@ -332,7 +332,8 @@ const contentBlocks = computed(() => {
         const tds = Array.from(tr.querySelectorAll('td'))
         const cells = tds.map(td => {
           const styleAttr = td.getAttribute('style') || ''
-          return `<div class="tbl-cell" style="${styleAttr}">${td.innerHTML}</div>`
+          const extraClass = td.classList.contains('has-text-color') ? ' has-text-color' : ''
+          return `<div class="tbl-cell${extraClass}" style="${styleAttr}">${td.innerHTML}</div>`
         }).join('')
         addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '')
       }
@@ -721,6 +722,9 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
 .doc-prose :deep(.tbl-cell strong) {
   color: rgb(241 245 249);
   font-weight: 600;
+}
+.doc-prose :deep(.tbl-cell.has-text-color strong) {
+  color: inherit;
 }
 /* First header block gets top border + rounded top */
 .comment-block:has(.tbl-grid:not(.tbl-row)) {

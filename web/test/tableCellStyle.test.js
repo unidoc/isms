@@ -102,3 +102,24 @@ test('backgroundColor and extraStyle merge back into one correct style attribute
   assert.match(merged, /text-align:\s*center/)
   assert.doesNotMatch(merged, /text-align:\s*left/)
 })
+
+// Regression (review finding F7 on #388): the F6 fix reordered
+// CustomTableCell/CustomTableHeader's addAttributes() so extraStyle is
+// declared before backgroundColor. "background" (shorthand) and
+// "background-color" (longhand) are different Map keys, so mergeAttributes
+// never collides them — both declarations survive in the merged style
+// string. What actually decides the rendered color is the browser's own
+// cascade: when a style attribute carries both, the one that appears LATER
+// in the string wins. So the fix only works if backgroundColor's own
+// declaration is positioned after extraStyle's — a plain "does the merged
+// string contain background-color" assertion would pass whether the order
+// fix was there or not; this pins down the order itself, the thing F6
+// actually changed.
+test('extraStyle before backgroundColor: the picker\'s declaration lands after a legacy background shorthand', () => {
+  const rest = parseExtraStyle('background: #ddf0cd; color: #1f1f1f;')
+  const bg = '#ff0000'
+  const merged = mergeStyles(rest, `background-color: ${bg}`)
+  assert.equal(merged, 'background: #ddf0cd; color: #1f1f1f; background-color: #ff0000')
+  assert.ok(merged.indexOf('background-color') > merged.indexOf('background:'),
+    `expected background-color to come after the background shorthand, got: ${merged}`)
+})

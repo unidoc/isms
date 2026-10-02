@@ -76,7 +76,8 @@ export function buildContentBlocks(rawContent) {
         const tds = Array.from(tr.querySelectorAll('td'))
         const cells = tds.map(td => {
           const styleAttr = td.getAttribute('style') || ''
-          return `<div class="tbl-cell" style="${styleAttr}">${td.innerHTML}</div>`
+          const extraClass = td.classList.contains('has-text-color') ? ' has-text-color' : ''
+          return `<div class="tbl-cell${extraClass}" style="${styleAttr}">${td.innerHTML}</div>`
         }).join('')
         addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '')
       }

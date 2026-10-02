@@ -2959,6 +2959,11 @@ onBeforeUnmount(() => {
   color: rgb(148 163 184);
   border-bottom: 2px solid rgb(51 65 85);
   border-right: 1px solid rgb(51 65 85);
+  min-width: 0; /* see .tbl-cell below (#14) — without this, the header's own
+    grid (independent from every body row's grid) resolves a track wider
+    than its fr share whenever the label's min-content width exceeds it,
+    while the body rows (already min-width:0) shrink to the shared
+    template's literal share — same template, different pixels per row. */
 }
 .doc-prose :deep(.tbl-hdr-cell:last-child) {
   border-right: none;

@@ -717,6 +717,11 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
   color: rgb(148 163 184);
   border-bottom: 2px solid rgb(51 65 85);
   border-right: 1px solid rgb(51 65 85);
+  min-width: 0; /* see .tbl-cell below (#14) — without this, the header's own
+    grid (independent from every body row's grid) resolves a track wider
+    than its fr share whenever the label's min-content width exceeds it,
+    while the body rows (already min-width:0) shrink to the shared
+    template's literal share — same template, different pixels per row. */
 }
 .doc-prose :deep(.tbl-hdr-cell:last-child) {
   border-right: none;
@@ -728,6 +733,11 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
   line-height: 1.6;
   font-size: 0.875rem;
   border-right: 1px solid rgba(51 65 85 / 0.3);
+  min-width: 0; /* allow 1fr grid tracks to shrink below content width (#14) —
+    Documents.vue's copy already had this; without it here too, a long
+    unbreakable token (a URL, a long identifier) in one row widens that
+    row's own independent grid while its neighbours don't, so rows drift
+    out of alignment with each other the same way header vs. body did. */
 }
 .doc-prose :deep(.tbl-cell:last-child) {
   border-right: none;

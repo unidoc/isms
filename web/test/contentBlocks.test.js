@@ -167,7 +167,10 @@ test('markdown pipe-table block raw (the comment-hash anchor) is byte-stable', (
   )
   // Every cell is one character here, so the content-aware widths below come
   // out equal too (1.00fr each) — same layout, just no longer a hardcoded "1".
-  for (const b of blocks) assert.match(b.html, /grid-template-columns: 1\.00fr 1\.00fr;/)
+  // The floor is minmax()'d in regardless, sized off each 1-char header label.
+  for (const b of blocks) {
+    assert.match(b.html, /grid-template-columns: minmax\(6ch, 1\.00fr\) minmax\(6ch, 1\.00fr\);/)
+  }
 })
 
 // Regression: a table with one short label column and one paragraph-length
@@ -183,8 +186,33 @@ test('a column with a long cell gets more width than a column of short cells', (
   const blocks = buildContentBlocks(md)
   const [, row] = blocks
   assert.match(row.raw, /grid-template-columns: 1fr 1fr;/)
-  const widths = row.html.match(/grid-template-columns: ([\d.]+)fr ([\d.]+)fr;/)
-  assert.ok(widths, `expected two fr widths in: ${row.html}`)
+  const widths = row.html.match(/grid-template-columns: minmax\(\d+ch, ([\d.]+)fr\) minmax\(\d+ch, ([\d.]+)fr\);/)
+  assert.ok(widths, `expected two minmax(...) widths in: ${row.html}`)
   const [, shortCol, longCol] = widths.map(Number)
   assert.ok(longCol > shortCol * 3, `expected the long column (${longCol}fr) to dominate the short one (${shortCol}fr)`)
+})
+
+// Regression (review finding F1 on #391): a bare `fr` track is really
+// `minmax(auto, fr)`, and that automatic "auto" minimum is the grid item's
+// own min-content size — a header label's own minimum, specifically, since
+// .tbl-hdr-cell has no min-width:0 (see the CSS). Since every row is its own
+// independent grid, only the header's grid would widen a narrow column past
+// its template share while body rows shrink to the template's literal
+// share — the header and body columns would drift apart, even though they
+// share one template string. The explicit minmax() floor must be wide
+// enough for the header's own label (plus some buffer for its own padding
+// and uppercase/letter-spacing), not just "1" like the old flat weight
+// floor, or min-width:0 on .tbl-hdr-cell (needed so that explicit floor is
+// the one that governs) would let a long header label truncate instead.
+test('a short column still reserves enough width for its own header label', () => {
+  const md = '| Transfer mechanism | Note |\n| --- | --- |\n| SCC | ok |\n'
+  const blocks = buildContentBlocks(md)
+  const [header] = blocks
+  const widths = header.html.match(/grid-template-columns: minmax\((\d+)ch, [\d.]+fr\) minmax\((\d+)ch, [\d.]+fr\);/)
+  assert.ok(widths, `expected two minmax(...) floors in: ${header.html}`)
+  const [, firstFloor] = widths.map(Number)
+  // "Transfer mechanism" is 19 characters — the floor must clear that by a
+  // real margin, not just equal it, to leave room for the uppercase label's
+  // own padding and letter-spacing.
+  assert.ok(firstFloor > 19, `expected the "Transfer mechanism" column's floor (${firstFloor}ch) to clear its own 19-character label`)
 })

@@ -16,16 +16,48 @@ import { parseMd } from '../composables/useRenderMd.js'
 // from their content. Weight each column by its longest cell instead,
 // compressed through sqrt so one huge cell can't swallow the whole table,
 // with a floor so a column of short cells still gets a sane minimum share.
+//
+// Every row (header included) is its own independent CSS grid — not nested
+// under one shared <table> — so columns only line up across rows because
+// every grid resolves this same template string to the same pixel widths.
+// A bare `fr` track is really `minmax(auto, fr)`, and that automatic `auto`
+// minimum is the grid ITEM's own min-content size unless the item opts out
+// with `min-width: 0` (which .tbl-cell/.tbl-hdr-cell now both do, in both
+// renderers' CSS) — without that, a header's uppercase, letter-spaced,
+// unbreakable label can force its own grid to resolve a track wider than
+// its fr share while a short body cell's row shrinks all the way down to
+// the template's literal share. Once that automatic minimum is suppressed,
+// an explicit `minmax(Nch, fr)` floor per column — sized to that column's
+// own header label — replaces it with a floor every grid agrees on, so the
+// header is never asked to go narrower than its own label needs, and
+// narrow columns don't get truncated by the sqrt-compressed share alone.
+//
 // Exported so DocumentViewer.vue's copy of this same table-rendering logic
 // shares the exact formula rather than drifting from it.
-export function columnWidths(colCount, ...cellGroups) {
+export function columnWidths(colCount, ths, ...rowCellGroups) {
   const maxLen = Array(colCount).fill(0)
-  for (const cells of cellGroups) {
+  const headerLen = Array(colCount).fill(0)
+  ths.forEach((cell, i) => {
+    if (i >= colCount) return
+    const len = (cell.textContent || '').trim().length
+    headerLen[i] = len
+    maxLen[i] = Math.max(maxLen[i], len)
+  })
+  for (const cells of rowCellGroups) {
     cells.forEach((cell, i) => {
       if (i < colCount) maxLen[i] = Math.max(maxLen[i], (cell.textContent || '').trim().length)
     })
   }
-  return maxLen.map(n => Math.max(Math.sqrt(n), 1).toFixed(2) + 'fr').join(' ')
+  return maxLen.map((n, i) => {
+    const weight = Math.max(Math.sqrt(n), 1).toFixed(2)
+    // The header's own padding plus its uppercase, letter-spaced, bold
+    // transform all widen it well past a plain `ch` (the '0' glyph's own
+    // width) per character — this is a deliberately generous approximation,
+    // not a measurement, so it errs toward a column being a little wider
+    // than the label strictly needs rather than risking a cut-off word.
+    const floorCh = Math.max(Math.ceil(headerLen[i] * 1.3) + 4, 3)
+    return `minmax(${floorCh}ch, ${weight}fr)`
+  }).join(' ')
 }
 
 export function buildContentBlocks(rawContent) {

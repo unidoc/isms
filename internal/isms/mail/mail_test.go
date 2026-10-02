@@ -1,6 +1,8 @@
 package mail
 
 import (
+	"bufio"
+	"net"
 	netmail "net/mail"
 	"strings"
 	"testing"
@@ -86,5 +88,83 @@ func TestBrandingNameFallback(t *testing.T) {
 	}
 	if got := (Branding{Name: "Acme"}).name(); got != "Acme" {
 		t.Errorf("Branding.name() = %q, want %q", got, "Acme")
+	}
+}
+
+// fakeSMTP accepts one message on a loopback port and returns the DATA section
+// the client sent, so a test can inspect the rendered body without a hook in
+// the Mailer.
+func fakeSMTP(t *testing.T) (host, port string, data <-chan string) {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	out := make(chan string, 1)
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		r := bufio.NewReader(conn)
+		write := func(s string) { _, _ = conn.Write([]byte(s + "\r\n")) }
+		write("220 fake ESMTP")
+		var body strings.Builder
+		inData := false
+		for {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				return
+			}
+			line = strings.TrimRight(line, "\r\n")
+			if inData {
+				if line == "." {
+					inData = false
+					out <- body.String()
+					write("250 OK")
+					continue
+				}
+				body.WriteString(line + "\n")
+				continue
+			}
+			switch cmd := strings.ToUpper(line); {
+			case strings.HasPrefix(cmd, "EHLO"), strings.HasPrefix(cmd, "HELO"):
+				write("250 fake")
+			case strings.HasPrefix(cmd, "DATA"):
+				inData = true
+				write("354 go ahead")
+			case strings.HasPrefix(cmd, "QUIT"):
+				write("221 bye")
+				return
+			default:
+				write("250 OK")
+			}
+		}
+	}()
+	host, port, _ = net.SplitHostPort(ln.Addr().String())
+	return host, port, out
+}
+
+// A user's display name is untrusted input, and the review request greets and
+// attributes by name, so a markup-bearing name must arrive escaped.
+func TestSendReviewRequestBrandedEscapesNames(t *testing.T) {
+	host, port, data := fakeSMTP(t)
+	m := New(Config{Host: host, Port: port, From: "noreply@isms.sh"})
+	err := m.SendReviewRequestBranded("eve@x.io", "Eve <b>X</b>", "Mallory <i>Y</i> (m@x.io)",
+		"doc-1", "Title", "1", "https://isms.example", 7, "", Branding{})
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	body := <-data
+	if !strings.Contains(body, "Eve &lt;b&gt;X&lt;/b&gt;") {
+		t.Errorf("reviewer name not escaped in body:\n%s", body)
+	}
+	if !strings.Contains(body, "Mallory &lt;i&gt;Y&lt;/i&gt; (m@x.io)") {
+		t.Errorf("actor not escaped in body:\n%s", body)
+	}
+	if strings.Contains(body, "<b>X</b>") || strings.Contains(body, "<i>Y</i>") {
+		t.Errorf("raw markup leaked into body:\n%s", body)
 	}
 }

@@ -63,7 +63,7 @@
               : 'bg-red-500/15 text-red-400'">
             {{ outcomeLabel(r.outcome) }}
           </span>
-          <span class="text-[10px] text-slate-500">{{ r.reviewed_by?.split('@')[0] }}</span>
+          <span class="text-[10px] text-slate-500" :title="r.reviewed_by">{{ nameFor(r.reviewed_by) }}</span>
           <span class="text-[10px] text-slate-600">{{ formatTime(r.created_at) }}</span>
         </div>
         <div class="flex items-center gap-3 text-[10px] text-slate-500 mb-1">
@@ -84,8 +84,10 @@ import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { formatRecent } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { useMembers } from '../composables/useMembers.js'
 
 const { t } = useI18n()
+const { nameFor } = useMembers()
 
 // The history rows rendered the stored value verbatim, so every locale saw
 // "satisfactory" in English lower case.

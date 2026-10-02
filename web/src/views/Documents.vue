@@ -274,7 +274,7 @@
                   <div class="text-[10px] text-slate-600 mt-1">
                     <i18n-t keypath="documents.recent.meta" tag="span" scope="global">
                       <template #time>{{ doc.commit_time }}</template>
-                      <template #author>{{ doc.author }}</template>
+                      <template #author><span :title="doc.author">{{ resolveUserName(doc.author) }}</span></template>
                       <template #hash><span class="font-mono">{{ doc.commit_hash }}</span></template>
                       <template #message>{{ doc.commit_message }}</template>
                     </i18n-t>
@@ -685,8 +685,8 @@
                     <span class="font-semibold">{{ ver.version || t('documents.versions.unknown_version') }}</span>
                     <span v-if="ver.message" class="text-slate-400 ml-1.5">{{ ver.message }}</span>
                   </div>
-                  <div class="text-[10px] text-slate-600">
-                    {{ t('documents.versions.meta', { author: ver.created_by, date: formatDate(ver.created_at) }) }}
+                  <div class="text-[10px] text-slate-600" :title="ver.created_by">
+                    {{ t('documents.versions.meta', { author: resolveUserName(ver.created_by), date: formatDate(ver.created_at) }) }}
                   </div>
                 </div>
               </button>
@@ -830,7 +830,7 @@
                     :class="{ 'opacity-40 border-emerald-900/30': comment.status === 'resolved' }"
                   >
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="text-xs font-semibold text-slate-300">{{ comment.author }}</span>
+                      <span class="text-xs font-semibold text-slate-300" :title="comment.author">{{ resolveUserName(comment.author) }}</span>
                       <span class="text-[10px] text-slate-600">{{ formatDate(comment.created_at) }}</span>
                       <div v-if="comment.status === 'resolved'" class="ml-auto flex items-center gap-1">
                         <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1025,7 +1025,7 @@
                 <span class="text-[10px] text-slate-500 font-medium">{{ t('documents.comments.document_label') }}</span>
               </div>
               <div class="flex items-baseline gap-2 mb-1.5">
-                <span class="text-[13px] font-semibold text-slate-300">{{ comment.author }}</span>
+                <span class="text-[13px] font-semibold text-slate-300" :title="comment.author">{{ resolveUserName(comment.author) }}</span>
                 <span class="text-[11px] text-slate-500">{{ formatDate(comment.created_at) }}</span>
               </div>
               <p class="text-[13px] text-slate-400 leading-relaxed whitespace-pre-wrap" v-html="sanitize(renderCommentBody(comment.body))"></p>
@@ -1047,7 +1047,7 @@
               <!-- Replies -->
               <div v-for="reply in panelRepliesFor(comment.id)" :key="reply.id" class="mt-2 ml-4 pl-3 border-l-2 border-slate-700">
                 <div class="flex items-center gap-2 mb-0.5">
-                  <span class="text-[11px] font-semibold text-slate-400">{{ reply.author }}</span>
+                  <span class="text-[11px] font-semibold text-slate-400" :title="reply.author">{{ resolveUserName(reply.author) }}</span>
                   <span class="text-[10px] text-slate-600">{{ formatDate(reply.created_at) }}</span>
                 </div>
                 <p class="text-[12px] text-slate-400" v-html="sanitize(renderCommentBody(reply.body))"></p>
@@ -1108,7 +1108,7 @@
                     </span>
                   </div>
                   <div class="flex items-baseline gap-2 mb-1">
-                    <span class="text-[13px] font-semibold text-slate-300">{{ comment.author }}</span>
+                    <span class="text-[13px] font-semibold text-slate-300" :title="comment.author">{{ resolveUserName(comment.author) }}</span>
                     <span class="text-[11px] text-slate-500">{{ formatDate(comment.created_at) }}</span>
                   </div>
                   <p class="text-[13px] text-slate-400 leading-relaxed whitespace-pre-wrap" v-html="sanitize(renderCommentBody(comment.body))"></p>
@@ -1728,7 +1728,7 @@ const blockCommentTitle = (index) =>
   t('documents.content.comment_count', { count: commentCountForBlock(index) }, commentCountForBlock(index))
 
 const resolvedByLabel = (comment) => t('documents.content.resolved_by', {
-  name: comment.resolved_by || t('documents.content.resolved_by_unknown'),
+  name: resolveUserName(comment.resolved_by) || t('documents.content.resolved_by_unknown'),
   date: formatDate(comment.resolved_at),
 })
 

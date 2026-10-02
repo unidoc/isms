@@ -165,7 +165,7 @@
           <tbody>
             <tr v-for="r in readings" :key="r.id" class="border-t border-slate-800/50">
               <td class="py-1.5 pr-3 text-slate-400 whitespace-nowrap">{{ relativeTime(r.created_at) }}</td>
-              <td class="py-1.5 pr-3 text-slate-400 whitespace-nowrap">{{ shortEmail(r.assessed_by) }}</td>
+              <td class="py-1.5 pr-3 text-slate-400 whitespace-nowrap" :title="r.assessed_by">{{ assessorName(r.assessed_by) }}</td>
               <td v-if="entityType === 'risk' || entityType === 'asset' || entityType === 'supplier' || entityType === 'system'" class="py-1.5 pr-2">
                 <span v-if="r.confidentiality" class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold" :class="scoreColor(r.confidentiality)">{{ r.confidentiality }}</span>
                 <span v-else class="text-slate-700">-</span>
@@ -205,8 +205,10 @@ import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { formatRecent } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { useMembers } from '../composables/useMembers.js'
 
 const { t } = useI18n()
+const { nameFor } = useMembers()
 
 // Auto-recompute next_review when severity changes, unless user has manually edited it
 
@@ -394,7 +396,7 @@ function scoreColor(v) {
 
 const relativeTime = (ts) => formatRecent(ts, { within: 24 * 60 * 60 * 1000 })
 
-function shortEmail(e) { return e ? e.split('@')[0] : '-' }
+function assessorName(e) { return nameFor(e) || '-' }
 
 onMounted(loadReadings)
 watch(() => props.entityId, loadReadings)

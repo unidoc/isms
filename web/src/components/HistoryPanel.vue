@@ -9,7 +9,7 @@
             class="border-b border-slate-800/30 hover:bg-slate-800/30 transition-colors group cursor-default"
             :title="groupTooltip(g)">
             <td class="py-1.5 pr-3 text-slate-600 whitespace-nowrap w-[110px] align-top">{{ formatDate(g.created_at) }}</td>
-            <td class="py-1.5 pr-3 text-slate-500 whitespace-nowrap w-[120px] truncate max-w-[120px] align-top">{{ g.changed_by }}</td>
+            <td class="py-1.5 pr-3 text-slate-500 whitespace-nowrap w-[120px] truncate max-w-[120px] align-top" :title="g.changed_by">{{ nameFor(g.changed_by) }}</td>
             <td class="py-1.5 text-slate-400 max-w-0">
               <div class="truncate">
                 <template v-if="g.entries.length === 1">
@@ -38,8 +38,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../api'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
 import { useI18n } from 'vue-i18n'
+import { useMembers } from '../composables/useMembers.js'
 
 const { t } = useI18n()
+const { nameFor, labelFor } = useMembers()
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -80,14 +82,14 @@ function trunc(v, n = 30) {
 function groupTooltip(g) {
   if (g.entries.length === 1) {
     const e = g.entries[0]
-    let text = `${g.changed_by} — ${e.action}`
+    let text = `${labelFor(g.changed_by)} — ${e.action}`
     if (e.field) text += ` ${e.field}`
     if (e.old_value) text += '\n' + t('components.history.tooltip.from', { value: e.old_value })
     if (e.new_value) text += '\n' + t('components.history.tooltip.to', { value: e.new_value })
     if (e.reason) text += '\n' + t('components.history.tooltip.reason', { value: e.reason })
     return text
   }
-  let text = `${g.changed_by} — ${shortAction(g.entries[0])} ${t('components.history.field_count', g.entries.length)}`
+  let text = `${labelFor(g.changed_by)} — ${shortAction(g.entries[0])} ${t('components.history.field_count', g.entries.length)}`
   for (const e of g.entries) {
     if (!e.field) continue
     const fieldName = e.field.replace(/_/g, ' ')

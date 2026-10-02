@@ -139,7 +139,7 @@
             <tbody class="divide-y divide-slate-800">
               <tr v-for="key in apiKeys" :key="key.id" class="hover:bg-slate-800/50 transition-colors">
                 <td class="px-5 py-3 text-sm text-slate-200 font-medium">{{ key.name }}</td>
-                <td class="px-5 py-3 text-sm text-slate-400">{{ key.user_email }}</td>
+                <td class="px-5 py-3 text-sm text-slate-400">{{ memberLabel(key.user_email) }}</td>
                 <td class="px-5 py-3 text-sm text-slate-400">{{ permissionLabel(key.permissions) }}</td>
                 <td class="px-5 py-3 text-sm text-slate-500">{{ formatDate(key.created_at) }}</td>
                 <td class="px-5 py-3 text-sm text-slate-500">{{ key.last_used_at ? formatDate(key.last_used_at) : t('admin.api_keys.never') }}</td>
@@ -887,6 +887,12 @@ const tabs = computed(() => TABS.map((tab) => ({ ...tab, label: t(tab.label) }))
 // Members
 const members = ref([])
 const membersMsg = ref('')
+
+// "Name (email)" for a member with a name, else the email.
+function memberLabel(email) {
+  const m = members.value.find(x => x.email === email)
+  return m?.name ? `${m.name} (${email})` : email
+}
 const membersError = ref(false)
 
 // Invite

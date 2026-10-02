@@ -26,7 +26,7 @@
             <span class="text-slate-300 min-w-0 break-words">{{ f.value }}</span>
           </div>
         </div>
-        <div class="text-[10px] text-slate-600">{{ $t('components.suggestions.suggested_by', { name: sg.suggested_by }) }}<span v-if="sg.suggested_by_type === 'agent'"> {{ $t('components.suggestions.agent_suffix') }}</span> · {{ formatDate(sg.created_at) }}</div>
+        <div class="text-[10px] text-slate-600" :title="sg.suggested_by">{{ $t('components.suggestions.suggested_by', { name: nameFor(sg.suggested_by) }) }}<span v-if="sg.suggested_by_type === 'agent'"> {{ $t('components.suggestions.agent_suffix') }}</span> · {{ formatDate(sg.created_at) }}</div>
 
         <!-- Actions -->
         <div v-if="canReview && sg.status === 'open'" class="flex items-center gap-1.5 pt-1">
@@ -97,9 +97,11 @@ import { useToast } from '../composables/useToast'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
+import { useMembers } from '../composables/useMembers.js'
 import { payloadFields, hasProposedValues } from '../composables/useSuggestionPayload.js'
 
 const { t } = useI18n()
+const { nameFor } = useMembers()
 
 const { show: showError, success: showSuccess } = useToast()
 

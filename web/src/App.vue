@@ -515,6 +515,7 @@ import GlobalSearch from './components/GlobalSearch.vue'
 import { useSession } from './composables/useSession'
 import { useNotifications } from './composables/useNotifications'
 import { notificationTitle } from './composables/useNotificationRender'
+import { useMembers } from './composables/useMembers.js'
 import { useCurrentOrg, currentOrgPath, registerRouter, isSubdomainMode, subdomainRouting } from './composables/useCurrentOrg'
 import { useI18n } from 'vue-i18n'
 import { enumLabel } from './composables/useEnumLabel.js'
@@ -676,6 +677,10 @@ async function loadAppData() {
   await loadBranding()
   const ok = await loadUserData(route, router)
   if (!ok) return
+
+  // Names for the notification bell. Only once authenticated (GET /users 401s
+  // before login), and not awaited so a failure cannot hold up the loads below.
+  useMembers().loadMembers()
 
   await loadUnreadCount()
   await loadReviewCount()

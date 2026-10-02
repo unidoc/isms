@@ -18,6 +18,7 @@
 //   notifications.review_forwarded.body_with_note -> unchanged
 import { FALLBACK, i18n } from '../i18n.js'
 import { enumLabelInline, entityLabel } from './useEnumLabel.js'
+import { nameFor } from './useMembers.js'
 
 // The closed set of params carrying an enum value. Each name is
 // also its `common.enum.*` group — that is why the groups were named after the
@@ -28,14 +29,18 @@ const ENUM_PARAMS = ['status', 'severity', 'action', 'suggestion_type']
 // rather than an enum member, so it resolves through common.entity.* instead.
 const ENTITY_PARAM = 'entity'
 
+// `actor` is the acting user's email; it is shown as their name where known.
+const ACTOR_PARAM = 'actor'
+
 // Body wire keys already name a leaf; title wire keys name the group.
 function catalogKey(wireKey) {
   return /\.body(_with_note)?$/.test(wireKey) ? wireKey : `${wireKey}.title`
 }
 
-// Translate the params that are enum values and pass everything else through
-// untouched: actor, title, doc_id, version, round, id, note and reason are
-// proper nouns, numbers or the user's own words.
+// Translate the params that are enum values, show the actor by name (its email
+// when no member list has loaded or the email is not a member), and pass
+// everything else through untouched: title, doc_id, version, round, id, note
+// and reason are proper nouns, numbers or the user's own words.
 //
 // Every param here lands inside a sentence frame — that is what interpolation
 // means in this catalogue — so all of them take the inline form. There is no
@@ -47,6 +52,8 @@ function resolveParams(params) {
       out[name] = enumLabelInline(name, value)
     } else if (name === ENTITY_PARAM) {
       out[name] = entityLabel(value, { inline: true })
+    } else if (name === ACTOR_PARAM) {
+      out[name] = typeof value === 'string' ? nameFor(value) || value : value
     } else {
       out[name] = value
     }

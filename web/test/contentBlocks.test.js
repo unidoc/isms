@@ -169,7 +169,7 @@ test('markdown pipe-table block raw (the comment-hash anchor) is byte-stable', (
   // out equal too (1.00fr each) — same layout, just no longer a hardcoded "1".
   // The floor is minmax()'d in regardless, sized off each 1-char header label.
   for (const b of blocks) {
-    assert.match(b.html, /grid-template-columns: minmax\(6ch, 1\.00fr\) minmax\(6ch, 1\.00fr\);/)
+    assert.match(b.html, /grid-template-columns: minmax\(5ch, 1\.00fr\) minmax\(5ch, 1\.00fr\);/)
   }
 })
 
@@ -192,27 +192,69 @@ test('a column with a long cell gets more width than a column of short cells', (
   assert.ok(longCol > shortCol * 3, `expected the long column (${longCol}fr) to dominate the short one (${shortCol}fr)`)
 })
 
-// Regression (review finding F1 on #391): a bare `fr` track is really
-// `minmax(auto, fr)`, and that automatic "auto" minimum is the grid item's
-// own min-content size — a header label's own minimum, specifically, since
-// .tbl-hdr-cell has no min-width:0 (see the CSS). Since every row is its own
-// independent grid, only the header's grid would widen a narrow column past
-// its template share while body rows shrink to the template's literal
-// share — the header and body columns would drift apart, even though they
-// share one template string. The explicit minmax() floor must be wide
-// enough for the header's own label (plus some buffer for its own padding
-// and uppercase/letter-spacing), not just "1" like the old flat weight
-// floor, or min-width:0 on .tbl-hdr-cell (needed so that explicit floor is
-// the one that governs) would let a long header label truncate instead.
-test('a short column still reserves enough width for its own header label', () => {
-  const md = '| Transfer mechanism | Note |\n| --- | --- |\n| SCC | ok |\n'
+// Regression (review finding F1 on #391, part 1): a bare `fr` track is
+// really `minmax(auto, fr)`, and that automatic "auto" minimum is the grid
+// item's own min-content size — a header label's own minimum, specifically,
+// since .tbl-hdr-cell has no min-width:0 (see the CSS). Since every row is
+// its own independent grid, only the header's grid would widen a narrow
+// column past its template share while body rows shrink to the template's
+// literal share — the header and body columns would drift apart, even
+// though they share one template string. The explicit minmax() floor must
+// be wide enough for the header's own label, not just "1" like the old flat
+// weight floor, or min-width:0 on .tbl-hdr-cell (needed so that explicit
+// floor is the one that governs) would let a header label truncate instead.
+test('a single-word header still reserves enough width for its own label', () => {
+  const md = '| Transfer | Note |\n| --- | --- |\n| SCC | ok |\n'
   const blocks = buildContentBlocks(md)
   const [header] = blocks
   const widths = header.html.match(/grid-template-columns: minmax\((\d+)ch, [\d.]+fr\) minmax\((\d+)ch, [\d.]+fr\);/)
   assert.ok(widths, `expected two minmax(...) floors in: ${header.html}`)
   const [, firstFloor] = widths.map(Number)
-  // "Transfer mechanism" is 19 characters — the floor must clear that by a
-  // real margin, not just equal it, to leave room for the uppercase label's
-  // own padding and letter-spacing.
-  assert.ok(firstFloor > 19, `expected the "Transfer mechanism" column's floor (${firstFloor}ch) to clear its own 19-character label`)
+  // "Transfer" is 8 characters — the floor must clear that by a real margin,
+  // not just equal it, to leave room for the uppercase label's own padding
+  // and letter-spacing.
+  assert.ok(firstFloor > 8, `expected the "Transfer" column's floor (${firstFloor}ch) to clear its own 8-character label`)
+})
+
+// Regression (review finding F1 on #391, part 2 — the fix's own first
+// attempt regressed this): sizing the floor off a header's whole label,
+// rather than its longest word, measured live (review #2) at nearly the
+// entire width of a typical content column — undoing most of the #391 fix
+// for exactly the tables it targets. .tbl-hdr-cell has no white-space:nowrap,
+// so headers wrap by word like any other text; a multi-word header's floor
+// only needs to fit its longest word, which is free to sit alone on its own
+// line, not the full label on one line.
+test("a multi-word header's floor follows its longest word, not the whole label", () => {
+  const md = '| Categories of data subjects | Note |\n| --- | --- |\n| Employees | ok |\n'
+  const blocks = buildContentBlocks(md)
+  const [header] = blocks
+  const widths = header.html.match(/grid-template-columns: minmax\((\d+)ch, [\d.]+fr\) minmax\((\d+)ch, [\d.]+fr\);/)
+  assert.ok(widths, `expected two minmax(...) floors in: ${header.html}`)
+  const [, firstFloor] = widths.map(Number)
+  // Longest word is "Categories" (10 chars) — the floor must clear that, but
+  // must stay well short of the full 28-character label.
+  assert.ok(firstFloor > 10, `expected the floor (${firstFloor}ch) to clear "Categories" (10 chars)`)
+  assert.ok(firstFloor < 20, `expected the floor (${firstFloor}ch) to stay well short of the full 28-character label`)
+})
+
+// Regression (review finding F1 on #391, part 3): grid track sizing freezes
+// every column below its floor, then gives whatever's left to the unfrozen
+// `fr` tracks — so floor padding on the short columns comes directly out of
+// the long column's share. Pin down that the short columns in the exact
+// table from the bug report (#391) don't together eat a typical ~640-680px
+// content column (alip's own measured figure, review #2: "about 680px" is
+// ~72ch in this renderer's grid-template-columns `ch` unit), leaving the
+// long Purpose column meaningful room.
+test("the sub-processor table's short-column floors leave the long column real room", () => {
+  const md =
+    '| Third party | Purpose | Applicable service | US data centre location | EU data centre location |\n' +
+    '| --- | --- | --- | --- | --- |\n' +
+    '| Acme | Does a thing | Acme Cloud | United States | Europe |\n'
+  const blocks = buildContentBlocks(md)
+  const [header] = blocks
+  const floors = [...header.html.matchAll(/minmax\((\d+)ch,/g)].map((m) => Number(m[1]))
+  assert.equal(floors.length, 5, `expected 5 column floors, got: ${header.html}`)
+  const [thirdParty, , service, usLocation, euLocation] = floors // index 1 ("Purpose") is the long column, excluded
+  const shortFloorSum = thirdParty + service + usLocation + euLocation
+  assert.ok(shortFloorSum < 55, `expected the 4 short columns' floors (${shortFloorSum}ch total) to leave real room in a ~72ch budget`)
 })

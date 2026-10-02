@@ -27,21 +27,48 @@ import { parseMd } from '../composables/useRenderMd.js'
 // unbreakable label can force its own grid to resolve a track wider than
 // its fr share while a short body cell's row shrinks all the way down to
 // the template's literal share. Once that automatic minimum is suppressed,
-// an explicit `minmax(Nch, fr)` floor per column — sized to that column's
-// own header label — replaces it with a floor every grid agrees on, so the
-// header is never asked to go narrower than its own label needs, and
-// narrow columns don't get truncated by the sqrt-compressed share alone.
+// an explicit `minmax(Nch, fr)` floor per column replaces it with a floor
+// every grid agrees on.
+//
+// That floor has to be small: it comes straight out of the long column's
+// budget (grid track sizing freezes every track below its floor, then gives
+// whatever's left to the unfrozen `fr` tracks — so a few ch of padding on
+// each short column is a few ch directly off the one column the whole fix
+// is for). The first attempt at this floor sized itself off each column's
+// *whole* header label (e.g. "Categories of data subjects", all 28
+// characters), which — measured live (review #2) — ate nearly the entire
+// row width in a typical ~640-680px content column, undoing most of the fix
+// it was meant to protect. Headers wrap by word like any other block of
+// text (no white-space:nowrap on .tbl-hdr-cell), so the floor only needs to
+// fit the longest WORD, not the whole label — a multi-word header is free
+// to wrap onto a second line instead of forcing its column wide enough for
+// every word on one.
+//
+// Per-character sizing is calibrated against a live measurement, not an
+// estimate: a single-word header's real min-content width (letter-spacing,
+// uppercase, bold, padding, all included) came back at 87-100px for 7-8
+// character labels (COMPANY/SERVICE/LOCATION/TRANSFER) against this
+// renderer's own grid-template-columns `ch` unit, which resolves at ~9.44px
+// (alip's own figure, from four floors summing to "about 680px"). Net of the
+// ~32px/3.5ch of the cell's own horizontal padding, that lands within a
+// character of 1 header character ≈ 1 of this grid's `ch` units — close
+// enough, across two different font-size contexts (the header's own 12px
+// vs. the grid container's ambient 15px, which is what `ch` in
+// grid-template-columns actually resolves against, since that property
+// lives on the container, not the header cell), that no separate
+// uppercase/bold/letter-spacing multiplier is needed on top of it.
 //
 // Exported so DocumentViewer.vue's copy of this same table-rendering logic
 // shares the exact formula rather than drifting from it.
 export function columnWidths(colCount, ths, ...rowCellGroups) {
   const maxLen = Array(colCount).fill(0)
-  const headerLen = Array(colCount).fill(0)
+  const headerLongestWord = Array(colCount).fill(0)
   ths.forEach((cell, i) => {
     if (i >= colCount) return
-    const len = (cell.textContent || '').trim().length
-    headerLen[i] = len
-    maxLen[i] = Math.max(maxLen[i], len)
+    const text = (cell.textContent || '').trim()
+    maxLen[i] = Math.max(maxLen[i], text.length)
+    headerLongestWord[i] = text.split(/\s+/).filter(Boolean)
+      .reduce((longest, word) => Math.max(longest, word.length), 0)
   })
   for (const cells of rowCellGroups) {
     cells.forEach((cell, i) => {
@@ -50,12 +77,7 @@ export function columnWidths(colCount, ths, ...rowCellGroups) {
   }
   return maxLen.map((n, i) => {
     const weight = Math.max(Math.sqrt(n), 1).toFixed(2)
-    // The header's own padding plus its uppercase, letter-spaced, bold
-    // transform all widen it well past a plain `ch` (the '0' glyph's own
-    // width) per character — this is a deliberately generous approximation,
-    // not a measurement, so it errs toward a column being a little wider
-    // than the label strictly needs rather than risking a cut-off word.
-    const floorCh = Math.max(Math.ceil(headerLen[i] * 1.3) + 4, 3)
+    const floorCh = Math.ceil(headerLongestWord[i] + 3.5)
     return `minmax(${floorCh}ch, ${weight}fr)`
   }).join(' ')
 }

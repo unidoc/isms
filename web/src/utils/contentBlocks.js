@@ -9,6 +9,25 @@
 // the .vue component itself.
 import { parseMd } from '../composables/useRenderMd.js'
 
+// Equal-width columns forced every column to the same share of the table, so
+// one long cell (e.g. a paragraph-length description next to short labels)
+// got squeezed into the same width as a two-word column — wrapping into an
+// unreadably tall row, unlike the editor's real <table>, which sizes columns
+// from their content. Weight each column by its longest cell instead,
+// compressed through sqrt so one huge cell can't swallow the whole table,
+// with a floor so a column of short cells still gets a sane minimum share.
+// Exported so DocumentViewer.vue's copy of this same table-rendering logic
+// shares the exact formula rather than drifting from it.
+export function columnWidths(colCount, ...cellGroups) {
+  const maxLen = Array(colCount).fill(0)
+  for (const cells of cellGroups) {
+    cells.forEach((cell, i) => {
+      if (i < colCount) maxLen[i] = Math.max(maxLen[i], (cell.textContent || '').trim().length)
+    })
+  }
+  return maxLen.map(n => Math.max(Math.sqrt(n), 1).toFixed(2) + 'fr').join(' ')
+}
+
 export function buildContentBlocks(rawContent) {
   if (!rawContent) return []
   const html = parseMd(rawContent)
@@ -60,7 +79,14 @@ export function buildContentBlocks(rawContent) {
       const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
       const rows = allRows.filter(tr => !headerRows.includes(tr))
       const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
-      const gridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
+      // `raw` keeps every row hashed against the pre-existing equal-width
+      // markup (see addBlock) — every table block ever saved was hashed
+      // against this exact string, so switching to content-aware widths must
+      // not change what gets hashed, or every inline comment on every
+      // existing table silently detaches.
+      const equalGridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
+      const gridCols = 'grid-template-columns: ' +
+        columnWidths(colCount, ths, ...rows.map(tr => Array.from(tr.querySelectorAll('td')))) + ';'
 
       // Header as one block
       if (ths.length > 0) {
@@ -68,7 +94,8 @@ export function buildContentBlocks(rawContent) {
           const styleAttr = th.getAttribute('style') || ''
           return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
         }).join('')
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''))
+        const rawHeader = `<div class="tbl-grid" style="${equalGridCols}">${headerCells}</div>`
+        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''), rawHeader)
       }
 
       // Each body row as separate block — gets its own "+" button!
@@ -78,7 +105,8 @@ export function buildContentBlocks(rawContent) {
           const styleAttr = td.getAttribute('style') || ''
           return `<div class="tbl-cell" style="${styleAttr}">${td.innerHTML}</div>`
         }).join('')
-        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '')
+        const rawRow = `<div class="tbl-grid tbl-row" style="${equalGridCols}">${cells}</div>`
+        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '', rawRow)
       }
     }
     // Split blockquotes — each paragraph inside is commentable

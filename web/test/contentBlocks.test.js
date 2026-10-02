@@ -143,25 +143,48 @@ test('an editor-authored table with no <thead> keeps its header row', () => {
   assert.doesNotMatch(blocks[1].html, /Internal Issue/)
 })
 
-// A table block carries no `raw`, so its `html` string IS the anchor that
+// A table block's `raw` — not `html` — is the anchor that
 // useDocumentComments.blockHash hashes, and commentsForBlock hard-rejects on a
-// hash mismatch. These three strings are therefore inline-comment anchors: if
-// the emitted html for a markdown pipe table changes by even one byte, every
-// inline comment already stored against that table silently detaches.
-test('markdown pipe-table block html is byte-stable', () => {
+// hash mismatch. `raw` must stay byte-stable at the original equal-width
+// markup forever: if it changes by even one byte, every inline comment
+// already stored against every table ever saved silently detaches. `html` is
+// free to evolve (e.g. the content-aware column widths below).
+test('markdown pipe-table block raw (the comment-hash anchor) is byte-stable', () => {
   const md = '| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n'
   const blocks = buildContentBlocks(md)
   assert.deepEqual(blocks.map((b) => b.tag), ['thead', 'tr', 'tr'])
   assert.equal(
-    blocks[0].html,
+    blocks[0].raw,
     '<div class="tbl-grid" style="grid-template-columns: 1fr 1fr;"><div class="tbl-hdr-cell" style="">A</div><div class="tbl-hdr-cell" style="">B</div></div>',
   )
   assert.equal(
-    blocks[1].html,
+    blocks[1].raw,
     '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">1</div><div class="tbl-cell" style="">2</div></div>',
   )
   assert.equal(
-    blocks[2].html,
+    blocks[2].raw,
     '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">3</div><div class="tbl-cell" style="">4</div></div>',
   )
+  // Every cell is one character here, so the content-aware widths below come
+  // out equal too (1.00fr each) — same layout, just no longer a hardcoded "1".
+  for (const b of blocks) assert.match(b.html, /grid-template-columns: 1\.00fr 1\.00fr;/)
+})
+
+// Regression: a table with one short label column and one paragraph-length
+// column (e.g. a sub-processor table's "Purpose" column) got forced into the
+// same width as the short column, wrapping into an unreadably tall row — the
+// editor's real <table> sizes columns from content and looked fine, but the
+// read-only renderer's equal-1fr grid didn't. The long column must now get
+// noticeably more of the grid than the short one, while `raw` (the comment
+// hash anchor) stays the old equal-width string regardless.
+test('a column with a long cell gets more width than a column of short cells', () => {
+  const long = 'x'.repeat(400)
+  const md = `| Third party | Purpose |\n| --- | --- |\n| Acme | ${long} |\n`
+  const blocks = buildContentBlocks(md)
+  const [, row] = blocks
+  assert.match(row.raw, /grid-template-columns: 1fr 1fr;/)
+  const widths = row.html.match(/grid-template-columns: ([\d.]+)fr ([\d.]+)fr;/)
+  assert.ok(widths, `expected two fr widths in: ${row.html}`)
+  const [, shortCol, longCol] = widths.map(Number)
+  assert.ok(longCol > shortCol * 3, `expected the long column (${longCol}fr) to dominate the short one (${shortCol}fr)`)
 })

@@ -237,6 +237,7 @@ import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
 import { parseMd } from '../composables/useRenderMd'
 import { formatRecent } from '../composables/useFormat.js'
+import { columnWidths } from '../utils/contentBlocks.js'
 
 const { t } = useI18n()
 
@@ -292,8 +293,12 @@ const contentBlocks = computed(() => {
   div.innerHTML = html
   const blocks = []
 
-  function addBlock(html, tag, text) {
-    blocks.push({ index: blocks.length, html, tag, text })
+  function addBlock(html, tag, text, raw) {
+    const block = { index: blocks.length, html, tag, text }
+    // See useDocumentComments.blockHash / contentBlocks.js's addBlock: `raw`
+    // keeps a block's hash anchor stable while `html` is free to change.
+    if (raw !== undefined) block.raw = raw
+    blocks.push(block)
   }
 
   for (const child of div.children) {
@@ -318,14 +323,22 @@ const contentBlocks = computed(() => {
       const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
       const rows = allRows.filter(tr => !headerRows.includes(tr))
       const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
-      const gridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
+      // `raw` keeps every row hashed against the pre-existing equal-width
+      // markup (see addBlock) — every table block ever saved was hashed
+      // against this exact string, so switching to content-aware widths must
+      // not change what gets hashed, or every inline comment on every
+      // existing table silently detaches.
+      const equalGridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
+      const gridCols = 'grid-template-columns: ' +
+        columnWidths(colCount, ths, ...rows.map(tr => Array.from(tr.querySelectorAll('td')))) + ';'
 
       if (ths.length > 0) {
         const headerCells = ths.map(th => {
           const styleAttr = th.getAttribute('style') || ''
           return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
         }).join('')
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''))
+        const rawHeader = `<div class="tbl-grid" style="${equalGridCols}">${headerCells}</div>`
+        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''), rawHeader)
       }
 
       for (const tr of rows) {
@@ -334,7 +347,8 @@ const contentBlocks = computed(() => {
           const styleAttr = td.getAttribute('style') || ''
           return `<div class="tbl-cell" style="${styleAttr}">${td.innerHTML}</div>`
         }).join('')
-        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '')
+        const rawRow = `<div class="tbl-grid tbl-row" style="${equalGridCols}">${cells}</div>`
+        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '', rawRow)
       }
     }
     // Split blockquotes -- each paragraph inside is commentable

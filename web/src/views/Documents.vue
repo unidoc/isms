@@ -1447,6 +1447,7 @@ const {
   formatFileName,
   findFileInFolder,
   allFolderPaths,
+  forgetActiveFolder,
   loadTree,
 } = useDocumentTree(api)
 
@@ -1974,6 +1975,7 @@ async function deleteFolder(folderPath) {
   try {
     await api.deleteFolder(folderPath)
     expandedNodes.delete(folderPath)
+    forgetActiveFolder(folderPath)
     await loadTree()
   } catch (e) {
     toastError(t('documents.error.delete', { message: renderApiError(e) }))

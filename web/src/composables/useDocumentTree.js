@@ -135,6 +135,13 @@ export function useDocumentTree(api) {
     return paths
   })
 
+  // Clear the active folder when it is the given folder or sits under it, so a
+  // deleted folder does not stay selected after the tree reloads.
+  function forgetActiveFolder(path) {
+    const active = activeFolder.value
+    if (active === path || active.startsWith(path + '/')) activeFolder.value = ''
+  }
+
   // Load the full document tree from the API
   async function loadTree() {
     const data = await api.getAllDocuments()
@@ -156,6 +163,7 @@ export function useDocumentTree(api) {
     formatFileName,
     findFileInFolder,
     allFolderPaths,
+    forgetActiveFolder,
     loadTree,
   }
 }

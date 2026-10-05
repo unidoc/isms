@@ -60,5 +60,10 @@
     "warning": "Deleting this corrective action is permanent and cannot be undone.",
     "delete": "Delete corrective action",
     "confirm": "Delete this corrective action? This cannot be undone."
+  },
+  "assignee": {
+    "hint": "This corrective action is assigned to you. You can change its status and record the root cause and notes.",
+    "update_status": "Update status",
+    "no_root_cause": "No root cause recorded yet."
   }
 }

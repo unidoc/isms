@@ -342,6 +342,7 @@ export const api = {
   createTask: (task) => postJSON(`${API}/tasks`, task),
   updateTask: (id, task) => putJSON(`${API}/tasks/${id}`, task),
   updateTaskStatus: (id, status) => putJSON(`${API}/tasks/${id}/status`, { status }),
+  updateTaskNotes: (id, notes) => putJSON(`${API}/tasks/${id}/notes`, { notes }),
   deleteTask: (id) => deleteJSON(`${API}/tasks/${id}`),
 
   // Entity Suggestions
@@ -463,6 +464,7 @@ export const api = {
   getCorrectiveAction: (id) => fetchJSON(`${API}/corrective-actions/${id}`),
   updateCorrectiveAction: (id, data) => putJSON(`${API}/corrective-actions/${id}`, data),
   updateCorrectiveActionStatus: (id, status) => putJSON(`${API}/corrective-actions/${id}/status`, { status }),
+  updateCorrectiveActionProgress: (id, data) => putJSON(`${API}/corrective-actions/${id}/progress`, data),
   deleteCorrectiveAction: (id) => deleteJSON(`${API}/corrective-actions/${id}`),
   getCorrectiveActionStats: () => fetchJSON(`${API}/corrective-actions/stats`),
 

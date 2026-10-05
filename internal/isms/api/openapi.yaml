@@ -1635,6 +1635,7 @@ paths:
     put:
       tags: [Tasks]
       summary: Update task status
+      description: Admins and managers may change any task's status; a contributor only a task assigned to them.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -1649,6 +1650,35 @@ paths:
       responses:
         '200':
           description: Status updated
+
+  /tasks/{id}/notes:
+    put:
+      tags: [Tasks]
+      summary: Update a task's notes
+      description: Admins and managers may edit the notes of any task; a contributor only of a task assigned to them.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notes]
+              properties:
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated task
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /suggestions:
     get:
@@ -2514,6 +2544,7 @@ paths:
     put:
       tags: [Corrective Actions]
       summary: Update corrective action status
+      description: Admins and managers may change any corrective action's status; a contributor only one assigned to them. Moving to `resolved` is refused with 409 while open tasks are linked.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -2528,6 +2559,39 @@ paths:
       responses:
         '200':
           description: Status updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Open tasks are still linked
+
+  /corrective-actions/{id}/progress:
+    put:
+      tags: [Corrective Actions]
+      summary: Record root cause and notes
+      description: Admins and managers may call this on any corrective action; a contributor only on one assigned to them. At least one of `root_cause` and `notes` is required.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                root_cause: { type: string }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated corrective action
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CorrectiveAction' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ── Programs ────────────────────────────────────────────────────────────
   /programs:

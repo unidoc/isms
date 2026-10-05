@@ -2462,10 +2462,14 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 	if err != nil {
 		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
 	}
+	// A private task the caller can't see must look absent: 404, never 403 (#178).
+	if !canViewTask(c, before) {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
 	// Ownership: a contributor may advance the status of a task assigned to them
 	// (doing their own work), but not other people's tasks. Managers/admins may
 	// change any task's status (#23).
-	if role, _ := c.Get("user_role").(string); role == "contributor" && before.Assignee != getUserEmail(c) {
+	if !canActOnAssignment(c, before.Assignee) {
 		return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of tasks assigned to them")
 	}
 	if err := s.db.UpdateTaskStatus(ctx, orgID, id, req.Status); err != nil {
@@ -2498,6 +2502,63 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 		})
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// handleUpdateTaskNotes lets the assignee write the notes of their own task
+// without the wide update, which stays manager/admin (#203).
+func (s *Server) handleUpdateTaskNotes(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
+	} else if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+	var req struct {
+		Notes *string `json:"notes"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if req.Notes == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "notes is required")
+	}
+	before, err := s.db.GetTask(ctx, orgID, id)
+	if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+	// A private task the caller can't see must look absent, before ownership.
+	if !canViewTask(c, before) {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+	if !canActOnAssignment(c, before.Assignee) {
+		return echo.NewHTTPError(http.StatusForbidden, "contributors can only edit the notes of tasks assigned to them")
+	}
+	if err := s.db.UpdateTaskNotes(ctx, orgID, id, *req.Notes); err != nil {
+		return pgxHTTPError(err)
+	}
+	after, err := s.db.GetTask(ctx, orgID, id)
+	if err != nil {
+		return pgxHTTPError(err)
+	}
+	user := getUserEmail(c)
+	diffs := db.DiffFields("task", int64(id), user, "", before.ToChangeMap(), after.ToChangeMap())
+	s.logChanges(ctx, orgID, diffs)
+
+	updateDetail := fmt.Sprintf("Task #%d: %s", id, after.Title)
+	if after.Private {
+		updateDetail = fmt.Sprintf("Task #%d updated (private)", id)
+	}
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  user,
+		Action: "task_updated",
+		Detail: updateDetail,
+	})
+	return c.JSON(http.StatusOK, after)
 }
 
 func (s *Server) handleGetTask(c echo.Context) error {

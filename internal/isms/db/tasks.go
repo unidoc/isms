@@ -194,6 +194,15 @@ func (d *DB) UpdateTaskStatus(ctx context.Context, orgID int, id int64, status s
 	return err
 }
 
+// UpdateTaskNotes writes only a task's notes, so the assignee's note can't
+// overwrite a concurrent change to any other column (#203).
+func (d *DB) UpdateTaskNotes(ctx context.Context, orgID int, id int64, notes string) error {
+	_, err := d.pool.Exec(ctx,
+		`UPDATE tasks SET notes = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`,
+		id, nilIfEmpty(notes), orgID)
+	return err
+}
+
 func (d *DB) UpdateTask(ctx context.Context, orgID int, t *Task) error {
 	_, err := d.pool.Exec(ctx, `
 		UPDATE tasks SET

@@ -152,7 +152,12 @@
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <CopyLinkButton />
-              <StatusBadge :status="selectedTask.status" />
+              <select v-if="assigneeOnly" :value="selectedTask.status" @change="changeStatus($event.target.value)" :disabled="saving"
+                :aria-label="t('tasks.field.status')"
+                class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+              </select>
+              <StatusBadge v-else :status="selectedTask.status" />
               <button @click="closeDetail" class="p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors">
                 <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -295,7 +300,7 @@
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('tasks.detail.notes') }}</div>
-                    <button v-if="canCreate && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
+                    <button v-if="canWork && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
                     <MarkdownField v-model="editForm.notes" :self-type="'task'" :self-id="selectedTask?.identifier || ''" :rows="12" :placeholder="t('tasks.placeholder.notes')" />
@@ -384,6 +389,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { renderMarkdown } from '../composables/useRenderMd.js'
 import { formatDate, formatDay } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { canActOnAssignment } from '../utils/assignment.js'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
 const { ask, confirm: confirmDialog } = useConfirm()
@@ -427,6 +433,7 @@ const orgMembers = ref([])
 const showCreate = ref(false)
 const creating = ref(false)
 const userRole = ref('')
+const userEmail = ref('')
 // Org default for a new task's visibility (task_default_private) — seeds the
 // create form's Public/Private control so a privacy-by-default org gets it right.
 const orgDefaultPrivate = ref(false)
@@ -484,6 +491,11 @@ const stepInProgressLabel = computed(() => statusLabel('in_progress'))
 const stepDoneLabel = computed(() => statusLabel('done'))
 
 const canCreate = computed(() => ['admin', 'manager'].includes(userRole.value))
+
+// The assignee may change the status and write notes on their own task (#23,
+// #203); the rest of the task stays manager/admin.
+const canWork = computed(() => !!selectedTask.value && canActOnAssignment(userRole.value, userEmail.value, selectedTask.value.assignee))
+const assigneeOnly = computed(() => canWork.value && !canCreate.value)
 const pendingRefs = ref([])
 
 useModalEscape(showCreate)
@@ -711,25 +723,45 @@ function cancelSection() {
   startEdit(selectedTask.value)
 }
 
+async function changeStatus(status) {
+  if (!selectedTask.value || status === selectedTask.value.status) return
+  saving.value = true
+  try {
+    await api.updateTaskStatus(selectedTask.value.id, status)
+    await loadTasks()
+    const fresh = tasks.value.find(x => x.id === selectedTask.value.id)
+    if (fresh) { selectedTask.value = fresh; startEdit(fresh) }
+    showSaved(t('common.state.saved'))
+  } catch (e) {
+    showError(t('tasks.error.save', { message: renderApiError(e) }))
+  } finally {
+    saving.value = false
+  }
+}
+
 async function saveSection() {
   if (!selectedTask.value) return
   saving.value = true
   try {
-    const payload = {
-      title: editForm.value.title,
-      description: editForm.value.description,
-      assignee: editForm.value.assignee,
-      priority: editForm.value.priority,
-      status: editForm.value.status,
-      task_type: editForm.value.task_type,
-      notes: editForm.value.notes,
-    }
-    if (editForm.value.due_date_str) {
-      payload.due_date = dateStrToEpoch(editForm.value.due_date_str)
+    if (!canCreate.value) {
+      await api.updateTaskNotes(selectedTask.value.id, editForm.value.notes)
     } else {
-      payload.due_date = null
+      const payload = {
+        title: editForm.value.title,
+        description: editForm.value.description,
+        assignee: editForm.value.assignee,
+        priority: editForm.value.priority,
+        status: editForm.value.status,
+        task_type: editForm.value.task_type,
+        notes: editForm.value.notes,
+      }
+      if (editForm.value.due_date_str) {
+        payload.due_date = dateStrToEpoch(editForm.value.due_date_str)
+      } else {
+        payload.due_date = null
+      }
+      await api.updateTask(selectedTask.value.id, payload)
     }
-    await api.updateTask(selectedTask.value.id, payload)
     await loadTasks()
     const fresh = tasks.value.find(t => t.id === selectedTask.value.id)
     if (fresh) {
@@ -785,6 +817,7 @@ onMounted(async () => {
   try {
     const me = await api.getMe()
     userRole.value = me?.role || ''
+    userEmail.value = me?.email || ''
   } catch {}
   try { orgMembers.value = await api.getUsers() || [] } catch { orgMembers.value = [] }
   try { const cfg = await api.getConfig(); orgDefaultPrivate.value = !!cfg?.task_default_private } catch { /* keep public default */ }

@@ -294,7 +294,9 @@ Five authentication methods:
 - **Contributor** — proposes and reports. Creates suggestions for a manager to
   act on, and comments. Does not directly create, edit, or apply — a
   contributor's input flows through the suggestion/review pipeline, the same way
-  an AI agent's does.
+  an AI agent's does. The exception is their own assigned work: a contributor can
+  change the status of a task or corrective action assigned to them and record
+  its notes (and, for a corrective action, its root cause).
 - **Reader** — read-only.
 
 When assigned to a review, any role (including reader and contributor) may

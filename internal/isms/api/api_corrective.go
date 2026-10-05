@@ -316,7 +316,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 }
 
 func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -343,6 +343,11 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
 	if err != nil || existing == nil {
 		return errNotFound("corrective_action")
+	}
+	// The assignee may move their own corrective action through every status,
+	// resolved included (#203); the open-task guard below still applies.
+	if !canActOnAssignment(c, existing.Assignee) {
+		return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of corrective actions assigned to them")
 	}
 	prevStatus := existing.Status
 	oldMap := existing.ToChangeMap()
@@ -392,6 +397,84 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// correctiveActionProgressRequest is the narrow update the assignee may make on
+// their own corrective action (#203): what caused it and what was done. The wide
+// PUT stays manager/admin, since it also rewrites title, severity, source and
+// assignee.
+type correctiveActionProgressRequest struct {
+	RootCause *string `json:"root_cause"`
+	Notes     *string `json:"notes"`
+}
+
+func (s *Server) handleUpdateCorrectiveActionProgress(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("corrective_action")
+	} else if err != nil {
+		return errNotFound("corrective_action")
+	}
+
+	var req correctiveActionProgressRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if req.RootCause == nil && req.Notes == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "root_cause or notes is required")
+	}
+
+	ctx := c.Request().Context()
+	actor := getUserEmail(c)
+
+	existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
+	if err != nil || existing == nil {
+		return errNotFound("corrective_action")
+	}
+	if !canActOnAssignment(c, existing.Assignee) {
+		return echo.NewHTTPError(http.StatusForbidden, "contributors can only update corrective actions assigned to them")
+	}
+
+	prevStatus := existing.Status
+	oldMap := existing.ToChangeMap()
+	if req.RootCause != nil {
+		existing.RootCause = *req.RootCause
+	}
+	if req.Notes != nil {
+		existing.Notes = *req.Notes
+	}
+	existing.ID = id
+
+	// Same enforced write path as the status route and the wide PUT (#26), with
+	// the status unchanged, so neither the open-task guard nor the resolved stamp
+	// runs; the changelog is written in the same transaction (#196).
+	var after *db.CorrectiveAction
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, actor); err != nil {
+			return err
+		}
+		a, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
+		changes := db.DiffFields("corrective_action", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		return pgxHTTPError(err)
+	}
+
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  actor,
+		Action: "corrective_action_updated",
+		Detail: fmt.Sprintf("Corrective action #%d updated: %s", id, existing.Title),
+	})
+
+	return c.JSON(http.StatusOK, after)
 }
 
 func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {

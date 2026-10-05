@@ -42,10 +42,11 @@ test('every comment surface renders #references through the shared linker', () =
   const webRoot = new URL('../', `file://${here}`)
   const read = (p) => readFileSync(new URL(p, webRoot), 'utf8')
 
-  for (const p of ['src/components/CommentsPanel.vue', 'src/components/CommentSidebar.vue', 'src/components/DocumentViewer.vue']) {
+  for (const p of ['src/components/CommentsPanel.vue', 'src/components/DocumentViewer.vue']) {
     const src = read(p)
     assert.ok(src.includes('renderMention(c.body)') || src.includes('renderMention(comment.body)'), `${p} renders comments with renderMention`)
   }
   assert.ok(read('src/views/Documents.vue').includes('linkEntityRefs(escaped)'), 'Documents.vue links #references with linkEntityRefs')
+  assert.ok(read('src/views/Documents.vue').includes('highlightMentions('), 'Documents.vue highlights @mentions with highlightMentions')
   assert.ok(read('src/composables/useMention.js').includes('linkEntityReferences('), 'useMention delegates to linkEntityReferences')
 })

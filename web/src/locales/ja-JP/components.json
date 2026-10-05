@@ -255,15 +255,6 @@
     "outdated_from_previous_round": "前ラウンドからのコメント{count}件 | 前ラウンドからのコメント{count}件",
     "comment_placeholder": "コメントを追加…"
   },
-  "comment_sidebar": {
-    "title": "コメント",
-    "resolved_count": "解決済み{count}件",
-    "comment_placeholder": "コメントを追加…（{'@'}でメンション）",
-    "name_placeholder": "あなたの名前",
-    "send": "送信",
-    "empty": "コメントはまだありません",
-    "reply_placeholder": "返信を書く…（{'@'}でメンション）"
-  },
   "track_changes": {
     "added": "+{count} 追加",
     "removed": "-{count} 削除",

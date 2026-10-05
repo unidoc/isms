@@ -255,15 +255,6 @@
     "outdated_from_previous_round": "{count} komentar dari putaran sebelumnya | {count} komentar dari putaran sebelumnya",
     "comment_placeholder": "Tambahkan komentar…"
   },
-  "comment_sidebar": {
-    "title": "Komentar",
-    "resolved_count": "{count} selesai",
-    "comment_placeholder": "Tambahkan komentar… (ketik {'@'} untuk menyebut seseorang)",
-    "name_placeholder": "Nama Anda",
-    "send": "Kirim",
-    "empty": "Belum ada komentar",
-    "reply_placeholder": "Tulis balasan… (ketik {'@'} untuk menyebut seseorang)"
-  },
   "track_changes": {
     "added": "+{count} ditambahkan",
     "removed": "-{count} dihapus",

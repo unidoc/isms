@@ -255,15 +255,6 @@
     "outdated_from_previous_round": "{count} Kommentar aus vorheriger Runde | {count} Kommentare aus vorheriger Runde",
     "comment_placeholder": "Kommentar hinzufügen..."
   },
-  "comment_sidebar": {
-    "title": "Kommentare",
-    "resolved_count": "{count} gelöst",
-    "comment_placeholder": "Kommentar hinzufügen... ({'@'} eingeben, um zu erwähnen)",
-    "name_placeholder": "Ihr Name",
-    "send": "Senden",
-    "empty": "Noch keine Kommentare",
-    "reply_placeholder": "Antwort schreiben... ({'@'} eingeben, um zu erwähnen)"
-  },
   "track_changes": {
     "added": "+{count} hinzugefügt",
     "removed": "-{count} entfernt",

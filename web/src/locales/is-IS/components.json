@@ -255,15 +255,6 @@
     "outdated_from_previous_round": "{count} athugasemd frá fyrri umferð | {count} athugasemdir frá fyrri umferð",
     "comment_placeholder": "Bæta við athugasemd..."
   },
-  "comment_sidebar": {
-    "title": "Athugasemdir",
-    "resolved_count": "{count} leyst",
-    "comment_placeholder": "Bæta við athugasemd... (skrifaðu {'@'} til að nefna)",
-    "name_placeholder": "Nafnið þitt",
-    "send": "Senda",
-    "empty": "Engar athugasemdir ennþá",
-    "reply_placeholder": "Skrifa svar... (skrifaðu {'@'} til að nefna)"
-  },
   "track_changes": {
     "added": "+{count} bætt við",
     "removed": "-{count} fjarlægt",

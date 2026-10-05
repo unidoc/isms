@@ -132,9 +132,29 @@ func (s *Server) handleDeleteEntityComment(c echo.Context) error {
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidID)
 	}
-	if err := s.db.DeleteEntityComment(c.Request().Context(), orgID, id); err != nil {
+	ctx := c.Request().Context()
+	comment, err := s.db.GetEntityComment(ctx, orgID, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	err = s.db.DeleteEntityComment(ctx, orgID, id)
+	var hasReplies *db.CommentHasRepliesError
+	switch {
+	case errors.As(err, &hasReplies):
+		return apiError(http.StatusConflict, CodeCommentHasReplies, Count(hasReplies.Count))
+	case errors.Is(err, pgx.ErrNoRows): // deleted by someone else between the read and the lock
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+	case err != nil:
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  getUserEmail(c),
+		Action: "entity_comment_deleted",
+		Detail: fmt.Sprintf("Deleted comment on %s %s: %s", comment.EntityType, comment.EntityID, truncateStr(comment.Body, 80)),
+	})
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 }
 
@@ -160,6 +180,9 @@ func (s *Server) handleToggleReaction(c echo.Context) error {
 
 	added, err := s.db.ToggleReaction(c.Request().Context(), orgID, req.TargetType, req.TargetID, req.Emoji, actor)
 	if err != nil {
+		if errors.Is(err, db.ErrReactionTargetNotFound) {
+			return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

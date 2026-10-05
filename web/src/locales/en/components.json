@@ -291,7 +291,10 @@
     "empty": "No comments yet.",
     "placeholder": "Add a comment... (type {'@'} to mention)",
     "post": "Post",
-    "error_add": "Failed to add comment: {message}"
+    "error_add": "Failed to add comment: {message}",
+    "delete": "Delete",
+    "delete_confirm": "Delete this comment? This cannot be undone.",
+    "error_delete": "Failed to delete comment: {message}"
   },
   "copy_link": {
     "copied": "Link copied",

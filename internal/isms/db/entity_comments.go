@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -103,11 +104,45 @@ func (d *DB) ResolveEntityComment(ctx context.Context, orgID int, id int64, reso
 	return err
 }
 
-// DeleteEntityComment deletes a comment and the links its #mentions made that
-// nothing else still holds (#194), in one transaction.
+// CommentHasRepliesError is returned by DeleteEntityComment when the comment
+// still has replies. Deleting it would orphan them, and cascading would
+// silently remove other people's replies (#403), so the delete is refused.
+type CommentHasRepliesError struct{ Count int }
+
+func (e *CommentHasRepliesError) Error() string {
+	return fmt.Sprintf("comment has %d replies", e.Count)
+}
+
+// DeleteEntityComment refuses with *CommentHasRepliesError while replies exist,
+// returns pgx.ErrNoRows when the comment is not in the org, and otherwise
+// deletes the comment, its reactions and the links its #mentions alone held
+// (#194), in one transaction.
 func (d *DB) DeleteEntityComment(ctx context.Context, orgID int, id int64) error {
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		// Inserting a reply takes a FOR KEY SHARE lock on the parent through the
+		// foreign key, which conflicts with FOR UPDATE: once we hold this lock no
+		// new reply can commit, so the count below cannot go stale.
+		var lockedID int64
+		if err := tx.QueryRow(ctx,
+			`SELECT id FROM entity_comments WHERE id = $1 AND organization_id = $2 FOR UPDATE`,
+			id, orgID).Scan(&lockedID); err != nil {
+			return err
+		}
+		var replies int
+		if err := tx.QueryRow(ctx,
+			`SELECT COUNT(*) FROM entity_comments WHERE organization_id = $1 AND parent_id = $2`,
+			orgID, id).Scan(&replies); err != nil {
+			return err
+		}
+		if replies > 0 {
+			return &CommentHasRepliesError{Count: replies}
+		}
 		if err := RemoveCommentReferencesTx(ctx, tx, orgID, CommentTypeEntityComment, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`DELETE FROM entity_reactions WHERE organization_id = $1 AND target_type = 'entity_comment' AND target_id = $2`,
+			orgID, id); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `DELETE FROM entity_comments WHERE id = $1 AND organization_id = $2`, id, orgID)
@@ -129,28 +164,59 @@ type EntityReaction struct {
 	CreatedAt      Epoch  `json:"created_at"`
 }
 
+// ErrReactionTargetNotFound is returned by ToggleReaction when the comment
+// being reacted to does not exist in the org.
+var ErrReactionTargetNotFound = errors.New("reaction target not found")
+
 // ToggleReaction adds a reaction if not present, removes if already exists. Returns true if added.
+//
+// A reaction on a register comment must not outlive it (#403): DeleteEntityComment
+// removes the comment's reactions, and entity_reactions has no foreign key to
+// catch one added afterwards. So the comment row is held with FOR KEY SHARE,
+// which conflicts with the FOR UPDATE the delete takes: a reaction racing a
+// delete waits for it, then finds no row and is refused with
+// ErrReactionTargetNotFound. The lock only holds inside a transaction, which is
+// why the check and both writes share one.
 func (d *DB) ToggleReaction(ctx context.Context, orgID int, targetType string, targetID int64, emoji, userEmail string) (bool, error) {
-	// Try delete first
-	tag, err := d.pool.Exec(ctx, `
-		DELETE FROM entity_reactions
-		WHERE organization_id = $1 AND target_type = $2 AND target_id = $3 AND emoji = $4 AND user_email = $5
-	`, orgID, targetType, targetID, emoji, userEmail)
+	added := false
+	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if targetType == "entity_comment" {
+			var one int
+			err := tx.QueryRow(ctx,
+				`SELECT 1 FROM entity_comments WHERE id = $1 AND organization_id = $2 FOR KEY SHARE`,
+				targetID, orgID).Scan(&one)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrReactionTargetNotFound
+			}
+			if err != nil {
+				return err
+			}
+		}
+		// Try delete first
+		tag, err := tx.Exec(ctx, `
+			DELETE FROM entity_reactions
+			WHERE organization_id = $1 AND target_type = $2 AND target_id = $3 AND emoji = $4 AND user_email = $5
+		`, orgID, targetType, targetID, emoji, userEmail)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() > 0 {
+			return nil // removed
+		}
+		// Add
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO entity_reactions (organization_id, target_type, target_id, emoji, user_email, user_id)
+			VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $5))
+		`, orgID, targetType, targetID, emoji, userEmail); err != nil {
+			return err
+		}
+		added = true
+		return nil
+	})
 	if err != nil {
 		return false, err
 	}
-	if tag.RowsAffected() > 0 {
-		return false, nil // removed
-	}
-	// Add
-	_, err = d.pool.Exec(ctx, `
-		INSERT INTO entity_reactions (organization_id, target_type, target_id, emoji, user_email, user_id)
-		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $5))
-	`, orgID, targetType, targetID, emoji, userEmail)
-	if err != nil {
-		return false, err
-	}
-	return true, nil // added
+	return added, nil
 }
 
 // ListReactions returns reaction summaries for a target.

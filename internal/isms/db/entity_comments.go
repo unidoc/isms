@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -163,28 +164,59 @@ type EntityReaction struct {
 	CreatedAt      Epoch  `json:"created_at"`
 }
 
+// ErrReactionTargetNotFound is returned by ToggleReaction when the comment
+// being reacted to does not exist in the org.
+var ErrReactionTargetNotFound = errors.New("reaction target not found")
+
 // ToggleReaction adds a reaction if not present, removes if already exists. Returns true if added.
+//
+// A reaction on a register comment must not outlive it (#403): DeleteEntityComment
+// removes the comment's reactions, and entity_reactions has no foreign key to
+// catch one added afterwards. So the comment row is held with FOR KEY SHARE,
+// which conflicts with the FOR UPDATE the delete takes: a reaction racing a
+// delete waits for it, then finds no row and is refused with
+// ErrReactionTargetNotFound. The lock only holds inside a transaction, which is
+// why the check and both writes share one.
 func (d *DB) ToggleReaction(ctx context.Context, orgID int, targetType string, targetID int64, emoji, userEmail string) (bool, error) {
-	// Try delete first
-	tag, err := d.pool.Exec(ctx, `
-		DELETE FROM entity_reactions
-		WHERE organization_id = $1 AND target_type = $2 AND target_id = $3 AND emoji = $4 AND user_email = $5
-	`, orgID, targetType, targetID, emoji, userEmail)
+	added := false
+	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if targetType == "entity_comment" {
+			var one int
+			err := tx.QueryRow(ctx,
+				`SELECT 1 FROM entity_comments WHERE id = $1 AND organization_id = $2 FOR KEY SHARE`,
+				targetID, orgID).Scan(&one)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrReactionTargetNotFound
+			}
+			if err != nil {
+				return err
+			}
+		}
+		// Try delete first
+		tag, err := tx.Exec(ctx, `
+			DELETE FROM entity_reactions
+			WHERE organization_id = $1 AND target_type = $2 AND target_id = $3 AND emoji = $4 AND user_email = $5
+		`, orgID, targetType, targetID, emoji, userEmail)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() > 0 {
+			return nil // removed
+		}
+		// Add
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO entity_reactions (organization_id, target_type, target_id, emoji, user_email, user_id)
+			VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $5))
+		`, orgID, targetType, targetID, emoji, userEmail); err != nil {
+			return err
+		}
+		added = true
+		return nil
+	})
 	if err != nil {
 		return false, err
 	}
-	if tag.RowsAffected() > 0 {
-		return false, nil // removed
-	}
-	// Add
-	_, err = d.pool.Exec(ctx, `
-		INSERT INTO entity_reactions (organization_id, target_type, target_id, emoji, user_email, user_id)
-		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $5))
-	`, orgID, targetType, targetID, emoji, userEmail)
-	if err != nil {
-		return false, err
-	}
-	return true, nil // added
+	return added, nil
 }
 
 // ListReactions returns reaction summaries for a target.

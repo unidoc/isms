@@ -3032,6 +3032,8 @@ paths:
       responses:
         '200':
           description: Reaction toggled
+        '404':
+          description: The register comment being reacted to does not exist
 
   /reactions/{targetType}/{targetId}:
     get:

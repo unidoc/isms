@@ -180,6 +180,9 @@ func (s *Server) handleToggleReaction(c echo.Context) error {
 
 	added, err := s.db.ToggleReaction(c.Request().Context(), orgID, req.TargetType, req.TargetID, req.Emoji, actor)
 	if err != nil {
+		if errors.Is(err, db.ErrReactionTargetNotFound) {
+			return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

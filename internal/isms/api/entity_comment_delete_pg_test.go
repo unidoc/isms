@@ -2,12 +2,15 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"isms.sh/internal/isms/db"
 )
 
@@ -181,5 +184,104 @@ func TestDeleteEntityCommentRequiresManager(t *testing.T) {
 	wantHTTPStatus(t, err, http.StatusForbidden)
 	if n := len(mustListEntityComments(t, s, orgID, "risk", "RISK-1")); n != 1 {
 		t.Fatalf("%d comments, want 1", n)
+	}
+}
+
+// callToggleReaction calls POST /reactions and returns the handler's error.
+func callToggleReaction(s *Server, orgID int, targetID int64, email string) (error, *httptest.ResponseRecorder) {
+	body := `{"target_type":"entity_comment","target_id":` + strconv.FormatInt(targetID, 10) + `,"emoji":"👍"}`
+	c, rec := reviewCtxForPath(orgID, http.MethodPost, "/api/v1/reactions", body, "contributor", email)
+	return s.handleToggleReaction(c), rec
+}
+
+// A reaction on a register comment that is gone, or never existed, is refused:
+// entity_reactions has no foreign key, so nothing else stops an orphan row.
+func TestReactionOnMissingEntityCommentIs404(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "ec-react-404")
+	const admin = "admin@ec-react-404.test"
+	seedReviewUser(t, s, orgID, admin, "admin")
+	ctx := context.Background()
+
+	err, _ := callToggleReaction(s, orgID, 999999, admin)
+	wantHTTPStatus(t, err, http.StatusNotFound)
+
+	cm := mustCreateEntityComment(t, s, orgID, "risk", "RISK-1", admin, "react to me", nil)
+	if err, rec := callToggleReaction(s, orgID, cm.ID, admin); err != nil || rec.Code != http.StatusOK {
+		t.Fatalf("reaction on a live comment: err=%v code=%d", err, rec.Code)
+	}
+	if err, rec := callDeleteEntityComment(s, orgID, cm.ID, "admin", admin); err != nil || rec.Code != http.StatusOK {
+		t.Fatalf("delete: err=%v code=%d", err, rec.Code)
+	}
+	err, _ = callToggleReaction(s, orgID, cm.ID, admin)
+	wantHTTPStatus(t, err, http.StatusNotFound)
+	if got, err := s.db.ListReactions(ctx, orgID, "entity_comment", cm.ID); err != nil || len(got) != 0 {
+		t.Fatalf("reactions on the deleted comment: err=%v rows=%v", err, got)
+	}
+}
+
+// A reaction that arrives while the comment is being deleted waits for the
+// delete's row lock and is then refused, rather than landing after the
+// delete's reaction cleanup and outliving the comment.
+func TestReactionRacingEntityCommentDeleteLeavesNoOrphan(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "ec-react-race")
+	const admin = "admin@ec-react-race.test"
+	seedReviewUser(t, s, orgID, admin, "admin")
+	ctx := context.Background()
+
+	cm := mustCreateEntityComment(t, s, orgID, "risk", "RISK-1", admin, "racing", nil)
+
+	// Hold the same lock DeleteEntityComment takes, start the reaction, give it
+	// time to reach the lock, then delete and commit.
+	toggled := make(chan error, 1)
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT id FROM entity_comments WHERE id = $1 FOR UPDATE`, cm.ID); err != nil {
+			return err
+		}
+		go func() {
+			_, err := s.db.ToggleReaction(context.Background(), orgID, "entity_comment", cm.ID, "👍", admin)
+			toggled <- err
+		}()
+		time.Sleep(300 * time.Millisecond)
+		_, err := tx.Exec(ctx, `DELETE FROM entity_comments WHERE id = $1`, cm.ID)
+		return err
+	}); err != nil {
+		t.Fatalf("delete tx: %v", err)
+	}
+
+	select {
+	case err := <-toggled:
+		if !errors.Is(err, db.ErrReactionTargetNotFound) {
+			t.Fatalf("ToggleReaction after a racing delete = %v, want ErrReactionTargetNotFound", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("ToggleReaction did not return")
+	}
+	if got, err := s.db.ListReactions(ctx, orgID, "entity_comment", cm.ID); err != nil || len(got) != 0 {
+		t.Fatalf("orphan reaction left behind: err=%v rows=%v", err, got)
+	}
+}
+
+// The Documents page's Discussion tab stores its comments in the same table
+// with entity_type "document", so the same rules apply there.
+func TestDeleteDocumentDiscussionComment(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "ec-del-doc")
+	const admin = "admin@ec-del-doc.test"
+	seedReviewUser(t, s, orgID, admin, "admin")
+
+	parent := mustCreateEntityComment(t, s, orgID, "document", "iso27001-4-1", admin, "parent", nil)
+	reply := mustCreateEntityComment(t, s, orgID, "document", "iso27001-4-1", admin, "reply", &parent.ID)
+
+	err, _ := callDeleteEntityComment(s, orgID, parent.ID, "admin", admin)
+	wantHTTPStatus(t, err, http.StatusConflict)
+	for _, id := range []int64{reply.ID, parent.ID} {
+		if err, rec := callDeleteEntityComment(s, orgID, id, "admin", admin); err != nil || rec.Code != http.StatusOK {
+			t.Fatalf("delete %d: err=%v code=%d", id, err, rec.Code)
+		}
+	}
+	if n := len(mustListEntityComments(t, s, orgID, "document", "iso27001-4-1")); n != 0 {
+		t.Fatalf("document discussion comments left: %d, want 0", n)
 	}
 }

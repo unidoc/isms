@@ -967,8 +967,8 @@ func (c *Client) GetLegal(id int) (*db.LegalRequirement, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateLegal(id int, lr *db.LegalRequirement) error {
-	_, err := c.put("/v1/legal/"+strconv.Itoa(id), lr)
+func (c *Client) UpdateLegal(id int, body any) error {
+	_, err := c.put("/v1/legal/"+strconv.Itoa(id), body)
 	return err
 }
 
@@ -1021,13 +1021,22 @@ func (c *Client) GetIncident(id int) (*db.Incident, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateIncident(id int, inc *db.Incident) error {
-	_, err := c.put("/v1/incidents/"+strconv.Itoa(id), inc)
+func (c *Client) UpdateIncident(id int, body any) error {
+	_, err := c.put("/v1/incidents/"+strconv.Itoa(id), body)
 	return err
 }
 
-func (c *Client) UpdateIncidentStatus(id int, status string) error {
-	_, err := c.put("/v1/incidents/"+strconv.Itoa(id)+"/status", map[string]string{"status": status})
+// IncidentStatusUpdate is the body of PUT /incidents/:id/status. The server
+// writes the status and any non-empty root cause or lessons learned in one
+// transaction; an empty value leaves the stored one alone.
+type IncidentStatusUpdate struct {
+	Status         string `json:"status"`
+	RootCause      string `json:"root_cause,omitempty"`
+	LessonsLearned string `json:"lessons_learned,omitempty"`
+}
+
+func (c *Client) UpdateIncidentStatus(id int, body IncidentStatusUpdate) error {
+	_, err := c.put("/v1/incidents/"+strconv.Itoa(id)+"/status", body)
 	return err
 }
 
@@ -1074,8 +1083,8 @@ func (c *Client) GetCorrectiveAction(id int) (*db.CorrectiveAction, error) {
 	return &result, json.Unmarshal(data, &result)
 }
 
-func (c *Client) UpdateCorrectiveAction(id int, ca *db.CorrectiveAction) error {
-	_, err := c.put("/v1/corrective-actions/"+strconv.Itoa(id), ca)
+func (c *Client) UpdateCorrectiveAction(id int, body any) error {
+	_, err := c.put("/v1/corrective-actions/"+strconv.Itoa(id), body)
 	return err
 }
 

@@ -168,6 +168,16 @@ func correctiveShowCmd() *cobra.Command {
 	}
 }
 
+// correctiveUpdatePayload is the partial-update wire shape for `corrective
+// update`: pointer fields with omitempty, filled only for flags the user set.
+// Sending a whole db.CorrectiveAction put every unset field on the wire as "",
+// which the server stored as a real value and the row's CHECK constraints
+// then rejected (#385). Mirrors the server's correctiveActionUpdateRequest.
+type correctiveUpdatePayload struct {
+	RootCause *string `json:"root_cause,omitempty"`
+	Notes     *string `json:"notes,omitempty"`
+}
+
 func correctiveUpdateCmd() *cobra.Command {
 	var rootCause, notes string
 
@@ -182,11 +192,16 @@ func correctiveUpdateCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			ca := &db.CorrectiveAction{
-				RootCause: rootCause,
-				Notes:     notes,
+			// Only fields whose flag was set go on the wire, so a partial
+			// update never overwrites an untouched field (#385).
+			update := &correctiveUpdatePayload{}
+			if cmd.Flags().Changed("root-cause") {
+				update.RootCause = &rootCause
 			}
-			if err := c.UpdateCorrectiveAction(id, ca); err != nil {
+			if cmd.Flags().Changed("notes") {
+				update.Notes = &notes
+			}
+			if err := c.UpdateCorrectiveAction(id, update); err != nil {
 				return err
 			}
 			fmt.Printf("Corrective action #%d updated.\n", id)

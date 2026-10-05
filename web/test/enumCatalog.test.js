@@ -70,15 +70,10 @@ const PENDING_TRANSLATION = {
     'service', 'financial_info', 'personal_data', 'ipr', 'sales_marketing',
     'processing_facility', 'products_services', 'supply_chain', 'other',
   ],
-  // The five the server accepts (db.LegalCategories) plus the seven Legal.vue
-  // has always offered. The view's list does not match the server's and six of
-  // its options are rejected on save (#269) — a pre-existing bug, not an
-  // extraction's to fix. Both sets carry labels so a stored value renders
-  // whichever list produced it.
+  // The categories the server accepts (db.LegalCategories, #269).
   legal_category: [
-    'privacy', 'security', 'sector', 'contractual', 'other',
-    'data_protection', 'employment', 'regulatory', 'intellectual_property',
-    'financial', 'environmental', 'corporate',
+    'privacy', 'security', 'sector', 'contractual', 'employment',
+    'intellectual_property', 'financial', 'environmental', 'corporate', 'other',
   ],
   // ── added by the 3.6 (workflow) extraction ──
   audit_type: ['internal', 'external', 'surveillance', 'certification', 'recertification'],

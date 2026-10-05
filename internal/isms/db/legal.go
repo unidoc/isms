@@ -11,7 +11,9 @@ import (
 var (
 	LegalStatuses   = []string{"draft", "open", "closed"}
 	LegalTreatments = []string{"mitigate", "accept", "transfer", "avoid"}
-	LegalCategories = []string{"privacy", "security", "sector", "contractual", "other"}
+	LegalCategories = []string{"privacy", "security", "sector", "contractual",
+		"employment", "intellectual_property", "financial", "environmental",
+		"corporate", "other"}
 )
 
 // LegalListParams specifies filtering, sorting, and pagination for the legal register.

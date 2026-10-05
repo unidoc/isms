@@ -2577,6 +2577,9 @@ paths:
           application/json:
             schema:
               type: object
+              anyOf:
+                - required: [root_cause]
+                - required: [notes]
               properties:
                 root_cause: { type: string }
                 notes: { type: string }

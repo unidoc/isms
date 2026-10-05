@@ -310,10 +310,10 @@
                     <div>
                       <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('corrective_actions.field.status') }}</label>
                       <div class="flex items-center gap-2">
-                        <select v-model="quickStatus" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <select v-model="quickStatus" :disabled="saving || !!editingSection" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                         </select>
-                        <button @click="saveStatus" :disabled="saving || quickStatus === selectedCA.status"
+                        <button @click="saveStatus" :disabled="saving || !!editingSection || quickStatus === selectedCA.status"
                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm rounded-lg">{{ t('corrective_actions.assignee.update_status') }}</button>
                       </div>
                     </div>
@@ -858,10 +858,12 @@ async function saveSection() {
       if (!payload.due_date) payload.due_date = null
       await api.updateCorrectiveAction(selectedCA.value.id, payload)
     } else {
-      await api.updateCorrectiveActionProgress(selectedCA.value.id, {
-        root_cause: editForm.value.root_cause,
-        notes: editForm.value.notes,
-      })
+      // Send only the field being edited, so a stale copy of the other one
+      // can't overwrite a newer value.
+      const body = editingSection.value === 'root_cause'
+        ? { root_cause: editForm.value.root_cause }
+        : { notes: editForm.value.notes }
+      await api.updateCorrectiveActionProgress(selectedCA.value.id, body)
     }
     await refreshSelected()
     editingSection.value = ''

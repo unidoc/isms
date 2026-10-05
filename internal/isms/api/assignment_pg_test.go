@@ -245,3 +245,53 @@ func TestAssignmentEmailCaseInsensitive(t *testing.T) {
 	err, rec = f.call(f.s.handleUpdateCorrectiveActionStatus, ca.ID, upper, "contributor", caStatusBody("implementation"))
 	f.wantOK(t, err, rec)
 }
+
+// The assignee check runs on the locked row being written, so a corrective
+// action reassigned away from the caller is refused on both narrow routes.
+func TestReassignedCorrectiveActionRefusesFormerAssignee(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-ca-reassign")
+	ctx := context.Background()
+	ca := f.newCA(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateCorrectiveAction, ca.ID, f.mgr, "manager", fmt.Sprintf(`{"assignee":%q}`, f.other))
+	f.wantOK(t, err, rec)
+	before, _ := f.s.db.GetCorrectiveAction(ctx, f.orgID, ca.ID)
+
+	err, _ = f.call(f.s.handleUpdateCorrectiveActionProgress, ca.ID, f.owner, "contributor", `{"notes":"late"}`)
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, _ = f.call(f.s.handleUpdateCorrectiveActionStatus, ca.ID, f.owner, "contributor", caStatusBody("implementation"))
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	got, _ := f.s.db.GetCorrectiveAction(ctx, f.orgID, ca.ID)
+	if got.Assignee != f.other || got.Notes != before.Notes || got.Status != before.Status || got.RootCause != before.RootCause {
+		t.Fatalf("row changed: assignee %q notes %q status %q", got.Assignee, got.Notes, got.Status)
+	}
+}
+
+// A narrow write must leave every field it was not given exactly as the
+// manager last saved it.
+func TestProgressKeepsFieldsItWasNotGiven(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-ca-keep")
+	ctx := context.Background()
+	ca := f.newCA(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateCorrectiveAction, ca.ID, f.mgr, "manager", `{"title":"Renamed by manager","severity":"major_nc"}`)
+	f.wantOK(t, err, rec)
+	err, rec = f.call(f.s.handleUpdateCorrectiveActionProgress, ca.ID, f.owner, "contributor", `{"notes":"owner note"}`)
+	f.wantOK(t, err, rec)
+	got, _ := f.s.db.GetCorrectiveAction(ctx, f.orgID, ca.ID)
+	if got.Title != "Renamed by manager" || got.Severity != "major_nc" || got.Notes != "owner note" || got.Assignee != f.owner {
+		t.Fatalf("stored = title %q severity %q notes %q assignee %q", got.Title, got.Severity, got.Notes, got.Assignee)
+	}
+}
+
+// A private task assigned to a contributor stays visible and writable for them
+// when the session email arrives in a different case.
+func TestMixedCaseEmailOnPrivateTask(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-private-case")
+	upper := strings.ToUpper(f.owner)
+	task := f.newTask(t, f.owner, true)
+	err, rec := f.call(f.s.handleUpdateTaskNotes, task.ID, upper, "contributor", `{"notes":"mixed"}`)
+	f.wantOK(t, err, rec)
+	err, rec = f.call(f.s.handleUpdateTaskStatus, task.ID, upper, "contributor", `{"status":"in_progress"}`)
+	f.wantOK(t, err, rec)
+	err, rec = f.call(f.s.handleGetTask, task.ID, upper, "contributor", ``)
+	f.wantOK(t, err, rec)
+}

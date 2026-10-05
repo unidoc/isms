@@ -152,7 +152,7 @@
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <CopyLinkButton />
-              <select v-if="assigneeOnly" :value="selectedTask.status" @change="changeStatus($event.target.value)" :disabled="saving"
+              <select v-if="assigneeOnly" :value="selectedTask.status" @change="changeStatus($event.target.value)" :disabled="saving || !!editingSection"
                 :aria-label="t('tasks.field.status')"
                 class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>

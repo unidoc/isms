@@ -283,8 +283,10 @@ func canViewTask(c echo.Context, t *db.Task) bool {
 	if role, _ := c.Get("user_role").(string); role == "manager" || role == "admin" {
 		return true
 	}
+	// Case-insensitive, like canActOnAssignment: the Cloudflare Access path sets
+	// user_email unnormalised, and an empty email matches nobody.
 	email := getUserEmail(c)
-	return t.Assignee == email || t.CreatedBy == email
+	return email != "" && (strings.EqualFold(t.Assignee, email) || strings.EqualFold(t.CreatedBy, email))
 }
 
 // getOrgID returns the organization ID set by AuthMiddleware, or 0 if not set.
@@ -2527,27 +2529,42 @@ func (s *Server) handleUpdateTaskNotes(c echo.Context) error {
 	if req.Notes == nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "notes is required")
 	}
-	before, err := s.db.GetTask(ctx, orgID, id)
-	if err != nil {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-	// A private task the caller can't see must look absent, before ownership.
-	if !canViewTask(c, before) {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-	if !canActOnAssignment(c, before.Assignee) {
-		return echo.NewHTTPError(http.StatusForbidden, "contributors can only edit the notes of tasks assigned to them")
-	}
-	if err := s.db.UpdateTaskNotes(ctx, orgID, id, *req.Notes); err != nil {
-		return pgxHTTPError(err)
-	}
-	after, err := s.db.GetTask(ctx, orgID, id)
-	if err != nil {
-		return pgxHTTPError(err)
-	}
 	user := getUserEmail(c)
-	diffs := db.DiffFields("task", int64(id), user, "", before.ToChangeMap(), after.ToChangeMap())
-	s.logChanges(ctx, orgID, diffs)
+	// Lock the task, check visibility and ownership on the locked row, and write
+	// the note and its history in one transaction, so a reassignment in between
+	// can't be overwritten and the history can't be lost (#203).
+	var after *db.Task
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		before, err := db.GetTaskForUpdateTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		// A private task the caller can't see must look absent, before ownership.
+		if !canViewTask(c, before) {
+			return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+		}
+		if !canActOnAssignment(c, before.Assignee) {
+			return echo.NewHTTPError(http.StatusForbidden, "contributors can only edit the notes of tasks assigned to them")
+		}
+		if err := db.UpdateTaskNotesTx(ctx, tx, orgID, id, *req.Notes); err != nil {
+			return err
+		}
+		a, err := db.GetTaskForUpdateTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
+		return db.LogChangesTx(ctx, tx, orgID, db.DiffFields("task", int64(id), user, "", before.ToChangeMap(), after.ToChangeMap()))
+	}); err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+		}
+		return pgxHTTPError(err)
+	}
 
 	updateDetail := fmt.Sprintf("Task #%d: %s", id, after.Title)
 	if after.Private {

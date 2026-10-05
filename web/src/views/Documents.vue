@@ -1416,6 +1416,7 @@ import { useDocumentTree } from '../composables/useDocumentTree'
 import { useDocumentEditor } from '../composables/useDocumentEditor'
 import { useDocumentComments } from '../composables/useDocumentComments'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
+import { linkEntityRefs } from '../composables/useMention'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -1545,11 +1546,15 @@ function closeMentionOnClickOutside(e) {
   }
 }
 
-// --- Render @mentions in comment body ---
+// --- Render #references and @mentions in comment body ---
+// The #RISK-1 links come from the shared linkEntityRefs, so they match every
+// other comment surface (#194). The @ rule stays local: this page's mention
+// dropdown inserts the member's display name, which can be two words
+// ("@Jane Doe"), while renderMention expects the @email MentionTextarea inserts.
 function renderCommentBody(body) {
   if (!body) return ''
   const escaped = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return escaped.replace(/@(\w+(?:\s\w+)?)/g, '<span class="text-blue-400 font-medium">@$1</span>')
+  return linkEntityRefs(escaped).replace(/@(\w+(?:\s\w+)?)/g, '<span class="text-blue-400 font-medium">@$1</span>')
 }
 
 // --- Resolved comment expand/collapse ---

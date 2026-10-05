@@ -104,7 +104,7 @@
                   v-else
                   @click="toggleResolved(comment.id)"
                   class="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap cursor-pointer hover:text-slate-400"
-                  v-html="sanitize(renderCommentBody(comment.body))"
+                  v-html="sanitize(renderMention(comment.body))"
                 ></div>
               </template>
               <!-- Open: suggestion or regular body -->
@@ -133,7 +133,7 @@
                   </div>
                 </div>
                 <!-- Regular comment body -->
-                <div v-else class="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap" v-html="sanitize(renderCommentBody(comment.body))"></div>
+                <div v-else class="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap" v-html="sanitize(renderMention(comment.body))"></div>
               </template>
 
               <!-- Replies -->
@@ -143,7 +143,7 @@
                     <span class="text-[11px] font-semibold text-slate-400" :title="reply.author">{{ nameFor(reply.author) }}</span>
                     <span class="text-[10px] text-slate-600">{{ formatDate(reply.created_at) }}</span>
                   </div>
-                  <div class="text-[12px] text-slate-400" v-html="sanitize(renderCommentBody(reply.body))"></div>
+                  <div class="text-[12px] text-slate-400" v-html="sanitize(renderMention(reply.body))"></div>
                 </div>
               </div>
 
@@ -235,6 +235,7 @@ import DOMPurify from 'dompurify'
 import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
+import { renderMention } from '../composables/useMention'
 import { parseMd } from '../composables/useRenderMd'
 import { formatRecent } from '../composables/useFormat.js'
 import { columnWidths } from '../utils/contentBlocks.js'
@@ -604,14 +605,6 @@ function toggleResolved(commentId) {
   } else {
     expandedResolved.add(commentId)
   }
-}
-
-// --- Comment body rendering ---
-function renderCommentBody(body) {
-  if (!body) return ''
-  const escaped = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return escaped.replace(/@([\w.+-]+@[\w.-]+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
-    .replace(/@(\w+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
 }
 
 function firstLine(text) {

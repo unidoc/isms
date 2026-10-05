@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -111,6 +112,31 @@ func TestUpdateCommandsSendExplicitZeroValues(t *testing.T) {
 			}
 			if !reflect.DeepEqual((*got)[0].body, tc.want) {
 				t.Errorf("body = %v, want %v", (*got)[0].body, tc.want)
+			}
+		})
+	}
+}
+
+// A date flag given as "" asks to clear the date, so it must go on the wire
+// as null. Omitting it left the date untouched while the command still
+// printed success.
+func TestLegalUpdateSendsEmptyDateAsNull(t *testing.T) {
+	for _, flag := range []string{"last-review", "next-review"} {
+		t.Run(flag, func(t *testing.T) {
+			srv, got := cliServer(t)
+			defer srv.Close()
+			cmd := legalCmd()
+			cmd.SetArgs([]string{"update", "3", "--" + flag, ""})
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("execute: %v", err)
+			}
+			if len(*got) != 1 {
+				t.Fatalf("want exactly one API call, got %d", len(*got))
+			}
+			key := strings.ReplaceAll(flag, "-", "_")
+			want := map[string]interface{}{key: nil}
+			if !reflect.DeepEqual((*got)[0].body, want) {
+				t.Errorf("body = %v, want %v", (*got)[0].body, want)
 			}
 		})
 	}

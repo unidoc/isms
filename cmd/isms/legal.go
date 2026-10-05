@@ -199,24 +199,28 @@ func legalShowCmd() *cobra.Command {
 // a whole db.LegalRequirement put every unset field on the wire as "" or 0,
 // which the server stored as a real value and the row's CHECK constraints
 // then rejected (#385). Mirrors the server's legalUpdateRequest.
+//
+// The two dates are double pointers so a date flag given as "" is told apart
+// from an absent one: a nil outer pointer omits the key, a pointer to nil is
+// sent as null, which clears last_review and recalculates next_review.
 type legalUpdatePayload struct {
-	Title             *string   `json:"title,omitempty"`
-	Description       *string   `json:"description,omitempty"`
-	Jurisdiction      *string   `json:"jurisdiction,omitempty"`
-	Category          *string   `json:"category,omitempty"`
-	Reference         *string   `json:"reference,omitempty"`
-	URL               *string   `json:"url,omitempty"`
-	Owner             *string   `json:"owner,omitempty"`
-	LastReview        *db.Epoch `json:"last_review,omitempty"`
-	NextReview        *db.Epoch `json:"next_review,omitempty"`
-	Notes             *string   `json:"notes,omitempty"`
-	CurrentLikelihood *int      `json:"current_likelihood,omitempty"`
-	CurrentImpact     *int      `json:"current_impact,omitempty"`
-	Treatment         *string   `json:"treatment,omitempty"`
-	TreatmentPlan     *string   `json:"treatment_plan,omitempty"`
-	Completion        *int      `json:"completion,omitempty"`
-	TargetLikelihood  *int      `json:"target_likelihood,omitempty"`
-	TargetImpact      *int      `json:"target_impact,omitempty"`
+	Title             *string    `json:"title,omitempty"`
+	Description       *string    `json:"description,omitempty"`
+	Jurisdiction      *string    `json:"jurisdiction,omitempty"`
+	Category          *string    `json:"category,omitempty"`
+	Reference         *string    `json:"reference,omitempty"`
+	URL               *string    `json:"url,omitempty"`
+	Owner             *string    `json:"owner,omitempty"`
+	LastReview        **db.Epoch `json:"last_review,omitempty"`
+	NextReview        **db.Epoch `json:"next_review,omitempty"`
+	Notes             *string    `json:"notes,omitempty"`
+	CurrentLikelihood *int       `json:"current_likelihood,omitempty"`
+	CurrentImpact     *int       `json:"current_impact,omitempty"`
+	Treatment         *string    `json:"treatment,omitempty"`
+	TreatmentPlan     *string    `json:"treatment_plan,omitempty"`
+	Completion        *int       `json:"completion,omitempty"`
+	TargetLikelihood  *int       `json:"target_likelihood,omitempty"`
+	TargetImpact      *int       `json:"target_impact,omitempty"`
 }
 
 func legalUpdateCmd() *cobra.Command {
@@ -262,14 +266,18 @@ func legalUpdateCmd() *cobra.Command {
 				update.Owner = &owner
 			}
 			if f.Changed("last-review") {
-				if update.LastReview, err = parseEpochPtr(lastReview); err != nil {
+				e, err := parseEpochPtr(lastReview)
+				if err != nil {
 					return err
 				}
+				update.LastReview = &e
 			}
 			if f.Changed("next-review") {
-				if update.NextReview, err = parseEpochPtr(nextReview); err != nil {
+				e, err := parseEpochPtr(nextReview)
+				if err != nil {
 					return err
 				}
+				update.NextReview = &e
 			}
 			if f.Changed("notes") {
 				update.Notes = &notes
@@ -310,8 +318,8 @@ func legalUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reference, "reference", "", "Article/section reference")
 	cmd.Flags().StringVar(&url, "url", "", "URL")
 	cmd.Flags().StringVar(&owner, "owner", "", "Owner email")
-	cmd.Flags().StringVar(&lastReview, "last-review", "", "Last review date (YYYY-MM-DD)")
-	cmd.Flags().StringVar(&nextReview, "next-review", "", "Next review date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&lastReview, "last-review", "", `Last review date (YYYY-MM-DD); "" clears it`)
+	cmd.Flags().StringVar(&nextReview, "next-review", "", `Next review date (YYYY-MM-DD); "" resets it to the date the review cycle gives`)
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes")
 	cmd.Flags().IntVar(&currentLikelihood, "likelihood", 0, "Likelihood (1-5)")
 	cmd.Flags().IntVar(&currentImpact, "impact", 0, "Impact (1-5)")

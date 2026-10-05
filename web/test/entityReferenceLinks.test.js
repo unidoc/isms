@@ -28,6 +28,9 @@ test('unknown identifiers are highlighted, plain words left as typed', () => {
   assert.equal(link('#FOO-1'), '<span class="text-blue-400 font-medium">#FOO-1</span>')
   assert.equal(link('#FOO'), '#FOO')
   assert.equal(link('issue #42 and #lowercase-1'), 'issue #42 and #lowercase-1')
+  // No word boundary after the number, so only #RISK matches, and RISK is not a
+  // program key. internal/isms/api/comment_mentions_test.go has the same case.
+  assert.equal(link('#RISK-1x'), '#RISK-1x')
 })
 
 test('escaped input is passed through, not unescaped', () => {

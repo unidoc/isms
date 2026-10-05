@@ -59,3 +59,50 @@ DELETE FROM entity_references r
                   AND p.source_type = r.source_type AND p.source_id = 'AUDIT-' || r.source_id);
 UPDATE entity_references SET source_id = 'AUDIT-' || source_id
  WHERE source_type = 'audit' AND source_id ~ '^[1-9][0-9]*$';
+
+-- #194: a #RISK-1 mention in a comment now saves a link between the comment's
+-- subject and the mentioned record, and deleting the comment removes the link
+-- again. Two pieces make that safe:
+--
+-- entity_references.origin says who created a link. Every existing writer
+-- (the Links tab, create-with-references, incident link suggestions) is
+-- 'manual', the default, so existing rows are manual. Only comment mentions
+-- write 'comment', and a manual write on an existing pair upgrades it to
+-- 'manual', so a link someone also added by hand is never removed with a
+-- comment.
+ALTER TABLE entity_references ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'manual';
+ALTER TABLE entity_references DROP CONSTRAINT IF EXISTS entity_references_origin_check;
+ALTER TABLE entity_references ADD CONSTRAINT entity_references_origin_check
+    CHECK (origin IN ('manual', 'comment'));
+
+-- comment_references records which comment mentions which pair, so a link
+-- two comments share survives deleting one of them. comment_type names the
+-- table comment_id lives in: 'comment' (document and review comments) or
+-- 'entity_comment' (register records). No FK, since the id is polymorphic;
+-- the delete path removes a comment's rows in the same transaction.
+CREATE TABLE IF NOT EXISTS comment_references (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    comment_type    TEXT NOT NULL CHECK (comment_type IN ('comment', 'entity_comment')),
+    comment_id      BIGINT NOT NULL,
+    source_type     TEXT NOT NULL,
+    source_id       TEXT NOT NULL,
+    target_type     TEXT NOT NULL,
+    target_id       TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (organization_id, comment_type, comment_id, source_type, source_id, target_type, target_id)
+);
+CREATE INDEX IF NOT EXISTS idx_comment_refs_pair
+    ON comment_references(organization_id, source_type, source_id, target_type, target_id);
+
+-- Same tenant_isolation policy as every org-scoped table in the initial
+-- schema. CREATE POLICY has no IF NOT EXISTS, so it is guarded for re-runs.
+ALTER TABLE comment_references ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'comment_references' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON comment_references
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;

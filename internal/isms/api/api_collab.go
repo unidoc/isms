@@ -1061,7 +1061,14 @@ func (s *Server) handleAddReviewComment(c echo.Context) error {
 			comment.Body = "Suggested replacement for this paragraph"
 		}
 	}
-	if err := s.db.AddComment(ctx, orgID, comment); err != nil {
+	// #RISK-1 mentions link the reviewed document, written with the comment (#194).
+	mentions := s.resolveCommentMentions(ctx, orgID, taskViewer(c), "document", review.DocumentID, comment.Body)
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.AddCommentTx(ctx, tx, orgID, comment); err != nil {
+			return err
+		}
+		return db.AddCommentReferencesTx(ctx, tx, orgID, db.CommentTypeComment, int64(comment.ID), comment.Author, mentions)
+	}); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
@@ -1927,7 +1934,15 @@ func (s *Server) handleAddCommentDB(c echo.Context) error {
 		pending := "pending"
 		comment.SuggestionStatus = &pending
 	}
-	if err := s.db.AddComment(c.Request().Context(), orgID, &comment); err != nil {
+	// #RISK-1 mentions link the document, written with the comment (#194).
+	ctx := c.Request().Context()
+	mentions := s.resolveCommentMentions(ctx, orgID, taskViewer(c), "document", comment.DocumentID, comment.Body)
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.AddCommentTx(ctx, tx, orgID, &comment); err != nil {
+			return err
+		}
+		return db.AddCommentReferencesTx(ctx, tx, orgID, db.CommentTypeComment, int64(comment.ID), comment.Author, mentions)
+	}); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	detail := fmt.Sprintf("Comment on %s", comment.DocumentID)

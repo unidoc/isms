@@ -702,8 +702,18 @@ type Comment struct {
 }
 
 func (d *DB) AddComment(ctx context.Context, orgID int, c *Comment) error {
+	return addComment(ctx, d.pool, orgID, c)
+}
+
+// AddCommentTx is AddComment inside a transaction, so the links its #mentions
+// make are written with it (#194).
+func AddCommentTx(ctx context.Context, tx pgx.Tx, orgID int, c *Comment) error {
+	return addComment(ctx, tx, orgID, c)
+}
+
+func addComment(ctx context.Context, q rowQuerier, orgID int, c *Comment) error {
 	c.OrganizationID = orgID
-	return d.pool.QueryRow(ctx, `
+	return q.QueryRow(ctx, `
 		INSERT INTO comments (organization_id, review_id, document_id, author, author_user_id, body, section, paragraph_index, paragraph_hash, quote, parent_id, status, suggestion_body, suggestion_status)
 		VALUES ($1, $2, $3, $4, (SELECT id FROM users WHERE email = $4), $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at

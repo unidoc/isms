@@ -284,17 +284,9 @@ func SetCorrectiveActionResolvedTx(ctx context.Context, tx pgx.Tx, orgID int, id
 }
 
 // CreateReferenceTx creates an entity reference within an existing transaction.
-// Idempotent: on conflict returns the existing row.
+// Idempotent: on conflict returns the existing row (see referenceUpsertSQL).
 func CreateReferenceTx(ctx context.Context, tx pgx.Tx, orgID int, ref *EntityReference) error {
-	ref.OrganizationID = orgID
-	return tx.QueryRow(ctx, `
-		INSERT INTO entity_references (organization_id, source_type, source_id, target_type, target_id, created_by, created_by_user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, (SELECT id FROM users WHERE email = $6))
-		ON CONFLICT (organization_id, source_type, source_id, target_type, target_id)
-		DO UPDATE SET created_at = entity_references.created_at
-		RETURNING id, created_at
-	`, orgID, ref.SourceType, ref.SourceID, ref.TargetType, ref.TargetID, ref.CreatedBy,
-	).Scan(&ref.ID, &ref.CreatedAt)
+	return upsertReference(ctx, tx, orgID, ref)
 }
 
 // LogChangeTx inserts a single changelog entry within an existing transaction.

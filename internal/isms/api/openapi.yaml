@@ -1512,6 +1512,11 @@ paths:
     post:
       tags: [Reviews & Comments]
       summary: Add a comment to a document
+      description: >-
+        A #IDENT in the body that names a record (e.g. #RISK-1, #CA-3, a
+        program key or an objective's display id) links that record to the
+        document, as an EntityReference with origin "comment". An identifier
+        that names nothing is left as text and does not fail the request.
       requestBody:
         required: true
         content:
@@ -2894,6 +2899,11 @@ paths:
     post:
       tags: [References]
       summary: Create a comment on an entity
+      description: >-
+        A #IDENT in the body that names a record (e.g. #RISK-1, #CA-3, a
+        program key or an objective's display id) links that record to the
+        commented entity, as an EntityReference with origin "comment". An identifier
+        that names nothing is left as text and does not fail the request.
       requestBody:
         required: true
         content:
@@ -2926,6 +2936,10 @@ paths:
     delete:
       tags: [References]
       summary: Delete an entity comment
+      description: >-
+        Also removes the links the comment's #IDENT mentions created, unless
+        another comment still mentions the same record or the link was also
+        added by hand (origin "manual").
       parameters:
         - $ref: '#/components/parameters/id'
       responses:
@@ -3986,6 +4000,13 @@ components:
         title: { type: string, description: Resolved display name }
         created_by: { type: string }
         created_at: { type: string, format: date-time }
+        origin:
+          type: string
+          enum: [manual, comment]
+          description: >-
+            Who created the link. "comment" is a #IDENT mention in a comment,
+            removed again when that comment is deleted and no other comment or
+            manual link holds it; every other link is "manual".
 
     ChangelogEntry:
       type: object

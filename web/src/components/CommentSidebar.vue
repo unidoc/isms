@@ -63,7 +63,7 @@
                 {{ $t('common.action.resolve') }}
               </button>
             </div>
-            <div class="text-sm text-slate-400 leading-relaxed" v-html="sanitize(renderBody(c.body))" />
+            <div class="text-sm text-slate-400 leading-relaxed" v-html="sanitize(renderMention(c.body))" />
 
             <!-- Replies -->
             <div v-for="reply in repliesFor(c.id)" :key="reply.id" class="mt-2 ml-4 pl-3 border-l-2 border-slate-700">
@@ -74,7 +74,7 @@
                 <span class="text-[10px] font-semibold text-slate-400">{{ reply.author }}</span>
                 <span class="text-[10px] text-slate-600">{{ formatDate(reply.created_at) }}</span>
               </div>
-              <div class="text-xs text-slate-400 leading-relaxed" v-html="sanitize(renderBody(reply.body))" />
+              <div class="text-xs text-slate-400 leading-relaxed" v-html="sanitize(renderMention(reply.body))" />
             </div>
 
             <!-- Reply form -->
@@ -120,7 +120,7 @@
                   {{ $t('common.state.resolved') }}
                 </span>
               </div>
-              <div class="text-xs text-slate-500" v-html="sanitize(renderBody(c.body))" />
+              <div class="text-xs text-slate-500" v-html="sanitize(renderMention(c.body))" />
             </div>
           </template>
         </template>
@@ -137,6 +137,7 @@ const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style'] })
 import { api, getCurrentUser } from '../api'
 import MentionTextarea from './MentionTextarea.vue'
 import { useMembers } from '../composables/useMembers'
+import { renderMention } from '../composables/useMention'
 
 const { members } = useMembers()
 
@@ -226,13 +227,6 @@ async function submitReply() {
 
 // A comment thread pins to a date after a day, not a week.
 const formatDate = (d) => formatRecent(d, { within: 24 * 60 * 60 * 1000, style: 'dayMonth' })
-
-function renderBody(body) {
-  if (!body) return ''
-  const escaped = body.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-  return escaped.replace(/@([\w.+-]+@[\w.-]+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
-    .replace(/@(\w+)/g, '<span class="text-blue-400 font-medium">@$1</span>')
-}
 
 watch(() => props.documentId, () => {
   if (props.documentId) loadComments()

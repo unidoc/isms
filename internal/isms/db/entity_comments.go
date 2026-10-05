@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // EntityComment is a comment on any operational entity.
@@ -31,8 +33,18 @@ type ReactionSummary struct {
 }
 
 func (d *DB) CreateEntityComment(ctx context.Context, orgID int, c *EntityComment) error {
+	return createEntityComment(ctx, d.pool, orgID, c)
+}
+
+// CreateEntityCommentTx is CreateEntityComment inside a transaction, so the
+// links its #mentions make are written with it (#194).
+func CreateEntityCommentTx(ctx context.Context, tx pgx.Tx, orgID int, c *EntityComment) error {
+	return createEntityComment(ctx, tx, orgID, c)
+}
+
+func createEntityComment(ctx context.Context, q rowQuerier, orgID int, c *EntityComment) error {
 	c.OrganizationID = orgID
-	return d.pool.QueryRow(ctx, `
+	return q.QueryRow(ctx, `
 		INSERT INTO entity_comments (organization_id, entity_type, entity_id, parent_id, author, author_user_id, body)
 		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $5), $6)
 		RETURNING id, status, created_at, updated_at
@@ -91,9 +103,16 @@ func (d *DB) ResolveEntityComment(ctx context.Context, orgID int, id int64, reso
 	return err
 }
 
+// DeleteEntityComment deletes a comment and the links its #mentions made that
+// nothing else still holds (#194), in one transaction.
 func (d *DB) DeleteEntityComment(ctx context.Context, orgID int, id int64) error {
-	_, err := d.pool.Exec(ctx, `DELETE FROM entity_comments WHERE id = $1 AND organization_id = $2`, id, orgID)
-	return err
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := RemoveCommentReferencesTx(ctx, tx, orgID, CommentTypeEntityComment, id); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `DELETE FROM entity_comments WHERE id = $1 AND organization_id = $2`, id, orgID)
+		return err
+	})
 }
 
 // ═══════════════════════════════════════════════════════════════════════

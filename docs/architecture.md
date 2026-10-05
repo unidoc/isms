@@ -109,6 +109,14 @@ References work across the git/PostgreSQL boundary:
 - Incident ↔ Risk (both in PostgreSQL)
 - Legal requirement ↔ Document (e.g., GDPR linked to privacy policy)
 
+Each link has an `origin`. Links added on a Links tab, sent with a create
+request, or applied from a suggestion are `manual`. A `#RISK-1` mention in a
+comment also creates a link, between the comment's subject (the record, or the
+document for document and review comments) and the mentioned record, with
+origin `comment`. `comment_references` records which comment holds which link,
+so deleting a comment removes the links only it held; a link another comment
+still mentions, or that was also added by hand, stays.
+
 ### SoA (Statement of Applicability)
 
 SoA is NOT a core feature. It's a document that lives in the ISO 27001 template:

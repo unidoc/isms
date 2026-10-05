@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -79,7 +80,15 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 		Author:     actor,
 		Body:       req.Body,
 	}
-	if err := s.db.CreateEntityComment(ctx, orgID, comment); err != nil {
+	// A #RISK-1 mention links this record to RISK-1, written with the comment
+	// so neither lands without the other (#194).
+	mentions := s.resolveCommentMentions(ctx, orgID, taskViewer(c), req.EntityType, req.EntityID, req.Body)
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.CreateEntityCommentTx(ctx, tx, orgID, comment); err != nil {
+			return err
+		}
+		return db.AddCommentReferencesTx(ctx, tx, orgID, db.CommentTypeEntityComment, comment.ID, actor, mentions)
+	}); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

@@ -194,10 +194,38 @@ func legalShowCmd() *cobra.Command {
 	}
 }
 
+// legalUpdatePayload is the partial-update wire shape for `legal update`:
+// pointer fields with omitempty, filled only for flags the user set. Sending
+// a whole db.LegalRequirement put every unset field on the wire as "" or 0,
+// which the server stored as a real value and the row's CHECK constraints
+// then rejected (#385). Mirrors the server's legalUpdateRequest.
+//
+// The two dates are double pointers so a date flag given as "" is told apart
+// from an absent one: a nil outer pointer omits the key, a pointer to nil is
+// sent as null, which clears last_review and recalculates next_review.
+type legalUpdatePayload struct {
+	Title             *string    `json:"title,omitempty"`
+	Description       *string    `json:"description,omitempty"`
+	Jurisdiction      *string    `json:"jurisdiction,omitempty"`
+	Category          *string    `json:"category,omitempty"`
+	Reference         *string    `json:"reference,omitempty"`
+	URL               *string    `json:"url,omitempty"`
+	Owner             *string    `json:"owner,omitempty"`
+	LastReview        **db.Epoch `json:"last_review,omitempty"`
+	NextReview        **db.Epoch `json:"next_review,omitempty"`
+	Notes             *string    `json:"notes,omitempty"`
+	CurrentLikelihood *int       `json:"current_likelihood,omitempty"`
+	CurrentImpact     *int       `json:"current_impact,omitempty"`
+	Treatment         *string    `json:"treatment,omitempty"`
+	TreatmentPlan     *string    `json:"treatment_plan,omitempty"`
+	Completion        *int       `json:"completion,omitempty"`
+	TargetLikelihood  *int       `json:"target_likelihood,omitempty"`
+	TargetImpact      *int       `json:"target_impact,omitempty"`
+}
+
 func legalUpdateCmd() *cobra.Command {
 	var title, description, jurisdiction, category, reference, url string
 	var owner, notes, lastReview, nextReview, treatment, treatmentPlan string
-	var linkedDocs []string
 	var currentLikelihood, currentImpact, completion int
 	var targetLikelihood, targetImpact int
 
@@ -212,34 +240,70 @@ func legalUpdateCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			lrDate, err := parseEpochPtr(lastReview)
-			if err != nil {
-				return err
+			// Only fields whose flag was set go on the wire, so a partial
+			// update never overwrites an untouched field (#385).
+			update := &legalUpdatePayload{}
+			f := cmd.Flags()
+			if f.Changed("title") {
+				update.Title = &title
 			}
-			nrDate, err := parseEpochPtr(nextReview)
-			if err != nil {
-				return err
+			if f.Changed("description") {
+				update.Description = &description
 			}
-			lr := &db.LegalRequirement{
-				Title:             title,
-				Description:       description,
-				Jurisdiction:      jurisdiction,
-				Category:          category,
-				Reference:         reference,
-				URL:               url,
-				Owner:             owner,
-				LastReview:        lrDate,
-				NextReview:        nrDate,
-				Notes:             notes,
-				CurrentLikelihood: &currentLikelihood,
-				CurrentImpact:     &currentImpact,
-				Treatment:         treatment,
-				TreatmentPlan:     treatmentPlan,
-				Completion:        completion,
-				TargetLikelihood:  &targetLikelihood,
-				TargetImpact:      &targetImpact,
+			if f.Changed("jurisdiction") {
+				update.Jurisdiction = &jurisdiction
 			}
-			if err := c.UpdateLegal(id, lr); err != nil {
+			if f.Changed("category") {
+				update.Category = &category
+			}
+			if f.Changed("reference") {
+				update.Reference = &reference
+			}
+			if f.Changed("url") {
+				update.URL = &url
+			}
+			if f.Changed("owner") {
+				update.Owner = &owner
+			}
+			if f.Changed("last-review") {
+				e, err := parseEpochPtr(lastReview)
+				if err != nil {
+					return err
+				}
+				update.LastReview = &e
+			}
+			if f.Changed("next-review") {
+				e, err := parseEpochPtr(nextReview)
+				if err != nil {
+					return err
+				}
+				update.NextReview = &e
+			}
+			if f.Changed("notes") {
+				update.Notes = &notes
+			}
+			if f.Changed("likelihood") {
+				update.CurrentLikelihood = &currentLikelihood
+			}
+			if f.Changed("impact") {
+				update.CurrentImpact = &currentImpact
+			}
+			if f.Changed("treatment") {
+				update.Treatment = &treatment
+			}
+			if f.Changed("treatment-plan") {
+				update.TreatmentPlan = &treatmentPlan
+			}
+			if f.Changed("completion") {
+				update.Completion = &completion
+			}
+			if f.Changed("target-likelihood") {
+				update.TargetLikelihood = &targetLikelihood
+			}
+			if f.Changed("target-impact") {
+				update.TargetImpact = &targetImpact
+			}
+			if err := c.UpdateLegal(id, update); err != nil {
 				return err
 			}
 			fmt.Printf("Legal requirement #%d updated.\n", id)
@@ -254,9 +318,8 @@ func legalUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reference, "reference", "", "Article/section reference")
 	cmd.Flags().StringVar(&url, "url", "", "URL")
 	cmd.Flags().StringVar(&owner, "owner", "", "Owner email")
-	cmd.Flags().StringSliceVar(&linkedDocs, "documents", nil, "Linked document IDs (comma-separated)")
-	cmd.Flags().StringVar(&lastReview, "last-review", "", "Last review date (YYYY-MM-DD)")
-	cmd.Flags().StringVar(&nextReview, "next-review", "", "Next review date (YYYY-MM-DD)")
+	cmd.Flags().StringVar(&lastReview, "last-review", "", `Last review date (YYYY-MM-DD); "" clears it`)
+	cmd.Flags().StringVar(&nextReview, "next-review", "", `Next review date (YYYY-MM-DD); "" resets it to the date the review cycle gives`)
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes")
 	cmd.Flags().IntVar(&currentLikelihood, "likelihood", 0, "Likelihood (1-5)")
 	cmd.Flags().IntVar(&currentImpact, "impact", 0, "Impact (1-5)")

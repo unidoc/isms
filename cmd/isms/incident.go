@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
 )
 
@@ -217,13 +218,35 @@ func incidentShowCmd() *cobra.Command {
 	}
 }
 
+// incidentUpdatePayload is the partial-update wire shape for `incident
+// update`: pointer fields with omitempty, filled only for flags the user set.
+// Sending a whole db.Incident put every unset field on the wire as "" or
+// false, which the server stored as a real value and the row's CHECK
+// constraints then rejected (#385). Mirrors the server's
+// incidentUpdateRequest.
+type incidentUpdatePayload struct {
+	Assignee          *string `json:"assignee,omitempty"`
+	RootCause         *string `json:"root_cause,omitempty"`
+	LessonsLearned    *string `json:"lessons_learned,omitempty"`
+	Severity          *string `json:"severity,omitempty"`
+	AffectsC          *bool   `json:"affects_c,omitempty"`
+	AffectsI          *bool   `json:"affects_i,omitempty"`
+	AffectsA          *bool   `json:"affects_a,omitempty"`
+	IncidentType      *string `json:"incident_type,omitempty"`
+	Source            *string `json:"source,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
+	DataBreach        *bool   `json:"data_breach,omitempty"`
+	GDPRRole          *string `json:"gdpr_role,omitempty"`
+	AuthorityNotified *string `json:"authority_notified,omitempty"`
+	SubjectsNotified  *string `json:"subjects_notified,omitempty"`
+}
+
 func incidentUpdateCmd() *cobra.Command {
 	var assignee, rootCause, lessons, severity string
 	var incidentType, source string
 	var dataBreach bool
 	var affectsC, affectsI, affectsA bool
 	var notes, gdprRole, authorityNotified, subjectsNotified string
-	var risks []string
 
 	cmd := &cobra.Command{
 		Use:   "update <id>",
@@ -236,23 +259,53 @@ func incidentUpdateCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			inc := &db.Incident{
-				Assignee:          assignee,
-				RootCause:         rootCause,
-				LessonsLearned:    lessons,
-				Severity:          severity,
-				AffectsC:          affectsC,
-				AffectsI:          affectsI,
-				AffectsA:          affectsA,
-				IncidentType:      incidentType,
-				Source:            source,
-				Notes:             notes,
-				DataBreach:        dataBreach,
-				GDPRRole:          gdprRole,
-				AuthorityNotified: authorityNotified,
-				SubjectsNotified:  subjectsNotified,
+			// Only fields whose flag was set go on the wire, so a partial
+			// update never overwrites an untouched field (#385).
+			update := &incidentUpdatePayload{}
+			f := cmd.Flags()
+			if f.Changed("assignee") {
+				update.Assignee = &assignee
 			}
-			if err := c.UpdateIncident(id, inc); err != nil {
+			if f.Changed("root-cause") {
+				update.RootCause = &rootCause
+			}
+			if f.Changed("lessons") {
+				update.LessonsLearned = &lessons
+			}
+			if f.Changed("severity") {
+				update.Severity = &severity
+			}
+			if f.Changed("affects-c") {
+				update.AffectsC = &affectsC
+			}
+			if f.Changed("affects-i") {
+				update.AffectsI = &affectsI
+			}
+			if f.Changed("affects-a") {
+				update.AffectsA = &affectsA
+			}
+			if f.Changed("type") {
+				update.IncidentType = &incidentType
+			}
+			if f.Changed("source") {
+				update.Source = &source
+			}
+			if f.Changed("data-breach") {
+				update.DataBreach = &dataBreach
+			}
+			if f.Changed("notes") {
+				update.Notes = &notes
+			}
+			if f.Changed("gdpr-role") {
+				update.GDPRRole = &gdprRole
+			}
+			if f.Changed("authority-notified") {
+				update.AuthorityNotified = &authorityNotified
+			}
+			if f.Changed("subjects-notified") {
+				update.SubjectsNotified = &subjectsNotified
+			}
+			if err := c.UpdateIncident(id, update); err != nil {
 				return err
 			}
 			fmt.Printf("Incident #%d updated.\n", id)
@@ -274,7 +327,6 @@ func incidentUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&gdprRole, "gdpr-role", "", "GDPR role: controller, processor")
 	cmd.Flags().StringVar(&authorityNotified, "authority-notified", "", "Authority notification status: not_required, pending, notified")
 	cmd.Flags().StringVar(&subjectsNotified, "subjects-notified", "", "Subjects notification status: not_required, pending, notified")
-	cmd.Flags().StringSliceVar(&risks, "risks", nil, "Linked risk IDs (comma-separated)")
 	return cmd
 }
 
@@ -292,14 +344,14 @@ func incidentResolveCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			if err := c.UpdateIncidentStatus(id, "resolved"); err != nil {
+			// One request: the server writes the status and the text in the
+			// same transaction, so the text is never dropped while the status
+			// change reports success (#385).
+			if err := c.UpdateIncidentStatus(id, client.IncidentStatusUpdate{
+				Status:    "resolved",
+				RootCause: rootCause,
+			}); err != nil {
 				return err
-			}
-
-			// Update root cause if provided
-			if rootCause != "" {
-				inc := &db.Incident{RootCause: rootCause}
-				c.UpdateIncident(id, inc)
 			}
 
 			fmt.Printf("Incident #%d resolved.\n", id)
@@ -325,14 +377,14 @@ func incidentCloseCmd() *cobra.Command {
 			}
 
 			c := requireAPI()
-			if err := c.UpdateIncidentStatus(id, "closed"); err != nil {
+			// One request: the server writes the status and the text in the
+			// same transaction, so the text is never dropped while the status
+			// change reports success (#385).
+			if err := c.UpdateIncidentStatus(id, client.IncidentStatusUpdate{
+				Status:         "closed",
+				LessonsLearned: lessons,
+			}); err != nil {
 				return err
-			}
-
-			// Update lessons learned if provided
-			if lessons != "" {
-				inc := &db.Incident{LessonsLearned: lessons}
-				c.UpdateIncident(id, inc)
 			}
 
 			fmt.Printf("Incident #%d closed.\n", id)

@@ -90,9 +90,8 @@ func TestSystemEditSendsOnlyTheFlagsGiven(t *testing.T) {
 	}
 }
 
-// TestOtherUpdateCommandsSendNoNullKeys covers the edit commands that already
-// marshal a whole record: their date and number fields carry omitempty or a
-// concrete value, so none of them may put a cleared key on the wire.
+// TestOtherUpdateCommandsSendNoNullKeys covers the remaining edit commands:
+// none of them may put a cleared key on the wire.
 func TestOtherUpdateCommandsSendNoNullKeys(t *testing.T) {
 	cases := []struct {
 		name string
@@ -114,9 +113,7 @@ func TestOtherUpdateCommandsSendNoNullKeys(t *testing.T) {
 			if err := cmd.Execute(); err != nil {
 				t.Fatalf("execute: %v", err)
 			}
-			// resolve and close send a status call first, then the update.
-			last := (*got)[len(*got)-1:]
-			assertNoNullKeys(t, last)
+			assertNoNullKeys(t, *got)
 		})
 	}
 }

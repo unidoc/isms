@@ -649,6 +649,7 @@ func (s *Server) routes() {
 	api.POST("/tasks", s.handleCreateTask)
 	api.PUT("/tasks/:id", s.handleUpdateTask)
 	api.PUT("/tasks/:id/status", s.handleUpdateTaskStatus)
+	api.PUT("/tasks/:id/notes", s.handleUpdateTaskNotes)
 	api.DELETE("/tasks/:id", s.handleDeleteTask)
 
 	// Change requests (Postgres)
@@ -736,6 +737,7 @@ func (s *Server) routes() {
 	api.GET("/corrective-actions/:id", s.handleGetCorrectiveAction)
 	api.PUT("/corrective-actions/:id", s.handleUpdateCorrectiveAction)
 	api.PUT("/corrective-actions/:id/status", s.handleUpdateCorrectiveActionStatus)
+	api.PUT("/corrective-actions/:id/progress", s.handleUpdateCorrectiveActionProgress)
 	api.DELETE("/corrective-actions/:id", s.handleDeleteCorrectiveAction)
 
 	// Programs (Postgres)

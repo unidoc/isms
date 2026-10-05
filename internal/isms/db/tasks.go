@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Allowed enum values for task fields. Mirrors schema CHECK constraints.
@@ -194,6 +196,15 @@ func (d *DB) UpdateTaskStatus(ctx context.Context, orgID int, id int64, status s
 	return err
 }
 
+// UpdateTaskNotesTx writes only a task's notes, so the assignee's note can't
+// overwrite a concurrent change to any other column (#203).
+func UpdateTaskNotesTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, notes string) error {
+	_, err := tx.Exec(ctx,
+		`UPDATE tasks SET notes = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`,
+		id, nilIfEmpty(notes), orgID)
+	return err
+}
+
 func (d *DB) UpdateTask(ctx context.Context, orgID int, t *Task) error {
 	_, err := d.pool.Exec(ctx, `
 		UPDATE tasks SET
@@ -242,6 +253,24 @@ func (d *DB) GetTask(ctx context.Context, orgID int, id int64) (*Task, error) {
 	err := d.pool.QueryRow(ctx, `
 		SELECT `+taskSelectCols+`
 		FROM tasks t WHERE t.id = $1 AND t.organization_id = $2 AND t.deleted_at IS NULL
+	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
+		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
+		&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+// GetTaskForUpdateTx is GetTask inside a transaction with a row lock held until
+// it ends, so the caller can check the task and write it without a concurrent
+// edit slipping in between (#203).
+func GetTaskForUpdateTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*Task, error) {
+	var t Task
+	err := tx.QueryRow(ctx, `
+		SELECT `+taskSelectCols+`
+		FROM tasks t WHERE t.id = $1 AND t.organization_id = $2 AND t.deleted_at IS NULL
+		FOR UPDATE OF t
 	`, id, orgID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
 		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
 		&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private)

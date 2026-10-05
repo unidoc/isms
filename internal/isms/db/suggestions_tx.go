@@ -1014,6 +1014,17 @@ func GetCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) 
 	return getCorrectiveAction(ctx, tx, orgID, id)
 }
 
+// LockCorrectiveActionTx takes a row lock on the corrective action for the rest
+// of the transaction, so a caller can re-read it, check who it is assigned to and
+// write it without a concurrent edit or reassignment slipping in between (#203).
+// A missing row surfaces as pgx.ErrNoRows.
+func LockCorrectiveActionTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) error {
+	var locked int64
+	return tx.QueryRow(ctx,
+		`SELECT id FROM corrective_actions WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL FOR UPDATE`,
+		id, orgID).Scan(&locked)
+}
+
 // GetLegalRequirementTx is the transaction-aware twin of GetLegalRequirement
 // (legal.go).
 func GetLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*LegalRequirement, error) {

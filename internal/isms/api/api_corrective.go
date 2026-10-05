@@ -316,7 +316,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 }
 
 func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -340,32 +340,50 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
 
-	existing, err := s.db.GetCorrectiveAction(ctx, orgID, id)
-	if err != nil || existing == nil {
-		return errNotFound("corrective_action")
-	}
-	prevStatus := existing.Status
-	oldMap := existing.ToChangeMap()
-	existing.Status = req.Status
-	existing.ID = id
-
 	// Same enforced write path as PUT /corrective-actions/:id and suggestion-apply
 	// (#26): transactional open-task guard + resolved_at/by on →resolved, with
-	// the changelog written in the same transaction (#196).
+	// the changelog written in the same transaction (#196). The row is locked and
+	// re-read first, so the ownership check applies to the row being written and
+	// a concurrent reassignment or edit can't slip in between (#203).
+	var after *db.CorrectiveAction
 	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, existing, prevStatus, actor); err != nil {
+		if err := db.LockCorrectiveActionTx(ctx, tx, orgID, id); err != nil {
 			return err
 		}
-		after, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		cur, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
 		if err != nil {
 			return err
 		}
+		// The assignee may move their own corrective action through every status,
+		// resolved included (#203); the open-task guard still applies.
+		if !canActOnAssignment(c, cur.Assignee) {
+			return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of corrective actions assigned to them")
+		}
+		prevStatus := cur.Status
+		oldMap := cur.ToChangeMap()
+		cur.Status = req.Status
+		cur.ID = id
+		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, cur, prevStatus, actor); err != nil {
+			return err
+		}
+		a, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
 		changes := db.DiffFields("corrective_action", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
 		return db.LogChangesTx(ctx, tx, orgID, changes)
 	}); err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
 		var ote openTasksLinkedError
 		if errors.As(err, &ote) {
 			return echo.NewHTTPError(http.StatusConflict, ote.Error())
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNotFound("corrective_action")
 		}
 		return pgxHTTPError(err)
 	}
@@ -378,20 +396,106 @@ func (s *Server) handleUpdateCorrectiveActionStatus(c echo.Context) error {
 
 	// On resolve, notify created_by
 	if req.Status == "resolved" {
-		ca, err := s.db.GetCorrectiveAction(ctx, orgID, id)
-		if err == nil {
-			s.db.CreateNotificationContentByEmail(ctx, orgID, ca.CreatedBy, db.NotificationContent{
-				Title:    fmt.Sprintf("Corrective action resolved: %s", ca.Title),
-				TitleKey: NotifyKeyCAResolved,
-				Body:     fmt.Sprintf("Corrective action #%d has been resolved by %s", id, actor),
-				BodyKey:  NotifyKeyCAResolvedBody,
-				Params:   map[string]any{"title": ca.Title, "id": id, "actor": actor},
-				Link:     "/corrective-actions",
-			})
-		}
+		s.db.CreateNotificationContentByEmail(ctx, orgID, after.CreatedBy, db.NotificationContent{
+			Title:    fmt.Sprintf("Corrective action resolved: %s", after.Title),
+			TitleKey: NotifyKeyCAResolved,
+			Body:     fmt.Sprintf("Corrective action #%d has been resolved by %s", id, actor),
+			BodyKey:  NotifyKeyCAResolvedBody,
+			Params:   map[string]any{"title": after.Title, "id": id, "actor": actor},
+			Link:     "/corrective-actions",
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// correctiveActionProgressRequest is the narrow update the assignee may make on
+// their own corrective action (#203): what caused it and what was done. The wide
+// PUT stays manager/admin, since it also rewrites title, severity, source and
+// assignee.
+type correctiveActionProgressRequest struct {
+	RootCause *string `json:"root_cause"`
+	Notes     *string `json:"notes"`
+}
+
+func (s *Server) handleUpdateCorrectiveActionProgress(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	id, err := s.resolveCorrectiveActionID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("corrective_action")
+	} else if err != nil {
+		return errNotFound("corrective_action")
+	}
+
+	var req correctiveActionProgressRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if req.RootCause == nil && req.Notes == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "root_cause or notes is required")
+	}
+
+	ctx := c.Request().Context()
+	actor := getUserEmail(c)
+
+	// Lock, re-read, check ownership and write in one transaction, so the check
+	// applies to the row being written and a concurrent reassignment or edit
+	// can't be overwritten (#203). Same enforced write path as the status route
+	// and the wide PUT (#26), with the status unchanged, so neither the open-task
+	// guard nor the resolved stamp runs; the changelog is written in the same
+	// transaction (#196).
+	var after *db.CorrectiveAction
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.LockCorrectiveActionTx(ctx, tx, orgID, id); err != nil {
+			return err
+		}
+		cur, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		if !canActOnAssignment(c, cur.Assignee) {
+			return echo.NewHTTPError(http.StatusForbidden, "contributors can only update corrective actions assigned to them")
+		}
+		prevStatus := cur.Status
+		oldMap := cur.ToChangeMap()
+		if req.RootCause != nil {
+			cur.RootCause = *req.RootCause
+		}
+		if req.Notes != nil {
+			cur.Notes = *req.Notes
+		}
+		cur.ID = id
+		if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, cur, prevStatus, actor); err != nil {
+			return err
+		}
+		a, err := db.GetCorrectiveActionTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
+		changes := db.DiffFields("corrective_action", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNotFound("corrective_action")
+		}
+		return pgxHTTPError(err)
+	}
+
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  actor,
+		Action: "corrective_action_updated",
+		Detail: fmt.Sprintf("Corrective action #%d updated: %s", id, after.Title),
+	})
+
+	return c.JSON(http.StatusOK, after)
 }
 
 func (s *Server) handleDeleteCorrectiveAction(c echo.Context) error {

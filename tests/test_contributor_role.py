@@ -9,6 +9,23 @@ import requests
 from conftest import CONTRIBUTOR_EMAIL, READER_EMAIL
 
 
+def _make_ca(api_url, admin_headers, assignee):
+    r = requests.post(f"{api_url}/corrective-actions", headers=admin_headers, json={
+        "title": "Assignee test CA", "source": "internal_audit", "severity": "minor_nc",
+        "assignee": assignee,
+    })
+    assert r.status_code in [200, 201], r.text
+    return r.json()["id"]
+
+
+def _make_task(api_url, admin_headers, assignee, **extra):
+    r = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+        "title": "Assignee test task", "task_type": "general", "assignee": assignee, **extra,
+    })
+    assert r.status_code in [200, 201], r.text
+    return r.json()["id"]
+
+
 class TestContributorCanDo:
     """Things a contributor is allowed to do: read everything, propose via suggestions."""
 
@@ -38,6 +55,36 @@ class TestContributorCanDo:
         r = requests.put(f"{api_url}/tasks/{t.json()['id']}/status", headers=contributor_headers,
                          json={"status": "in_progress"})
         assert r.status_code == 200, f"contributor must update own task status: {r.text}"
+
+    def test_can_update_status_of_own_assigned_ca(self, api_url, admin_headers, contributor_headers):
+        """#203: the assignee works their own corrective action."""
+        ca = _make_ca(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/status", headers=contributor_headers,
+                         json={"status": "implementation"})
+        assert r.status_code == 200, r.text
+
+    def test_can_resolve_own_assigned_ca(self, api_url, admin_headers, contributor_headers):
+        ca = _make_ca(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/status", headers=contributor_headers,
+                         json={"status": "resolved"})
+        assert r.status_code == 200, r.text
+
+    def test_can_record_progress_on_own_assigned_ca(self, api_url, admin_headers, contributor_headers):
+        ca = _make_ca(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/progress", headers=contributor_headers,
+                         json={"root_cause": "stale credential", "notes": "rotated"})
+        assert r.status_code == 200, r.text
+        got = requests.get(f"{api_url}/corrective-actions/{ca}", headers=contributor_headers).json()
+        assert got["root_cause"] == "stale credential"
+        assert got["notes"] == "rotated"
+
+    def test_can_edit_notes_of_own_assigned_task(self, api_url, admin_headers, contributor_headers):
+        task = _make_task(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/tasks/{task}/notes", headers=contributor_headers,
+                         json={"notes": "half done"})
+        assert r.status_code == 200, r.text
+        got = requests.get(f"{api_url}/tasks/{task}", headers=contributor_headers).json()
+        assert got["notes"] == "half done"
 
     def test_can_create_suggestion(self, api_url, contributor_headers):
         """A contributor's input flows through suggestions, not direct creation."""
@@ -163,6 +210,38 @@ class TestContributorCannotDo:
         assert r.status_code == 403, f"contributor must not update another person's task (#23): {r.text}"
 
 
+    def test_cannot_update_status_of_other_persons_ca(self, api_url, admin_headers, contributor_headers):
+        ca = _make_ca(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/status", headers=contributor_headers,
+                         json={"status": "implementation"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_record_progress_on_other_persons_ca(self, api_url, admin_headers, contributor_headers):
+        ca = _make_ca(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/progress", headers=contributor_headers,
+                         json={"notes": "x"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_use_wide_ca_update_on_own_ca(self, api_url, admin_headers, contributor_headers):
+        ca = _make_ca(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}", headers=contributor_headers,
+                         json={"title": "Retitled by assignee"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_edit_notes_of_other_persons_task(self, api_url, admin_headers, contributor_headers):
+        task = _make_task(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/tasks/{task}/notes", headers=contributor_headers,
+                         json={"notes": "x"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_see_other_persons_private_task_via_status(self, api_url, admin_headers, contributor_headers):
+        """A private task the caller can't see must look absent (404), not forbidden."""
+        task = _make_task(api_url, admin_headers, READER_EMAIL, private=True)
+        r = requests.put(f"{api_url}/tasks/{task}/status", headers=contributor_headers,
+                         json={"status": "in_progress"})
+        assert r.status_code == 404, r.text
+
+
 class TestReaderIsReadOnly:
     """A reader cannot suggest — suggestions are the contributor entry point, not reader."""
 
@@ -175,3 +254,9 @@ class TestReaderIsReadOnly:
             "payload": {"title": "x", "category": "technology", "risk_type": "threat", "origin": "internal"},
         })
         assert r.status_code == 403, f"reader is read-only and must not create suggestions (#23): {r.text}"
+
+    def test_reader_cannot_record_ca_progress(self, api_url, admin_headers, reader_headers):
+        ca = _make_ca(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/corrective-actions/{ca}/progress", headers=reader_headers,
+                         json={"notes": "x"})
+        assert r.status_code == 403, r.text

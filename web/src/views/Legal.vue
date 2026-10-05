@@ -273,7 +273,6 @@
                       <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('legal.field.category') }}</label>
                         <select v-model="editForm.category" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                          <option value="">{{ t('common.option.none') }}</option>
                           <option v-for="cat in legalCategories" :key="cat.key" :value="cat.key">{{ cat.label }}</option>
                         </select>
                       </div>
@@ -605,14 +604,11 @@ const STATUSES = ['draft', 'open', 'closed']
 const LEVELS = ['critical', 'high', 'medium', 'low']
 const TREATMENTS = ['mitigate', 'accept', 'transfer', 'avoid']
 
-// The category list this view has always offered. It does NOT match
-// db.LegalCategories — six of these eight are rejected on save, which is #269
-// and not an extraction's to fix. Unchanged here; only the labels moved to the
-// catalogue, which carries the server's five as well so a value stored through
-// the API or CLI also renders.
+// The categories the server accepts (db.LegalCategories), in its order. Keep
+// the two lists identical; legalCategories.test.js checks that they are.
 const CATEGORY_KEYS = [
-  'data_protection', 'employment', 'contractual', 'regulatory',
-  'intellectual_property', 'financial', 'environmental', 'corporate',
+  'privacy', 'security', 'sector', 'contractual', 'employment',
+  'intellectual_property', 'financial', 'environmental', 'corporate', 'other',
 ]
 
 // Lookups and option lists live here rather than in the template: a group name

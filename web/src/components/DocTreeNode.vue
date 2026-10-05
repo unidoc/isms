@@ -46,7 +46,13 @@
           @toggle="$emit('toggle', $event)"
           @select="$emit('select', $event)"
           @folder-menu="(e, p) => $emit('folder-menu', e, p)"
-        />
+        >
+          <!-- Pass the new-folder slot down, or folders below the top level
+               never render the inline input (#309). -->
+          <template #new-folder="slotProps">
+            <slot name="new-folder" v-bind="slotProps" />
+          </template>
+        </DocTreeNode>
         <!-- Inline new folder slot -->
         <slot name="new-folder" :parentPath="node.path" :depth="node.depth" />
       </template>

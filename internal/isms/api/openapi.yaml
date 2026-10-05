@@ -3632,7 +3632,7 @@ components:
         title: { type: string }
         description: { type: string }
         jurisdiction: { type: string }
-        category: { type: string }
+        category: { type: string, enum: [privacy, security, sector, contractual, employment, intellectual_property, financial, environmental, corporate, other] }
         reference: { type: string }
         url: { type: string, format: uri }
         status: { type: string, enum: [draft, open, closed] }

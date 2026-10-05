@@ -217,6 +217,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 		}
 	}
 	if req.Category != nil {
+		// validateEnum lets "" through; category is required, so an empty
+		// value would fail the CHECK constraint in the database (#269).
+		if *req.Category == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "category cannot be empty")
+		}
 		if err := validateEnum("category", *req.Category, db.LegalCategories); err != nil {
 			return err
 		}

@@ -2844,8 +2844,10 @@ paths:
       description: >-
         Creates the forward and reverse rows atomically. source_id and
         target_id accept either form documented on EntityReference (row id or
-        key / display id, for a program or objective); the response echoes
-        back the canonical form, so sending "1" for a program returns "REG".
+        key / display id, for a program or objective; row id or AUDIT-<id> /
+        FIND-<id>, for an audit or audit finding); the response echoes back the
+        canonical form, so sending "1" for a program returns "REG" and "5" for
+        an audit finding returns "FIND-5".
         Creating a pair that already exists, through either spelling, returns
         201 with the existing row rather than an error — the same upsert
         behavior as sending the exact same ids again.
@@ -3973,6 +3975,8 @@ components:
             A program accepts its row id or key; an objective accepts its row
             id or display id. Both are stored and returned in key / display
             id form (e.g. "REG", "REG-1"), regardless of which form was sent.
+            An audit or audit finding accepts its row id or AUDIT-<id> /
+            FIND-<id>, and is stored and returned in the prefixed form.
         target_type:
           type: string
           enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]

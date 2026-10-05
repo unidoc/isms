@@ -103,11 +103,45 @@ func (d *DB) ResolveEntityComment(ctx context.Context, orgID int, id int64, reso
 	return err
 }
 
-// DeleteEntityComment deletes a comment and the links its #mentions made that
-// nothing else still holds (#194), in one transaction.
+// CommentHasRepliesError is returned by DeleteEntityComment when the comment
+// still has replies. Deleting it would orphan them, and cascading would
+// silently remove other people's replies (#403), so the delete is refused.
+type CommentHasRepliesError struct{ Count int }
+
+func (e *CommentHasRepliesError) Error() string {
+	return fmt.Sprintf("comment has %d replies", e.Count)
+}
+
+// DeleteEntityComment refuses with *CommentHasRepliesError while replies exist,
+// returns pgx.ErrNoRows when the comment is not in the org, and otherwise
+// deletes the comment, its reactions and the links its #mentions alone held
+// (#194), in one transaction.
 func (d *DB) DeleteEntityComment(ctx context.Context, orgID int, id int64) error {
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		// Inserting a reply takes a FOR KEY SHARE lock on the parent through the
+		// foreign key, which conflicts with FOR UPDATE: once we hold this lock no
+		// new reply can commit, so the count below cannot go stale.
+		var lockedID int64
+		if err := tx.QueryRow(ctx,
+			`SELECT id FROM entity_comments WHERE id = $1 AND organization_id = $2 FOR UPDATE`,
+			id, orgID).Scan(&lockedID); err != nil {
+			return err
+		}
+		var replies int
+		if err := tx.QueryRow(ctx,
+			`SELECT COUNT(*) FROM entity_comments WHERE organization_id = $1 AND parent_id = $2`,
+			orgID, id).Scan(&replies); err != nil {
+			return err
+		}
+		if replies > 0 {
+			return &CommentHasRepliesError{Count: replies}
+		}
 		if err := RemoveCommentReferencesTx(ctx, tx, orgID, CommentTypeEntityComment, id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`DELETE FROM entity_reactions WHERE organization_id = $1 AND target_type = 'entity_comment' AND target_id = $2`,
+			orgID, id); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `DELETE FROM entity_comments WHERE id = $1 AND organization_id = $2`, id, orgID)

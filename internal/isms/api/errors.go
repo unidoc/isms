@@ -105,6 +105,9 @@ const (
 	CodeReviewWrongStatus    = "review_wrong_status"
 	CodeReviewAlreadyStatus  = "review_already_status"
 
+	// Comments.
+	CodeCommentHasReplies = "comment_has_replies"
+
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
 	CodeUnsupportedLocale = "unsupported_locale"
@@ -164,6 +167,8 @@ var errorMessages = map[string]string{
 	CodeNotesRequired:        "notes are required — describe what was reviewed and confirmed",
 	CodeReviewWrongStatus:    "review is {status}",
 	CodeReviewAlreadyStatus:  "review is already {status}",
+
+	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

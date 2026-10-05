@@ -450,6 +450,7 @@
     "notes_required": "notes are required — describe what was reviewed and confirmed",
     "review_wrong_status": "review is {status}",
     "review_already_status": "review is already {status}",
+    "comment_has_replies": "this comment still has replies ({count}) — delete them first",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"
   },

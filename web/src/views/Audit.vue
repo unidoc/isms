@@ -892,7 +892,7 @@
               <!-- Links -->
               <template v-if="auditTab === 'links'">
                 <div class="px-6 py-5">
-                  <ReferenceManager entityType="audit" :entityId="String(selectedAudit.id)" :editable="canWrite" />
+                  <ReferenceManager entityType="audit" :entityId="`AUDIT-${selectedAudit.id}`" :editable="canWrite" />
                 </div>
               </template>
 
@@ -1066,7 +1066,7 @@
             <!-- Linked CAs -->
             <template v-if="findingTab === 'linked'">
               <div class="px-6 py-5 space-y-4">
-                <ReferenceManager entityType="audit_finding" :entityId="String(selectedFinding.id)" :editable="canWrite" />
+                <ReferenceManager entityType="audit_finding" :entityId="`FIND-${selectedFinding.id}`" :editable="canWrite" />
                 <div v-if="canWrite" class="bg-slate-950 border border-slate-800 rounded-lg p-4">
                   <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{{ t('audit.findings.quick_action') }}</div>
                   <button @click="createCAFromFinding(selectedFinding)"

@@ -84,7 +84,8 @@ func (s *Server) handleListReferences(c echo.Context) error {
 
 	// A program or objective may be asked for by row id (e.g. MCP's entity_id, or
 	// the program page's numeric id) while every row is stored under its key /
-	// display id (#350). Canonicalise the query id so those rows are found. If it
+	// display id (#350); an audit or finding likewise by row id while rows are
+	// stored as AUDIT-<id> / FIND-<id> (#366). Canonicalise the query id so those rows are found. If it
 	// doesn't resolve — a soft-deleted entity, or a legacy raw-id row from before
 	// this fix — fall back to the literal id so those rows still list.
 	lookupID := entityID
@@ -267,7 +268,8 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 // addressed by row id or by key / display id (#350); both forms resolve, but
 // the canonical ID returned is always the key / display id, since that is
 // the form the UI reads and writes and the form every reference must be
-// stored in. Callers that write references (canonicalReferenceID and its
+// stored in. Audits and audit findings likewise resolve by row id or by
+// AUDIT-<id> / FIND-<id>, and canonicalise to the prefixed form (#366). Callers that write references (canonicalReferenceID and its
 // callers) must store the returned canonicalID, never the input entityID.
 func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (title, canonicalID string, found bool) {
 	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
@@ -375,6 +377,8 @@ func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskView
 	case "audit":
 		// AUDIT-/FIND- are built from the row id (audits and audit_findings have
 		// no identifier column), so stripping is correct here — see api_audit.go.
+		// Both "5" and "AUDIT-5" resolve, but references are stored as AUDIT-<id>
+		// only, or the two spellings are two links that never meet (#366).
 		id, err := strconv.Atoi(stripPrefix(entityID, "AUDIT-"))
 		if err != nil {
 			return entityID, entityID, false
@@ -383,9 +387,11 @@ func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskView
 		if err != nil {
 			return entityID, entityID, false
 		}
-		return a.Title, entityID, true
+		return a.Title, fmt.Sprintf("AUDIT-%d", a.ID), true
 
 	case "audit_finding":
+		// FIND-<id> is the form db.SoftDeleteAuditFinding's linked-CA guard and
+		// the create-from-finding flow use; a bare row id is canonicalised to it.
 		id, err := strconv.Atoi(stripPrefix(entityID, "FIND-"))
 		if err != nil {
 			return entityID, entityID, false
@@ -394,7 +400,7 @@ func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskView
 		if err != nil {
 			return entityID, entityID, false
 		}
-		return f.Title, entityID, true
+		return f.Title, fmt.Sprintf("FIND-%d", f.ID), true
 
 	case "change_request":
 		// CR- identifiers come from the per-org sequence, so the suffix is not
@@ -445,8 +451,8 @@ var sequenceIdentifierTypes = map[string]bool{
 // canonicalReferenceID resolves entityID to the form a reference must store
 // it in, and reports whether it names a real entity of entityType in the org.
 // For a program or objective this is the key / display id, even when
-// entityID was the numeric row id (#350); every other type returns entityID
-// unchanged. Writers must store the returned id, never the input entityID.
+// entityID was the numeric row id (#350); for an audit or audit finding it is
+// AUDIT-<id> / FIND-<id> (#366); every other type returns entityID unchanged. Writers must store the returned id, never the input entityID.
 func (s *Server) canonicalReferenceID(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (string, bool) {
 	if sequenceIdentifierTypes[entityType] && !hasIdentifierShape(entityID) {
 		return entityID, false

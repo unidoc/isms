@@ -8,9 +8,20 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
 )
+
+// titleCase upper-cases the first letter of each word in a folder name for an
+// export heading, leaving the rest of each word as written. It replaces the
+// deprecated strings.Title; NoLower keeps strings.Title's behaviour of not
+// lower-casing the remaining letters. A Caser is stateful, so one is built per
+// call rather than shared.
+func titleCase(s string) string {
+	return cases.Title(language.Und, cases.NoLower).String(s)
+}
 
 func exportCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -127,7 +138,7 @@ func exportDocumentsCmd() *cobra.Command {
 			label := "Documents"
 			if folder != "" {
 				docs, err = c.ListDocsByFolder(folder)
-				label = strings.Title(folder) //nolint:staticcheck
+				label = titleCase(folder)
 			} else {
 				docs, err = c.FlattenAllDocs()
 			}
@@ -614,7 +625,7 @@ func exportManualCmd() *cobra.Command {
 
 			// TOC
 			for i, sec := range sections {
-				b.WriteString(fmt.Sprintf("### Part %d: %s\n\n", i+1, strings.Title(sec.name))) //nolint:staticcheck
+				b.WriteString(fmt.Sprintf("### Part %d: %s\n\n", i+1, titleCase(sec.name)))
 				for _, d := range sec.docs {
 					b.WriteString(fmt.Sprintf("- %s: %s\n", d.DocumentID, d.Title))
 				}
@@ -628,7 +639,7 @@ func exportManualCmd() *cobra.Command {
 				if i > 0 {
 					b.WriteString("---\n\n")
 				}
-				b.WriteString(fmt.Sprintf("# Part %d: %s\n\n", i+1, strings.Title(sec.name))) //nolint:staticcheck
+				b.WriteString(fmt.Sprintf("# Part %d: %s\n\n", i+1, titleCase(sec.name)))
 				for _, d := range sec.docs {
 					b.WriteString(fmt.Sprintf("## %s: %s\n\n", d.DocumentID, d.Title))
 					b.WriteString(fmt.Sprintf("*Version %s | %s | %s*\n\n", d.Version, d.Status, d.Author))

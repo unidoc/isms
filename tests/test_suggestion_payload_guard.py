@@ -57,9 +57,9 @@ def test_free_text_update_is_created_but_not_applied(api_url, admin_headers):
 def test_unknown_field_rejected_with_supported_list(api_url, admin_headers):
     inc = _incident(api_url, admin_headers)
     r = _suggest(api_url, admin_headers, entity_type="incident", entity_id=inc["identifier"],
-                 suggestion_type="update", payload={"fields": {"title": "renamed"}})
+                 suggestion_type="update", payload={"fields": {"bogus_field": "x"}})
     assert r.status_code == 400, r.text
-    assert "title" in r.text and "supported" in r.text
+    assert "bogus_field" in r.text and "supported" in r.text
 
 
 def test_wrong_type_rejected(api_url, admin_headers):

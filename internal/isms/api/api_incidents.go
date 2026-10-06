@@ -140,64 +140,8 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		ExternalID:          req.ExternalID,
 	}
 
-	// Server-side overwrites for system-managed fields.
-	if inc.Reporter == "" {
-		inc.Reporter = getUserEmail(c)
-	}
-	if inc.Assignee == "" {
-		inc.Assignee = inc.Reporter
-	}
-	if inc.Status == "" {
-		inc.Status = "open"
-	}
-	if inc.Severity == "" {
-		inc.Severity = "medium"
-	}
-	if inc.IncidentType == "" {
-		inc.IncidentType = "event"
-	}
-	if inc.Source == "" {
-		inc.Source = "internal"
-	}
-	if inc.AuthorityNotified == "" {
-		inc.AuthorityNotified = "not_required"
-	}
-	if inc.SubjectsNotified == "" {
-		inc.SubjectsNotified = "not_required"
-	}
-	if inc.DetectedAt.IsZero() {
-		inc.DetectedAt = db.EpochNow()
-	}
-
-	// Seed Notes with timeline template if empty.
-	if inc.Notes == "" {
-		displayName := inc.Reporter
-		if u, err := s.db.GetUserByEmail(ctx, inc.Reporter); err == nil && u != nil && u.Name != "" {
-			displayName = u.Name
-		}
-		ts := inc.DetectedAt.Format("2006-01-02 15:04")
-		inc.Notes = fmt.Sprintf("## Timeline\n\n- %s — Incident raised by %s\n", ts, displayName)
-	}
-
-	if err := validateEnum("status", inc.Status, db.IncidentStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("severity", inc.Severity, db.IncidentSeverities); err != nil {
-		return err
-	}
-	if err := validateEnum("incident_type", inc.IncidentType, db.IncidentTypes); err != nil {
-		return err
-	}
-	if err := validateEnum("source", inc.Source, db.IncidentSources); err != nil {
-		return err
-	}
-	if err := validateEnum("gdpr_role", inc.GDPRRole, db.GDPRRoles); err != nil {
-		return err
-	}
-	if err := validateEnum("authority_notified", inc.AuthorityNotified, db.AuthorityNotifyVals); err != nil {
-		return err
-	}
-	if err := validateEnum("subjects_notified", inc.SubjectsNotified, db.AuthorityNotifyVals); err != nil {
+	s.applyIncidentDefaults(ctx, orgID, &inc, getUserEmail(c))
+	if err := validateIncidentCreate(&inc); err != nil {
 		return err
 	}
 	if err := s.validateOrgMember(c, inc.Assignee); err != nil {
@@ -278,6 +222,121 @@ func (s *Server) handleGetIncident(c echo.Context) error {
 	return c.JSON(http.StatusOK, inc)
 }
 
+// prepareIncidentUpdate validates req and returns old with req merged in. Shared
+// by handleUpdateIncident and the suggestion apply handler so PUT and apply
+// accept and write exactly the same fields (#200).
+func (s *Server) prepareIncidentUpdate(ctx context.Context, orgID int, old *db.Incident, req *incidentUpdateRequest) (db.Incident, error) {
+	updated := *old
+	if req.Severity != nil {
+		if err := validateEnum("severity", *req.Severity, db.IncidentSeverities); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.Status != nil {
+		if err := validateEnum("status", *req.Status, db.IncidentStatuses); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.IncidentType != nil {
+		if err := validateEnum("incident_type", *req.IncidentType, db.IncidentTypes); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.Source != nil {
+		if err := validateEnum("source", *req.Source, db.IncidentSources); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.GDPRRole != nil {
+		if err := validateEnum("gdpr_role", *req.GDPRRole, db.GDPRRoles); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.AuthorityNotified != nil {
+		if err := validateEnum("authority_notified", *req.AuthorityNotified, db.AuthorityNotifyVals); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.SubjectsNotified != nil {
+		if err := validateEnum("subjects_notified", *req.SubjectsNotified, db.AuthorityNotifyVals); err != nil {
+			return db.Incident{}, err
+		}
+	}
+	if req.Assignee != nil && *req.Assignee != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Assignee); err != nil {
+			return db.Incident{}, err
+		}
+	}
+
+	// Status transitions flow through the unified write path below (open-CA guard
+	// + lifecycle timestamps) — the same enforced function suggestion-apply uses
+	// (#26). Top-level requireRole(admin,manager) already gates status changes.
+	if req.Status != nil {
+		updated.Status = *req.Status
+	}
+
+	// Apply pointer-based partial update onto existing record.
+	if req.Title != nil {
+		updated.Title = *req.Title
+	}
+	if req.Description != nil {
+		updated.Description = *req.Description
+	}
+	if req.Severity != nil {
+		updated.Severity = *req.Severity
+	}
+	if req.AffectsC != nil {
+		updated.AffectsC = *req.AffectsC
+	}
+	if req.AffectsI != nil {
+		updated.AffectsI = *req.AffectsI
+	}
+	if req.AffectsA != nil {
+		updated.AffectsA = *req.AffectsA
+	}
+	if req.IncidentType != nil {
+		updated.IncidentType = *req.IncidentType
+	}
+	if req.Source != nil {
+		updated.Source = *req.Source
+	}
+	if req.Notes != nil {
+		updated.Notes = *req.Notes
+	}
+	if req.DataBreach != nil {
+		updated.DataBreach = *req.DataBreach
+	}
+	if req.GDPRRole != nil {
+		updated.GDPRRole = *req.GDPRRole
+	}
+	if req.AuthorityNotified != nil {
+		updated.AuthorityNotified = *req.AuthorityNotified
+	}
+	if req.AuthorityNotifiedAt.Set {
+		updated.AuthorityNotifiedAt = req.AuthorityNotifiedAt.Value
+	}
+	if req.SubjectsNotified != nil {
+		updated.SubjectsNotified = *req.SubjectsNotified
+	}
+	if req.SubjectsNotifiedAt.Set {
+		updated.SubjectsNotifiedAt = req.SubjectsNotifiedAt.Value
+	}
+	if req.Assignee != nil {
+		updated.Assignee = *req.Assignee
+	}
+	if req.RootCause != nil {
+		updated.RootCause = *req.RootCause
+	}
+	if req.LessonsLearned != nil {
+		updated.LessonsLearned = *req.LessonsLearned
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
+	}
+
+	return updated, nil
+}
+
 func (s *Server) handleUpdateIncident(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -305,113 +364,11 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	if req.Severity != nil {
-		if err := validateEnum("severity", *req.Severity, db.IncidentSeverities); err != nil {
-			return err
-		}
+	updated, err := s.prepareIncidentUpdate(ctx, orgID, existing, &req)
+	if err != nil {
+		return err
 	}
-	if req.Status != nil {
-		if err := validateEnum("status", *req.Status, db.IncidentStatuses); err != nil {
-			return err
-		}
-	}
-	if req.IncidentType != nil {
-		if err := validateEnum("incident_type", *req.IncidentType, db.IncidentTypes); err != nil {
-			return err
-		}
-	}
-	if req.Source != nil {
-		if err := validateEnum("source", *req.Source, db.IncidentSources); err != nil {
-			return err
-		}
-	}
-	if req.GDPRRole != nil {
-		if err := validateEnum("gdpr_role", *req.GDPRRole, db.GDPRRoles); err != nil {
-			return err
-		}
-	}
-	if req.AuthorityNotified != nil {
-		if err := validateEnum("authority_notified", *req.AuthorityNotified, db.AuthorityNotifyVals); err != nil {
-			return err
-		}
-	}
-	if req.SubjectsNotified != nil {
-		if err := validateEnum("subjects_notified", *req.SubjectsNotified, db.AuthorityNotifyVals); err != nil {
-			return err
-		}
-	}
-	if req.Assignee != nil && *req.Assignee != "" {
-		if err := s.validateOrgMember(c, *req.Assignee); err != nil {
-			return err
-		}
-	}
-
-	// Status transitions flow through the unified write path below (open-CA guard
-	// + lifecycle timestamps) — the same enforced function suggestion-apply uses
-	// (#26). Top-level requireRole(admin,manager) already gates status changes.
-	if req.Status != nil {
-		existing.Status = *req.Status
-	}
-
-	// Apply pointer-based partial update onto existing record.
-	if req.Title != nil {
-		existing.Title = *req.Title
-	}
-	if req.Description != nil {
-		existing.Description = *req.Description
-	}
-	if req.Severity != nil {
-		existing.Severity = *req.Severity
-	}
-	if req.AffectsC != nil {
-		existing.AffectsC = *req.AffectsC
-	}
-	if req.AffectsI != nil {
-		existing.AffectsI = *req.AffectsI
-	}
-	if req.AffectsA != nil {
-		existing.AffectsA = *req.AffectsA
-	}
-	if req.IncidentType != nil {
-		existing.IncidentType = *req.IncidentType
-	}
-	if req.Source != nil {
-		existing.Source = *req.Source
-	}
-	if req.Notes != nil {
-		existing.Notes = *req.Notes
-	}
-	if req.DataBreach != nil {
-		existing.DataBreach = *req.DataBreach
-	}
-	if req.GDPRRole != nil {
-		existing.GDPRRole = *req.GDPRRole
-	}
-	if req.AuthorityNotified != nil {
-		existing.AuthorityNotified = *req.AuthorityNotified
-	}
-	if req.AuthorityNotifiedAt.Set {
-		existing.AuthorityNotifiedAt = req.AuthorityNotifiedAt.Value
-	}
-	if req.SubjectsNotified != nil {
-		existing.SubjectsNotified = *req.SubjectsNotified
-	}
-	if req.SubjectsNotifiedAt.Set {
-		existing.SubjectsNotifiedAt = req.SubjectsNotifiedAt.Value
-	}
-	if req.Assignee != nil {
-		existing.Assignee = *req.Assignee
-	}
-	if req.RootCause != nil {
-		existing.RootCause = *req.RootCause
-	}
-	if req.LessonsLearned != nil {
-		existing.LessonsLearned = *req.LessonsLearned
-	}
-	if req.ExternalID != nil {
-		existing.ExternalID = *req.ExternalID
-	}
+	existing = &updated
 
 	existing.ID = id
 	// Single enforced incident write path (#26): open-CA guard on resolve/close

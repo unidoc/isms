@@ -906,127 +906,105 @@ func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 // APPLY HANDLERS: INCIDENTS
 // ═══════════════════════════════════════════════════════════════════════
 
-// incidentCreatePayload is the payload of an incident:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// incidentCreatePayload is the payload of an incident:create suggestion: the
+// POST /incidents body (#200). "summary" and "affected_systems" are no longer
+// accepted: they were decoded and silently discarded. Decoded strictly.
 type incidentCreatePayload struct {
-	Title           string   `json:"title"`
-	Summary         string   `json:"summary"`
-	Description     string   `json:"description"`
-	Severity        string   `json:"severity"`
-	AffectsC        bool     `json:"affects_c"`
-	AffectsI        bool     `json:"affects_i"`
-	AffectsA        bool     `json:"affects_a"`
-	AffectedSystems []string `json:"affected_systems"`
+	incidentCreateRequest
 }
 
 func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload incidentCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid incident payload: %w", err)
+	var p incidentCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in incident payload")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	inc := db.Incident{
-		Title:       payload.Title,
-		Description: payload.Description,
-		Severity:    payload.Severity,
-		AffectsC:    payload.AffectsC,
-		AffectsI:    payload.AffectsI,
-		AffectsA:    payload.AffectsA,
-		Status:      "open",
-		Assignee:    actor,
+		Title:               p.Title,
+		Description:         p.Description,
+		Severity:            p.Severity,
+		Status:              p.Status,
+		AffectsC:            p.AffectsC,
+		AffectsI:            p.AffectsI,
+		AffectsA:            p.AffectsA,
+		IncidentType:        p.IncidentType,
+		Source:              p.Source,
+		Notes:               p.Notes,
+		DataBreach:          p.DataBreach,
+		GDPRRole:            p.GDPRRole,
+		AuthorityNotified:   p.AuthorityNotified,
+		AuthorityNotifiedAt: p.AuthorityNotifiedAt,
+		SubjectsNotified:    p.SubjectsNotified,
+		SubjectsNotifiedAt:  p.SubjectsNotifiedAt,
+		Reporter:            p.Reporter,
+		Assignee:            p.Assignee,
+		DetectedAt:          p.DetectedAt,
+		RootCause:           p.RootCause,
+		LessonsLearned:      p.LessonsLearned,
+		ExternalID:          p.ExternalID,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if inc.Severity == "" {
-		inc.Severity = "medium"
+	s.applyIncidentDefaults(ctx, orgID, &inc, actor)
+	if err := validateIncidentCreate(&inc); err != nil {
+		return "", 0, err
 	}
-	if inc.IncidentType == "" {
-		inc.IncidentType = "event"
+	// Only an assignee the payload names is checked; the defaulted one is the
+	// acting user, who is a member by construction.
+	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
+		return "", 0, err
 	}
-	if inc.Source == "" {
-		inc.Source = "internal"
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
-	if inc.Reporter == "" {
-		inc.Reporter = actor
-	}
-
 	if err := db.CreateIncidentTx(ctx, tx, orgID, &inc); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "incident", inc.Identifier, inc.Reporter, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "incident", EntityID: int64(inc.ID), Action: "create", ChangedBy: inc.Reporter,
+	}); err != nil {
+		return "", 0, err
+	}
 	return inc.Identifier, inc.ID, nil
 }
 
 func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
-	}
-	inc, err := s.db.GetIncident(ctx, orgID, incID)
-	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
-	}
-
-	old := inc.ToChangeMap()
-	prevStatus := inc.Status
-
-	if v, ok := payload.Fields["severity"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Severity = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["root_cause"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.RootCause = sv
-		}
-	}
-	if v, ok := payload.Fields["affects_c"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsC = bv
-		}
-	}
-	if v, ok := payload.Fields["affects_i"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsI = bv
-		}
-	}
-	if v, ok := payload.Fields["affects_a"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsA = bv
-		}
-	}
-
-	// Unified write path (#26): same open-CA guard + lifecycle timestamps the
-	// HTTP handler enforces — previously suggestion-apply bypassed both.
-	if err := enforceIncidentWriteTx(ctx, tx, orgID, inc, prevStatus); err != nil {
+	var req incidentUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
+	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("incident")
+	}
+	old, err := s.db.GetIncident(ctx, orgID, incID)
+	if err != nil {
+		return "", 0, errNotFound("incident")
+	}
+	updated, err := s.prepareIncidentUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = incID
 
-	diffs := db.DiffFields("incident", int64(inc.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, inc.ToChangeMap())
+	// Unified write path (#26): same open-CA guard + lifecycle timestamps the
+	// HTTP handler enforces.
+	if err := enforceIncidentWriteTx(ctx, tx, orgID, &updated, old.Status); err != nil {
+		return "", 0, err
+	}
+	after, err := db.GetIncidentTx(ctx, tx, orgID, incID)
+	if err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("incident", int64(incID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), after.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return inc.Identifier, inc.ID, nil
+	return after.Identifier, after.ID, nil
 }
 
 func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {

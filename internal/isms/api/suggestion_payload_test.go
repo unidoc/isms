@@ -131,9 +131,9 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("incident", raw(`{"status":"resolved"}`), true), "nothing to apply", "status")
 	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"status":"resolved"},"title":"x"}`), false), "title")
 	// #200: unknown field, named with the supported list.
-	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"title":"x"}}`), true), "title", "supported", "root_cause")
+	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"bogus":"x"}}`), true), "bogus", "supported", "root_cause")
 	// #200: wrong type instead of a silent skip.
-	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"affects_c":"yes"}}`), true), "affects_c", "true or false")
+	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"affects_c":"yes"}}`), true), "affects_c", "invalid field value")
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":3}}`), true), "notes", "invalid field value")
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":null}}`), true), "notes", "cannot be null")
 	// #200: asset update accepts every field PUT does; null clears only Optional fields.
@@ -154,6 +154,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 		{"risk", `{"fields":{"notes":"n"}}`},
 		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
 		{"asset", `{"fields":{"confidentiality":null}}`},
+		{"incident", `{"fields":{"title":"t","data_breach":true,"authority_notified_at":null}}`},
 		{"objective", `{"fields":{"target_operator":"lte","target_value":null,"checkin_cycle":4}}`},
 		{"legal_requirement", `{"fields":{"url":"u","completion":50,"target_impact":null}}`},
 		{"risk", `{"fields":{"current_likelihood":4,"treatment_due_date":null,"custom_fields":{}}}`},
@@ -171,6 +172,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
 	// #200: the objective operator that used to be dropped and defaulted to gte.
 	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","bogus":"lte"}`)), "bogus")
+	assert400(t, validateSuggestionPayload("incident", "create", raw(`{"title":"i","summary":"s"}`)), "summary")
 	assert400(t, validateSuggestionPayload("program", "create", raw(`{"key":"A","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("asset", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("system", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
@@ -186,6 +188,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"incident", ``},
 		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
 		{"asset", `{"title":"only a title"}`},
+		{"incident", `{"title":"i","data_breach":true,"gdpr_role":"controller","detected_at":1767225600}`},
 		{"objective", `{"title":"MTTP","target_operator":"lte","status":"active","checkin_cycle":4,"source":"probe","program_key":"AAA"}`},
 		{"program", `{"key":"SEC","title":"Security","notes":"n"}`},
 		{"legal_requirement", `{"title":"l","url":"u","completion":10,"treatment":"accept"}`},

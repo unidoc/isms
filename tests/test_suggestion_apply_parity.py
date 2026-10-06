@@ -498,3 +498,42 @@ def test_program_create_suggestion(api_url):
     sg = _suggest(api_url, hdr, "program", {"title": "No key"})
     assert sg.status_code == 201, sg.text
     assert _apply_raw(api_url, hdr, sg.json()["id"]).status_code == 400
+
+
+# --- incident --------------------------------------------------------------
+
+INCIDENT_FIELDS = {
+    "title": "renamed incident", "description": "incident description", "severity": "high",
+    "affects_c": True, "affects_i": True, "affects_a": False,
+    "incident_type": "weakness", "source": "external", "status": "contained",
+    "notes": "incident notes", "data_breach": True, "gdpr_role": "processor",
+    "authority_notified": "notified", "authority_notified_at": 1767225600,
+    "subjects_notified": "pending", "subjects_notified_at": 1767312000,
+    "assignee": ADMIN_EMAIL, "root_cause": "a cause", "lessons_learned": "a lesson",
+    "external_id": "INC-EXT",
+}
+
+
+def _make_incident(api_url, headers):
+    r = requests.post(f"{api_url}/incidents", headers=headers, json={"title": f"inc {_tag()}"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_incident_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "incident", "incidents",
+                   lambda: _make_incident(api_url, admin_headers), INCIDENT_FIELDS, unique=("external_id",))
+
+
+def test_incident_create_parity(api_url, admin_headers):
+    body = dict(INCIDENT_FIELDS, status="investigating", reporter=ADMIN_EMAIL, detected_at=1767225600)
+    _create_parity(api_url, admin_headers, "incident", "incidents", body,
+                   unique=("external_id", "title"), get_by="ident")
+
+
+def test_incident_create_summary_is_refused(api_url, admin_headers):
+    # "summary" and "affected_systems" used to be decoded and silently dropped.
+    for key, val in (("summary", "s"), ("affected_systems", ["x"])):
+        sg = _suggest(api_url, admin_headers, "incident", {"title": "t", key: val})
+        assert sg.status_code == 400 and key in sg.text, sg.text
+

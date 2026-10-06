@@ -1,6 +1,11 @@
 package api
 
-import "isms.sh/internal/isms/db"
+import (
+	"context"
+	"fmt"
+
+	"isms.sh/internal/isms/db"
+)
 
 // Shared create-time defaults (#26, slice A: create consistency). Each helper
 // encodes the canonical server-side defaults for a new entity so that a record
@@ -174,4 +179,73 @@ func validateRiskCreate(r *db.Risk, categories []string) error {
 		return err
 	}
 	return validateEnum("treatment", r.Treatment, db.TreatmentOptions)
+}
+
+// applyIncidentDefaults fills the system-managed and defaulted fields of a new
+// incident. Shared by handleCreateIncident and applyIncidentCreate (#200).
+func (s *Server) applyIncidentDefaults(ctx context.Context, orgID int, inc *db.Incident, actor string) {
+	// Server-side overwrites for system-managed fields.
+	if inc.Reporter == "" {
+		inc.Reporter = actor
+	}
+	if inc.Assignee == "" {
+		inc.Assignee = inc.Reporter
+	}
+	if inc.Status == "" {
+		inc.Status = "open"
+	}
+	if inc.Severity == "" {
+		inc.Severity = "medium"
+	}
+	if inc.IncidentType == "" {
+		inc.IncidentType = "event"
+	}
+	if inc.Source == "" {
+		inc.Source = "internal"
+	}
+	if inc.AuthorityNotified == "" {
+		inc.AuthorityNotified = "not_required"
+	}
+	if inc.SubjectsNotified == "" {
+		inc.SubjectsNotified = "not_required"
+	}
+	if inc.DetectedAt.IsZero() {
+		inc.DetectedAt = db.EpochNow()
+	}
+
+	// Seed Notes with timeline template if empty.
+	if inc.Notes == "" {
+		displayName := inc.Reporter
+		if u, err := s.db.GetUserByEmail(ctx, inc.Reporter); err == nil && u != nil && u.Name != "" {
+			displayName = u.Name
+		}
+		ts := inc.DetectedAt.Format("2006-01-02 15:04")
+		inc.Notes = fmt.Sprintf("## Timeline\n\n- %s — Incident raised by %s\n", ts, displayName)
+	}
+}
+
+// validateIncidentCreate checks the enum fields of a new incident (after defaults).
+func validateIncidentCreate(inc *db.Incident) error {
+	if err := validateEnum("status", inc.Status, db.IncidentStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("severity", inc.Severity, db.IncidentSeverities); err != nil {
+		return err
+	}
+	if err := validateEnum("incident_type", inc.IncidentType, db.IncidentTypes); err != nil {
+		return err
+	}
+	if err := validateEnum("source", inc.Source, db.IncidentSources); err != nil {
+		return err
+	}
+	if err := validateEnum("gdpr_role", inc.GDPRRole, db.GDPRRoles); err != nil {
+		return err
+	}
+	if err := validateEnum("authority_notified", inc.AuthorityNotified, db.AuthorityNotifyVals); err != nil {
+		return err
+	}
+	if err := validateEnum("subjects_notified", inc.SubjectsNotified, db.AuthorityNotifyVals); err != nil {
+		return err
+	}
+	return nil
 }

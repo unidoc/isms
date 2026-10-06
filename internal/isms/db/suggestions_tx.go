@@ -175,10 +175,12 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 			incident_type, source, notes, data_breach, gdpr_role,
 			authority_notified, subjects_notified,
 			reporter, reporter_user_id, assignee_id, detected_at,
-			root_cause, lessons_learned, external_id)
+			root_cause, lessons_learned, external_id,
+			authority_notified_at, subjects_notified_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 			$15, $16,
-			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22)
+			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22,
+			$23, $24)
 		RETURNING id, created_at, updated_at
 	`, orgID, inc.Identifier, inc.Title, inc.Description, inc.Severity, inc.Status,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
@@ -187,6 +189,7 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 		inc.Reporter, inc.Assignee,
 		inc.DetectedAt, nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
 		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
+		inc.AuthorityNotifiedAt, inc.SubjectsNotifiedAt,
 	).Scan(&inc.ID, &inc.CreatedAt, &inc.UpdatedAt)
 }
 

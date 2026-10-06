@@ -1164,82 +1164,89 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 // APPLY HANDLERS: LEGAL
 // ═══════════════════════════════════════════════════════════════════════
 
-// legalCreatePayload is the payload of a legal_requirement:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// legalCreatePayload is the payload of a legal_requirement:create suggestion: the
+// POST /legal body (#200). Decoded strictly.
 type legalCreatePayload struct {
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Jurisdiction string `json:"jurisdiction"`
-	Category     string `json:"category"`
-	Owner        string `json:"owner"`
-	Notes        string `json:"notes"`
+	legalCreateRequest
 }
 
 func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload legalCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid legal payload: %w", err)
+	var p legalCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in legal payload")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	lr := db.LegalRequirement{
-		Title:        payload.Title,
-		Description:  payload.Description,
-		Jurisdiction: payload.Jurisdiction,
-		Category:     payload.Category,
-		Owner:        payload.Owner,
-		Notes:        payload.Notes,
+		Title:             p.Title,
+		Description:       p.Description,
+		Jurisdiction:      p.Jurisdiction,
+		Category:          p.Category,
+		Reference:         p.Reference,
+		URL:               p.URL,
+		Status:            p.Status,
+		Owner:             p.Owner,
+		LastReview:        p.LastReview,
+		NextReview:        p.NextReview,
+		Notes:             p.Notes,
+		CurrentLikelihood: p.CurrentLikelihood,
+		CurrentImpact:     p.CurrentImpact,
+		Treatment:         p.Treatment,
+		TreatmentPlan:     p.TreatmentPlan,
+		TargetLikelihood:  p.TargetLikelihood,
+		TargetImpact:      p.TargetImpact,
+		Completion:        p.Completion,
+		ExternalID:        p.ExternalID,
 	}
 	applyLegalDefaults(&lr, actor)
 	if err := validateLegalCreate(&lr); err != nil {
 		return "", 0, err
 	}
-
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "legal_requirement", lr.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "legal_requirement", EntityID: int64(lr.ID), Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return lr.Identifier, lr.ID, nil
 }
 
 func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("legal requirement %s not found: %w", sg.EntityID, err)
-	}
-
-	old := lr.ToChangeMap()
-
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			lr.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			lr.Notes = sv
-		}
-	}
-
-	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, lr, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
+	var req legalUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("legal_requirement", int64(lr.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, lr.ToChangeMap())
+	id, err := s.resolveLegalID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("legal_requirement")
+	}
+	old, err := s.db.GetLegalRequirement(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("legal_requirement")
+	}
+	updated, explicitNextReview, err := s.prepareLegalUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, &updated, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("legal_requirement", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return lr.Identifier, lr.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

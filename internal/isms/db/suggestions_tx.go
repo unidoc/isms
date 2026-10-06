@@ -419,7 +419,13 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 // share the risk cycle keys by design; there is no separate legal cycle setting.
 func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement, cycles map[string]int) error {
 	lr.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := lr.NextReview
 	lr.CalculateRiskScore(cycles)
+	if explicitNextReview != nil {
+		lr.NextReview = explicitNextReview
+	}
 
 	// Use the shared identifier allocator with the SAME entity_type key as the
 	// HTTP path (NextIdentifier(..,"legal_requirement")). The old hardcoded

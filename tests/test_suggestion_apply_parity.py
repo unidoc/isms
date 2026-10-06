@@ -327,3 +327,44 @@ def test_risk_create_parity(api_url, admin_headers):
                                   unique=("external_id", "title"))
     assert got_a["current_score"] == got_b["current_score"]
     assert got_a["target_score"] == got_b["target_score"]
+
+
+# --- legal requirement -----------------------------------------------------
+
+LEGAL_FIELDS = {
+    "title": "renamed legal", "description": "legal description", "jurisdiction": "DE",
+    "category": "security", "reference": "Art. 32", "url": "https://example.com/law",
+    "status": "open", "owner": ADMIN_EMAIL,
+    "last_review": 1767225600, "next_review": 1893456000, "notes": "legal notes",
+    "current_likelihood": 4, "current_impact": 3,
+    "treatment": "mitigate", "treatment_plan": "comply",
+    "target_likelihood": 2, "target_impact": 2, "completion": 40,
+    "external_id": "LEG-EXT",
+}
+
+
+def _make_legal(api_url, headers):
+    r = requests.post(f"{api_url}/legal", headers=headers, json={"title": f"legal {_tag()}"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_legal_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "legal_requirement", "legal",
+                   lambda: _make_legal(api_url, admin_headers), LEGAL_FIELDS, unique=("external_id",))
+
+
+def test_legal_create_parity(api_url, admin_headers):
+    got_a, got_b = _create_parity(api_url, admin_headers, "legal_requirement", "legal", LEGAL_FIELDS,
+                                  unique=("external_id", "title"))
+    assert got_a["current_score"] == got_b["current_score"]
+
+
+def test_legal_update_empty_category_is_400_at_apply(api_url, admin_headers):
+    lr = _make_legal(api_url, admin_headers)
+    sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+        "entity_type": "legal_requirement", "suggestion_type": "update", "entity_id": lr["identifier"],
+        "title": "bad", "payload": {"fields": {"category": ""}}})
+    assert sg.status_code == 201, sg.text
+    ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={"force": True})
+    assert ap.status_code == 400 and "category" in ap.text, ap.text

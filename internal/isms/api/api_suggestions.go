@@ -1239,122 +1239,104 @@ func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 // APPLY HANDLERS: CHANGE REQUESTS
 // ═══════════════════════════════════════════════════════════════════════
 
-// changeCreatePayload is the payload of a change_request:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// changeCreatePayload is the payload of a change_request:create suggestion: the
+// POST /changes body (#200). Decoded strictly.
 type changeCreatePayload struct {
-	Title         string `json:"title"`
-	Description   string `json:"description"`
-	Justification string `json:"justification"`
-	Priority      string `json:"priority"`
-	Category      string `json:"category"`
-	RiskLevel     string `json:"risk_level"`
-	RollbackPlan  string `json:"rollback_plan"`
-	AssignedTo    string `json:"assigned_to"`
+	changeCreateRequest
 }
 
 func applyChangeCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload changeCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid change payload: %w", err)
+	var p changeCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	cr := db.ChangeRequest{
-		Title: payload.Title, Description: payload.Description,
-		Justification: payload.Justification,
-		Priority:      payload.Priority, Category: payload.Category,
-		RiskLevel: payload.RiskLevel, RollbackPlan: payload.RollbackPlan,
-		RequestedBy: actor, AssignedTo: payload.AssignedTo, Status: "proposed",
+		Type:          p.Type,
+		Title:         p.Title,
+		Description:   p.Description,
+		Justification: p.Justification,
+		Priority:      p.Priority,
+		Category:      p.Category,
+		RiskLevel:     p.RiskLevel,
+		RollbackPlan:  p.RollbackPlan,
+		Notes:         p.Notes,
+		AssignedTo:    p.AssignedTo,
+		Status:        p.Status,
+		PlannedAt:     p.PlannedAt,
 	}
-	if cr.Status == "" {
-		cr.Status = "proposed"
+	cr.RequestedBy = actor
+	applyChangeDefaults(&cr)
+	if err := validateChangeCreate(&cr); err != nil {
+		return "", 0, err
 	}
-	if cr.Priority == "" {
-		cr.Priority = "medium"
-	}
-	if cr.Category == "" {
-		cr.Category = "process"
-	}
-	if cr.RiskLevel == "" {
-		cr.RiskLevel = "low"
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
 	if err := db.CreateChangeRequestTx(ctx, tx, orgID, &cr); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "change_request", cr.Identifier, cr.RequestedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "change_request", EntityID: int64(cr.ID), Action: "create", ChangedBy: cr.RequestedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return cr.Identifier, int64(cr.ID), nil
 }
 
 func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req changeUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveChangeID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("change_request")
 	}
-	cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
+	old, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 	if err != nil {
-		return "", 0, fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("change_request")
 	}
-	if v, ok := payload.Fields["type"]; ok {
-		if sv, ok := v.(string); ok {
-			if err := validateEnum("type", sv, db.ChangeTypes); err != nil {
-				return "", 0, err
-			}
-			cr.Type = sv
-		}
-	}
-	if v, ok := payload.Fields["priority"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.Priority = sv
-		}
-	}
-	if v, ok := payload.Fields["risk_level"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.RiskLevel = sv
-		}
-	}
-	if v, ok := payload.Fields["rollback_plan"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.RollbackPlan = sv
-		}
-	}
-	if v, ok := payload.Fields["assigned_to"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.AssignedTo = sv
-		}
+	updated, err := s.prepareChangeUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
 	}
 	// Status transitions go through the shared enforced path so approved_at/by and
 	// implemented_at are derived exactly as the HTTP handler does — a plain field
 	// write (UpdateChangeRequestTx doesn't touch status) would skip that metadata.
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok && sv != cr.Status {
-			if err := validateEnum("status", sv, db.ChangeStatuses); err != nil {
-				return "", 0, err
-			}
-			if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, cr.ID, sv, actor); err != nil {
-				return "", 0, err
-			}
-			cr.Status = sv
-			// The HTTP status paths auto-create the "Implement <CR>" task on
-			// approval; keep suggestion-apply identical (#26 acceptance criterion).
-			// Deferred to post-commit — createChangeFollowupTask writes via the pool
-			// and sends mail, neither safe inside this transaction.
-			if sv == "approved" {
-				registerApplyPostCommit(ctx, func() {
-					s.createChangeFollowupTask(context.Background(), orgID, cr, actor)
-				})
-			}
+	if req.Status != nil && *req.Status != old.Status {
+		if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, updated.ID, *req.Status, actor); err != nil {
+			return "", 0, err
+		}
+		updated.Status = *req.Status
+		// The HTTP status paths auto-create the "Implement <CR>" task on
+		// approval; keep suggestion-apply identical (#26 acceptance criterion).
+		// Deferred to post-commit — createChangeFollowupTask writes via the pool
+		// and sends mail, neither safe inside this transaction.
+		if *req.Status == "approved" {
+			followup := updated
+			registerApplyPostCommit(ctx, func() {
+				s.createChangeFollowupTask(context.Background(), orgID, &followup, actor)
+			})
 		}
 	}
-	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, cr.ID, cr); err != nil {
+	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, updated.ID, &updated); err != nil {
 		return "", 0, err
 	}
-	return cr.Identifier, int64(cr.ID), nil
+	// There is no transactional getter, so diff the row as read against the merged
+	// value with the new status set. The approved_at/by and implemented_at stamps
+	// written by UpdateChangeRequestStatusTx are deliberately left out of the diff.
+	diffs := db.DiffFields("change_request", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
+	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
+		return "", 0, err
+	}
+	return updated.Identifier, int64(updated.ID), nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

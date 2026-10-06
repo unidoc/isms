@@ -249,3 +249,46 @@ func validateIncidentCreate(inc *db.Incident) error {
 	}
 	return nil
 }
+
+// applyChangeDefaults fills the defaults of a new change request; the caller sets
+// RequestedBy first. Shared by handleCreateChange and applyChangeCreate (#200).
+func applyChangeDefaults(cr *db.ChangeRequest) {
+	if cr.AssignedTo == "" {
+		cr.AssignedTo = cr.RequestedBy
+	}
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
+	if cr.Status == "" {
+		cr.Status = "proposed"
+	}
+	if cr.Priority == "" {
+		cr.Priority = "medium"
+	}
+	if cr.Category == "" {
+		cr.Category = "process"
+	}
+	if cr.RiskLevel == "" {
+		cr.RiskLevel = "low"
+	}
+}
+
+// validateChangeCreate checks the enum fields of a new change request (after defaults).
+func validateChangeCreate(cr *db.ChangeRequest) error {
+	if err := validateEnum("type", cr.Type, db.ChangeTypes); err != nil {
+		return err
+	}
+	if err := validateEnum("status", cr.Status, db.ChangeStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("priority", cr.Priority, db.ChangePriorities); err != nil {
+		return err
+	}
+	if err := validateEnum("category", cr.Category, db.ChangeCategories); err != nil {
+		return err
+	}
+	if err := validateEnum("risk_level", cr.RiskLevel, db.ChangeRiskLevels); err != nil {
+		return err
+	}
+	return nil
+}

@@ -501,19 +501,23 @@ func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 // CreateChangeRequestTx creates a change request within an existing transaction.
 func CreateChangeRequestTx(ctx context.Context, tx pgx.Tx, orgID int, cr *ChangeRequest) error {
 	cr.OrganizationID = orgID
+	// Default the type exactly as the pool CreateChangeRequest does.
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
 	ident, err := nextIdentifierTx(ctx, tx, orgID, "change_request")
 	if err != nil {
 		return err
 	}
 	cr.Identifier = ident
 	return tx.QueryRow(ctx, `
-		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at)
+		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at, type)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, (SELECT id FROM users WHERE email = $11),
-			CASE WHEN $12 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $12) END, $13, $14)
+			CASE WHEN $12 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $12) END, $13, $14, $15)
 		RETURNING id, created_at, updated_at
 	`, orgID, cr.Identifier, cr.Title, cr.Description, nilIfEmpty(cr.Justification),
 		cr.Priority, cr.Category, cr.RiskLevel, nilIfEmpty(cr.RollbackPlan), nilIfEmpty(cr.Notes),
-		cr.RequestedBy, cr.AssignedTo, cr.Status, cr.PlannedAt,
+		cr.RequestedBy, cr.AssignedTo, cr.Status, cr.PlannedAt, cr.Type,
 	).Scan(&cr.ID, &cr.CreatedAt, &cr.UpdatedAt)
 }
 

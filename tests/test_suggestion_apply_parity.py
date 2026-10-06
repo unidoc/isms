@@ -577,3 +577,47 @@ def test_corrective_action_resolve_blocked_by_open_task_is_409(api_url, admin_he
     assert sg.status_code == 201, sg.text
     ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
     assert ap.status_code == 409, ap.text
+
+
+# --- change request --------------------------------------------------------
+
+CHANGE_FIELDS = {
+    "type": "access_request", "title": "renamed change", "description": "change description",
+    "justification": "because", "priority": "critical", "category": "technology",
+    "risk_level": "high", "rollback_plan": "revert it", "notes": "change notes",
+    "assigned_to": ADMIN_EMAIL, "status": "approved", "planned_at": 1893456000,
+}
+
+
+def _make_change(api_url, headers):
+    r = requests.post(f"{api_url}/changes", headers=headers, json={"title": f"chg {_tag()}"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_change_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "change_request", "changes",
+                   lambda: _make_change(api_url, admin_headers), CHANGE_FIELDS)
+    # approval metadata is derived by the shared transition, on both paths.
+
+
+def test_change_update_status_stamps_approval(api_url, admin_headers):
+    c = _make_change(api_url, admin_headers)
+    _apply(api_url, admin_headers, "change_request", "update", {"fields": {"status": "approved"}},
+           entity_id=c["identifier"])
+    got = requests.get(f"{api_url}/changes/{c['id']}", headers=admin_headers).json()
+    assert got["status"] == "approved" and got.get("approved_at"), got
+
+
+def test_change_create_parity(api_url, admin_headers):
+    body = dict(CHANGE_FIELDS, status="in_progress")
+    _create_parity(api_url, admin_headers, "change_request", "changes", body,
+                   unique=("title",), get_by="ident")
+
+
+def test_change_create_honours_type_and_status(api_url, admin_headers):
+    ident = _apply(api_url, admin_headers, "change_request", "create",
+                   {"title": f"chg {_tag()}", "type": "access_request", "status": "in_progress"})
+    got = requests.get(f"{api_url}/changes/{ident}", headers=admin_headers).json()
+    assert got["type"] == "access_request" and got["status"] == "in_progress", got
+    assert got["assigned_to"] == ADMIN_EMAIL  # defaults to the requester, like POST

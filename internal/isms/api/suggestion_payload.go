@@ -39,10 +39,6 @@ func (k payloadKind) String() string {
 // step with the handlers in api_suggestions.go: TestUpdatePayloadFieldsMatchHandlers
 // fails if a handler reads a key missing here, or a key listed here is never read.
 var updatePayloadFields = map[string]map[string]payloadKind{
-	"change_request": {
-		"type": kindString, "priority": kindString, "risk_level": kindString,
-		"rollback_plan": kindString, "assigned_to": kindString, "status": kindString,
-	},
 	"task": {
 		"assignee": kindString, "priority": kindString, "title": kindString, "status": kindString,
 	},
@@ -64,6 +60,7 @@ var updateRequestTypes = map[string]func() any{
 	"objective":         func() any { return &objectiveUpdateRequest{} },
 	"incident":          func() any { return &incidentUpdateRequest{} },
 	"corrective_action": func() any { return &correctiveActionUpdateRequest{} },
+	"change_request":    func() any { return &changeUpdateRequest{} },
 }
 
 // jsonFieldTypes maps each json tag name of struct type t to its field type.

@@ -165,10 +165,22 @@ func (c *cfKeyCache) fetchKeys(force bool) error {
 			if err != nil {
 				continue
 			}
-			pub := &ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     new(big.Int).SetBytes(xBytes),
-				Y:     new(big.Int).SetBytes(yBytes),
+			// Assemble the uncompressed SEC 1 point (0x04 || X || Y) rather than
+			// setting the X/Y big.Ints, which are deprecated since Go 1.26. Each
+			// coordinate is left-padded to 32 bytes because the big.Int path this
+			// replaced tolerated a JWK that dropped leading zero bytes. Unlike
+			// that path, the parse rejects a point that is not on the curve.
+			const p256Size = 32
+			if len(xBytes) > p256Size || len(yBytes) > p256Size {
+				continue
+			}
+			point := make([]byte, 1+2*p256Size)
+			point[0] = 4
+			copy(point[1+p256Size-len(xBytes):1+p256Size], xBytes)
+			copy(point[1+2*p256Size-len(yBytes):], yBytes)
+			pub, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), point)
+			if err != nil {
+				continue
 			}
 			keys[k.Kid] = cfPublicKey{EC: pub}
 		default:

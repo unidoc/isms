@@ -2129,6 +2129,17 @@ func (s *Server) handleGetSystem(c echo.Context) error {
 	return c.JSON(http.StatusOK, sys)
 }
 
+// validateSystemSupplier verifies the supplier a new system references belongs
+// to this org. Shared by handleCreateSystem and applySystemCreate (#200).
+func (s *Server) validateSystemSupplier(ctx context.Context, orgID int, sys *db.System) error {
+	if sys.SupplierID != nil && *sys.SupplierID > 0 {
+		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
+		}
+	}
+	return nil
+}
+
 func (s *Server) handleCreateSystem(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -2162,11 +2173,8 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 	if err := validateSystemCreate(&sys); err != nil {
 		return err
 	}
-	// Verify supplier belongs to this org if referenced.
-	if sys.SupplierID != nil && *sys.SupplierID > 0 {
-		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
-			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
-		}
+	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
+		return err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
@@ -2986,54 +2994,37 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	return c.JSON(http.StatusOK, updated)
 }
 
-func (s *Server) handleUpdateSystem(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("system")
-	} else if err != nil {
-		return errNotFound("system")
-	}
-	old, err := s.db.GetSystem(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("system")
-	}
-	var req systemUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareSystemUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateSystem and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareSystemUpdate(ctx context.Context, orgID int, old *db.System, req *systemUpdateRequest) (db.System, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.SystemStatuses); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	if req.Criticality != nil {
 		if err := validateEnum("criticality", *req.Criticality, db.SystemCriticalities); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	if req.Classification != nil {
 		if err := validateEnum("classification", *req.Classification, db.SystemClassifications); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	// A null supplier_id unlinks the supplier, so only a real id needs checking.
 	if req.SupplierID.Set && req.SupplierID.Value != nil && *req.SupplierID.Value > 0 {
 		if _, err := s.db.GetSupplier(ctx, orgID, *req.SupplierID.Value); err != nil {
-			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
+			return db.System{}, nil, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.System{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -3085,6 +3076,34 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateSystem(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
+	}
+	old, err := s.db.GetSystem(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("system")
+	}
+	var req systemUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, explicitNextReview, err := s.prepareSystemUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateSystem(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}

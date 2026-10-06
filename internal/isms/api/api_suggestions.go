@@ -1664,107 +1664,95 @@ func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 // APPLY HANDLERS: SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
-// systemCreatePayload is the payload of a system:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// systemCreatePayload is the payload of a system:create suggestion: the POST
+// /systems body (#200), plus "title", which SuggestNewButton.vue sends for every
+// entity and is used as the name when "name" is empty. Decoded strictly.
 type systemCreatePayload struct {
-	Name           string `json:"name"`
-	Title          string `json:"title"` // alias: web UI may send title instead of name
-	Description    string `json:"description"`
-	Classification string `json:"classification"`
-	Criticality    string `json:"criticality"`
-	Department     string `json:"department"`
-	Owner          string `json:"owner"`
+	systemCreateRequest
+	Title string `json:"title"`
 }
 
 func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload systemCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid system payload: %w", err)
+	var p systemCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	// Systems use "name" not "title" — accept either
-	if payload.Name == "" {
-		payload.Name = payload.Title
+	if p.Name == "" {
+		p.Name = p.Title
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in system payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
 	sys := db.System{
-		Name:           payload.Name,
-		Description:    payload.Description,
-		Classification: payload.Classification,
-		Criticality:    payload.Criticality,
-		Department:     payload.Department,
-		Owner:          payload.Owner,
+		Name:            p.Name,
+		Description:     p.Description,
+		SupplierID:      p.SupplierID,
+		Department:      p.Department,
+		Classification:  p.Classification,
+		Criticality:     p.Criticality,
+		Status:          p.Status,
+		RPOHours:        p.RPOHours,
+		RTOHours:        p.RTOHours,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Owner:           p.Owner,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applySystemDefaults(&sys, actor)
 	if err := validateSystemCreate(&sys); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateSystemTx(ctx, tx, orgID, &sys); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "system", sys.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "system", EntityID: sys.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return sys.Identifier, sys.ID, nil
 }
 
 func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req systemUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveSystemID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
-	sys, err := s.db.GetSystem(ctx, orgID, id)
+	old, err := s.db.GetSystem(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
-	old := sys.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Name = sv
-		}
-	}
-	if v, ok := payload.Fields["criticality"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Criticality = sv
-		}
-	}
-	if v, ok := payload.Fields["classification"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Classification = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["department"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Department = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Status = sv
-		}
-	}
-	if err := db.UpdateSystemTx(ctx, tx, orgID, sys, nil); err != nil {
+	updated, explicitNextReview, err := s.prepareSystemUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("system", sys.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, sys.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateSystemTx(ctx, tx, orgID, &updated, explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("system", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return sys.Identifier, sys.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

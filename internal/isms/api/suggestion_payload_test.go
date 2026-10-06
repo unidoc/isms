@@ -139,6 +139,8 @@ func TestValidateUpdatePayload(t *testing.T) {
 	// #200: asset update accepts every field PUT does; null clears only Optional fields.
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"confidentiality":"high"}}`), true), "confidentiality")
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"bogus":1}}`), true), "bogus", "supported")
+	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"rpo_hours":"x"}}`), true), "rpo_hours")
+	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"name":null}}`), true), "cannot be null")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -148,6 +150,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 		{"risk", `{"fields":{"notes":"n"}}`},
 		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
 		{"asset", `{"fields":{"confidentiality":null}}`},
+		{"system", `{"fields":{"rpo_hours":4,"supplier_id":null,"next_review":1893456000}}`},
 		{"audit_finding", `{"fields":{"description":"d","status":"closed"}}`},
 	} {
 		if err := validateUpdatePayload(tc.entity, raw(tc.payload), true); err != nil {
@@ -161,6 +164,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	// #200: the objective operator that used to be dropped and defaulted to gte.
 	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","target_operator":"lte"}`)), "target_operator")
 	assert400(t, validateSuggestionPayload("asset", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("system", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
 	// Wrong type.
 	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"r","current_likelihood":"high"}`)), "current_likelihood")
 	// Valid, including an empty payload.
@@ -170,6 +174,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"incident", ``},
 		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
 		{"asset", `{"title":"only a title"}`},
+		{"system", `{"name":"s","rpo_hours":4,"supplier_id":1,"references":[]}`},
 		// Stored before #298 with the rationale copied in: must still decode.
 		{"supplier", `{"name":"Acme","description":"copied rationale"}`},
 	} {

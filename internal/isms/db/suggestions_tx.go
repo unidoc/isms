@@ -747,7 +747,12 @@ func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 // CreateSystemTx creates a system within an existing transaction.
 func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) error {
 	sys.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := sys.NextReview
 	sys.CalculateNextReview()
+	if explicitNextReview != nil {
+		sys.NextReview = explicitNextReview
+	}
 	if sys.Status == "" {
 		sys.Status = "active"
 	}

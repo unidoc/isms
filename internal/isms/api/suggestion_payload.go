@@ -43,9 +43,6 @@ var updatePayloadFields = map[string]map[string]payloadKind{
 		"type": kindString, "priority": kindString, "risk_level": kindString,
 		"rollback_plan": kindString, "assigned_to": kindString, "status": kindString,
 	},
-	"corrective_action": {
-		"assignee": kindString, "status": kindString, "root_cause": kindString, "notes": kindString,
-	},
 	"task": {
 		"assignee": kindString, "priority": kindString, "title": kindString, "status": kindString,
 	},
@@ -66,6 +63,7 @@ var updateRequestTypes = map[string]func() any{
 	"legal_requirement": func() any { return &legalUpdateRequest{} },
 	"objective":         func() any { return &objectiveUpdateRequest{} },
 	"incident":          func() any { return &incidentUpdateRequest{} },
+	"corrective_action": func() any { return &correctiveActionUpdateRequest{} },
 }
 
 // jsonFieldTypes maps each json tag name of struct type t to its field type.

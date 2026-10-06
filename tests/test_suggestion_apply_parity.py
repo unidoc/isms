@@ -537,3 +537,43 @@ def test_incident_create_summary_is_refused(api_url, admin_headers):
         sg = _suggest(api_url, admin_headers, "incident", {"title": "t", key: val})
         assert sg.status_code == 400 and key in sg.text, sg.text
 
+
+
+# --- corrective action -----------------------------------------------------
+
+CA_FIELDS = {
+    "title": "renamed CA", "description": "ca description", "source": "internal_audit",
+    "severity": "major_nc", "status": "implementation", "assignee": ADMIN_EMAIL,
+    "due_date": 1893456000, "root_cause": "a cause", "notes": "ca notes",
+    "external_id": "CA-EXT",
+}
+
+
+def _make_ca(api_url, headers):
+    r = requests.post(f"{api_url}/corrective-actions", headers=headers, json={"title": f"ca {_tag()}"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_corrective_action_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "corrective_action", "corrective-actions",
+                   lambda: _make_ca(api_url, admin_headers), CA_FIELDS, unique=("external_id",))
+
+
+def test_corrective_action_create_parity(api_url, admin_headers):
+    _create_parity(api_url, admin_headers, "corrective_action", "corrective-actions", CA_FIELDS,
+                   unique=("external_id", "title"), get_by="ident")
+
+
+def test_corrective_action_resolve_blocked_by_open_task_is_409(api_url, admin_headers):
+    ca = _make_ca(api_url, admin_headers)
+    t = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
+        "title": f"ca_followup {ca['identifier']} {_tag()}", "task_type": "ca_followup",
+        "description": ca["identifier"]})
+    assert t.status_code == 201, t.text
+    sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+        "entity_type": "corrective_action", "suggestion_type": "update", "entity_id": ca["identifier"],
+        "title": "resolve", "payload": {"fields": {"status": "resolved"}}})
+    assert sg.status_code == 201, sg.text
+    ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
+    assert ap.status_code == 409, ap.text

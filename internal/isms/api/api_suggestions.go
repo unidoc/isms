@@ -1361,91 +1361,95 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: CORRECTIVE ACTIONS
 // ═══════════════════════════════════════════════════════════════════════
 
-// correctiveActionCreatePayload is the payload of a corrective_action:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// correctiveActionCreatePayload is the payload of a corrective_action:create
+// suggestion: the POST /corrective-actions body (#200). Decoded strictly.
 type correctiveActionCreatePayload struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Source      string `json:"source"`
-	Severity    string `json:"severity"`
-	Assignee    string `json:"assignee"`
-	Notes       string `json:"notes"`
-	RootCause   string `json:"root_cause"`
+	correctiveActionCreateRequest
 }
 
 func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload correctiveActionCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid CA payload: %w", err)
+	var p correctiveActionCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	ca := db.CorrectiveAction{
-		Title: payload.Title, Description: payload.Description,
-		Source: payload.Source, Severity: payload.Severity,
-		Assignee: payload.Assignee, CreatedBy: actor,
-		Notes: payload.Notes, RootCause: payload.RootCause,
+		Title:       p.Title,
+		Description: p.Description,
+		Source:      p.Source,
+		Severity:    p.Severity,
+		Status:      p.Status,
+		Assignee:    p.Assignee,
+		DueDate:     p.DueDate,
+		RootCause:   p.RootCause,
+		Notes:       p.Notes,
+		ExternalID:  p.ExternalID,
 	}
+	ca.CreatedBy = actor
 	if ca.Assignee == "" {
-		ca.Assignee = actor
+		ca.Assignee = ca.CreatedBy
 	}
-	// Same server-side defaults as the HTTP create handler (#26) — previously
-	// suggestion-apply seeded a different starting state.
+	// Same server-side defaults as the HTTP create handler (#26).
 	applyCorrectiveActionDefaults(&ca)
+	if err := validateCorrectiveActionCreate(&ca); err != nil {
+		return "", 0, err
+	}
+	// Only an assignee the payload names is checked; the defaulted one is the
+	// acting user, who is a member by construction.
+	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateCorrectiveActionTx(ctx, tx, orgID, &ca); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "corrective_action", ca.Identifier, ca.CreatedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "corrective_action", EntityID: int64(ca.ID), Action: "create", ChangedBy: ca.CreatedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return ca.Identifier, ca.ID, nil
 }
 
 func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req correctiveActionUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	caID, err := s.resolveCorrectiveActionID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("corrective_action")
 	}
-	ca, err := s.db.GetCorrectiveAction(ctx, orgID, caID)
+	old, err := s.db.GetCorrectiveAction(ctx, orgID, caID)
 	if err != nil {
-		return "", 0, fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("corrective_action")
 	}
-	old := ca.ToChangeMap()
-	prevStatus := ca.Status
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["root_cause"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.RootCause = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Notes = sv
-		}
-	}
-	// Unified write path (#26): same open-task guard + resolved_at/by the HTTP
-	// handler enforces — previously suggestion-apply bypassed both.
-	if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, ca, prevStatus, actor); err != nil {
+	updated, err := s.prepareCorrectiveActionUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("corrective_action", int64(ca.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, ca.ToChangeMap())
+	updated.ID = caID
+	// Unified write path (#26): open-task guard + resolved_at/by.
+	if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, &updated, old.Status, actor); err != nil {
+		return "", 0, err
+	}
+	after, err := db.GetCorrectiveActionTx(ctx, tx, orgID, caID)
+	if err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("corrective_action", int64(caID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), after.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return ca.Identifier, ca.ID, nil
+	return after.Identifier, after.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

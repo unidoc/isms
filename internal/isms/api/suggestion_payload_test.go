@@ -142,6 +142,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"rpo_hours":"x"}}`), true), "rpo_hours")
 	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"name":null}}`), true), "cannot be null")
 	assert400(t, validateUpdatePayload("supplier", raw(`{"fields":{"data_access":"yes"}}`), true), "data_access")
+	assert400(t, validateUpdatePayload("risk", raw(`{"fields":{"custom_fields":null}}`), true), "custom_fields", "cannot be null")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -151,6 +152,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 		{"risk", `{"fields":{"notes":"n"}}`},
 		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
 		{"asset", `{"fields":{"confidentiality":null}}`},
+		{"risk", `{"fields":{"current_likelihood":4,"treatment_due_date":null,"custom_fields":{}}}`},
 		{"supplier", `{"fields":{"data_access":true,"contract_expiry":null}}`},
 		{"system", `{"fields":{"rpo_hours":4,"supplier_id":null,"next_review":1893456000}}`},
 		{"audit_finding", `{"fields":{"description":"d","status":"closed"}}`},
@@ -168,6 +170,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	assert400(t, validateSuggestionPayload("asset", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("system", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("supplier", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"a","bogus":1}`)), "bogus")
 	// Wrong type.
 	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"r","current_likelihood":"high"}`)), "current_likelihood")
 	// Valid, including an empty payload.
@@ -177,6 +180,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"incident", ``},
 		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
 		{"asset", `{"title":"only a title"}`},
+		{"risk", `{"title":"r","target_likelihood":2,"owner":"a@b.c","next_review":1893456000}`},
 		{"supplier", `{"name":"Acme","data_access":true,"contact":"c","next_review":1893456000}`},
 		{"system", `{"name":"s","rpo_hours":4,"supplier_id":1,"references":[]}`},
 		// Stored before #298 with the rationale copied in: must still decode.

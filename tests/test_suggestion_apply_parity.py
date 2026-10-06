@@ -272,3 +272,58 @@ def test_supplier_create_still_accepts_description(api_url, admin_headers):
     # The server copies the rationale into "description"; it is accepted and ignored.
     _apply(api_url, admin_headers, "supplier", "create",
            {"name": f"sup {_tag()}", "description": "ignored"})
+
+
+# --- risk ------------------------------------------------------------------
+
+RISK_FIELDS = {
+    "title": "renamed risk", "description": "risk description", "risk_type": "opportunity",
+    "origin": "external", "category": "technology",
+    "current_likelihood": 4, "current_impact": 3,
+    "confidentiality_impact": 2, "integrity_impact": 3, "availability_impact": 1,
+    "inherent_likelihood": 5, "inherent_impact": 4,
+    "inherent_confidentiality_impact": 3, "inherent_integrity_impact": 2,
+    "inherent_availability_impact": 1,
+    "target_likelihood": 2, "target_impact": 2,
+    "treatment": "mitigate", "treatment_plan": "do the thing",
+    "treatment_due_date": 1893456000, "owner": ADMIN_EMAIL, "status": "open",
+    "last_review": 1767225600, "next_review": 1893456000,
+    "notes": "risk notes", "external_id": "RISK-EXT",
+}
+
+
+def _make_risk(api_url, headers):
+    r = requests.post(f"{api_url}/risks", headers=headers,
+                      json={"title": f"risk {_tag()}", "category": "technology"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_risk_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "risk", "risks",
+                   lambda: _make_risk(api_url, admin_headers), RISK_FIELDS, unique=("external_id",))
+
+
+def test_risk_update_recomputes_score(api_url, admin_headers):
+    r = _make_risk(api_url, admin_headers)
+    _apply(api_url, admin_headers, "risk", "update",
+           {"fields": {"current_likelihood": 4, "current_impact": 5}}, entity_id=r["identifier"])
+    got = requests.get(f"{api_url}/risks/{r['id']}", headers=admin_headers).json()
+    assert got["current_likelihood"] == 4 and got["current_score"] == 20, got
+
+
+def test_risk_update_out_of_range_is_400(api_url, admin_headers):
+    r = _make_risk(api_url, admin_headers)
+    sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+        "entity_type": "risk", "suggestion_type": "update", "entity_id": r["identifier"],
+        "title": "bad", "payload": {"fields": {"current_likelihood": 9}}})
+    assert sg.status_code == 201, sg.text
+    ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={"force": True})
+    assert ap.status_code == 400 and "0-5" in ap.text, ap.text
+
+
+def test_risk_create_parity(api_url, admin_headers):
+    got_a, got_b = _create_parity(api_url, admin_headers, "risk", "risks", RISK_FIELDS,
+                                  unique=("external_id", "title"))
+    assert got_a["current_score"] == got_b["current_score"]
+    assert got_a["target_score"] == got_b["target_score"]

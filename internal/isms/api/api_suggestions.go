@@ -740,67 +740,52 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 // APPLY HANDLERS: RISKS
 // ═══════════════════════════════════════════════════════════════════════
 
-// riskCreatePayload is the payload of a risk:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// riskCreatePayload is the payload of a risk:create suggestion: the POST /risks
+// body (#200). Decoded strictly.
 type riskCreatePayload struct {
-	Title             string         `json:"title"`
-	Description       string         `json:"description"`
-	RiskType          string         `json:"risk_type"`
-	Origin            string         `json:"origin"`
-	Category          string         `json:"category"`
-	CurrentLikelihood *int           `json:"current_likelihood"`
-	CurrentImpact     *int           `json:"current_impact"`
-	TreatmentPlan     string         `json:"treatment_plan"`
-	Treatment         string         `json:"treatment"`
-	CustomFields      map[string]any `json:"custom_fields"`
+	riskCreateRequest
 }
 
 func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload riskCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid risk payload: %w", err)
-	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in risk payload")
-	}
-	// The suggestion payload is not bound through the risk handlers, so the
-	// category has to be validated here. validateEnum returns an *echo.HTTPError,
-	// which the apply caller unwraps into a 400.
-	if err := validateEnum("category", payload.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
+	var p riskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
 		return "", 0, err
 	}
-	defs := s.customFieldDefs(ctx, orgID)
-	// checkRequired=false, deliberately: agents cannot fill out a form, so a
-	// required custom field must never block an agent-created risk. See
-	// "Required fields are in scope" in the implementation plan for #213/#216.
-	if err := db.ValidateCustomFieldValues(defs, payload.CustomFields, false); err != nil {
-		return "", 0, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	risk := db.Risk{
-		Title:             payload.Title,
-		Description:       payload.Description,
-		RiskType:          payload.RiskType,
-		Origin:            payload.Origin,
-		Category:          payload.Category,
-		CustomFields:      db.NormalizeCustomFieldValues(defs, payload.CustomFields),
-		CurrentLikelihood: payload.CurrentLikelihood,
-		CurrentImpact:     payload.CurrentImpact,
-		TreatmentPlan:     payload.TreatmentPlan,
-		Treatment:         payload.Treatment,
-		Status:            "open",
-		Owner:             actor,
+		Title:                         p.Title,
+		Description:                   p.Description,
+		RiskType:                      p.RiskType,
+		Origin:                        p.Origin,
+		Category:                      p.Category,
+		CustomFields:                  p.CustomFields,
+		CurrentLikelihood:             p.CurrentLikelihood,
+		CurrentImpact:                 p.CurrentImpact,
+		ConfidentialityImpact:         p.ConfidentialityImpact,
+		IntegrityImpact:               p.IntegrityImpact,
+		AvailabilityImpact:            p.AvailabilityImpact,
+		InherentLikelihood:            p.InherentLikelihood,
+		InherentImpact:                p.InherentImpact,
+		InherentConfidentialityImpact: p.InherentConfidentialityImpact,
+		InherentIntegrityImpact:       p.InherentIntegrityImpact,
+		InherentAvailabilityImpact:    p.InherentAvailabilityImpact,
+		TargetLikelihood:              p.TargetLikelihood,
+		TargetImpact:                  p.TargetImpact,
+		Treatment:                     p.Treatment,
+		TreatmentPlan:                 p.TreatmentPlan,
+		TreatmentDueDate:              p.TreatmentDueDate,
+		Owner:                         p.Owner,
+		Status:                        p.Status,
+		LastReview:                    p.LastReview,
+		NextReview:                    p.NextReview,
+		Notes:                         p.Notes,
+		ExternalID:                    p.ExternalID,
 	}
-	// Defaults for required validation fields when web UI sends minimal payload
-	if risk.RiskType == "" {
-		risk.RiskType = "threat"
-	}
-	if risk.Origin == "" {
-		risk.Origin = "internal"
-	}
-	// No default for Category: the column is nullable and empty is a valid
-	// "uncategorised". Picking the first configured category would be
-	// order-dependent and surprising.
+	applyRiskDefaults(&risk, actor)
+	// Apply-only default: an agent proposing a risk without a score gets the
+	// mid-point rather than an unscored risk.
 	if risk.CurrentLikelihood == nil {
 		l := 3
 		risk.CurrentLikelihood = &l
@@ -809,16 +794,40 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		i := 3
 		risk.CurrentImpact = &i
 	}
-	// Seed description with section headings when empty
-	// (potential_consequences column was folded into description).
-	if risk.Description == "" {
-		risk.Description = "## Description\n\n\n\n## Potential consequences\n\n"
+	// No default for Category: the column is nullable and empty is a valid
+	// "uncategorised". Picking the first configured category would be
+	// order-dependent and surprising.
+	if err := validateRiskCreate(&risk, s.riskCategoryKeys(ctx, orgID)); err != nil {
+		return "", 0, err
 	}
-
+	defs := s.customFieldDefs(ctx, orgID)
+	// checkRequired=false, deliberately: agents cannot fill out a form, so a
+	// required custom field must never block an agent-created risk. See
+	// "Required fields are in scope" in the implementation plan for #213/#216.
+	if err := db.ValidateCustomFieldValues(defs, p.CustomFields, false); err != nil {
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	risk.CustomFields = db.NormalizeCustomFieldValues(defs, p.CustomFields)
+	// Only an owner the payload names is checked; the defaulted owner is the
+	// acting user, who is a member by construction.
+	if err := s.validateOrgMemberIn(ctx, orgID, p.Owner); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateRiskTx(ctx, tx, orgID, &risk, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "risk", risk.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "risk", EntityID: risk.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return risk.Identifier, risk.ID, nil
 }
 
@@ -857,56 +866,32 @@ func applyRiskReassess(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 }
 
 func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
-	}
-
-	old := risk.ToChangeMap()
-
-	if v, ok := payload.Fields["owner"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Owner = s
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Status = s
-		}
-	}
-	if v, ok := payload.Fields["treatment"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Treatment = s
-		}
-	}
-	if v, ok := payload.Fields["treatment_plan"]; ok {
-		if s, ok := v.(string); ok {
-			risk.TreatmentPlan = s
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Notes = s
-		}
-	}
-
-	if err := db.UpdateRiskTx(ctx, tx, orgID, risk, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
+	var req riskUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("risk", int64(risk.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, risk.ToChangeMap())
+	id, err := s.resolveRiskID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("risk")
+	}
+	old, err := s.db.GetRisk(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("risk")
+	}
+	updated, explicitNextReview, err := s.prepareRiskUpdate(ctx, orgID, old, &req, actor)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateRiskTx(ctx, tx, orgID, &updated, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	defs := s.customFieldDefs(ctx, orgID)
+	diffs := db.DiffFields("risk", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(defs...), updated.ToChangeMap(defs...))
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return risk.Identifier, risk.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

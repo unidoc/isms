@@ -2367,35 +2367,8 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		Notes:                         req.Notes,
 		ExternalID:                    req.ExternalID,
 	}
-	if r.Owner == "" {
-		r.Owner = getUserEmail(c)
-	}
-	// Sensible defaults so the light create form (title + category) just works.
-	// User refines via the edit modal if these aren't right.
-	if r.Status == "" {
-		r.Status = "open"
-	}
-	if r.RiskType == "" {
-		r.RiskType = "threat"
-	}
-	if r.Origin == "" {
-		r.Origin = "internal"
-	}
-	// Seed description with section headings when empty, so the user has clear
-	// places to fill in both the risk description and its potential consequences.
-	if r.Description == "" {
-		r.Description = "## Description\n\n\n\n## Potential consequences\n\n"
-	}
-	if err := validateEnum("status", r.Status, db.RiskStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("risk_type", r.RiskType, db.RiskTypes); err != nil {
-		return err
-	}
-	if err := validateEnum("origin", r.Origin, db.RiskOrigins); err != nil {
-		return err
-	}
-	if err := validateEnum("category", r.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
+	applyRiskDefaults(&r, getUserEmail(c))
+	if err := validateRiskCreate(&r, s.riskCategoryKeys(ctx, orgID)); err != nil {
 		return err
 	}
 	defs := s.customFieldDefs(ctx, orgID)
@@ -2403,9 +2376,6 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	r.CustomFields = db.NormalizeCustomFieldValues(defs, req.CustomFields)
-	if err := validateEnum("treatment", r.Treatment, db.TreatmentOptions); err != nil {
-		return err
-	}
 	if err := s.validateOrgMember(c, r.Owner); err != nil {
 		return err
 	}
@@ -2797,44 +2767,28 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	return c.JSON(http.StatusOK, updated)
 }
 
-func (s *Server) handleUpdateRisk(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("risk")
-	} else if err != nil {
-		return errNotFound("risk")
-	}
-	old, err := s.db.GetRisk(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("risk")
-	}
-	var req riskUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareRiskUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateRisk and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareRiskUpdate(ctx context.Context, orgID int, old *db.Risk, req *riskUpdateRequest, actor string) (db.Risk, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.RiskStatuses); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.RiskType != nil {
 		if err := validateEnum("risk_type", *req.RiskType, db.RiskTypes); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.Origin != nil {
 		if err := validateEnum("origin", *req.Origin, db.RiskOrigins); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if riskCategoryNeedsValidation(req.Category, old.Category) {
 		if err := validateEnum("category", *req.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	defs := s.customFieldDefs(ctx, orgID)
@@ -2846,28 +2800,27 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		// required fields.
 		changed := changedCustomFields(old.CustomFields, *req.CustomFields)
 		if err := db.ValidateCustomFieldValues(defs, changed, false); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		// Required is checked separately over the whole merged map, via a helper
 		// that ignores unknown keys — the full map still carries any orphaned
 		// values from a deleted definition, and re-running the unknown-key check
 		// on those here would reject an edit that never touched them.
 		if err := db.RequiredCustomFieldsSatisfied(defs, *req.CustomFields); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 	}
 	if req.Treatment != nil {
 		if err := validateEnum("treatment", *req.Treatment, db.TreatmentOptions); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Risk{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Title != nil {
 		updated.Title = *req.Title
 	}
@@ -2954,10 +2907,8 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	}
 
 	if err := updated.Validate(); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	actor := getUserEmail(c)
 
 	// Auto-set acceptance provenance when status changes to accepted
 	if updated.Status == "accepted" && old.Status != "accepted" {
@@ -2973,12 +2924,42 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		updated.AcceptedByID = nil
 	}
 
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateRisk(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
+	}
+	old, err := s.db.GetRisk(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("risk")
+	}
+	var req riskUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	actor := getUserEmail(c)
+	updated, explicitNextReview, err := s.prepareRiskUpdate(ctx, orgID, old, &req, actor)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateRisk(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, _ := s.db.GetRisk(ctx, orgID, id)
 	if after != nil {
 		reason := c.QueryParam("reason")
+		defs := s.customFieldDefs(ctx, orgID)
 		changes := db.DiffFields("risk", id, actor, reason, old.ToChangeMap(defs...), after.ToChangeMap(defs...))
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)

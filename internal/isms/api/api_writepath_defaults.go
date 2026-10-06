@@ -134,3 +134,44 @@ func validateObjectiveCreate(o *db.Objective) error {
 	}
 	return validateEnum("target_operator", o.TargetOperator, db.ObjectiveTargetOperators)
 }
+
+// applyRiskDefaults fills what the light create form leaves out, so a risk
+// created by suggestion lands in the same state as one created over HTTP (#200).
+func applyRiskDefaults(r *db.Risk, actor string) {
+	if r.Owner == "" {
+		r.Owner = actor
+	}
+	// Sensible defaults so the light create form (title + category) just works.
+	// User refines via the edit modal if these aren't right.
+	if r.Status == "" {
+		r.Status = "open"
+	}
+	if r.RiskType == "" {
+		r.RiskType = "threat"
+	}
+	if r.Origin == "" {
+		r.Origin = "internal"
+	}
+	// Seed description with section headings when empty, so the user has clear
+	// places to fill in both the risk description and its potential consequences.
+	if r.Description == "" {
+		r.Description = "## Description\n\n\n\n## Potential consequences\n\n"
+	}
+}
+
+// validateRiskCreate checks the enum fields of a new risk (after defaults).
+func validateRiskCreate(r *db.Risk, categories []string) error {
+	if err := validateEnum("status", r.Status, db.RiskStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("risk_type", r.RiskType, db.RiskTypes); err != nil {
+		return err
+	}
+	if err := validateEnum("origin", r.Origin, db.RiskOrigins); err != nil {
+		return err
+	}
+	if err := validateEnum("category", r.Category, categories); err != nil {
+		return err
+	}
+	return validateEnum("treatment", r.Treatment, db.TreatmentOptions)
+}

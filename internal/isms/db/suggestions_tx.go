@@ -70,7 +70,13 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk, cycles map
 	if err := r.Validate(); err != nil {
 		return err
 	}
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := r.NextReview
 	r.CalculateScore(cycles)
+	if explicitNextReview != nil {
+		r.NextReview = explicitNextReview
+	}
 
 	// Allocate identifier within tx
 	var seq int

@@ -331,7 +331,12 @@ func LogChangesTx(ctx context.Context, tx pgx.Tx, orgID int, entries []Changelog
 // CreateSupplierTx creates a supplier within an existing transaction.
 func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
 	s.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := s.NextReview
 	s.CalculateNextReview(cycles)
+	if explicitNextReview != nil {
+		s.NextReview = explicitNextReview
+	}
 
 	var seq int
 	err := tx.QueryRow(ctx, `

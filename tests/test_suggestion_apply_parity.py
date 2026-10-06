@@ -244,3 +244,31 @@ def test_system_create_foreign_supplier_is_400_at_apply(api_url, admin_headers):
     assert sg.status_code == 201, sg.text
     ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={"force": True})
     assert ap.status_code == 400, ap.text
+
+
+# --- supplier --------------------------------------------------------------
+
+SUPPLIER_FIELDS = {
+    "name": "renamed supplier", "supplier_type": "saas", "criticality": "critical",
+    "data_access": True, "contact": "ops@example.com", "contract_ref": "C-200",
+    "status": "under_review", "owner": ADMIN_EMAIL,
+    "contract_expiry": 1893456000, "confidentiality": 3, "integrity": 2, "availability": 1,
+    "last_review": 1767225600, "next_review": 1893456000,
+    "notes": "supplier notes", "external_id": "SUP-EXT",
+}
+
+
+def test_supplier_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "supplier", "suppliers",
+                   lambda: _make_supplier(api_url, admin_headers), SUPPLIER_FIELDS, unique=("external_id",))
+
+
+def test_supplier_create_parity(api_url, admin_headers):
+    _create_parity(api_url, admin_headers, "supplier", "suppliers", SUPPLIER_FIELDS,
+                   unique=("external_id", "name"))
+
+
+def test_supplier_create_still_accepts_description(api_url, admin_headers):
+    # The server copies the rationale into "description"; it is accepted and ignored.
+    _apply(api_url, admin_headers, "supplier", "create",
+           {"name": f"sup {_tag()}", "description": "ignored"})

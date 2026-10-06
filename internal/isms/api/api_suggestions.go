@@ -1089,89 +1089,90 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: SUPPLIERS
 // ═══════════════════════════════════════════════════════════════════════
 
-// supplierCreatePayload is the payload of a supplier:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// supplierCreatePayload is the payload of a supplier:create suggestion: the POST
+// /suppliers body (#200). Decoded strictly.
 type supplierCreatePayload struct {
-	Name         string `json:"name"`
-	SupplierType string `json:"supplier_type"`
-	Criticality  string `json:"criticality"`
-	Owner        string `json:"owner"`
-	Notes        string `json:"notes"`
+	supplierCreateRequest
 	// Suppliers have no description; the services text lives in notes. Accepted
-	// and ignored only so supplier suggestions stored before #298, when the server
-	// copied the rationale in as "description", can still be applied.
+	// and ignored: SuggestNewButton and the server's rationale copy both send it,
+	// and suggestions stored before #298 carry it.
 	Description string `json:"description"`
 }
 
 func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload supplierCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid supplier payload: %w", err)
+	var p supplierCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in supplier payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
-
 	sup := db.Supplier{
-		Name:         payload.Name,
-		SupplierType: payload.SupplierType,
-		Criticality:  payload.Criticality,
-		Owner:        payload.Owner,
-		Notes:        payload.Notes,
+		Name:            p.Name,
+		SupplierType:    p.SupplierType,
+		Criticality:     p.Criticality,
+		DataAccess:      p.DataAccess,
+		Contact:         p.Contact,
+		ContractRef:     p.ContractRef,
+		Status:          p.Status,
+		Owner:           p.Owner,
+		ContractExpiry:  p.ContractExpiry,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applySupplierDefaults(&sup, actor)
 	if err := validateSupplierCreate(&sup); err != nil {
 		return "", 0, err
 	}
-
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup, s.db.SupplierReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "supplier", sup.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "supplier", EntityID: sup.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return sup.Identifier, sup.ID, nil
 }
 
 func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("supplier %s not found: %w", sg.EntityID, err)
-	}
-
-	old := sup.ToChangeMap()
-
-	if v, ok := payload.Fields["criticality"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Criticality = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Status = sv
-		}
-	}
-
-	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup, s.db.SupplierReviewCycles(ctx, orgID), nil); err != nil {
+	var req supplierUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("supplier", sup.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, sup.ToChangeMap())
+	id, err := s.resolveSupplierID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("supplier")
+	}
+	old, err := s.db.GetSupplier(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("supplier")
+	}
+	updated, explicitNextReview, err := s.prepareSupplierUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateSupplierTx(ctx, tx, orgID, &updated, s.db.SupplierReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("supplier", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return sup.Identifier, sup.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

@@ -3231,48 +3231,31 @@ func (s *Server) handleDeleteAccessReview(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 }
 
-func (s *Server) handleUpdateSupplier(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("supplier")
-	} else if err != nil {
-		return errNotFound("supplier")
-	}
-	old, err := s.db.GetSupplier(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("supplier")
-	}
-	var req supplierUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareSupplierUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateSupplier and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareSupplierUpdate(ctx context.Context, orgID int, old *db.Supplier, req *supplierUpdateRequest) (db.Supplier, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.SupplierStatuses); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.SupplierType != nil {
 		if err := validateEnum("supplier_type", *req.SupplierType, db.SupplierTypes); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.Criticality != nil {
 		if err := validateEnum("criticality", *req.Criticality, db.CriticalityLevels); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Supplier{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -3321,6 +3304,34 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateSupplier(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
+	}
+	old, err := s.db.GetSupplier(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("supplier")
+	}
+	var req supplierUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, explicitNextReview, err := s.prepareSupplierUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateSupplier(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}

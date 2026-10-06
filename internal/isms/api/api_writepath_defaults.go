@@ -175,9 +175,12 @@ func validateRiskCreate(r *db.Risk, categories []string) error {
 	if err := validateEnum("origin", r.Origin, db.RiskOrigins); err != nil {
 		return err
 	}
-	if err := validateEnum("category", r.Category, categories); err != nil {
-		return err
-	}
+	return validateEnum("category", r.Category, categories)
+}
+
+// validateRiskTreatment checks the treatment of a new risk. It runs after the
+// custom field checks, the order handleAddRisk has always used.
+func validateRiskTreatment(r *db.Risk) error {
 	return validateEnum("treatment", r.Treatment, db.TreatmentOptions)
 }
 

@@ -84,6 +84,17 @@ func TestUpdateHandlersDecodeHTTPRequestTypes(t *testing.T) {
 // each payload type embeds a ...CreateRequest struct, so a field added to POST is
 // accepted by the suggestion path with no second edit.
 func TestCreatePayloadsEmbedHTTPRequestTypes(t *testing.T) {
+	// Each entity must embed ITS OWN create request type, not just any one.
+	wantCreateRequest := map[string]string{
+		"asset": "assetCreateRequest", "system": "systemCreateRequest", "supplier": "supplierCreateRequest",
+		"risk": "riskCreateRequest", "legal_requirement": "legalCreateRequest",
+		"change_request": "changeCreateRequest", "corrective_action": "correctiveActionCreateRequest",
+		"task": "taskCreateRequest", "objective": "objectiveCreateRequest", "incident": "incidentCreateRequest",
+		"audit_finding": "auditFindingCreateRequest", "program": "programCreateRequest",
+	}
+	if len(wantCreateRequest) != len(createPayloadTypes) {
+		t.Errorf("expected map has %d entities, createPayloadTypes has %d", len(wantCreateRequest), len(createPayloadTypes))
+	}
 	for key := range applyRegistry {
 		entity, kind, _ := strings.Cut(key, ":")
 		if kind == "create" && createPayloadTypes[entity] == nil {
@@ -94,15 +105,16 @@ func TestCreatePayloadsEmbedHTTPRequestTypes(t *testing.T) {
 		if applyRegistry[entity+":create"] == nil {
 			t.Errorf("createPayloadTypes has %q but there is no %s:create handler", entity, entity)
 		}
+		want := wantCreateRequest[entity]
 		embedded := false
 		for i := 0; i < typ.NumField(); i++ {
 			f := typ.Field(i)
-			if f.Anonymous && strings.HasSuffix(f.Type.Name(), "CreateRequest") {
+			if f.Anonymous && f.Type.Name() == want {
 				embedded = true
 			}
 		}
 		if !embedded {
-			t.Errorf("%s does not embed a ...CreateRequest type", typ.Name())
+			t.Errorf("%s (%s) does not embed %s", typ.Name(), entity, want)
 		}
 	}
 }

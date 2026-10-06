@@ -816,6 +816,9 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		return "", 0, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	risk.CustomFields = db.NormalizeCustomFieldValues(defs, p.CustomFields)
+	if err := validateRiskTreatment(&risk); err != nil {
+		return "", 0, err
+	}
 	// Only an owner the payload names is checked; the defaulted owner is the
 	// acting user, who is a member by construction.
 	if err := s.validateOrgMemberIn(ctx, orgID, p.Owner); err != nil {
@@ -949,10 +952,13 @@ func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	if err := validateIncidentCreate(&inc); err != nil {
 		return "", 0, err
 	}
-	// Only an assignee the payload names is checked; the defaulted one is the
-	// acting user, who is a member by construction.
-	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
-		return "", 0, err
+	// Validate the effective assignee, as the HTTP handler does after defaults:
+	// it can come from the payload's reporter. The acting user is a member by
+	// construction and is not re-checked.
+	if inc.Assignee != actor {
+		if err := s.validateOrgMemberIn(ctx, orgID, inc.Assignee); err != nil {
+			return "", 0, err
+		}
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
 	if err != nil {
@@ -1512,6 +1518,12 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := db.UpdateTaskTx(ctx, tx, orgID, &updated); err != nil {
 		return "", 0, err
 	}
+	// A task that is (or becomes) private must leave the shared search index, as
+	// in handleUpdateTask. The non-private upsert stays out of apply (R7).
+	if updated.Private {
+		ident := old.Identifier
+		registerApplyPostCommit(ctx, func() { s.searchRemove(orgID, "task", ident) })
+	}
 	diffs := db.DiffFields("task", taskID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
@@ -1712,7 +1724,7 @@ func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg
 	}); err != nil {
 		return "", 0, err
 	}
-	return pr.Identifier, pr.ID, nil
+	return pr.Key, pr.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

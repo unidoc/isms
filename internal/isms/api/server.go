@@ -2376,6 +2376,9 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	r.CustomFields = db.NormalizeCustomFieldValues(defs, req.CustomFields)
+	if err := validateRiskTreatment(&r); err != nil {
+		return err
+	}
 	if err := s.validateOrgMember(c, r.Owner); err != nil {
 		return err
 	}

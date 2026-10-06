@@ -141,9 +141,15 @@ def test_asset_create_with_reference_links_both_ways(api_url, admin_headers):
     ident = _apply(api_url, admin_headers, "asset", "create", {
         "name": f"asset {_tag()}", "references": [{"type": "asset", "id": other["identifier"]}],
     })
-    refs = requests.get(f"{api_url}/references", headers=admin_headers,
-                        params={"type": "asset", "id": other["identifier"]}).json()
-    assert any(ident in str(r) for r in (refs if isinstance(refs, list) else refs.get("data", []))), refs
+
+    def pairs(of):
+        r = requests.get(f"{api_url}/references", headers=admin_headers, params={"type": "asset", "id": of})
+        assert r.status_code == 200, r.text
+        return {(x["source_type"], x["source_id"], x["target_type"], x["target_id"]) for x in r.json()["data"]}
+
+    # exact id equality (ASSET-12 must not match ASSET-120), seen from both ends
+    assert {ident, other["identifier"]} in [{x[1], x[3]} for x in pairs(ident)]
+    assert {ident, other["identifier"]} in [{x[1], x[3]} for x in pairs(other["identifier"])]
 
 
 # --- generic helpers (used from the system section on) ---------------------
@@ -488,7 +494,7 @@ def test_program_create_suggestion(api_url):
                    {"key": "sec", "title": "Security", "description": "d", "notes": "n"})
     got = requests.get(f"{api_url}/programs/SEC", headers=hdr).json()
     assert got["title"] == "Security" and got["key"] == "SEC" and got["description"] == "d"
-    assert got["notes"] == "n" and got["identifier"] == ident
+    assert got["notes"] == "n" and got["key"] == ident == "SEC"
     # second identical key: 409, not 500.
     sg = _suggest(api_url, hdr, "program", {"key": "SEC", "title": "Again"})
     assert sg.status_code == 201, sg.text
@@ -683,6 +689,11 @@ def test_audit_finding_update_parity(api_url, admin_headers):
     _update_parity(api_url, admin_headers, "audit_finding", "audit-findings",
                    lambda: _make_finding(api_url, admin_headers, aud["id"]), fields,
                    ref="id")
+    # the FIND-<n> form of the entity id resolves too
+    g = _make_finding(api_url, admin_headers, aud["id"])
+    _apply(api_url, admin_headers, "audit_finding", "update", {"fields": {"title": "via FIND form"}},
+           entity_id=f"FIND-{g['id']}")
+    assert requests.get(f"{api_url}/audit-findings/{g['id']}", headers=admin_headers).json()["title"] == "via FIND form"
     # the closure stamp comes from the shared status path on both sides
     f = _make_finding(api_url, admin_headers, aud["id"])
     _apply(api_url, admin_headers, "audit_finding", "update", {"fields": {"status": "closed"}}, entity_id=f["id"])
@@ -742,17 +753,19 @@ def test_targeted_suggestion_types_require_entity_id(api_url, admin_headers):
 
 
 def test_unresolvable_entity_is_404_at_apply_not_500(api_url, admin_headers):
-    for entity, ident in (("asset", "ASSET-99999"), ("system", "SYSTEM-99999"), ("supplier", "SUPPLIER-99999"),
-                          ("risk", "RISK-99999"), ("legal_requirement", "LEGAL-99999"),
-                          ("incident", "INC-99999"), ("task", "TASK-99999"), ("change_request", "CR-99999"),
-                          ("corrective_action", "CA-99999"), ("objective", "NOPE-99999")):
+    for entity, ident, fields in (
+            ("asset", "ASSET-99999", {"notes": "x"}), ("system", "SYSTEM-99999", {"notes": "x"}),
+            ("supplier", "SUPPLIER-99999", {"notes": "x"}), ("risk", "RISK-99999", {"notes": "x"}),
+            ("legal_requirement", "LEGAL-99999", {"notes": "x"}), ("incident", "INC-99999", {"notes": "x"}),
+            ("task", "TASK-99999", {"notes": "x"}), ("change_request", "CR-99999", {"notes": "x"}),
+            ("corrective_action", "CA-99999", {"notes": "x"}), ("objective", "NOPE-99999", {"title": "x"}),
+            ("audit_finding", "FIND-99999", {"title": "x"})):
         sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
             "entity_type": entity, "suggestion_type": "update", "entity_id": ident,
-            "title": "gone", "payload": {"fields": {"notes": "x"} if entity != "objective" else {"title": "x"}}})
-        if sg.status_code != 201:
-            continue  # a field the entity does not have is refused earlier; the 404 path is what matters
+            "title": "gone", "payload": {"fields": fields}})
+        assert sg.status_code == 201, (entity, sg.status_code, sg.text)
         ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
-        assert ap.status_code in (400, 404), (entity, ap.status_code, ap.text)
+        assert ap.status_code == 404, (entity, ap.status_code, ap.text)
 
 
 def test_parity_file_covers_every_entity():
@@ -763,3 +776,97 @@ def test_parity_file_covers_every_entity():
         assert f"def test_{entity}_update_parity" in src, entity
         assert f"def test_{entity}_create_parity" in src, entity
     assert "def test_program_create_suggestion" in src
+
+
+# --- review fixes ----------------------------------------------------------
+
+def test_incident_create_ghost_reporter_is_400_and_stays_open(api_url, admin_headers):
+    sg = _suggest(api_url, admin_headers, "incident", {"title": "t", "reporter": "ghost@nowhere.io"})
+    assert sg.status_code == 201, sg.text
+    ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
+    assert ap.status_code == 400, ap.text
+    got = requests.get(f"{api_url}/suggestions/{sg.json()['id']}", headers=admin_headers).json()["data"]
+    assert got["status"] == "open", got
+    # the HTTP path refuses the same payload
+    r = requests.post(f"{api_url}/incidents", headers=admin_headers, json={"title": "t", "reporter": "ghost@nowhere.io"})
+    assert r.status_code == 400, r.text
+
+
+def _search_titles(api_url, headers, q):
+    r = requests.get(f"{api_url}/search", headers=headers, params={"q": q})
+    assert r.status_code == 200, r.text
+    return [x.get("title") for x in (r.json()["data"] or [])]
+
+
+def test_task_made_private_by_apply_leaves_the_search_index(api_url, admin_headers, reader_headers):
+    title = f"zzprivsearch{_tag()}"
+    r = requests.post(f"{api_url}/tasks", headers=admin_headers, json={"title": title})
+    assert r.status_code == 201, r.text
+    t = r.json()
+    assert title in _search_titles(api_url, reader_headers, title)
+    _apply(api_url, admin_headers, "task", "update", {"fields": {"private": True}}, entity_id=t["identifier"])
+    assert title not in _search_titles(api_url, reader_headers, title)
+
+
+def test_private_task_created_by_apply_is_not_indexed(api_url, admin_headers, reader_headers):
+    title = f"zzprivcreate{_tag()}"
+    _apply(api_url, admin_headers, "task", "create", {"title": title, "private": True})
+    assert title not in _search_titles(api_url, reader_headers, title)
+
+
+def _set_custom_fields(api_url, headers, defs):
+    import json as _json
+    r = requests.put(f"{api_url}/admin/settings", headers=headers,
+                     json={"key": "risk_custom_fields", "value": _json.dumps(defs)})
+    assert r.status_code == 200, r.text
+
+
+CF_DEFS = [{"key": "vendor", "label": "Vendor", "type": "text", "required": True},
+           {"key": "tier", "label": "Tier", "type": "select", "options": ["Gold", "Silver"]}]
+
+
+def test_risk_custom_fields_update_parity(api_url):
+    hdr = _fresh_org(api_url)
+    _set_custom_fields(api_url, hdr, CF_DEFS)
+    def make():
+        r = requests.post(f"{api_url}/risks", headers=hdr, json={"title": f"r {_tag()}", "custom_fields": {"vendor": "Init"}})
+        assert r.status_code == 201, r.text
+        return r.json()
+    a, b = make(), make()
+    fields = {"custom_fields": {"vendor": "  Acme  ", "tier": "Gold"}}
+    assert requests.put(f"{api_url}/risks/{a['id']}", headers=hdr, json=fields).status_code == 200
+    _apply(api_url, hdr, "risk", "update", {"fields": fields}, entity_id=b["identifier"])
+    got_a = requests.get(f"{api_url}/risks/{a['id']}", headers=hdr).json()
+    got_b = requests.get(f"{api_url}/risks/{b['id']}", headers=hdr).json()
+    assert got_a["custom_fields"] == got_b["custom_fields"] == {"vendor": "Acme", "tier": "Gold"}, (got_a, got_b)
+    # the required-field rule applies to update on both paths
+    bad = {"custom_fields": {"tier": "Silver"}}
+    assert requests.put(f"{api_url}/risks/{a['id']}", headers=hdr, json=bad).status_code == 400
+    sg = requests.post(f"{api_url}/suggestions", headers=hdr, json={
+        "entity_type": "risk", "suggestion_type": "update", "entity_id": b["identifier"],
+        "title": "bad cf", "payload": {"fields": bad}})
+    assert sg.status_code == 201, sg.text
+    assert _apply_raw(api_url, hdr, sg.json()["id"]).status_code == 400
+    # an invalid select option is refused on both paths
+    worse = {"custom_fields": {"vendor": "Acme", "tier": "Bronze"}}
+    assert requests.put(f"{api_url}/risks/{a['id']}", headers=hdr, json=worse).status_code == 400
+    sg = requests.post(f"{api_url}/suggestions", headers=hdr, json={
+        "entity_type": "risk", "suggestion_type": "update", "entity_id": b["identifier"],
+        "title": "bad opt", "payload": {"fields": worse}})
+    assert _apply_raw(api_url, hdr, sg.json()["id"]).status_code == 400
+
+
+def test_risk_custom_fields_create_parity(api_url):
+    hdr = _fresh_org(api_url)
+    _set_custom_fields(api_url, hdr, CF_DEFS)
+    r = requests.post(f"{api_url}/risks", headers=hdr,
+                      json={"title": "cf risk", "custom_fields": {"vendor": "  Acme  ", "tier": "Silver"}})
+    assert r.status_code == 201, r.text
+    ident = _apply(api_url, hdr, "risk", "create",
+                   {"title": "cf risk 2", "custom_fields": {"vendor": "  Acme  ", "tier": "Silver"}})
+    got_a = requests.get(f"{api_url}/risks/{r.json()['id']}", headers=hdr).json()
+    got_b = requests.get(f"{api_url}/risks/{ident}", headers=hdr).json()
+    assert got_a["custom_fields"] == got_b["custom_fields"] == {"vendor": "Acme", "tier": "Silver"}
+    # required fields: enforced on POST, deliberately not on apply (agents cannot fill forms)
+    assert requests.post(f"{api_url}/risks", headers=hdr, json={"title": "no vendor"}).status_code == 400
+    _apply(api_url, hdr, "risk", "create", {"title": "no vendor via apply"})

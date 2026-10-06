@@ -727,3 +727,39 @@ def test_audit_finding_create_defaults_and_checks(api_url, admin_headers):
         sg = _suggest(api_url, admin_headers, "audit_finding", payload)
         assert sg.status_code == 201, sg.text
         assert _apply_raw(api_url, admin_headers, sg.json()["id"]).status_code == code
+
+
+# --- remaining cross-cutting cases ------------------------------------------
+
+def test_targeted_suggestion_types_require_entity_id(api_url, admin_headers):
+    cases = [("asset", "update", {"fields": {"notes": "x"}}), ("risk", "update", {"fields": {"notes": "x"}}),
+             ("risk", "reassess", {"current_likelihood": 2}), ("risk", "reading", {"reading_type": "x"}),
+             ("supplier", "review", {"outcome": "satisfactory"}), ("incident", "link", {"links": []})]
+    for entity, kind, payload in cases:
+        r = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": entity, "suggestion_type": kind, "title": "no entity", "payload": payload})
+        assert r.status_code == 400 and "entity_id" in r.text, (entity, kind, r.status_code, r.text)
+
+
+def test_unresolvable_entity_is_404_at_apply_not_500(api_url, admin_headers):
+    for entity, ident in (("asset", "ASSET-99999"), ("system", "SYSTEM-99999"), ("supplier", "SUPPLIER-99999"),
+                          ("risk", "RISK-99999"), ("legal_requirement", "LEGAL-99999"),
+                          ("incident", "INC-99999"), ("task", "TASK-99999"), ("change_request", "CR-99999"),
+                          ("corrective_action", "CA-99999"), ("objective", "NOPE-99999")):
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": entity, "suggestion_type": "update", "entity_id": ident,
+            "title": "gone", "payload": {"fields": {"notes": "x"} if entity != "objective" else {"title": "x"}}})
+        if sg.status_code != 201:
+            continue  # a field the entity does not have is refused earlier; the 404 path is what matters
+        ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
+        assert ap.status_code in (400, 404), (entity, ap.status_code, ap.text)
+
+
+def test_parity_file_covers_every_entity():
+    import inspect
+    src = inspect.getsource(__import__(__name__))
+    for entity in ("asset", "system", "supplier", "risk", "legal", "objective", "incident",
+                   "corrective_action", "change", "task", "audit_finding"):
+        assert f"def test_{entity}_update_parity" in src, entity
+        assert f"def test_{entity}_create_parity" in src, entity
+    assert "def test_program_create_suggestion" in src

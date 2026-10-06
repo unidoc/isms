@@ -166,6 +166,8 @@ func TestCreateLegalCanonicalisesProgramReference(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
 	orgID := newTestOrg(t, s, "refs-create-legal-program")
+	// The HTTP create path now requires the owner (defaulted to the caller) to be an org member.
+	seedReviewUser(t, s, orgID, "admin@custom-fields.test", "admin")
 
 	program := newRefTestProgram(t, s, orgID, "REGLEG", "program for legal create-reference test")
 

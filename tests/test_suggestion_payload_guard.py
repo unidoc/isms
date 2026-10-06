@@ -57,9 +57,9 @@ def test_free_text_update_is_created_but_not_applied(api_url, admin_headers):
 def test_unknown_field_rejected_with_supported_list(api_url, admin_headers):
     inc = _incident(api_url, admin_headers)
     r = _suggest(api_url, admin_headers, entity_type="incident", entity_id=inc["identifier"],
-                 suggestion_type="update", payload={"fields": {"title": "renamed"}})
+                 suggestion_type="update", payload={"fields": {"bogus_field": "x"}})
     assert r.status_code == 400, r.text
-    assert "title" in r.text and "supported" in r.text
+    assert "bogus_field" in r.text and "supported" in r.text
 
 
 def test_wrong_type_rejected(api_url, admin_headers):
@@ -94,9 +94,28 @@ def test_edit_cannot_introduce_bad_payload(api_url, admin_headers):
 
 def test_200_create_unknown_key_rejected(api_url, admin_headers):
     r = _suggest(api_url, admin_headers, entity_type="objective", suggestion_type="create",
-                 payload={"title": f"MTTP {_uid()}", "target_value": 14, "target_operator": "lte"})
+                 payload={"title": f"MTTP {_uid()}", "target_value": 14, "bogus_field": "lte"})
     assert r.status_code == 400, r.text
-    assert "target_operator" in r.text
+    assert "bogus_field" in r.text
+
+
+def test_200_objective_lte_operator_survives_apply(api_url, admin_headers):
+    prog = requests.post(f"{api_url}/programs", headers=admin_headers,
+                         json={"key": f"G{_uid()[:5].upper()}", "title": "guard prog"})
+    assert prog.status_code in (200, 201), prog.text
+    prog = prog.json()
+    r = _suggest(api_url, admin_headers, entity_type="objective", suggestion_type="create",
+                 payload={"title": f"MTTP {_uid()}", "target_value": 14, "target_operator": "lte",
+                          "unit": "days", "status": "active", "checkin_cycle": 4, "source": "probe",
+                          "program_id": prog["id"]})
+    assert r.status_code == 201, r.text
+    ap = requests.post(f"{api_url}/suggestions/{r.json()['id']}/apply", headers=admin_headers, json={})
+    assert ap.status_code == 200, ap.text
+    got = requests.get(f"{api_url}/objectives/{ap.json()['applied_entity_id']}", headers=admin_headers).json()
+    assert got["target_operator"] == "lte"
+    assert got["status"] == "active"
+    assert got["checkin_cycle"] == 4
+    assert got["source"] == "probe"
 
 
 def test_supplier_create_with_rationale_still_applies(api_url, admin_headers):

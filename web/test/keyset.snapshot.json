@@ -945,6 +945,7 @@
   "common.field.current_password",
   "common.field.document_id",
   "common.field.email",
+  "common.field.entity_id",
   "common.field.entity_type",
   "common.field.file",
   "common.field.key",

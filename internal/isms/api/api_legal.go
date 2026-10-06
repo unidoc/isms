@@ -134,6 +134,9 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	if err := validateLegalCreate(&lr); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, lr.Owner); err != nil {
+		return err
+	}
 
 	ctx := c.Request().Context()
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
@@ -180,6 +183,99 @@ func (s *Server) handleGetLegal(c echo.Context) error {
 	return c.JSON(http.StatusOK, lr)
 }
 
+// prepareLegalUpdate validates req and returns old with req merged in, plus the
+// explicit next_review when the request names one. Shared by handleUpdateLegal
+// and the suggestion apply handler so PUT and apply accept and write exactly
+// the same fields (#200).
+func (s *Server) prepareLegalUpdate(ctx context.Context, orgID int, old *db.LegalRequirement, req *legalUpdateRequest) (db.LegalRequirement, *db.Epoch, error) {
+	updated := *old
+	if req.Status != nil {
+		if err := validateEnum("status", *req.Status, db.LegalStatuses); err != nil {
+			return db.LegalRequirement{}, nil, err
+		}
+	}
+	if req.Treatment != nil {
+		if err := validateEnum("treatment", *req.Treatment, db.LegalTreatments); err != nil {
+			return db.LegalRequirement{}, nil, err
+		}
+	}
+	if req.Category != nil {
+		// validateEnum lets "" through; category is required, so an empty
+		// value would fail the CHECK constraint in the database (#269).
+		if *req.Category == "" {
+			return db.LegalRequirement{}, nil, echo.NewHTTPError(http.StatusBadRequest, "category cannot be empty")
+		}
+		if err := validateEnum("category", *req.Category, db.LegalCategories); err != nil {
+			return db.LegalRequirement{}, nil, err
+		}
+	}
+	if req.Owner != nil && *req.Owner != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.LegalRequirement{}, nil, err
+		}
+	}
+
+	if req.Title != nil {
+		updated.Title = *req.Title
+	}
+	if req.Description != nil {
+		updated.Description = *req.Description
+	}
+	if req.Jurisdiction != nil {
+		updated.Jurisdiction = *req.Jurisdiction
+	}
+	if req.Category != nil {
+		updated.Category = *req.Category
+	}
+	if req.Reference != nil {
+		updated.Reference = *req.Reference
+	}
+	if req.URL != nil {
+		updated.URL = *req.URL
+	}
+	if req.Owner != nil {
+		updated.Owner = *req.Owner
+	}
+	if req.LastReview.Set {
+		updated.LastReview = req.LastReview.Value
+	}
+	// A new next_review from the request wins over the calculated one; absent,
+	// null or an echo of the stored date means "calculate it" (#202).
+	explicitNextReview := requestedNextReview(req.NextReview, old.NextReview)
+	if req.Notes != nil {
+		updated.Notes = *req.Notes
+	}
+	if req.CurrentLikelihood.Set {
+		updated.CurrentLikelihood = req.CurrentLikelihood.Value
+	}
+	if req.CurrentImpact.Set {
+		updated.CurrentImpact = req.CurrentImpact.Value
+	}
+	if req.Treatment != nil {
+		updated.Treatment = *req.Treatment
+	}
+	if req.TreatmentPlan != nil {
+		updated.TreatmentPlan = *req.TreatmentPlan
+	}
+	if req.Status != nil {
+		updated.Status = *req.Status
+	}
+	if req.TargetLikelihood.Set {
+		updated.TargetLikelihood = req.TargetLikelihood.Value
+	}
+	if req.TargetImpact.Set {
+		updated.TargetImpact = req.TargetImpact.Value
+	}
+	if req.Completion != nil {
+		updated.Completion = *req.Completion
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
+	}
+
+	return updated, explicitNextReview, nil
+}
+
 func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -205,90 +301,11 @@ func (s *Server) handleUpdateLegal(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	if req.Status != nil {
-		if err := validateEnum("status", *req.Status, db.LegalStatuses); err != nil {
-			return err
-		}
+	updated, explicitNextReview, err := s.prepareLegalUpdate(ctx, orgID, existing, &req)
+	if err != nil {
+		return err
 	}
-	if req.Treatment != nil {
-		if err := validateEnum("treatment", *req.Treatment, db.LegalTreatments); err != nil {
-			return err
-		}
-	}
-	if req.Category != nil {
-		// validateEnum lets "" through; category is required, so an empty
-		// value would fail the CHECK constraint in the database (#269).
-		if *req.Category == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "category cannot be empty")
-		}
-		if err := validateEnum("category", *req.Category, db.LegalCategories); err != nil {
-			return err
-		}
-	}
-	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
-		}
-	}
-
-	if req.Title != nil {
-		existing.Title = *req.Title
-	}
-	if req.Description != nil {
-		existing.Description = *req.Description
-	}
-	if req.Jurisdiction != nil {
-		existing.Jurisdiction = *req.Jurisdiction
-	}
-	if req.Category != nil {
-		existing.Category = *req.Category
-	}
-	if req.Reference != nil {
-		existing.Reference = *req.Reference
-	}
-	if req.URL != nil {
-		existing.URL = *req.URL
-	}
-	if req.Owner != nil {
-		existing.Owner = *req.Owner
-	}
-	if req.LastReview.Set {
-		existing.LastReview = req.LastReview.Value
-	}
-	// A new next_review from the request wins over the calculated one; absent,
-	// null or an echo of the stored date means "calculate it" (#202).
-	explicitNextReview := requestedNextReview(req.NextReview, existing.NextReview)
-	if req.Notes != nil {
-		existing.Notes = *req.Notes
-	}
-	if req.CurrentLikelihood.Set {
-		existing.CurrentLikelihood = req.CurrentLikelihood.Value
-	}
-	if req.CurrentImpact.Set {
-		existing.CurrentImpact = req.CurrentImpact.Value
-	}
-	if req.Treatment != nil {
-		existing.Treatment = *req.Treatment
-	}
-	if req.TreatmentPlan != nil {
-		existing.TreatmentPlan = *req.TreatmentPlan
-	}
-	if req.Status != nil {
-		existing.Status = *req.Status
-	}
-	if req.TargetLikelihood.Set {
-		existing.TargetLikelihood = req.TargetLikelihood.Value
-	}
-	if req.TargetImpact.Set {
-		existing.TargetImpact = req.TargetImpact.Value
-	}
-	if req.Completion != nil {
-		existing.Completion = *req.Completion
-	}
-	if req.ExternalID != nil {
-		existing.ExternalID = *req.ExternalID
-	}
+	existing = &updated
 
 	existing.ID = id
 	// UpdateLegalRequirementTx recomputes current score/level and next_review

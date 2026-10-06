@@ -708,12 +708,19 @@ func (d *DB) PaginatedAuditFindings(ctx context.Context, orgID int, p AuditFindi
 // nil = leave alone, non-nil = set (empty string clears, except for required fields).
 // Corrective action content is folded into description (## Corrective Action heading).
 func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID int, id int64, title, description, owner *string, dueDate **Epoch) error {
+	return updateAuditFindingPartial(ctx, d.pool, orgID, id, title, description, owner, dueDate)
+}
+
+// updateAuditFindingPartial is the shared core of UpdateAuditFindingPartial and
+// UpdateAuditFindingPartialTx: one body for the pool and a transaction. An empty
+// title or description is a *ValidationError, so the API answers 400, not 500.
+func updateAuditFindingPartial(ctx context.Context, e pgExecer, orgID int, id int64, title, description, owner *string, dueDate **Epoch) error {
 	sets := []string{"updated_at = now()"}
 	args := []interface{}{id, orgID}
 	idx := 3
 	if title != nil {
 		if *title == "" {
-			return fmt.Errorf("title cannot be empty")
+			return validationErrorf("title cannot be empty")
 		}
 		sets = append(sets, fmt.Sprintf("title = $%d", idx))
 		args = append(args, *title)
@@ -721,7 +728,7 @@ func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID int, id int64,
 	}
 	if description != nil {
 		if *description == "" {
-			return fmt.Errorf("description cannot be empty")
+			return validationErrorf("description cannot be empty")
 		}
 		sets = append(sets, fmt.Sprintf("description = $%d", idx))
 		args = append(args, *description)
@@ -741,7 +748,7 @@ func (d *DB) UpdateAuditFindingPartial(ctx context.Context, orgID int, id int64,
 		return nil
 	}
 	q := `UPDATE audit_findings SET ` + strings.Join(sets, ", ") + ` WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`
-	res, err := d.pool.Exec(ctx, q, args...)
+	res, err := e.Exec(ctx, q, args...)
 	if err != nil {
 		return err
 	}

@@ -78,3 +78,16 @@ func enforceCorrectiveActionWriteTx(ctx context.Context, tx pgx.Tx, orgID int, c
 	}
 	return nil
 }
+
+// validateCorrectiveActionCreate checks the enum fields of a new corrective
+// action (after defaults). Shared by handleCreateCorrectiveAction and
+// applyCorrActiveCreate (#200).
+func validateCorrectiveActionCreate(ca *db.CorrectiveAction) error {
+	if err := validateEnum("status", ca.Status, db.CorrectiveActionStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("severity", ca.Severity, db.CorrectiveActionSeverities); err != nil {
+		return err
+	}
+	return validateEnum("source", ca.Source, db.CorrectiveActionSources)
+}

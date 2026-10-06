@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -75,6 +76,7 @@ func init() {
 	registerApplyHandler("task", "update", applyTaskUpdate)
 
 	// Objective handlers
+	registerApplyHandler("program", "create", applyProgramCreate)
 	registerApplyHandler("objective", "create", applyObjectiveCreate)
 	registerApplyHandler("objective", "update", applyObjectiveUpdate)
 
@@ -132,6 +134,13 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 	if sg.Title == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
+	// Types that act on an existing record need it named, or apply can only fail (#200).
+	switch sg.SuggestionType {
+	case "update", "reassess", "reading", "review", "link":
+		if strings.TrimSpace(sg.EntityID) == "" {
+			return apiError(http.StatusBadRequest, CodeRequired, Field("entity_id"))
+		}
+	}
 
 	// Verify apply handler exists for this combination
 	if getApplyHandler(sg.EntityType, sg.SuggestionType) == nil {
@@ -173,6 +182,9 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 
 	// Refuse a payload the apply handler would silently drop (#298, #200).
 	if err := validateSuggestionPayload(sg.EntityType, sg.SuggestionType, sg.Payload); err != nil {
+		return err
+	}
+	if err := s.checkObjectiveSuggestionProgram(ctx, orgID, sg.EntityType, sg.SuggestionType, sg.Payload); err != nil {
 		return err
 	}
 
@@ -369,6 +381,9 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 		// Same check as create (#298, #200): an edit must not turn a suggestion
 		// into one whose apply would silently drop what it proposes.
 		if err := validateSuggestionPayload(existing.EntityType, existing.SuggestionType, payload); err != nil {
+			return err
+		}
+		if err := s.checkObjectiveSuggestionProgram(ctx, orgID, existing.EntityType, existing.SuggestionType, payload); err != nil {
 			return err
 		}
 		update.Payload = payload
@@ -571,6 +586,10 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 		if errors.As(txErr, &oce) {
 			return echo.NewHTTPError(http.StatusConflict, oce.Error())
 		}
+		var ote openTasksLinkedError
+		if errors.As(txErr, &ote) {
+			return echo.NewHTTPError(http.StatusConflict, ote.Error())
+		}
 		return pgxHTTPError(txErr)
 	}
 
@@ -729,67 +748,52 @@ func (s *Server) notifySuggestionResolved(ctx context.Context, orgID int, sg *db
 // APPLY HANDLERS: RISKS
 // ═══════════════════════════════════════════════════════════════════════
 
-// riskCreatePayload is the payload of a risk:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// riskCreatePayload is the payload of a risk:create suggestion: the POST /risks
+// body (#200). Decoded strictly.
 type riskCreatePayload struct {
-	Title             string         `json:"title"`
-	Description       string         `json:"description"`
-	RiskType          string         `json:"risk_type"`
-	Origin            string         `json:"origin"`
-	Category          string         `json:"category"`
-	CurrentLikelihood *int           `json:"current_likelihood"`
-	CurrentImpact     *int           `json:"current_impact"`
-	TreatmentPlan     string         `json:"treatment_plan"`
-	Treatment         string         `json:"treatment"`
-	CustomFields      map[string]any `json:"custom_fields"`
+	riskCreateRequest
 }
 
 func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload riskCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid risk payload: %w", err)
-	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in risk payload")
-	}
-	// The suggestion payload is not bound through the risk handlers, so the
-	// category has to be validated here. validateEnum returns an *echo.HTTPError,
-	// which the apply caller unwraps into a 400.
-	if err := validateEnum("category", payload.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
+	var p riskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
 		return "", 0, err
 	}
-	defs := s.customFieldDefs(ctx, orgID)
-	// checkRequired=false, deliberately: agents cannot fill out a form, so a
-	// required custom field must never block an agent-created risk. See
-	// "Required fields are in scope" in the implementation plan for #213/#216.
-	if err := db.ValidateCustomFieldValues(defs, payload.CustomFields, false); err != nil {
-		return "", 0, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	risk := db.Risk{
-		Title:             payload.Title,
-		Description:       payload.Description,
-		RiskType:          payload.RiskType,
-		Origin:            payload.Origin,
-		Category:          payload.Category,
-		CustomFields:      db.NormalizeCustomFieldValues(defs, payload.CustomFields),
-		CurrentLikelihood: payload.CurrentLikelihood,
-		CurrentImpact:     payload.CurrentImpact,
-		TreatmentPlan:     payload.TreatmentPlan,
-		Treatment:         payload.Treatment,
-		Status:            "open",
-		Owner:             actor,
+		Title:                         p.Title,
+		Description:                   p.Description,
+		RiskType:                      p.RiskType,
+		Origin:                        p.Origin,
+		Category:                      p.Category,
+		CustomFields:                  p.CustomFields,
+		CurrentLikelihood:             p.CurrentLikelihood,
+		CurrentImpact:                 p.CurrentImpact,
+		ConfidentialityImpact:         p.ConfidentialityImpact,
+		IntegrityImpact:               p.IntegrityImpact,
+		AvailabilityImpact:            p.AvailabilityImpact,
+		InherentLikelihood:            p.InherentLikelihood,
+		InherentImpact:                p.InherentImpact,
+		InherentConfidentialityImpact: p.InherentConfidentialityImpact,
+		InherentIntegrityImpact:       p.InherentIntegrityImpact,
+		InherentAvailabilityImpact:    p.InherentAvailabilityImpact,
+		TargetLikelihood:              p.TargetLikelihood,
+		TargetImpact:                  p.TargetImpact,
+		Treatment:                     p.Treatment,
+		TreatmentPlan:                 p.TreatmentPlan,
+		TreatmentDueDate:              p.TreatmentDueDate,
+		Owner:                         p.Owner,
+		Status:                        p.Status,
+		LastReview:                    p.LastReview,
+		NextReview:                    p.NextReview,
+		Notes:                         p.Notes,
+		ExternalID:                    p.ExternalID,
 	}
-	// Defaults for required validation fields when web UI sends minimal payload
-	if risk.RiskType == "" {
-		risk.RiskType = "threat"
-	}
-	if risk.Origin == "" {
-		risk.Origin = "internal"
-	}
-	// No default for Category: the column is nullable and empty is a valid
-	// "uncategorised". Picking the first configured category would be
-	// order-dependent and surprising.
+	applyRiskDefaults(&risk, actor)
+	// Apply-only default: an agent proposing a risk without a score gets the
+	// mid-point rather than an unscored risk.
 	if risk.CurrentLikelihood == nil {
 		l := 3
 		risk.CurrentLikelihood = &l
@@ -798,16 +802,41 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		i := 3
 		risk.CurrentImpact = &i
 	}
-	// Seed description with section headings when empty
-	// (potential_consequences column was folded into description).
-	if risk.Description == "" {
-		risk.Description = "## Description\n\n\n\n## Potential consequences\n\n"
+	// No default for Category: the column is nullable and empty is a valid
+	// "uncategorised". Picking the first configured category would be
+	// order-dependent and surprising.
+	if err := validateRiskCreate(&risk, s.riskCategoryKeys(ctx, orgID)); err != nil {
+		return "", 0, err
 	}
-
+	defs := s.customFieldDefs(ctx, orgID)
+	// checkRequired=false, deliberately: agents cannot fill out a form, so a
+	// required custom field must never block an agent-created risk. See
+	// "Required fields are in scope" in the implementation plan for #213/#216.
+	if err := db.ValidateCustomFieldValues(defs, p.CustomFields, false); err != nil {
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	risk.CustomFields = db.NormalizeCustomFieldValues(defs, p.CustomFields)
+	if err := validateRiskTreatment(&risk); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateAssignedMember(ctx, orgID, risk.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateRiskTx(ctx, tx, orgID, &risk, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "risk", risk.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "risk", EntityID: risk.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return risk.Identifier, risk.ID, nil
 }
 
@@ -818,12 +847,12 @@ func applyRiskReassess(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		Reason            string `json:"reason"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid reassess payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reassess payload: "+err.Error())
 	}
 
 	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("risk")
 	}
 
 	old := risk.ToChangeMap()
@@ -846,183 +875,138 @@ func applyRiskReassess(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 }
 
 func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
-	}
-
-	old := risk.ToChangeMap()
-
-	if v, ok := payload.Fields["owner"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Owner = s
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Status = s
-		}
-	}
-	if v, ok := payload.Fields["treatment"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Treatment = s
-		}
-	}
-	if v, ok := payload.Fields["treatment_plan"]; ok {
-		if s, ok := v.(string); ok {
-			risk.TreatmentPlan = s
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if s, ok := v.(string); ok {
-			risk.Notes = s
-		}
-	}
-
-	if err := db.UpdateRiskTx(ctx, tx, orgID, risk, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
+	var req riskUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("risk", int64(risk.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, risk.ToChangeMap())
+	id, err := s.resolveRiskID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("risk")
+	}
+	old, err := s.db.GetRisk(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("risk")
+	}
+	updated, explicitNextReview, err := s.prepareRiskUpdate(ctx, orgID, old, &req, actor)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateRiskTx(ctx, tx, orgID, &updated, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	defs := s.customFieldDefs(ctx, orgID)
+	diffs := db.DiffFields("risk", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(defs...), updated.ToChangeMap(defs...))
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return risk.Identifier, risk.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: INCIDENTS
 // ═══════════════════════════════════════════════════════════════════════
 
-// incidentCreatePayload is the payload of an incident:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// incidentCreatePayload is the payload of an incident:create suggestion: the
+// POST /incidents body (#200). "summary" and "affected_systems" are no longer
+// accepted: they were decoded and silently discarded. Decoded strictly.
 type incidentCreatePayload struct {
-	Title           string   `json:"title"`
-	Summary         string   `json:"summary"`
-	Description     string   `json:"description"`
-	Severity        string   `json:"severity"`
-	AffectsC        bool     `json:"affects_c"`
-	AffectsI        bool     `json:"affects_i"`
-	AffectsA        bool     `json:"affects_a"`
-	AffectedSystems []string `json:"affected_systems"`
+	incidentCreateRequest
 }
 
 func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload incidentCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid incident payload: %w", err)
+	var p incidentCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in incident payload")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	inc := db.Incident{
-		Title:       payload.Title,
-		Description: payload.Description,
-		Severity:    payload.Severity,
-		AffectsC:    payload.AffectsC,
-		AffectsI:    payload.AffectsI,
-		AffectsA:    payload.AffectsA,
-		Status:      "open",
-		Assignee:    actor,
+		Title:               p.Title,
+		Description:         p.Description,
+		Severity:            p.Severity,
+		Status:              p.Status,
+		AffectsC:            p.AffectsC,
+		AffectsI:            p.AffectsI,
+		AffectsA:            p.AffectsA,
+		IncidentType:        p.IncidentType,
+		Source:              p.Source,
+		Notes:               p.Notes,
+		DataBreach:          p.DataBreach,
+		GDPRRole:            p.GDPRRole,
+		AuthorityNotified:   p.AuthorityNotified,
+		AuthorityNotifiedAt: p.AuthorityNotifiedAt,
+		SubjectsNotified:    p.SubjectsNotified,
+		SubjectsNotifiedAt:  p.SubjectsNotifiedAt,
+		Reporter:            p.Reporter,
+		Assignee:            p.Assignee,
+		DetectedAt:          p.DetectedAt,
+		RootCause:           p.RootCause,
+		LessonsLearned:      p.LessonsLearned,
+		ExternalID:          p.ExternalID,
 	}
-	// Defaults for required fields when web UI sends minimal payload
-	if inc.Severity == "" {
-		inc.Severity = "medium"
+	s.applyIncidentDefaults(ctx, orgID, &inc, actor)
+	if err := validateIncidentCreate(&inc); err != nil {
+		return "", 0, err
 	}
-	if inc.IncidentType == "" {
-		inc.IncidentType = "event"
+	// Validate the effective assignee, as the HTTP handler does after defaults:
+	// it can come from the payload's reporter. The acting user is a member by
+	// construction and is not re-checked.
+	if err := s.validateAssignedMember(ctx, orgID, inc.Assignee, actor); err != nil {
+		return "", 0, err
 	}
-	if inc.Source == "" {
-		inc.Source = "internal"
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
-	if inc.Reporter == "" {
-		inc.Reporter = actor
-	}
-
 	if err := db.CreateIncidentTx(ctx, tx, orgID, &inc); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "incident", inc.Identifier, inc.Reporter, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "incident", EntityID: int64(inc.ID), Action: "create", ChangedBy: inc.Reporter,
+	}); err != nil {
+		return "", 0, err
+	}
 	return inc.Identifier, inc.ID, nil
 }
 
 func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
-	}
-	inc, err := s.db.GetIncident(ctx, orgID, incID)
-	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
-	}
-
-	old := inc.ToChangeMap()
-	prevStatus := inc.Status
-
-	if v, ok := payload.Fields["severity"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Severity = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["root_cause"]; ok {
-		if sv, ok := v.(string); ok {
-			inc.RootCause = sv
-		}
-	}
-	if v, ok := payload.Fields["affects_c"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsC = bv
-		}
-	}
-	if v, ok := payload.Fields["affects_i"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsI = bv
-		}
-	}
-	if v, ok := payload.Fields["affects_a"]; ok {
-		if bv, ok := v.(bool); ok {
-			inc.AffectsA = bv
-		}
-	}
-
-	// Unified write path (#26): same open-CA guard + lifecycle timestamps the
-	// HTTP handler enforces — previously suggestion-apply bypassed both.
-	if err := enforceIncidentWriteTx(ctx, tx, orgID, inc, prevStatus); err != nil {
+	var req incidentUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
+	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("incident")
+	}
+	old, err := s.db.GetIncident(ctx, orgID, incID)
+	if err != nil {
+		return "", 0, errNotFound("incident")
+	}
+	updated, err := s.prepareIncidentUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = incID
 
-	diffs := db.DiffFields("incident", int64(inc.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, inc.ToChangeMap())
+	// Unified write path (#26): same open-CA guard + lifecycle timestamps the
+	// HTTP handler enforces.
+	if err := enforceIncidentWriteTx(ctx, tx, orgID, &updated, old.Status); err != nil {
+		return "", 0, err
+	}
+	after, err := db.GetIncidentTx(ctx, tx, orgID, incID)
+	if err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("incident", int64(incID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), after.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return inc.Identifier, inc.ID, nil
+	return after.Identifier, after.ID, nil
 }
 
 func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
@@ -1033,11 +1017,11 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		} `json:"links"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid link payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid link payload: "+err.Error())
 	}
 	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("incident")
 	}
 
 	// Store the source under the incident's identifier, as POST /references
@@ -1045,7 +1029,7 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	// accepts but which does not resolve as a reference (#341, #346).
 	inc, err := s.db.GetIncident(ctx, orgID, incID)
 	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("incident")
 	}
 	viewer := db.TaskViewer{Email: actor, CanSeeAll: true} // apply is manager/admin-only
 
@@ -1068,7 +1052,7 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		linked++
 	}
 	if linked == 0 {
-		return "", 0, fmt.Errorf("no links in payload")
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "no links in payload")
 	}
 
 	return sg.EntityID, incID, nil
@@ -1078,861 +1062,961 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: SUPPLIERS
 // ═══════════════════════════════════════════════════════════════════════
 
-// supplierCreatePayload is the payload of a supplier:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// supplierCreatePayload is the payload of a supplier:create suggestion: the POST
+// /suppliers body (#200). Decoded strictly.
 type supplierCreatePayload struct {
-	Name         string `json:"name"`
-	SupplierType string `json:"supplier_type"`
-	Criticality  string `json:"criticality"`
-	Owner        string `json:"owner"`
-	Notes        string `json:"notes"`
+	supplierCreateRequest
 	// Suppliers have no description; the services text lives in notes. Accepted
-	// and ignored only so supplier suggestions stored before #298, when the server
-	// copied the rationale in as "description", can still be applied.
+	// and ignored: SuggestNewButton and the server's rationale copy both send it,
+	// and suggestions stored before #298 carry it.
 	Description string `json:"description"`
 }
 
 func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload supplierCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid supplier payload: %w", err)
+	var p supplierCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in supplier payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
-
 	sup := db.Supplier{
-		Name:         payload.Name,
-		SupplierType: payload.SupplierType,
-		Criticality:  payload.Criticality,
-		Owner:        payload.Owner,
-		Notes:        payload.Notes,
+		Name:            p.Name,
+		SupplierType:    p.SupplierType,
+		Criticality:     p.Criticality,
+		DataAccess:      p.DataAccess,
+		Contact:         p.Contact,
+		ContractRef:     p.ContractRef,
+		Status:          p.Status,
+		Owner:           p.Owner,
+		ContractExpiry:  p.ContractExpiry,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applySupplierDefaults(&sup, actor)
 	if err := validateSupplierCreate(&sup); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.validateAssignedMember(ctx, orgID, sup.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateSupplierTx(ctx, tx, orgID, &sup, s.db.SupplierReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "supplier", sup.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "supplier", EntityID: sup.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return sup.Identifier, sup.ID, nil
 }
 
 func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("supplier %s not found: %w", sg.EntityID, err)
-	}
-
-	old := sup.ToChangeMap()
-
-	if v, ok := payload.Fields["criticality"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Criticality = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			sup.Status = sv
-		}
-	}
-
-	if err := db.UpdateSupplierTx(ctx, tx, orgID, sup, s.db.SupplierReviewCycles(ctx, orgID), nil); err != nil {
+	var req supplierUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("supplier", sup.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, sup.ToChangeMap())
+	id, err := s.resolveSupplierID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("supplier")
+	}
+	old, err := s.db.GetSupplier(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("supplier")
+	}
+	updated, explicitNextReview, err := s.prepareSupplierUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateSupplierTx(ctx, tx, orgID, &updated, s.db.SupplierReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("supplier", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return sup.Identifier, sup.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: LEGAL
 // ═══════════════════════════════════════════════════════════════════════
 
-// legalCreatePayload is the payload of a legal_requirement:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// legalCreatePayload is the payload of a legal_requirement:create suggestion: the
+// POST /legal body (#200). Decoded strictly.
 type legalCreatePayload struct {
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Jurisdiction string `json:"jurisdiction"`
-	Category     string `json:"category"`
-	Owner        string `json:"owner"`
-	Notes        string `json:"notes"`
+	legalCreateRequest
 }
 
 func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload legalCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid legal payload: %w", err)
+	var p legalCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required in legal payload")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-
 	lr := db.LegalRequirement{
-		Title:        payload.Title,
-		Description:  payload.Description,
-		Jurisdiction: payload.Jurisdiction,
-		Category:     payload.Category,
-		Owner:        payload.Owner,
-		Notes:        payload.Notes,
+		Title:             p.Title,
+		Description:       p.Description,
+		Jurisdiction:      p.Jurisdiction,
+		Category:          p.Category,
+		Reference:         p.Reference,
+		URL:               p.URL,
+		Status:            p.Status,
+		Owner:             p.Owner,
+		LastReview:        p.LastReview,
+		NextReview:        p.NextReview,
+		Notes:             p.Notes,
+		CurrentLikelihood: p.CurrentLikelihood,
+		CurrentImpact:     p.CurrentImpact,
+		Treatment:         p.Treatment,
+		TreatmentPlan:     p.TreatmentPlan,
+		TargetLikelihood:  p.TargetLikelihood,
+		TargetImpact:      p.TargetImpact,
+		Completion:        p.Completion,
+		ExternalID:        p.ExternalID,
 	}
 	applyLegalDefaults(&lr, actor)
 	if err := validateLegalCreate(&lr); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.validateAssignedMember(ctx, orgID, lr.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateLegalRequirementTx(ctx, tx, orgID, &lr, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
-
+	if err := s.createReferencesTx(ctx, tx, orgID, "legal_requirement", lr.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "legal_requirement", EntityID: int64(lr.ID), Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
 	return lr.Identifier, lr.ID, nil
 }
 
 func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
-	}
-
-	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, sg.EntityID)
-	if err != nil {
-		return "", 0, fmt.Errorf("legal requirement %s not found: %w", sg.EntityID, err)
-	}
-
-	old := lr.ToChangeMap()
-
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			lr.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			lr.Notes = sv
-		}
-	}
-
-	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, lr, s.db.RiskReviewCycles(ctx, orgID), nil); err != nil {
+	var req legalUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
 		return "", 0, err
 	}
-
-	diffs := db.DiffFields("legal_requirement", int64(lr.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, lr.ToChangeMap())
+	id, err := s.resolveLegalID(ctx, orgID, sg.EntityID)
+	if err != nil {
+		return "", 0, errNotFound("legal_requirement")
+	}
+	old, err := s.db.GetLegalRequirement(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("legal_requirement")
+	}
+	updated, explicitNextReview, err := s.prepareLegalUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
+	}
+	updated.ID = id
+	if err := db.UpdateLegalRequirementTx(ctx, tx, orgID, &updated, s.db.RiskReviewCycles(ctx, orgID), explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("legal_requirement", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-
-	return lr.Identifier, lr.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: CHANGE REQUESTS
 // ═══════════════════════════════════════════════════════════════════════
 
-// changeCreatePayload is the payload of a change_request:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// changeCreatePayload is the payload of a change_request:create suggestion: the
+// POST /changes body (#200). Decoded strictly.
 type changeCreatePayload struct {
-	Title         string `json:"title"`
-	Description   string `json:"description"`
-	Justification string `json:"justification"`
-	Priority      string `json:"priority"`
-	Category      string `json:"category"`
-	RiskLevel     string `json:"risk_level"`
-	RollbackPlan  string `json:"rollback_plan"`
-	AssignedTo    string `json:"assigned_to"`
+	changeCreateRequest
 }
 
 func applyChangeCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload changeCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid change payload: %w", err)
+	var p changeCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	cr := db.ChangeRequest{
-		Title: payload.Title, Description: payload.Description,
-		Justification: payload.Justification,
-		Priority:      payload.Priority, Category: payload.Category,
-		RiskLevel: payload.RiskLevel, RollbackPlan: payload.RollbackPlan,
-		RequestedBy: actor, AssignedTo: payload.AssignedTo, Status: "proposed",
+		Type:          p.Type,
+		Title:         p.Title,
+		Description:   p.Description,
+		Justification: p.Justification,
+		Priority:      p.Priority,
+		Category:      p.Category,
+		RiskLevel:     p.RiskLevel,
+		RollbackPlan:  p.RollbackPlan,
+		Notes:         p.Notes,
+		AssignedTo:    p.AssignedTo,
+		Status:        p.Status,
+		PlannedAt:     p.PlannedAt,
 	}
-	if cr.Status == "" {
-		cr.Status = "proposed"
+	cr.RequestedBy = actor
+	applyChangeDefaults(&cr)
+	if err := validateChangeCreate(&cr); err != nil {
+		return "", 0, err
 	}
-	if cr.Priority == "" {
-		cr.Priority = "medium"
+	if err := s.validateAssignedMember(ctx, orgID, cr.AssignedTo, actor); err != nil {
+		return "", 0, err
 	}
-	if cr.Category == "" {
-		cr.Category = "process"
-	}
-	if cr.RiskLevel == "" {
-		cr.RiskLevel = "low"
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
 	if err := db.CreateChangeRequestTx(ctx, tx, orgID, &cr); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "change_request", cr.Identifier, cr.RequestedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "change_request", EntityID: int64(cr.ID), Action: "create", ChangedBy: cr.RequestedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return cr.Identifier, int64(cr.ID), nil
 }
 
 func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req changeUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveChangeID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("change_request")
 	}
-	cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
+	old, err := s.db.GetChangeRequest(ctx, orgID, int(id))
 	if err != nil {
-		return "", 0, fmt.Errorf("change request %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("change_request")
 	}
-	if v, ok := payload.Fields["type"]; ok {
-		if sv, ok := v.(string); ok {
-			if err := validateEnum("type", sv, db.ChangeTypes); err != nil {
-				return "", 0, err
-			}
-			cr.Type = sv
-		}
-	}
-	if v, ok := payload.Fields["priority"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.Priority = sv
-		}
-	}
-	if v, ok := payload.Fields["risk_level"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.RiskLevel = sv
-		}
-	}
-	if v, ok := payload.Fields["rollback_plan"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.RollbackPlan = sv
-		}
-	}
-	if v, ok := payload.Fields["assigned_to"]; ok {
-		if sv, ok := v.(string); ok {
-			cr.AssignedTo = sv
-		}
+	updated, err := s.prepareChangeUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return "", 0, err
 	}
 	// Status transitions go through the shared enforced path so approved_at/by and
 	// implemented_at are derived exactly as the HTTP handler does — a plain field
 	// write (UpdateChangeRequestTx doesn't touch status) would skip that metadata.
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok && sv != cr.Status {
-			if err := validateEnum("status", sv, db.ChangeStatuses); err != nil {
-				return "", 0, err
-			}
-			if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, cr.ID, sv, actor); err != nil {
-				return "", 0, err
-			}
-			cr.Status = sv
-			// The HTTP status paths auto-create the "Implement <CR>" task on
-			// approval; keep suggestion-apply identical (#26 acceptance criterion).
-			// Deferred to post-commit — createChangeFollowupTask writes via the pool
-			// and sends mail, neither safe inside this transaction.
-			if sv == "approved" {
-				registerApplyPostCommit(ctx, func() {
-					s.createChangeFollowupTask(context.Background(), orgID, cr, actor)
-				})
-			}
+	if req.Status != nil && *req.Status != old.Status {
+		if err := db.UpdateChangeRequestStatusTx(ctx, tx, orgID, updated.ID, *req.Status, actor); err != nil {
+			return "", 0, err
+		}
+		updated.Status = *req.Status
+		// The HTTP status paths auto-create the "Implement <CR>" task on
+		// approval; keep suggestion-apply identical (#26 acceptance criterion).
+		// Deferred to post-commit — createChangeFollowupTask writes via the pool
+		// and sends mail, neither safe inside this transaction.
+		if *req.Status == "approved" {
+			followup := updated
+			registerApplyPostCommit(ctx, func() {
+				s.createChangeFollowupTask(context.Background(), orgID, &followup, actor)
+			})
 		}
 	}
-	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, cr.ID, cr); err != nil {
+	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, updated.ID, &updated); err != nil {
 		return "", 0, err
 	}
-	return cr.Identifier, int64(cr.ID), nil
+	// There is no transactional getter, so diff the row as read against the merged
+	// value with the new status set. The approved_at/by and implemented_at stamps
+	// written by UpdateChangeRequestStatusTx are deliberately left out of the diff.
+	diffs := db.DiffFields("change_request", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
+	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
+		return "", 0, err
+	}
+	return updated.Identifier, int64(updated.ID), nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: CORRECTIVE ACTIONS
 // ═══════════════════════════════════════════════════════════════════════
 
-// correctiveActionCreatePayload is the payload of a corrective_action:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// correctiveActionCreatePayload is the payload of a corrective_action:create
+// suggestion: the POST /corrective-actions body (#200). Decoded strictly.
 type correctiveActionCreatePayload struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Source      string `json:"source"`
-	Severity    string `json:"severity"`
-	Assignee    string `json:"assignee"`
-	Notes       string `json:"notes"`
-	RootCause   string `json:"root_cause"`
+	correctiveActionCreateRequest
 }
 
 func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload correctiveActionCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid CA payload: %w", err)
+	var p correctiveActionCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	ca := db.CorrectiveAction{
-		Title: payload.Title, Description: payload.Description,
-		Source: payload.Source, Severity: payload.Severity,
-		Assignee: payload.Assignee, CreatedBy: actor,
-		Notes: payload.Notes, RootCause: payload.RootCause,
+		Title:       p.Title,
+		Description: p.Description,
+		Source:      p.Source,
+		Severity:    p.Severity,
+		Status:      p.Status,
+		Assignee:    p.Assignee,
+		DueDate:     p.DueDate,
+		RootCause:   p.RootCause,
+		Notes:       p.Notes,
+		ExternalID:  p.ExternalID,
 	}
+	ca.CreatedBy = actor
 	if ca.Assignee == "" {
-		ca.Assignee = actor
+		ca.Assignee = ca.CreatedBy
 	}
-	// Same server-side defaults as the HTTP create handler (#26) — previously
-	// suggestion-apply seeded a different starting state.
+	// Same server-side defaults as the HTTP create handler (#26).
 	applyCorrectiveActionDefaults(&ca)
+	if err := validateCorrectiveActionCreate(&ca); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateAssignedMember(ctx, orgID, ca.Assignee, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateCorrectiveActionTx(ctx, tx, orgID, &ca); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "corrective_action", ca.Identifier, ca.CreatedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "corrective_action", EntityID: int64(ca.ID), Action: "create", ChangedBy: ca.CreatedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return ca.Identifier, ca.ID, nil
 }
 
 func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req correctiveActionUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	caID, err := s.resolveCorrectiveActionID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("corrective_action")
 	}
-	ca, err := s.db.GetCorrectiveAction(ctx, orgID, caID)
+	old, err := s.db.GetCorrectiveAction(ctx, orgID, caID)
 	if err != nil {
-		return "", 0, fmt.Errorf("corrective action %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("corrective_action")
 	}
-	old := ca.ToChangeMap()
-	prevStatus := ca.Status
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["root_cause"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.RootCause = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			ca.Notes = sv
-		}
-	}
-	// Unified write path (#26): same open-task guard + resolved_at/by the HTTP
-	// handler enforces — previously suggestion-apply bypassed both.
-	if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, ca, prevStatus, actor); err != nil {
+	updated, err := s.prepareCorrectiveActionUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("corrective_action", int64(ca.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, ca.ToChangeMap())
+	updated.ID = caID
+	// Unified write path (#26): open-task guard + resolved_at/by.
+	if err := enforceCorrectiveActionWriteTx(ctx, tx, orgID, &updated, old.Status, actor); err != nil {
+		return "", 0, err
+	}
+	after, err := db.GetCorrectiveActionTx(ctx, tx, orgID, caID)
+	if err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("corrective_action", int64(caID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), after.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return ca.Identifier, ca.ID, nil
+	return after.Identifier, after.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: TASKS
 // ═══════════════════════════════════════════════════════════════════════
 
-// taskCreatePayload is the payload of a task:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// taskCreatePayload is the payload of a task:create suggestion: the POST /tasks
+// body (#200). Decoded strictly.
 type taskCreatePayload struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Assignee    string `json:"assignee"`
-	Priority    string `json:"priority"`
-	TaskType    string `json:"task_type"`
+	taskCreateRequest
 }
 
 func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload taskCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid task payload: %w", err)
+	var p taskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	t := db.Task{
-		Title: payload.Title, Description: payload.Description,
-		Assignee: payload.Assignee, CreatedBy: actor,
-		Priority: payload.Priority, TaskType: payload.TaskType, Status: "open",
+		Title:          p.Title,
+		Description:    p.Description,
+		TaskType:       p.TaskType,
+		Assignee:       p.Assignee,
+		Status:         p.Status,
+		Priority:       p.Priority,
+		DueDate:        p.DueDate,
+		RecurrenceDays: p.RecurrenceDays,
+		Notes:          p.Notes,
 	}
-	if t.Priority == "" {
-		t.Priority = "medium"
+	// tasks.assignee_id is NOT NULL; the assignee defaults to the applier.
+	s.applyTaskDefaults(ctx, orgID, &t, p.Private, actor)
+	if err := validateTaskCreate(&t); err != nil {
+		return "", 0, err
 	}
-	if t.TaskType == "" {
-		t.TaskType = "general"
+	if err := s.validateAssignedMember(ctx, orgID, t.Assignee, actor); err != nil {
+		return "", 0, err
 	}
-	// tasks.assignee_id is NOT NULL; default to the applier when the suggestion carries none.
-	if t.Assignee == "" {
-		t.Assignee = actor
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
 	if err := db.CreateTaskTx(ctx, tx, orgID, &t); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "task", t.Identifier, t.CreatedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "task", EntityID: int64(t.ID), Action: "create", ChangedBy: t.CreatedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return t.Identifier, t.ID, nil
 }
 
 func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req taskUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	taskID, err := s.resolveTaskID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("task %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("task")
 	}
-	t, err := s.db.GetTask(ctx, orgID, taskID)
+	old, err := s.db.GetTask(ctx, orgID, taskID)
 	if err != nil {
-		return "", 0, fmt.Errorf("task %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("task")
 	}
-	old := t.ToChangeMap()
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["priority"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Priority = sv
-		}
-	}
-	if v, ok := payload.Fields["title"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Title = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Status = sv
-		}
-	}
-	if err := db.UpdateTaskTx(ctx, tx, orgID, t); err != nil {
+	updated, err := s.prepareTaskUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("task", int64(t.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, t.ToChangeMap())
+	updated.ID = taskID
+	if err := db.UpdateTaskTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	// A task that is (or becomes) private must leave the shared search index, as
+	// in handleUpdateTask. The non-private upsert stays out of apply (R7).
+	if updated.Private {
+		ident := old.Identifier
+		registerApplyPostCommit(ctx, func() { s.searchRemove(orgID, "task", ident) })
+	}
+	diffs := db.DiffFields("task", taskID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return t.Identifier, t.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: OBJECTIVES
 // ═══════════════════════════════════════════════════════════════════════
 
-// objectiveCreatePayload is the payload of an objective:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// objectiveCreatePayload is the payload of an objective:create suggestion: the
+// POST /objectives body (#200), plus program_key so an agent can name the
+// program by its key. Decoded strictly.
 type objectiveCreatePayload struct {
-	Title             string   `json:"title"`
-	Description       string   `json:"description"`
-	ProgramID         int64    `json:"program_id"`
-	Owner             string   `json:"owner"`
-	MeasurementMethod string   `json:"measurement_method"`
-	TargetValue       *float64 `json:"target_value"`
-	Unit              string   `json:"unit"`
+	objectiveCreateRequest
+	ProgramKey string `json:"program_key"`
+}
+
+// resolveSuggestedProgram picks the program an objective suggestion lands in.
+// A named program (program_id or program_key) must exist in this org. With none
+// named, a lone program is used; several is an error naming their keys. With no
+// program at all it is an error when requireOne is set (apply), and a zero id
+// otherwise (create time, because a program:create suggestion may be pending).
+func (s *Server) resolveSuggestedProgram(ctx context.Context, orgID int, programID int64, programKey string, requireOne bool) (int64, error) {
+	key := strings.ToUpper(strings.TrimSpace(programKey))
+	var byID, byKey *db.Program
+	if programID != 0 {
+		p, err := s.db.GetProgram(ctx, orgID, programID)
+		if err != nil {
+			return 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
+		}
+		byID = p
+	}
+	if key != "" {
+		p, err := s.db.GetProgramByKey(ctx, orgID, key)
+		if err != nil {
+			return 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
+		}
+		byKey = p
+	}
+	switch {
+	case byID != nil && byKey != nil:
+		if byID.ID != byKey.ID {
+			return 0, echo.NewHTTPError(http.StatusBadRequest, "program_id and program_key name different programs")
+		}
+		return byID.ID, nil
+	case byID != nil:
+		return byID.ID, nil
+	case byKey != nil:
+		return byKey.ID, nil
+	}
+	progs, err := s.db.ListPrograms(ctx, orgID)
+	if err != nil {
+		return 0, err
+	}
+	switch len(progs) {
+	case 0:
+		if requireOne {
+			return 0, echo.NewHTTPError(http.StatusBadRequest,
+				"no program exists yet: create one first (a program:create suggestion or POST /programs)")
+		}
+		return 0, nil
+	case 1:
+		return progs[0].ID, nil
+	}
+	keys := make([]string, 0, len(progs))
+	for _, p := range progs {
+		keys = append(keys, p.Key)
+	}
+	sort.Strings(keys)
+	return 0, echo.NewHTTPError(http.StatusBadRequest,
+		"program_id or program_key is required: this organization has several programs ("+strings.Join(keys, ", ")+")")
+}
+
+// checkObjectiveSuggestionProgram is the create/edit-time program check for an
+// objective:create suggestion (the one DB-backed check at that stage).
+func (s *Server) checkObjectiveSuggestionProgram(ctx context.Context, orgID int, entityType, suggestionType string, payload json.RawMessage) error {
+	if entityType != "objective" || suggestionType != "create" {
+		return nil
+	}
+	var p objectiveCreatePayload
+	if err := decodeSuggestionPayload(payload, &p); err != nil {
+		return err
+	}
+	_, err := s.resolveSuggestedProgram(ctx, orgID, p.ProgramID, p.ProgramKey, false)
+	return err
 }
 
 func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload objectiveCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid objective payload: %w", err)
+	var p objectiveCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-	// If no program_id supplied, use the first program in the org
-	if payload.ProgramID == 0 {
-		progs, err := s.db.ListPrograms(ctx, orgID)
-		if err != nil || len(progs) == 0 {
-			return "", 0, fmt.Errorf("program_id is required and no default program exists")
-		}
-		payload.ProgramID = progs[0].ID
+	programID, err := s.resolveSuggestedProgram(ctx, orgID, p.ProgramID, p.ProgramKey, true)
+	if err != nil {
+		return "", 0, err
 	}
 	o := db.Objective{
-		Title:             payload.Title,
-		Description:       payload.Description,
-		ProgramID:         payload.ProgramID,
-		Owner:             payload.Owner,
-		MeasurementMethod: payload.MeasurementMethod,
-		TargetValue:       payload.TargetValue,
-		Unit:              payload.Unit,
+		ProgramID:         programID,
+		Title:             p.Title,
+		Description:       p.Description,
+		Owner:             p.Owner,
+		Source:            p.Source,
+		MeasurementMethod: p.MeasurementMethod,
+		TargetValue:       p.TargetValue,
+		TargetOperator:    p.TargetOperator,
+		Unit:              p.Unit,
+		WindowSeconds:     p.WindowSeconds,
+		GraceSeconds:      p.GraceSeconds,
+		CheckinCycle:      p.CheckinCycle,
+		Status:            p.Status,
+		StartedAt:         p.StartedAt,
+		Notes:             p.Notes,
 	}
 	applyObjectiveDefaults(&o, actor)
 	if err := validateObjectiveCreate(&o); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, o.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateObjectiveTx(ctx, tx, orgID, &o); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "objective", o.DisplayID, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "objective", EntityID: o.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return o.DisplayID, o.ID, nil
 }
 
 func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req objectiveUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveObjectiveID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("objective")
 	}
-	o, err := s.db.GetObjective(ctx, orgID, id)
+	old, err := s.db.GetObjective(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("objective")
 	}
-	old := o.ToChangeMap()
-	if v, ok := payload.Fields["title"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Title = sv
-		}
-	}
-	if v, ok := payload.Fields["description"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Description = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["measurement_method"]; ok {
-		if sv, ok := v.(string); ok {
-			o.MeasurementMethod = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Status = sv
-		}
-	}
-	if err := db.UpdateObjectiveTx(ctx, tx, orgID, o); err != nil {
+	updated, err := s.prepareObjectiveUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("objective", o.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, o.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateObjectiveTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("objective", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return o.DisplayID, o.ID, nil
+	return updated.DisplayID, updated.ID, nil
+}
+
+// programCreatePayload is the payload of a program:create suggestion: the POST
+// /programs body (#200). Decoded strictly.
+type programCreatePayload struct {
+	programCreateRequest
+}
+
+func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
+	var req programCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &req); err != nil {
+		return "", 0, err
+	}
+	pr := db.Program{
+		Key:         strings.ToUpper(strings.TrimSpace(req.Key)),
+		Title:       req.Title,
+		Description: req.Description,
+		Notes:       req.Notes,
+		Owner:       req.Owner,
+	}
+	if pr.Key == "" {
+		return "", 0, errRequired("key")
+	}
+	if pr.Title == "" {
+		return "", 0, errRequired("title")
+	}
+	if err := s.validateAssignedMember(ctx, orgID, pr.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	if err := db.CreateProgramTx(ctx, tx, orgID, &pr); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "program", EntityID: pr.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
+	return pr.Key, pr.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
-// systemCreatePayload is the payload of a system:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// systemCreatePayload is the payload of a system:create suggestion: the POST
+// /systems body (#200), plus "title", which SuggestNewButton.vue sends for every
+// entity and is used as the name when "name" is empty. Decoded strictly.
 type systemCreatePayload struct {
-	Name           string `json:"name"`
-	Title          string `json:"title"` // alias: web UI may send title instead of name
-	Description    string `json:"description"`
-	Classification string `json:"classification"`
-	Criticality    string `json:"criticality"`
-	Department     string `json:"department"`
-	Owner          string `json:"owner"`
+	systemCreateRequest
+	Title string `json:"title"`
 }
 
 func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload systemCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid system payload: %w", err)
+	var p systemCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	// Systems use "name" not "title" — accept either
-	if payload.Name == "" {
-		payload.Name = payload.Title
+	if p.Name == "" {
+		p.Name = p.Title
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in system payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
 	sys := db.System{
-		Name:           payload.Name,
-		Description:    payload.Description,
-		Classification: payload.Classification,
-		Criticality:    payload.Criticality,
-		Department:     payload.Department,
-		Owner:          payload.Owner,
+		Name:            p.Name,
+		Description:     p.Description,
+		SupplierID:      p.SupplierID,
+		Department:      p.Department,
+		Classification:  p.Classification,
+		Criticality:     p.Criticality,
+		Status:          p.Status,
+		RPOHours:        p.RPOHours,
+		RTOHours:        p.RTOHours,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Owner:           p.Owner,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applySystemDefaults(&sys, actor)
 	if err := validateSystemCreate(&sys); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, sys.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateSystemTx(ctx, tx, orgID, &sys); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "system", sys.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "system", EntityID: sys.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return sys.Identifier, sys.ID, nil
 }
 
 func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req systemUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveSystemID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
-	sys, err := s.db.GetSystem(ctx, orgID, id)
+	old, err := s.db.GetSystem(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
-	old := sys.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Name = sv
-		}
-	}
-	if v, ok := payload.Fields["criticality"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Criticality = sv
-		}
-	}
-	if v, ok := payload.Fields["classification"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Classification = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["department"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Department = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			sys.Status = sv
-		}
-	}
-	if err := db.UpdateSystemTx(ctx, tx, orgID, sys, nil); err != nil {
+	updated, explicitNextReview, err := s.prepareSystemUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("system", sys.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, sys.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateSystemTx(ctx, tx, orgID, &updated, explicitNextReview); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("system", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return sys.Identifier, sys.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: ASSETS
 // ═══════════════════════════════════════════════════════════════════════
 
-// assetCreatePayload is the payload of an asset:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// assetCreatePayload is the payload of an asset:create suggestion: the POST
+// /assets body (#200), plus "title", which SuggestNewButton.vue sends for every
+// entity and is used as the name when "name" is empty. Decoded strictly.
 type assetCreatePayload struct {
-	Name        string `json:"name"`
-	Title       string `json:"title"` // alias: web UI may send title instead of name
-	Description string `json:"description"`
-	AssetType   string `json:"asset_type"`
-	Owner       string `json:"owner"`
+	assetCreateRequest
+	Title string `json:"title"`
 }
 
 func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload assetCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid asset payload: %w", err)
+	var p assetCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	// Assets use "name" not "title" — accept either
-	if payload.Name == "" {
-		payload.Name = payload.Title
+	if p.Name == "" {
+		p.Name = p.Title
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in asset payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
 	a := db.Asset{
-		Name:        payload.Name,
-		Description: payload.Description,
-		AssetType:   payload.AssetType,
-		Owner:       payload.Owner,
+		Name:            p.Name,
+		Description:     p.Description,
+		AssetType:       p.AssetType,
+		Status:          p.Status,
+		Owner:           p.Owner,
+		PrimaryLocation: p.PrimaryLocation,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applyAssetDefaults(&a, actor)
 	if err := validateAssetCreate(&a); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, a.Owner, actor); err != nil {
+		return "", 0, err
+	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateAssetTx(ctx, tx, orgID, &a); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "asset", a.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "asset", EntityID: a.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return a.Identifier, a.ID, nil
 }
 
 func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req assetUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveAssetID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
-	asset, err := s.db.GetAsset(ctx, orgID, id)
+	old, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
-	old := asset.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Name = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["asset_type"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.AssetType = sv
-		}
-	}
-	if err := db.UpdateAssetTx(ctx, tx, orgID, asset); err != nil {
+	updated, err := s.prepareAssetUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("asset", asset.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, asset.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateAssetTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("asset", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return asset.Identifier, asset.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // APPLY HANDLERS: AUDIT FINDINGS
 // ═══════════════════════════════════════════════════════════════════════
 
-// auditFindingCreatePayload is the payload of an audit_finding:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// auditFindingCreatePayload is the payload of an audit_finding:create suggestion:
+// the POST /audit-findings body (#200). Decoded strictly.
 type auditFindingCreatePayload struct {
-	AuditID     int    `json:"audit_id"`
-	FindingType string `json:"finding_type"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	auditFindingCreateRequest
 }
 
 func applyAuditFindingCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload auditFindingCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid finding payload: %w", err)
-	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
-	}
-	if payload.AuditID == 0 {
-		return "", 0, fmt.Errorf("audit_id is required")
-	}
-	// Seed description with ## Corrective Action heading when empty
-	// (corrective_action column was folded into description).
-	desc := payload.Description
-	if desc == "" {
-		desc = "## Corrective Action\n\n"
-	}
-	f := db.AuditFinding{
-		AuditID:     payload.AuditID,
-		FindingType: payload.FindingType,
-		Title:       payload.Title,
-		Description: desc,
-		Status:      "open",
-	}
-	if f.FindingType == "" {
-		f.FindingType = "observation"
-	}
-	if err := db.AddAuditFindingTx(ctx, tx, orgID, &f); err != nil {
+	var p auditFindingCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
 		return "", 0, err
 	}
-	return fmt.Sprintf("%d", f.ID), f.ID, nil
+	if p.AuditID <= 0 {
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "audit_id is required")
+	}
+	if p.Title == "" {
+		return "", 0, errRequired("title")
+	}
+	// Apply-only default: the HTTP create rejects an empty finding_type, but an
+	// agent proposing a finding without one gets the mildest type.
+	if p.FindingType == "" {
+		p.FindingType = "observation"
+	}
+	f, err := s.buildAuditFindingCreate(ctx, orgID, &p.auditFindingCreateRequest)
+	if err != nil {
+		return "", 0, err
+	}
+	if err := db.AddAuditFindingTx(ctx, tx, orgID, f); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "audit_finding", EntityID: f.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
+	return fmt.Sprintf("FIND-%d", f.ID), f.ID, nil
 }
 
 func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req auditFindingUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	// A finding's display id is built from its primary key (db/audits.go), so
 	// the strip is exact here — the one place it is (see entityIDResolvers).
-	idInt, err := strconv.ParseInt(stripPrefix(sg.EntityID, "FIND-"), 10, 64)
+	id, err := strconv.ParseInt(stripPrefix(sg.EntityID, "FIND-"), 10, 64)
 	if err != nil {
-		return "", 0, fmt.Errorf("audit finding %s: invalid id", sg.EntityID)
+		return "", 0, apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
-	for field, val := range payload.Fields {
-		// Status transitions go through the shared closure-metadata path (same as
-		// the HTTP handler) — a plain field write would skip closed_at/closed_by.
-		if field == "status" {
-			sv, ok := val.(string)
-			if !ok {
-				return "", 0, fmt.Errorf("field status: expected a string, got %T", val)
-			}
-			if !db.AuditFindingStatuses[sv] {
-				return "", 0, fmt.Errorf("invalid status: %s", sv)
-			}
-			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, idInt, sv, actor); err != nil {
-				return "", 0, err
-			}
-			continue
-		}
-		sv, ok := val.(string)
-		if !ok {
-			continue
-		}
-		if err := db.UpdateAuditFindingFieldTx(ctx, tx, orgID, int(idInt), field, sv); err != nil {
-			return "", 0, fmt.Errorf("updating field %s: %w", field, err)
+	before, err := s.db.GetAuditFinding(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("audit_finding")
+	}
+	if err := s.prepareAuditFindingUpdate(ctx, orgID, &req); err != nil {
+		return "", 0, err
+	}
+	if req.Title != nil || req.Description != nil || req.Owner != nil || req.DueDate.Set {
+		if err := db.UpdateAuditFindingPartialTx(ctx, tx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate.Ptr()); err != nil {
+			return "", 0, err
 		}
 	}
-	return sg.EntityID, idInt, nil
+	// Status transitions go through the shared closure-metadata path (same as the
+	// HTTP handler) — a plain field write would skip closed_at/closed_by.
+	if req.Status != nil {
+		if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, id, *req.Status, actor); err != nil {
+			return "", 0, err
+		}
+	}
+	// There is no transactional getter, so build the after-state by merging. The
+	// closure stamps are not part of the change map.
+	after := *before
+	if req.Title != nil {
+		after.Title = *req.Title
+	}
+	if req.Description != nil {
+		after.Description = *req.Description
+	}
+	if req.Owner != nil {
+		after.Owner = *req.Owner
+	}
+	if req.DueDate.Set {
+		after.DueDate = req.DueDate.Value
+	}
+	if req.Status != nil {
+		after.Status = *req.Status
+	}
+	diffs := db.DiffFields("audit_finding", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), before.ToChangeMap(), after.ToChangeMap())
+	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
+		return "", 0, err
+	}
+	return sg.EntityID, id, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1942,12 +2026,12 @@ func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 func applyRiskReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
 	var reading db.EntityReading
 	if err := json.Unmarshal(sg.Payload, &reading); err != nil {
-		return "", 0, fmt.Errorf("invalid reading payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reading payload: "+err.Error())
 	}
 
 	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("risk")
 	}
 
 	reading.EntityType = "risk"
@@ -1966,12 +2050,12 @@ func applyRiskReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 func applyLegalReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
 	var reading db.EntityReading
 	if err := json.Unmarshal(sg.Payload, &reading); err != nil {
-		return "", 0, fmt.Errorf("invalid reading payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reading payload: "+err.Error())
 	}
 
 	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("legal requirement %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("legal_requirement")
 	}
 
 	reading.EntityType = "legal_requirement"
@@ -1997,12 +2081,12 @@ func applySupplierReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, or
 		Notes                  string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid review payload: "+err.Error())
 	}
 
 	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("supplier %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("supplier")
 	}
 
 	if payload.Outcome == "" {
@@ -2037,12 +2121,12 @@ func applyAccessReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, orgI
 		Notes        string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid access review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid access review payload: "+err.Error())
 	}
 
 	sys, err := s.db.GetSystemByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
 
 	if payload.Notes == "" {
@@ -2073,12 +2157,12 @@ func applyAssetReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, orgID
 		Notes                  string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid asset review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid asset review payload: "+err.Error())
 	}
 
 	asset, err := s.db.GetAssetByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
 
 	if payload.Outcome == "" {

@@ -658,6 +658,43 @@ func (s *Server) handleGetAuditFinding(c echo.Context) error {
 	return c.JSON(http.StatusOK, f)
 }
 
+// buildAuditFindingCreate validates a create request (finding type, the audit
+// belongs to this org, owner is a member) and returns the finding to insert.
+// Shared by handleAddAuditFinding and applyAuditFindingCreate (#200).
+func (s *Server) buildAuditFindingCreate(ctx context.Context, orgID int, req *auditFindingCreateRequest) (*db.AuditFinding, error) {
+	// Description is optional at create time — fill via the edit modal.
+	if !db.AuditFindingTypes[req.FindingType] {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "invalid finding_type: "+req.FindingType)
+	}
+	// Cross-org: confirm the audit belongs to this org before insert.
+	if exists, err := s.db.AuditExists(ctx, orgID, req.AuditID); err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	} else if !exists {
+		return nil, apiError(http.StatusNotFound, CodeNotFoundInOrg, Entity("audit"))
+	}
+	if req.Owner != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, req.Owner); err != nil {
+			return nil, err
+		}
+	}
+
+	// Seed description with ## Corrective Action heading if not provided.
+	desc := req.Description
+	if desc == "" {
+		desc = "## Corrective Action\n\n"
+	}
+	return &db.AuditFinding{
+		AuditID:     req.AuditID,
+		AuditItemID: req.AuditItemID,
+		FindingType: req.FindingType,
+		Title:       req.Title,
+		Description: desc,
+		Status:      "open",
+		DueDate:     req.DueDate,
+		Owner:       req.Owner,
+	}, nil
+}
+
 func (s *Server) handleAddAuditFinding(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -675,38 +712,11 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 	if req.Title == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
-	// Description is optional at create time — fill via the edit modal.
-	if !db.AuditFindingTypes[req.FindingType] {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid finding_type: "+req.FindingType)
+	f, err := s.buildAuditFindingCreate(ctx, orgID, &req)
+	if err != nil {
+		return err
 	}
-	// Cross-org: confirm the audit belongs to this org before insert.
-	if exists, err := s.db.AuditExists(ctx, orgID, req.AuditID); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	} else if !exists {
-		return apiError(http.StatusNotFound, CodeNotFoundInOrg, Entity("audit"))
-	}
-	if req.Owner != "" {
-		if err := s.validateOrgMember(c, req.Owner); err != nil {
-			return err
-		}
-	}
-
-	// Seed description with ## Corrective Action heading if not provided.
-	desc := req.Description
-	if desc == "" {
-		desc = "## Corrective Action\n\n"
-	}
-	f := db.AuditFinding{
-		AuditID:     req.AuditID,
-		AuditItemID: req.AuditItemID,
-		FindingType: req.FindingType,
-		Title:       req.Title,
-		Description: desc,
-		Status:      "open",
-		DueDate:     req.DueDate,
-		Owner:       req.Owner,
-	}
-	if err := s.db.AddAuditFinding(ctx, orgID, &f); err != nil {
+	if err := s.db.AddAuditFinding(ctx, orgID, f); err != nil {
 		return pgxHTTPError(err)
 	}
 	out, err := s.db.GetAuditFinding(ctx, orgID, f.ID)
@@ -725,6 +735,21 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 		Detail: fmt.Sprintf("Finding: %s (%s)", out.Title, out.FindingType),
 	})
 	return c.JSON(http.StatusCreated, out)
+}
+
+// prepareAuditFindingUpdate validates an audit finding update request. Shared by
+// handleUpdateAuditFinding and the suggestion apply handler so PUT and apply
+// accept the same values (#200).
+func (s *Server) prepareAuditFindingUpdate(ctx context.Context, orgID int, req *auditFindingUpdateRequest) error {
+	if req.Status != nil && !db.AuditFindingStatuses[*req.Status] {
+		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
+	}
+	if req.Owner != nil && *req.Owner != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
@@ -747,25 +772,20 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	if req.Status != nil && !db.AuditFindingStatuses[*req.Status] {
-		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
-	}
-	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
-		}
+	if err := s.prepareAuditFindingUpdate(ctx, orgID, &req); err != nil {
+		return err
 	}
 	actor := getUserEmail(c)
 
-	// Apply field updates and (optionally) status update atomically per RLS.
-	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, _ pgx.Tx) error {
+	// Apply field updates and (optionally) status update atomically.
+	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 		if req.Title != nil || req.Description != nil || req.Owner != nil || req.DueDate.Set {
-			if err := s.db.UpdateAuditFindingPartial(ctx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate.Ptr()); err != nil {
+			if err := db.UpdateAuditFindingPartialTx(ctx, tx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate.Ptr()); err != nil {
 				return err
 			}
 		}
 		if req.Status != nil {
-			if err := s.db.SetAuditFindingStatus(ctx, orgID, id, *req.Status, actor); err != nil {
+			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, id, *req.Status, actor); err != nil {
 				return err
 			}
 		}

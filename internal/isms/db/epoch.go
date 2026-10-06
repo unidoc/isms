@@ -58,6 +58,8 @@ func (e *Epoch) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("cannot parse time string %q", t)
 	case nil:
 		e.Time = time.Time{}
+	default:
+		return fmt.Errorf("cannot parse time from JSON %T", v)
 	}
 	return nil
 }

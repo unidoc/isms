@@ -120,6 +120,7 @@
     "document_id": "ID de documento",
     "new_email": "nuevo correo electrónico",
     "entity_type": "tipo de entidad",
+    "entity_id": "ID de entidad",
     "suggestion_type": "tipo de sugerencia"
   },
   "enum": {

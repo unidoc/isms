@@ -9,16 +9,17 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
 )
 
-// TestUpdatePayloadFieldsMatchHandlers keeps updatePayloadFields in step with the
-// keys each update apply handler actually reads from payload.Fields.
-func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
+// TestUpdateHandlersDecodeHTTPRequestTypes keeps every update apply handler on
+// the HTTP update request type (#200): each has an updateRequestTypes entry
+// and vice versa, the handler body names that type, and it no longer reads
+// payload.Fields["key"] by hand.
+func TestUpdateHandlersDecodeHTTPRequestTypes(t *testing.T) {
 	file, err := parser.ParseFile(token.NewFileSet(), "api_suggestions.go", nil, 0)
 	if err != nil {
 		t.Fatalf("parsing api_suggestions.go: %v", err)
@@ -36,6 +37,16 @@ func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
 			continue
 		}
 		seen[entity] = true
+		ctor, ok := updateRequestTypes[entity]
+		if !ok {
+			t.Errorf("%s has an update handler but no updateRequestTypes entry", entity)
+			continue
+		}
+		typ := reflect.TypeOf(ctor())
+		if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Struct || !strings.HasSuffix(typ.Elem().Name(), "UpdateRequest") {
+			t.Errorf("updateRequestTypes[%q] returns %v, want a pointer to a struct named ...UpdateRequest", entity, typ)
+			continue
+		}
 		full := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 		name := full[strings.LastIndex(full, ".")+1:]
 		fd := decls[name]
@@ -43,58 +54,67 @@ func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
 			t.Errorf("%s: handler %s not found in api_suggestions.go", key, name)
 			continue
 		}
-		read := map[string]bool{}
+		mentionsType := false
 		ast.Inspect(fd, func(n ast.Node) bool {
-			ix, ok := n.(*ast.IndexExpr)
-			if !ok {
-				return true
-			}
-			sel, ok := ix.X.(*ast.SelectorExpr)
-			if !ok || sel.Sel.Name != "Fields" {
-				return true
-			}
-			lit, ok := ix.Index.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING {
-				return true
-			}
-			if k, err := strconv.Unquote(lit.Value); err == nil {
-				read[k] = true
+			switch x := n.(type) {
+			case *ast.Ident:
+				if x.Name == typ.Elem().Name() {
+					mentionsType = true
+				}
+			case *ast.IndexExpr:
+				if sel, ok := x.X.(*ast.SelectorExpr); ok && sel.Sel.Name == "Fields" {
+					t.Errorf("%s indexes payload.Fields by hand; decode into %s instead", name, typ.Elem().Name())
+				}
 			}
 			return true
 		})
-		if entity == "audit_finding" {
-			// Iterates the map instead of naming keys: status has its own branch,
-			// UpdateAuditFindingFieldTx allows title and description.
-			read = map[string]bool{"title": true, "description": true, "status": true}
-		}
-		allowed := updatePayloadFields[entity]
-		if allowed == nil {
-			t.Errorf("%s has an update handler but no updatePayloadFields entry", entity)
-			continue
-		}
-		for k := range read {
-			if _, ok := allowed[k]; !ok {
-				t.Errorf("%s reads fields[%q] but updatePayloadFields[%q] does not list it", name, k, entity)
-			}
-		}
-		for k := range allowed {
-			if !read[k] {
-				t.Errorf("updatePayloadFields[%q] lists %q but %s never reads it", entity, k, name)
-			}
+		if !mentionsType {
+			t.Errorf("%s never mentions %s", name, typ.Elem().Name())
 		}
 	}
-	for entity := range updatePayloadFields {
+	for entity := range updateRequestTypes {
 		if !seen[entity] {
-			t.Errorf("updatePayloadFields has %q but there is no %s:update handler", entity, entity)
+			t.Errorf("updateRequestTypes has %q but there is no %s:update handler", entity, entity)
 		}
 	}
 }
 
-func TestCreatePayloadValidatorsCoverRegistry(t *testing.T) {
+// TestCreatePayloadsEmbedHTTPRequestTypes keeps every create apply handler on the
+// HTTP create request type (#200): every create handler has a payload type, and
+// each payload type embeds a ...CreateRequest struct, so a field added to POST is
+// accepted by the suggestion path with no second edit.
+func TestCreatePayloadsEmbedHTTPRequestTypes(t *testing.T) {
+	// Each entity must embed ITS OWN create request type, not just any one.
+	wantCreateRequest := map[string]string{
+		"asset": "assetCreateRequest", "system": "systemCreateRequest", "supplier": "supplierCreateRequest",
+		"risk": "riskCreateRequest", "legal_requirement": "legalCreateRequest",
+		"change_request": "changeCreateRequest", "corrective_action": "correctiveActionCreateRequest",
+		"task": "taskCreateRequest", "objective": "objectiveCreateRequest", "incident": "incidentCreateRequest",
+		"audit_finding": "auditFindingCreateRequest", "program": "programCreateRequest",
+	}
+	if len(wantCreateRequest) != len(createPayloadTypes) {
+		t.Errorf("expected map has %d entities, createPayloadTypes has %d", len(wantCreateRequest), len(createPayloadTypes))
+	}
 	for key := range applyRegistry {
 		entity, kind, _ := strings.Cut(key, ":")
-		if kind == "create" && createPayloadValidators[entity] == nil {
-			t.Errorf("%s has a create handler but no createPayloadValidators entry", entity)
+		if kind == "create" && createPayloadTypes[entity] == nil {
+			t.Errorf("%s has a create handler but no createPayloadTypes entry", entity)
+		}
+	}
+	for entity, typ := range createPayloadTypes {
+		if applyRegistry[entity+":create"] == nil {
+			t.Errorf("createPayloadTypes has %q but there is no %s:create handler", entity, entity)
+		}
+		want := wantCreateRequest[entity]
+		embedded := false
+		for i := 0; i < typ.NumField(); i++ {
+			f := typ.Field(i)
+			if f.Anonymous && f.Type.Name() == want {
+				embedded = true
+			}
+		}
+		if !embedded {
+			t.Errorf("%s (%s) does not embed %s", typ.Name(), entity, want)
 		}
 	}
 }
@@ -128,11 +148,24 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("incident", raw(`{"status":"resolved"}`), true), "nothing to apply", "status")
 	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"status":"resolved"},"title":"x"}`), false), "title")
 	// #200: unknown field, named with the supported list.
-	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"title":"x"}}`), true), "title", "supported", "root_cause")
+	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"bogus":"x"}}`), true), "bogus", "supported", "root_cause")
 	// #200: wrong type instead of a silent skip.
-	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"affects_c":"yes"}}`), true), "affects_c", "true or false")
-	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":3}}`), true), "notes", "a string")
-	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":null}}`), true), "notes")
+	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"affects_c":"yes"}}`), true), "affects_c", "invalid field value")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":3}}`), true), "notes", "invalid field value")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":null}}`), true), "notes", "cannot be null")
+	// #200: asset update accepts every field PUT does; null clears only Optional fields.
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"confidentiality":"high"}}`), true), "confidentiality")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"bogus":1}}`), true), "bogus", "supported")
+	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"rpo_hours":"x"}}`), true), "rpo_hours")
+	assert400(t, validateUpdatePayload("system", raw(`{"fields":{"name":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("supplier", raw(`{"fields":{"data_access":"yes"}}`), true), "data_access")
+	assert400(t, validateUpdatePayload("risk", raw(`{"fields":{"custom_fields":null}}`), true), "custom_fields", "cannot be null")
+	assert400(t, validateUpdatePayload("legal_requirement", raw(`{"fields":{"completion":"x"}}`), true), "completion")
+	assert400(t, validateUpdatePayload("objective", raw(`{"fields":{"status":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("corrective_action", raw(`{"fields":{"notes":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("change_request", raw(`{"fields":{"status":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("task", raw(`{"fields":{"private":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("audit_finding", raw(`{"fields":{"title":null}}`), true), "cannot be null")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -140,7 +173,18 @@ func TestValidateUpdatePayload(t *testing.T) {
 	for _, tc := range []struct{ entity, payload string }{
 		{"incident", `{"fields":{"status":"resolved","affects_c":true}}`},
 		{"risk", `{"fields":{"notes":"n"}}`},
-		{"audit_finding", `{"fields":{"description":"d","status":"closed"}}`},
+		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
+		{"asset", `{"fields":{"confidentiality":null}}`},
+		{"task", `{"fields":{"private":true,"recurrence_days":null,"due_date":1893456000}}`},
+		{"change_request", `{"fields":{"title":"t","notes":"n","planned_at":null,"status":"approved"}}`},
+		{"corrective_action", `{"fields":{"title":"t","due_date":null,"external_id":"x"}}`},
+		{"incident", `{"fields":{"title":"t","data_breach":true,"authority_notified_at":null}}`},
+		{"objective", `{"fields":{"target_operator":"lte","target_value":null,"checkin_cycle":4}}`},
+		{"legal_requirement", `{"fields":{"url":"u","completion":50,"target_impact":null}}`},
+		{"risk", `{"fields":{"current_likelihood":4,"treatment_due_date":null,"custom_fields":{}}}`},
+		{"supplier", `{"fields":{"data_access":true,"contract_expiry":null}}`},
+		{"system", `{"fields":{"rpo_hours":4,"supplier_id":null,"next_review":1893456000}}`},
+		{"audit_finding", `{"fields":{"description":"d","status":"closed","owner":"a@b.c","due_date":null}}`},
 	} {
 		if err := validateUpdatePayload(tc.entity, raw(tc.payload), true); err != nil {
 			t.Errorf("%s %s: %v, want nil", tc.entity, tc.payload, err)
@@ -151,7 +195,18 @@ func TestValidateUpdatePayload(t *testing.T) {
 func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
 	// #200: the objective operator that used to be dropped and defaulted to gte.
-	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","target_operator":"lte"}`)), "target_operator")
+	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","bogus":"lte"}`)), "bogus")
+	assert400(t, validateSuggestionPayload("audit_finding", "create", raw(`{"audit_id":1,"title":"c","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("task", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("change_request", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("corrective_action", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("incident", "create", raw(`{"title":"i","summary":"s"}`)), "summary")
+	assert400(t, validateSuggestionPayload("program", "create", raw(`{"key":"A","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("asset", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("system", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("supplier", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"a","bogus":1}`)), "bogus")
+	assert400(t, validateSuggestionPayload("legal_requirement", "create", raw(`{"title":"a","bogus":1}`)), "bogus")
 	// Wrong type.
 	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"r","current_likelihood":"high"}`)), "current_likelihood")
 	// Valid, including an empty payload.
@@ -159,6 +214,19 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"risk", `{"title":"r","description":"d","category":"technology"}`},
 		{"incident", `{}`},
 		{"incident", ``},
+		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
+		{"asset", `{"title":"only a title"}`},
+		{"audit_finding", `{"audit_id":1,"title":"f","finding_type":"minor_nc","due_date":1893456000,"owner":"a@b.c","audit_item_id":3}`},
+		{"task", `{"title":"t","private":true,"recurrence_days":7,"status":"open"}`},
+		{"change_request", `{"title":"c","type":"access_request","notes":"n","status":"proposed","planned_at":1893456000}`},
+		{"corrective_action", `{"title":"c","severity":"major_nc","due_date":1893456000,"status":"todo"}`},
+		{"incident", `{"title":"i","data_breach":true,"gdpr_role":"controller","detected_at":1767225600}`},
+		{"objective", `{"title":"MTTP","target_operator":"lte","status":"active","checkin_cycle":4,"source":"probe","program_key":"AAA"}`},
+		{"program", `{"key":"SEC","title":"Security","notes":"n"}`},
+		{"legal_requirement", `{"title":"l","url":"u","completion":10,"treatment":"accept"}`},
+		{"risk", `{"title":"r","target_likelihood":2,"owner":"a@b.c","next_review":1893456000}`},
+		{"supplier", `{"name":"Acme","data_access":true,"contact":"c","next_review":1893456000}`},
+		{"system", `{"name":"s","rpo_hours":4,"supplier_id":1,"references":[]}`},
 		// Stored before #298 with the rationale copied in: must still decode.
 		{"supplier", `{"name":"Acme","description":"copied rationale"}`},
 	} {
@@ -169,5 +237,32 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	// Other suggestion types are not checked here.
 	if err := validateSuggestionPayload("incident", "link", raw(`{"links":[{"type":"risk","id":"RISK-1"}]}`)); err != nil {
 		t.Errorf("link: %v, want nil", err)
+	}
+}
+
+func TestDecodeUpdateFields(t *testing.T) {
+	type req struct {
+		A *string       `json:"a"`
+		B Optional[int] `json:"b"`
+		C *bool         `json:"c"`
+	}
+	dec := func(payload string) (req, error) {
+		var r req
+		err := decodeUpdateFields("thing", json.RawMessage(payload), &r)
+		return r, err
+	}
+	_, err := dec(`{"fields":{"zzz":1}}`)
+	assert400(t, err, "zzz", "supported", "a, b, c")
+	_, err = dec(`{"fields":{"a":null}}`)
+	assert400(t, err, "cannot be null")
+	r, err := dec(`{"fields":{"b":null}}`)
+	if err != nil || !r.B.Set || r.B.Value != nil {
+		t.Errorf("b:null => %+v, %v; want Set with nil Value", r, err)
+	}
+	_, err = dec(`{"fields":{"a":3}}`)
+	assert400(t, err, "invalid field value")
+	r, err = dec(`{"fields":{"c":true}}`)
+	if err != nil || r.C == nil || !*r.C {
+		t.Errorf("c:true => %+v, %v", r, err)
 	}
 }

@@ -2021,6 +2021,9 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, a.Owner); err != nil {
+		return err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
 		return err
@@ -2129,6 +2132,17 @@ func (s *Server) handleGetSystem(c echo.Context) error {
 	return c.JSON(http.StatusOK, sys)
 }
 
+// validateSystemSupplier verifies the supplier a new system references belongs
+// to this org. Shared by handleCreateSystem and applySystemCreate (#200).
+func (s *Server) validateSystemSupplier(ctx context.Context, orgID int, sys *db.System) error {
+	if sys.SupplierID != nil && *sys.SupplierID > 0 {
+		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
+		}
+	}
+	return nil
+}
+
 func (s *Server) handleCreateSystem(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -2162,11 +2176,11 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 	if err := validateSystemCreate(&sys); err != nil {
 		return err
 	}
-	// Verify supplier belongs to this org if referenced.
-	if sys.SupplierID != nil && *sys.SupplierID > 0 {
-		if _, err := s.db.GetSupplier(ctx, orgID, *sys.SupplierID); err != nil {
-			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
-		}
+	if err := s.validateOrgMember(c, sys.Owner); err != nil {
+		return err
+	}
+	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
+		return err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
@@ -2359,35 +2373,8 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		Notes:                         req.Notes,
 		ExternalID:                    req.ExternalID,
 	}
-	if r.Owner == "" {
-		r.Owner = getUserEmail(c)
-	}
-	// Sensible defaults so the light create form (title + category) just works.
-	// User refines via the edit modal if these aren't right.
-	if r.Status == "" {
-		r.Status = "open"
-	}
-	if r.RiskType == "" {
-		r.RiskType = "threat"
-	}
-	if r.Origin == "" {
-		r.Origin = "internal"
-	}
-	// Seed description with section headings when empty, so the user has clear
-	// places to fill in both the risk description and its potential consequences.
-	if r.Description == "" {
-		r.Description = "## Description\n\n\n\n## Potential consequences\n\n"
-	}
-	if err := validateEnum("status", r.Status, db.RiskStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("risk_type", r.RiskType, db.RiskTypes); err != nil {
-		return err
-	}
-	if err := validateEnum("origin", r.Origin, db.RiskOrigins); err != nil {
-		return err
-	}
-	if err := validateEnum("category", r.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
+	applyRiskDefaults(&r, getUserEmail(c))
+	if err := validateRiskCreate(&r, s.riskCategoryKeys(ctx, orgID)); err != nil {
 		return err
 	}
 	defs := s.customFieldDefs(ctx, orgID)
@@ -2395,7 +2382,7 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	r.CustomFields = db.NormalizeCustomFieldValues(defs, req.CustomFields)
-	if err := validateEnum("treatment", r.Treatment, db.TreatmentOptions); err != nil {
+	if err := validateRiskTreatment(&r); err != nil {
 		return err
 	}
 	if err := s.validateOrgMember(c, r.Owner); err != nil {
@@ -2657,6 +2644,9 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	if err := validateSupplierCreate(&sup); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, sup.Owner); err != nil {
+		return err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
 		return err
@@ -2680,43 +2670,26 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	return c.JSON(http.StatusCreated, sup)
 }
 
-func (s *Server) handleUpdateAsset(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("asset")
-	} else if err != nil {
-		return errNotFound("asset")
-	}
-	old, err := s.db.GetAsset(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("asset")
-	}
-	var req assetUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareAssetUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateAsset and applyAssetUpdate so PUT and suggestion apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareAssetUpdate(ctx context.Context, orgID int, old *db.Asset, req *assetUpdateRequest) (db.Asset, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.AssetStatuses); err != nil {
-			return err
+			return db.Asset{}, err
 		}
 	}
 	if req.AssetType != nil {
 		if err := validateEnum("asset_type", *req.AssetType, db.AssetTypes); err != nil {
-			return err
+			return db.Asset{}, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Asset{}, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -2756,6 +2729,34 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, nil
+}
+
+func (s *Server) handleUpdateAsset(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
+	}
+	old, err := s.db.GetAsset(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("asset")
+	}
+	var req assetUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, err := s.prepareAssetUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateAsset(ctx, orgID, &updated); err != nil {
 		return pgxHTTPError(err)
 	}
@@ -2778,44 +2779,28 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	return c.JSON(http.StatusOK, updated)
 }
 
-func (s *Server) handleUpdateRisk(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("risk")
-	} else if err != nil {
-		return errNotFound("risk")
-	}
-	old, err := s.db.GetRisk(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("risk")
-	}
-	var req riskUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareRiskUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateRisk and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareRiskUpdate(ctx context.Context, orgID int, old *db.Risk, req *riskUpdateRequest, actor string) (db.Risk, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.RiskStatuses); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.RiskType != nil {
 		if err := validateEnum("risk_type", *req.RiskType, db.RiskTypes); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.Origin != nil {
 		if err := validateEnum("origin", *req.Origin, db.RiskOrigins); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if riskCategoryNeedsValidation(req.Category, old.Category) {
 		if err := validateEnum("category", *req.Category, s.riskCategoryKeys(ctx, orgID)); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	defs := s.customFieldDefs(ctx, orgID)
@@ -2827,28 +2812,27 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		// required fields.
 		changed := changedCustomFields(old.CustomFields, *req.CustomFields)
 		if err := db.ValidateCustomFieldValues(defs, changed, false); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		// Required is checked separately over the whole merged map, via a helper
 		// that ignores unknown keys — the full map still carries any orphaned
 		// values from a deleted definition, and re-running the unknown-key check
 		// on those here would reject an edit that never touched them.
 		if err := db.RequiredCustomFieldsSatisfied(defs, *req.CustomFields); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 	}
 	if req.Treatment != nil {
 		if err := validateEnum("treatment", *req.Treatment, db.TreatmentOptions); err != nil {
-			return err
+			return db.Risk{}, nil, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Risk{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Title != nil {
 		updated.Title = *req.Title
 	}
@@ -2935,10 +2919,8 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	}
 
 	if err := updated.Validate(); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return db.Risk{}, nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	actor := getUserEmail(c)
 
 	// Auto-set acceptance provenance when status changes to accepted
 	if updated.Status == "accepted" && old.Status != "accepted" {
@@ -2954,12 +2936,42 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		updated.AcceptedByID = nil
 	}
 
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateRisk(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveRiskID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("risk")
+	} else if err != nil {
+		return errNotFound("risk")
+	}
+	old, err := s.db.GetRisk(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("risk")
+	}
+	var req riskUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	actor := getUserEmail(c)
+	updated, explicitNextReview, err := s.prepareRiskUpdate(ctx, orgID, old, &req, actor)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateRisk(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
 	after, _ := s.db.GetRisk(ctx, orgID, id)
 	if after != nil {
 		reason := c.QueryParam("reason")
+		defs := s.customFieldDefs(ctx, orgID)
 		changes := db.DiffFields("risk", id, actor, reason, old.ToChangeMap(defs...), after.ToChangeMap(defs...))
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
@@ -2975,54 +2987,37 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 	return c.JSON(http.StatusOK, updated)
 }
 
-func (s *Server) handleUpdateSystem(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("system")
-	} else if err != nil {
-		return errNotFound("system")
-	}
-	old, err := s.db.GetSystem(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("system")
-	}
-	var req systemUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareSystemUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateSystem and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareSystemUpdate(ctx context.Context, orgID int, old *db.System, req *systemUpdateRequest) (db.System, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.SystemStatuses); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	if req.Criticality != nil {
 		if err := validateEnum("criticality", *req.Criticality, db.SystemCriticalities); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	if req.Classification != nil {
 		if err := validateEnum("classification", *req.Classification, db.SystemClassifications); err != nil {
-			return err
+			return db.System{}, nil, err
 		}
 	}
 	// A null supplier_id unlinks the supplier, so only a real id needs checking.
 	if req.SupplierID.Set && req.SupplierID.Value != nil && *req.SupplierID.Value > 0 {
 		if _, err := s.db.GetSupplier(ctx, orgID, *req.SupplierID.Value); err != nil {
-			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
+			return db.System{}, nil, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("supplier"))
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.System{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -3074,6 +3069,34 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateSystem(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveSystemID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("system")
+	} else if err != nil {
+		return errNotFound("system")
+	}
+	old, err := s.db.GetSystem(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("system")
+	}
+	var req systemUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, explicitNextReview, err := s.prepareSystemUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateSystem(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}
@@ -3201,48 +3224,31 @@ func (s *Server) handleDeleteAccessReview(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 }
 
-func (s *Server) handleUpdateSupplier(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("supplier")
-	} else if err != nil {
-		return errNotFound("supplier")
-	}
-	old, err := s.db.GetSupplier(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("supplier")
-	}
-	var req supplierUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareSupplierUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateSupplier and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareSupplierUpdate(ctx context.Context, orgID int, old *db.Supplier, req *supplierUpdateRequest) (db.Supplier, *db.Epoch, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.SupplierStatuses); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.SupplierType != nil {
 		if err := validateEnum("supplier_type", *req.SupplierType, db.SupplierTypes); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.Criticality != nil {
 		if err := validateEnum("criticality", *req.Criticality, db.CriticalityLevels); err != nil {
-			return err
+			return db.Supplier{}, nil, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Supplier{}, nil, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -3291,6 +3297,34 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, explicitNextReview, nil
+}
+
+func (s *Server) handleUpdateSupplier(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveSupplierID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("supplier")
+	} else if err != nil {
+		return errNotFound("supplier")
+	}
+	old, err := s.db.GetSupplier(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("supplier")
+	}
+	var req supplierUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, explicitNextReview, err := s.prepareSupplierUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateSupplier(ctx, orgID, &updated, explicitNextReview); err != nil {
 		return pgxHTTPError(err)
 	}

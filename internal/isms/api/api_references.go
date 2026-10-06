@@ -71,6 +71,26 @@ func (s *Server) createReferencesForEntity(ctx context.Context, orgID int, sourc
 	}
 }
 
+// createReferencesTx is createReferencesForEntity inside an existing transaction
+// (suggestion apply, #200): both directions, and a failure aborts the apply
+// instead of being logged.
+func (s *Server) createReferencesTx(ctx context.Context, tx pgx.Tx, orgID int, sourceType, sourceID, actor string, refs []ReferenceInput) error {
+	for _, r := range refs {
+		if r.Type == "" || r.ID == "" {
+			continue
+		}
+		fwd := &db.EntityReference{SourceType: sourceType, SourceID: sourceID, TargetType: r.Type, TargetID: r.ID, CreatedBy: actor}
+		if err := db.CreateReferenceTx(ctx, tx, orgID, fwd); err != nil {
+			return err
+		}
+		rev := &db.EntityReference{SourceType: r.Type, SourceID: r.ID, TargetType: sourceType, TargetID: sourceID, CreatedBy: actor}
+		if err := db.CreateReferenceTx(ctx, tx, orgID, rev); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // handleListReferences returns all references for an entity (both directions).
 func (s *Server) handleListReferences(c echo.Context) error {
 	orgID := getOrgID(c)

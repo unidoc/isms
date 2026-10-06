@@ -70,7 +70,13 @@ func CreateRiskTx(ctx context.Context, tx pgx.Tx, orgID int, r *Risk, cycles map
 	if err := r.Validate(); err != nil {
 		return err
 	}
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := r.NextReview
 	r.CalculateScore(cycles)
+	if explicitNextReview != nil {
+		r.NextReview = explicitNextReview
+	}
 
 	// Allocate identifier within tx
 	var seq int
@@ -169,10 +175,12 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 			incident_type, source, notes, data_breach, gdpr_role,
 			authority_notified, subjects_notified,
 			reporter, reporter_user_id, assignee_id, detected_at,
-			root_cause, lessons_learned, external_id)
+			root_cause, lessons_learned, external_id,
+			authority_notified_at, subjects_notified_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 			$15, $16,
-			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22)
+			$17, (SELECT id FROM users WHERE email = $17), (SELECT id FROM users WHERE email = $18), $19, $20, $21, $22,
+			$23, $24)
 		RETURNING id, created_at, updated_at
 	`, orgID, inc.Identifier, inc.Title, inc.Description, inc.Severity, inc.Status,
 		inc.AffectsC, inc.AffectsI, inc.AffectsA,
@@ -181,6 +189,7 @@ func CreateIncidentTx(ctx context.Context, tx pgx.Tx, orgID int, inc *Incident) 
 		inc.Reporter, inc.Assignee,
 		inc.DetectedAt, nilIfEmpty(inc.RootCause), nilIfEmpty(inc.LessonsLearned),
 		nilIfEmpty(strings.TrimSpace(inc.ExternalID)),
+		inc.AuthorityNotifiedAt, inc.SubjectsNotifiedAt,
 	).Scan(&inc.ID, &inc.CreatedAt, &inc.UpdatedAt)
 }
 
@@ -331,7 +340,12 @@ func LogChangesTx(ctx context.Context, tx pgx.Tx, orgID int, entries []Changelog
 // CreateSupplierTx creates a supplier within an existing transaction.
 func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
 	s.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := s.NextReview
 	s.CalculateNextReview(cycles)
+	if explicitNextReview != nil {
+		s.NextReview = explicitNextReview
+	}
 
 	var seq int
 	err := tx.QueryRow(ctx, `
@@ -408,7 +422,13 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 // share the risk cycle keys by design; there is no separate legal cycle setting.
 func CreateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *LegalRequirement, cycles map[string]int) error {
 	lr.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202). The
+	// calculation still runs for score/level.
+	explicitNextReview := lr.NextReview
 	lr.CalculateRiskScore(cycles)
+	if explicitNextReview != nil {
+		lr.NextReview = explicitNextReview
+	}
 
 	// Use the shared identifier allocator with the SAME entity_type key as the
 	// HTTP path (NextIdentifier(..,"legal_requirement")). The old hardcoded
@@ -481,19 +501,23 @@ func UpdateLegalRequirementTx(ctx context.Context, tx pgx.Tx, orgID int, lr *Leg
 // CreateChangeRequestTx creates a change request within an existing transaction.
 func CreateChangeRequestTx(ctx context.Context, tx pgx.Tx, orgID int, cr *ChangeRequest) error {
 	cr.OrganizationID = orgID
+	// Default the type exactly as the pool CreateChangeRequest does.
+	if cr.Type == "" {
+		cr.Type = "change"
+	}
 	ident, err := nextIdentifierTx(ctx, tx, orgID, "change_request")
 	if err != nil {
 		return err
 	}
 	cr.Identifier = ident
 	return tx.QueryRow(ctx, `
-		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at)
+		INSERT INTO change_requests (organization_id, identifier, title, description, justification, priority, category, risk_level, rollback_plan, notes, requested_by_id, assigned_to_id, status, planned_at, type)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, (SELECT id FROM users WHERE email = $11),
-			CASE WHEN $12 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $12) END, $13, $14)
+			CASE WHEN $12 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $12) END, $13, $14, $15)
 		RETURNING id, created_at, updated_at
 	`, orgID, cr.Identifier, cr.Title, cr.Description, nilIfEmpty(cr.Justification),
 		cr.Priority, cr.Category, cr.RiskLevel, nilIfEmpty(cr.RollbackPlan), nilIfEmpty(cr.Notes),
-		cr.RequestedBy, cr.AssignedTo, cr.Status, cr.PlannedAt,
+		cr.RequestedBy, cr.AssignedTo, cr.Status, cr.PlannedAt, cr.Type,
 	).Scan(&cr.ID, &cr.CreatedAt, &cr.UpdatedAt)
 }
 
@@ -601,13 +625,13 @@ func CreateTaskTx(ctx context.Context, tx pgx.Tx, orgID int, t *Task) error {
 	}
 	t.Identifier = ident
 	return tx.QueryRow(ctx, `
-		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes)
+		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes, private)
 		VALUES ($1, $2, $3, $4, $5,
 			CASE WHEN $6 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $6) END,
-			$7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12)
+			$7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at, updated_at
 	`, orgID, t.Identifier, t.Title, t.Description, t.TaskType,
-		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes),
+		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes), t.Private,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
@@ -618,11 +642,18 @@ func UpdateTaskTx(ctx context.Context, tx pgx.Tx, orgID int, t *Task) error {
 			title = $2, description = $3,
 			assignee_id = CASE WHEN $4 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $4) END,
 			priority = $5, due_date = $6, task_type = $7, status = $8,
-			completed_at = CASE WHEN $8 = 'done' AND completed_at IS NULL THEN now() ELSE completed_at END,
-			notes = $9, updated_at = now()
+			completed_at = CASE
+				WHEN $8 = 'done' AND completed_at IS NULL THEN now()
+				WHEN $8 != 'done' THEN NULL
+				ELSE completed_at
+			END,
+			notes = $9,
+			private = $11,
+			recurrence_days = $12,
+			updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, t.ID, t.Title, nilIfEmpty(t.Description), t.Assignee,
-		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID)
+		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID, t.Private, t.RecurrenceDays)
 	return err
 }
 
@@ -696,6 +727,24 @@ func UpdateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 	return err
 }
 
+// CreateProgramTx creates a program within an existing transaction. It mirrors
+// DB.CreateProgram; the transaction is already scoped to the org.
+func CreateProgramTx(ctx context.Context, tx pgx.Tx, orgID int, p *Program) error {
+	p.OrganizationID = orgID
+	ident, err := nextIdentifierTx(ctx, tx, orgID, "program")
+	if err != nil {
+		return err
+	}
+	p.Identifier = ident
+	return tx.QueryRow(ctx, `
+		INSERT INTO programs (organization_id, identifier, key, title, description, notes, owner_id)
+		VALUES ($1, $2, $3, $4, $5, $6,
+			CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END)
+		RETURNING id, created_at, updated_at
+	`, orgID, p.Identifier, p.Key, p.Title, nilIfEmpty(p.Description), nilIfEmpty(p.Notes), p.Owner,
+	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
+}
+
 // CreateObjectiveTx creates an objective within an existing transaction.
 func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) error {
 	o.OrganizationID = orgID
@@ -747,7 +796,12 @@ func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 // CreateSystemTx creates a system within an existing transaction.
 func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) error {
 	sys.OrganizationID = orgID
+	// An explicit next_review on create wins over the calculated one (#202).
+	explicitNextReview := sys.NextReview
 	sys.CalculateNextReview()
+	if explicitNextReview != nil {
+		sys.NextReview = explicitNextReview
+	}
 	if sys.Status == "" {
 		sys.Status = "active"
 	}
@@ -829,16 +883,11 @@ func AddAuditFindingTx(ctx context.Context, tx pgx.Tx, orgID int, f *AuditFindin
 	).Scan(&f.ID, &f.CreatedAt, &f.UpdatedAt)
 }
 
-// UpdateAuditFindingFieldTx updates a single audit finding field within an existing transaction.
-// Restricted to text fields that the AI suggestion apply-handler may modify; stamps updated_at.
-// Note: corrective_action content is now folded into description (## Corrective Action heading).
-func UpdateAuditFindingFieldTx(ctx context.Context, tx pgx.Tx, orgID int, id int, field, value string) error {
-	allowed := map[string]bool{"description": true, "title": true}
-	if !allowed[field] {
-		return fmt.Errorf("field %s not updatable", field)
-	}
-	_, err := tx.Exec(ctx, fmt.Sprintf(`UPDATE audit_findings SET %s = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, field), id, value, orgID)
-	return err
+// UpdateAuditFindingPartialTx is UpdateAuditFindingPartial inside an existing
+// transaction (suggestion apply and the PUT handler, #200): nil = leave alone,
+// non-nil = set; shares one body with the pool method.
+func UpdateAuditFindingPartialTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, title, description, owner *string, dueDate **Epoch) error {
+	return updateAuditFindingPartial(ctx, tx, orgID, id, title, description, owner, dueDate)
 }
 
 // SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — shares the

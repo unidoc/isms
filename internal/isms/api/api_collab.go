@@ -2364,39 +2364,13 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 		RecurrenceDays: req.RecurrenceDays,
 		Notes:          req.Notes,
 	}
-	t.CreatedBy = getUserEmail(c) // always use authenticated user
-	if t.Assignee == "" {
-		t.Assignee = t.CreatedBy // default: assign to yourself
-	}
-	if t.Status == "" {
-		t.Status = "open"
-	}
-	if t.Priority == "" {
-		t.Priority = "medium"
-	}
-	if t.TaskType == "" {
-		t.TaskType = "general"
-	}
-	// due_date stays optional — no auto-default. Users can leave it empty.
-	if err := validateEnum("status", t.Status, db.TaskStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("priority", t.Priority, db.TaskPriorities); err != nil {
-		return err
-	}
-	if err := validateEnum("task_type", t.TaskType, db.TaskTypes); err != nil {
+	ctx := c.Request().Context()
+	s.applyTaskDefaults(ctx, orgID, &t, req.Private, getUserEmail(c))
+	if err := validateTaskCreate(&t); err != nil {
 		return err
 	}
 	if err := s.validateOrgMember(c, t.Assignee); err != nil {
 		return err
-	}
-	ctx := c.Request().Context()
-	// Visibility: an explicit flag wins; otherwise fall back to the org default
-	// (public unless the org has opted into task_default_private).
-	if req.Private != nil {
-		t.Private = *req.Private
-	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
-		t.Private = true
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
@@ -2596,50 +2570,31 @@ func (s *Server) handleGetTask(c echo.Context) error {
 	return c.JSON(http.StatusOK, task)
 }
 
-func (s *Server) handleUpdateTask(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
-	} else if err != nil {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-
-	old, err := s.db.GetTask(ctx, orgID, id)
-	if err != nil {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-
-	var req taskUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareTaskUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateTask and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareTaskUpdate(ctx context.Context, orgID int, old *db.Task, req *taskUpdateRequest) (db.Task, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.TaskStatuses); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.Priority != nil {
 		if err := validateEnum("priority", *req.Priority, db.TaskPriorities); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.TaskType != nil {
 		if err := validateEnum("task_type", *req.TaskType, db.TaskTypes); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.Assignee != nil && *req.Assignee != "" {
-		if err := s.validateOrgMember(c, *req.Assignee); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Assignee); err != nil {
+			return db.Task{}, err
 		}
 	}
 	t := *old
-	t.ID = id
 	if req.Title != nil {
 		t.Title = *req.Title
 	}
@@ -2670,6 +2625,36 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	if req.Private != nil {
 		t.Private = *req.Private
 	}
+	return t, nil
+}
+
+func (s *Server) handleUpdateTask(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
+	} else if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+
+	old, err := s.db.GetTask(ctx, orgID, id)
+	if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+
+	var req taskUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	t, err := s.prepareTaskUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	t.ID = id
 
 	if err := s.db.UpdateTask(ctx, orgID, &t); err != nil {
 		return pgxHTTPError(err)
@@ -2903,37 +2888,11 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		PlannedAt:     req.PlannedAt,
 	}
 	cr.RequestedBy = getUserEmail(c) // always use authenticated user
-	if cr.AssignedTo == "" {
-		cr.AssignedTo = cr.RequestedBy
-	}
-	if cr.Type == "" {
-		cr.Type = "change"
-	}
-	if cr.Status == "" {
-		cr.Status = "proposed"
-	}
-	if cr.Priority == "" {
-		cr.Priority = "medium"
-	}
-	if cr.Category == "" {
-		cr.Category = "process"
-	}
-	if cr.RiskLevel == "" {
-		cr.RiskLevel = "low"
-	}
-	if err := validateEnum("type", cr.Type, db.ChangeTypes); err != nil {
+	applyChangeDefaults(&cr)
+	if err := validateChangeCreate(&cr); err != nil {
 		return err
 	}
-	if err := validateEnum("status", cr.Status, db.ChangeStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("priority", cr.Priority, db.ChangePriorities); err != nil {
-		return err
-	}
-	if err := validateEnum("category", cr.Category, db.ChangeCategories); err != nil {
-		return err
-	}
-	if err := validateEnum("risk_level", cr.RiskLevel, db.ChangeRiskLevels); err != nil {
+	if err := s.validateOrgMember(c, cr.AssignedTo); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
@@ -2977,6 +2936,79 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	return c.JSON(http.StatusCreated, cr)
 }
 
+// prepareChangeUpdate validates req and returns old with req merged in. The
+// status is validated but not applied: it goes through the dedicated transition
+// function (approved_at / implemented_at), which each caller runs itself. Shared
+// by handleUpdateChange and the suggestion apply handler so PUT and apply accept
+// and write exactly the same fields (#200).
+func (s *Server) prepareChangeUpdate(ctx context.Context, orgID int, old *db.ChangeRequest, req *changeUpdateRequest) (db.ChangeRequest, error) {
+	if req.Type != nil {
+		if err := validateEnum("type", *req.Type, db.ChangeTypes); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	if req.Priority != nil {
+		if err := validateEnum("priority", *req.Priority, db.ChangePriorities); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	if req.Category != nil {
+		if err := validateEnum("category", *req.Category, db.ChangeCategories); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	if req.RiskLevel != nil {
+		if err := validateEnum("risk_level", *req.RiskLevel, db.ChangeRiskLevels); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	if req.Status != nil {
+		if err := validateEnum("status", *req.Status, db.ChangeStatuses); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	if req.AssignedTo != nil && *req.AssignedTo != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.AssignedTo); err != nil {
+			return db.ChangeRequest{}, err
+		}
+	}
+	updated := *old
+	if req.Type != nil {
+		updated.Type = *req.Type
+	}
+	if req.Title != nil {
+		updated.Title = *req.Title
+	}
+	if req.Description != nil {
+		updated.Description = *req.Description
+	}
+	if req.Justification != nil {
+		updated.Justification = *req.Justification
+	}
+	if req.Priority != nil {
+		updated.Priority = *req.Priority
+	}
+	if req.Category != nil {
+		updated.Category = *req.Category
+	}
+	if req.RiskLevel != nil {
+		updated.RiskLevel = *req.RiskLevel
+	}
+	if req.RollbackPlan != nil {
+		updated.RollbackPlan = *req.RollbackPlan
+	}
+	if req.Notes != nil {
+		updated.Notes = *req.Notes
+	}
+	if req.AssignedTo != nil {
+		updated.AssignedTo = *req.AssignedTo
+	}
+	if req.PlannedAt.Set {
+		updated.PlannedAt = req.PlannedAt.Value
+	}
+	return updated, nil
+}
+
 func (s *Server) handleUpdateChange(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -3003,35 +3035,9 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	if req.Type != nil {
-		if err := validateEnum("type", *req.Type, db.ChangeTypes); err != nil {
-			return err
-		}
-	}
-	if req.Priority != nil {
-		if err := validateEnum("priority", *req.Priority, db.ChangePriorities); err != nil {
-			return err
-		}
-	}
-	if req.Category != nil {
-		if err := validateEnum("category", *req.Category, db.ChangeCategories); err != nil {
-			return err
-		}
-	}
-	if req.RiskLevel != nil {
-		if err := validateEnum("risk_level", *req.RiskLevel, db.ChangeRiskLevels); err != nil {
-			return err
-		}
-	}
-	if req.Status != nil {
-		if err := validateEnum("status", *req.Status, db.ChangeStatuses); err != nil {
-			return err
-		}
-	}
-	if req.AssignedTo != nil && *req.AssignedTo != "" {
-		if err := s.validateOrgMember(c, *req.AssignedTo); err != nil {
-			return err
-		}
+	cr, err := s.prepareChangeUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
 	}
 	// Route status changes through the dedicated transition function so that
 	// approved_at / implemented_at are cleared correctly on reverse transitions.
@@ -3044,40 +3050,6 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 		if err := s.db.UpdateChangeRequestStatus(ctx, orgID, id, *req.Status, getUserEmail(c)); err != nil {
 			return pgxHTTPError(err)
 		}
-	}
-	cr := *old
-	if req.Type != nil {
-		cr.Type = *req.Type
-	}
-	if req.Title != nil {
-		cr.Title = *req.Title
-	}
-	if req.Description != nil {
-		cr.Description = *req.Description
-	}
-	if req.Justification != nil {
-		cr.Justification = *req.Justification
-	}
-	if req.Priority != nil {
-		cr.Priority = *req.Priority
-	}
-	if req.Category != nil {
-		cr.Category = *req.Category
-	}
-	if req.RiskLevel != nil {
-		cr.RiskLevel = *req.RiskLevel
-	}
-	if req.RollbackPlan != nil {
-		cr.RollbackPlan = *req.RollbackPlan
-	}
-	if req.Notes != nil {
-		cr.Notes = *req.Notes
-	}
-	if req.AssignedTo != nil {
-		cr.AssignedTo = *req.AssignedTo
-	}
-	if req.PlannedAt.Set {
-		cr.PlannedAt = req.PlannedAt.Value
 	}
 	if err := s.db.UpdateChangeRequest(ctx, orgID, id, &cr); err != nil {
 		return pgxHTTPError(err)

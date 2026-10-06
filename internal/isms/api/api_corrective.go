@@ -113,13 +113,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 	// Server-side create defaults — shared with suggestion-apply so a CA starts
 	// in the same state regardless of write path (#26).
 	applyCorrectiveActionDefaults(&ca)
-	if err := validateEnum("status", ca.Status, db.CorrectiveActionStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("severity", ca.Severity, db.CorrectiveActionSeverities); err != nil {
-		return err
-	}
-	if err := validateEnum("source", ca.Source, db.CorrectiveActionSources); err != nil {
+	if err := validateCorrectiveActionCreate(&ca); err != nil {
 		return err
 	}
 	if err := s.validateOrgMember(c, ca.Assignee); err != nil {
@@ -193,6 +187,71 @@ func (s *Server) handleGetCorrectiveAction(c echo.Context) error {
 	return c.JSON(http.StatusOK, ca)
 }
 
+// prepareCorrectiveActionUpdate validates req and returns old with req merged in.
+// Shared by handleUpdateCorrectiveAction and the suggestion apply handler so PUT
+// and apply accept and write exactly the same fields (#200).
+func (s *Server) prepareCorrectiveActionUpdate(ctx context.Context, orgID int, old *db.CorrectiveAction, req *correctiveActionUpdateRequest) (db.CorrectiveAction, error) {
+	updated := *old
+	if req.Severity != nil {
+		if err := validateEnum("severity", *req.Severity, db.CorrectiveActionSeverities); err != nil {
+			return db.CorrectiveAction{}, err
+		}
+	}
+	if req.Source != nil {
+		if err := validateEnum("source", *req.Source, db.CorrectiveActionSources); err != nil {
+			return db.CorrectiveAction{}, err
+		}
+	}
+	if req.Status != nil {
+		if err := validateEnum("status", *req.Status, db.CorrectiveActionStatuses); err != nil {
+			return db.CorrectiveAction{}, err
+		}
+	}
+	if req.Assignee != nil && *req.Assignee != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Assignee); err != nil {
+			return db.CorrectiveAction{}, err
+		}
+	}
+
+	// Status transitions flow through the unified write path below (open-task
+	// guard + resolved_at/by) — the same enforced function suggestion-apply uses
+	// (#26). Top-level requireRole(admin,manager) already gates status changes.
+	if req.Status != nil {
+		updated.Status = *req.Status
+	}
+
+	// Apply pointer-based partial update onto existing record.
+	if req.Title != nil {
+		updated.Title = *req.Title
+	}
+	if req.Description != nil {
+		updated.Description = *req.Description
+	}
+	if req.Source != nil {
+		updated.Source = *req.Source
+	}
+	if req.Severity != nil {
+		updated.Severity = *req.Severity
+	}
+	if req.Assignee != nil {
+		updated.Assignee = *req.Assignee
+	}
+	if req.DueDate.Set {
+		updated.DueDate = req.DueDate.Value
+	}
+	if req.RootCause != nil {
+		updated.RootCause = *req.RootCause
+	}
+	if req.Notes != nil {
+		updated.Notes = *req.Notes
+	}
+	if req.ExternalID != nil {
+		updated.ExternalID = *req.ExternalID
+	}
+
+	return updated, nil
+}
+
 func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -219,63 +278,11 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	if req.Severity != nil {
-		if err := validateEnum("severity", *req.Severity, db.CorrectiveActionSeverities); err != nil {
-			return err
-		}
+	updated, err := s.prepareCorrectiveActionUpdate(ctx, orgID, existing, &req)
+	if err != nil {
+		return err
 	}
-	if req.Source != nil {
-		if err := validateEnum("source", *req.Source, db.CorrectiveActionSources); err != nil {
-			return err
-		}
-	}
-	if req.Status != nil {
-		if err := validateEnum("status", *req.Status, db.CorrectiveActionStatuses); err != nil {
-			return err
-		}
-	}
-	if req.Assignee != nil && *req.Assignee != "" {
-		if err := s.validateOrgMember(c, *req.Assignee); err != nil {
-			return err
-		}
-	}
-
-	// Status transitions flow through the unified write path below (open-task
-	// guard + resolved_at/by) — the same enforced function suggestion-apply uses
-	// (#26). Top-level requireRole(admin,manager) already gates status changes.
-	if req.Status != nil {
-		existing.Status = *req.Status
-	}
-
-	// Apply pointer-based partial update onto existing record.
-	if req.Title != nil {
-		existing.Title = *req.Title
-	}
-	if req.Description != nil {
-		existing.Description = *req.Description
-	}
-	if req.Source != nil {
-		existing.Source = *req.Source
-	}
-	if req.Severity != nil {
-		existing.Severity = *req.Severity
-	}
-	if req.Assignee != nil {
-		existing.Assignee = *req.Assignee
-	}
-	if req.DueDate.Set {
-		existing.DueDate = req.DueDate.Value
-	}
-	if req.RootCause != nil {
-		existing.RootCause = *req.RootCause
-	}
-	if req.Notes != nil {
-		existing.Notes = *req.Notes
-	}
-	if req.ExternalID != nil {
-		existing.ExternalID = *req.ExternalID
-	}
+	existing = &updated
 
 	existing.ID = id
 	// Single enforced CA write path (#26): open-task guard on resolve +

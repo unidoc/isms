@@ -11,7 +11,7 @@ Thank you for your interest in contributing.
 
 ## Development Setup
 
-- Go 1.22+
+- Go 1.26+ (the `go` line in `go.mod` sets the exact version)
 - Node.js 22+ (for web UI)
 - PostgreSQL 14+
 

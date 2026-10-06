@@ -7,7 +7,7 @@ Running isms.sh in production. Covers deployment, configuration, backup, upgrade
 | Component | Version | Notes |
 |-----------|---------|-------|
 | PostgreSQL | 14+ | Primary data store for all collaboration, registers, and auth |
-| Go | 1.25+ | Only needed if building from source |
+| Go | 1.26+ | Only needed if building from source; the `go` line in `go.mod` sets the exact version |
 | Data directory | Writable path | Git repos and local blob storage |
 | Templates | Disk directory | Separate git repo with standard templates (ISO 27001, etc.) |
 | S3 (optional) | Any S3-compatible | Cloudflare R2, AWS S3, MinIO — for blob storage instead of local disk |
@@ -88,7 +88,7 @@ sudo systemctl enable --now isms
 There is no production Dockerfile shipped (only a dev environment in `devenv/`). For container deployment, build from source inside a multi-stage Dockerfile:
 
 ```dockerfile
-FROM golang:1.25 AS builder
+FROM golang:1.26 AS builder
 WORKDIR /src
 COPY . .
 RUN go build -o /isms ./cmd/isms/

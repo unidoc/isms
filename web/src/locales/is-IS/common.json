@@ -120,6 +120,7 @@
     "document_id": "auðkenni skjals",
     "new_email": "nýtt netfang",
     "entity_type": "tegund færslu",
+    "entity_id": "auðkenni færslu",
     "suggestion_type": "tegund tillögu"
   },
   "enum": {

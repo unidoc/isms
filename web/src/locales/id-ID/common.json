@@ -120,6 +120,7 @@
     "document_id": "ID dokumen",
     "new_email": "email baru",
     "entity_type": "jenis entitas",
+    "entity_id": "ID entitas",
     "suggestion_type": "jenis saran"
   },
   "enum": {

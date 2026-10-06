@@ -132,6 +132,13 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 	if sg.Title == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("title"))
 	}
+	// Types that act on an existing record need it named, or apply can only fail (#200).
+	switch sg.SuggestionType {
+	case "update", "reassess", "reading", "review", "link":
+		if strings.TrimSpace(sg.EntityID) == "" {
+			return apiError(http.StatusBadRequest, CodeRequired, Field("entity_id"))
+		}
+	}
 
 	// Verify apply handler exists for this combination
 	if getApplyHandler(sg.EntityType, sg.SuggestionType) == nil {
@@ -570,6 +577,10 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 		var oce openCAsLinkedError
 		if errors.As(txErr, &oce) {
 			return echo.NewHTTPError(http.StatusConflict, oce.Error())
+		}
+		var ote openTasksLinkedError
+		if errors.As(txErr, &ote) {
+			return echo.NewHTTPError(http.StatusConflict, ote.Error())
 		}
 		return pgxHTTPError(txErr)
 	}

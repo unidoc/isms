@@ -433,11 +433,16 @@ func (s *Server) RLSMiddleware() echo.MiddlewareFunc {
 // validateOrgMember checks that an email belongs to a member of the current org.
 // Returns nil for empty emails (optional fields). Use for owner_id, assignee_id, etc.
 func (s *Server) validateOrgMember(c echo.Context, email string) error {
+	return s.validateOrgMemberIn(c.Request().Context(), getOrgID(c), email)
+}
+
+// validateOrgMemberIn is validateOrgMember for code without an echo.Context
+// (suggestion apply handlers, #200). Same rules, same 400.
+func (s *Server) validateOrgMemberIn(ctx context.Context, orgID int, email string) error {
 	if email == "" || email == "system" {
 		return nil
 	}
-	orgID := getOrgID(c)
-	if _, err := s.db.ValidateOrgUser(c.Request().Context(), orgID, email); err != nil {
+	if _, err := s.db.ValidateOrgUser(ctx, orgID, email); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return nil

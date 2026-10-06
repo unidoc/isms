@@ -120,6 +120,7 @@
     "document_id": "文書ID",
     "new_email": "新しいメール",
     "entity_type": "エンティティ種別",
+    "entity_id": "エンティティID",
     "suggestion_type": "提案種別"
   },
   "enum": {

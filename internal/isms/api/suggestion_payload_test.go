@@ -36,6 +36,9 @@ func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
 			continue
 		}
 		seen[entity] = true
+		if _, typed := updateRequestTypes[entity]; typed {
+			continue // covered by the request-type guard test (#200)
+		}
 		full := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 		name := full[strings.LastIndex(full, ".")+1:]
 		fd := decls[name]
@@ -169,5 +172,32 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	// Other suggestion types are not checked here.
 	if err := validateSuggestionPayload("incident", "link", raw(`{"links":[{"type":"risk","id":"RISK-1"}]}`)); err != nil {
 		t.Errorf("link: %v, want nil", err)
+	}
+}
+
+func TestDecodeUpdateFields(t *testing.T) {
+	type req struct {
+		A *string       `json:"a"`
+		B Optional[int] `json:"b"`
+		C *bool         `json:"c"`
+	}
+	dec := func(payload string) (req, error) {
+		var r req
+		err := decodeUpdateFields("thing", json.RawMessage(payload), &r)
+		return r, err
+	}
+	_, err := dec(`{"fields":{"zzz":1}}`)
+	assert400(t, err, "zzz", "supported", "a, b, c")
+	_, err = dec(`{"fields":{"a":null}}`)
+	assert400(t, err, "cannot be null")
+	r, err := dec(`{"fields":{"b":null}}`)
+	if err != nil || !r.B.Set || r.B.Value != nil {
+		t.Errorf("b:null => %+v, %v; want Set with nil Value", r, err)
+	}
+	_, err = dec(`{"fields":{"a":3}}`)
+	assert400(t, err, "invalid field value")
+	r, err = dec(`{"fields":{"c":true}}`)
+	if err != nil || r.C == nil || !*r.C {
+		t.Errorf("c:true => %+v, %v", r, err)
 	}
 }

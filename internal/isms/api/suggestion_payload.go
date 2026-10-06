@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -78,6 +79,109 @@ var updatePayloadFields = map[string]map[string]payloadKind{
 	},
 }
 
+// updateRequestTypes maps an entity type to a constructor for the HTTP update
+// request type its update apply handler decodes payload.fields into (#200).
+// Entities move here from updatePayloadFields one by one (Steps 3-8); when
+// updatePayloadFields is empty it is deleted (Step 8.3).
+var updateRequestTypes = map[string]func() any{}
+
+// jsonFieldTypes maps each json tag name of struct type t to its field type.
+func jsonFieldTypes(t reflect.Type) map[string]reflect.Type {
+	out := map[string]reflect.Type{}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if !f.IsExported() {
+			continue
+		}
+		name, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		if name == "" || name == "-" {
+			continue
+		}
+		out[name] = f.Type
+	}
+	return out
+}
+
+func isOptionalType(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct && strings.HasPrefix(t.Name(), "Optional[")
+}
+
+// supportedUpdateFields lists the keys an update suggestion of entityType may carry.
+func supportedUpdateFields(entityType string) []string {
+	var out []string
+	if ctor, ok := updateRequestTypes[entityType]; ok {
+		for k := range jsonFieldTypes(reflect.TypeOf(ctor()).Elem()) {
+			out = append(out, k)
+		}
+	} else {
+		for k := range updatePayloadFields[entityType] {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// decodeUpdateFields strictly decodes the "fields" object of an update payload
+// into dst, which must be a pointer to an HTTP update request struct. It refuses:
+//   - keys dst has no json tag for, naming them and the supported list;
+//   - null for any key whose field is not Optional[T] (null means "clear" only
+//     where PUT supports clearing; elsewhere it would be dropped silently);
+//   - values of the wrong JSON type.
+//
+// Shape checks (stray top-level keys, empty fields) stay in validateUpdatePayload.
+func decodeUpdateFields(entityType string, raw json.RawMessage, dst any) error {
+	var top struct {
+		Fields map[string]json.RawMessage `json:"fields"`
+	}
+	if !isJSONNull(raw) {
+		if err := json.Unmarshal(raw, &top); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "update payload must be a JSON object, e.g. "+updateShapeExample)
+		}
+	}
+	tags := jsonFieldTypes(reflect.TypeOf(dst).Elem())
+	keys := make([]string, 0, len(top.Fields))
+	for k := range top.Fields {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var unknown, nulls []string
+	for _, k := range keys {
+		ft, ok := tags[k]
+		if !ok {
+			unknown = append(unknown, k)
+			continue
+		}
+		if isJSONNull(top.Fields[k]) && !isOptionalType(ft) {
+			nulls = append(nulls, k)
+		}
+	}
+	if len(unknown) > 0 {
+		supported := make([]string, 0, len(tags))
+		for k := range tags {
+			supported = append(supported, k)
+		}
+		sort.Strings(supported)
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf(
+			"%s update suggestions cannot apply field(s) %s (supported: %s)",
+			entityType, strings.Join(unknown, ", "), strings.Join(supported, ", ")))
+	}
+	if len(nulls) > 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("field(s) %s cannot be null", strings.Join(nulls, ", ")))
+	}
+	if len(top.Fields) == 0 {
+		return nil
+	}
+	b, err := json.Marshal(top.Fields)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid field value(s): "+err.Error())
+	}
+	if err := json.Unmarshal(b, dst); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid field value(s): "+err.Error())
+	}
+	return nil
+}
+
 // createPayloadValidators strictly decodes a create payload into the same type
 // its apply handler decodes into, so an unknown key or a wrongly typed value is
 // refused at create time exactly as it would be at apply time.
@@ -145,8 +249,9 @@ const updateShapeExample = `{"fields":{"status":"resolved"}}`
 // ("nothing to apply"); without it (create/edit time) that is a free-text
 // suggestion and is allowed.
 func validateUpdatePayload(entityType string, raw json.RawMessage, requireFields bool) error {
-	allowed, ok := updatePayloadFields[entityType]
-	if !ok {
+	allowed, legacy := updatePayloadFields[entityType]
+	ctor, typed := updateRequestTypes[entityType]
+	if !legacy && !typed {
 		return nil // no update handler for this type; the registry check reports that
 	}
 
@@ -190,6 +295,9 @@ func validateUpdatePayload(entityType string, raw json.RawMessage, requireFields
 		return updateShapeError(stray)
 	}
 
+	if typed {
+		return decodeUpdateFields(entityType, raw, ctor())
+	}
 	keys := make([]string, 0, len(fields))
 	for k := range fields {
 		keys = append(keys, k)

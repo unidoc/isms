@@ -134,8 +134,11 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"title":"x"}}`), true), "title", "supported", "root_cause")
 	// #200: wrong type instead of a silent skip.
 	assert400(t, validateUpdatePayload("incident", raw(`{"fields":{"affects_c":"yes"}}`), true), "affects_c", "true or false")
-	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":3}}`), true), "notes", "a string")
-	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":null}}`), true), "notes")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":3}}`), true), "notes", "invalid field value")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"notes":null}}`), true), "notes", "cannot be null")
+	// #200: asset update accepts every field PUT does; null clears only Optional fields.
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"confidentiality":"high"}}`), true), "confidentiality")
+	assert400(t, validateUpdatePayload("asset", raw(`{"fields":{"bogus":1}}`), true), "bogus", "supported")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -143,6 +146,8 @@ func TestValidateUpdatePayload(t *testing.T) {
 	for _, tc := range []struct{ entity, payload string }{
 		{"incident", `{"fields":{"status":"resolved","affects_c":true}}`},
 		{"risk", `{"fields":{"notes":"n"}}`},
+		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
+		{"asset", `{"fields":{"confidentiality":null}}`},
 		{"audit_finding", `{"fields":{"description":"d","status":"closed"}}`},
 	} {
 		if err := validateUpdatePayload(tc.entity, raw(tc.payload), true); err != nil {
@@ -155,6 +160,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
 	// #200: the objective operator that used to be dropped and defaulted to gte.
 	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","target_operator":"lte"}`)), "target_operator")
+	assert400(t, validateSuggestionPayload("asset", "create", raw(`{"name":"a","bogus":1}`)), "bogus")
 	// Wrong type.
 	assert400(t, validateSuggestionPayload("risk", "create", raw(`{"title":"r","current_likelihood":"high"}`)), "current_likelihood")
 	// Valid, including an empty payload.
@@ -162,6 +168,8 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"risk", `{"title":"r","description":"d","category":"technology"}`},
 		{"incident", `{}`},
 		{"incident", ``},
+		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
+		{"asset", `{"title":"only a title"}`},
 		// Stored before #298 with the rationale copied in: must still decode.
 		{"supplier", `{"name":"Acme","description":"copied rationale"}`},
 	} {

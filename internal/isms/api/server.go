@@ -2680,43 +2680,26 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	return c.JSON(http.StatusCreated, sup)
 }
 
-func (s *Server) handleUpdateAsset(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("asset")
-	} else if err != nil {
-		return errNotFound("asset")
-	}
-	old, err := s.db.GetAsset(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("asset")
-	}
-	var req assetUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareAssetUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateAsset and applyAssetUpdate so PUT and suggestion apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareAssetUpdate(ctx context.Context, orgID int, old *db.Asset, req *assetUpdateRequest) (db.Asset, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.AssetStatuses); err != nil {
-			return err
+			return db.Asset{}, err
 		}
 	}
 	if req.AssetType != nil {
 		if err := validateEnum("asset_type", *req.AssetType, db.AssetTypes); err != nil {
-			return err
+			return db.Asset{}, err
 		}
 	}
 	if req.Owner != nil && *req.Owner != "" {
-		if err := s.validateOrgMember(c, *req.Owner); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
+			return db.Asset{}, err
 		}
 	}
 	updated := *old
-	updated.ID = id
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -2756,6 +2739,34 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
 	}
+	return updated, nil
+}
+
+func (s *Server) handleUpdateAsset(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveAssetID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("asset")
+	} else if err != nil {
+		return errNotFound("asset")
+	}
+	old, err := s.db.GetAsset(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("asset")
+	}
+	var req assetUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	updated, err := s.prepareAssetUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	updated.ID = id
 	if err := s.db.UpdateAsset(ctx, orgID, &updated); err != nil {
 		return pgxHTTPError(err)
 	}

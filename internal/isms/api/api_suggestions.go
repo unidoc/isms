@@ -1771,93 +1771,88 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 // APPLY HANDLERS: ASSETS
 // ═══════════════════════════════════════════════════════════════════════
 
-// assetCreatePayload is the payload of an asset:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// assetCreatePayload is the payload of an asset:create suggestion: the POST
+// /assets body (#200), plus "title", which SuggestNewButton.vue sends for every
+// entity and is used as the name when "name" is empty. Decoded strictly.
 type assetCreatePayload struct {
-	Name        string `json:"name"`
-	Title       string `json:"title"` // alias: web UI may send title instead of name
-	Description string `json:"description"`
-	AssetType   string `json:"asset_type"`
-	Owner       string `json:"owner"`
+	assetCreateRequest
+	Title string `json:"title"`
 }
 
 func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload assetCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid asset payload: %w", err)
+	var p assetCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	// Assets use "name" not "title" — accept either
-	if payload.Name == "" {
-		payload.Name = payload.Title
+	if p.Name == "" {
+		p.Name = p.Title
 	}
-	if payload.Name == "" {
-		return "", 0, fmt.Errorf("name is required in asset payload")
+	if p.Name == "" {
+		return "", 0, errRequired("name")
 	}
 	a := db.Asset{
-		Name:        payload.Name,
-		Description: payload.Description,
-		AssetType:   payload.AssetType,
-		Owner:       payload.Owner,
+		Name:            p.Name,
+		Description:     p.Description,
+		AssetType:       p.AssetType,
+		Status:          p.Status,
+		Owner:           p.Owner,
+		PrimaryLocation: p.PrimaryLocation,
+		Confidentiality: p.Confidentiality,
+		Integrity:       p.Integrity,
+		Availability:    p.Availability,
+		LastReview:      p.LastReview,
+		NextReview:      p.NextReview,
+		Notes:           p.Notes,
+		ExternalID:      p.ExternalID,
 	}
 	applyAssetDefaults(&a, actor)
 	if err := validateAssetCreate(&a); err != nil {
 		return "", 0, err
 	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateAssetTx(ctx, tx, orgID, &a); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "asset", a.Identifier, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "asset", EntityID: a.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return a.Identifier, a.ID, nil
 }
 
 func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req assetUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveAssetID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
-	asset, err := s.db.GetAsset(ctx, orgID, id)
+	old, err := s.db.GetAsset(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
-	old := asset.ToChangeMap()
-	if v, ok := payload.Fields["name"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Name = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Status = sv
-		}
-	}
-	if v, ok := payload.Fields["notes"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.Notes = sv
-		}
-	}
-	if v, ok := payload.Fields["asset_type"]; ok {
-		if sv, ok := v.(string); ok {
-			asset.AssetType = sv
-		}
-	}
-	if err := db.UpdateAssetTx(ctx, tx, orgID, asset); err != nil {
+	updated, err := s.prepareAssetUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("asset", asset.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, asset.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateAssetTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("asset", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return asset.Identifier, asset.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

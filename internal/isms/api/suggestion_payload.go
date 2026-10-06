@@ -71,9 +71,6 @@ var updatePayloadFields = map[string]map[string]payloadKind{
 		"name": kindString, "criticality": kindString, "classification": kindString, "owner": kindString,
 		"notes": kindString, "department": kindString, "status": kindString,
 	},
-	"asset": {
-		"name": kindString, "owner": kindString, "status": kindString, "notes": kindString, "asset_type": kindString,
-	},
 	"audit_finding": {
 		"title": kindString, "description": kindString, "status": kindString,
 	},
@@ -83,7 +80,9 @@ var updatePayloadFields = map[string]map[string]payloadKind{
 // request type its update apply handler decodes payload.fields into (#200).
 // Entities move here from updatePayloadFields one by one (Steps 3-8); when
 // updatePayloadFields is empty it is deleted (Step 8.3).
-var updateRequestTypes = map[string]func() any{}
+var updateRequestTypes = map[string]func() any{
+	"asset": func() any { return &assetUpdateRequest{} },
+}
 
 // jsonFieldTypes maps each json tag name of struct type t to its field type.
 func jsonFieldTypes(t reflect.Type) map[string]reflect.Type {

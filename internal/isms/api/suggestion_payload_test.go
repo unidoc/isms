@@ -147,6 +147,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("objective", raw(`{"fields":{"status":null}}`), true), "cannot be null")
 	assert400(t, validateUpdatePayload("corrective_action", raw(`{"fields":{"notes":null}}`), true), "cannot be null")
 	assert400(t, validateUpdatePayload("change_request", raw(`{"fields":{"status":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("task", raw(`{"fields":{"private":null}}`), true), "cannot be null")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -156,6 +157,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 		{"risk", `{"fields":{"notes":"n"}}`},
 		{"asset", `{"fields":{"description":"d","confidentiality":3,"next_review":1893456000}}`},
 		{"asset", `{"fields":{"confidentiality":null}}`},
+		{"task", `{"fields":{"private":true,"recurrence_days":null,"due_date":1893456000}}`},
 		{"change_request", `{"fields":{"title":"t","notes":"n","planned_at":null,"status":"approved"}}`},
 		{"corrective_action", `{"fields":{"title":"t","due_date":null,"external_id":"x"}}`},
 		{"incident", `{"fields":{"title":"t","data_breach":true,"authority_notified_at":null}}`},
@@ -176,6 +178,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
 	// #200: the objective operator that used to be dropped and defaulted to gte.
 	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","bogus":"lte"}`)), "bogus")
+	assert400(t, validateSuggestionPayload("task", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("change_request", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("corrective_action", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("incident", "create", raw(`{"title":"i","summary":"s"}`)), "summary")
@@ -194,6 +197,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"incident", ``},
 		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
 		{"asset", `{"title":"only a title"}`},
+		{"task", `{"title":"t","private":true,"recurrence_days":7,"status":"open"}`},
 		{"change_request", `{"title":"c","type":"access_request","notes":"n","status":"proposed","planned_at":1893456000}`},
 		{"corrective_action", `{"title":"c","severity":"major_nc","due_date":1893456000,"status":"todo"}`},
 		{"incident", `{"title":"i","data_breach":true,"gdpr_role":"controller","detected_at":1767225600}`},

@@ -2364,39 +2364,13 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 		RecurrenceDays: req.RecurrenceDays,
 		Notes:          req.Notes,
 	}
-	t.CreatedBy = getUserEmail(c) // always use authenticated user
-	if t.Assignee == "" {
-		t.Assignee = t.CreatedBy // default: assign to yourself
-	}
-	if t.Status == "" {
-		t.Status = "open"
-	}
-	if t.Priority == "" {
-		t.Priority = "medium"
-	}
-	if t.TaskType == "" {
-		t.TaskType = "general"
-	}
-	// due_date stays optional — no auto-default. Users can leave it empty.
-	if err := validateEnum("status", t.Status, db.TaskStatuses); err != nil {
-		return err
-	}
-	if err := validateEnum("priority", t.Priority, db.TaskPriorities); err != nil {
-		return err
-	}
-	if err := validateEnum("task_type", t.TaskType, db.TaskTypes); err != nil {
+	ctx := c.Request().Context()
+	s.applyTaskDefaults(ctx, orgID, &t, req.Private, getUserEmail(c))
+	if err := validateTaskCreate(&t); err != nil {
 		return err
 	}
 	if err := s.validateOrgMember(c, t.Assignee); err != nil {
 		return err
-	}
-	ctx := c.Request().Context()
-	// Visibility: an explicit flag wins; otherwise fall back to the org default
-	// (public unless the org has opted into task_default_private).
-	if req.Private != nil {
-		t.Private = *req.Private
-	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
-		t.Private = true
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
@@ -2596,50 +2570,31 @@ func (s *Server) handleGetTask(c echo.Context) error {
 	return c.JSON(http.StatusOK, task)
 }
 
-func (s *Server) handleUpdateTask(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
-	} else if err != nil {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-
-	old, err := s.db.GetTask(ctx, orgID, id)
-	if err != nil {
-		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
-	}
-
-	var req taskUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareTaskUpdate validates req and returns old with req merged in. Shared by
+// handleUpdateTask and the suggestion apply handler so PUT and apply accept and
+// write exactly the same fields (#200).
+func (s *Server) prepareTaskUpdate(ctx context.Context, orgID int, old *db.Task, req *taskUpdateRequest) (db.Task, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.TaskStatuses); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.Priority != nil {
 		if err := validateEnum("priority", *req.Priority, db.TaskPriorities); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.TaskType != nil {
 		if err := validateEnum("task_type", *req.TaskType, db.TaskTypes); err != nil {
-			return err
+			return db.Task{}, err
 		}
 	}
 	if req.Assignee != nil && *req.Assignee != "" {
-		if err := s.validateOrgMember(c, *req.Assignee); err != nil {
-			return err
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Assignee); err != nil {
+			return db.Task{}, err
 		}
 	}
 	t := *old
-	t.ID = id
 	if req.Title != nil {
 		t.Title = *req.Title
 	}
@@ -2670,6 +2625,36 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	if req.Private != nil {
 		t.Private = *req.Private
 	}
+	return t, nil
+}
+
+func (s *Server) handleUpdateTask(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	id, err := s.resolveTaskID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("task"))
+	} else if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+
+	old, err := s.db.GetTask(ctx, orgID, id)
+	if err != nil {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("task"))
+	}
+
+	var req taskUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	t, err := s.prepareTaskUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	t.ID = id
 
 	if err := s.db.UpdateTask(ctx, orgID, &t); err != nil {
 		return pgxHTTPError(err)

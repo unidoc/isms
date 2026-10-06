@@ -625,13 +625,13 @@ func CreateTaskTx(ctx context.Context, tx pgx.Tx, orgID int, t *Task) error {
 	}
 	t.Identifier = ident
 	return tx.QueryRow(ctx, `
-		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes)
+		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes, private)
 		VALUES ($1, $2, $3, $4, $5,
 			CASE WHEN $6 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $6) END,
-			$7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12)
+			$7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at, updated_at
 	`, orgID, t.Identifier, t.Title, t.Description, t.TaskType,
-		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes),
+		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes), t.Private,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
@@ -642,11 +642,18 @@ func UpdateTaskTx(ctx context.Context, tx pgx.Tx, orgID int, t *Task) error {
 			title = $2, description = $3,
 			assignee_id = CASE WHEN $4 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $4) END,
 			priority = $5, due_date = $6, task_type = $7, status = $8,
-			completed_at = CASE WHEN $8 = 'done' AND completed_at IS NULL THEN now() ELSE completed_at END,
-			notes = $9, updated_at = now()
+			completed_at = CASE
+				WHEN $8 = 'done' AND completed_at IS NULL THEN now()
+				WHEN $8 != 'done' THEN NULL
+				ELSE completed_at
+			END,
+			notes = $9,
+			private = $11,
+			recurrence_days = $12,
+			updated_at = now()
 		WHERE id = $1 AND organization_id = $10 AND deleted_at IS NULL
 	`, t.ID, t.Title, nilIfEmpty(t.Description), t.Assignee,
-		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID)
+		t.Priority, t.DueDate, t.TaskType, t.Status, nilIfEmpty(t.Notes), orgID, t.Private, t.RecurrenceDays)
 	return err
 }
 

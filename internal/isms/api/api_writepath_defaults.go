@@ -292,3 +292,41 @@ func validateChangeCreate(cr *db.ChangeRequest) error {
 	}
 	return nil
 }
+
+// applyTaskDefaults fills the defaults of a new task. private is the explicit
+// flag from the request, or nil to fall back to the org default. Shared by
+// handleCreateTask and applyTaskCreate (#200).
+func (s *Server) applyTaskDefaults(ctx context.Context, orgID int, t *db.Task, private *bool, actor string) {
+	t.CreatedBy = actor // always use authenticated user
+	if t.Assignee == "" {
+		t.Assignee = t.CreatedBy // default: assign to yourself
+	}
+	if t.Status == "" {
+		t.Status = "open"
+	}
+	if t.Priority == "" {
+		t.Priority = "medium"
+	}
+	if t.TaskType == "" {
+		t.TaskType = "general"
+	}
+	// due_date stays optional — no auto-default. Users can leave it empty.
+	// Visibility: an explicit flag wins; otherwise fall back to the org default
+	// (public unless the org has opted into task_default_private).
+	if private != nil {
+		t.Private = *private
+	} else if v, _ := s.db.GetOrgSetting(ctx, orgID, "task_default_private"); v == "true" {
+		t.Private = true
+	}
+}
+
+// validateTaskCreate checks the enum fields of a new task (after defaults).
+func validateTaskCreate(t *db.Task) error {
+	if err := validateEnum("status", t.Status, db.TaskStatuses); err != nil {
+		return err
+	}
+	if err := validateEnum("priority", t.Priority, db.TaskPriorities); err != nil {
+		return err
+	}
+	return validateEnum("task_type", t.TaskType, db.TaskTypes)
+}

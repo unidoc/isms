@@ -1438,89 +1438,85 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 // APPLY HANDLERS: TASKS
 // ═══════════════════════════════════════════════════════════════════════
 
-// taskCreatePayload is the payload of a task:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// taskCreatePayload is the payload of a task:create suggestion: the POST /tasks
+// body (#200). Decoded strictly.
 type taskCreatePayload struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Assignee    string `json:"assignee"`
-	Priority    string `json:"priority"`
-	TaskType    string `json:"task_type"`
+	taskCreateRequest
 }
 
 func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload taskCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid task payload: %w", err)
+	var p taskCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
 	t := db.Task{
-		Title: payload.Title, Description: payload.Description,
-		Assignee: payload.Assignee, CreatedBy: actor,
-		Priority: payload.Priority, TaskType: payload.TaskType, Status: "open",
+		Title:          p.Title,
+		Description:    p.Description,
+		TaskType:       p.TaskType,
+		Assignee:       p.Assignee,
+		Status:         p.Status,
+		Priority:       p.Priority,
+		DueDate:        p.DueDate,
+		RecurrenceDays: p.RecurrenceDays,
+		Notes:          p.Notes,
 	}
-	if t.Priority == "" {
-		t.Priority = "medium"
+	// tasks.assignee_id is NOT NULL; the assignee defaults to the applier.
+	s.applyTaskDefaults(ctx, orgID, &t, p.Private, actor)
+	if err := validateTaskCreate(&t); err != nil {
+		return "", 0, err
 	}
-	if t.TaskType == "" {
-		t.TaskType = "general"
+	// Only an assignee the payload names is checked; the defaulted one is the
+	// acting user, who is a member by construction.
+	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
+		return "", 0, err
 	}
-	// tasks.assignee_id is NOT NULL; default to the applier when the suggestion carries none.
-	if t.Assignee == "" {
-		t.Assignee = actor
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
 	}
 	if err := db.CreateTaskTx(ctx, tx, orgID, &t); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "task", t.Identifier, t.CreatedBy, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "task", EntityID: int64(t.ID), Action: "create", ChangedBy: t.CreatedBy,
+	}); err != nil {
 		return "", 0, err
 	}
 	return t.Identifier, t.ID, nil
 }
 
 func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req taskUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	taskID, err := s.resolveTaskID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("task %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("task")
 	}
-	t, err := s.db.GetTask(ctx, orgID, taskID)
+	old, err := s.db.GetTask(ctx, orgID, taskID)
 	if err != nil {
-		return "", 0, fmt.Errorf("task %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("task")
 	}
-	old := t.ToChangeMap()
-	if v, ok := payload.Fields["assignee"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Assignee = sv
-		}
-	}
-	if v, ok := payload.Fields["priority"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Priority = sv
-		}
-	}
-	if v, ok := payload.Fields["title"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Title = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			t.Status = sv
-		}
-	}
-	if err := db.UpdateTaskTx(ctx, tx, orgID, t); err != nil {
+	updated, err := s.prepareTaskUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("task", int64(t.ID), actor, fmt.Sprintf("suggestion #%d", sg.ID), old, t.ToChangeMap())
+	updated.ID = taskID
+	if err := db.UpdateTaskTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("task", taskID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return t.Identifier, t.ID, nil
+	return updated.Identifier, updated.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

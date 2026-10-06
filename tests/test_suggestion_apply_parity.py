@@ -621,3 +621,37 @@ def test_change_create_honours_type_and_status(api_url, admin_headers):
     got = requests.get(f"{api_url}/changes/{ident}", headers=admin_headers).json()
     assert got["type"] == "access_request" and got["status"] == "in_progress", got
     assert got["assigned_to"] == ADMIN_EMAIL  # defaults to the requester, like POST
+
+
+# --- task ------------------------------------------------------------------
+
+TASK_FIELDS = {
+    "title": "renamed task", "description": "task description", "task_type": "training",
+    "assignee": ADMIN_EMAIL, "status": "in_progress", "priority": "critical",
+    "due_date": 1893456000, "recurrence_days": 30, "notes": "task notes", "private": True,
+}
+
+
+def _make_task(api_url, headers):
+    r = requests.post(f"{api_url}/tasks", headers=headers, json={"title": f"task {_tag()}"})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_task_update_parity(api_url, admin_headers):
+    _update_parity(api_url, admin_headers, "task", "tasks",
+                   lambda: _make_task(api_url, admin_headers), TASK_FIELDS)
+
+
+def test_task_update_done_stamps_and_reopen_clears_completed_at(api_url, admin_headers):
+    t = _make_task(api_url, admin_headers)
+    _apply(api_url, admin_headers, "task", "update", {"fields": {"status": "done"}}, entity_id=t["identifier"])
+    got = requests.get(f"{api_url}/tasks/{t['id']}", headers=admin_headers).json()
+    assert got["status"] == "done" and got.get("completed_at"), got
+    _apply(api_url, admin_headers, "task", "update", {"fields": {"status": "open"}}, entity_id=t["identifier"])
+    got = requests.get(f"{api_url}/tasks/{t['id']}", headers=admin_headers).json()
+    assert got["status"] == "open" and not got.get("completed_at"), got
+
+
+def test_task_create_parity(api_url, admin_headers):
+    _create_parity(api_url, admin_headers, "task", "tasks", TASK_FIELDS, unique=("title",), get_by="ident")

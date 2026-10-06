@@ -314,16 +314,16 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.viewport.GotoBottom()
 			return m, nil
 		case "ctrl+f", "pgdown", " ":
-			m.viewport.ViewDown()
+			m.viewport.PageDown()
 			return m, nil
 		case "ctrl+b", "pgup":
-			m.viewport.ViewUp()
+			m.viewport.PageUp()
 			return m, nil
 		case "ctrl+d":
-			m.viewport.HalfViewDown()
+			m.viewport.HalfPageDown()
 			return m, nil
 		case "ctrl+u":
-			m.viewport.HalfViewUp()
+			m.viewport.HalfPageUp()
 			return m, nil
 		default:
 			var cmd tea.Cmd

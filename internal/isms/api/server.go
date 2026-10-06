@@ -343,7 +343,7 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	// API documentation (before auth middleware so /docs and /api/openapi.yaml are public)
 	srv.registerDocs()
 
-	srv.echo.Use(middleware.Logger())
+	srv.echo.Use(requestLogger())
 	srv.echo.Use(middleware.Recover())
 	// Global request body cap (defends against memory exhaustion).
 	// Per-route overrides apply for endpoints that need higher limits (e.g. evidence uploads).

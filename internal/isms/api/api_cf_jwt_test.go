@@ -32,10 +32,23 @@ const (
 
 func b64(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
 
+// ecCoords returns a P-256 key's JWK x and y: the fixed-width big-endian
+// coordinates sliced out of its uncompressed SEC 1 encoding (0x04 || X || Y).
+// The X/Y big.Int fields are deprecated since Go 1.26.
+func ecCoords(t *testing.T, pub *ecdsa.PublicKey) (x, y []byte) {
+	t.Helper()
+	b, err := pub.Bytes()
+	if err != nil {
+		t.Fatalf("encode EC public key: %v", err)
+	}
+	return b[1:33], b[33:65]
+}
+
 // jwksServer serves a JWKS carrying both the RSA and the EC public key, the way a
 // real CF Access team can — the mix this verifier exists to handle.
 func jwksServer(t *testing.T, rsaPub *rsa.PublicKey, ecPub *ecdsa.PublicKey) *httptest.Server {
 	t.Helper()
+	ecX, ecY := ecCoords(t, ecPub)
 	jwks := cfJWKS{Keys: []cfJWK{
 		{
 			Kid: rsaKid, Kty: "RSA", Alg: "RS256",
@@ -44,8 +57,8 @@ func jwksServer(t *testing.T, rsaPub *rsa.PublicKey, ecPub *ecdsa.PublicKey) *ht
 		},
 		{
 			Kid: ecKid, Kty: "EC", Alg: "ES256", Crv: "P-256",
-			X: b64(ecPub.X.FillBytes(make([]byte, 32))),
-			Y: b64(ecPub.Y.FillBytes(make([]byte, 32))),
+			X: b64(ecX),
+			Y: b64(ecY),
 		},
 	}}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -137,6 +150,64 @@ func TestVerifyJWT_ES256_Verifies(t *testing.T) {
 	}
 	if claims.Email != "user@example.com" {
 		t.Errorf("email = %q, want user@example.com", claims.Email)
+	}
+}
+
+// ecOnlyCache wires a cache to a JWKS server carrying a single EC key with the
+// given raw coordinates, so a test can serve encodings jwksServer never would.
+func ecOnlyCache(t *testing.T, x, y []byte) *cfKeyCache {
+	t.Helper()
+	jwks := cfJWKS{Keys: []cfJWK{{Kid: ecKid, Kty: "EC", Alg: "ES256", Crv: "P-256", X: b64(x), Y: b64(y)}}}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(jwks)
+	}))
+	t.Cleanup(srv.Close)
+	c := newCFKeyCache(testTeamDomain, testAudience)
+	c.certsURL = srv.URL
+	return c
+}
+
+// RFC 7518 requires full-width coordinates, but the big.Int parse this replaced
+// accepted a JWK whose x dropped its leading zero byte. The SEC 1 parse needs
+// exactly 32 bytes, so a short coordinate must be left-padded, not dropped.
+func TestVerifyJWT_ES256_ShortCoordinateVerifies(t *testing.T) {
+	var priv *ecdsa.PrivateKey
+	var x, y []byte
+	for i := 0; i < 20000; i++ { // a leading zero byte turns up ~1 key in 256
+		k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if kx, ky := ecCoords(t, &k.PublicKey); kx[0] == 0 {
+			priv, x, y = k, kx[1:], ky
+			break
+		}
+	}
+	if priv == nil {
+		t.Fatal("no P-256 key with a leading-zero x coordinate generated")
+	}
+	c := ecOnlyCache(t, x, y)
+	if _, err := c.VerifyJWT(signES256(t, priv, ecKid, baseClaims())); err != nil {
+		t.Fatalf("ES256 token with a 31-byte x should verify, got: %v", err)
+	}
+}
+
+// A JWK point that is not on P-256 must not enter the key set at all. The old
+// big.Int path loaded it and relied on ecdsa.Verify failing later.
+func TestFetchKeys_ECOffCurvePointSkipped(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	x, y := ecCoords(t, &priv.PublicKey)
+	badY := append([]byte(nil), y...)
+	badY[31] ^= 1 // y±1 is not on the curve for this x
+	c := ecOnlyCache(t, x, badY)
+	if err := c.fetchKeys(true); err != nil {
+		t.Fatalf("fetchKeys: %v", err)
+	}
+	if _, ok := c.keys[ecKid]; ok {
+		t.Fatal("off-curve EC key was loaded into the key set")
 	}
 }
 

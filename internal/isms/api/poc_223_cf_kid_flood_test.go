@@ -33,13 +33,14 @@ const (
 
 func slowJWKSServer(t *testing.T, rsaPub *rsa.PublicKey, ecPub *ecdsa.PublicKey, hits *atomic.Int64) *httptest.Server {
 	t.Helper()
+	ecX, ecY := ecCoords(t, ecPub)
 	jwks := cfJWKS{Keys: []cfJWK{
 		{Kid: rsaKid, Kty: "RSA", Alg: "RS256",
 			N: b64(rsaPub.N.Bytes()),
 			E: b64(big.NewInt(int64(rsaPub.E)).Bytes())},
 		{Kid: ecKid, Kty: "EC", Alg: "ES256", Crv: "P-256",
-			X: b64(ecPub.X.FillBytes(make([]byte, 32))),
-			Y: b64(ecPub.Y.FillBytes(make([]byte, 32)))},
+			X: b64(ecX),
+			Y: b64(ecY)},
 	}}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits.Add(1)

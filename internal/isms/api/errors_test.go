@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
 	"net/http"
@@ -581,18 +582,20 @@ func paramLiteral(call *ast.CallExpr) (kind, value string, ok bool) {
 
 func parsePackage(t *testing.T) (*token.FileSet, []*ast.File) {
 	t.Helper()
-	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, ".", func(fi os.FileInfo) bool {
-		return !strings.HasSuffix(fi.Name(), "_test.go")
-	}, 0)
+	// go/build picks the package's non-test files the way the compiler does,
+	// build constraints included, which the deprecated parser.ParseDir ignored.
+	bp, err := build.ImportDir(".", 0)
 	if err != nil {
-		t.Fatalf("parsing package: %v", err)
+		t.Fatalf("listing package files: %v", err)
 	}
+	fset := token.NewFileSet()
 	var files []*ast.File
-	for _, pkg := range pkgs {
-		for _, f := range pkg.Files {
-			files = append(files, f)
+	for _, name := range bp.GoFiles {
+		f, err := parser.ParseFile(fset, name, nil, 0)
+		if err != nil {
+			t.Fatalf("parsing %s: %v", name, err)
 		}
+		files = append(files, f)
 	}
 	if len(files) == 0 {
 		t.Fatal("parsed no files — the scan would pass vacuously")

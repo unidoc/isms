@@ -393,46 +393,25 @@ func (s *Server) handleGetObjective(c echo.Context) error {
 	return c.JSON(http.StatusOK, o)
 }
 
-func (s *Server) handleUpdateObjective(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
-		return err
-	}
-	orgID := getOrgID(c)
-	ctx := c.Request().Context()
-	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
-	// resolved by lookup like handleGetObjective (#201).
-	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
-	if errors.Is(err, errInvalidID) {
-		return errInvalidEntityID("objective")
-	} else if err != nil {
-		return errNotFound("objective")
-	}
-
-	old, err := s.db.GetObjective(ctx, orgID, id)
-	if err != nil {
-		return errNotFound("objective")
-	}
-
-	var req objectiveUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+// prepareObjectiveUpdate validates req and returns old with req merged in. Shared
+// by handleUpdateObjective and the suggestion apply handler so PUT and apply
+// accept and write exactly the same fields (#200).
+func (s *Server) prepareObjectiveUpdate(ctx context.Context, orgID int, old *db.Objective, req *objectiveUpdateRequest) (db.Objective, error) {
 	if req.Status != nil {
 		if err := validateEnum("status", *req.Status, db.ObjectiveStatuses); err != nil {
-			return err
+			return db.Objective{}, err
 		}
 	}
 	if req.TargetOperator != nil {
 		if err := validateEnum("target_operator", *req.TargetOperator, db.ObjectiveTargetOperators); err != nil {
-			return err
+			return db.Objective{}, err
 		}
 	}
 	// Apply pointer-based partial update onto the existing record.
 	o := *old
-	o.ID = id
 	if req.Title != nil {
 		if *req.Title == "" {
-			return apiError(http.StatusBadRequest, CodeFieldEmpty, Field("title"))
+			return db.Objective{}, apiError(http.StatusBadRequest, CodeFieldEmpty, Field("title"))
 		}
 		o.Title = *req.Title
 	}
@@ -475,6 +454,38 @@ func (s *Server) handleUpdateObjective(c echo.Context) error {
 	if req.Notes != nil {
 		o.Notes = *req.Notes
 	}
+	return o, nil
+}
+
+func (s *Server) handleUpdateObjective(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	// Accept the numeric id OR the program-scoped display id (ISMS2026-3),
+	// resolved by lookup like handleGetObjective (#201).
+	id, err := s.resolveObjectiveID(ctx, orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("objective")
+	} else if err != nil {
+		return errNotFound("objective")
+	}
+
+	old, err := s.db.GetObjective(ctx, orgID, id)
+	if err != nil {
+		return errNotFound("objective")
+	}
+
+	var req objectiveUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	o, err := s.prepareObjectiveUpdate(ctx, orgID, old, &req)
+	if err != nil {
+		return err
+	}
+	o.ID = id
 
 	if err := s.db.UpdateObjective(ctx, orgID, &o); err != nil {
 		return pgxHTTPError(err)

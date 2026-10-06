@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -75,6 +76,7 @@ func init() {
 	registerApplyHandler("task", "update", applyTaskUpdate)
 
 	// Objective handlers
+	registerApplyHandler("program", "create", applyProgramCreate)
 	registerApplyHandler("objective", "create", applyObjectiveCreate)
 	registerApplyHandler("objective", "update", applyObjectiveUpdate)
 
@@ -180,6 +182,9 @@ func (s *Server) handleCreateEntitySuggestion(c echo.Context) error {
 
 	// Refuse a payload the apply handler would silently drop (#298, #200).
 	if err := validateSuggestionPayload(sg.EntityType, sg.SuggestionType, sg.Payload); err != nil {
+		return err
+	}
+	if err := s.checkObjectiveSuggestionProgram(ctx, orgID, sg.EntityType, sg.SuggestionType, sg.Payload); err != nil {
 		return err
 	}
 
@@ -376,6 +381,9 @@ func (s *Server) handleUpdateEntitySuggestion(c echo.Context) error {
 		// Same check as create (#298, #200): an edit must not turn a suggestion
 		// into one whose apply would silently drop what it proposes.
 		if err := validateSuggestionPayload(existing.EntityType, existing.SuggestionType, payload); err != nil {
+			return err
+		}
+		if err := s.checkObjectiveSuggestionProgram(ctx, orgID, existing.EntityType, existing.SuggestionType, payload); err != nil {
 			return err
 		}
 		update.Payload = payload
@@ -1555,102 +1563,196 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 // APPLY HANDLERS: OBJECTIVES
 // ═══════════════════════════════════════════════════════════════════════
 
-// objectiveCreatePayload is the payload of an objective:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// objectiveCreatePayload is the payload of an objective:create suggestion: the
+// POST /objectives body (#200), plus program_key so an agent can name the
+// program by its key. Decoded strictly.
 type objectiveCreatePayload struct {
-	Title             string   `json:"title"`
-	Description       string   `json:"description"`
-	ProgramID         int64    `json:"program_id"`
-	Owner             string   `json:"owner"`
-	MeasurementMethod string   `json:"measurement_method"`
-	TargetValue       *float64 `json:"target_value"`
-	Unit              string   `json:"unit"`
+	objectiveCreateRequest
+	ProgramKey string `json:"program_key"`
+}
+
+// resolveSuggestedProgram picks the program an objective suggestion lands in.
+// A named program (program_id or program_key) must exist in this org. With none
+// named, a lone program is used; several is an error naming their keys. With no
+// program at all it is an error when requireOne is set (apply), and a zero id
+// otherwise (create time, because a program:create suggestion may be pending).
+func (s *Server) resolveSuggestedProgram(ctx context.Context, orgID int, programID int64, programKey string, requireOne bool) (int64, error) {
+	key := strings.ToUpper(strings.TrimSpace(programKey))
+	var byID, byKey *db.Program
+	if programID != 0 {
+		p, err := s.db.GetProgram(ctx, orgID, programID)
+		if err != nil {
+			return 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
+		}
+		byID = p
+	}
+	if key != "" {
+		p, err := s.db.GetProgramByKey(ctx, orgID, key)
+		if err != nil {
+			return 0, apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
+		}
+		byKey = p
+	}
+	switch {
+	case byID != nil && byKey != nil:
+		if byID.ID != byKey.ID {
+			return 0, echo.NewHTTPError(http.StatusBadRequest, "program_id and program_key name different programs")
+		}
+		return byID.ID, nil
+	case byID != nil:
+		return byID.ID, nil
+	case byKey != nil:
+		return byKey.ID, nil
+	}
+	progs, err := s.db.ListPrograms(ctx, orgID)
+	if err != nil {
+		return 0, err
+	}
+	switch len(progs) {
+	case 0:
+		if requireOne {
+			return 0, echo.NewHTTPError(http.StatusBadRequest,
+				"no program exists yet: create one first (a program:create suggestion or POST /programs)")
+		}
+		return 0, nil
+	case 1:
+		return progs[0].ID, nil
+	}
+	keys := make([]string, 0, len(progs))
+	for _, p := range progs {
+		keys = append(keys, p.Key)
+	}
+	sort.Strings(keys)
+	return 0, echo.NewHTTPError(http.StatusBadRequest,
+		"program_id or program_key is required: this organization has several programs ("+strings.Join(keys, ", ")+")")
+}
+
+// checkObjectiveSuggestionProgram is the create/edit-time program check for an
+// objective:create suggestion (the one DB-backed check at that stage).
+func (s *Server) checkObjectiveSuggestionProgram(ctx context.Context, orgID int, entityType, suggestionType string, payload json.RawMessage) error {
+	if entityType != "objective" || suggestionType != "create" {
+		return nil
+	}
+	var p objectiveCreatePayload
+	if err := decodeSuggestionPayload(payload, &p); err != nil {
+		return err
+	}
+	_, err := s.resolveSuggestedProgram(ctx, orgID, p.ProgramID, p.ProgramKey, false)
+	return err
 }
 
 func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload objectiveCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid objective payload: %w", err)
+	var p objectiveCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
+		return "", 0, err
 	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
+	if p.Title == "" {
+		return "", 0, errRequired("title")
 	}
-	// If no program_id supplied, use the first program in the org
-	if payload.ProgramID == 0 {
-		progs, err := s.db.ListPrograms(ctx, orgID)
-		if err != nil || len(progs) == 0 {
-			return "", 0, fmt.Errorf("program_id is required and no default program exists")
-		}
-		payload.ProgramID = progs[0].ID
+	programID, err := s.resolveSuggestedProgram(ctx, orgID, p.ProgramID, p.ProgramKey, true)
+	if err != nil {
+		return "", 0, err
 	}
 	o := db.Objective{
-		Title:             payload.Title,
-		Description:       payload.Description,
-		ProgramID:         payload.ProgramID,
-		Owner:             payload.Owner,
-		MeasurementMethod: payload.MeasurementMethod,
-		TargetValue:       payload.TargetValue,
-		Unit:              payload.Unit,
+		ProgramID:         programID,
+		Title:             p.Title,
+		Description:       p.Description,
+		Owner:             p.Owner,
+		Source:            p.Source,
+		MeasurementMethod: p.MeasurementMethod,
+		TargetValue:       p.TargetValue,
+		TargetOperator:    p.TargetOperator,
+		Unit:              p.Unit,
+		WindowSeconds:     p.WindowSeconds,
+		GraceSeconds:      p.GraceSeconds,
+		CheckinCycle:      p.CheckinCycle,
+		Status:            p.Status,
+		StartedAt:         p.StartedAt,
+		Notes:             p.Notes,
 	}
 	applyObjectiveDefaults(&o, actor)
 	if err := validateObjectiveCreate(&o); err != nil {
 		return "", 0, err
 	}
+	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
+	if err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateObjectiveTx(ctx, tx, orgID, &o); err != nil {
+		return "", 0, err
+	}
+	if err := s.createReferencesTx(ctx, tx, orgID, "objective", o.DisplayID, actor, refs); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "objective", EntityID: o.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
 		return "", 0, err
 	}
 	return o.DisplayID, o.ID, nil
 }
 
 func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req objectiveUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	id, err := s.resolveObjectiveID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("objective")
 	}
-	o, err := s.db.GetObjective(ctx, orgID, id)
+	old, err := s.db.GetObjective(ctx, orgID, id)
 	if err != nil {
-		return "", 0, fmt.Errorf("objective %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("objective")
 	}
-	old := o.ToChangeMap()
-	if v, ok := payload.Fields["title"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Title = sv
-		}
-	}
-	if v, ok := payload.Fields["description"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Description = sv
-		}
-	}
-	if v, ok := payload.Fields["owner"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Owner = sv
-		}
-	}
-	if v, ok := payload.Fields["measurement_method"]; ok {
-		if sv, ok := v.(string); ok {
-			o.MeasurementMethod = sv
-		}
-	}
-	if v, ok := payload.Fields["status"]; ok {
-		if sv, ok := v.(string); ok {
-			o.Status = sv
-		}
-	}
-	if err := db.UpdateObjectiveTx(ctx, tx, orgID, o); err != nil {
+	updated, err := s.prepareObjectiveUpdate(ctx, orgID, old, &req)
+	if err != nil {
 		return "", 0, err
 	}
-	diffs := db.DiffFields("objective", o.ID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old, o.ToChangeMap())
+	updated.ID = id
+	if err := db.UpdateObjectiveTx(ctx, tx, orgID, &updated); err != nil {
+		return "", 0, err
+	}
+	diffs := db.DiffFields("objective", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
-	return o.DisplayID, o.ID, nil
+	return updated.DisplayID, updated.ID, nil
+}
+
+// programCreatePayload is the payload of a program:create suggestion: the POST
+// /programs body (#200). Decoded strictly.
+type programCreatePayload struct {
+	programCreateRequest
+}
+
+func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
+	var req programCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &req); err != nil {
+		return "", 0, err
+	}
+	pr := db.Program{
+		Key:         strings.ToUpper(strings.TrimSpace(req.Key)),
+		Title:       req.Title,
+		Description: req.Description,
+		Notes:       req.Notes,
+		Owner:       req.Owner,
+	}
+	if pr.Key == "" {
+		return "", 0, errRequired("key")
+	}
+	if pr.Title == "" {
+		return "", 0, errRequired("title")
+	}
+	if err := db.CreateProgramTx(ctx, tx, orgID, &pr); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "program", EntityID: pr.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
+	return pr.Identifier, pr.ID, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

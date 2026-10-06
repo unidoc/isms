@@ -53,10 +53,6 @@ var updatePayloadFields = map[string]map[string]payloadKind{
 	"task": {
 		"assignee": kindString, "priority": kindString, "title": kindString, "status": kindString,
 	},
-	"objective": {
-		"title": kindString, "description": kindString, "owner": kindString,
-		"measurement_method": kindString, "status": kindString,
-	},
 	"audit_finding": {
 		"title": kindString, "description": kindString, "status": kindString,
 	},
@@ -72,6 +68,7 @@ var updateRequestTypes = map[string]func() any{
 	"supplier":          func() any { return &supplierUpdateRequest{} },
 	"risk":              func() any { return &riskUpdateRequest{} },
 	"legal_requirement": func() any { return &legalUpdateRequest{} },
+	"objective":         func() any { return &objectiveUpdateRequest{} },
 }
 
 // jsonFieldTypes maps each json tag name of struct type t to its field type.
@@ -184,6 +181,7 @@ var createPayloadValidators = map[string]func(json.RawMessage) error{
 	"corrective_action": strictCreatePayload[correctiveActionCreatePayload],
 	"task":              strictCreatePayload[taskCreatePayload],
 	"objective":         strictCreatePayload[objectiveCreatePayload],
+	"program":           strictCreatePayload[programCreatePayload],
 	"system":            strictCreatePayload[systemCreatePayload],
 	"asset":             strictCreatePayload[assetCreatePayload],
 	"audit_finding":     strictCreatePayload[auditFindingCreatePayload],

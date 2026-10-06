@@ -713,6 +713,24 @@ func UpdateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 	return err
 }
 
+// CreateProgramTx creates a program within an existing transaction. It mirrors
+// DB.CreateProgram; the transaction is already scoped to the org.
+func CreateProgramTx(ctx context.Context, tx pgx.Tx, orgID int, p *Program) error {
+	p.OrganizationID = orgID
+	ident, err := nextIdentifierTx(ctx, tx, orgID, "program")
+	if err != nil {
+		return err
+	}
+	p.Identifier = ident
+	return tx.QueryRow(ctx, `
+		INSERT INTO programs (organization_id, identifier, key, title, description, notes, owner_id)
+		VALUES ($1, $2, $3, $4, $5, $6,
+			CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END)
+		RETURNING id, created_at, updated_at
+	`, orgID, p.Identifier, p.Key, p.Title, nilIfEmpty(p.Description), nilIfEmpty(p.Notes), p.Owner,
+	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
+}
+
 // CreateObjectiveTx creates an objective within an existing transaction.
 func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) error {
 	o.OrganizationID = orgID

@@ -368,3 +368,133 @@ def test_legal_update_empty_category_is_400_at_apply(api_url, admin_headers):
     assert sg.status_code == 201, sg.text
     ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={"force": True})
     assert ap.status_code == 400 and "category" in ap.text, ap.text
+
+
+# --- objective and program -------------------------------------------------
+
+def _fresh_org(api_url):
+    """A brand-new org (own programs list) with its own admin; returns headers."""
+    t = _tag()
+    email = f"parity-{t}@isms-test.local"
+    pw = "TestPass123!"
+    r = requests.post(f"{api_url}/auth/signup", json={"email": email, "password": pw, "name": "Parity Admin"})
+    assert r.status_code in (200, 201), r.text
+    r = requests.post(f"{api_url}/auth/login", json={"email": email, "password": pw})
+    assert r.status_code == 200, r.text
+    hdr = {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+    slug = f"parity-{t}"
+    r = requests.post(f"{api_url}/organizations", headers=hdr, json={"name": f"Parity {t}", "slug": slug})
+    assert r.status_code in (200, 201), r.text
+    r = requests.post(f"{api_url}/auth/login", json={"email": email, "password": pw, "organization": slug})
+    assert r.status_code == 200, r.text
+    return {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+
+
+def _make_program(api_url, headers, key=None):
+    key = key or f"P{_tag()[:5].upper()}"
+    r = requests.post(f"{api_url}/programs", headers=headers, json={"key": key, "title": f"prog {key}"})
+    assert r.status_code in (200, 201), r.text
+    return r.json()
+
+
+def _suggest(api_url, headers, entity_type, payload, suggestion_type="create"):
+    return requests.post(f"{api_url}/suggestions", headers=headers, json={
+        "entity_type": entity_type, "suggestion_type": suggestion_type,
+        "title": f"parity {entity_type} {_tag()}", "payload": payload})
+
+
+def _apply_raw(api_url, headers, sid):
+    return requests.post(f"{api_url}/suggestions/{sid}/apply", headers=headers, json={"force": True})
+
+
+def _objective_fields():
+    return {
+        "title": "renamed objective", "description": "objective description",
+        "owner": ADMIN_EMAIL, "source": "probe", "measurement_method": "count",
+        "target_value": 14.5, "target_operator": "lte", "unit": "days",
+        "window_seconds": 3600, "grace_seconds": 60, "checkin_cycle": 4,
+        "status": "active", "started_at": 1767225600, "notes": "objective notes",
+    }
+
+
+def _make_objective(api_url, headers, program_id):
+    r = requests.post(f"{api_url}/objectives", headers=headers,
+                      json={"title": f"obj {_tag()}", "program_id": program_id})
+    assert r.status_code in (200, 201), r.text
+    return r.json()
+
+
+def test_objective_update_parity(api_url, admin_headers):
+    prog = _make_program(api_url, admin_headers)
+    _update_parity(api_url, admin_headers, "objective", "objectives",
+                   lambda: _make_objective(api_url, admin_headers, prog["id"]),
+                   _objective_fields(), ref="display_id")
+
+
+def test_objective_create_parity(api_url, admin_headers):
+    prog = _make_program(api_url, admin_headers)
+    body = dict(_objective_fields(), program_id=prog["id"])
+    got_a, got_b = _create_parity(api_url, admin_headers, "objective", "objectives", body,
+                                  unique=("title",), get_by="ident")
+    assert got_a["program_id"] == got_b["program_id"] == prog["id"]
+
+
+def test_objective_create_by_program_key(api_url, admin_headers):
+    prog = _make_program(api_url, admin_headers)
+    ident = _apply(api_url, admin_headers, "objective", "create",
+                   {"title": f"obj {_tag()}", "program_key": prog["key"].lower()})
+    got = requests.get(f"{api_url}/objectives/{ident}", headers=admin_headers).json()
+    assert got["program_id"] == prog["id"]
+
+
+def test_objective_create_program_rules(api_url):
+    hdr = _fresh_org(api_url)
+    # zero programs: accepted at create time, refused at apply.
+    sg = _suggest(api_url, hdr, "objective", {"title": "o"})
+    assert sg.status_code == 201, sg.text
+    ap = _apply_raw(api_url, hdr, sg.json()["id"])
+    assert ap.status_code == 400 and "no program exists yet" in ap.text, ap.text
+    # exactly one program: used.
+    zzz = _make_program(api_url, hdr, "ZZZ")
+    ident = _apply(api_url, hdr, "objective", "create", {"title": "o2"})
+    got = requests.get(f"{api_url}/objectives/{ident}", headers=hdr).json()
+    assert got["program_id"] == zzz["id"]
+    # several programs, none named: 400 at create, naming the keys sorted.
+    _make_program(api_url, hdr, "AAA")
+    sg = _suggest(api_url, hdr, "objective", {"title": "o3"})
+    assert sg.status_code == 400, sg.text
+    assert "several programs (AAA, ZZZ)" in sg.text, sg.text
+    assert "program_id or program_key is required" in sg.text, sg.text
+    # naming one resolves it; naming both but disagreeing is 400.
+    aaa = requests.get(f"{api_url}/programs/AAA", headers=hdr).json()
+    sg = _suggest(api_url, hdr, "objective", {"title": "o4", "program_key": "AAA", "program_id": zzz["id"]})
+    assert sg.status_code == 400 and "different programs" in sg.text, sg.text
+    ident = _apply(api_url, hdr, "objective", "create", {"title": "o5", "program_key": "aaa"})
+    assert requests.get(f"{api_url}/objectives/{ident}", headers=hdr).json()["program_id"] == aaa["id"]
+
+
+def test_objective_create_foreign_program_is_400(api_url, admin_headers):
+    other = _fresh_org(api_url)
+    foreign = _make_program(api_url, other)
+    sg = _suggest(api_url, admin_headers, "objective", {"title": "o", "program_id": foreign["id"]})
+    assert sg.status_code == 400, sg.text
+    sg = _suggest(api_url, admin_headers, "objective", {"title": "o", "program_key": foreign["key"]})
+    assert sg.status_code == 400, sg.text
+
+
+def test_program_create_suggestion(api_url):
+    hdr = _fresh_org(api_url)
+    ident = _apply(api_url, hdr, "program", "create",
+                   {"key": "sec", "title": "Security", "description": "d", "notes": "n"})
+    got = requests.get(f"{api_url}/programs/SEC", headers=hdr).json()
+    assert got["title"] == "Security" and got["key"] == "SEC" and got["description"] == "d"
+    assert got["notes"] == "n" and got["identifier"] == ident
+    # second identical key: 409, not 500.
+    sg = _suggest(api_url, hdr, "program", {"key": "SEC", "title": "Again"})
+    assert sg.status_code == 201, sg.text
+    ap = _apply_raw(api_url, hdr, sg.json()["id"])
+    assert ap.status_code == 409, ap.text
+    # key and title are required.
+    sg = _suggest(api_url, hdr, "program", {"title": "No key"})
+    assert sg.status_code == 201, sg.text
+    assert _apply_raw(api_url, hdr, sg.json()["id"]).status_code == 400

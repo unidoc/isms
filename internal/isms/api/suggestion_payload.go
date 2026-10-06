@@ -19,31 +19,10 @@ import (
 // time for suggestions stored before these checks existed. A 400 inside the
 // apply transaction rolls back and leaves the suggestion open.
 
-// payloadKind is the JSON type an update-suggestion field must carry.
-type payloadKind int
-
-const (
-	kindString payloadKind = iota
-	kindBool
-)
-
-func (k payloadKind) String() string {
-	if k == kindBool {
-		return "true or false"
-	}
-	return "a string"
-}
-
-// updatePayloadFields lists, per entity type, exactly the keys its update apply
-// handler reads from payload.fields, and the JSON type each must be. Keep it in
-// step with the handlers in api_suggestions.go: TestUpdatePayloadFieldsMatchHandlers
-// fails if a handler reads a key missing here, or a key listed here is never read.
-var updatePayloadFields = map[string]map[string]payloadKind{}
-
 // updateRequestTypes maps an entity type to a constructor for the HTTP update
 // request type its update apply handler decodes payload.fields into (#200).
-// Entities move here from updatePayloadFields one by one (Steps 3-8); when
-// updatePayloadFields is empty it is deleted (Step 8.3).
+// TestUpdateHandlersDecodeHTTPRequestTypes keeps it in step with the update
+// apply handlers in the registry.
 var updateRequestTypes = map[string]func() any{
 	"asset":             func() any { return &assetUpdateRequest{} },
 	"system":            func() any { return &systemUpdateRequest{} },
@@ -77,22 +56,6 @@ func jsonFieldTypes(t reflect.Type) map[string]reflect.Type {
 
 func isOptionalType(t reflect.Type) bool {
 	return t.Kind() == reflect.Struct && strings.HasPrefix(t.Name(), "Optional[")
-}
-
-// supportedUpdateFields lists the keys an update suggestion of entityType may carry.
-func supportedUpdateFields(entityType string) []string {
-	var out []string
-	if ctor, ok := updateRequestTypes[entityType]; ok {
-		for k := range jsonFieldTypes(reflect.TypeOf(ctor()).Elem()) {
-			out = append(out, k)
-		}
-	} else {
-		for k := range updatePayloadFields[entityType] {
-			out = append(out, k)
-		}
-	}
-	sort.Strings(out)
-	return out
 }
 
 // decodeUpdateFields strictly decodes the "fields" object of an update payload
@@ -155,28 +118,35 @@ func decodeUpdateFields(entityType string, raw json.RawMessage, dst any) error {
 	return nil
 }
 
-// createPayloadValidators strictly decodes a create payload into the same type
-// its apply handler decodes into, so an unknown key or a wrongly typed value is
-// refused at create time exactly as it would be at apply time.
-// TestCreatePayloadValidatorsCoverRegistry fails if a create handler has no entry.
-var createPayloadValidators = map[string]func(json.RawMessage) error{
-	"risk":              strictCreatePayload[riskCreatePayload],
-	"incident":          strictCreatePayload[incidentCreatePayload],
-	"supplier":          strictCreatePayload[supplierCreatePayload],
-	"legal_requirement": strictCreatePayload[legalCreatePayload],
-	"change_request":    strictCreatePayload[changeCreatePayload],
-	"corrective_action": strictCreatePayload[correctiveActionCreatePayload],
-	"task":              strictCreatePayload[taskCreatePayload],
-	"objective":         strictCreatePayload[objectiveCreatePayload],
-	"program":           strictCreatePayload[programCreatePayload],
-	"system":            strictCreatePayload[systemCreatePayload],
-	"asset":             strictCreatePayload[assetCreatePayload],
-	"audit_finding":     strictCreatePayload[auditFindingCreatePayload],
+// createPayloadTypes maps an entity type to the payload type its create apply
+// handler decodes into: the HTTP create request type, embedded, plus any
+// compatibility aliases. A create payload is strictly decoded into it at
+// create/edit time exactly as at apply time, so an unknown key or a wrongly
+// typed value is refused. TestCreatePayloadsEmbedHTTPRequestTypes checks every
+// entry and that every create handler has one.
+var createPayloadTypes = map[string]reflect.Type{
+	"risk":              reflect.TypeOf(riskCreatePayload{}),
+	"incident":          reflect.TypeOf(incidentCreatePayload{}),
+	"supplier":          reflect.TypeOf(supplierCreatePayload{}),
+	"legal_requirement": reflect.TypeOf(legalCreatePayload{}),
+	"change_request":    reflect.TypeOf(changeCreatePayload{}),
+	"corrective_action": reflect.TypeOf(correctiveActionCreatePayload{}),
+	"task":              reflect.TypeOf(taskCreatePayload{}),
+	"objective":         reflect.TypeOf(objectiveCreatePayload{}),
+	"program":           reflect.TypeOf(programCreatePayload{}),
+	"system":            reflect.TypeOf(systemCreatePayload{}),
+	"asset":             reflect.TypeOf(assetCreatePayload{}),
+	"audit_finding":     reflect.TypeOf(auditFindingCreatePayload{}),
 }
 
-func strictCreatePayload[T any](raw json.RawMessage) error {
-	var p T
-	return decodeSuggestionPayload(raw, &p)
+// strictCreatePayload decodes raw into a fresh value of the create payload type
+// registered for entityType; keys the type does not declare are refused.
+func strictCreatePayload(entityType string, raw json.RawMessage) error {
+	t, ok := createPayloadTypes[entityType]
+	if !ok {
+		return nil
+	}
+	return decodeSuggestionPayload(raw, reflect.New(t).Interface())
 }
 
 // isJSONNull reports whether raw is empty or the JSON literal null.
@@ -209,9 +179,7 @@ func validateSuggestionPayload(entityType, suggestionType string, raw json.RawMe
 	case "update":
 		return validateUpdatePayload(entityType, raw, false)
 	case "create":
-		if v := createPayloadValidators[entityType]; v != nil {
-			return v(raw)
-		}
+		return strictCreatePayload(entityType, raw)
 	}
 	return nil
 }
@@ -223,9 +191,8 @@ const updateShapeExample = `{"fields":{"status":"resolved"}}`
 // ("nothing to apply"); without it (create/edit time) that is a free-text
 // suggestion and is allowed.
 func validateUpdatePayload(entityType string, raw json.RawMessage, requireFields bool) error {
-	allowed, legacy := updatePayloadFields[entityType]
-	ctor, typed := updateRequestTypes[entityType]
-	if !legacy && !typed {
+	ctor, ok := updateRequestTypes[entityType]
+	if !ok {
 		return nil // no update handler for this type; the registry check reports that
 	}
 
@@ -269,58 +236,11 @@ func validateUpdatePayload(entityType string, raw json.RawMessage, requireFields
 		return updateShapeError(stray)
 	}
 
-	if typed {
-		return decodeUpdateFields(entityType, raw, ctor())
-	}
-	keys := make([]string, 0, len(fields))
-	for k := range fields {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var unknown, badType []string
-	for _, k := range keys {
-		kind, ok := allowed[k]
-		if !ok {
-			unknown = append(unknown, k)
-			continue
-		}
-		if !jsonValueIsKind(fields[k], kind) {
-			badType = append(badType, fmt.Sprintf("%s must be %s", k, kind))
-		}
-	}
-	if len(unknown) > 0 {
-		supported := make([]string, 0, len(allowed))
-		for k := range allowed {
-			supported = append(supported, k)
-		}
-		sort.Strings(supported)
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf(
-			"%s update suggestions cannot apply field(s) %s (supported: %s)",
-			entityType, strings.Join(unknown, ", "), strings.Join(supported, ", ")))
-	}
-	if len(badType) > 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid field value(s): "+strings.Join(badType, "; "))
-	}
-	return nil
+	return decodeUpdateFields(entityType, raw, ctor())
 }
 
 func updateShapeError(stray []string) error {
 	return echo.NewHTTPError(http.StatusBadRequest,
 		`update payload values must be nested under "fields", e.g. `+updateShapeExample+
 			"; unexpected top-level key(s): "+strings.Join(stray, ", "))
-}
-
-func jsonValueIsKind(raw json.RawMessage, kind payloadKind) bool {
-	var v any
-	if err := json.Unmarshal(raw, &v); err != nil {
-		return false
-	}
-	switch kind {
-	case kindBool:
-		_, ok := v.(bool)
-		return ok
-	default:
-		_, ok := v.(string)
-		return ok
-	}
 }

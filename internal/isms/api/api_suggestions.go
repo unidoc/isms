@@ -846,12 +846,12 @@ func applyRiskReassess(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		Reason            string `json:"reason"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid reassess payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reassess payload: "+err.Error())
 	}
 
 	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("risk")
 	}
 
 	old := risk.ToChangeMap()
@@ -1015,11 +1015,11 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		} `json:"links"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid link payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid link payload: "+err.Error())
 	}
 	incID, err := s.resolveIncidentID(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("incident")
 	}
 
 	// Store the source under the incident's identifier, as POST /references
@@ -1027,7 +1027,7 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	// accepts but which does not resolve as a reference (#341, #346).
 	inc, err := s.db.GetIncident(ctx, orgID, incID)
 	if err != nil {
-		return "", 0, fmt.Errorf("incident %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("incident")
 	}
 	viewer := db.TaskViewer{Email: actor, CanSeeAll: true} // apply is manager/admin-only
 
@@ -1050,7 +1050,7 @@ func applyIncidentLink(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		linked++
 	}
 	if linked == 0 {
-		return "", 0, fmt.Errorf("no links in payload")
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "no links in payload")
 	}
 
 	return sg.EntityID, incID, nil
@@ -2001,12 +2001,12 @@ func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 func applyRiskReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
 	var reading db.EntityReading
 	if err := json.Unmarshal(sg.Payload, &reading); err != nil {
-		return "", 0, fmt.Errorf("invalid reading payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reading payload: "+err.Error())
 	}
 
 	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("risk %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("risk")
 	}
 
 	reading.EntityType = "risk"
@@ -2025,12 +2025,12 @@ func applyRiskReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 func applyLegalReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
 	var reading db.EntityReading
 	if err := json.Unmarshal(sg.Payload, &reading); err != nil {
-		return "", 0, fmt.Errorf("invalid reading payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid reading payload: "+err.Error())
 	}
 
 	lr, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("legal requirement %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("legal_requirement")
 	}
 
 	reading.EntityType = "legal_requirement"
@@ -2056,12 +2056,12 @@ func applySupplierReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, or
 		Notes                  string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid review payload: "+err.Error())
 	}
 
 	sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("supplier %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("supplier")
 	}
 
 	if payload.Outcome == "" {
@@ -2096,12 +2096,12 @@ func applyAccessReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, orgI
 		Notes        string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid access review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid access review payload: "+err.Error())
 	}
 
 	sys, err := s.db.GetSystemByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("system %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("system")
 	}
 
 	if payload.Notes == "" {
@@ -2132,12 +2132,12 @@ func applyAssetReviewSuggestion(ctx context.Context, tx pgx.Tx, s *Server, orgID
 		Notes                  string `json:"notes"`
 	}
 	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid asset review payload: %w", err)
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "invalid asset review payload: "+err.Error())
 	}
 
 	asset, err := s.db.GetAssetByIdentifier(ctx, orgID, sg.EntityID)
 	if err != nil {
-		return "", 0, fmt.Errorf("asset %s not found: %w", sg.EntityID, err)
+		return "", 0, errNotFound("asset")
 	}
 
 	if payload.Outcome == "" {

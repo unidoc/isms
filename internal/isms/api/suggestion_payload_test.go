@@ -9,16 +9,17 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
 )
 
-// TestUpdatePayloadFieldsMatchHandlers keeps updatePayloadFields in step with the
-// keys each update apply handler actually reads from payload.Fields.
-func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
+// TestUpdateHandlersDecodeHTTPRequestTypes keeps every update apply handler on
+// the HTTP update request type (#200): each has an updateRequestTypes entry
+// and vice versa, the handler body names that type, and it no longer reads
+// payload.Fields["key"] by hand.
+func TestUpdateHandlersDecodeHTTPRequestTypes(t *testing.T) {
 	file, err := parser.ParseFile(token.NewFileSet(), "api_suggestions.go", nil, 0)
 	if err != nil {
 		t.Fatalf("parsing api_suggestions.go: %v", err)
@@ -36,8 +37,15 @@ func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
 			continue
 		}
 		seen[entity] = true
-		if _, typed := updateRequestTypes[entity]; typed {
-			continue // covered by the request-type guard test (#200)
+		ctor, ok := updateRequestTypes[entity]
+		if !ok {
+			t.Errorf("%s has an update handler but no updateRequestTypes entry", entity)
+			continue
+		}
+		typ := reflect.TypeOf(ctor())
+		if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Struct || !strings.HasSuffix(typ.Elem().Name(), "UpdateRequest") {
+			t.Errorf("updateRequestTypes[%q] returns %v, want a pointer to a struct named ...UpdateRequest", entity, typ)
+			continue
 		}
 		full := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 		name := full[strings.LastIndex(full, ".")+1:]
@@ -46,58 +54,55 @@ func TestUpdatePayloadFieldsMatchHandlers(t *testing.T) {
 			t.Errorf("%s: handler %s not found in api_suggestions.go", key, name)
 			continue
 		}
-		read := map[string]bool{}
+		mentionsType := false
 		ast.Inspect(fd, func(n ast.Node) bool {
-			ix, ok := n.(*ast.IndexExpr)
-			if !ok {
-				return true
-			}
-			sel, ok := ix.X.(*ast.SelectorExpr)
-			if !ok || sel.Sel.Name != "Fields" {
-				return true
-			}
-			lit, ok := ix.Index.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING {
-				return true
-			}
-			if k, err := strconv.Unquote(lit.Value); err == nil {
-				read[k] = true
+			switch x := n.(type) {
+			case *ast.Ident:
+				if x.Name == typ.Elem().Name() {
+					mentionsType = true
+				}
+			case *ast.IndexExpr:
+				if sel, ok := x.X.(*ast.SelectorExpr); ok && sel.Sel.Name == "Fields" {
+					t.Errorf("%s indexes payload.Fields by hand; decode into %s instead", name, typ.Elem().Name())
+				}
 			}
 			return true
 		})
-		if entity == "audit_finding" {
-			// Iterates the map instead of naming keys: status has its own branch,
-			// UpdateAuditFindingFieldTx allows title and description.
-			read = map[string]bool{"title": true, "description": true, "status": true}
-		}
-		allowed := updatePayloadFields[entity]
-		if allowed == nil {
-			t.Errorf("%s has an update handler but no updatePayloadFields entry", entity)
-			continue
-		}
-		for k := range read {
-			if _, ok := allowed[k]; !ok {
-				t.Errorf("%s reads fields[%q] but updatePayloadFields[%q] does not list it", name, k, entity)
-			}
-		}
-		for k := range allowed {
-			if !read[k] {
-				t.Errorf("updatePayloadFields[%q] lists %q but %s never reads it", entity, k, name)
-			}
+		if !mentionsType {
+			t.Errorf("%s never mentions %s", name, typ.Elem().Name())
 		}
 	}
-	for entity := range updatePayloadFields {
+	for entity := range updateRequestTypes {
 		if !seen[entity] {
-			t.Errorf("updatePayloadFields has %q but there is no %s:update handler", entity, entity)
+			t.Errorf("updateRequestTypes has %q but there is no %s:update handler", entity, entity)
 		}
 	}
 }
 
-func TestCreatePayloadValidatorsCoverRegistry(t *testing.T) {
+// TestCreatePayloadsEmbedHTTPRequestTypes keeps every create apply handler on the
+// HTTP create request type (#200): every create handler has a payload type, and
+// each payload type embeds a ...CreateRequest struct, so a field added to POST is
+// accepted by the suggestion path with no second edit.
+func TestCreatePayloadsEmbedHTTPRequestTypes(t *testing.T) {
 	for key := range applyRegistry {
 		entity, kind, _ := strings.Cut(key, ":")
-		if kind == "create" && createPayloadValidators[entity] == nil {
-			t.Errorf("%s has a create handler but no createPayloadValidators entry", entity)
+		if kind == "create" && createPayloadTypes[entity] == nil {
+			t.Errorf("%s has a create handler but no createPayloadTypes entry", entity)
+		}
+	}
+	for entity, typ := range createPayloadTypes {
+		if applyRegistry[entity+":create"] == nil {
+			t.Errorf("createPayloadTypes has %q but there is no %s:create handler", entity, entity)
+		}
+		embedded := false
+		for i := 0; i < typ.NumField(); i++ {
+			f := typ.Field(i)
+			if f.Anonymous && strings.HasSuffix(f.Type.Name(), "CreateRequest") {
+				embedded = true
+			}
+		}
+		if !embedded {
+			t.Errorf("%s does not embed a ...CreateRequest type", typ.Name())
 		}
 	}
 }

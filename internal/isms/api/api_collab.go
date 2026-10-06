@@ -2892,6 +2892,9 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	if err := validateChangeCreate(&cr); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, cr.AssignedTo); err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {

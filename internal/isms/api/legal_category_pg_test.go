@@ -39,6 +39,8 @@ func wantBadRequest(t *testing.T, what string, err error) {
 func TestLegalCategoriesSaveThroughAPI(t *testing.T) {
 	s := testServer(t)
 	orgID := newTestOrg(t, s, "legal-categories")
+	// The HTTP create path now requires the owner (defaulted to the caller) to be an org member.
+	seedReviewUser(t, s, orgID, "admin@custom-fields.test", "admin")
 	ctx := t.Context()
 
 	create := func(category string) (db.LegalRequirement, error) {

@@ -174,6 +174,8 @@ func TestCreateEntityValidatesReferences(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
 	orgID := newTestOrg(t, s, "refs-on-create")
+	// The HTTP create path now requires the owner (defaulted to the caller) to be an org member.
+	seedReviewUser(t, s, orgID, "admin@custom-fields.test", "admin")
 
 	risk := &db.Risk{Title: "risk for create-references test", RiskType: db.RiskTypes[0], Origin: db.RiskOrigins[0], Status: db.RiskStatuses[0]}
 	if err := s.db.CreateRisk(ctx, orgID, risk); err != nil {

@@ -448,6 +448,17 @@ func (s *Server) validateOrgMemberIn(ctx context.Context, orgID int, email strin
 	return nil
 }
 
+// validateAssignedMember is validateOrgMemberIn for the effective owner or
+// assignee of a record created by suggestion apply (#200): the acting user is
+// a member by construction and is not re-checked; any other value must be an
+// org member. Empty and "system" are allowed.
+func (s *Server) validateAssignedMember(ctx context.Context, orgID int, email, actor string) error {
+	if email == actor {
+		return nil
+	}
+	return s.validateOrgMemberIn(ctx, orgID, email)
+}
+
 // validateEnum checks that value is in the allowed slice, returning a 400 if not.
 // Empty values are accepted as "unset" — caller decides if that's allowed.
 func validateEnum(field, value string, allowed []string) error {

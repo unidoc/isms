@@ -819,9 +819,7 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := validateRiskTreatment(&risk); err != nil {
 		return "", 0, err
 	}
-	// Only an owner the payload names is checked; the defaulted owner is the
-	// acting user, who is a member by construction.
-	if err := s.validateOrgMemberIn(ctx, orgID, p.Owner); err != nil {
+	if err := s.validateAssignedMember(ctx, orgID, risk.Owner, actor); err != nil {
 		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
@@ -955,10 +953,8 @@ func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	// Validate the effective assignee, as the HTTP handler does after defaults:
 	// it can come from the payload's reporter. The acting user is a member by
 	// construction and is not re-checked.
-	if inc.Assignee != actor {
-		if err := s.validateOrgMemberIn(ctx, orgID, inc.Assignee); err != nil {
-			return "", 0, err
-		}
+	if err := s.validateAssignedMember(ctx, orgID, inc.Assignee, actor); err != nil {
+		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
 	if err != nil {
@@ -1106,6 +1102,9 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	if err := validateSupplierCreate(&sup); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, sup.Owner, actor); err != nil {
+		return "", 0, err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
 	if err != nil {
 		return "", 0, err
@@ -1195,6 +1194,9 @@ func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	if err := validateLegalCreate(&lr); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, lr.Owner, actor); err != nil {
+		return "", 0, err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
 	if err != nil {
 		return "", 0, err
@@ -1276,6 +1278,9 @@ func applyChangeCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	cr.RequestedBy = actor
 	applyChangeDefaults(&cr)
 	if err := validateChangeCreate(&cr); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateAssignedMember(ctx, orgID, cr.AssignedTo, actor); err != nil {
 		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
@@ -1384,9 +1389,7 @@ func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 	if err := validateCorrectiveActionCreate(&ca); err != nil {
 		return "", 0, err
 	}
-	// Only an assignee the payload names is checked; the defaulted one is the
-	// acting user, who is a member by construction.
-	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
+	if err := s.validateAssignedMember(ctx, orgID, ca.Assignee, actor); err != nil {
 		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
@@ -1474,9 +1477,7 @@ func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := validateTaskCreate(&t); err != nil {
 		return "", 0, err
 	}
-	// Only an assignee the payload names is checked; the defaulted one is the
-	// acting user, who is a member by construction.
-	if err := s.validateOrgMemberIn(ctx, orgID, p.Assignee); err != nil {
+	if err := s.validateAssignedMember(ctx, orgID, t.Assignee, actor); err != nil {
 		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
@@ -1646,6 +1647,9 @@ func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 	if err := validateObjectiveCreate(&o); err != nil {
 		return "", 0, err
 	}
+	if err := s.validateAssignedMember(ctx, orgID, o.Owner, actor); err != nil {
+		return "", 0, err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)
 	if err != nil {
 		return "", 0, err
@@ -1716,6 +1720,9 @@ func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg
 	if pr.Title == "" {
 		return "", 0, errRequired("title")
 	}
+	if err := s.validateAssignedMember(ctx, orgID, pr.Owner, actor); err != nil {
+		return "", 0, err
+	}
 	if err := db.CreateProgramTx(ctx, tx, orgID, &pr); err != nil {
 		return "", 0, err
 	}
@@ -1771,6 +1778,9 @@ func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	}
 	applySystemDefaults(&sys, actor)
 	if err := validateSystemCreate(&sys); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateAssignedMember(ctx, orgID, sys.Owner, actor); err != nil {
 		return "", 0, err
 	}
 	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
@@ -1862,6 +1872,9 @@ func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	}
 	applyAssetDefaults(&a, actor)
 	if err := validateAssetCreate(&a); err != nil {
+		return "", 0, err
+	}
+	if err := s.validateAssignedMember(ctx, orgID, a.Owner, actor); err != nil {
 		return "", 0, err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, db.TaskViewer{Email: actor, CanSeeAll: true}, p.References)

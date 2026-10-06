@@ -2021,6 +2021,9 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 	if err := validateAssetCreate(&a); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, a.Owner); err != nil {
+		return err
+	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
 		return err
@@ -2171,6 +2174,9 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 	}
 	applySystemDefaults(&sys, getUserEmail(c))
 	if err := validateSystemCreate(&sys); err != nil {
+		return err
+	}
+	if err := s.validateOrgMember(c, sys.Owner); err != nil {
 		return err
 	}
 	if err := s.validateSystemSupplier(ctx, orgID, &sys); err != nil {
@@ -2636,6 +2642,9 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateSupplierCreate(&sup); err != nil {
+		return err
+	}
+	if err := s.validateOrgMember(c, sup.Owner); err != nil {
 		return err
 	}
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)

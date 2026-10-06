@@ -125,6 +125,9 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	if p.Title == "" {
 		return errRequired("title")
 	}
+	if err := s.validateOrgMember(c, p.Owner); err != nil {
+		return err
+	}
 
 	if err := s.db.CreateProgram(ctx, orgID, &p); err != nil {
 		return pgxHTTPError(err)
@@ -193,6 +196,11 @@ func (s *Server) handleUpdateProgram(c echo.Context) error {
 	var req programUpdateRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if req.Owner != nil && *req.Owner != "" {
+		if err := s.validateOrgMember(c, *req.Owner); err != nil {
+			return err
+		}
 	}
 	// programs.key is immutable after creation — preserve old.
 	p := *old
@@ -351,6 +359,9 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 	if err := validateObjectiveCreate(&o); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, o.Owner); err != nil {
+		return err
+	}
 
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)
 	if err != nil {
@@ -404,6 +415,11 @@ func (s *Server) prepareObjectiveUpdate(ctx context.Context, orgID int, old *db.
 	}
 	if req.TargetOperator != nil {
 		if err := validateEnum("target_operator", *req.TargetOperator, db.ObjectiveTargetOperators); err != nil {
+			return db.Objective{}, err
+		}
+	}
+	if req.Owner != nil && *req.Owner != "" {
+		if err := s.validateOrgMemberIn(ctx, orgID, *req.Owner); err != nil {
 			return db.Objective{}, err
 		}
 	}

@@ -134,6 +134,9 @@ func (s *Server) handleCreateLegal(c echo.Context) error {
 	if err := validateLegalCreate(&lr); err != nil {
 		return err
 	}
+	if err := s.validateOrgMember(c, lr.Owner); err != nil {
+		return err
+	}
 
 	ctx := c.Request().Context()
 	refs, err := s.validateReferenceInputs(ctx, orgID, taskViewer(c), req.References)

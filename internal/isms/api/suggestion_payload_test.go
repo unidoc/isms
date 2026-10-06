@@ -148,6 +148,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 	assert400(t, validateUpdatePayload("corrective_action", raw(`{"fields":{"notes":null}}`), true), "cannot be null")
 	assert400(t, validateUpdatePayload("change_request", raw(`{"fields":{"status":null}}`), true), "cannot be null")
 	assert400(t, validateUpdatePayload("task", raw(`{"fields":{"private":null}}`), true), "cannot be null")
+	assert400(t, validateUpdatePayload("audit_finding", raw(`{"fields":{"title":null}}`), true), "cannot be null")
 	// Not JSON objects.
 	assert400(t, validateUpdatePayload("asset", raw(`[1]`), false))
 	assert400(t, validateUpdatePayload("asset", raw(`{"fields":[1]}`), false))
@@ -166,7 +167,7 @@ func TestValidateUpdatePayload(t *testing.T) {
 		{"risk", `{"fields":{"current_likelihood":4,"treatment_due_date":null,"custom_fields":{}}}`},
 		{"supplier", `{"fields":{"data_access":true,"contract_expiry":null}}`},
 		{"system", `{"fields":{"rpo_hours":4,"supplier_id":null,"next_review":1893456000}}`},
-		{"audit_finding", `{"fields":{"description":"d","status":"closed"}}`},
+		{"audit_finding", `{"fields":{"description":"d","status":"closed","owner":"a@b.c","due_date":null}}`},
 	} {
 		if err := validateUpdatePayload(tc.entity, raw(tc.payload), true); err != nil {
 			t.Errorf("%s %s: %v, want nil", tc.entity, tc.payload, err)
@@ -178,6 +179,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
 	// #200: the objective operator that used to be dropped and defaulted to gte.
 	assert400(t, validateSuggestionPayload("objective", "create", raw(`{"title":"MTTP","bogus":"lte"}`)), "bogus")
+	assert400(t, validateSuggestionPayload("audit_finding", "create", raw(`{"audit_id":1,"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("task", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("change_request", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
 	assert400(t, validateSuggestionPayload("corrective_action", "create", raw(`{"title":"c","bogus":1}`)), "bogus")
@@ -197,6 +199,7 @@ func TestValidateSuggestionPayloadCreate(t *testing.T) {
 		{"incident", ``},
 		{"asset", `{"name":"a","confidentiality":3,"primary_location":"dc1","references":[{"type":"risk","id":"RISK-1"}]}`},
 		{"asset", `{"title":"only a title"}`},
+		{"audit_finding", `{"audit_id":1,"title":"f","finding_type":"minor_nc","due_date":1893456000,"owner":"a@b.c","audit_item_id":3}`},
 		{"task", `{"title":"t","private":true,"recurrence_days":7,"status":"open"}`},
 		{"change_request", `{"title":"c","type":"access_request","notes":"n","status":"proposed","planned_at":1893456000}`},
 		{"corrective_action", `{"title":"c","severity":"major_nc","due_date":1893456000,"status":"todo"}`},

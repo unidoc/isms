@@ -883,16 +883,11 @@ func AddAuditFindingTx(ctx context.Context, tx pgx.Tx, orgID int, f *AuditFindin
 	).Scan(&f.ID, &f.CreatedAt, &f.UpdatedAt)
 }
 
-// UpdateAuditFindingFieldTx updates a single audit finding field within an existing transaction.
-// Restricted to text fields that the AI suggestion apply-handler may modify; stamps updated_at.
-// Note: corrective_action content is now folded into description (## Corrective Action heading).
-func UpdateAuditFindingFieldTx(ctx context.Context, tx pgx.Tx, orgID int, id int, field, value string) error {
-	allowed := map[string]bool{"description": true, "title": true}
-	if !allowed[field] {
-		return fmt.Errorf("field %s not updatable", field)
-	}
-	_, err := tx.Exec(ctx, fmt.Sprintf(`UPDATE audit_findings SET %s = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`, field), id, value, orgID)
-	return err
+// UpdateAuditFindingPartialTx is UpdateAuditFindingPartial inside an existing
+// transaction (suggestion apply and the PUT handler, #200): nil = leave alone,
+// non-nil = set; shares one body with the pool method.
+func UpdateAuditFindingPartialTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, title, description, owner *string, dueDate **Epoch) error {
+	return updateAuditFindingPartial(ctx, tx, orgID, id, title, description, owner, dueDate)
 }
 
 // SetAuditFindingStatusTx is the tx variant of SetAuditFindingStatus — shares the

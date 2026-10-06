@@ -1902,86 +1902,96 @@ func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 // APPLY HANDLERS: AUDIT FINDINGS
 // ═══════════════════════════════════════════════════════════════════════
 
-// auditFindingCreatePayload is the payload of an audit_finding:create suggestion. Decoded strictly,
-// so a key not listed here is refused instead of silently dropped (#200).
+// auditFindingCreatePayload is the payload of an audit_finding:create suggestion:
+// the POST /audit-findings body (#200). Decoded strictly.
 type auditFindingCreatePayload struct {
-	AuditID     int    `json:"audit_id"`
-	FindingType string `json:"finding_type"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	auditFindingCreateRequest
 }
 
 func applyAuditFindingCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload auditFindingCreatePayload
-	if err := decodeSuggestionPayload(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid finding payload: %w", err)
-	}
-	if payload.Title == "" {
-		return "", 0, fmt.Errorf("title is required")
-	}
-	if payload.AuditID == 0 {
-		return "", 0, fmt.Errorf("audit_id is required")
-	}
-	// Seed description with ## Corrective Action heading when empty
-	// (corrective_action column was folded into description).
-	desc := payload.Description
-	if desc == "" {
-		desc = "## Corrective Action\n\n"
-	}
-	f := db.AuditFinding{
-		AuditID:     payload.AuditID,
-		FindingType: payload.FindingType,
-		Title:       payload.Title,
-		Description: desc,
-		Status:      "open",
-	}
-	if f.FindingType == "" {
-		f.FindingType = "observation"
-	}
-	if err := db.AddAuditFindingTx(ctx, tx, orgID, &f); err != nil {
+	var p auditFindingCreatePayload
+	if err := decodeSuggestionPayload(sg.Payload, &p); err != nil {
 		return "", 0, err
 	}
-	return fmt.Sprintf("%d", f.ID), f.ID, nil
+	if p.AuditID <= 0 {
+		return "", 0, echo.NewHTTPError(http.StatusBadRequest, "audit_id is required")
+	}
+	if p.Title == "" {
+		return "", 0, errRequired("title")
+	}
+	// Apply-only default: the HTTP create rejects an empty finding_type, but an
+	// agent proposing a finding without one gets the mildest type.
+	if p.FindingType == "" {
+		p.FindingType = "observation"
+	}
+	f, err := s.buildAuditFindingCreate(ctx, orgID, &p.auditFindingCreateRequest)
+	if err != nil {
+		return "", 0, err
+	}
+	if err := db.AddAuditFindingTx(ctx, tx, orgID, f); err != nil {
+		return "", 0, err
+	}
+	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+		EntityType: "audit_finding", EntityID: f.ID, Action: "create", ChangedBy: actor,
+	}); err != nil {
+		return "", 0, err
+	}
+	return fmt.Sprintf("FIND-%d", f.ID), f.ID, nil
 }
 
 func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *db.Suggestion, actor string) (string, int64, error) {
-	var payload struct {
-		Fields map[string]interface{} `json:"fields"`
-	}
-	if err := json.Unmarshal(sg.Payload, &payload); err != nil {
-		return "", 0, fmt.Errorf("invalid update payload: %w", err)
+	var req auditFindingUpdateRequest
+	if err := decodeUpdateFields(sg.EntityType, sg.Payload, &req); err != nil {
+		return "", 0, err
 	}
 	// A finding's display id is built from its primary key (db/audits.go), so
 	// the strip is exact here — the one place it is (see entityIDResolvers).
-	idInt, err := strconv.ParseInt(stripPrefix(sg.EntityID, "FIND-"), 10, 64)
+	id, err := strconv.ParseInt(stripPrefix(sg.EntityID, "FIND-"), 10, 64)
 	if err != nil {
-		return "", 0, fmt.Errorf("audit finding %s: invalid id", sg.EntityID)
+		return "", 0, apiError(http.StatusBadRequest, CodeInvalidEntityID, Entity("audit_finding"))
 	}
-	for field, val := range payload.Fields {
-		// Status transitions go through the shared closure-metadata path (same as
-		// the HTTP handler) — a plain field write would skip closed_at/closed_by.
-		if field == "status" {
-			sv, ok := val.(string)
-			if !ok {
-				return "", 0, fmt.Errorf("field status: expected a string, got %T", val)
-			}
-			if !db.AuditFindingStatuses[sv] {
-				return "", 0, fmt.Errorf("invalid status: %s", sv)
-			}
-			if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, idInt, sv, actor); err != nil {
-				return "", 0, err
-			}
-			continue
-		}
-		sv, ok := val.(string)
-		if !ok {
-			continue
-		}
-		if err := db.UpdateAuditFindingFieldTx(ctx, tx, orgID, int(idInt), field, sv); err != nil {
-			return "", 0, fmt.Errorf("updating field %s: %w", field, err)
+	before, err := s.db.GetAuditFinding(ctx, orgID, id)
+	if err != nil {
+		return "", 0, errNotFound("audit_finding")
+	}
+	if err := s.prepareAuditFindingUpdate(ctx, orgID, &req); err != nil {
+		return "", 0, err
+	}
+	if req.Title != nil || req.Description != nil || req.Owner != nil || req.DueDate.Set {
+		if err := db.UpdateAuditFindingPartialTx(ctx, tx, orgID, id, req.Title, req.Description, req.Owner, req.DueDate.Ptr()); err != nil {
+			return "", 0, err
 		}
 	}
-	return sg.EntityID, idInt, nil
+	// Status transitions go through the shared closure-metadata path (same as the
+	// HTTP handler) — a plain field write would skip closed_at/closed_by.
+	if req.Status != nil {
+		if err := db.SetAuditFindingStatusTx(ctx, tx, orgID, id, *req.Status, actor); err != nil {
+			return "", 0, err
+		}
+	}
+	// There is no transactional getter, so build the after-state by merging. The
+	// closure stamps are not part of the change map.
+	after := *before
+	if req.Title != nil {
+		after.Title = *req.Title
+	}
+	if req.Description != nil {
+		after.Description = *req.Description
+	}
+	if req.Owner != nil {
+		after.Owner = *req.Owner
+	}
+	if req.DueDate.Set {
+		after.DueDate = req.DueDate.Value
+	}
+	if req.Status != nil {
+		after.Status = *req.Status
+	}
+	diffs := db.DiffFields("audit_finding", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), before.ToChangeMap(), after.ToChangeMap())
+	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
+		return "", 0, err
+	}
+	return sg.EntityID, id, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════

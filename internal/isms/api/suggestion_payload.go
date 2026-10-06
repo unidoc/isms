@@ -38,11 +38,7 @@ func (k payloadKind) String() string {
 // handler reads from payload.fields, and the JSON type each must be. Keep it in
 // step with the handlers in api_suggestions.go: TestUpdatePayloadFieldsMatchHandlers
 // fails if a handler reads a key missing here, or a key listed here is never read.
-var updatePayloadFields = map[string]map[string]payloadKind{
-	"audit_finding": {
-		"title": kindString, "description": kindString, "status": kindString,
-	},
-}
+var updatePayloadFields = map[string]map[string]payloadKind{}
 
 // updateRequestTypes maps an entity type to a constructor for the HTTP update
 // request type its update apply handler decodes payload.fields into (#200).
@@ -59,6 +55,7 @@ var updateRequestTypes = map[string]func() any{
 	"corrective_action": func() any { return &correctiveActionUpdateRequest{} },
 	"change_request":    func() any { return &changeUpdateRequest{} },
 	"task":              func() any { return &taskUpdateRequest{} },
+	"audit_finding":     func() any { return &auditFindingUpdateRequest{} },
 }
 
 // jsonFieldTypes maps each json tag name of struct type t to its field type.

@@ -655,3 +655,75 @@ def test_task_update_done_stamps_and_reopen_clears_completed_at(api_url, admin_h
 
 def test_task_create_parity(api_url, admin_headers):
     _create_parity(api_url, admin_headers, "task", "tasks", TASK_FIELDS, unique=("title",), get_by="ident")
+
+
+# --- audit finding ---------------------------------------------------------
+
+def _make_audit(api_url, headers):
+    prog = requests.post(f"{api_url}/audit/programmes", headers=headers,
+                         json={"title": f"parity prog {_tag()}", "year": 2026})
+    assert prog.status_code in (200, 201), prog.text
+    aud = requests.post(f"{api_url}/audits", headers=headers, json={
+        "programme_id": prog.json()["id"], "title": f"parity audit {_tag()}", "status": "planned"})
+    assert aud.status_code in (200, 201), aud.text
+    return aud.json()
+
+
+def _make_finding(api_url, headers, audit_id):
+    r = requests.post(f"{api_url}/audit-findings", headers=headers, json={
+        "audit_id": audit_id, "title": f"find {_tag()}", "finding_type": "observation"})
+    assert r.status_code in (200, 201), r.text
+    return r.json()
+
+
+def test_audit_finding_update_parity(api_url, admin_headers):
+    aud = _make_audit(api_url, admin_headers)
+    fields = {"title": "renamed finding", "description": "finding description",
+              "owner": ADMIN_EMAIL, "due_date": 1893456000, "status": "closed"}
+    _update_parity(api_url, admin_headers, "audit_finding", "audit-findings",
+                   lambda: _make_finding(api_url, admin_headers, aud["id"]), fields,
+                   ref="id")
+    # the closure stamp comes from the shared status path on both sides
+    f = _make_finding(api_url, admin_headers, aud["id"])
+    _apply(api_url, admin_headers, "audit_finding", "update", {"fields": {"status": "closed"}}, entity_id=f["id"])
+    got = requests.get(f"{api_url}/audit-findings/{f['id']}", headers=admin_headers).json()
+    assert got["status"] == "closed" and got.get("closed_at"), got
+
+
+def test_audit_finding_update_empty_title_is_400(api_url, admin_headers):
+    aud = _make_audit(api_url, admin_headers)
+    f = _make_finding(api_url, admin_headers, aud["id"])
+    sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+        "entity_type": "audit_finding", "suggestion_type": "update", "entity_id": str(f["id"]),
+        "title": "blank", "payload": {"fields": {"title": ""}}})
+    assert sg.status_code == 201, sg.text
+    ap = _apply_raw(api_url, admin_headers, sg.json()["id"])
+    assert ap.status_code == 400 and "title" in ap.text, ap.text
+
+
+def test_audit_finding_create_parity(api_url, admin_headers):
+    aud = _make_audit(api_url, admin_headers)
+    body = {"audit_id": aud["id"], "finding_type": "major_nc", "title": "a finding",
+            "description": "finding description", "due_date": 1893456000, "owner": ADMIN_EMAIL}
+    r = requests.post(f"{api_url}/audit-findings", headers=admin_headers, json=body)
+    assert r.status_code == 201, r.text
+    ident = _apply(api_url, admin_headers, "audit_finding", "create", body)
+    assert ident.startswith("FIND-"), ident
+    got_a = requests.get(f"{api_url}/audit-findings/{r.json()['id']}", headers=admin_headers).json()
+    got_b = requests.get(f"{api_url}/audit-findings/{ident}", headers=admin_headers).json()
+    _assert_same(got_a, got_b, body, "audit finding create")
+    assert got_a["status"] == got_b["status"] == "open"
+
+
+def test_audit_finding_create_defaults_and_checks(api_url, admin_headers):
+    aud = _make_audit(api_url, admin_headers)
+    # apply-only default finding_type
+    ident = _apply(api_url, admin_headers, "audit_finding", "create", {"audit_id": aud["id"], "title": "t"})
+    got = requests.get(f"{api_url}/audit-findings/{ident}", headers=admin_headers).json()
+    assert got["finding_type"] == "observation"
+    # bad type and a foreign/unknown audit are 4xx at apply, never 500
+    for payload, code in (({"audit_id": aud["id"], "title": "t", "finding_type": "bogus"}, 400),
+                          ({"audit_id": 99999999, "title": "t"}, 404)):
+        sg = _suggest(api_url, admin_headers, "audit_finding", payload)
+        assert sg.status_code == 201, sg.text
+        assert _apply_raw(api_url, admin_headers, sg.json()["id"]).status_code == code

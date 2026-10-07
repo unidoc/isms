@@ -262,6 +262,10 @@
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.planned_for') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedChange.planned_at) }}</div>
                         </div>
+                        <div v-if="selectedChange.approved_by">
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.approved_by') }}</div>
+                          <div class="text-sm text-slate-300">{{ t('changes.detail.approved_on', { name: resolveUserName(selectedChange.approved_by), date: formatDate(selectedChange.approved_at) }) }}</div>
+                        </div>
                       </div>
 
                       <div class="border-t border-slate-800 pt-4 space-y-3">
@@ -365,6 +369,7 @@
             </div>
           </div>
 
+          <p v-if="approvalAtRisk" class="flex-shrink-0 border-t border-slate-800 px-6 pt-3 text-xs text-amber-400">{{ t('changes.detail.approval_will_be_withdrawn', { name: resolveUserName(selectedChange.approved_by) }) }}</p>
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
             <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
             <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
@@ -402,6 +407,7 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate } from '../composables/useFormat.js'
+import { sameMarkdown } from '../composables/useMarkdownConvert.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
@@ -655,6 +661,22 @@ async function create() {
   }
 }
 
+// Mirrors the server rule (changeApprovalWithdrawn, #197): editing approved
+// content of an approved or in-progress change sends it back to Proposed.
+const SUBSTANCE_FIELDS = ['description', 'justification', 'risk_level', 'rollback_plan', 'type', 'category', 'priority']
+// Fields edited through MarkdownField, whose emitted text is re-serialised by
+// the editor even when the user changed nothing.
+const MARKDOWN_FIELDS = ['description', 'justification', 'rollback_plan', 'notes']
+const approvalAtRisk = computed(() => {
+  const cr = selectedChange.value
+  if (!cr || !editingSection.value || !cr.approved_at) return false
+  if (!['approved', 'in_progress'].includes(cr.status)) return false
+  if (!['approved', 'in_progress'].includes(editForm.value.status)) return false
+  return SUBSTANCE_FIELDS.some((f) => MARKDOWN_FIELDS.includes(f)
+    ? !sameMarkdown(editForm.value[f], cr[f])
+    : (editForm.value[f] || '') !== (cr[f] || ''))
+})
+
 function startEdit(cr) {
   editForm.value = {
     type: cr.type || 'change',
@@ -701,15 +723,31 @@ async function saveSection() {
     const payload = { ...editForm.value }
     payload.planned_at = dateStrToEpoch(payload.planned_at_str)
     delete payload.planned_at_str
-    await api.updateChange(selectedChange.value.id, payload)
+    // An untouched markdown field comes back re-serialised by the editor; send
+    // the stored text so a no-op edit writes nothing and withdraws nothing.
+    for (const key of MARKDOWN_FIELDS) {
+      if (sameMarkdown(payload[key], selectedChange.value[key])) payload[key] = selectedChange.value[key] || ''
+    }
+    const statusBefore = selectedChange.value.status
+    const changeId = selectedChange.value.id
+    await api.updateChange(changeId, payload)
     await loadChanges()
-    const fresh = changes.value.find(c => c.id === selectedChange.value.id)
+    // A save that withdraws an approval can drop the change out of an active
+    // status filter, so fall back to fetching it directly.
+    let fresh = changes.value.find(c => c.id === changeId)
+    if (!fresh) {
+      try { fresh = await api.getChange(changeId) } catch { /* leave the panel as is */ }
+    }
     if (fresh) {
       selectedChange.value = fresh
       startEdit(fresh)
     }
     editingSection.value = ''
-    showSaved(t('common.state.saved'))
+    // The server sends an approved / in-progress change back to Proposed when
+    // approved content was rewritten; say so rather than a plain "saved" (#197).
+    const withdrawn = fresh && ['approved', 'in_progress'].includes(statusBefore) &&
+      fresh.status === 'proposed' && payload.status !== 'proposed'
+    showSaved(withdrawn ? t('changes.detail.approval_withdrawn') : t('common.state.saved'))
   } catch (e) {
     showError(t('changes.error.save', { message: renderApiError(e) }))
   } finally {

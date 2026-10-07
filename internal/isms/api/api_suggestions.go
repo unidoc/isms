@@ -1318,6 +1318,17 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err != nil {
 		return "", 0, err
 	}
+	// Rewriting approved content sends the change back to proposed, exactly as
+	// the PUT handler does (#197).
+	target := old.Status
+	if req.Status != nil {
+		target = *req.Status
+	}
+	withdrawn := changeApprovalWithdrawn(old, &updated, target)
+	if withdrawn {
+		proposed := "proposed"
+		req.Status = &proposed
+	}
 	// Status transitions go through the shared enforced path so approved_at/by and
 	// implemented_at are derived exactly as the HTTP handler does — a plain field
 	// write (UpdateChangeRequestTx doesn't touch status) would skip that metadata.
@@ -1343,7 +1354,11 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	// There is no transactional getter, so diff the row as read against the merged
 	// value with the new status set. The approved_at/by and implemented_at stamps
 	// written by UpdateChangeRequestStatusTx are deliberately left out of the diff.
-	diffs := db.DiffFields("change_request", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
+	reason := fmt.Sprintf("suggestion #%d", sg.ID)
+	if withdrawn {
+		reason += "; " + changeApprovalWithdrawnReason
+	}
+	diffs := db.DiffFields("change_request", id, actor, reason, old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}

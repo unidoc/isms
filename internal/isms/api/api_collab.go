@@ -2936,6 +2936,36 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 	return c.JSON(http.StatusCreated, cr)
 }
 
+// changeApprovalWithdrawnReason is the changelog reason on the status row
+// written when an edit withdraws a change's approval (#197).
+const changeApprovalWithdrawnReason = "approval withdrawn: approved content was edited"
+
+// changeSubstanceChanged reports whether updated differs from old in a field
+// an approval covers. title, notes, assigned_to and planned_at are left out
+// on purpose: fixing a typo, noting progress or reassigning the implementer
+// does not change what was approved.
+func changeSubstanceChanged(old, updated *db.ChangeRequest) bool {
+	return old.Description != updated.Description ||
+		old.Justification != updated.Justification ||
+		old.RiskLevel != updated.RiskLevel ||
+		old.RollbackPlan != updated.RollbackPlan ||
+		old.Type != updated.Type ||
+		old.Category != updated.Category ||
+		old.Priority != updated.Priority
+}
+
+// changeApprovalWithdrawn reports whether an edit must send the change back
+// to proposed: it holds an approval, it is approved or in progress, it stays
+// there after this request, and the edit rewrites approved content. A change
+// with no approval stamp (e.g. one master's in_progress bug already
+// cleared) has nothing to withdraw. Implemented and closed changes are out
+// of scope and keep their status.
+func changeApprovalWithdrawn(old, updated *db.ChangeRequest, targetStatus string) bool {
+	holds := old.ApprovedAt != nil && (old.Status == "approved" || old.Status == "in_progress")
+	stays := targetStatus == "approved" || targetStatus == "in_progress"
+	return holds && stays && changeSubstanceChanged(old, updated)
+}
+
 // prepareChangeUpdate validates req and returns old with req merged in. The
 // status is validated but not applied: it goes through the dedicated transition
 // function (approved_at / implemented_at), which each caller runs itself. Shared
@@ -3039,6 +3069,17 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	// Rewriting approved content sends the change back to proposed, which the
+	// status block below turns into a real transition (clears the approval, #197).
+	target := old.Status
+	if req.Status != nil {
+		target = *req.Status
+	}
+	withdrawn := changeApprovalWithdrawn(old, &cr, target)
+	if withdrawn {
+		proposed := "proposed"
+		req.Status = &proposed
+	}
 	// Route status changes through the dedicated transition function so that
 	// approved_at / implemented_at are cleared correctly on reverse transitions.
 	if req.Status != nil && *req.Status != old.Status {
@@ -3060,7 +3101,11 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	}
 
 	actor := getUserEmail(c)
-	diffs := db.DiffFields("change_request", int64(id), actor, "", oldMap, updated.ToChangeMap())
+	reason := ""
+	if withdrawn {
+		reason = changeApprovalWithdrawnReason
+	}
+	diffs := db.DiffFields("change_request", int64(id), actor, reason, oldMap, updated.ToChangeMap())
 	if len(diffs) > 0 {
 		s.logChanges(ctx, orgID, diffs)
 	}

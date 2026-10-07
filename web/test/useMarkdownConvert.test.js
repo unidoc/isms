@@ -9,7 +9,7 @@ globalThis.Node = dom.window.Node
 globalThis.Element = dom.window.Element
 globalThis.HTMLElement = dom.window.HTMLElement
 
-const { markdownToHtml, htmlToMarkdown } = await import('../src/composables/useMarkdownConvert.js')
+const { markdownToHtml, htmlToMarkdown, sameMarkdown } = await import('../src/composables/useMarkdownConvert.js')
 
 test('round-trips a Mermaid fence without changing its source', () => {
   const source = '```mermaid\nflowchart TD\n  Draft --> Review --> Approved\n```'
@@ -49,4 +49,27 @@ test('round-trips quotes in a Mermaid fence info string without injecting attrib
   assert.match(html, /data-info-string="mermaid&quot; data-wrapped=&quot;true"/)
   assert.match(html, /class="language-mermaid&quot;"/)
   assert.equal(htmlToMarkdown(html).trim(), source)
+})
+
+test('sameMarkdown ignores editor re-serialisation of an unedited field', () => {
+  const stored = '- step one\n- step two\n\n**Bold** note'
+  const reserialised = '-   step one\n    \n-   step two\n    \n\n**Bold** note'
+  assert.notEqual(stored, reserialised)
+  assert.equal(sameMarkdown(reserialised, stored), true)
+})
+
+test('sameMarkdown detects a real word change', () => {
+  assert.equal(sameMarkdown('- step one\n- step two', '- step one\n- step three'), false)
+})
+
+test('sameMarkdown treats empty and undefined alike', () => {
+  assert.equal(sameMarkdown('', undefined), true)
+  assert.equal(sameMarkdown(null, ''), true)
+})
+
+test('htmlToMarkdown(markdownToHtml(x)) is idempotent on its own output', () => {
+  for (const x of ['- step one\n- step two\n\n**Bold** note', '-   step one\n    \n-   step two\n    \n\n**Bold** note']) {
+    const once = htmlToMarkdown(markdownToHtml(x))
+    assert.equal(htmlToMarkdown(markdownToHtml(once)), once)
+  }
 })

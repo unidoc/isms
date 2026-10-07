@@ -267,6 +267,110 @@ class TestChangeType:
         assert r.status_code == 400, r.text
 
 
+class TestChangeApprovalLifecycle:
+    """#197: an approval survives the move into work and is withdrawn only when
+    the approved content is rewritten (or the change is sent back / rejected)."""
+
+    WITHDRAWN_REASON = "approval withdrawn: approved content was edited"
+
+    def _approved_change(self, api_url, headers, title="Approval lifecycle"):
+        r = requests.post(f"{api_url}/changes", headers=headers, json={
+            "title": title, "description": "original description",
+            "justification": "original justification", "risk_level": "low",
+            "rollback_plan": "original rollback"})
+        assert r.status_code == 201, r.text
+        cid = r.json()["id"]
+        self._set_status(api_url, headers, cid, "approved")
+        got = self._get(api_url, headers, cid)
+        assert got["status"] == "approved" and got.get("approved_at") and got.get("approved_by"), got
+        return cid, got
+
+    @staticmethod
+    def _set_status(api_url, headers, cid, status):
+        r = requests.put(f"{api_url}/changes/{cid}/status", headers=headers, json={"status": status})
+        assert r.status_code == 200, r.text
+
+    @staticmethod
+    def _get(api_url, headers, cid):
+        r = requests.get(f"{api_url}/changes/{cid}", headers=headers)
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    def test_in_progress_keeps_approval(self, api_url, admin_headers):
+        cid, approved = self._approved_change(api_url, admin_headers)
+        self._set_status(api_url, admin_headers, cid, "in_progress")
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "in_progress"
+        assert got.get("approved_by") == approved["approved_by"], got
+        assert got.get("approved_at") == approved["approved_at"], got
+
+    def test_edit_form_in_progress_keeps_approval(self, api_url, admin_headers):
+        cid, approved = self._approved_change(api_url, admin_headers)
+        r = requests.put(f"{api_url}/changes/{cid}", headers=admin_headers, json={"status": "in_progress"})
+        assert r.status_code == 200, r.text
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "in_progress"
+        assert got.get("approved_by") == approved["approved_by"], got
+        assert got.get("approved_at") == approved["approved_at"], got
+
+    def test_reopen_keeps_implemented_at_and_approval(self, api_url, admin_headers):
+        cid, approved = self._approved_change(api_url, admin_headers)
+        self._set_status(api_url, admin_headers, cid, "implemented")
+        implemented = self._get(api_url, admin_headers, cid)
+        assert implemented.get("implemented_at"), implemented
+        self._set_status(api_url, admin_headers, cid, "in_progress")
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "in_progress"
+        assert got.get("implemented_at") == implemented["implemented_at"], got
+        assert got.get("approved_by") == approved["approved_by"], got
+        assert got.get("approved_at") == approved["approved_at"], got
+
+    def test_rewrite_withdraws_approval(self, api_url, admin_headers):
+        cid, _ = self._approved_change(api_url, admin_headers)
+        r = requests.put(f"{api_url}/changes/{cid}", headers=admin_headers, json={
+            "description": "completely different change", "justification": "different",
+            "risk_level": "critical", "rollback_plan": "none"})
+        assert r.status_code == 200, r.text
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "proposed", got
+        assert not got.get("approved_at") and not got.get("approved_by"), got
+        r = requests.get(f"{api_url}/changelog/change_request/{cid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        entries = body.get("data") if isinstance(body, dict) else body
+        rows = [e for e in entries if e.get("field") == "status"
+                and e.get("old_value") == "approved" and e.get("new_value") == "proposed"]
+        assert rows, f"no status approved -> proposed row in {entries}"
+        assert rows[0].get("reason") == self.WITHDRAWN_REASON, rows[0]
+
+    def test_title_or_notes_edit_keeps_approval(self, api_url, admin_headers):
+        cid, approved = self._approved_change(api_url, admin_headers)
+        r = requests.put(f"{api_url}/changes/{cid}", headers=admin_headers, json={
+            "title": "Retitled", "notes": "progress note"})
+        assert r.status_code == 200, r.text
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "approved", got
+        assert got["title"] == "Retitled"
+        assert got.get("approved_by") == approved["approved_by"], got
+        assert got.get("approved_at") == approved["approved_at"], got
+
+    def test_suggestion_rewrite_withdraws_approval(self, api_url, admin_headers):
+        cid, _ = self._approved_change(api_url, admin_headers)
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "change_request", "suggestion_type": "update",
+            "entity_id": str(cid),
+            "payload": {"fields": {"description": "rewritten via suggestion"}},
+            "rationale": "rewrite", "title": "rewrite"})
+        assert sg.status_code in (200, 201), sg.text
+        ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply",
+                           headers=admin_headers, json={})
+        assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
+        got = self._get(api_url, admin_headers, cid)
+        assert got["status"] == "proposed", got
+        assert got["description"] == "rewritten via suggestion"
+        assert not got.get("approved_at") and not got.get("approved_by"), got
+
+
 class TestChangesRBAC:
     """Reader cannot create or change status."""
 

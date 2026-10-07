@@ -191,40 +191,56 @@ func (d *DB) DeleteChangeRequest(ctx context.Context, orgID int, id int) error {
 	return err
 }
 
+// ChangeStatusClears reports which stamps a transition to status removes.
+// An approval is revoked only by sending the change back (proposed) or
+// turning it down (rejected): in_progress, implemented and closed all
+// follow an approval and keep it (#197). implemented_at is a record of when
+// the work was first done, so reopening the work (in_progress) keeps it too;
+// only a revocation or a fresh approval starts the cycle over.
+func ChangeStatusClears(status string) (approval, implemented bool) {
+	revoked := status == "proposed" || status == "rejected"
+	return revoked, revoked || status == "approved"
+}
+
+// UpdateChangeRequestStatus transitions status; see ChangeStatusClears for which stamps are cleared.
 func (d *DB) UpdateChangeRequestStatus(ctx context.Context, orgID int, id int, status, approvedBy string) error {
-	// Clear closure metadata when transitioning to states that no longer warrant it.
-	// approved_at / approved_by[_user_id] survive on approved → implemented → closed,
-	// but are cleared when going back to proposed / in_progress / rejected.
-	// implemented_at survives only on implemented → closed; cleared otherwise.
-	clearApproved := status == "proposed" || status == "in_progress" || status == "rejected"
-	clearImplemented := status != "implemented" && status != "closed"
+	return execChangeStatus(ctx, d.pool, orgID, id, status, approvedBy)
+}
+
+// execChangeStatus runs a change-request status transition and derives the
+// approval and implementation stamps from ChangeStatusClears. The pool path
+// (UpdateChangeRequestStatus) and the suggestion-apply path
+// (UpdateChangeRequestStatusTx) both call it, so the two cannot drift (#26, #197).
+func execChangeStatus(ctx context.Context, ex pgExecer, orgID, id int, status, approvedBy string) error {
+	dropApproval, dropImplemented := ChangeStatusClears(status)
 
 	query := `UPDATE change_requests SET status = $2, updated_at = now()`
 	args := []interface{}{id, status}
-	if status == "approved" && approvedBy != "" {
+	switch {
+	case status == "approved" && approvedBy != "":
 		query += `, approved_by = $3, approved_by_user_id = (SELECT id FROM users WHERE email = $3), approved_at = now()`
 		args = append(args, approvedBy)
-		if clearImplemented {
+		if dropImplemented {
 			query += `, implemented_at = NULL`
 		}
 		query += ` WHERE id = $1 AND organization_id = $4 AND deleted_at IS NULL`
 		args = append(args, orgID)
-	} else if status == "implemented" {
+	case status == "implemented":
 		query += `, implemented_at = COALESCE(implemented_at, now())`
 		query += ` WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`
 		args = append(args, orgID)
-	} else {
+	default:
 		// in_progress, rejected, closed, proposed
-		if clearApproved {
+		if dropApproval {
 			query += `, approved_at = NULL, approved_by = NULL, approved_by_user_id = NULL`
 		}
-		if clearImplemented {
+		if dropImplemented {
 			query += `, implemented_at = NULL`
 		}
 		query += ` WHERE id = $1 AND organization_id = $3 AND deleted_at IS NULL`
 		args = append(args, orgID)
 	}
-	_, err := d.pool.Exec(ctx, query, args...)
+	_, err := ex.Exec(ctx, query, args...)
 	return err
 }
 

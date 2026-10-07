@@ -138,7 +138,7 @@ func riskAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&treatmentPlan, "plan", "", "Treatment plan")
 	cmd.Flags().StringSliceVar(&linkedDocs, "documents", nil, "Linked document IDs (comma-separated)")
 	cmd.Flags().StringVar(&owner, "owner", "", "Risk owner")
-	cmd.Flags().StringVar(&status, "status", "open", "Status: draft, open, closed")
+	cmd.Flags().StringVar(&status, "status", "open", "Status: draft, open, accepted, closed")
 	cmd.Flags().StringVar(&reviewDate, "review-date", "", "Next review date (YYYY-MM-DD)")
 	cmd.Flags().StringVar(&notes, "notes", "", "Notes")
 	cmd.Flags().StringArrayVar(&fields, "field", nil, "Custom field value as key=value (repeatable)")
@@ -273,10 +273,13 @@ type riskAssessPayload struct {
 }
 
 // riskTreatPayload is the wire shape for `risk treat`; see riskAssessPayload
-// for why this is not a db.Risk.
+// for why this is not a db.Risk. Status is a pointer with omitempty: only
+// --decision accept sets it (to "accepted"), so every other decision leaves the
+// risk's status untouched and edits only treatment (#414 — "treating" was never
+// a real status; RiskStatuses only ever allowed draft/open/closed/accepted).
 type riskTreatPayload struct {
-	Treatment string `json:"treatment"`
-	Status    string `json:"status"`
+	Treatment string  `json:"treatment"`
+	Status    *string `json:"status,omitempty"`
 }
 
 func riskAssessCmd() *cobra.Command {
@@ -331,9 +334,8 @@ func riskTreatCmd() *cobra.Command {
 				Treatment: decision,
 			}
 			if decision == "accept" {
-				update.Status = "accepted"
-			} else {
-				update.Status = "treating"
+				accepted := "accepted"
+				update.Status = &accepted
 			}
 			if _, err := c.UpdateRisk(id, update); err != nil {
 				return err

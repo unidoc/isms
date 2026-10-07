@@ -2392,10 +2392,13 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	actor := getUserEmail(c)
+	if r.Status == "accepted" {
+		s.stampRiskAcceptance(ctx, &r, actor)
+	}
 	if err := s.db.CreateRisk(ctx, orgID, &r); err != nil {
 		return pgxHTTPError(err)
 	}
-	actor := getUserEmail(c)
 	s.createReferencesForEntity(ctx, orgID, "risk", r.Identifier, actor, refs)
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "risk",
@@ -2924,11 +2927,7 @@ func (s *Server) prepareRiskUpdate(ctx context.Context, orgID int, old *db.Risk,
 
 	// Auto-set acceptance provenance when status changes to accepted
 	if updated.Status == "accepted" && old.Status != "accepted" {
-		now := db.NewEpoch(time.Now())
-		updated.AcceptedAt = &now
-		if u, _ := s.db.GetUserByEmail(ctx, actor); u != nil {
-			updated.AcceptedByID = &u.ID
-		}
+		s.stampRiskAcceptance(ctx, &updated, actor)
 	}
 	// Reopen: clear accepted_at / accepted_by_id when transitioning AWAY from accepted.
 	if old.Status == "accepted" && updated.Status != "" && updated.Status != "accepted" {
@@ -2937,6 +2936,19 @@ func (s *Server) prepareRiskUpdate(ctx context.Context, orgID int, old *db.Risk,
 	}
 
 	return updated, explicitNextReview, nil
+}
+
+// stampRiskAcceptance records who accepted r and when. Shared by create and
+// update so a risk can never be accepted without its provenance (#414, #425):
+// handleAddRisk and applyRiskCreate call it when a new risk is created already
+// accepted; prepareRiskUpdate calls it on the open/draft/closed -> accepted
+// transition.
+func (s *Server) stampRiskAcceptance(ctx context.Context, r *db.Risk, actor string) {
+	now := db.NewEpoch(time.Now())
+	r.AcceptedAt = &now
+	if u, _ := s.db.GetUserByEmail(ctx, actor); u != nil {
+		r.AcceptedByID = &u.ID
+	}
 }
 
 func (s *Server) handleUpdateRisk(c echo.Context) error {

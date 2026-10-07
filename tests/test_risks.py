@@ -266,6 +266,114 @@ class TestRiskValidation:
         assert r.status_code in [400, 500]
 
 
+class TestRiskAcceptance:
+    """#414: accepted_at/accepted_by_id, the auto-set-on-transition logic and
+    the StatusBadge color for "accepted" all existed from the initial schema,
+    but "accepted" was never an allowed status, so every attempt 400'd. Real
+    HTTP round trip against the running server — not an in-process handler
+    call — so this also exercises the risks_status_check migration actually
+    having been applied.
+    """
+
+    def test_accepting_sets_provenance(self, api_url, admin_headers):
+        create = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Accept via HTTP", "current_likelihood": 2, "current_impact": 2,
+            "risk_type": "threat", "origin": "internal", "status": "open",
+            "treatment": "accept",
+        })
+        assert create.status_code in [200, 201], create.text
+        risk_id = create.json()["id"]
+        # accepted_at/accepted_by_id are *Epoch/*int with omitempty — nil is
+        # omitted from the JSON entirely, not sent as null.
+        assert create.json().get("accepted_at") is None
+        assert create.json().get("accepted_by_id") is None
+
+        accept = requests.put(f"{api_url}/risks/{risk_id}", headers=admin_headers, json={
+            "status": "accepted",
+        })
+        assert accept.status_code == 200, accept.text
+        body = accept.json()
+        assert body["status"] == "accepted"
+        assert body.get("accepted_at") is not None
+        assert body.get("accepted_by_id") is not None
+        assert body.get("accepted_by") == ADMIN_EMAIL
+
+    def test_reopening_an_accepted_risk_clears_provenance(self, api_url, admin_headers):
+        create = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Accept then reopen via HTTP", "current_likelihood": 2, "current_impact": 2,
+            "risk_type": "threat", "origin": "internal", "status": "open",
+        })
+        risk_id = create.json()["id"]
+        requests.put(f"{api_url}/risks/{risk_id}", headers=admin_headers, json={"status": "accepted"})
+
+        reopen = requests.put(f"{api_url}/risks/{risk_id}", headers=admin_headers, json={
+            "status": "open",
+        })
+        assert reopen.status_code == 200, reopen.text
+        body = reopen.json()
+        assert body["status"] == "open"
+        assert body.get("accepted_at") is None
+        assert body.get("accepted_by_id") is None
+        assert not body.get("accepted_by")
+
+    def test_treating_is_still_not_a_real_status(self, api_url, admin_headers):
+        """"treating" was the CLI's old (also-broken) status for non-accept
+        decisions, never a real value — pinned so a future change can't
+        silently widen RiskStatuses to it instead of removing it from the CLI.
+        """
+        create = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Not treating", "current_likelihood": 2, "current_impact": 2,
+            "risk_type": "threat", "origin": "internal", "status": "open",
+        })
+        risk_id = create.json()["id"]
+        r = requests.put(f"{api_url}/risks/{risk_id}", headers=admin_headers, json={
+            "status": "treating",
+        })
+        assert r.status_code == 400, r.text
+
+    # #425 F2: provenance was only recorded on the update transition
+    # (prepareRiskUpdate), so a risk created already "accepted" — directly, or
+    # via an applied risk:create suggestion — got the status with no acceptor
+    # or date, and had no way to ever gain one afterward: editing it, or even
+    # re-PUTting the same status, is a no-op once old.status is already
+    # "accepted".
+
+    @staticmethod
+    def _provenance(body):
+        at = "set" if body.get("accepted_at") else "null"
+        return f"{body['status']} | at={at} | by={body.get('accepted_by') or 'null'}"
+
+    def test_post_accepted_records_provenance(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Created accepted", "risk_type": "threat", "origin": "internal",
+            "status": "accepted",
+        })
+        assert r.status_code in (200, 201), r.text
+        assert self._provenance(r.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
+    def test_created_accepted_risk_gains_provenance_on_reaccept(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Created accepted, re-PUT", "risk_type": "threat", "origin": "internal",
+            "status": "accepted",
+        })
+        assert r.status_code in (200, 201), r.text
+        put = requests.put(f"{api_url}/risks/{r.json()['id']}", headers=admin_headers, json={"status": "accepted"})
+        assert put.status_code == 200, put.text
+        assert self._provenance(put.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
+    def test_applied_create_suggestion_records_provenance(self, api_url, admin_headers):
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "risk", "suggestion_type": "create", "title": "suggested accepted risk",
+            "payload": {"title": "Suggested accepted", "status": "accepted"},
+        })
+        assert sg.status_code in (200, 201), sg.text
+        ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={})
+        assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
+        got = requests.get(f"{api_url}/risks/{ap.json()['applied_entity_id']}", headers=admin_headers)
+        assert got.status_code == 200, got.text
+        assert self._provenance(got.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
+
 class TestRiskRequiredFields:
     """Missing required fields should return 400/500, not crash."""
 

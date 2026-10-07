@@ -5,9 +5,11 @@ Before: applying an audit-finding suggestion that set status=closed errored
 outright (the field-level update rejected 'status'); it now goes through the same
 SetAuditFindingStatus closure path the HTTP handler uses.
 
-(Risk 'accepted' was intentionally left out: 'accepted' is not a valid risk
-status — RiskStatuses is draft/open/closed — so there is no real HTTP-vs-apply
-divergence there; the HTTP status=='accepted' block is vestigial.)
+(Risk 'accepted' was intentionally left out: applyRiskUpdate and the HTTP PUT
+handler both go through the same prepareRiskUpdate, which is where the
+status=='accepted' provenance logic lives, so there is no HTTP-vs-apply
+divergence to test here. See tests/test_risks.py::TestRiskAcceptance and
+internal/isms/api/risk_acceptance_pg_test.go for acceptance coverage, #414.)
 """
 import uuid
 

@@ -27,3 +27,27 @@ func TestRiskValidateValidRisk(t *testing.T) {
 		t.Fatalf("Validate() = %v, want nil", err)
 	}
 }
+
+// #414: Validate() used to carry its own second hardcoded status map
+// (draft/open/closed) alongside RiskStatuses — a status this package itself
+// considers valid, like "accepted", would still have failed here even after
+// RiskStatuses grew to include it. The API layer's validateEnum(RiskStatuses)
+// always runs first in practice, so this exact branch is defense in depth
+// rather than something the HTTP tests reach — covered directly here instead.
+func TestRiskValidateAcceptsEveryRiskStatus(t *testing.T) {
+	for _, status := range RiskStatuses {
+		r := &Risk{Title: "t", RiskType: "threat", Origin: "internal", Status: status}
+		if err := r.Validate(); err != nil {
+			t.Errorf("Validate() with Status=%q: %v, want nil", status, err)
+		}
+	}
+}
+
+func TestRiskValidateRejectsUnknownStatus(t *testing.T) {
+	r := &Risk{Title: "t", RiskType: "threat", Origin: "internal", Status: "treating"}
+	err := r.Validate()
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("Validate() = %v (%T), want *ValidationError", err, err)
+	}
+}

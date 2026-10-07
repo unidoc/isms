@@ -2235,6 +2235,8 @@
   "risks.error.delete",
   "risks.error.load",
   "risks.error.save",
+  "risks.field.accepted_at",
+  "risks.field.accepted_by",
   "risks.field.category",
   "risks.field.created",
   "risks.field.created_by",

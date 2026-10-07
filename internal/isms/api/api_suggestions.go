@@ -826,6 +826,9 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err != nil {
 		return "", 0, err
 	}
+	if risk.Status == "accepted" {
+		s.stampRiskAcceptance(ctx, &risk, actor)
+	}
 	if err := db.CreateRiskTx(ctx, tx, orgID, &risk, s.db.RiskReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}

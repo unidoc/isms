@@ -62,6 +62,8 @@
     "treatment_plan": "Treatment Plan",
     "created": "Created",
     "created_by": "Created by",
+    "accepted_by": "Accepted by",
+    "accepted_at": "Accepted on",
     "notes": "Notes",
     "external_id": "External ID"
   },

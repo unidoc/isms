@@ -106,3 +106,13 @@ DO $$ BEGIN
             WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
     END IF;
 END $$;
+
+-- #414: risk acceptance (accepted_at, accepted_by_id, the API's auto-set-on-
+-- transition logic, the CLI's `risk treat --decision accept`) has existed since
+-- the initial schema, but 'accepted' was never in the allowed status list, so
+-- none of it could ever run. This only widens the set (full list kept
+-- explicit), so every existing row still satisfies it. DROP IF EXISTS + re-ADD
+-- is safe on fresh databases and on a second run.
+ALTER TABLE risks DROP CONSTRAINT IF EXISTS risks_status_check;
+ALTER TABLE risks ADD CONSTRAINT risks_status_check
+    CHECK (status IN ('draft', 'open', 'accepted', 'closed'));

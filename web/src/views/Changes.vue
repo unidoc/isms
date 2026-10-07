@@ -262,6 +262,10 @@
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.planned_for') }}</div>
                           <div class="text-sm text-slate-300">{{ formatDate(selectedChange.planned_at) }}</div>
                         </div>
+                        <div v-if="selectedChange.approved_by">
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.approved_by') }}</div>
+                          <div class="text-sm text-slate-300">{{ t('changes.detail.approved_on', { name: resolveUserName(selectedChange.approved_by), date: formatDate(selectedChange.approved_at) }) }}</div>
+                        </div>
                       </div>
 
                       <div class="border-t border-slate-800 pt-4 space-y-3">
@@ -365,6 +369,7 @@
             </div>
           </div>
 
+          <p v-if="approvalAtRisk" class="flex-shrink-0 border-t border-slate-800 px-6 pt-3 text-xs text-amber-400">{{ t('changes.detail.approval_will_be_withdrawn', { name: resolveUserName(selectedChange.approved_by) }) }}</p>
           <div v-if="editingSection" class="flex-shrink-0 border-t border-slate-800 px-6 py-3 flex justify-end gap-3">
             <button @click="cancelSection" class="px-4 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors">{{ t('common.action.cancel') }}</button>
             <button @click="saveSection" :disabled="saving" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors">{{ saving ? t('common.state.saving') : t('common.action.save') }}</button>
@@ -655,6 +660,17 @@ async function create() {
   }
 }
 
+// Mirrors the server rule (changeApprovalWithdrawn, #197): editing approved
+// content of an approved or in-progress change sends it back to Proposed.
+const SUBSTANCE_FIELDS = ['description', 'justification', 'risk_level', 'rollback_plan', 'type', 'category', 'priority']
+const approvalAtRisk = computed(() => {
+  const cr = selectedChange.value
+  if (!cr || !editingSection.value || !cr.approved_at) return false
+  if (!['approved', 'in_progress'].includes(cr.status)) return false
+  if (!['approved', 'in_progress'].includes(editForm.value.status)) return false
+  return SUBSTANCE_FIELDS.some((f) => (editForm.value[f] || '') !== (cr[f] || ''))
+})
+
 function startEdit(cr) {
   editForm.value = {
     type: cr.type || 'change',
@@ -701,6 +717,7 @@ async function saveSection() {
     const payload = { ...editForm.value }
     payload.planned_at = dateStrToEpoch(payload.planned_at_str)
     delete payload.planned_at_str
+    const statusBefore = selectedChange.value.status
     await api.updateChange(selectedChange.value.id, payload)
     await loadChanges()
     const fresh = changes.value.find(c => c.id === selectedChange.value.id)
@@ -709,7 +726,11 @@ async function saveSection() {
       startEdit(fresh)
     }
     editingSection.value = ''
-    showSaved(t('common.state.saved'))
+    // The server sends an approved / in-progress change back to Proposed when
+    // approved content was rewritten; say so rather than a plain "saved" (#197).
+    const withdrawn = fresh && ['approved', 'in_progress'].includes(statusBefore) &&
+      fresh.status === 'proposed' && payload.status !== 'proposed'
+    showSaved(withdrawn ? t('changes.detail.approval_withdrawn') : t('common.state.saved'))
   } catch (e) {
     showError(t('changes.error.save', { message: renderApiError(e) }))
   } finally {

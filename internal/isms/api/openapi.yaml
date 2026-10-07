@@ -1778,11 +1778,38 @@ paths:
               schema: { $ref: '#/components/schemas/ChangeRequest' }
         '404':
           $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Changes]
+      summary: Update a change request
+      description: >
+        Editing description, justification, risk_level, rollback_plan, type,
+        category or priority of an approved or in-progress change returns it to
+        proposed and clears approved_at and approved_by. Editing title, notes,
+        assigned_to or planned_at does not.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: Updated change request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangeRequest' }
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /changes/{id}/status:
     put:
       tags: [Changes]
       summary: Update change request status
+      description: >
+        Only proposed and rejected clear approved_at and approved_by;
+        in_progress, implemented and closed keep them. implemented_at is kept on
+        in_progress and cleared on proposed, rejected and approved.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:

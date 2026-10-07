@@ -30,6 +30,7 @@
     "risk": "Risk: {level}"
   },
   "field": {
+    "approved_by": "Approved by",
     "title": "Title",
     "description": "Description",
     "type": "Type",
@@ -53,6 +54,9 @@
     "notes": "Add notes..."
   },
   "detail": {
+    "approved_on": "{name} on {date}",
+    "approval_will_be_withdrawn": "Saving returns this change to Proposed and withdraws the approval by {name}, because approved content changed.",
+    "approval_withdrawn": "Saved. The approval was withdrawn and the change is back to Proposed.",
     "overview": "Overview",
     "notes": "Notes",
     "progress": "Progress"

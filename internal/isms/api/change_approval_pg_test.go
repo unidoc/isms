@@ -23,6 +23,8 @@ const changeApprovalActor = "admin@id-resolution.test"
 
 func newApprovedChange(t *testing.T, s *Server, orgID int) *db.ChangeRequest {
 	t.Helper()
+	// requested_by_id is NOT NULL, so the actor must exist as a user.
+	contractTestUser(t, s, orgID, changeApprovalActor, "admin")
 	cr := &db.ChangeRequest{
 		Title: "approval change", Description: "original", Justification: "because",
 		Priority: "medium", Category: "other", RiskLevel: "low", RollbackPlan: "revert",

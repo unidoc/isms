@@ -85,24 +85,76 @@ sudo systemctl enable --now isms
 
 ### Container
 
-There is no production Dockerfile shipped (only a dev environment in `devenv/`). For container deployment, build from source inside a multi-stage Dockerfile:
+There is no production Dockerfile shipped (only a dev environment in `devenv/`). For container deployment, build from a clone of the repository with a multi-stage Dockerfile.
+
+The binary embeds two build artifacts that are not stored in git: the web UI (`cmd/isms/web/dist`) and the SQL migrations (`cmd/isms/migrations`). The Dockerfile has to produce both before compiling, the same way `just build` does. Without the web UI the compile fails (`pattern web/dist: no matching files found`). Without the migrations the binary builds, but it has no schema to apply and stops at the migration step (`no migrations found in embedded "migrations"`).
 
 ```dockerfile
+# Web UI. The Go binary embeds the built files.
+FROM node:24-slim AS web
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
 FROM golang:1.26 AS builder
 WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-RUN go build -o /isms ./cmd/isms/
+COPY --from=web /src/web/dist ./cmd/isms/web/dist
+# Copy the SQL migrations into the embed directory, then build with the same
+# flags as `just build`. The commit fields fall back to "unknown" and 0 when
+# .git is not part of the build context.
+RUN ./scripts/sync-migrations.sh \
+ && VERSION=$(tr -d '[:space:]' < version.txt) \
+ && COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) \
+ && COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0) \
+ && CGO_ENABLED=0 go build \
+      -ldflags "-X 'main.version=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.commitCount=${COMMIT_COUNT}'" \
+      -o /isms ./cmd/isms/
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /isms /usr/local/bin/isms
-RUN useradd -r -m isms
+# /data is created owned by the isms user, so a named volume mounted there
+# starts out writable by the server.
+RUN useradd -r -m isms && mkdir -p /data && chown isms:isms /data
 USER isms
+ENV ISMS_DATA_DIR=/data
 EXPOSE 8080
 ENTRYPOINT ["isms", "server", "serve", "--addr", ":8080"]
 ```
 
-Mount your data directory and pass configuration via environment variables. The container needs `git` installed because the server uses go-git which may shell out for wire protocol operations.
+Add a `.dockerignore` next to it, so local build output and dependencies from a working checkout stay out of the build context:
+
+```text
+web/node_modules
+web/dist
+cmd/isms/web/dist
+bin
+dist
+```
+
+Build the image, then run it with the same server env file the systemd unit uses (see [Environment file](#environment-file) and [Configuration](#configuration)). The server applies pending migrations on startup.
+
+```bash
+docker build -t isms .
+docker run -d --name isms -p 8080:8080 \
+  --env-file /etc/isms/server.env \
+  -e ISMS_DATA_DIR=/data \
+  -e ISMS_TEMPLATE_PATH=/templates \
+  -v isms-data:/data \
+  -v /opt/isms-templates:/templates:ro \
+  isms
+```
+
+Three things differ from running the binary directly:
+
+- The `-e` flags point the data and template directories at the container's mounts, and they win over any host paths in the env file. Leave `ISMS_WEB_DIR` unset. The UI is embedded in the binary, and a web directory that doesn't exist inside the container would replace it.
+- Docker reads `--env-file` literally: one `KEY=value` per line, no `export`, no quotes. `DATABASE_URL` has to name a host the container can reach, not `localhost`.
+- The container needs `git` installed, because the server uses go-git, which may shell out for wire protocol operations.
 
 ### Reverse proxy
 

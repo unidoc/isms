@@ -145,6 +145,7 @@ docker run -d --name isms -p 8080:8080 \
   --env-file /etc/isms/server.env \
   -e ISMS_DATA_DIR=/data \
   -e ISMS_TEMPLATE_PATH=/templates \
+  -e ISMS_WEB_DIR= \
   -v isms-data:/data \
   -v /opt/isms-templates:/templates:ro \
   isms
@@ -152,7 +153,7 @@ docker run -d --name isms -p 8080:8080 \
 
 Three things differ from running the binary directly:
 
-- The `-e` flags point the data and template directories at the container's mounts, and they win over any host paths in the env file. Leave `ISMS_WEB_DIR` unset. The UI is embedded in the binary, and a web directory that doesn't exist inside the container would replace it.
+- The `-e` flags win over any host paths in the env file. Two of them point the data and template directories at the container's mounts. The third blanks `ISMS_WEB_DIR`, which `contrib/unidoc.env` sets to a host path. The UI is embedded in the binary, and a web directory that doesn't exist inside the container would replace it. The server treats an empty value as unset, so keep that flag even if your env file doesn't set the variable.
 - Docker reads `--env-file` literally: one `KEY=value` per line, no `export`, no quotes. `DATABASE_URL` has to name a host the container can reach, not `localhost`.
 - The container needs `git` installed, because the server uses go-git, which may shell out for wire protocol operations.
 

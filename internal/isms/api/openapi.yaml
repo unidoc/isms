@@ -3613,11 +3613,12 @@ components:
         treatment_due_date: { type: string, format: date-time }
         accepted_at: { type: string, format: date-time }
         accepted_by_id: { type: integer }
+        accepted_by: { type: string, description: "accepted_by_id resolved to an email, read-only." }
         assets: { type: array, items: { type: string } }
         documents: { type: array, items: { type: string } }
         interested_parties: { type: array, items: { type: string } }
         owner: { type: string }
-        status: { type: string, enum: [draft, open, closed] }
+        status: { type: string, enum: [draft, open, accepted, closed] }
         last_review: { type: string, format: date }
         next_review: { type: string, format: date, description: "Derived from current_level unless the request sets it; an explicit date is stored as sent." }
         notes: { type: string }

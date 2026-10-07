@@ -443,6 +443,17 @@
                         <div v-if="selectedRisk.treatment_plan" class="text-sm doc-prose text-slate-300 leading-relaxed" v-mermaid v-html="renderMd(selectedRisk.treatment_plan)"></div>
                         <div v-else class="text-sm text-slate-600">—</div>
                       </div>
+
+                      <div v-if="selectedRisk.status === 'accepted'" class="flex gap-6">
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.accepted_by') }}</div>
+                          <div class="text-sm text-slate-300">{{ resolveUserName(selectedRisk.accepted_by) }}</div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.accepted_at') }}</div>
+                          <div class="text-sm text-slate-300">{{ selectedRisk.accepted_at ? formatDay(selectedRisk.accepted_at) : '—' }}</div>
+                        </div>
+                      </div>
                     </div>
                   </template>
                 </div>
@@ -711,10 +722,10 @@ const editingSection = ref('') // which section is being edited: 'core', 'classi
 // orgPath is provided by useCurrentOrg() — see top of script.
 
 // The members each <select> offers. The set is this view's own choice — a
-// risk is only ever draft/open/closed, though `status` catalogues forty
-// values — so the list stays here and only the label comes from the shared
-// catalogue.
-const STATUSES = ['draft', 'open', 'closed']
+// risk is only ever draft/open/accepted/closed, though `status` catalogues
+// forty values — so the list stays here and only the label comes from the
+// shared catalogue.
+const STATUSES = ['draft', 'open', 'accepted', 'closed']
 const LEVELS = ['critical', 'high', 'medium', 'low']
 const RISK_TYPES = ['threat', 'opportunity']
 const ORIGINS = ['internal', 'external', 'internal and external']

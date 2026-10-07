@@ -80,6 +80,10 @@ type Risk struct {
 	// Assessment lifecycle (entity_readings is the canonical assessment log)
 	AcceptedAt   *Epoch `json:"accepted_at,omitempty"`
 	AcceptedByID *int   `json:"accepted_by_id,omitempty"`
+	// AcceptedBy is accepted_by_id resolved to an email, read-only — same
+	// convention as Owner/owner_id. Never written; UpdateRisk/CreateRisk only
+	// use AcceptedByID.
+	AcceptedBy string `json:"accepted_by,omitempty"`
 
 	// Ownership
 	Owner      string `json:"owner,omitempty"`
@@ -138,11 +142,23 @@ func (r *Risk) Validate() error {
 	if r.Origin == "" || !validOrigins[r.Origin] {
 		return validationErrorf("origin is required (internal, external, or internal and external)")
 	}
-	validStatuses := map[string]bool{"draft": true, "open": true, "closed": true}
-	if r.Status == "" || !validStatuses[r.Status] {
-		return validationErrorf("status is required (draft, open, or closed)")
+	if r.Status == "" || !isValidRiskStatus(r.Status) {
+		return validationErrorf("status is required (one of: %s)", strings.Join(RiskStatuses, ", "))
 	}
 	return nil
+}
+
+// isValidRiskStatus reports whether status is one of RiskStatuses. A function
+// rather than a second hand-maintained map — RiskCategories already makes this
+// argument about itself (#213): a hand-maintained second copy is what let that
+// one drift.
+func isValidRiskStatus(status string) bool {
+	for _, s := range RiskStatuses {
+		if status == s {
+			return true
+		}
+	}
+	return false
 }
 
 // reviewCycleDefaults are fallback months per level if org settings are not loaded.
@@ -224,8 +240,10 @@ func ScoreToLevel(score int) string {
 // Valid treatment options (empty string = not decided, maps to NULL in DB).
 var TreatmentOptions = []string{"mitigate", "accept", "transfer", "avoid"}
 
-// Valid risk statuses.
-var RiskStatuses = []string{"draft", "open", "closed"}
+// Valid risk statuses. "accepted" means the risk owner has formally accepted the
+// residual risk (ISO 27001 clause 6.1.3/8.3); accepted_at/accepted_by_id record
+// when and by whom (#414).
+var RiskStatuses = []string{"draft", "open", "accepted", "closed"}
 
 // RiskCategories lists the default risk category keys. Derived from
 // DefaultRiskCategories so the keys have exactly one source of truth — a
@@ -436,6 +454,7 @@ const riskSelectCols = `id, organization_id, identifier, title, COALESCE(descrip
 		COALESCE(treatment, ''), COALESCE(treatment_plan, ''),
 		treatment_due_date,
 		accepted_at, accepted_by_id,
+		COALESCE((SELECT email FROM users WHERE id = risks.accepted_by_id), ''),
 		COALESCE((SELECT email FROM users WHERE id = risks.owner_id), ''), status, last_review, next_review,
 		COALESCE(notes, ''), created_at, updated_at, COALESCE(custom_fields, '{}'),
 		COALESCE(external_id, '')`
@@ -452,7 +471,7 @@ func scanRisk(scanner interface {
 		&r.TargetLikelihood, &r.TargetImpact, &r.TargetScore, &r.TargetLevel,
 		&r.Treatment, &r.TreatmentPlan,
 		&r.TreatmentDueDate,
-		&r.AcceptedAt, &r.AcceptedByID,
+		&r.AcceptedAt, &r.AcceptedByID, &r.AcceptedBy,
 		&r.Owner, &r.Status, &r.LastReview, &r.NextReview,
 		&r.Notes, &r.CreatedAt, &r.UpdatedAt, &r.CustomFields,
 		&r.ExternalID)

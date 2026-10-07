@@ -331,6 +331,48 @@ class TestRiskAcceptance:
         })
         assert r.status_code == 400, r.text
 
+    # #425 F2: provenance was only recorded on the update transition
+    # (prepareRiskUpdate), so a risk created already "accepted" — directly, or
+    # via an applied risk:create suggestion — got the status with no acceptor
+    # or date, and had no way to ever gain one afterward: editing it, or even
+    # re-PUTting the same status, is a no-op once old.status is already
+    # "accepted".
+
+    @staticmethod
+    def _provenance(body):
+        at = "set" if body.get("accepted_at") else "null"
+        return f"{body['status']} | at={at} | by={body.get('accepted_by') or 'null'}"
+
+    def test_post_accepted_records_provenance(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Created accepted", "risk_type": "threat", "origin": "internal",
+            "status": "accepted",
+        })
+        assert r.status_code in (200, 201), r.text
+        assert self._provenance(r.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
+    def test_created_accepted_risk_gains_provenance_on_reaccept(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers, json={
+            "title": "Created accepted, re-PUT", "risk_type": "threat", "origin": "internal",
+            "status": "accepted",
+        })
+        assert r.status_code in (200, 201), r.text
+        put = requests.put(f"{api_url}/risks/{r.json()['id']}", headers=admin_headers, json={"status": "accepted"})
+        assert put.status_code == 200, put.text
+        assert self._provenance(put.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
+    def test_applied_create_suggestion_records_provenance(self, api_url, admin_headers):
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "risk", "suggestion_type": "create", "title": "suggested accepted risk",
+            "payload": {"title": "Suggested accepted", "status": "accepted"},
+        })
+        assert sg.status_code in (200, 201), sg.text
+        ap = requests.post(f"{api_url}/suggestions/{sg.json()['id']}/apply", headers=admin_headers, json={})
+        assert ap.status_code == 200 and ap.json().get("status") == "applied", ap.text
+        got = requests.get(f"{api_url}/risks/{ap.json()['applied_entity_id']}", headers=admin_headers)
+        assert got.status_code == 200, got.text
+        assert self._provenance(got.json()) == f"accepted | at=set | by={ADMIN_EMAIL}"
+
 
 class TestRiskRequiredFields:
     """Missing required fields should return 400/500, not crash."""

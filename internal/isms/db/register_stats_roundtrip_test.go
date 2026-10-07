@@ -69,3 +69,29 @@ func TestRegisterStatsLevelCountsExcludeClosed(t *testing.T) {
 		}
 	})
 }
+
+// #425 F5: RiskStats had no bucket for "accepted" risks — added alongside
+// making the status reachable (#414), so the stat strip's status breakdown
+// doesn't silently undercount an org's total once risks can be accepted.
+func TestRiskStatsCountsAccepted(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID, _ := newTestOrgUser(t, d, "riskstats-accepted")
+
+	l, i := 2, 2
+	for _, status := range []string{"open", "accepted", "accepted", "closed"} {
+		r := &Risk{Title: "stats " + status, RiskType: RiskTypes[0], Origin: RiskOrigins[0],
+			Status: status, Treatment: "mitigate", CurrentLikelihood: &l, CurrentImpact: &i}
+		if err := d.CreateRisk(ctx, orgID, r); err != nil {
+			t.Fatalf("CreateRisk: %v", err)
+		}
+	}
+	s, err := d.RiskStats(ctx, orgID)
+	if err != nil {
+		t.Fatalf("RiskStats: %v", err)
+	}
+	want := RiskStats{Total: 4, Low: 3, Open: 1, Accepted: 2, Closed: 1}
+	if *s != want {
+		t.Errorf("RiskStats = %+v, want %+v", *s, want)
+	}
+}

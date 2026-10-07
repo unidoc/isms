@@ -451,7 +451,7 @@
                         </div>
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{{ t('risks.field.accepted_at') }}</div>
-                          <div class="text-sm text-slate-300">{{ selectedRisk.accepted_at ? formatDay(selectedRisk.accepted_at) : '—' }}</div>
+                          <div class="text-sm text-slate-300">{{ selectedRisk.accepted_at ? formatDate(selectedRisk.accepted_at) : '—' }}</div>
                         </div>
                       </div>
                     </div>

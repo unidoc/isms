@@ -57,6 +57,12 @@ after a feature. Files apply in filename order and are tracked by filename in
 releases. Use `IF NOT EXISTS` so re-applying against a shared/persistent dev DB
 is safe.
 
+**If the release file is already on master, rename it when you append.** The
+runner skips any filename it has already recorded as applied, so editing an
+already-merged release file in place means a database that ran it before never
+sees the new hunk. Rename it to a later timestamp instead (the content carries
+forward unchanged) — `scripts/sync-migrations.sh` and #402 both follow this.
+
 ## Release focus (themes)
 
 Each minor has a single headline focus, decided ahead of time. The focus and

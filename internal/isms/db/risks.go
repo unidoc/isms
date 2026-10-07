@@ -531,6 +531,7 @@ type RiskStats struct {
 	Medium   int `json:"medium"`
 	Low      int `json:"low"`
 	Open     int `json:"open"`
+	Accepted int `json:"accepted"`
 	Closed   int `json:"closed"`
 	Draft    int `json:"draft"`
 }
@@ -546,11 +547,12 @@ func (d *DB) RiskStats(ctx context.Context, orgID int) (*RiskStats, error) {
 			count(*) FILTER (WHERE current_level = 'medium' AND status <> 'closed'),
 			count(*) FILTER (WHERE current_level = 'low' AND status <> 'closed'),
 			count(*) FILTER (WHERE status = 'open'),
+			count(*) FILTER (WHERE status = 'accepted'),
 			count(*) FILTER (WHERE status = 'closed'),
 			count(*) FILTER (WHERE status = 'draft')
 		FROM risks
 		WHERE organization_id = $1 AND deleted_at IS NULL
-	`, orgID).Scan(&s.Total, &s.Critical, &s.High, &s.Medium, &s.Low, &s.Open, &s.Closed, &s.Draft)
+	`, orgID).Scan(&s.Total, &s.Critical, &s.High, &s.Medium, &s.Low, &s.Open, &s.Accepted, &s.Closed, &s.Draft)
 	if err != nil {
 		return nil, err
 	}

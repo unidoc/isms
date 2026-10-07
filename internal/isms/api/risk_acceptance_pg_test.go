@@ -2,7 +2,10 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -22,6 +25,12 @@ func TestRiskAcceptanceSetsProvenanceAndReopenClearsIt(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
 	orgID := newTestOrg(t, s, "risk-accept")
+	// ctxForPath acts as admin@custom-fields.test; the acceptor is resolved from
+	// that email (#425 F4), so it has to exist or accepted_by_id stays NULL and
+	// the update 400s on chk_risk_accepted. On a fresh database this test would
+	// otherwise only pass by accident, piggybacking on a user some
+	// alphabetically-earlier pg test happened to seed.
+	seedReviewUser(t, s, orgID, "admin@custom-fields.test", "admin")
 
 	risk := &db.Risk{
 		Title: "Accept me", RiskType: "threat", Origin: "internal",
@@ -117,4 +126,103 @@ func TestRiskUpdateRejectsUnknownStatus(t *testing.T) {
 	if he, ok := err.(*echo.HTTPError); !ok || he.Code != http.StatusBadRequest {
 		t.Errorf("err = %v, want *echo.HTTPError 400", err)
 	}
+}
+
+// #425 F2: provenance was only recorded in prepareRiskUpdate (update), so a
+// risk created already "accepted" — POST /risks, or an applied risk:create
+// suggestion — got the status with no acceptor or date, and had no way to
+// ever gain one afterward (editing it, or even re-PUTting the same status,
+// is a no-op since old.Status is already "accepted").
+
+const riskAcceptanceCreateActor = "admin@risk-acceptance-create.test"
+
+func TestCreateRiskAcceptedRecordsProvenance(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "risk-accept-create")
+	seedReviewUser(t, s, orgID, riskAcceptanceCreateActor, "admin")
+
+	body := `{"title":"Created accepted","risk_type":"threat","origin":"internal","status":"accepted"}`
+	c, rec := ctxForPathAs(orgID, http.MethodPost, "/api/v1/risks", body, "admin", riskAcceptanceCreateActor)
+	if err := s.handleAddRisk(c); err != nil {
+		t.Fatalf("handleAddRisk: %v", err)
+	}
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201; body %s", rec.Code, rec.Body.String())
+	}
+	created := decodeRisk(t, rec.Body.Bytes())
+	if created.Status != "accepted" {
+		t.Fatalf("status = %q, want accepted", created.Status)
+	}
+	if created.AcceptedAt == nil || created.AcceptedByID == nil || created.AcceptedBy != riskAcceptanceCreateActor {
+		t.Errorf("accepted_at=%v accepted_by_id=%v accepted_by=%q, want all set to %s",
+			created.AcceptedAt, created.AcceptedByID, created.AcceptedBy, riskAcceptanceCreateActor)
+	}
+}
+
+func TestAppliedRiskCreateSuggestionAcceptedRecordsProvenance(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	orgID := newTestOrg(t, s, "risk-accept-sg-create")
+	seedReviewUser(t, s, orgID, riskAcceptanceCreateActor, "manager")
+
+	sg := &db.Suggestion{
+		EntityType:     "risk",
+		SuggestionType: "create",
+		Title:          "suggested accepted risk",
+		SuggestedBy:    riskAcceptanceCreateActor,
+		Payload:        json.RawMessage(`{"title":"Suggested accepted","status":"accepted"}`),
+	}
+	if err := s.db.CreateSuggestion(ctx, orgID, sg); err != nil {
+		t.Fatalf("CreateSuggestion: %v", err)
+	}
+
+	c, rec := ctxForPathAs(orgID, http.MethodPost, "/", "{}", "manager", riskAcceptanceCreateActor)
+	c.SetParamNames("id")
+	c.SetParamValues(itoa(int(sg.ID)))
+	if err := s.handleApplyEntitySuggestion(c); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"applied"`) {
+		t.Fatalf("apply: status %d, body %s", rec.Code, rec.Body.String())
+	}
+
+	applied, err := s.db.GetSuggestion(ctx, orgID, sg.ID)
+	if err != nil {
+		t.Fatalf("GetSuggestion: %v", err)
+	}
+	risk, err := s.db.GetRiskByIdentifier(ctx, orgID, applied.AppliedEntityID)
+	if err != nil {
+		t.Fatalf("GetRiskByIdentifier(%s): %v", applied.AppliedEntityID, err)
+	}
+	if risk.Status != "accepted" {
+		t.Fatalf("status = %q, want accepted", risk.Status)
+	}
+	if risk.AcceptedAt == nil || risk.AcceptedByID == nil || risk.AcceptedBy != riskAcceptanceCreateActor {
+		t.Errorf("accepted_at=%v accepted_by_id=%v accepted_by=%q, want all set to %s",
+			risk.AcceptedAt, risk.AcceptedByID, risk.AcceptedBy, riskAcceptanceCreateActor)
+	}
+}
+
+// ctxForPathAs is ctxForPath with an explicit actor email, rather than the
+// hardcoded admin@custom-fields.test (#425 F4 is exactly what reusing that
+// implicit actor across unrelated test files risks).
+func ctxForPathAs(orgID int, method, path, body, role, email string) (echo.Context, *httptest.ResponseRecorder) {
+	e := echo.New()
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("org_id", orgID)
+	c.Set("user_role", role)
+	c.Set("user_email", email)
+	return c, rec
+}
+
+func decodeRisk(t *testing.T, b []byte) *db.Risk {
+	t.Helper()
+	var r db.Risk
+	if err := json.Unmarshal(b, &r); err != nil {
+		t.Fatalf("decoding risk: %v (%s)", err, b)
+	}
+	return &r
 }

@@ -1792,7 +1792,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object }
+            schema: { $ref: '#/components/schemas/ChangeRequest' }
       responses:
         '200':
           description: Updated change request

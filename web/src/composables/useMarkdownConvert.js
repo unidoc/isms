@@ -105,3 +105,23 @@ export function htmlToMarkdown(html) {
   const td = createTurndown()
   return td.turndown(html)
 }
+
+// Canonical markdown for comparing two documents. The editor wraps every list
+// item's text in <p> (a "loose" list), so markdown it re-serialises parses to
+// different HTML than the same text written elsewhere. Unwrapping a lone <p>
+// inside <li> makes tight and loose lists compare equal; list items that also
+// hold a nested block keep their wrapper, which can only err toward "changed".
+function canonicalMarkdown(md) {
+  const html = markdownToHtml(md || '')
+    .replace(/<li>\s*<p>((?:(?!<\/?p>)[\s\S])*)<\/p>\s*<\/li>/g, '<li>$1</li>')
+  return htmlToMarkdown(html)
+}
+
+// True when two markdown strings are the same document as the editor sees it.
+// MarkdownField emits turndown output, which differs textually from markdown
+// written elsewhere (API, CLI, agents) even when nothing was edited, so a plain
+// string compare reports a change on an untouched field (#197).
+export function sameMarkdown(a, b) {
+  if ((a || '') === (b || '')) return true
+  return canonicalMarkdown(a) === canonicalMarkdown(b)
+}

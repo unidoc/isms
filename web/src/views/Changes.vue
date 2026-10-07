@@ -407,6 +407,7 @@ import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate } from '../composables/useFormat.js'
+import { sameMarkdown } from '../composables/useMarkdownConvert.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
 
@@ -663,12 +664,17 @@ async function create() {
 // Mirrors the server rule (changeApprovalWithdrawn, #197): editing approved
 // content of an approved or in-progress change sends it back to Proposed.
 const SUBSTANCE_FIELDS = ['description', 'justification', 'risk_level', 'rollback_plan', 'type', 'category', 'priority']
+// Fields edited through MarkdownField, whose emitted text is re-serialised by
+// the editor even when the user changed nothing.
+const MARKDOWN_FIELDS = ['description', 'justification', 'rollback_plan', 'notes']
 const approvalAtRisk = computed(() => {
   const cr = selectedChange.value
   if (!cr || !editingSection.value || !cr.approved_at) return false
   if (!['approved', 'in_progress'].includes(cr.status)) return false
   if (!['approved', 'in_progress'].includes(editForm.value.status)) return false
-  return SUBSTANCE_FIELDS.some((f) => (editForm.value[f] || '') !== (cr[f] || ''))
+  return SUBSTANCE_FIELDS.some((f) => MARKDOWN_FIELDS.includes(f)
+    ? !sameMarkdown(editForm.value[f], cr[f])
+    : (editForm.value[f] || '') !== (cr[f] || ''))
 })
 
 function startEdit(cr) {
@@ -717,10 +723,21 @@ async function saveSection() {
     const payload = { ...editForm.value }
     payload.planned_at = dateStrToEpoch(payload.planned_at_str)
     delete payload.planned_at_str
+    // An untouched markdown field comes back re-serialised by the editor; send
+    // the stored text so a no-op edit writes nothing and withdraws nothing.
+    for (const key of MARKDOWN_FIELDS) {
+      if (sameMarkdown(payload[key], selectedChange.value[key])) payload[key] = selectedChange.value[key] || ''
+    }
     const statusBefore = selectedChange.value.status
-    await api.updateChange(selectedChange.value.id, payload)
+    const changeId = selectedChange.value.id
+    await api.updateChange(changeId, payload)
     await loadChanges()
-    const fresh = changes.value.find(c => c.id === selectedChange.value.id)
+    // A save that withdraws an approval can drop the change out of an active
+    // status filter, so fall back to fetching it directly.
+    let fresh = changes.value.find(c => c.id === changeId)
+    if (!fresh) {
+      try { fresh = await api.getChange(changeId) } catch { /* leave the panel as is */ }
+    }
     if (fresh) {
       selectedChange.value = fresh
       startEdit(fresh)

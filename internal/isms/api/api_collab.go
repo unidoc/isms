@@ -2996,6 +2996,13 @@ func (s *Server) prepareChangeUpdate(ctx context.Context, orgID int, old *db.Cha
 		if err := validateEnum("status", *req.Status, db.ChangeStatuses); err != nil {
 			return db.ChangeRequest{}, err
 		}
+		// Checked against the user's own requested transition, before
+		// handleUpdateChange's withdrawal override can rewrite it to
+		// "proposed" — a server-initiated revocation is not the transition
+		// being validated here (#423).
+		if !db.ChangeStatusTransitionAllowed(old.Status, *req.Status) {
+			return db.ChangeRequest{}, apiError(http.StatusConflict, CodeChangeInvalidTransition, Status(old.Status), Value(*req.Status))
+		}
 	}
 	if req.AssignedTo != nil && *req.AssignedTo != "" {
 		if err := s.validateOrgMemberIn(ctx, orgID, *req.AssignedTo); err != nil {
@@ -3158,6 +3165,13 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	}
 	if err := validateEnum("status", req.Status, db.ChangeStatuses); err != nil {
 		return err
+	}
+	// old == nil (not found) falls through here and the write below no-ops,
+	// same as before #423 — oldStatus is "" only in that case, and
+	// ChangeStatusTransitionAllowed("", ...) would wrongly 409 a request that
+	// should 404, so the guard only runs once there is a real old status.
+	if old != nil && !db.ChangeStatusTransitionAllowed(oldStatus, req.Status) {
+		return apiError(http.StatusConflict, CodeChangeInvalidTransition, Status(oldStatus), Value(req.Status))
 	}
 	req.ApprovedBy = getUserEmail(c) // always use authenticated user
 	if err := s.db.UpdateChangeRequestStatus(ctx, orgID, id, req.Status, req.ApprovedBy); err != nil {

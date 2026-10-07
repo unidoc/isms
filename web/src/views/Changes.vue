@@ -483,6 +483,20 @@ const pendingRefs = ref([])
 // kind; the labels live in common.enum.change_type.
 const CHANGE_TYPES = ['change', 'access_request']
 const STATUSES = ['proposed', 'approved', 'rejected', 'in_progress', 'implemented', 'closed']
+
+// Mirrors internal/isms/db/changes.go's changeStatusTransitions (#423): the
+// edit form may only offer statuses the server will actually accept, so this
+// has to be the same table, not an approximation. Same-status is always
+// valid (a no-op, not a transition) and is added in statusOptions below
+// rather than listed here, exactly as on the Go side.
+const CHANGE_STATUS_TRANSITIONS = {
+  proposed: ['approved', 'rejected', 'closed'],
+  approved: ['in_progress', 'implemented', 'rejected', 'proposed'],
+  in_progress: ['implemented', 'rejected', 'proposed'],
+  implemented: ['closed', 'in_progress'],
+  rejected: [],
+  closed: [],
+}
 const PRIORITIES = ['critical', 'high', 'medium', 'low']
 const CATEGORIES = ['process', 'technology', 'people', 'documentation', 'infrastructure', 'other']
 const RISK_LEVELS = ['critical', 'high', 'medium', 'low']
@@ -495,7 +509,16 @@ const typeLabel = (v) => enumLabel('change_type', CHANGE_TYPES.includes(v) ? v :
 
 const options = (values, label) => computed(() => values.map((value) => ({ value, label: label(value) })))
 const typeOptions = options(CHANGE_TYPES, typeLabel)
-const statusOptions = options(STATUSES, statusLabel)
+// Not the plain options() helper: the allowed set depends on the change
+// being edited, not a fixed list (#423). Based on selectedChange, not
+// editForm.status — the set of what's reachable must stay fixed to the
+// status the change actually had when the edit form opened, not shrink as
+// the user picks a different option.
+const statusOptions = computed(() => {
+  const current = selectedChange.value?.status || 'proposed'
+  const allowed = [current, ...(CHANGE_STATUS_TRANSITIONS[current] || [])]
+  return STATUSES.filter((s) => allowed.includes(s)).map((value) => ({ value, label: statusLabel(value) }))
+})
 const priorityOptions = options(PRIORITIES, priorityLabel)
 const priorityAscOptions = options([...PRIORITIES].reverse(), priorityLabel)
 const categoryOptions = options(CATEGORIES, categoryLabel)

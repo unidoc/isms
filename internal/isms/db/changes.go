@@ -202,6 +202,46 @@ func ChangeStatusClears(status string) (approval, implemented bool) {
 	return revoked, revoked || status == "approved"
 }
 
+// changeStatusTransitions lists, for every current status, the statuses a
+// change request may move to next (#423). Moving to the same status is
+// always allowed — see ChangeStatusTransitionAllowed — and so is not listed
+// here. rejected and closed are terminal: nothing in this table, and no
+// admin override anywhere in the API, moves a change out of them. Fixing a
+// wrong rejection or a mis-clicked close means filing a new change request,
+// not editing the old one.
+var changeStatusTransitions = map[string][]string{
+	// closed here means withdrawn — pulled before anyone approved or
+	// rejected it. It is not the same closed an implemented change reaches.
+	"proposed": {"approved", "rejected", "closed"},
+	// Both can go straight to implemented, skipping in_progress, and both can
+	// be sent back to proposed (content substantially changed, #197) or
+	// rejected outright — rejecting doesn't require starting the work first.
+	"approved":    {"in_progress", "implemented", "rejected", "proposed"},
+	"in_progress": {"implemented", "rejected", "proposed"},
+	// in_progress here is reopening already-implemented work, not a fresh
+	// approval cycle: ChangeStatusClears keeps implemented_at and the
+	// approval stamps across it, recording only when the work was first
+	// done, not when it was last touched.
+	"implemented": {"closed", "in_progress"},
+	"rejected":    {},
+	"closed":      {},
+}
+
+// ChangeStatusTransitionAllowed reports whether a change request may move
+// from status `from` to status `to`. Same-status is always allowed: it is a
+// no-op, not a transition, so it is exempt from the table above.
+func ChangeStatusTransitionAllowed(from, to string) bool {
+	if from == to {
+		return true
+	}
+	for _, next := range changeStatusTransitions[from] {
+		if next == to {
+			return true
+		}
+	}
+	return false
+}
+
 // UpdateChangeRequestStatus transitions status; see ChangeStatusClears for which stamps are cleared.
 func (d *DB) UpdateChangeRequestStatus(ctx context.Context, orgID int, id int, status, approvedBy string) error {
 	return execChangeStatus(ctx, d.pool, orgID, id, status, approvedBy)

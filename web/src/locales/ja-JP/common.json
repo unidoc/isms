@@ -403,7 +403,11 @@
       "in_review": "レビュー中",
       "approved": "承認済み",
       "changes_requested": "変更要求あり",
-      "merged": "マージ済み"
+      "merged": "マージ済み",
+      "proposed": "提案済み",
+      "rejected": "却下済み",
+      "in_progress": "進行中",
+      "implemented": "実装済み"
     },
     "suggestion_type": {
       "create": "作成",
@@ -451,6 +455,7 @@
     "notes_required": "メモが必要です — レビューして確認した内容を記述してください",
     "review_wrong_status": "レビューは{status}です",
     "review_already_status": "レビューは既に{status}です",
+    "change_invalid_transition": "変更は{status}のため、{value}には移行できません",
     "ai_disabled": "この組織ではAI機能が無効です",
     "unsupported_locale": "サポートされていないロケール"
   },

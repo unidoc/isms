@@ -403,7 +403,11 @@
       "in_review": "in review",
       "approved": "approved",
       "changes_requested": "changes requested",
-      "merged": "merged"
+      "merged": "merged",
+      "proposed": "proposed",
+      "rejected": "rejected",
+      "in_progress": "in progress",
+      "implemented": "implemented"
     },
     "suggestion_type": {
       "create": "create",
@@ -451,6 +455,7 @@
     "notes_required": "notes are required — describe what was reviewed and confirmed",
     "review_wrong_status": "review is {status}",
     "review_already_status": "review is already {status}",
+    "change_invalid_transition": "change is {status}, cannot move to {value}",
     "comment_has_replies": "this comment still has replies ({count}) — delete them first",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"

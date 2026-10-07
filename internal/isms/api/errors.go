@@ -105,6 +105,9 @@ const (
 	CodeReviewWrongStatus    = "review_wrong_status"
 	CodeReviewAlreadyStatus  = "review_already_status"
 
+	// Change requests.
+	CodeChangeInvalidTransition = "change_invalid_transition"
+
 	// Comments.
 	CodeCommentHasReplies = "comment_has_replies"
 
@@ -168,6 +171,8 @@ var errorMessages = map[string]string{
 	CodeReviewWrongStatus:    "review is {status}",
 	CodeReviewAlreadyStatus:  "review is already {status}",
 
+	CodeChangeInvalidTransition: "change is {status}, cannot move to {value}",
+
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
@@ -226,6 +231,11 @@ var errorStatusValues = map[string][]string{
 	// status the same field carries at :912.
 	CodeReviewWrongStatus:   {"draft", "open", "in_review", "approved", "changes_requested", "merged", "closed"},
 	CodeReviewAlreadyStatus: {"approved", "changes_requested", "merged", "closed"},
+
+	// db.ChangeRequest.Status — the "from" side of a rejected transition can be
+	// any of db.ChangeStatuses, since the guard runs no matter which status the
+	// change currently holds.
+	CodeChangeInvalidTransition: {"proposed", "approved", "rejected", "in_progress", "implemented", "closed"},
 }
 
 // ErrorParam is a single param, constructible only through the four functions

@@ -403,7 +403,11 @@
       "in_review": "in Prüfung",
       "approved": "genehmigt",
       "changes_requested": "Änderungen angefordert",
-      "merged": "zusammengeführt"
+      "merged": "zusammengeführt",
+      "proposed": "vorgeschlagen",
+      "rejected": "abgelehnt",
+      "in_progress": "in Bearbeitung",
+      "implemented": "umgesetzt"
     },
     "suggestion_type": {
       "create": "Erstellung",
@@ -451,6 +455,7 @@
     "notes_required": "Notizen sind erforderlich — beschreiben Sie, was geprüft und bestätigt wurde",
     "review_wrong_status": "Prüfung hat den Status {status}",
     "review_already_status": "Prüfung hat bereits den Status {status}",
+    "change_invalid_transition": "Änderung hat den Status {status} und kann nicht zu {value} wechseln",
     "ai_disabled": "KI-Funktionen sind für diese Organisation deaktiviert",
     "unsupported_locale": "nicht unterstützte Sprache"
   },

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"isms.sh/internal/isms/db"
 )
@@ -283,6 +284,14 @@ func validateChangeCreate(cr *db.ChangeRequest) error {
 	}
 	if err := validateEnum("status", cr.Status, db.ChangeStatuses); err != nil {
 		return err
+	}
+	// A new change starts proposed (#423). Every later status is reached
+	// through ChangeStatusTransitionAllowed, which is what stamps the
+	// approval on the way — creating straight into approved/implemented/
+	// closed would skip it, exactly the bug #423 reports, just at creation
+	// instead of update.
+	if cr.Status != "proposed" {
+		return apiError(http.StatusConflict, CodeChangeInvalidTransition, Status("proposed"), Value(cr.Status))
 	}
 	if err := validateEnum("priority", cr.Priority, db.ChangePriorities); err != nil {
 		return err

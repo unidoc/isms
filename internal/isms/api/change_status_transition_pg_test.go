@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
 
@@ -209,5 +212,133 @@ func TestChangeSuggestionApplyRejectsSkippingApproval(t *testing.T) {
 	}
 	if reloaded.Status != "open" && reloaded.Status != "in_review" {
 		t.Errorf("suggestion status = %q, want still open/in_review", reloaded.Status)
+	}
+}
+
+// createChangeCtx builds a POST /changes echo.Context, the create-path
+// equivalent of ctxFor (which only covers PUT with an id param).
+func createChangeCtx(orgID int, body string) (echo.Context, *httptest.ResponseRecorder) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/changes", strings.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("org_id", orgID)
+	c.Set("user_role", "admin")
+	c.Set("user_email", "admin@id-resolution.test")
+	return c, rec
+}
+
+// alip/F1: a change could be CREATED already implemented/approved/closed,
+// skipping the whole guard this PR adds to the update paths — the exact #423
+// symptom, just one request earlier. Both create entry points (POST /changes
+// and a suggestion's create payload) must refuse it.
+func TestChangeCreateRejectsSkippingApproval(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "change-transition-create-skip")
+	contractTestUser(t, s, orgID, "admin@id-resolution.test", "admin")
+
+	for _, status := range []string{"approved", "in_progress", "implemented", "closed", "rejected"} {
+		t.Run(status, func(t *testing.T) {
+			c, _ := createChangeCtx(orgID, `{"title":"born `+status+`","description":"x","status":"`+status+`"}`)
+			err := s.handleCreateChange(c)
+			wantChangeInvalidTransition(t, err, "proposed", status)
+		})
+	}
+}
+
+// A create with no status, or an explicit "proposed", is unaffected —
+// applyChangeDefaults already turns the empty case into "proposed" before
+// validateChangeCreate ever runs.
+func TestChangeCreateAllowsProposedOrDefault(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "change-transition-create-ok")
+	contractTestUser(t, s, orgID, "admin@id-resolution.test", "admin")
+
+	c, rec := createChangeCtx(orgID, `{"title":"no status","description":"x"}`)
+	if err := s.handleCreateChange(c); err != nil {
+		t.Fatalf("no status: %v", err)
+	}
+	if got := decodeChange(t, rec.Body.Bytes()); got.Status != "proposed" {
+		t.Errorf("status = %q, want proposed", got.Status)
+	}
+
+	c, rec = createChangeCtx(orgID, `{"title":"explicit proposed","description":"x","status":"proposed"}`)
+	if err := s.handleCreateChange(c); err != nil {
+		t.Fatalf("explicit proposed: %v", err)
+	}
+	if got := decodeChange(t, rec.Body.Bytes()); got.Status != "proposed" {
+		t.Errorf("status = %q, want proposed", got.Status)
+	}
+}
+
+// The same create-time guard applies to a suggestion's create payload — the
+// MCP create_suggestion tool documents it as accepting the same fields as the
+// REST POST, so an agent could otherwise mint an already-implemented change.
+func TestChangeSuggestionCreateRejectsSkippingApproval(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "change-transition-suggestion-create")
+	contractTestUser(t, s, orgID, "admin@id-resolution.test", "admin")
+
+	sg := newTestSuggestion(t, s, orgID, &db.Suggestion{
+		EntityType:     "change_request",
+		SuggestionType: "create",
+		Payload:        json.RawMessage(`{"title":"born via suggestion","description":"x","status":"implemented"}`),
+	})
+
+	c, _ := suggestionCtx(orgID, http.MethodPost, sg.ID)
+	err := s.handleApplyEntitySuggestion(c)
+	wantChangeInvalidTransition(t, err, "proposed", "implemented")
+
+	reloaded, serr := s.db.GetSuggestion(context.Background(), orgID, sg.ID)
+	if serr != nil {
+		t.Fatalf("GetSuggestion: %v", serr)
+	}
+	if reloaded.Status != "open" && reloaded.Status != "in_review" {
+		t.Errorf("suggestion status = %q, want still open/in_review (nothing created)", reloaded.Status)
+	}
+}
+
+// alip/F2: execChangeStatus's "approved" branch unconditionally re-stamps
+// approved_by/approved_at. Before the fix, a second manager re-sending the
+// change's already-current "approved" status silently became the approver of
+// record. The status endpoint's same-status short-circuit must preserve the
+// original approver, not just avoid a 409.
+func TestChangeStatusEndpointSameStatusPreservesOriginalApprover(t *testing.T) {
+	s := testServer(t)
+	orgID := newTestOrg(t, s, "change-transition-noop-approver")
+	contractTestUser(t, s, orgID, "manager-a@change-transition-noop-approver.test", "manager")
+	contractTestUser(t, s, orgID, "manager-b@change-transition-noop-approver.test", "manager")
+	cr := newProposedChange(t, s, orgID, "admin@change-transition-noop-approver.test")
+
+	approveAs := func(email string) *db.ChangeRequest {
+		t.Helper()
+		c, rec := ctxFor(orgID, http.MethodPut, itoa(cr.ID), `{"status":"approved"}`)
+		c.Set("user_email", email)
+		if err := s.handleUpdateChangeStatus(c); err != nil {
+			t.Fatalf("approve as %s: %v", email, err)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("approve as %s: code %d, body %s", email, rec.Code, rec.Body.String())
+		}
+		got, err := s.db.GetChangeRequest(context.Background(), orgID, cr.ID)
+		if err != nil {
+			t.Fatalf("GetChangeRequest: %v", err)
+		}
+		return got
+	}
+
+	first := approveAs("manager-a@change-transition-noop-approver.test")
+	if first.ApprovedBy != "manager-a@change-transition-noop-approver.test" {
+		t.Fatalf("approved_by = %q, want manager-a", first.ApprovedBy)
+	}
+
+	second := approveAs("manager-b@change-transition-noop-approver.test")
+	if second.ApprovedBy != first.ApprovedBy {
+		t.Errorf("approved_by = %q after a same-status re-send by a different user, want unchanged %q",
+			second.ApprovedBy, first.ApprovedBy)
+	}
+	if second.ApprovedAt == nil || first.ApprovedAt == nil || second.ApprovedAt.Time.Unix() != first.ApprovedAt.Time.Unix() {
+		t.Errorf("approved_at changed: %v -> %v, want unchanged", first.ApprovedAt, second.ApprovedAt)
 	}
 }

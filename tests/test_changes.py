@@ -346,15 +346,59 @@ class TestChangeStatusTransitionGuard:
 
     def test_same_status_is_a_noop(self, api_url, admin_headers):
         """Re-sending the current status (what the web edit form always does)
-        must never 409, even on a terminal status."""
+        must never 409, even on a terminal status, and must not re-stamp the
+        approval it already has (alip/F2 — the single-user slice of it; the
+        distinct-approver-overwritten case needs two authenticated org
+        members and is covered at the Go/pg level instead, see
+        TestChangeStatusEndpointSameStatusPreservesOriginalApprover)."""
         cid = self._create(api_url, admin_headers, "Same status is a no-op")
-        for status in ("approved", "implemented", "closed"):
+        r = requests.put(f"{api_url}/changes/{cid}/status",
+                          headers=admin_headers, json={"status": "approved"})
+        assert r.status_code == 200, r.text
+        first = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers).json()
+        assert first.get("approved_at") and first.get("approved_by"), first
+
+        r = requests.put(f"{api_url}/changes/{cid}/status",
+                          headers=admin_headers, json={"status": "approved"})
+        assert r.status_code == 200, r.text
+        second = requests.get(f"{api_url}/changes/{cid}", headers=admin_headers).json()
+        assert second["approved_at"] == first["approved_at"], \
+            "re-sending the current status must not re-stamp approved_at"
+        assert second["approved_by"] == first["approved_by"]
+
+        for status in ("implemented", "closed"):
             r = requests.put(f"{api_url}/changes/{cid}/status",
                               headers=admin_headers, json={"status": status})
             assert r.status_code == 200, r.text
         r = requests.put(f"{api_url}/changes/{cid}/status",
                           headers=admin_headers, json={"status": "closed"})
         assert r.status_code == 200, r.text
+
+    def test_create_cannot_skip_approval(self, api_url, admin_headers):
+        """alip/F1: a change could be created already approved/implemented/
+        closed, skipping the whole update-path guard above -- the #423
+        symptom, one request earlier."""
+        for status in ("approved", "in_progress", "implemented", "closed", "rejected"):
+            r = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+                "title": f"Born {status}", "description": "x", "status": status})
+            assert r.status_code == 409, f"{status}: {r.text}"
+            assert r.json()["code"] == "change_invalid_transition"
+
+    def test_create_suggestion_cannot_skip_approval(self, api_url, admin_headers):
+        """The same create-time guard applies to a suggestion's create
+        payload (alip/F1) -- the MCP create_suggestion tool documents it as
+        accepting the same fields as the REST POST."""
+        sg = requests.post(f"{api_url}/suggestions", headers=admin_headers, json={
+            "entity_type": "change_request", "suggestion_type": "create",
+            "payload": {"title": "Born via suggestion", "description": "x", "status": "implemented"},
+            "rationale": "jump the queue", "title": "skip approval"})
+        assert sg.status_code in (200, 201), sg.text
+        sg_id = sg.json()["id"]
+        ap = requests.post(f"{api_url}/suggestions/{sg_id}/apply", headers=admin_headers, json={})
+        assert ap.status_code == 409, ap.text
+        assert ap.json()["code"] == "change_invalid_transition"
+        sug = requests.get(f"{api_url}/suggestions/{sg_id}", headers=admin_headers).json()["data"]
+        assert sug["status"] in ("open", "in_review"), "a refused apply must not mark the suggestion applied"
 
     def test_approved_can_skip_straight_to_implemented(self, api_url, admin_headers):
         """An in_progress step is not mandatory."""

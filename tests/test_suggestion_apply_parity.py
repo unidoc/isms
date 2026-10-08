@@ -616,16 +616,25 @@ def test_change_update_status_stamps_approval(api_url, admin_headers):
 
 
 def test_change_create_parity(api_url, admin_headers):
-    body = dict(CHANGE_FIELDS, status="in_progress")
+    # status is "proposed", not CHANGE_FIELDS' own "approved" — #423/F1 made
+    # creating a change in any other status a 409 on both entry points, so a
+    # create-parity check can no longer exercise an already-decided status at
+    # creation (the update-parity test above still does, via CHANGE_FIELDS
+    # unmodified, since proposed -> approved is a legal transition on update).
+    body = dict(CHANGE_FIELDS, status="proposed")
     _create_parity(api_url, admin_headers, "change_request", "changes", body,
                    unique=("title",), get_by="ident")
 
 
 def test_change_create_honours_type_and_status(api_url, admin_headers):
+    # status must be "proposed" at creation (#423/F1); kept explicit in the
+    # payload, rather than omitted, so this still proves the suggestion-create
+    # path reads and honours a caller-supplied status rather than silently
+    # ignoring it and always defaulting.
     ident = _apply(api_url, admin_headers, "change_request", "create",
-                   {"title": f"chg {_tag()}", "type": "access_request", "status": "in_progress"})
+                   {"title": f"chg {_tag()}", "type": "access_request", "status": "proposed"})
     got = requests.get(f"{api_url}/changes/{ident}", headers=admin_headers).json()
-    assert got["type"] == "access_request" and got["status"] == "in_progress", got
+    assert got["type"] == "access_request" and got["status"] == "proposed", got
     assert got["assigned_to"] == ADMIN_EMAIL  # defaults to the requester, like POST
 
 

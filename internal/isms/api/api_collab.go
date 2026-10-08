@@ -3173,6 +3173,15 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	if old != nil && !db.ChangeStatusTransitionAllowed(oldStatus, req.Status) {
 		return apiError(http.StatusConflict, CodeChangeInvalidTransition, Status(oldStatus), Value(req.Status))
 	}
+	// Same status is a no-op, not a transition (#423) — but execChangeStatus's
+	// "approved" branch unconditionally re-stamps approved_by/approved_at, so
+	// without this, a second manager re-sending "approved" silently becomes
+	// the approver of record and the original approval is lost. Short-circuit
+	// before that write, the same way prepareChangeUpdate's req.Status !=
+	// old.Status guard already makes the edit-form PUT a no-op here.
+	if old != nil && oldStatus == req.Status {
+		return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+	}
 	req.ApprovedBy = getUserEmail(c) // always use authenticated user
 	if err := s.db.UpdateChangeRequestStatus(ctx, orgID, id, req.Status, req.ApprovedBy); err != nil {
 		return pgxHTTPError(err)

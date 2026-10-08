@@ -403,7 +403,11 @@
       "in_review": "em revisão",
       "approved": "aprovado",
       "changes_requested": "alterações solicitadas",
-      "merged": "mesclado"
+      "merged": "mesclado",
+      "proposed": "proposto",
+      "rejected": "rejeitado",
+      "in_progress": "em andamento",
+      "implemented": "implementado"
     },
     "suggestion_type": {
       "create": "criar",
@@ -451,6 +455,7 @@
     "notes_required": "as notas são obrigatórias — descreva o que foi revisado e confirmado",
     "review_wrong_status": "a revisão está {status}",
     "review_already_status": "a revisão já está {status}",
+    "change_invalid_transition": "a solicitação de mudança está {status}, não pode mudar para {value}",
     "ai_disabled": "os recursos de IA estão desativados para esta organização",
     "unsupported_locale": "idioma não suportado"
   },

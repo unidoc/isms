@@ -403,7 +403,11 @@
       "in_review": "sedang ditinjau",
       "approved": "disetujui",
       "changes_requested": "perlu perubahan",
-      "merged": "digabungkan"
+      "merged": "digabungkan",
+      "proposed": "diusulkan",
+      "rejected": "ditolak",
+      "in_progress": "sedang berjalan",
+      "implemented": "sudah diimplementasikan"
     },
     "suggestion_type": {
       "create": "buat",
@@ -451,6 +455,7 @@
     "notes_required": "catatan wajib diisi — jelaskan apa yang ditinjau dan dikonfirmasi",
     "review_wrong_status": "tinjauan berstatus {status}",
     "review_already_status": "tinjauan sudah berstatus {status}",
+    "change_invalid_transition": "permintaan perubahan berstatus {status}, tidak bisa pindah ke {value}",
     "ai_disabled": "fitur AI dinonaktifkan untuk organisasi ini",
     "unsupported_locale": "locale tidak didukung"
   },

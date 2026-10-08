@@ -403,7 +403,11 @@
       "in_review": "í yfirferð",
       "approved": "samþykkt",
       "changes_requested": "óskað eftir breytingum",
-      "merged": "sameinað"
+      "merged": "sameinað",
+      "proposed": "lagt til",
+      "rejected": "hafnað",
+      "in_progress": "í vinnslu",
+      "implemented": "innleitt"
     },
     "suggestion_type": {
       "create": "stofna",
@@ -451,6 +455,7 @@
     "notes_required": "athugasemdir eru nauðsynlegar — lýstu því sem var farið yfir og staðfest",
     "review_wrong_status": "yfirferð er {status}",
     "review_already_status": "yfirferð er þegar {status}",
+    "change_invalid_transition": "breyting er {status}, kemst ekki í {value}",
     "ai_disabled": "gervigreindarþættir eru óvirkir fyrir þetta fyrirtæki",
     "unsupported_locale": "óstutt tungumál"
   },

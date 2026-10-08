@@ -322,7 +322,7 @@
               <!-- ═══ SUGGESTIONS ═══ -->
               <template v-if="detailTab === 'suggestions'">
                 <div class="px-6 py-5">
-                  <SuggestionPanel entityType="task" :entityId="selectedTask.identifier" :canReview="canCreate" @applied="loadTasks" />
+                  <SuggestionPanel entityType="task" :entityId="selectedTask.identifier" :canReview="canCreate" @applied="refreshSelectedTask" />
                 </div>
               </template>
 
@@ -591,6 +591,18 @@ async function loadTasks() {
     total.value = res?.total || 0
     loadStats()
   } catch { tasks.value = [] }
+}
+
+// #413: a suggestion applied from the detail panel's Suggestions tab changes
+// the record itself, so re-fetch the open one; reloading the list alone left the
+// panel showing the pre-apply values.
+async function refreshSelectedTask() {
+  if (!selectedTask.value) return
+  try {
+    const fresh = await api.getTask(selectedTask.value.id)
+    if (fresh) selectedTask.value = fresh
+  } catch { /* silent */ }
+  await loadTasks()
 }
 
 async function loadStats() {

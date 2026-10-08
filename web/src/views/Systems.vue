@@ -475,7 +475,7 @@
               <!-- ═══ SUGGESTIONS ═══ -->
               <template v-if="detailTab === 'suggestions'">
                 <div class="px-6 py-5">
-                  <SuggestionPanel entityType="system" :entityId="selectedItem.identifier" :canReview="canWrite" @applied="loadSystems" />
+                  <SuggestionPanel entityType="system" :entityId="selectedItem.identifier" :canReview="canWrite" @applied="refreshSelectedItem" />
                 </div>
               </template>
 

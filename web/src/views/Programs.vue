@@ -214,7 +214,7 @@
             <!-- SUGGESTIONS -->
             <template v-if="detailTab === 'suggestions'">
               <div class="px-6 py-5">
-                <SuggestionPanel entityType="program" :entityId="selected.key" :canReview="canWrite" @applied="loadAll" />
+                <SuggestionPanel entityType="program" :entityId="selected.key" :canReview="canWrite" @applied="refreshSelectedProgram" />
               </div>
             </template>
 
@@ -366,6 +366,18 @@ async function loadAll() {
 async function fetchAll() {
   const progs = await api.getPrograms()
   programs.value = Array.isArray(progs) ? progs : (progs?.data || [])
+}
+
+// #413: a suggestion applied from the detail panel's Suggestions tab changes
+// the record itself, so re-fetch the open one; reloading the list alone left the
+// panel showing the pre-apply values.
+async function refreshSelectedProgram() {
+  if (!selected.value) return
+  try {
+    const fresh = await api.getProgram(selected.value.id)
+    if (fresh) selected.value = fresh
+  } catch { /* silent */ }
+  await fetchAll()
 }
 
 function selectProgram(p) {

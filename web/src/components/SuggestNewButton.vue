@@ -1,12 +1,19 @@
 <template>
-  <div v-if="canSuggest" class="relative">
+  <div v-if="canSuggest">
     <button @click="showForm = !showForm"
       class="px-3 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 text-sm font-medium rounded-lg transition-colors">
       {{ $t('components.suggest_new.button') }}
     </button>
 
-    <!-- Dropdown form -->
-    <div v-if="showForm" class="absolute right-0 top-full mt-2 w-96 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-50 p-4 space-y-3">
+    <!-- Form modal. Teleported to body like the register pages' own create
+         forms (#413): as a dropdown inside the page's overflow-y-auto wrapper it
+         was clipped whenever the page content was shorter than the form, which
+         hid the Submit button. -->
+    <Teleport to="body">
+    <Transition name="modal">
+    <div v-if="showForm" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4">
+    <div class="absolute inset-0 bg-black/60" @click="showForm = false" />
+    <div class="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 space-y-3 max-h-[84vh] overflow-y-auto">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-200">{{ formTitle }}</h3>
         <button @click="showForm = false" class="text-slate-500 hover:text-slate-300 text-xs">{{ $t('components.suggest_new.close') }}</button>
@@ -47,6 +54,9 @@
         <button @click="showForm = false" class="text-xs text-slate-500 hover:text-slate-300">{{ $t('common.action.cancel') }}</button>
       </div>
     </div>
+    </div>
+    </Transition>
+    </Teleport>
   </div>
 </template>
 

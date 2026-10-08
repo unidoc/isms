@@ -367,7 +367,7 @@
               <!-- ═══ SUGGESTIONS ═══ -->
               <template v-if="detailTab === 'suggestions'">
                 <div class="px-6 py-5">
-                  <SuggestionPanel entityType="corrective_action" :entityId="selectedCA.identifier" :canReview="canWrite" @applied="loadAll" />
+                  <SuggestionPanel entityType="corrective_action" :entityId="selectedCA.identifier" :canReview="canWrite" @applied="refreshSelected" />
                 </div>
               </template>
 

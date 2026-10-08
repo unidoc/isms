@@ -68,6 +68,7 @@ import { useToast } from '../composables/useToast.js'
 import { useI18n } from 'vue-i18n'
 import { renderApiError } from '../composables/useApiError.js'
 import { entityLabel } from '../composables/useEnumLabel.js'
+import { useModalEscape } from '../composables/useModalEscape.js'
 
 const { t } = useI18n()
 
@@ -88,6 +89,7 @@ const props = defineProps({
 const emit = defineEmits(['created'])
 
 const showForm = ref(false)
+useModalEscape(showForm)
 const submitting = ref(false)
 const error = ref('')
 const form = ref({ suggestion_type: 'create', title: '', description: '', rationale: '' })

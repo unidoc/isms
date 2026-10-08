@@ -19,7 +19,7 @@ import (
 // #203: the assignee of a corrective action could not work it, and the assignee
 // of a task could not write its notes. These tests pin the role matrix for the
 // narrow routes: manager/admin on anything, a contributor only on their own
-// item, everyone else refused.
+// item, everyone else refused. #409 does the same for incidents.
 
 type assignmentFixture struct {
 	s     *Server
@@ -293,5 +293,193 @@ func TestMixedCaseEmailOnPrivateTask(t *testing.T) {
 	err, rec = f.call(f.s.handleUpdateTaskStatus, task.ID, upper, "contributor", `{"status":"in_progress"}`)
 	f.wantOK(t, err, rec)
 	err, rec = f.call(f.s.handleGetTask, task.ID, upper, "contributor", ``)
+	f.wantOK(t, err, rec)
+}
+
+// ---- Incidents (#409) ----
+
+func (f *assignmentFixture) newIncident(t *testing.T, assignee string) *db.Incident {
+	t.Helper()
+	inc := &db.Incident{Title: "inc " + assignee, Reporter: f.mgr, Assignee: assignee}
+	f.s.applyIncidentDefaults(context.Background(), f.orgID, inc, f.mgr)
+	if err := f.s.db.CreateIncident(context.Background(), f.orgID, inc); err != nil {
+		t.Fatalf("CreateIncident: %v", err)
+	}
+	return inc
+}
+
+func (f *assignmentFixture) incident(t *testing.T, id int64) *db.Incident {
+	t.Helper()
+	got, err := f.s.db.GetIncident(context.Background(), f.orgID, id)
+	if err != nil || got == nil {
+		t.Fatalf("GetIncident: %v", err)
+	}
+	return got
+}
+
+func TestAssigneeIncidentStatus(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-status")
+	inc := f.newIncident(t, f.owner)
+	h := f.s.handleUpdateIncidentStatus
+
+	for _, st := range []string{"investigating", "resolved", "closed"} {
+		err, rec := f.call(h, inc.ID, f.owner, "contributor", caStatusBody(st))
+		f.wantOK(t, err, rec)
+	}
+	got := f.incident(t, inc.ID)
+	if got.Status != "closed" || got.ClosedAt == nil || got.ClosedAt.IsZero() {
+		t.Fatalf("status/closed_at = %q/%v, want closed with closed_at set", got.Status, got.ClosedAt)
+	}
+	err, rec := f.call(h, inc.ID, f.owner, "contributor", caStatusBody("investigating"))
+	f.wantOK(t, err, rec)
+	got = f.incident(t, inc.ID)
+	if got.Status != "investigating" || (got.ClosedAt != nil && !got.ClosedAt.IsZero()) {
+		t.Fatalf("after reopen status/closed_at = %q/%v, want investigating with closed_at cleared", got.Status, got.ClosedAt)
+	}
+
+	inc2 := f.newIncident(t, f.owner)
+	err, _ = f.call(h, inc2.ID, f.other, "contributor", caStatusBody("investigating"))
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, _ = f.call(h, inc2.ID, f.rdr, "reader", caStatusBody("investigating"))
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, rec = f.call(h, inc2.ID, f.mgr, "manager", caStatusBody("investigating"))
+	f.wantOK(t, err, rec)
+}
+
+func TestAssigneeCannotResolveIncidentWithOpenLinkedCA(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-open-ca")
+	inc := f.newIncident(t, f.owner)
+	ca := f.newCA(t, f.owner)
+	ref := &db.EntityReference{SourceType: "corrective_action", SourceID: ca.Identifier,
+		TargetType: "incident", TargetID: inc.Identifier, CreatedBy: f.mgr}
+	if err := f.s.db.CreateReference(context.Background(), f.orgID, ref); err != nil {
+		t.Fatalf("CreateReference: %v", err)
+	}
+	h := f.s.handleUpdateIncidentStatus
+	err, _ := f.call(h, inc.ID, f.owner, "contributor", caStatusBody("resolved"))
+	wantHTTPStatus(t, err, http.StatusConflict)
+	err, _ = f.call(h, inc.ID, f.owner, "contributor", caStatusBody("closed"))
+	wantHTTPStatus(t, err, http.StatusConflict)
+	err, _ = f.call(h, inc.ID, f.mgr, "manager", caStatusBody("resolved"))
+	wantHTTPStatus(t, err, http.StatusConflict)
+}
+
+func TestAssigneeIncidentProgress(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-progress")
+	ctx := context.Background()
+	inc := f.newIncident(t, f.owner)
+	h := f.s.handleUpdateIncidentProgress
+
+	err, rec := f.call(h, inc.ID, f.owner, "contributor", `{"root_cause":"stale credential","lessons_learned":"rotate keys","notes":"rotated"}`)
+	f.wantOK(t, err, rec)
+	var body db.Incident
+	if jerr := json.Unmarshal(rec.Body.Bytes(), &body); jerr != nil {
+		t.Fatalf("decoding response: %v", jerr)
+	}
+	if body.RootCause != "stale credential" || body.LessonsLearned != "rotate keys" || body.Notes != "rotated" || body.Status != inc.Status {
+		t.Fatalf("response = %+v", body)
+	}
+	got := f.incident(t, inc.ID)
+	if got.RootCause != "stale credential" || got.LessonsLearned != "rotate keys" || got.Notes != "rotated" || got.Status != inc.Status {
+		t.Fatalf("stored = root_cause %q lessons %q notes %q status %q", got.RootCause, got.LessonsLearned, got.Notes, got.Status)
+	}
+	log, err := f.s.db.ListEntityChangelog(ctx, f.orgID, "incident", inc.ID)
+	if err != nil {
+		t.Fatalf("ListEntityChangelog: %v", err)
+	}
+	fields := map[string]string{}
+	for _, e := range log {
+		fields[e.Field] = e.ChangedBy
+	}
+	for _, field := range []string{"root_cause", "lessons_learned", "notes"} {
+		if fields[field] != f.owner {
+			t.Errorf("changelog for %s by %q, want %s (all: %v)", field, fields[field], f.owner, fields)
+		}
+	}
+
+	err, rec = f.call(h, inc.ID, f.owner, "contributor", `{"notes":"second note"}`)
+	f.wantOK(t, err, rec)
+	got = f.incident(t, inc.ID)
+	if got.RootCause != "stale credential" || got.LessonsLearned != "rotate keys" || got.Notes != "second note" {
+		t.Fatalf("after notes-only: root_cause %q lessons %q notes %q", got.RootCause, got.LessonsLearned, got.Notes)
+	}
+
+	err, _ = f.call(h, inc.ID, f.owner, "contributor", `{}`)
+	wantHTTPStatus(t, err, http.StatusBadRequest)
+	err, _ = f.call(h, inc.ID, f.other, "contributor", `{"notes":"x"}`)
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, _ = f.call(h, inc.ID, f.rdr, "reader", `{"notes":"x"}`)
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, rec = f.call(h, inc.ID, f.mgr, "manager", `{"notes":"mgr note"}`)
+	f.wantOK(t, err, rec)
+}
+
+// D3: once closed, the assignee can't rewrite the findings until they reopen it.
+func TestClosedIncidentIsReadOnlyForAssignee(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-closed")
+	inc := f.newIncident(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateIncidentStatus, inc.ID, f.mgr, "manager", caStatusBody("closed"))
+	f.wantOK(t, err, rec)
+	before := f.incident(t, inc.ID)
+
+	err, _ = f.call(f.s.handleUpdateIncidentProgress, inc.ID, f.owner, "contributor", `{"notes":"late"}`)
+	wantHTTPStatus(t, err, http.StatusConflict)
+	err, _ = f.call(f.s.handleUpdateIncidentStatus, inc.ID, f.owner, "contributor", `{"status":"closed","lessons_learned":"x"}`)
+	wantHTTPStatus(t, err, http.StatusConflict)
+	got := f.incident(t, inc.ID)
+	if got.Notes != before.Notes || got.LessonsLearned != before.LessonsLearned || got.Status != "closed" {
+		t.Fatalf("row changed: notes %q lessons %q status %q", got.Notes, got.LessonsLearned, got.Status)
+	}
+
+	err, rec = f.call(f.s.handleUpdateIncidentProgress, inc.ID, f.mgr, "manager", `{"notes":"mgr"}`)
+	f.wantOK(t, err, rec)
+	err, rec = f.call(f.s.handleUpdateIncidentStatus, inc.ID, f.owner, "contributor", caStatusBody("investigating"))
+	f.wantOK(t, err, rec)
+	err, rec = f.call(f.s.handleUpdateIncidentProgress, inc.ID, f.owner, "contributor", `{"notes":"after reopen"}`)
+	f.wantOK(t, err, rec)
+	if got := f.incident(t, inc.ID); got.Notes != "after reopen" {
+		t.Fatalf("notes = %q, want %q", got.Notes, "after reopen")
+	}
+}
+
+func TestReassignedIncidentRefusesFormerAssignee(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-reassign")
+	inc := f.newIncident(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateIncident, inc.ID, f.mgr, "manager", fmt.Sprintf(`{"assignee":%q}`, f.other))
+	f.wantOK(t, err, rec)
+	before := f.incident(t, inc.ID)
+
+	err, _ = f.call(f.s.handleUpdateIncidentProgress, inc.ID, f.owner, "contributor", `{"notes":"late"}`)
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	err, _ = f.call(f.s.handleUpdateIncidentStatus, inc.ID, f.owner, "contributor", caStatusBody("investigating"))
+	wantHTTPStatus(t, err, http.StatusForbidden)
+	got := f.incident(t, inc.ID)
+	if got.Assignee != f.other || got.Status != before.Status || got.Notes != before.Notes || got.RootCause != before.RootCause {
+		t.Fatalf("row changed: assignee %q status %q notes %q", got.Assignee, got.Status, got.Notes)
+	}
+}
+
+// A narrow write must leave every field it was not given as the manager last
+// saved it, the regulatory notification fields included.
+func TestIncidentProgressKeepsFieldsItWasNotGiven(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-keep")
+	inc := f.newIncident(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateIncident, inc.ID, f.mgr, "manager", `{"title":"Renamed by manager","severity":"high","authority_notified":"pending"}`)
+	f.wantOK(t, err, rec)
+	before := f.incident(t, inc.ID)
+	err, rec = f.call(f.s.handleUpdateIncidentProgress, inc.ID, f.owner, "contributor", `{"root_cause":"x"}`)
+	f.wantOK(t, err, rec)
+	got := f.incident(t, inc.ID)
+	if got.Title != "Renamed by manager" || got.Severity != "high" || got.AuthorityNotified != "pending" ||
+		got.Assignee != f.owner || got.Status != before.Status || got.RootCause != "x" {
+		t.Fatalf("stored = title %q severity %q authority %q assignee %q status %q root_cause %q",
+			got.Title, got.Severity, got.AuthorityNotified, got.Assignee, got.Status, got.RootCause)
+	}
+}
+
+func TestIncidentAssignmentEmailCaseInsensitive(t *testing.T) {
+	f := newAssignmentFixture(t, "assign-inc-case")
+	inc := f.newIncident(t, f.owner)
+	err, rec := f.call(f.s.handleUpdateIncidentStatus, inc.ID, strings.ToUpper(f.owner), "contributor", caStatusBody("investigating"))
 	f.wantOK(t, err, rec)
 }

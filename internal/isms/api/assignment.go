@@ -20,3 +20,9 @@ func canActOnAssignment(c echo.Context, assignee string) bool {
 	}
 	return false
 }
+
+// isManagerRole reports whether the requesting user is a manager or admin.
+func isManagerRole(c echo.Context) bool {
+	role, _ := c.Get("user_role").(string)
+	return role == "admin" || role == "manager"
+}

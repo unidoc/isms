@@ -81,6 +81,13 @@
     "authority": "Authority",
     "subjects": "Data Subjects"
   },
+  "assignee": {
+    "hint": "This incident is assigned to you. You can change its status and record the root cause, lessons learned and notes.",
+    "closed_hint": "This incident is closed. Reopen it to change the root cause, lessons learned or notes.",
+    "update_status": "Update status",
+    "no_root_cause": "No root cause recorded yet.",
+    "no_lessons_learned": "No lessons learned recorded yet."
+  },
   "danger": {
     "warning": "Deleting this incident is permanent and cannot be undone.",
     "delete": "Delete incident",

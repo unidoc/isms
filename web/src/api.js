@@ -454,6 +454,7 @@ export const api = {
   getIncident: (id) => fetchJSON(`${API}/incidents/${id}`),
   updateIncident: (id, data) => putJSON(`${API}/incidents/${id}`, data),
   updateIncidentStatus: (id, status) => putJSON(`${API}/incidents/${id}/status`, { status }),
+  updateIncidentProgress: (id, data) => putJSON(`${API}/incidents/${id}/progress`, data),
   deleteIncident: (id) => deleteJSON(`${API}/incidents/${id}`),
   getIncidentStats: () => fetchJSON(`${API}/incidents/stats`),
 

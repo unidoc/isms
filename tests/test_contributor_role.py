@@ -18,6 +18,15 @@ def _make_ca(api_url, admin_headers, assignee):
     return r.json()["id"]
 
 
+def _make_incident(api_url, admin_headers, assignee):
+    r = requests.post(f"{api_url}/incidents", headers=admin_headers, json={
+        "title": "Assignee test incident", "severity": "medium",
+        "incident_type": "event", "source": "internal", "assignee": assignee,
+    })
+    assert r.status_code in [200, 201], r.text
+    return r.json()["id"]
+
+
 def _make_task(api_url, admin_headers, assignee, **extra):
     r = requests.post(f"{api_url}/tasks", headers=admin_headers, json={
         "title": "Assignee test task", "task_type": "general", "assignee": assignee, **extra,
@@ -76,6 +85,29 @@ class TestContributorCanDo:
         assert r.status_code == 200, r.text
         got = requests.get(f"{api_url}/corrective-actions/{ca}", headers=contributor_headers).json()
         assert got["root_cause"] == "stale credential"
+        assert got["notes"] == "rotated"
+
+    def test_can_update_status_of_own_assigned_incident(self, api_url, admin_headers, contributor_headers):
+        """#409: the assignee works their own incident."""
+        inc = _make_incident(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/status", headers=contributor_headers,
+                         json={"status": "investigating"})
+        assert r.status_code == 200, r.text
+
+    def test_can_close_own_assigned_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/status", headers=contributor_headers,
+                         json={"status": "closed"})
+        assert r.status_code == 200, r.text
+
+    def test_can_record_progress_on_own_assigned_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/progress", headers=contributor_headers,
+                         json={"root_cause": "stale credential", "lessons_learned": "rotate keys", "notes": "rotated"})
+        assert r.status_code == 200, r.text
+        got = requests.get(f"{api_url}/incidents/{inc}", headers=contributor_headers).json()
+        assert got["root_cause"] == "stale credential"
+        assert got["lessons_learned"] == "rotate keys"
         assert got["notes"] == "rotated"
 
     def test_can_edit_notes_of_own_assigned_task(self, api_url, admin_headers, contributor_headers):
@@ -228,6 +260,32 @@ class TestContributorCannotDo:
                          json={"title": "Retitled by assignee"})
         assert r.status_code == 403, r.text
 
+    def test_cannot_update_status_of_other_persons_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/status", headers=contributor_headers,
+                         json={"status": "investigating"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_record_progress_on_other_persons_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/progress", headers=contributor_headers,
+                         json={"notes": "x"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_use_wide_incident_update_on_own_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}", headers=contributor_headers,
+                         json={"title": "Retitled by assignee"})
+        assert r.status_code == 403, r.text
+
+    def test_cannot_record_progress_on_own_closed_incident(self, api_url, admin_headers, contributor_headers):
+        inc = _make_incident(api_url, admin_headers, CONTRIBUTOR_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/status", headers=admin_headers, json={"status": "closed"})
+        assert r.status_code == 200, r.text
+        r = requests.put(f"{api_url}/incidents/{inc}/progress", headers=contributor_headers,
+                         json={"notes": "late"})
+        assert r.status_code == 409, r.text
+
     def test_cannot_edit_notes_of_other_persons_task(self, api_url, admin_headers, contributor_headers):
         task = _make_task(api_url, admin_headers, READER_EMAIL)
         r = requests.put(f"{api_url}/tasks/{task}/notes", headers=contributor_headers,
@@ -258,5 +316,11 @@ class TestReaderIsReadOnly:
     def test_reader_cannot_record_ca_progress(self, api_url, admin_headers, reader_headers):
         ca = _make_ca(api_url, admin_headers, READER_EMAIL)
         r = requests.put(f"{api_url}/corrective-actions/{ca}/progress", headers=reader_headers,
+                         json={"notes": "x"})
+        assert r.status_code == 403, r.text
+
+    def test_reader_cannot_record_incident_progress(self, api_url, admin_headers, reader_headers):
+        inc = _make_incident(api_url, admin_headers, READER_EMAIL)
+        r = requests.put(f"{api_url}/incidents/{inc}/progress", headers=reader_headers,
                          json={"notes": "x"})
         assert r.status_code == 403, r.text

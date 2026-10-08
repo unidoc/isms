@@ -2465,6 +2465,7 @@ paths:
     put:
       tags: [Incidents]
       summary: Update incident status
+      description: Admins and managers may change any incident's status; a contributor only one assigned to them. Moving to `resolved` or `closed` is refused with 409 while open corrective actions are linked. While an incident stays `closed`, a contributor cannot change its root cause or lessons learned (409).
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -2476,9 +2477,53 @@ paths:
               required: [status]
               properties:
                 status: { type: string, enum: [draft, open, investigating, contained, resolved, closed] }
+                root_cause: { type: string }
+                lessons_learned: { type: string }
       responses:
         '200':
           description: Status updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Open corrective actions are still linked, or the incident is closed
+
+  /incidents/{id}/progress:
+    put:
+      tags: [Incidents]
+      summary: Record root cause, lessons learned and notes
+      description: Admins and managers may call this on any incident; a contributor only on one assigned to them, and not once it is closed (409). At least one of `root_cause`, `lessons_learned` and `notes` is required.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              anyOf:
+                - required: [root_cause]
+                - required: [lessons_learned]
+                - required: [notes]
+              properties:
+                root_cause: { type: string }
+                lessons_learned: { type: string }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated incident
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Incident' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The incident is closed
 
   # ── Corrective Actions ──────────────────────────────────────────────────
   /corrective-actions:

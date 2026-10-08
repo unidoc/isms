@@ -728,6 +728,7 @@ func (s *Server) routes() {
 	api.GET("/incidents/:id", s.handleGetIncident)
 	api.PUT("/incidents/:id", s.handleUpdateIncident)
 	api.PUT("/incidents/:id/status", s.handleUpdateIncidentStatus)
+	api.PUT("/incidents/:id/progress", s.handleUpdateIncidentProgress)
 	api.DELETE("/incidents/:id", s.handleDeleteIncident)
 
 	// Corrective Actions (Postgres)

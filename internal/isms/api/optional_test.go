@@ -174,6 +174,7 @@ func TestUpdateRequestsHaveNoDoublePointers(t *testing.T) {
 		reflect.TypeOf(correctiveActionUpdateRequest{}),
 		reflect.TypeOf(correctiveActionProgressRequest{}),
 		reflect.TypeOf(incidentUpdateRequest{}),
+		reflect.TypeOf(incidentProgressRequest{}),
 		reflect.TypeOf(auditUpdateRequest{}),
 		reflect.TypeOf(auditFindingUpdateRequest{}),
 		reflect.TypeOf(taskUpdateRequest{}),

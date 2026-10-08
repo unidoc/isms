@@ -295,8 +295,10 @@ Five authentication methods:
   act on, and comments. Does not directly create, edit, or apply — a
   contributor's input flows through the suggestion/review pipeline, the same way
   an AI agent's does. The exception is their own assigned work: a contributor can
-  change the status of a task or corrective action assigned to them and record
-  its notes (and, for a corrective action, its root cause).
+  change the status of a task, corrective action or incident assigned to them
+  and record its notes (and, for a corrective action, its root cause; for an
+  incident, its root cause and lessons learned). A closed incident is
+  read-only to them until they reopen it.
 - **Reader** — read-only.
 
 When assigned to a review, any role (including reader and contributor) may

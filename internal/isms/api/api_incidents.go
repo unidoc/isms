@@ -424,7 +424,7 @@ func statusVerb(status string) string {
 }
 
 func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
-	if err := requireRole(c, "admin", "manager"); err != nil {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
 		return err
 	}
 	orgID := getOrgID(c)
@@ -449,43 +449,68 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-
-	existing, err := s.db.GetIncident(ctx, orgID, id)
-	if err != nil || existing == nil {
-		return errNotFound("incident")
-	}
-	prevStatus := existing.Status
-	oldMap := existing.ToChangeMap()
-
-	existing.Status = req.Status
-	// Empty means "leave the current value alone", the contract the old
-	// single-statement UPDATE had (COALESCE(NULLIF($4, ''), root_cause)).
-	if req.RootCause != "" {
-		existing.RootCause = req.RootCause
-	}
-	if req.LessonsLearned != "" {
-		existing.LessonsLearned = req.LessonsLearned
-	}
-	existing.ID = id
-
 	actor := getUserEmail(c)
+
 	// Same enforced write path as PUT /incidents/:id and suggestion-apply (#26):
 	// transactional open-CA guard + lifecycle timestamps, with the changelog
-	// written in the same transaction (#196).
+	// written in the same transaction (#196). The row is locked and re-read
+	// first, so the ownership check applies to the row being written and a
+	// concurrent reassignment or edit can't slip in between (#409).
+	var after *db.Incident
 	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		if err := enforceIncidentWriteTx(ctx, tx, orgID, existing, prevStatus); err != nil {
+		if err := db.LockIncidentTx(ctx, tx, orgID, id); err != nil {
 			return err
 		}
-		after, err := db.GetIncidentTx(ctx, tx, orgID, id)
+		cur, err := db.GetIncidentTx(ctx, tx, orgID, id)
 		if err != nil {
 			return err
 		}
+		// The assignee may move their own incident through every status, closed
+		// included (#409); the open-CA guard still applies.
+		if !canActOnAssignment(c, cur.Assignee) {
+			return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of incidents assigned to them")
+		}
+		// A closed incident is signed off: its assignee may reopen it (#409), but
+		// not rewrite its root cause or lessons learned while it stays closed.
+		if !isManagerRole(c) && cur.Status == "closed" && req.Status == "closed" &&
+			(req.RootCause != "" || req.LessonsLearned != "") {
+			return echo.NewHTTPError(http.StatusConflict, "incident is closed")
+		}
+		prevStatus := cur.Status
+		oldMap := cur.ToChangeMap()
+
+		cur.Status = req.Status
+		// Empty means "leave the current value alone", the contract the old
+		// single-statement UPDATE had (COALESCE(NULLIF($4, ''), root_cause)).
+		if req.RootCause != "" {
+			cur.RootCause = req.RootCause
+		}
+		if req.LessonsLearned != "" {
+			cur.LessonsLearned = req.LessonsLearned
+		}
+		cur.ID = id
+
+		if err := enforceIncidentWriteTx(ctx, tx, orgID, cur, prevStatus); err != nil {
+			return err
+		}
+		a, err := db.GetIncidentTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
 		changes := db.DiffFields("incident", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
 		return db.LogChangesTx(ctx, tx, orgID, changes)
 	}); err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
 		var oce openCAsLinkedError
 		if errors.As(err, &oce) {
 			return echo.NewHTTPError(http.StatusConflict, oce.Error())
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNotFound("incident")
 		}
 		return pgxHTTPError(err)
 	}
@@ -498,8 +523,7 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 
 	// On resolve/close, notify relevant people
 	if req.Status == "resolved" || req.Status == "closed" {
-		inc, err := s.db.GetIncident(ctx, orgID, id)
-		if err == nil {
+		if inc := after; inc != nil {
 			// Log root cause / lessons learned in activity if set
 			if inc.RootCause != "" && req.Status == "resolved" {
 				s.logAndNotify(ctx, orgID, &db.Activity{
@@ -535,6 +559,105 @@ func (s *Server) handleUpdateIncidentStatus(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// incidentProgressRequest is the narrow update the assignee may make on their
+// own incident (#409): what caused it, what was learned and working notes.
+// The wide PUT stays manager/admin, since it also rewrites title, severity,
+// assignee and the regulatory notification fields.
+type incidentProgressRequest struct {
+	RootCause      *string `json:"root_cause"`
+	LessonsLearned *string `json:"lessons_learned"`
+	Notes          *string `json:"notes"`
+}
+
+func (s *Server) handleUpdateIncidentProgress(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager", "contributor"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	id, err := s.resolveIncidentID(c.Request().Context(), orgID, c.Param("id"))
+	if errors.Is(err, errInvalidID) {
+		return errInvalidEntityID("incident")
+	} else if err != nil {
+		return errNotFound("incident")
+	}
+
+	var req incidentProgressRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if req.RootCause == nil && req.LessonsLearned == nil && req.Notes == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "root_cause, lessons_learned or notes is required")
+	}
+
+	ctx := c.Request().Context()
+	actor := getUserEmail(c)
+
+	// Lock, re-read, check ownership and write in one transaction, so the check
+	// applies to the row being written and a concurrent reassignment or edit
+	// can't be overwritten (#409). Same enforced write path as the status route
+	// and the wide PUT (#26), with the status unchanged, so neither the open-CA
+	// guard nor the lifecycle stamps run; the changelog is written in the same
+	// transaction (#196).
+	var after *db.Incident
+	if err := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.LockIncidentTx(ctx, tx, orgID, id); err != nil {
+			return err
+		}
+		cur, err := db.GetIncidentTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		if !canActOnAssignment(c, cur.Assignee) {
+			return echo.NewHTTPError(http.StatusForbidden, "contributors can only update incidents assigned to them")
+		}
+		// Closed is read-only to the assignee until they reopen it (#409).
+		if !isManagerRole(c) && cur.Status == "closed" {
+			return echo.NewHTTPError(http.StatusConflict, "incident is closed")
+		}
+		prevStatus := cur.Status
+		oldMap := cur.ToChangeMap()
+		if req.RootCause != nil {
+			cur.RootCause = *req.RootCause
+		}
+		if req.LessonsLearned != nil {
+			cur.LessonsLearned = *req.LessonsLearned
+		}
+		if req.Notes != nil {
+			cur.Notes = *req.Notes
+		}
+		cur.ID = id
+		if err := enforceIncidentWriteTx(ctx, tx, orgID, cur, prevStatus); err != nil {
+			return err
+		}
+		a, err := db.GetIncidentTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		after = a
+		changes := db.DiffFields("incident", int64(id), actor, c.QueryParam("reason"), oldMap, after.ToChangeMap())
+		return db.LogChangesTx(ctx, tx, orgID, changes)
+	}); err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errNotFound("incident")
+		}
+		return pgxHTTPError(err)
+	}
+
+	s.searchUpsert(orgID, "incident", after.Identifier, after.Title, after.Identifier+" "+after.Title+" "+after.Description)
+
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  actor,
+		Action: "incident_updated",
+		Detail: fmt.Sprintf("Incident #%d updated: %s", id, after.Title),
+	})
+
+	return c.JSON(http.StatusOK, after)
 }
 
 func (s *Server) handleIncidentStats(c echo.Context) error {

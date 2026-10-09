@@ -356,7 +356,39 @@
               <template v-if="detailTab === 'actions'">
                 <div class="px-6 py-5 space-y-4">
                   <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('common.heading.quick_actions') }}</div>
-                  <div v-if="!canWrite" class="text-xs text-slate-600 italic">{{ t('common.read_only.actions') }}</div>
+                  <div v-if="!canWork" class="text-xs text-slate-600 italic">{{ t('common.read_only.actions') }}</div>
+                  <div v-else-if="assigneeOnly" class="flex flex-col gap-4 max-w-md">
+                    <div class="text-xs text-slate-500">{{ t('incidents.assignee.hint') }}</div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('incidents.field.status') }}</label>
+                      <div class="flex items-center gap-2">
+                        <select v-model="quickStatus" :disabled="saving || !!editingSection" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                        <button @click="saveStatus" :disabled="saving || !!editingSection || quickStatus === selectedIncident.status"
+                          class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-sm rounded-lg">{{ t('incidents.assignee.update_status') }}</button>
+                      </div>
+                      <div v-if="selectedIncident.status === 'closed'" class="text-xs text-slate-500 mt-2">{{ t('incidents.assignee.closed_hint') }}</div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-medium text-slate-500">{{ t('incidents.field.root_cause') }}</label>
+                        <button v-if="canRecord && !editingSection" @click="editSection('root_cause')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
+                      </div>
+                      <MarkdownField v-if="editingSection === 'root_cause'" v-model="editForm.root_cause" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" :placeholder="t('incidents.placeholder.root_cause')" />
+                      <div v-else-if="selectedIncident.root_cause" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedIncident.root_cause)"></div>
+                      <div v-else class="text-sm text-slate-600 italic">{{ t('incidents.assignee.no_root_cause') }}</div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-medium text-slate-500">{{ t('incidents.field.lessons_learned') }}</label>
+                        <button v-if="canRecord && !editingSection" @click="editSection('lessons_learned')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
+                      </div>
+                      <MarkdownField v-if="editingSection === 'lessons_learned'" v-model="editForm.lessons_learned" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="3" :placeholder="t('incidents.placeholder.lessons_learned')" />
+                      <div v-else-if="selectedIncident.lessons_learned" class="text-sm text-slate-300 doc-prose" v-mermaid v-html="renderMd(selectedIncident.lessons_learned)"></div>
+                      <div v-else class="text-sm text-slate-600 italic">{{ t('incidents.assignee.no_lessons_learned') }}</div>
+                    </div>
+                  </div>
                   <div v-else class="flex flex-col gap-3 max-w-md">
                     <button @click="createLinkedCA"
                       class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors text-left">
@@ -433,7 +465,7 @@
                 <div class="px-6 py-5 space-y-5">
                   <div class="flex items-center justify-between">
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('incidents.detail.notes') }}</div>
-                    <button v-if="canWrite && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
+                    <button v-if="canRecord && !editingSection" @click="editSection('notes')" class="text-[11px] text-slate-600 hover:text-blue-400 transition-colors">{{ t('common.action.edit') }}</button>
                   </div>
                   <template v-if="editingSection === 'notes'">
                     <MarkdownField v-model="editForm.notes" :self-type="'incident'" :self-id="selectedIncident ? String(selectedIncident.id) : ''" :rows="12" :placeholder="t('incidents.placeholder.notes')" />
@@ -518,6 +550,7 @@ import { renderMarkdown } from '../composables/useRenderMd.js'
 import { useModalEscape } from '../composables/useModalEscape.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { canActOnAssignment } from '../utils/assignment.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate } from '../composables/useFormat.js'
@@ -535,6 +568,7 @@ const { confirm: confirmDialog } = useConfirm()
 const renderMd = renderMarkdown
 
 const userRole = ref('')
+const userEmail = ref('')
 const canWrite = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 const canReport = computed(() => userRole.value === 'admin' || userRole.value === 'manager')
 
@@ -564,6 +598,15 @@ const statusStats = computed(() => [
   { key: 'closed', label: statusLabel('closed'), count: stats.value.closed || 0, color: 'text-slate-400' },
 ])
 const selectedIncident = ref(null)
+
+// The assignee may change the status and record root cause, lessons learned and
+// notes on their own incident (#409); the rest stays manager/admin. Once
+// closed, those fields are read-only to the assignee until they reopen it.
+const canWork = computed(() => !!selectedIncident.value && canActOnAssignment(userRole.value, userEmail.value, selectedIncident.value.assignee))
+const assigneeOnly = computed(() => canWork.value && !canWrite.value)
+const canRecord = computed(() => canWrite.value || (assigneeOnly.value && selectedIncident.value?.status !== 'closed'))
+const quickStatus = ref('')
+watch(selectedIncident, (inc) => { quickStatus.value = inc?.status || '' }, { immediate: true })
 const showCreateForm = ref(false)
 const filterStatus = ref('')
 const filterSeverity = ref('')
@@ -640,7 +683,7 @@ const newIncident = ref({
 })
 
 onMounted(async () => {
-  try { const me = await api.getMe(); userRole.value = me?.role || '' } catch {}
+  try { const me = await api.getMe(); userRole.value = me?.role || ''; userEmail.value = me?.email || '' } catch {}
   try { orgMembers.value = await api.getUsers() || [] } catch { orgMembers.value = [] }
   await loadAll()
   if (route.params.id) await openIncidentFromRoute(route.params.id)
@@ -821,23 +864,49 @@ function cancelSection() {
   startEdit(selectedIncident.value)
 }
 
+async function refreshSelected() {
+  await loadIncidents()
+  const fresh = incidents.value.find(i => i.id === selectedIncident.value.id)
+  if (fresh) {
+    selectedIncident.value = fresh
+    startEdit(fresh)
+  } else {
+    // fallback: refetch
+    try {
+      const data = await api.fetchJSON(`/api/v1/incidents/${selectedIncident.value.id}`)
+      if (data) { selectedIncident.value = data; startEdit(data) }
+    } catch {}
+  }
+}
+
+async function saveStatus() {
+  if (!selectedIncident.value) return
+  saving.value = true
+  try {
+    await api.updateIncidentStatus(selectedIncident.value.id, quickStatus.value)
+    await refreshSelected()
+    showSaved(t('common.state.saved'))
+  } catch (e) {
+    showError(t('incidents.error.save', { message: renderApiError(e) }))
+  } finally {
+    saving.value = false
+  }
+}
+
 async function saveSection() {
   if (!selectedIncident.value) return
   saving.value = true
   try {
-    await api.updateIncident(selectedIncident.value.id, { ...editForm.value })
-    await loadIncidents()
-    const fresh = incidents.value.find(i => i.id === selectedIncident.value.id)
-    if (fresh) {
-      selectedIncident.value = fresh
-      startEdit(fresh)
+    if (canWrite.value) {
+      await api.updateIncident(selectedIncident.value.id, { ...editForm.value })
     } else {
-      // fallback: refetch
-      try {
-        const data = await api.fetchJSON(`/api/v1/incidents/${selectedIncident.value.id}`)
-        if (data) { selectedIncident.value = data; startEdit(data) }
-      } catch {}
+      // Send only the field being edited, so a stale copy of a sibling field
+      // can't overwrite a newer value.
+      const field = editingSection.value
+      if (!['root_cause', 'lessons_learned', 'notes'].includes(field)) return
+      await api.updateIncidentProgress(selectedIncident.value.id, { [field]: editForm.value[field] })
     }
+    await refreshSelected()
     editingSection.value = ''
     showSaved(t('common.state.saved'))
   } catch (e) {

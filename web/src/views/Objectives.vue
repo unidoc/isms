@@ -433,7 +433,7 @@
             <!-- ═══ SUGGESTIONS ═══ -->
             <template v-if="detailTab === 'suggestions'">
               <div class="px-6 py-5">
-                <SuggestionPanel entityType="objective" :entityId="selectedObjective.display_id" :canReview="canWrite" @applied="loadAll" />
+                <SuggestionPanel entityType="objective" :entityId="selectedObjective.display_id" :canReview="canWrite" @applied="refreshSelectedObjective" />
               </div>
             </template>
 
@@ -660,6 +660,18 @@ async function loadObjectives() {
   } catch (e) {
     error.value = renderApiError(e)
   }
+}
+
+// #413: a suggestion applied from the detail panel's Suggestions tab changes
+// the record itself, so re-fetch the open one; reloading the list alone left the
+// panel showing the pre-apply values.
+async function refreshSelectedObjective() {
+  if (!selectedObjective.value) return
+  try {
+    const fresh = await api.getObjective(selectedObjective.value.id)
+    if (fresh) selectedObjective.value = fresh
+  } catch { /* silent */ }
+  await loadObjectives()
 }
 
 async function loadStats() {

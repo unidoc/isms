@@ -367,7 +367,7 @@
               <!-- ═══ SUGGESTIONS ═══ -->
               <template v-if="detailTab === 'suggestions'">
                 <div class="px-6 py-5">
-                  <SuggestionPanel entityType="corrective_action" :entityId="selectedCA.identifier" :canReview="canWrite" @applied="loadAll" />
+                  <SuggestionPanel entityType="corrective_action" :entityId="selectedCA.identifier" :canReview="canWrite" @applied="refreshSelectedFromSuggestion" />
                 </div>
               </template>
 
@@ -832,6 +832,19 @@ async function refreshSelected() {
       if (data) { selectedCA.value = data; startEdit(data) }
     } catch { /* ignore */ }
   }
+}
+
+// #413: a suggestion applied from the detail panel's Suggestions tab changes
+// the record itself, so re-fetch the open one. Unlike refreshSelected() this
+// must not call startEdit(): the apply is unrelated to any section being edited,
+// and resetting editForm would silently discard that unsaved draft.
+async function refreshSelectedFromSuggestion() {
+  if (!selectedCA.value) return
+  try {
+    const fresh = await api.getCorrectiveAction(selectedCA.value.id)
+    if (fresh) selectedCA.value = fresh
+  } catch { /* silent */ }
+  await loadActions()
 }
 
 async function saveStatus() {

@@ -6,7 +6,7 @@
 FROM debian:trixie-slim
 
 # ── Build args ───────────────────────────────────────────────────────────────
-ARG GO_VERSION=1.26.8
+ARG GO_VERSION=1.26.9
 ARG USER_NAME=isms
 ARG USER_UID=1000
 ARG USER_GID=1000

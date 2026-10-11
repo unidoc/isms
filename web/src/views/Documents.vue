@@ -531,7 +531,7 @@
                 <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{{ t('documents.meta.author') }}</div>
                 <div v-if="editMode" class="mt-0.5">
                   <MemberPicker
-                    :modelValue="activeDoc.author || ''"
+                    :modelValue="editAuthor"
                     :members="allUsers"
                     :placeholder="t('documents.meta.author_placeholder')"
                     @update:modelValue="setDocAuthor"
@@ -1909,7 +1909,6 @@ function setDocAuthor(email) {
   if (editMode.value) {
     // Buffer during edit — saved with content on Save
     editAuthor.value = email
-    if (activeDoc.value) activeDoc.value.author = email
   } else {
     // Outside edit mode — save immediately
     if (!activeId.value) return

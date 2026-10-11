@@ -28,6 +28,10 @@ export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent,
   const editVersion = ref('')
   const editAuthor = ref('')
   const editOwner = ref('')
+  // What the document had when editing began; Save diffs the buffers against
+  // these, not the live activeDoc, which the view may have written to meanwhile.
+  let originalAuthor = ''
+  let originalOwner = ''
 
   // --- Draft autosave (localStorage) ---
   // Key includes org slug from URL to prevent cross-org draft leaks
@@ -80,8 +84,10 @@ export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent,
   function startEdit() {
     editMode.value = true
     editVersion.value = activeDoc.value?.version || '0.1'
-    editAuthor.value = activeDoc.value?.author || ''
-    editOwner.value = activeDoc.value?.owner || ''
+    originalAuthor = activeDoc.value?.author || ''
+    originalOwner = activeDoc.value?.owner || ''
+    editAuthor.value = originalAuthor
+    editOwner.value = originalOwner
     editSaveMsg.value = ''
     editSaveError.value = false
 
@@ -131,10 +137,10 @@ export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent,
       if (newVersion && newVersion !== activeDoc.value?.version) {
         payload.version = newVersion
       }
-      if (editAuthor.value && editAuthor.value !== activeDoc.value?.author) {
+      if (editAuthor.value && editAuthor.value !== originalAuthor) {
         payload.author = editAuthor.value
       }
-      if (editOwner.value !== (activeDoc.value?.owner || '')) {
+      if (editOwner.value !== originalOwner) {
         payload.owner = editOwner.value
       }
       await api.updateDocumentContent(activeId.value, payload.content, payload.version, payload.author, payload.owner)

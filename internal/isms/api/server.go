@@ -1741,12 +1741,13 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 		pf.Frontmatter.Owner = *req.Owner
 	}
 
-	// Auto-set author and owner on first edit if not already set
+	// Auto-set author on first edit if not already set. Owner is deliberately
+	// not auto-filled: it is omitempty, so a cleared owner can't be told apart
+	// from a never-set one, and refilling it would silently undo an explicit
+	// "(not set)" on the next save. Owner is set only explicitly: the editor
+	// dropdown, PUT /documents/:docId/metadata, or POST /documents (owner = author).
 	if pf.Frontmatter.Author == "" {
 		pf.Frontmatter.Author = getUserEmail(c)
-	}
-	if pf.Frontmatter.Owner == "" {
-		pf.Frontmatter.Owner = getUserEmail(c)
 	}
 
 	// Replace body

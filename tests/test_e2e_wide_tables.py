@@ -32,6 +32,7 @@ Between the tables.
 |---|---|---|---|---|---|
 | Payroll administration | Employees and contractors of the organisation | Name, bank details, tax identifiers | Payroll provider | Seven years | Contract |
 | Customer support | Customers and prospects of the organisation | Name, email, ticket history | Support tooling | Two years | Legitimate interest |
+| Tax filing | Employees of the organisation | Tax identifiers | Revenue authority | Ten years | Legal obligation |
 
 An unbreakable token must not widen one row's scroll range.
 
@@ -39,6 +40,34 @@ An unbreakable token must not widen one row's scroll range.
 |---|---|---|
 | R-1 | https://docs.example.com/policies/information-security/access-control-standard-v3 | CISO |
 | R-2 | Annual penetration test report | CTO |
+"""
+
+# Every whitespace-delimited word of up to 18 characters, in every grid cell
+# (header and body), must sit on a single line: only longer tokens (URLs, long
+# identifiers) may wrap mid-word.
+WORDS = """
+() => {
+  const broken = [];
+  for (const cell of document.querySelectorAll('.tbl-hdr-cell, .tbl-cell')) {
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      for (const m of n.textContent.matchAll(/\\S+/g)) {
+        if (m[0].length > 18) continue;
+        const r = document.createRange();
+        r.setStart(n, m.index);
+        r.setEnd(n, m.index + m[0].length);
+        const tops = new Set([...r.getClientRects()].map(q => Math.round(q.top)));
+        if (tops.size > 1) broken.push(m[0]);
+      }
+    }
+  }
+  return broken;
+}
+"""
+
+WIDTHS = """
+() => [...document.querySelectorAll('.tbl-grid')].filter(g => !g.classList.contains('tbl-row'))
+  .map(g => [...g.children].map(c => Math.round(c.getBoundingClientRect().width)))
 """
 
 # Reads the layout of the document's table blocks. Tables are found by their
@@ -132,6 +161,8 @@ def _check(page, label, expect_scroll=True):
         if not ok:
             fails.append(msg)
 
+    broken = page.evaluate(WORDS)
+    ck(not broken, f"{label}: words split across lines: {sorted(set(broken))}")
     before = page.evaluate(PROBE, False)
     names = ("sub-processor", "ropa", "url-row")
     assert len(before["tables"]) == 3, f"{label}: expected 3 tables, got {len(before['tables'])}"
@@ -198,5 +229,13 @@ def test_desktop_sub_processor_table_fits_without_scroll(pw_browser, wide_doc):
         assert sub["rowOverflow"] <= 1, f"sub-processor table scrolls at 1323px (overflow {sub['rowOverflow']}px)"
         assert sub["clipped"] == 0
         assert sub["purposeWidth"] >= 160, f"Purpose column is only {sub['purposeWidth']}px"
+        # Column widths of tables that fit must not move (measured on the build
+        # before the body-word floors).
+        widths = page.evaluate(WIDTHS)
+        for got, want, name in ((widths[0], [104, 202, 104, 113, 113], "sub-processor"),
+                                (widths[2], [85, 442, 110], "url-row")):
+            assert all(abs(g - w) <= 1 for g, w in zip(got, want)) and len(got) == len(want), \
+                f"{name} column widths moved: {got} != {want}"
+        assert not page.evaluate(WORDS), "words split across lines at 1323"
     finally:
         ctx.close()

@@ -349,3 +349,30 @@ test('syncTableScroll copies scrollLeft to the other rows of the same table only
   assert.equal(scrollers[3].scrollLeft, 0)
   syncTableScroll({ target: scrollers[3] }) // not a table row: no-op, no throw
 })
+
+// A column's floor also fits its longest ordinary BODY word (body text is
+// 14px, not the header label), capped at the long-column floor so a URL wraps
+// mid-word instead of widening the column. Words split on whitespace only.
+function floors(md) {
+  const m = buildContentBlocks(md)[0].html.match(/grid-template-columns: ([^;]+);/)[1]
+  return [...m.matchAll(/minmax\((\d+)ch/g)].map((x) => Number(x[1]))
+}
+
+test('a body word longer than the header word raises that column\'s floor', () => {
+  const [a, b] = floors('| Name | Basis |\n| --- | --- |\n| x | Legitimate |\n')
+  assert.equal(a, 8) // header NAME: 4 + 3.5; the body "x" does not raise it
+  assert.ok(b > 9, `expected the "Legitimate" column above its header floor (9), got ${b}`)
+})
+
+test('the body-word floor is capped for a URL', () => {
+  const url = 'https://docs.example.com/policies/information-security/access-control-standard-v3'
+  const [, ref] = floors(`| ID | Reference |\n| --- | --- |\n| R-1 | ${url} |\n`)
+  assert.equal(ref, 18)
+})
+
+test('"R-1" is one 3-character word, not split at the hyphen', () => {
+  const [id] = floors('| ID | Ref |\n| --- | --- |\n| R-1 | a |\n')
+  // one word of 3 chars (~26px + 34px padding) needs 7ch; split at the hyphen
+  // it would only have needed the 6ch header floor
+  assert.equal(id, 7)
+})

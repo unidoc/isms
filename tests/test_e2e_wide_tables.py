@@ -32,13 +32,20 @@ Between the tables.
 |---|---|---|---|---|---|
 | Payroll administration | Employees and contractors of the organisation | Name, bank details, tax identifiers | Payroll provider | Seven years | Contract |
 | Customer support | Customers and prospects of the organisation | Name, email, ticket history | Support tooling | Two years | Legitimate interest |
+
+An unbreakable token must not widen one row's scroll range.
+
+| ID | Reference | Owner |
+|---|---|---|
+| R-1 | https://docs.example.com/policies/information-security/access-control-standard-v3 | CISO |
+| R-2 | Annual penetration test report | CTO |
 """
 
 # Reads the layout of the document's table blocks. Tables are found by their
 # `.tbl-grid` rows, not by any renderer-specific attribute, so the same probe
 # runs against any build.
 PROBE = """
-async (scrollRight) => {
+async (scrollRow) => {
   const first = document.querySelector('.comment-block');
   const blocks = [...first.parentElement.querySelectorAll(':scope > .comment-block')];
   const groups = [];
@@ -51,9 +58,12 @@ async (scrollRight) => {
   }
   const out = [];
   for (const g of groups) {
+    const rowCount = g.length;
     const scrollers = g.map(b => b.querySelector('.doc-prose'));
-    if (scrollRight) {
-      scrollers[0].scrollLeft = 99999; // the header row: its scrollbar is hidden
+    if (scrollRow !== false && scrollRow < scrollers.length) {
+      // scrollRow: the index of the row to scroll to its own max (0 = header,
+      // whose scrollbar is hidden).
+      scrollers[scrollRow].scrollLeft = 99999;
       await new Promise(r => setTimeout(r, 250));
     }
     const grid = b => b.querySelector('.tbl-grid');
@@ -77,6 +87,7 @@ async (scrollRight) => {
       return !!top && (top === el || el.contains(top));
     };
     out.push({
+      rowCount,
       scrollLefts: scrollers.map(s => Math.round(s.scrollLeft)),
       scrollable: scrollers.some(s => s.scrollWidth > s.clientWidth + 1),
       clipped, misalign,
@@ -122,11 +133,10 @@ def _check(page, label, expect_scroll=True):
             fails.append(msg)
 
     before = page.evaluate(PROBE, False)
-    after = page.evaluate(PROBE, True)
-    assert len(before["tables"]) == 2, f"{label}: expected 2 tables, got {len(before['tables'])}"
+    names = ("sub-processor", "ropa", "url-row")
+    assert len(before["tables"]) == 3, f"{label}: expected 3 tables, got {len(before['tables'])}"
     ck(before["pageOverflow"] <= 1, f"{label}: page/pane scrolls sideways by {before['pageOverflow']}px")
-    ck(after["pageOverflow"] <= 1, f"{label}: page/pane scrolls sideways after table scroll by {after['pageOverflow']}px")
-    for name, b, a in zip(("sub-processor", "ropa"), before["tables"], after["tables"]):
+    for name, b in zip(names, before["tables"]):
         where = f"{label} {name}"
         ck(b["clipped"] == 0, f"{where}: {b['clipped']} of {b['headerCells']} header cells are clipped by the header grid")
         ck(b["misalign"] <= 1, f"{where}: header/body misaligned by {b['misalign']}px")
@@ -134,14 +144,25 @@ def _check(page, label, expect_scroll=True):
         ck(b["checkHit"], f"{where}: review checkbox not hit-testable before scrolling")
         if name == "sub-processor":
             ck(b["purposeWidth"] >= 160, f"{where}: Purpose column is only {b['purposeWidth']}px")
-        if expect_scroll:
-            ck(a["scrollable"], f"{where}: table does not scroll sideways (header clipped / body overflow instead)")
-            ck(a["scrollLefts"][-1] > 0, f"{where}: scrolling the table moved nothing: {a['scrollLefts']}")
-            ck(len(set(a["scrollLefts"])) == 1, f"{where}: rows are not scrolled together: {a['scrollLefts']}")
-        ck(a["clipped"] == 0, f"{where}: header cells clipped after scrolling")
-        ck(a["misalign"] <= 1, f"{where}: header/body misaligned by {a['misalign']}px after scrolling")
-        ck(a["plusHit"], f"{where}: '+' button not hit-testable after scrolling right")
-        ck(a["checkHit"], f"{where}: review checkbox not hit-testable after scrolling right")
+    # Scroll EACH row of each table to its own max in turn: every row must
+    # share one scroll range, whatever its cells contain (an unbreakable URL),
+    # or the rows drift out of alignment.
+    for row in range(4):
+        after = page.evaluate(PROBE, row)
+        ck(after["pageOverflow"] <= 1, f"{label}: page/pane scrolls sideways after table scroll by {after['pageOverflow']}px")
+        for name, b, a in zip(names, before["tables"], after["tables"]):
+            if row >= a["rowCount"]:
+                continue
+            where = f"{label} {name} (row {row} scrolled)"
+            # The 3-column table only has to scroll on the phone; at 1024 it fits.
+            if expect_scroll and (name != "url-row" or "@390" in label):
+                ck(a["scrollable"], f"{where}: table does not scroll sideways (header clipped / body overflow instead)")
+                ck(a["scrollLefts"][row] > 0, f"{where}: scrolling the table moved nothing: {a['scrollLefts']}")
+                ck(len(set(a["scrollLefts"])) == 1, f"{where}: rows are not scrolled together: {a['scrollLefts']}")
+            ck(a["clipped"] == 0, f"{where}: header cells clipped after scrolling")
+            ck(a["misalign"] <= 1, f"{where}: header/body misaligned by {a['misalign']}px after scrolling")
+            ck(a["plusHit"], f"{where}: '+' button not hit-testable after scrolling right")
+            ck(a["checkHit"], f"{where}: review checkbox not hit-testable after scrolling right")
     assert not fails, "\n" + "\n".join(fails)
 
 

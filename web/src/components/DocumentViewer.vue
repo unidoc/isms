@@ -669,6 +669,10 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
   gap: 0;
   border-left: 1px solid rgb(51 65 85);
   border-right: 1px solid rgb(51 65 85);
+  /* A row's scroll range must be its grid's min-width and nothing else: content
+     that outgrows its cell (an unbreakable URL) would otherwise stretch only
+     that row's scroller and drift it out of line with the rest of the table. */
+  overflow: clip;
 }
 .doc-prose :deep(.tbl-hdr-cell) {
   background: rgb(30 41 59);
@@ -680,6 +684,7 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
   color: rgb(148 163 184);
   border-bottom: 2px solid rgb(51 65 85);
   border-right: 1px solid rgb(51 65 85);
+  overflow-wrap: anywhere; /* long tokens wrap in their column, not over the next */
   min-width: 0; /* see .tbl-cell below (#14) — without this, the header's own
     grid (independent from every body row's grid) resolves a track wider
     than its fr share whenever the label's min-content width exceeds it,
@@ -696,6 +701,7 @@ defineExpose({ reviewProgress, reviewedBlocks, contentBlocks })
   line-height: 1.6;
   font-size: 0.875rem;
   border-right: 1px solid rgba(51 65 85 / 0.3);
+  overflow-wrap: anywhere; /* long tokens wrap in their column, not over the next */
   min-width: 0; /* allow 1fr grid tracks to shrink below content width (#14) —
     Documents.vue's copy already had this; without it here too, a long
     unbreakable token (a URL, a long identifier) in one row widens that

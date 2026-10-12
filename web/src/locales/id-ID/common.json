@@ -59,6 +59,7 @@
     "asset": "Aset",
     "audit": "Audit",
     "audit_finding": "Temuan audit",
+    "audit_programme": "Program audit",
     "program": "Program",
     "checkin": "Check-in",
     "access_review": "Tinjauan akses",
@@ -87,6 +88,7 @@
     "asset": "aset",
     "audit": "audit",
     "audit_finding": "temuan audit",
+    "audit_programme": "program audit",
     "program": "program",
     "checkin": "check-in",
     "access_review": "tinjauan akses",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Baca & Tulis",

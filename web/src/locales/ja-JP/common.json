@@ -59,6 +59,7 @@
     "asset": "資産",
     "audit": "監査",
     "audit_finding": "監査指摘事項",
+    "audit_programme": "監査プログラム",
     "program": "プログラム",
     "checkin": "チェックイン",
     "access_review": "アクセスレビュー",
@@ -87,6 +88,7 @@
     "asset": "資産",
     "audit": "監査",
     "audit_finding": "監査指摘事項",
+    "audit_programme": "監査プログラム",
     "program": "プログラム",
     "checkin": "チェックイン",
     "access_review": "アクセスレビュー",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "読み書き",

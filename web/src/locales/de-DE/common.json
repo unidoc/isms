@@ -59,6 +59,7 @@
     "asset": "Vermögenswert",
     "audit": "Audit",
     "audit_finding": "Audit-Feststellung",
+    "audit_programme": "Auditprogramm",
     "program": "Programm",
     "checkin": "Messung",
     "access_review": "Zugriffsüberprüfung",
@@ -87,6 +88,7 @@
     "asset": "Vermögenswert",
     "audit": "Audit",
     "audit_finding": "Audit-Feststellung",
+    "audit_programme": "Auditprogramm",
     "program": "Programm",
     "checkin": "Messung",
     "access_review": "Zugriffsüberprüfung",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Lesen & Schreiben",

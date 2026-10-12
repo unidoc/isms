@@ -59,6 +59,7 @@
     "asset": "Actif",
     "audit": "Audit",
     "audit_finding": "Constat d'audit",
+    "audit_programme": "Programme d'audit",
     "program": "Programme",
     "checkin": "Mesure",
     "access_review": "Revue d'accès",
@@ -87,6 +88,7 @@
     "asset": "actif",
     "audit": "audit",
     "audit_finding": "constat d'audit",
+    "audit_programme": "programme d'audit",
     "program": "programme",
     "checkin": "mesure",
     "access_review": "revue d'accès",
@@ -237,7 +239,8 @@
       "task": "TÂCHE",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "CONST"
+      "audit_finding": "CONST",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Lecture et écriture",

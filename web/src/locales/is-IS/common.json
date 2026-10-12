@@ -59,6 +59,7 @@
     "asset": "Eign",
     "audit": "Úttekt",
     "audit_finding": "Niðurstaða úttektar",
+    "audit_programme": "Úttektaráætlun",
     "program": "Áætlun",
     "checkin": "Stöðumat",
     "access_review": "Aðgangsyfirferð",
@@ -87,6 +88,7 @@
     "asset": "eign",
     "audit": "úttekt",
     "audit_finding": "niðurstaða úttektar",
+    "audit_programme": "úttektaráætlun",
     "program": "áætlun",
     "checkin": "stöðumat",
     "access_review": "aðgangsyfirferð",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Lesa og skrifa",

@@ -49,16 +49,16 @@ func TestHasIdentifierShape(t *testing.T) {
 // stripPrefix, which this change made the sanctioned idiom at three sites —
 // and splitting on the dash (strings.SplitN et al.), which #334 found survived.
 //
-// "FIND-" and "AUDIT-" are the only allowed literals: those display ids ARE the
-// primary key (db.SoftDeleteAuditFinding mints "FIND-<id>" from the row id) and
-// neither table has an identifier column, so there is nothing to look up.
+// "FIND-", "AUDIT-" and "AP-" are the only allowed literals: those display ids
+// ARE the primary key (db.SoftDeleteAuditFinding mints "FIND-<id>" from the row
+// id) and none of the three tables has an identifier column, so there is nothing to look up.
 // Allow-listing the literals rather than the files means a new arithmetic strip
 // in api_audit.go or api_references.go is still caught — which is how the CR-
 // and TASK- strips in resolveEntityTitle were found.
 func TestNoArithmeticIDStripSurvives(t *testing.T) {
-	// The audit module is the exception: AUDIT- and FIND- are built from the row
-	// id, so there is no identifier column to look up.
-	auditPrefixes := map[string]bool{"FIND-": true, "AUDIT-": true}
+	// The audit module is the exception: AUDIT-, FIND- and AP- (programme) are
+	// built from the row id, so there is no identifier column to look up.
+	auditPrefixes := map[string]bool{"FIND-": true, "AUDIT-": true, "AP-": true}
 
 	files, err := filepath.Glob("*.go")
 	if err != nil {
@@ -191,6 +191,8 @@ func TestEntityIDResolverHandlesAuditDisplayIDs(t *testing.T) {
 		{"audit", "3", 3, true},
 		{"audit_finding", "FIND-7", 7, true},
 		{"audit_finding", "7", 7, true},
+		{"audit_programme", "AP-3", 3, true},
+		{"audit_programme", "3", 3, true},
 	} {
 		got, hasIdentifier, err := s.resolveEntityID(context.Background(), 1, tc.entityType, tc.param)
 		if err != nil {

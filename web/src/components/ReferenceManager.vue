@@ -146,10 +146,10 @@ function refRoute(r) {
   const other = otherSide(r)
   const docTypes = ['document', 'control', 'policy', 'procedure', 'clause', 'requirement', 'record', 'guideline']
   if (docTypes.includes(other.type)) return orgPath(`/documents/${other.id}`)
-  // AUDIT-/FIND- are built from the row id, so here the number is the row id;
+  // AUDIT-/FIND-/AP- are built from the row id, so here the number is the row id;
   // Audit.vue reads it under its own tab (/audit/:tab/:itemId).
-  if (other.type === 'audit' || other.type === 'audit_finding') {
-    const tab = other.type === 'audit' ? 'audits' : 'findings'
+  if (other.type === 'audit' || other.type === 'audit_finding' || other.type === 'audit_programme') {
+    const tab = other.type === 'audit' ? 'audits' : other.type === 'audit_finding' ? 'findings' : 'programmes'
     return orgPath(`/audit/${tab}/${other.id.replace(/^[A-Z]+-/, '')}`)
   }
   const base = typeRoutes[other.type]

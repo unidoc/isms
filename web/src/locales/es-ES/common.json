@@ -59,6 +59,7 @@
     "asset": "Activo",
     "audit": "Auditoría",
     "audit_finding": "Hallazgo de auditoría",
+    "audit_programme": "Programa de auditoría",
     "program": "Programa",
     "checkin": "Medición",
     "access_review": "Revisión de acceso",
@@ -87,6 +88,7 @@
     "asset": "activo",
     "audit": "auditoría",
     "audit_finding": "hallazgo de auditoría",
+    "audit_programme": "programa de auditoría",
     "program": "programa",
     "checkin": "medición",
     "access_review": "revisión de acceso",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Lectura y escritura",

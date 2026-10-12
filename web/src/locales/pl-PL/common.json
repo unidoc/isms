@@ -59,6 +59,7 @@
     "asset": "Aktywo",
     "audit": "Audyt",
     "audit_finding": "Ustalenie z audytu",
+    "audit_programme": "Program audytów",
     "program": "Program",
     "checkin": "Pomiar",
     "access_review": "Przegląd dostępu",
@@ -87,6 +88,7 @@
     "asset": "aktywo",
     "audit": "audyt",
     "audit_finding": "ustalenie z audytu",
+    "audit_programme": "program audytów",
     "program": "program",
     "checkin": "pomiar",
     "access_review": "przegląd dostępu",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Odczyt i zapis",

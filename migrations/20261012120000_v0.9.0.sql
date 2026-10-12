@@ -116,3 +116,19 @@ END $$;
 ALTER TABLE risks DROP CONSTRAINT IF EXISTS risks_status_check;
 ALTER TABLE risks ADD CONSTRAINT risks_status_check
     CHECK (status IN ('draft', 'open', 'accepted', 'closed'));
+
+-- #394: an audit programme is a link source/target like an audit or a finding
+-- (display id AP-<row id>, stored as such), and its Discussion tab comments on
+-- it. Neither CHECK listed 'audit_programme', so the API refused the link and
+-- the comment insert failed at the database. These only widen the sets (full
+-- lists kept explicit), so every existing row still satisfies them. DROP IF
+-- EXISTS + re-ADD is safe on fresh databases and on a second run.
+ALTER TABLE entity_references DROP CONSTRAINT IF EXISTS entity_references_source_type_check;
+ALTER TABLE entity_references ADD CONSTRAINT entity_references_source_type_check
+    CHECK (source_type IN ('document','risk','legal_requirement','asset','supplier','system','incident','corrective_action','objective','program','audit','audit_finding','audit_programme','change_request','task'));
+ALTER TABLE entity_references DROP CONSTRAINT IF EXISTS entity_references_target_type_check;
+ALTER TABLE entity_references ADD CONSTRAINT entity_references_target_type_check
+    CHECK (target_type IN ('document','risk','legal_requirement','asset','supplier','system','incident','corrective_action','objective','program','audit','audit_finding','audit_programme','change_request','task'));
+ALTER TABLE entity_comments DROP CONSTRAINT IF EXISTS entity_comments_entity_type_check;
+ALTER TABLE entity_comments ADD CONSTRAINT entity_comments_entity_type_check
+    CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review'));

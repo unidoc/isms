@@ -59,6 +59,7 @@
     "asset": "Asset",
     "audit": "Audit",
     "audit_finding": "Audit finding",
+    "audit_programme": "Audit programme",
     "program": "Program",
     "checkin": "Check-in",
     "access_review": "Access review",
@@ -87,6 +88,7 @@
     "asset": "asset",
     "audit": "audit",
     "audit_finding": "audit finding",
+    "audit_programme": "audit programme",
     "program": "program",
     "checkin": "check-in",
     "access_review": "access review",
@@ -237,7 +239,8 @@
       "task": "TASK",
       "program": "PROG",
       "audit": "AUDIT",
-      "audit_finding": "FINDING"
+      "audit_finding": "FINDING",
+      "audit_programme": "PROGRAMME"
     },
     "permissions": {
       "read-write": "Read & Write",

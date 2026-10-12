@@ -564,6 +564,13 @@
               </div>
             </template>
 
+            <!-- Links -->
+            <template v-if="programmeTab === 'links'">
+              <div class="px-6 py-5">
+                <ReferenceManager entityType="audit_programme" :entityId="`AP-${selectedProgramme.id}`" :editable="canWrite" />
+              </div>
+            </template>
+
             <!-- Discussion -->
             <template v-if="programmeTab === 'discussion'">
               <div class="px-6 py-5">
@@ -1169,6 +1176,7 @@ const TOP_TAB_KEYS = [
 const PROGRAMME_TAB_KEYS = [
   { key: 'overview', label: 'common.tab.overview' },
   { key: 'audits', label: 'audit.tab.audits' },
+  { key: 'links', label: 'common.tab.links' },
   { key: 'discussion', label: 'audit.tab.discussion' },
   { key: 'history', label: 'common.tab.history' },
 ]
@@ -1433,7 +1441,7 @@ const dot = computed(() => t('common.separator.dot'))
 
 // Entity identifiers are not copy — building them here keeps the prefix out of
 // the template, where the raw-text scanner reads it as an unextracted word.
-const progRef = (id) => `PROG-${id}`
+const progRef = (id) => `AP-${id}`
 const auditRef = (id) => `AUDIT-${id}`
 const findingRef = (id) => `FIND-${id}`
 

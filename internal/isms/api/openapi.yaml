@@ -3025,7 +3025,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, audit_programme, program, checkin, access_review, document, review]
         - name: id
           in: path
           required: true
@@ -3053,7 +3053,7 @@ paths:
               properties:
                 entity_type:
                   type: string
-                  enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+                  enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, audit_programme, program, checkin, access_review, document, review]
                 entity_id: { type: string }
                 parent_id: { type: integer }
                 body: { type: string }
@@ -3155,7 +3155,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, program, checkin, access_review, document, review]
+            enum: [risk, supplier, incident, legal_requirement, change_request, corrective_action, objective, task, system, asset, audit, audit_finding, audit_programme, program, checkin, access_review, document, review]
         - name: id
           in: path
           required: true
@@ -4123,7 +4123,7 @@ components:
         id: { type: integer }
         source_type:
           type: string
-          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
+          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, audit_programme, change_request, task]
         source_id:
           type: string
           description: >-
@@ -4131,11 +4131,12 @@ components:
             A program accepts its row id or key; an objective accepts its row
             id or display id. Both are stored and returned in key / display
             id form (e.g. "REG", "REG-1"), regardless of which form was sent.
-            An audit or audit finding accepts its row id or AUDIT-<id> /
-            FIND-<id>, and is stored and returned in the prefixed form.
+            An audit, audit finding or audit programme accepts its row id or
+            AUDIT-<id> / FIND-<id> / AP-<id>, and is stored and returned in
+            the prefixed form.
         target_type:
           type: string
-          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, change_request, task]
+          enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, audit_programme, change_request, task]
         target_id:
           type: string
           description: Same rules as source_id.

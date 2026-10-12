@@ -3609,8 +3609,8 @@ func hasIdentifierShape(param string) bool {
 // entityIDResolvers maps the entity_type values written to entity_changelog —
 // which are also what the web UI's HistoryPanel and the MCP server send — to the
 // resolver for that type. Types absent from this map have no display identifier
-// (document carries a string document_id; checkin, access_review and
-// audit_programme are numeric only), so their :id can only be a primary key.
+// (document carries a string document_id; checkin and access_review are
+// numeric only), so their :id can only be a primary key.
 //
 // Keep the keys in step with common.entity_inline.* in the web locales: the
 // handlers below pass the type to Entity(), which the client looks up there.
@@ -3626,8 +3626,8 @@ var entityIDResolvers = map[string]func(*Server, context.Context, int, string) (
 	"change":            (*Server).resolveChangeID,
 	"change_request":    (*Server).resolveChangeID,
 	"objective":         (*Server).resolveObjectiveID,
-	// An audit's and a finding's display ids ARE their primary keys (db/audits.go),
-	// so there is nothing to look up — see the comment in api_audit.go. Both must
+	// An audit's, a finding's and a programme's display ids ARE their primary keys (db/audits.go),
+	// so there is nothing to look up — see the comment in api_audit.go. All three must
 	// still be listed here: the MCP server now passes the display form through
 	// untouched (#201), so an absent key would fall through to the numeric-only
 	// path in resolveEntityID and 400 on "AUDIT-3". The literals are spelled out
@@ -3638,6 +3638,9 @@ var entityIDResolvers = map[string]func(*Server, context.Context, int, string) (
 	},
 	"audit_finding": func(_ *Server, _ context.Context, _ int, param string) (int64, error) {
 		return strconv.ParseInt(stripPrefix(param, "FIND-"), 10, 64)
+	},
+	"audit_programme": func(_ *Server, _ context.Context, _ int, param string) (int64, error) {
+		return strconv.ParseInt(stripPrefix(param, "AP-"), 10, 64)
 	},
 }
 

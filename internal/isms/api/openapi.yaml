@@ -3043,6 +3043,10 @@ paths:
         program key or an objective's display id) links that record to the
         commented entity, as an EntityReference with origin "comment". An identifier
         that names nothing is left as text and does not fail the request.
+        The entity_id is resolved like a reference's: an audit, finding or
+        programme may be sent as its row id or as AUDIT-/FIND-/AP-<id>, a
+        program by row id or key, an objective by row id or display id; the
+        comment is stored, and listed, under the canonical form.
       requestBody:
         required: true
         content:
@@ -3060,6 +3064,10 @@ paths:
       responses:
         '201':
           description: Comment created
+        '400':
+          description: >-
+            Unknown entity_type, or no such record in the organization
+            (code not_found_in_org)
 
   /entity-comments/{id}/resolve:
     post:

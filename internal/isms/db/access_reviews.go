@@ -67,6 +67,15 @@ func (d *DB) ListAccessReviews(ctx context.Context, orgID int, systemID int64) (
 	return reviews, nil
 }
 
+// AccessReviewExists reports whether the org has an access review with this id.
+func (d *DB) AccessReviewExists(ctx context.Context, orgID int, id int64) (bool, error) {
+	var exists bool
+	err := d.pool.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM access_reviews WHERE id = $1 AND organization_id = $2)
+	`, id, orgID).Scan(&exists)
+	return exists, err
+}
+
 func (d *DB) DeleteAccessReview(ctx context.Context, orgID int, id int64) error {
 	_, err := d.pool.Exec(ctx, `DELETE FROM access_reviews WHERE id = $1 AND organization_id = $2`, id, orgID)
 	return err

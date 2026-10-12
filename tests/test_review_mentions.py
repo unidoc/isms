@@ -74,7 +74,14 @@ def test_entity_comment_mention_notifies_the_member(api_url, admin_headers, read
     identifier link opens the entity. Don't "fix" this to a numeric link without
     the numeric id in hand — the backend only has the identifier here."""
     suffix = uuid.uuid4().hex[:8]
-    entity_id = f"chg-{suffix}"
+    # The record has to exist: entity comments validate it (#438).
+    chg = requests.post(f"{api_url}/changes", headers=admin_headers, json={
+        "title": f"Mention change {suffix}", "description": "mention target",
+        "justification": "mention test", "priority": "low", "category": "technology",
+        "risk_level": "low", "rollback_plan": "none",
+    })
+    assert chg.status_code == 201, chg.text
+    entity_id = chg.json()["identifier"]
     handle = READER_EMAIL.split("@")[0]
     c = requests.post(f"{api_url}/entity-comments", headers=admin_headers, json={
         "entity_type": "change_request", "entity_id": entity_id,

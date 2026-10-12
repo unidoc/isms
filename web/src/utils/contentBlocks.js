@@ -76,19 +76,33 @@ export const LONG_COLUMN_FLOOR_CH = 18
 // Chromium: capitals ~10px, M/W/m/w ~12px, the rest ~7.8px. Words split on
 // whitespace only, so "R-1" stays one word.
 const WORD_PX = { wide: 12, upper: 10, other: 7.8 }
-const GRID_CH_PX = 9.45
+const FALLBACK_CH_PX = 9.45 // "0" at 15px in the Mac system font
 const BODY_CELL_PAD_PX = 33 // 2 x 1rem padding + 1px of slack
+// Canvas context, font family and the grid's `ch` are read once. `ch` in
+// grid-template-columns resolves against the container's ambient 15px font and
+// differs per platform (Mac, DejaVu/Liberation, Segoe), so it is read from a
+// live `width: 1ch` probe at 15px in the page's font. A canvas measureText("0")
+// is not used for it: in Chromium it came out 2.4% narrower than the DOM's 1ch
+// (9.21px against 9.44px), while 14px words measure identically in both.
 let measureCtx
-function measure(word, weight) {
-  if (measureCtx === undefined) {
-    measureCtx = null
-    if (typeof OffscreenCanvas !== 'undefined' && typeof getComputedStyle === 'function') {
-      measureCtx = new OffscreenCanvas(1, 1).getContext('2d')
-    }
+let fontFamily
+let gridChPx = FALLBACK_CH_PX
+function initMeasure() {
+  measureCtx = null
+  if (typeof OffscreenCanvas !== 'undefined' && typeof getComputedStyle === 'function') {
+    measureCtx = new OffscreenCanvas(1, 1).getContext('2d')
+    fontFamily = getComputedStyle(document.body).fontFamily
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:1ch;height:0;font-size:15px'
+    document.body.appendChild(probe)
+    gridChPx = probe.getBoundingClientRect().width || FALLBACK_CH_PX
+    probe.remove()
   }
+}
+function measure(word, weight) {
+  if (measureCtx === undefined) initMeasure()
   if (measureCtx) {
-    const family = getComputedStyle(document.body).fontFamily
-    measureCtx.font = `${weight} 14px ${family}`
+    measureCtx.font = `${weight} 14px ${fontFamily}`
     return measureCtx.measureText(word).width
   }
   let px = 0
@@ -97,6 +111,24 @@ function measure(word, weight) {
   }
   return px
 }
+// Header labels are 12px, bold, uppercase and letter-spaced (0.04em), so the
+// `longest word + 3.5` ch formula above only holds for the font it was
+// calibrated on: in a font whose capitals are wide relative to its "0" a label
+// breaks mid-word. Measured here the same way as body words; 0 without canvas,
+// and the result only ever raises the floor above that formula.
+function headerWordPx(text) {
+  if (measureCtx === undefined) initMeasure()
+  if (!measureCtx || !('letterSpacing' in measureCtx)) return 0
+  measureCtx.font = `600 12px ${fontFamily}`
+  measureCtx.letterSpacing = '0.48px'
+  let widest = 0
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    widest = Math.max(widest, measureCtx.measureText(word.slice(0, LONG_COLUMN_FLOOR_CH).toUpperCase()).width)
+  }
+  measureCtx.letterSpacing = '0px'
+  return widest
+}
+
 // Widest ordinary word of a body cell; text inside <strong>/<b> is measured
 // bold, since .tbl-cell strong is 600. Only the first LONG_COLUMN_FLOOR_CH
 // characters of a word count, as a longer token is capped and may wrap.
@@ -120,10 +152,12 @@ export function columnLayout(colCount, ths, ...rowCellGroups) {
   const maxLen = Array(colCount).fill(0)
   const headerLongestWord = Array(colCount).fill(0)
   const bodyWidest = Array(colCount).fill(0)
+  const headerWidest = Array(colCount).fill(0)
   ths.forEach((cell, i) => {
     if (i >= colCount) return
     const text = (cell.textContent || '').trim()
     maxLen[i] = Math.max(maxLen[i], text.length)
+    headerWidest[i] = headerWordPx(text)
     headerLongestWord[i] = text.split(/\s+/).filter(Boolean)
       .reduce((longest, word) => Math.max(longest, word.length), 0)
   })
@@ -139,10 +173,14 @@ export function columnLayout(colCount, ths, ...rowCellGroups) {
   const template = maxLen.map((n, i) => {
     const weight = Math.max(Math.sqrt(n), 1).toFixed(2)
     let floorCh = Math.ceil(headerLongestWord[i] + 3.5)
+    if (headerWidest[i] > 0) {
+      const hdrCh = Math.ceil((headerWidest[i] + BODY_CELL_PAD_PX) / gridChPx) // + 1px right border
+      floorCh = Math.max(floorCh, Math.min(hdrCh, LONG_COLUMN_FLOOR_CH))
+    }
     // Fit the longest ordinary body word, capped: a longer token (URL, long
     // identifier) wraps mid-word instead of widening the column further.
     if (bodyWidest[i] > 0) {
-      const bodyCh = Math.ceil((bodyWidest[i] + BODY_CELL_PAD_PX) / GRID_CH_PX)
+      const bodyCh = Math.ceil((bodyWidest[i] + BODY_CELL_PAD_PX) / gridChPx)
       floorCh = Math.max(floorCh, Math.min(bodyCh, LONG_COLUMN_FLOOR_CH))
     }
     if (n >= LONG_CELL_CHARS) floorCh = Math.max(floorCh, LONG_COLUMN_FLOOR_CH)

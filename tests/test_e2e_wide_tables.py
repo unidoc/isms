@@ -65,9 +65,18 @@ WORDS = """
 }
 """
 
-WIDTHS = """
-() => [...document.querySelectorAll('.tbl-grid')].filter(g => !g.classList.contains('tbl-row'))
-  .map(g => [...g.children].map(c => Math.round(c.getBoundingClientRect().width)))
+# Header widths of every grid table, and the grid's own 1ch in px (a probe
+# element with width: 1ch inside the grid, i.e. at the grid's font size).
+CH_WIDTHS = """
+() => {
+  const grids = [...document.querySelectorAll('.tbl-grid')].filter(g => !g.classList.contains('tbl-row'));
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;width:1ch;height:0';
+  grids[0].appendChild(probe);
+  const ch = probe.getBoundingClientRect().width;
+  probe.remove();
+  return { ch, tables: grids.map(g => [...g.children].map(c => c.getBoundingClientRect().width)) };
+}
 """
 
 # Reads the layout of the document's table blocks. Tables are found by their
@@ -97,6 +106,11 @@ async (scrollRow) => {
     }
     const grid = b => b.querySelector('.tbl-grid');
     const hdr = grid(g[0]);
+    const pr = document.createElement('div');
+    pr.style.cssText = 'position:absolute;visibility:hidden;width:1ch;height:0';
+    hdr.appendChild(pr);
+    const ch = pr.getBoundingClientRect().width;
+    pr.remove();
     const hr = hdr.getBoundingClientRect();
     const clipped = [...hdr.querySelectorAll('.tbl-hdr-cell')].filter(c => {
       const r = c.getBoundingClientRect();
@@ -122,6 +136,7 @@ async (scrollRow) => {
       clipped, misalign,
       headerCells: hcells.length,
       purposeWidth: hcells[1].getBoundingClientRect().width,
+      ch,
       plusHit: hit('button[title*="omment"]'),
       checkHit: hit('.review-checkbox'),
       rowOverflow: scrollers[1].scrollWidth - scrollers[1].clientWidth,
@@ -174,7 +189,7 @@ def _check(page, label, expect_scroll=True):
         ck(b["plusHit"], f"{where}: '+' button not hit-testable before scrolling")
         ck(b["checkHit"], f"{where}: review checkbox not hit-testable before scrolling")
         if name == "sub-processor":
-            ck(b["purposeWidth"] >= 160, f"{where}: Purpose column is only {b['purposeWidth']}px")
+            ck(b["purposeWidth"] >= 18 * b["ch"] - 1, f"{where}: Purpose column is only {b['purposeWidth']}px (18ch = {18 * b['ch']:.0f}px)")
     # Scroll EACH row of each table to its own max in turn: every row must
     # share one scroll range, whatever its cells contain (an unbreakable URL),
     # or the rows drift out of alignment.
@@ -228,14 +243,22 @@ def test_desktop_sub_processor_table_fits_without_scroll(pw_browser, wide_doc):
         sub = r["tables"][0]
         assert sub["rowOverflow"] <= 1, f"sub-processor table scrolls at 1323px (overflow {sub['rowOverflow']}px)"
         assert sub["clipped"] == 0
-        assert sub["purposeWidth"] >= 160, f"Purpose column is only {sub['purposeWidth']}px"
-        # Column widths of tables that fit must not move (measured on the build
-        # before the body-word floors).
-        widths = page.evaluate(WIDTHS)
-        for got, want, name in ((widths[0], [104, 202, 104, 113, 113], "sub-processor"),
-                                (widths[2], [85, 442, 110], "url-row")):
-            assert all(abs(g - w) <= 1 for g, w in zip(got, want)) and len(got) == len(want), \
-                f"{name} column widths moved: {got} != {want}"
+        assert sub["purposeWidth"] >= 18 * sub["ch"] - 1, f"Purpose column is only {sub['purposeWidth']}px"
+        # Column widths of tables that fit must not move. Font-independent: the
+        # short columns sit at their floors (whole multiples of the grid's own
+        # 1ch, measured in-page), Company/Service share a header length and so
+        # do Location/Transfer. Two ch of difference is what a "Monitoring" cell
+        # used to cost the Service column; a platform font may move a header by
+        # at most one.
+        w = page.evaluate(CH_WIDTHS)
+        ch = w["ch"]
+        company, _purpose, service, location, transfer = w["tables"][0]
+        assert abs(company - service) <= ch + 1, f"Service {service:.0f}px vs Company {company:.0f}px (1ch = {ch:.1f}px)"
+        assert abs(location - transfer) <= ch + 1, f"Transfer {transfer:.0f}px vs Location {location:.0f}px (1ch = {ch:.1f}px)"
+        for name, got, floor in (("Company", company, 11), ("Service", service, 11),
+                                 ("Location", location, 12), ("Transfer", transfer, 12)):
+            assert floor * ch - 1 <= got <= (floor + 1) * ch + 1, \
+                f"{name} is {got:.0f}px, expected {floor}ch = {floor * ch:.0f}px (1ch = {ch:.2f}px)"
         assert not page.evaluate(WORDS), "words split across lines at 1323"
     finally:
         ctx.close()

@@ -159,3 +159,13 @@ UPDATE entity_comments e SET entity_id = o.display_id
 FROM objectives o
 WHERE e.entity_type = 'objective' AND e.entity_id ~ '^[0-9]{1,18}$'
   AND o.id::text = e.entity_id AND o.organization_id = e.organization_id;
+
+-- #437: an audit programme's History tab was always empty: the programme
+-- handlers never wrote entity_changelog rows, and the table's entity_type CHECK
+-- did not list 'audit_programme', so such rows would have been refused. Widen
+-- the CHECK to every type it already allowed plus 'audit_programme'; it only
+-- adds a value, so no existing row can violate it. Re-runnable: DROP IF EXISTS
+-- then re-ADD leaves the same constraint behind on a second run.
+ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
+ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
+    CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review'));

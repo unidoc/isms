@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -40,6 +41,17 @@ type AuditProgramme struct {
 	UpdatedAt      Epoch  `json:"updated_at"`
 	// Computed
 	AuditCount int `json:"audit_count,omitempty"`
+}
+
+// ToChangeMap exposes the programme fields used by the entity changelog.
+func (p *AuditProgramme) ToChangeMap() map[string]string {
+	return map[string]string{
+		"title":       p.Title,
+		"year":        strconv.Itoa(p.Year),
+		"description": p.Description,
+		"status":      p.Status,
+		"notes":       p.Notes,
+	}
 }
 
 func (d *DB) CreateAuditProgramme(ctx context.Context, orgID int, p *AuditProgramme) error {

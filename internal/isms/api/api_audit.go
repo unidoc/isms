@@ -133,10 +133,17 @@ func (s *Server) handleCreateAuditProgramme(c echo.Context) error {
 		Notes:       req.Notes,
 		CreatedBy:   getUserEmail(c),
 	}
-	if err := s.db.CreateAuditProgramme(c.Request().Context(), orgID, &p); err != nil {
+	ctx := c.Request().Context()
+	if err := s.db.CreateAuditProgramme(ctx, orgID, &p); err != nil {
 		return pgxHTTPError(err)
 	}
-	s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
+		EntityType: "audit_programme",
+		EntityID:   int64(p.ID),
+		Action:     "create",
+		ChangedBy:  getUserEmail(c),
+	})
+	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  getUserEmail(c),
 		Action: "audit_programme_created",
 		Detail: fmt.Sprintf("Created audit programme: %s (%d)", p.Title, p.Year),
@@ -173,15 +180,24 @@ func (s *Server) handleUpdateAuditProgramme(c echo.Context) error {
 	if req.Status != nil && !db.AuditProgrammeStatuses[*req.Status] {
 		return apiError(http.StatusBadRequest, CodeInvalidStatus, Value(*req.Status))
 	}
-	if err := s.db.UpdateAuditProgramme(c.Request().Context(), orgID, id, req.Title, req.Description, req.Notes, req.Status); err != nil {
-		return pgxHTTPError(err)
-	}
-	p, err := s.db.GetAuditProgramme(c.Request().Context(), orgID, id)
+	ctx := c.Request().Context()
+	before, err := s.db.GetAuditProgramme(ctx, orgID, id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "programme not found")
 	}
-	s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
-		Actor:  getUserEmail(c),
+	if err := s.db.UpdateAuditProgramme(ctx, orgID, id, req.Title, req.Description, req.Notes, req.Status); err != nil {
+		return pgxHTTPError(err)
+	}
+	p, err := s.db.GetAuditProgramme(ctx, orgID, id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "programme not found")
+	}
+	actor := getUserEmail(c)
+	if changes := db.DiffFields("audit_programme", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), p.ToChangeMap()); len(changes) > 0 {
+		s.logChanges(ctx, orgID, changes)
+	}
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  actor,
 		Action: "audit_programme_updated",
 		Detail: fmt.Sprintf("Programme #%d updated", id),
 	})
@@ -197,17 +213,27 @@ func (s *Server) handleDeleteAuditProgramme(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid programme id")
 	}
-	hasAudits, err := s.db.AuditProgrammeHasAudits(c.Request().Context(), orgID, id)
+	ctx := c.Request().Context()
+	if _, err := s.db.GetAuditProgramme(ctx, orgID, id); err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "programme not found")
+	}
+	hasAudits, err := s.db.AuditProgrammeHasAudits(ctx, orgID, id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	if hasAudits {
 		return echo.NewHTTPError(http.StatusConflict, "cannot delete programme with existing audits")
 	}
-	if err := s.db.DeleteAuditProgramme(c.Request().Context(), orgID, id); err != nil {
+	if err := s.db.DeleteAuditProgramme(ctx, orgID, id); err != nil {
 		return pgxHTTPError(err)
 	}
-	s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
+	s.logChange(ctx, orgID, &db.ChangelogEntry{
+		EntityType: "audit_programme",
+		EntityID:   int64(id),
+		Action:     "delete",
+		ChangedBy:  getUserEmail(c),
+	})
+	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  getUserEmail(c),
 		Action: "audit_programme_deleted",
 		Detail: fmt.Sprintf("Programme #%d deleted", id),

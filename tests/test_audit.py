@@ -141,3 +141,42 @@ def test_delete_empty_programme_succeeds(api_url, admin_headers):
     pid = create.json()["id"]
     r = requests.delete(f"{api_url}/audit/programmes/{pid}", headers=admin_headers)
     assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# Programme History tab: create and edits are recorded in the entity changelog.
+# ---------------------------------------------------------------------------
+
+def test_programme_changes_appear_in_history(api_url, admin_headers):
+    create = requests.post(f"{api_url}/audit/programmes", headers=admin_headers, json={
+        "title": "History probe before", "year": 2026, "status": "draft",
+    })
+    assert create.status_code in (200, 201), create.text
+    pid = create.json()["id"]
+    r = requests.put(f"{api_url}/audit/programmes/{pid}?reason=history-probe", headers=admin_headers, json={
+        "title": "History probe after", "status": "active",
+    })
+    assert r.status_code == 200, r.text
+
+    # The UI asks for AP-<id>; the bare row id resolves to the same history.
+    histories = []
+    for ref in (f"AP-{pid}", str(pid)):
+        r = requests.get(f"{api_url}/changelog/audit_programme/{ref}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        histories.append(r.json().get("data") or [])
+    assert len(histories[0]) == len(histories[1]), histories
+
+    entries = histories[0]
+    assert [e for e in entries if e.get("action") == "create"], f"no create row: {entries}"
+    updates = {e["field"]: e for e in entries if e.get("action") == "update"}
+    assert set(updates) == {"title", "status"}, f"unexpected update rows: {entries}"
+    assert updates["title"]["old_value"] == "History probe before"
+    assert updates["title"]["new_value"] == "History probe after"
+    assert updates["status"]["old_value"] == "draft"
+    assert updates["status"]["new_value"] == "active"
+    assert updates["title"].get("reason") == "history-probe"
+
+
+def test_delete_missing_programme_returns_404(api_url, admin_headers):
+    r = requests.delete(f"{api_url}/audit/programmes/999999999", headers=admin_headers)
+    assert r.status_code == 404, r.text

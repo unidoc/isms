@@ -106,7 +106,11 @@ var mentionRe = regexp.MustCompile(`@([a-zA-Z0-9._-]+)`)
 // one sentence with a swappable noun — composing them from fragments does not
 // survive translation. The body is a snippet of what the user wrote, so it is
 // content rather than copy and deliberately gets no key.
-func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, title, titleKey, link string) {
+//
+// An optional canSee(email, org role) skips members who may not see the record
+// the text is on, so a mention can't carry a snippet of it (private tasks). With
+// none, everyone mentioned is notified.
+func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, title, titleKey, link string, canSee ...func(email, role string) bool) {
 	matches := mentionRe.FindAllStringSubmatchIndex(body, -1)
 	if len(matches) == 0 {
 		return
@@ -122,7 +126,9 @@ func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, tit
 	// (emails are), so prefer them and only fall back to a name-slug on a miss.
 	byLocal := map[string]string{}
 	bySlug := map[string]string{}
+	roles := map[string]string{}
 	for _, u := range users {
+		roles[u.Email] = u.Role
 		local := u.Email
 		if at := strings.IndexByte(local, '@'); at > 0 {
 			local = local[:at]
@@ -147,6 +153,9 @@ func (s *Server) notifyMentions(ctx context.Context, orgID int, actor, body, tit
 		}
 		if !ok || email == actor || notified[email] {
 			continue // unknown handle, self-mention, or already notified
+		}
+		if len(canSee) > 0 && !canSee[0](email, roles[email]) {
+			continue
 		}
 		notified[email] = true
 		_ = s.db.CreateNotificationContentByEmail(ctx, orgID, email, db.NotificationContent{
@@ -277,15 +286,21 @@ func involvingCanApprove(c echo.Context) bool {
 // SQL-filtered): reports whether the caller may see this task under the privacy
 // rule. A hidden task is treated as not-found (404), never 403 — don't reveal it.
 func canViewTask(c echo.Context, t *db.Task) bool {
+	role, _ := c.Get("user_role").(string)
+	return taskVisibleTo(t, getUserEmail(c), role)
+}
+
+// taskVisibleTo is the privacy rule behind canViewTask, for callers that have an
+// email and org role but no request context (e.g. mention notifications).
+func taskVisibleTo(t *db.Task, email, role string) bool {
 	if !t.Private {
 		return true
 	}
-	if role, _ := c.Get("user_role").(string); role == "manager" || role == "admin" {
+	if role == "manager" || role == "admin" {
 		return true
 	}
 	// Case-insensitive, like canActOnAssignment: the Cloudflare Access path sets
 	// user_email unnormalised, and an empty email matches nobody.
-	email := getUserEmail(c)
 	return email != "" && (strings.EqualFold(t.Assignee, email) || strings.EqualFold(t.CreatedBy, email))
 }
 

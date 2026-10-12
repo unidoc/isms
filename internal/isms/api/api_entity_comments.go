@@ -12,10 +12,40 @@ import (
 	"isms.sh/internal/isms/db"
 )
 
+// privateTask returns the task a comment is on when entityType is "task" and the
+// task is private, else nil. An id that doesn't resolve is not this check's job.
+func (s *Server) privateTask(ctx context.Context, orgID int, entityType, entityID string) *db.Task {
+	if entityType != "task" {
+		return nil
+	}
+	id, err := s.resolveTaskID(ctx, orgID, entityID)
+	if err != nil {
+		return nil
+	}
+	t, err := s.db.GetTask(ctx, orgID, id)
+	if err != nil || !t.Private {
+		return nil
+	}
+	return t
+}
+
+// canViewCommentEntity applies a private task's visibility rule to its
+// comments: a member who can't GET the task must not read, post or react to
+// them. Every other type, and an id that doesn't resolve, is allowed.
+func (s *Server) canViewCommentEntity(c echo.Context, entityType, entityID string) bool {
+	t := s.privateTask(c.Request().Context(), getOrgID(c), entityType, entityID)
+	return t == nil || canViewTask(c, t)
+}
+
 func (s *Server) handleListEntityComments(c echo.Context) error {
 	orgID := getOrgID(c)
 	entityType := c.Param("type")
 	entityID := c.Param("id")
+
+	// A hidden private task answers like a missing one: an empty thread.
+	if !s.canViewCommentEntity(c, entityType, entityID) {
+		return c.JSON(http.StatusOK, map[string]interface{}{"data": []db.EntityComment{}})
+	}
 
 	comments, err := s.db.ListEntityComments(c.Request().Context(), orgID, entityType, entityID)
 	if err != nil {
@@ -57,6 +87,9 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 	if req.Body == "" {
 		return errRequired("body")
 	}
+	if !s.canViewCommentEntity(c, req.EntityType, req.EntityID) {
+		return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("task"))
+	}
 
 	// A reply stays on its parent's record. Unlike document comments the client
 	// has to name the entity anyway, so a mismatch is an error, not rewritten.
@@ -92,18 +125,30 @@ func (s *Server) handleCreateEntityComment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	// The activity feed and chat webhooks are org-wide, so a private task's
+	// comment is logged without its body.
+	priv := s.privateTask(ctx, orgID, req.EntityType, req.EntityID)
+	detail := fmt.Sprintf("Comment on %s %s: %s", req.EntityType, req.EntityID, truncateStr(req.Body, 80))
+	if priv != nil {
+		detail = fmt.Sprintf("Comment on private task %s", req.EntityID)
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "entity_comment_created",
-		Detail: fmt.Sprintf("Comment on %s %s: %s", req.EntityType, req.EntityID, truncateStr(req.Body, 80)),
+		Detail: detail,
 	})
 
 	// Notify anyone @-mentioned in the comment (#4) — works on any entity type,
 	// so change-request comments (and every other register) pull members in.
+	// On a private task only members who can see it are notified.
+	var canSee []func(email, role string) bool
+	if priv != nil {
+		canSee = append(canSee, func(email, role string) bool { return taskVisibleTo(priv, email, role) })
+	}
 	s.notifyMentions(ctx, orgID, actor, req.Body,
 		fmt.Sprintf("%s mentioned you in a comment", actor),
 		NotifyKeyMentionComment,
-		entityLink(req.EntityType, req.EntityID))
+		entityLink(req.EntityType, req.EntityID), canSee...)
 
 	return c.JSON(http.StatusCreated, comment)
 }
@@ -150,10 +195,14 @@ func (s *Server) handleDeleteEntityComment(c echo.Context) error {
 	case err != nil:
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	deleted := fmt.Sprintf("Deleted comment on %s %s: %s", comment.EntityType, comment.EntityID, truncateStr(comment.Body, 80))
+	if s.privateTask(ctx, orgID, comment.EntityType, comment.EntityID) != nil {
+		deleted = fmt.Sprintf("Deleted comment on private task %s", comment.EntityID)
+	}
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  getUserEmail(c),
 		Action: "entity_comment_deleted",
-		Detail: fmt.Sprintf("Deleted comment on %s %s: %s", comment.EntityType, comment.EntityID, truncateStr(comment.Body, 80)),
+		Detail: deleted,
 	})
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 }
@@ -161,6 +210,16 @@ func (s *Server) handleDeleteEntityComment(c echo.Context) error {
 // ═══════════════════════════════════════════════════════════════════════
 // REACTIONS
 // ═══════════════════════════════════════════════════════════════════════
+
+// canViewCommentTarget is false for an entity_comment on a private task the
+// caller can't see, so reactions to it read as if the comment doesn't exist.
+func (s *Server) canViewCommentTarget(c echo.Context, targetType string, targetID int64) bool {
+	if targetType != "entity_comment" {
+		return true
+	}
+	cm, err := s.db.GetEntityComment(c.Request().Context(), getOrgID(c), targetID)
+	return err != nil || s.canViewCommentEntity(c, cm.EntityType, cm.EntityID)
+}
 
 func (s *Server) handleToggleReaction(c echo.Context) error {
 	orgID := getOrgID(c)
@@ -178,6 +237,9 @@ func (s *Server) handleToggleReaction(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "emoji is required")
 	}
 
+	if !s.canViewCommentTarget(c, req.TargetType, req.TargetID) {
+		return apiError(http.StatusNotFound, CodeNotFound, Entity("comment"))
+	}
 	added, err := s.db.ToggleReaction(c.Request().Context(), orgID, req.TargetType, req.TargetID, req.Emoji, actor)
 	if err != nil {
 		if errors.Is(err, db.ErrReactionTargetNotFound) {
@@ -201,6 +263,9 @@ func (s *Server) handleListReactions(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid target id")
 	}
 
+	if !s.canViewCommentTarget(c, targetType, targetID) {
+		return c.JSON(http.StatusOK, map[string]interface{}{"data": []db.ReactionSummary{}})
+	}
 	reactions, err := s.db.ListReactions(c.Request().Context(), orgID, targetType, targetID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

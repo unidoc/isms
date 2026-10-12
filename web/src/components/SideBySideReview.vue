@@ -29,7 +29,7 @@
         <div class="px-6 py-4">
           <template v-for="(block, i) in leftBlocks" :key="'l-' + i">
             <div :class="{ 'sbs-removed': block.changed }" class="sbs-block">
-              <div v-mermaid class="doc-prose" v-html="block.html"></div>
+              <div v-mermaid class="doc-prose" v-html="wrapTables(block.html)"></div>
             </div>
           </template>
           <div v-if="!oldBody" class="py-8 text-center text-sm text-slate-600">{{ $t('components.side_by_side.no_previous_version') }}</div>
@@ -45,7 +45,7 @@
             <template v-for="(block, i) in rightBlocks" :key="'r-' + i">
               <div :class="{ 'sbs-added': block.changed }" class="sbs-block group/para relative rounded -mx-2 px-2 transition-colors duration-200"
                 :style="activeCommentsForParagraph(i).length > 0 ? 'background: rgba(59,130,246,0.06)' : ''">
-                <div v-mermaid class="doc-prose" v-html="block.html"></div>
+                <div v-mermaid class="doc-prose" v-html="wrapTables(block.html)"></div>
 
                 <!-- Comment count badge (active comments only) -->
                 <div v-if="activeCommentsForParagraph(i).length > 0"
@@ -139,6 +139,7 @@ import DOMPurify from 'dompurify'
 import DiffView from './DiffView.vue'
 import { parseMd } from '../composables/useRenderMd'
 import { diffTables, isTableBlock } from '../composables/useTableDiff'
+import { wrapTables } from '../utils/wideTables.js'
 import { formatDate } from '../composables/useFormat.js'
 import { useMembers } from '../composables/useMembers.js'
 

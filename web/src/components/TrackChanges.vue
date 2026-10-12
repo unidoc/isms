@@ -42,7 +42,7 @@
                 'tc-ins': block.type === 'add',
                 'tc-change': block.type === 'change' && !block.isTable,
               }">
-              <div v-mermaid class="doc-prose" v-html="block.html"></div>
+              <div v-mermaid class="doc-prose" v-html="wrapTables(block.html)"></div>
             </div>
           </div>
           <!-- Comment badge / add button -->
@@ -124,6 +124,7 @@ import DOMPurify from 'dompurify'
 import { parseMd } from '../composables/useRenderMd'
 import { tokenize, diffTokens, diffLines, escapeHtml } from '../composables/useWordDiff'
 import { diffTables } from '../composables/useTableDiff'
+import { wrapTables } from '../utils/wideTables.js'
 import DiffView from './DiffView.vue'
 import api from '../api'
 import { formatDate, formatRecent } from '../composables/useFormat.js'

@@ -64,8 +64,8 @@ import { parseMd } from '../composables/useRenderMd.js'
 // renderers), because a column squeezed to a few characters is unreadable.
 // Every other column keeps the header-word floor above, so a table that fits
 // today lays out exactly as before.
-const LONG_CELL_CHARS = 40
-const LONG_COLUMN_FLOOR_CH = 18
+export const LONG_CELL_CHARS = 40
+export const LONG_COLUMN_FLOOR_CH = 18
 
 // Same per-column template as columnWidths, plus the sum of the floors. Every
 // grid of a table gets that sum as its min-width, so the grid box is as wide

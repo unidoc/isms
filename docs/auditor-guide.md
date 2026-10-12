@@ -149,7 +149,7 @@ Every document edit is a git commit. The commit log shows who changed what, when
 
 ### 2. Entity changelog
 
-The `entity_changelog` table tracks field-level changes to all operational entities (risks, incidents, suppliers, assets, systems, legal requirements, changes, corrective actions, objectives, tasks, audit findings). Each entry records:
+The `entity_changelog` table tracks field-level changes to all operational entities (risks, incidents, suppliers, assets, systems, legal requirements, changes, corrective actions, objectives, tasks, audits, audit findings, audit programmes). Each entry records:
 
 - Entity type and ID
 - Action (`create`, `update`, `delete`)

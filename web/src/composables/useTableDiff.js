@@ -14,8 +14,8 @@
 // so styling/colgroup/colors are preserved.
 
 import DOMPurify from 'dompurify'
-import { wordDiffPlain } from './useWordDiff'
-import { parseMd } from './useRenderMd'
+import { wordDiffPlain } from './useWordDiff.js'
+import { parseMd } from './useRenderMd.js'
 
 const HTML_TABLE_RE = /^\s*<table[\s>]/i
 // A markdown pipe table: a row with a pipe followed by a `|---|` separator line.
@@ -116,4 +116,122 @@ export function diffTables(oldText, newText) {
     ADD_TAGS: ['del', 'ins', 'colgroup', 'col'],
     ADD_ATTR: ['class', 'colspan', 'rowspan', 'style'],
   })
+}
+
+// --- Markdown pipe tables in the line-level (Unified) diff ---
+//
+// The unified view diffs line by line, but a markdown pipe table spans many
+// lines, so a touched table fell apart: only the changed row became a
+// remove/add pair (one line, not a table, so diffTables() returned null), and
+// the other rows came out as separate runs rendered as raw `| a | b |` text. An
+// untouched table whose rows come from different commits was cut at every blame
+// boundary the same way. Editor-saved tables are one HTML line, so they never hit
+// this. These helpers regroup the line-level ops so each pipe table is one unit.
+
+const PIPE_SEP_RE = /^\s*\|?(?:\s*:?-{3,}:?\s*\|?)+\s*$/
+
+// Line ranges [start, end) of the markdown pipe tables in `lines`: a header row
+// containing a pipe, a `|---|` separator line, then contiguous pipe rows up to a
+// blank or non-table line.
+export function findPipeTables(lines) {
+  const ranges = []
+  let i = 0
+  while (i < lines.length) {
+    if (lines[i].includes('|') && i + 1 < lines.length && lines[i + 1].includes('|') && PIPE_SEP_RE.test(lines[i + 1])) {
+      let j = i + 2
+      while (j < lines.length && lines[j].trim() !== '' && lines[j].includes('|')) j++
+      ranges.push({ start: i, end: j })
+      i = j
+    } else {
+      i++
+    }
+  }
+  return ranges
+}
+
+// Pipe tables plus editor-saved tables (one HTML line), in line order. An old
+// pipe table that became an HTML table on the first editor save must still pair
+// with it as one unit.
+function findTables(lines) {
+  const ranges = findPipeTables(lines)
+  lines.forEach((l, i) => {
+    if (isHtmlTable(l) && !ranges.some(r => i >= r.start && i < r.end)) ranges.push({ start: i, end: i + 1 })
+  })
+  return ranges.sort((a, b) => a.start - b.start)
+}
+
+function countChangedCells(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return doc.querySelectorAll('td.tc-cell-change, .tc-row-add > td, .tc-row-del > td').length
+}
+
+// Takes diffLines() ops (runs of equal/add/remove lines) and returns ops where
+// every pipe table touched by the diff is one unit:
+//   - changed (lines added/removed inside it): { type: 'change', isTable: true,
+//     oldText, newText, html (diffTables of the whole old and new table), cellCount }
+//   - unchanged / wholly added / wholly removed: the usual { type, text } with
+//     `whole: true`, so it is rendered as one block and not split at blame
+//     boundaries.
+// Anything that is not a clean, complete table on both sides is left as the
+// original line ops, so prose (and its word diff) is never handed to diffTables.
+export function regroupPipeTables(ops, diffFn = diffTables) {
+  const recs = []
+  for (const op of ops) for (const text of op.text.split('\n')) recs.push({ type: op.type, text })
+  const oldLines = [], newLines = []
+  for (const r of recs) {
+    if (r.type !== 'add') { r.oldIdx = oldLines.length; oldLines.push(r.text) }
+    if (r.type !== 'remove') { r.newIdx = newLines.length; newLines.push(r.text) }
+  }
+  const oldRanges = findTables(oldLines)
+  const newRanges = findTables(newLines)
+  const tidOf = (ranges, n) => {
+    const t = new Array(n).fill(-1)
+    ranges.forEach((r, k) => { for (let x = r.start; x < r.end; x++) t[x] = k })
+    return t
+  }
+  const oldTid = tidOf(oldRanges, oldLines.length)
+  const newTid = tidOf(newRanges, newLines.length)
+  const tableful = (r) => (r.type !== 'add' && oldTid[r.oldIdx] >= 0) || (r.type !== 'remove' && newTid[r.newIdx] >= 0)
+
+  const out = []
+  const pushRaw = (r) => {
+    const last = out[out.length - 1]
+    if (last && !last.whole && last.type === r.type && last.type !== 'change') last.text += '\n' + r.text
+    else out.push({ type: r.type, text: r.text })
+  }
+
+  let i = 0
+  while (i < recs.length) {
+    if (!tableful(recs[i])) { pushRaw(recs[i]); i++; continue }
+    let j = i
+    while (j < recs.length && tableful(recs[j])) j++
+    const cluster = recs.slice(i, j)
+    const unit = clusterUnit(cluster, oldRanges, newRanges, oldTid, newTid, diffFn)
+    if (unit) out.push(unit)
+    else for (const r of cluster) pushRaw(r)
+    i = j
+  }
+  return out
+}
+
+function clusterUnit(cluster, oldRanges, newRanges, oldTid, newTid, diffFn) {
+  const oldSide = cluster.filter(r => r.type !== 'add')
+  const newSide = cluster.filter(r => r.type !== 'remove')
+  // Each side must be exactly one whole table.
+  const whole = (side, idxKey, tid, ranges) => {
+    if (side.length === 0) return true
+    const ids = new Set(side.map(r => tid[r[idxKey]]))
+    if (ids.size !== 1 || ids.has(-1)) return false
+    const range = ranges[[...ids][0]]
+    return side.length === range.end - range.start
+  }
+  if (!whole(oldSide, 'oldIdx', oldTid, oldRanges) || !whole(newSide, 'newIdx', newTid, newRanges)) return null
+  const oldText = oldSide.map(r => r.text).join('\n')
+  const newText = newSide.map(r => r.text).join('\n')
+  if (cluster.every(r => r.type === 'equal')) return { type: 'equal', text: newText, whole: true }
+  if (oldSide.length === 0) return { type: 'add', text: newText, whole: true }
+  if (newSide.length === 0) return { type: 'remove', text: oldText, whole: true }
+  const html = diffFn(oldText, newText)
+  if (!html) return null
+  return { type: 'change', oldText, newText, html, isTable: true, cellCount: countChangedCells(html) }
 }

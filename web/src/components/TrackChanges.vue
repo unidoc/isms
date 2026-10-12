@@ -123,7 +123,7 @@ import { ref, computed, watch, reactive } from 'vue'
 import DOMPurify from 'dompurify'
 import { parseMd } from '../composables/useRenderMd'
 import { tokenize, diffTokens, diffLines, escapeHtml } from '../composables/useWordDiff'
-import { diffTables } from '../composables/useTableDiff'
+import { diffTables, regroupPipeTables } from '../composables/useTableDiff'
 import { wrapTables } from '../utils/wideTables.js'
 import DiffView from './DiffView.vue'
 import api from '../api'
@@ -263,18 +263,22 @@ function relTime(dateStr) {
 
 const fullDate = (dateStr) => formatDate(dateStr, 'datetime')
 
-const segments = computed(() => {
+// Line-level diff ops. `segments` (and so the raw/advanced diff) stays on these.
+const lineOps = computed(() => {
   const oldText = (props.oldBody || '').trim()
   const newText = (props.newBody || '').trim()
   if (!oldText && !newText) return []
   if (!oldText) return [{ type: 'add', text: newText }]
   if (oldText === newText) return [{ type: 'equal', text: newText }]
+  return diffLines(oldText.split('\n'), newText.split('\n'))
+})
 
-  const raw = diffLines(oldText.split('\n'), newText.split('\n'))
+// Pairs an adjacent remove+add into one word-diffed (or table-diffed) change.
+function pairOps(raw) {
   const paired = []
   let i = 0
   while (i < raw.length) {
-    if (raw[i].type === 'remove' && i + 1 < raw.length && raw[i + 1].type === 'add') {
+    if (raw[i].type === 'remove' && !raw[i].whole && i + 1 < raw.length && raw[i + 1].type === 'add' && !raw[i + 1].whole) {
       const oldT = raw[i].text, newT = raw[i + 1].text
       // Tables: diff cell-by-cell (handles md→HTML conversion + colors) instead
       // of word-diffing the HTML/tag soup. Falls back to prose word-diff.
@@ -296,11 +300,18 @@ const segments = computed(() => {
     }
   }
   return paired
-})
+}
+
+const segments = computed(() => pairOps(lineOps.value))
+
+// What the rendered view and the stats use: the same ops with every markdown
+// pipe table regrouped into one unit (a table spans many lines, so the line diff
+// alone tears it apart).
+const blockSegments = computed(() => pairOps(regroupPipeTables(lineOps.value)))
 
 const stats = computed(() => {
   let added = 0, removed = 0
-  for (const s of segments.value) {
+  for (const s of blockSegments.value) {
     if (s.type === 'add') added += s.text.split('\n').length
     else if (s.type === 'remove') removed += s.text.split('\n').length
     else if (s.type === 'change') {
@@ -320,7 +331,7 @@ const finalBlocks = computed(() => {
   const blocks = []
   let newLineIdx = 0
 
-  for (const seg of segments.value) {
+  for (const seg of blockSegments.value) {
     if (seg.type === 'remove') {
       blocks.push({ type: 'remove', text: seg.text, html: renderMd(seg.text), blame: null, blameKey: 'removed' })
       continue
@@ -329,6 +340,13 @@ const finalBlocks = computed(() => {
       const lineBlame = newLineIdx < blame.length ? blame[newLineIdx] : null
       newLineIdx += seg.newText.split('\n').length
       blocks.push({ type: 'change', text: seg.newText, html: seg.html, isTable: seg.isTable, blame: lineBlame, blameKey: lineBlame ? lineBlame.hash : 'change' })
+      continue
+    }
+    if (seg.whole) {
+      // A pipe table stays one block; its gutter takes the blame of its first line.
+      const lineBlame = newLineIdx < blame.length ? blame[newLineIdx] : null
+      newLineIdx += seg.text.split('\n').length
+      blocks.push({ type: seg.type, text: seg.text, html: renderMd(seg.text), blame: lineBlame, blameKey: lineBlame ? lineBlame.hash : 'unknown' })
       continue
     }
     // equal or add — split by blame boundaries

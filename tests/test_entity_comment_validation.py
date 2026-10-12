@@ -189,8 +189,8 @@ def test_controls_risk_contributor_and_reply_rules(api_url, admin_headers, contr
 
 def test_access_review_comment_on_a_real_record(api_url, admin_headers):
     system = _create(api_url, admin_headers, "/systems", {
-        "name": f"cv system {uuid.uuid4().hex[:6]}", "system_type": "application",
-        "criticality": "low", "rpo_hours": 0, "rto_hours": 1,
+        "name": f"cv system {uuid.uuid4().hex[:6]}", "classification": "restricted",
+        "criticality": "critical", "rpo_hours": 0, "rto_hours": 1,
     })
     ar = _create(api_url, admin_headers, f"/systems/{system['id']}/access-reviews",
                  {"notes": "cv access review"})

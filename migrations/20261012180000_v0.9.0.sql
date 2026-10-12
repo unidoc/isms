@@ -132,3 +132,30 @@ ALTER TABLE entity_references ADD CONSTRAINT entity_references_target_type_check
 ALTER TABLE entity_comments DROP CONSTRAINT IF EXISTS entity_comments_entity_type_check;
 ALTER TABLE entity_comments ADD CONSTRAINT entity_comments_entity_type_check
     CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review'));
+
+-- #438: entity comments are stored, and listed, under the same canonical id
+-- /references uses: AUDIT-/FIND-/AP-<row id> for audits, findings and
+-- programmes, a program's key, an objective's display id. The UI used to post
+-- the bare row id for these, and those threads would vanish from the UI now
+-- that reads canonicalise. Rewrite only rows whose bare numeric id names a real
+-- row in the SAME organisation (deleted or not); orphans and every other type
+-- are left alone. Ids are compared as text so a junk value never hits a cast.
+-- Re-runnable: after one pass nothing matches '^[0-9]+$' (program keys and
+-- display ids start with a letter).
+UPDATE entity_comments e SET entity_id = 'AUDIT-' || e.entity_id
+WHERE e.entity_type = 'audit' AND e.entity_id ~ '^[0-9]{1,18}$'
+  AND EXISTS (SELECT 1 FROM audits a WHERE a.id::text = e.entity_id AND a.organization_id = e.organization_id);
+UPDATE entity_comments e SET entity_id = 'FIND-' || e.entity_id
+WHERE e.entity_type = 'audit_finding' AND e.entity_id ~ '^[0-9]{1,18}$'
+  AND EXISTS (SELECT 1 FROM audit_findings f WHERE f.id::text = e.entity_id AND f.organization_id = e.organization_id);
+UPDATE entity_comments e SET entity_id = 'AP-' || e.entity_id
+WHERE e.entity_type = 'audit_programme' AND e.entity_id ~ '^[0-9]{1,18}$'
+  AND EXISTS (SELECT 1 FROM audit_programmes p WHERE p.id::text = e.entity_id AND p.organization_id = e.organization_id);
+UPDATE entity_comments e SET entity_id = p.key
+FROM programs p
+WHERE e.entity_type = 'program' AND e.entity_id ~ '^[0-9]{1,18}$'
+  AND p.id::text = e.entity_id AND p.organization_id = e.organization_id;
+UPDATE entity_comments e SET entity_id = o.display_id
+FROM objectives o
+WHERE e.entity_type = 'objective' AND e.entity_id ~ '^[0-9]{1,18}$'
+  AND o.id::text = e.entity_id AND o.organization_id = e.organization_id;

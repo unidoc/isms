@@ -58,9 +58,20 @@ import { parseMd } from '../composables/useRenderMd.js'
 // lives on the container, not the header cell), that no separate
 // uppercase/bold/letter-spacing multiplier is needed on top of it.
 //
-// Exported so DocumentViewer.vue's copy of this same table-rendering logic
-// shares the exact formula rather than drifting from it.
-export function columnWidths(colCount, ths, ...rowCellGroups) {
+// A column holding a paragraph-length cell (LONG_CELL_CHARS or more) never
+// shrinks below LONG_COLUMN_FLOOR_CH, however narrow the table's box is: past
+// that the table scrolls sideways instead (see the scroll wrapper in the
+// renderers), because a column squeezed to a few characters is unreadable.
+// Every other column keeps the header-word floor above, so a table that fits
+// today lays out exactly as before.
+const LONG_CELL_CHARS = 40
+const LONG_COLUMN_FLOOR_CH = 18
+
+// Same per-column template as columnWidths, plus the sum of the floors. Every
+// grid of a table gets that sum as its min-width, so the grid box is as wide
+// as its tracks — a table wider than its box then scrolls as one unit instead
+// of clipping its header or painting past its own edge.
+export function columnLayout(colCount, ths, ...rowCellGroups) {
   const maxLen = Array(colCount).fill(0)
   const headerLongestWord = Array(colCount).fill(0)
   ths.forEach((cell, i) => {
@@ -75,11 +86,75 @@ export function columnWidths(colCount, ths, ...rowCellGroups) {
       if (i < colCount) maxLen[i] = Math.max(maxLen[i], (cell.textContent || '').trim().length)
     })
   }
-  return maxLen.map((n, i) => {
+  let minCh = 0
+  const template = maxLen.map((n, i) => {
     const weight = Math.max(Math.sqrt(n), 1).toFixed(2)
-    const floorCh = Math.ceil(headerLongestWord[i] + 3.5)
+    let floorCh = Math.ceil(headerLongestWord[i] + 3.5)
+    if (n >= LONG_CELL_CHARS) floorCh = Math.max(floorCh, LONG_COLUMN_FLOOR_CH)
+    minCh += floorCh
     return `minmax(${floorCh}ch, ${weight}fr)`
   }).join(' ')
+  return { template, minCh }
+}
+
+// Exported so DocumentViewer.vue's copy of this same table-rendering logic
+// shares the exact formula rather than drifting from it.
+export function columnWidths(colCount, ths, ...rowCellGroups) {
+  return columnLayout(colCount, ths, ...rowCellGroups).template
+}
+
+// Turns one <table> element into its grid-row blocks (header + one per body
+// row), shared by Documents.vue and DocumentViewer.vue. `startIndex` is the
+// index the first block will get; it names the table (`tableId`) so the
+// renderers can keep every row of one table scrolled together. `tableId` and
+// `tableLast` are layout-only: `raw`, not them, is what comments hash.
+export function tableBlocks(table, startIndex) {
+  // Header rows are found by their cells, not by a <thead> wrapper: tables authored
+  // in the editor are stored as raw Tiptap HTML, which puts the <th> row directly in
+  // <tbody> and emits no <thead> at all. A row mixing <th> and <td> is a body row with
+  // a row-header cell, not a table header, so it stays in `rows`.
+  const allRows = Array.from(table.querySelectorAll('tr'))
+  const headerRows = allRows.filter(tr => tr.querySelector('th') && !tr.querySelector('td'))
+  const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
+  const rows = allRows.filter(tr => !headerRows.includes(tr))
+  const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
+  // `raw` keeps every row hashed against the pre-existing equal-width
+  // markup (see addBlock) — every table block ever saved was hashed
+  // against this exact string, so switching to content-aware widths must
+  // not change what gets hashed, or every inline comment on every
+  // existing table silently detaches.
+  const equalGridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
+  const { template, minCh } = columnLayout(colCount, ths, ...rows.map(tr => Array.from(tr.querySelectorAll('td'))))
+  // +2px: the grid's own 1px left/right borders sit inside its border box.
+  const gridCols = `grid-template-columns: ${template}; min-width: calc(${minCh}ch + 2px);`
+  const tableId = 'tbl-' + startIndex
+  const out = []
+  const push = (html, tag, text, raw) => out.push({ html, tag, text, raw, tableId })
+
+  // Header as one block
+  if (ths.length > 0) {
+    const headerCells = ths.map(th => {
+      const styleAttr = th.getAttribute('style') || ''
+      return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
+    }).join('')
+    const rawHeader = `<div class="tbl-grid" style="${equalGridCols}">${headerCells}</div>`
+    push(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''), rawHeader)
+  }
+
+  // Each body row as separate block — gets its own "+" button!
+  for (const tr of rows) {
+    const tds = Array.from(tr.querySelectorAll('td'))
+    const cells = tds.map(td => {
+      const styleAttr = td.getAttribute('style') || ''
+      const extraClass = td.classList.contains('has-text-color') ? ' has-text-color' : ''
+      return `<div class="tbl-cell${extraClass}" style="${styleAttr}">${td.innerHTML}</div>`
+    }).join('')
+    const rawRow = `<div class="tbl-grid tbl-row" style="${equalGridCols}">${cells}</div>`
+    push(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '', rawRow)
+  }
+  // The scroller's scrollbar shows on one block only (the last row).
+  if (out.length > 0) out[out.length - 1].tableLast = true
+  return out
 }
 
 export function buildContentBlocks(rawContent) {
@@ -124,44 +199,9 @@ export function buildContentBlocks(rawContent) {
     }
     // Tables — convert to grid-based rows so each gets a "+" button
     else if (tag === 'table') {
-      // Header rows are found by their cells, not by a <thead> wrapper: tables authored
-      // in the editor are stored as raw Tiptap HTML, which puts the <th> row directly in
-      // <tbody> and emits no <thead> at all. A row mixing <th> and <td> is a body row with
-      // a row-header cell, not a table header, so it stays in `rows`.
-      const allRows = Array.from(child.querySelectorAll('tr'))
-      const headerRows = allRows.filter(tr => tr.querySelector('th') && !tr.querySelector('td'))
-      const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
-      const rows = allRows.filter(tr => !headerRows.includes(tr))
-      const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
-      // `raw` keeps every row hashed against the pre-existing equal-width
-      // markup (see addBlock) — every table block ever saved was hashed
-      // against this exact string, so switching to content-aware widths must
-      // not change what gets hashed, or every inline comment on every
-      // existing table silently detaches.
-      const equalGridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
-      const gridCols = 'grid-template-columns: ' +
-        columnWidths(colCount, ths, ...rows.map(tr => Array.from(tr.querySelectorAll('td')))) + ';'
-
-      // Header as one block
-      if (ths.length > 0) {
-        const headerCells = ths.map(th => {
-          const styleAttr = th.getAttribute('style') || ''
-          return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
-        }).join('')
-        const rawHeader = `<div class="tbl-grid" style="${equalGridCols}">${headerCells}</div>`
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''), rawHeader)
-      }
-
-      // Each body row as separate block — gets its own "+" button!
-      for (const tr of rows) {
-        const tds = Array.from(tr.querySelectorAll('td'))
-        const cells = tds.map(td => {
-          const styleAttr = td.getAttribute('style') || ''
-          const extraClass = td.classList.contains('has-text-color') ? ' has-text-color' : ''
-          return `<div class="tbl-cell${extraClass}" style="${styleAttr}">${td.innerHTML}</div>`
-        }).join('')
-        const rawRow = `<div class="tbl-grid tbl-row" style="${equalGridCols}">${cells}</div>`
-        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '', rawRow)
+      for (const { html, tag: rowTag, text, raw, ...layout } of tableBlocks(child, blocks.length)) {
+        addBlock(html, rowTag, text, raw)
+        Object.assign(blocks[blocks.length - 1], layout)
       }
     }
     // Split blockquotes — each paragraph inside is commentable

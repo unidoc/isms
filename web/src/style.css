@@ -522,6 +522,26 @@
   border-radius: 0.5rem;
 }
 
+/* ── Grid tables (read-only renderers) ──
+   Each row of a table is its own comment block, and its .doc-prose is the row's
+   horizontal scroller, so the "+" button, count badge and review checkbox
+   (siblings of .doc-prose) stay pinned while the cells scroll. Rows are kept
+   scrolled together by utils/tableScroll.js; only the table's last row shows
+   the scrollbar. */
+.doc-prose.tbl-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.doc-prose.tbl-scroll::-webkit-scrollbar {
+  display: none;
+}
+.doc-prose.tbl-scroll.tbl-scroll-last {
+  scrollbar-width: auto;
+}
+.doc-prose.tbl-scroll.tbl-scroll-last::-webkit-scrollbar {
+  display: block;
+}
+
 /* ── Track changes highlight blocks ── */
 .tc-del {
   background: rgba(239, 68, 68, 0.06);
@@ -720,6 +740,13 @@
        free-standing titles and labels stay dark on paper while node text keeps
        its contrast against the correspondingly inverted node shapes. */
     filter: invert(1) hue-rotate(180deg);
+  }
+  /* Grid tables print at the page width: no scrollbar, nothing clipped. */
+  .doc-prose.tbl-scroll {
+    overflow: visible !important;
+  }
+  .doc-prose .tbl-grid {
+    min-width: 0 !important;
   }
   .doc-prose table {
     border: 1px solid #94a3b8 !important;

@@ -258,3 +258,94 @@ test("the sub-processor table's short-column floors leave the long column real r
   const shortFloorSum = thirdParty + service + usLocation + euLocation
   assert.ok(shortFloorSum < 55, `expected the 4 short columns' floors (${shortFloorSum}ch total) to leave real room in a ~72ch budget`)
 })
+
+// Table blocks carry two layout-only fields next to `raw`: a `tableId` shared
+// by every block of one table (the renderers keep a table's rows scrolled
+// together by it) and `tableLast` on the final row (the one that shows the
+// scrollbar). Neither is hashed.
+const wideMd = 'Intro\n\n| Company | Purpose |\n| --- | --- |\n| Acme | Processing of customer support requests and account administration |\n| Beta | Short |\n\nMid\n\n| A | B | C |\n| --- | --- | --- |\n| 1 | 2 | 3 |\n'
+
+test('blocks of one table share a tableId and different tables do not', () => {
+  const blocks = buildContentBlocks(wideMd)
+  assert.deepEqual(blocks.map((b) => b.tag), ['p', 'thead', 'tr', 'tr', 'p', 'thead', 'tr'])
+  const ids = blocks.map((b) => b.tableId)
+  assert.equal(ids[0], undefined)
+  assert.equal(ids[4], undefined)
+  assert.ok(ids[1])
+  assert.equal(ids[1], ids[2])
+  assert.equal(ids[1], ids[3])
+  assert.ok(ids[5])
+  assert.equal(ids[5], ids[6])
+  assert.notEqual(ids[1], ids[5])
+  assert.deepEqual(blocks.map((b) => !!b.tableLast), [false, false, false, true, false, false, true])
+})
+
+test('table block raw and order are byte-identical to the pre-scroll output', () => {
+  const blocks = buildContentBlocks(wideMd)
+  assert.deepEqual(blocks.map((b) => b.index), [0, 1, 2, 3, 4, 5, 6])
+  assert.equal(
+    blocks[1].raw,
+    '<div class="tbl-grid" style="grid-template-columns: 1fr 1fr;"><div class="tbl-hdr-cell" style="">Company</div><div class="tbl-hdr-cell" style="">Purpose</div></div>',
+  )
+  assert.equal(
+    blocks[2].raw,
+    '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">Acme</div><div class="tbl-cell" style="">Processing of customer support requests and account administration</div></div>',
+  )
+  assert.equal(
+    blocks[3].raw,
+    '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr;"><div class="tbl-cell" style="">Beta</div><div class="tbl-cell" style="">Short</div></div>',
+  )
+  assert.equal(
+    blocks[5].raw,
+    '<div class="tbl-grid" style="grid-template-columns: 1fr 1fr 1fr;"><div class="tbl-hdr-cell" style="">A</div><div class="tbl-hdr-cell" style="">B</div><div class="tbl-hdr-cell" style="">C</div></div>',
+  )
+  assert.equal(
+    blocks[6].raw,
+    '<div class="tbl-grid tbl-row" style="grid-template-columns: 1fr 1fr 1fr;"><div class="tbl-cell" style="">1</div><div class="tbl-cell" style="">2</div><div class="tbl-cell" style="">3</div></div>',
+  )
+})
+
+// A column whose longest cell is a paragraph (>= 40 characters) keeps a
+// readable 18ch floor even when the table has to scroll to honour it. Short
+// columns keep the header-longest-word floor and every weight is unchanged.
+test('a long-text column gets an 18ch floor; short columns and weights are unchanged', () => {
+  const blocks = buildContentBlocks(wideMd)
+  const t = blocks[1].html.match(/grid-template-columns: minmax\((\d+)ch, ([\d.]+)fr\) minmax\((\d+)ch, ([\d.]+)fr\);/)
+  assert.ok(t, blocks[1].html)
+  assert.equal(t[1], '11') // Company: 7 + 3.5 -> 11, short cells only
+  assert.equal(t[3], '18') // Purpose: header floor 10, long cell lifts it to 18
+  assert.equal(t[4], Math.sqrt('Processing of customer support requests and account administration'.length).toFixed(2))
+  assert.equal(t[2], Math.sqrt('Company'.length).toFixed(2))
+})
+
+test('a long header word still wins over the 18ch long-text floor', () => {
+  const md = `| Extraordinarilylongheaderword | B |\n| --- | --- |\n| ${'x '.repeat(30)} | y |\n`
+  const [head] = buildContentBlocks(md)
+  assert.match(head.html, /minmax\(33ch, /)
+})
+
+test('every grid of a table has the same min-width, the sum of its floors', () => {
+  const blocks = buildContentBlocks(wideMd)
+  for (const b of blocks.slice(1, 4)) {
+    assert.match(b.html, /min-width: calc\(29ch \+ 2px\);/) // 11 + 18
+  }
+  for (const b of blocks.slice(5)) {
+    assert.match(b.html, /min-width: calc\(15ch \+ 2px\);/) // 3 x 5
+  }
+  // raw stays free of it
+  assert.doesNotMatch(blocks[1].raw, /min-width/)
+})
+
+test('syncTableScroll copies scrollLeft to the other rows of the same table only', async () => {
+  const { syncTableScroll } = await import('../src/utils/tableScroll.js')
+  const host = document.createElement('div')
+  host.innerHTML = ['a', 'a', 'b', ''].map((id) =>
+    `<div class="comment-block" ${id ? `data-table-id="${id}"` : ''}><div class="doc-prose${id ? ' tbl-scroll' : ''}"></div></div>`).join('')
+  const scrollers = Array.from(host.querySelectorAll('.doc-prose'))
+  scrollers[0].scrollLeft = 120
+  syncTableScroll({ target: scrollers[0] })
+  assert.equal(scrollers[1].scrollLeft, 120)
+  assert.equal(scrollers[2].scrollLeft, 0)
+  assert.equal(scrollers[3].scrollLeft, 0)
+  syncTableScroll({ target: scrollers[3] }) // not a table row: no-op, no throw
+})

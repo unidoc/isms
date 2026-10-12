@@ -771,10 +771,11 @@
           </div>
 
           <!-- Rendered markdown content — paragraph-level commentable blocks -->
-          <div v-else-if="!editMode && contentBlocks.length > 0" class="pr-12 pl-8 relative">
+          <div v-else-if="!editMode && contentBlocks.length > 0" class="pr-12 pl-8 relative" @scroll.capture="syncTableScroll">
             <div
               v-for="block in contentBlocks"
               :key="block.index"
+              :data-table-id="block.tableId"
               class="comment-block relative group transition-colors duration-200 rounded -mx-2 px-2"
               :class="{
                 'bg-blue-950/20': hasOpenComments(block.index),
@@ -797,7 +798,7 @@
               </button>
 
               <!-- The rendered content block (with [[TYPE:ID|Title]] reference pills) -->
-              <div v-mermaid v-html="sanitize(renderRefLinks(block.html))" class="doc-prose" @click="onRefLinkClick" />
+              <div v-mermaid v-html="sanitize(renderRefLinks(block.html))" class="doc-prose" :class="{ 'tbl-scroll': block.tableId, 'tbl-scroll-last': block.tableLast }" @click="onRefLinkClick" />
 
               <!-- Comment count badge (visible when paragraph has open comments) -->
               <div
@@ -1367,6 +1368,7 @@ import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount, d
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { buildContentBlocks } from '../utils/contentBlocks.js'
+import { syncTableScroll } from '../utils/tableScroll.js'
 import DOMPurify from 'dompurify'
 import { formatDate as formatDateValue, formatRecent } from '../composables/useFormat.js'
 const sanitize = (html) => DOMPurify.sanitize(html, { ADD_ATTR: ['style', 'data-ref-type', 'data-ref-id'] })

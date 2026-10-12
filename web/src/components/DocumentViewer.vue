@@ -9,10 +9,11 @@
     </div>
 
     <!-- Rendered content blocks -->
-    <div v-else-if="contentBlocks.length > 0" class="pr-12 relative" :class="showReviewProgress ? 'pl-8' : 'pl-0'">
+    <div v-else-if="contentBlocks.length > 0" class="pr-12 relative" :class="showReviewProgress ? 'pl-8' : 'pl-0'" @scroll.capture="syncTableScroll">
       <div
         v-for="block in contentBlocks"
         :key="block.index"
+        :data-table-id="block.tableId"
         class="comment-block relative group transition-colors duration-200 rounded -mx-2 px-2"
         :class="{
           'bg-blue-950/20': hasOpenComments(block.index),
@@ -36,7 +37,7 @@
         </button>
 
         <!-- Rendered content block -->
-        <div v-mermaid v-html="sanitize(block.html)" class="doc-prose" />
+        <div v-mermaid v-html="sanitize(block.html)" class="doc-prose" :class="{ 'tbl-scroll': block.tableId, 'tbl-scroll-last': block.tableLast }" />
 
         <!-- Comment count badge (visible when paragraph has open comments) -->
         <div
@@ -238,7 +239,8 @@ import { useMembers } from '../composables/useMembers'
 import { renderMention } from '../composables/useMention'
 import { parseMd } from '../composables/useRenderMd'
 import { formatRecent } from '../composables/useFormat.js'
-import { columnWidths } from '../utils/contentBlocks.js'
+import { tableBlocks } from '../utils/contentBlocks.js'
+import { syncTableScroll } from '../utils/tableScroll.js'
 
 const { t } = useI18n()
 
@@ -315,42 +317,9 @@ const contentBlocks = computed(() => {
     }
     // Tables -- convert to grid-based rows so each gets a "+" button
     else if (tag === 'table') {
-      // Header rows are found by their cells, not by a <thead> wrapper: tables authored
-      // in the editor are stored as raw Tiptap HTML, which puts the <th> row directly in
-      // <tbody> and emits no <thead> at all. A row mixing <th> and <td> is a body row with
-      // a row-header cell, not a table header, so it stays in `rows`.
-      const allRows = Array.from(child.querySelectorAll('tr'))
-      const headerRows = allRows.filter(tr => tr.querySelector('th') && !tr.querySelector('td'))
-      const ths = headerRows.flatMap(tr => Array.from(tr.querySelectorAll('th')))
-      const rows = allRows.filter(tr => !headerRows.includes(tr))
-      const colCount = ths.length || (rows[0] ? rows[0].children.length : 1)
-      // `raw` keeps every row hashed against the pre-existing equal-width
-      // markup (see addBlock) — every table block ever saved was hashed
-      // against this exact string, so switching to content-aware widths must
-      // not change what gets hashed, or every inline comment on every
-      // existing table silently detaches.
-      const equalGridCols = 'grid-template-columns: ' + Array(colCount).fill('1fr').join(' ') + ';'
-      const gridCols = 'grid-template-columns: ' +
-        columnWidths(colCount, ths, ...rows.map(tr => Array.from(tr.querySelectorAll('td')))) + ';'
-
-      if (ths.length > 0) {
-        const headerCells = ths.map(th => {
-          const styleAttr = th.getAttribute('style') || ''
-          return `<div class="tbl-hdr-cell" style="${styleAttr}">${th.innerHTML}</div>`
-        }).join('')
-        const rawHeader = `<div class="tbl-grid" style="${equalGridCols}">${headerCells}</div>`
-        addBlock(`<div class="tbl-grid" style="${gridCols}">${headerCells}</div>`, 'thead', headerRows.map(tr => tr.textContent).join(''), rawHeader)
-      }
-
-      for (const tr of rows) {
-        const tds = Array.from(tr.querySelectorAll('td'))
-        const cells = tds.map(td => {
-          const styleAttr = td.getAttribute('style') || ''
-          const extraClass = td.classList.contains('has-text-color') ? ' has-text-color' : ''
-          return `<div class="tbl-cell${extraClass}" style="${styleAttr}">${td.innerHTML}</div>`
-        }).join('')
-        const rawRow = `<div class="tbl-grid tbl-row" style="${equalGridCols}">${cells}</div>`
-        addBlock(`<div class="tbl-grid tbl-row" style="${gridCols}">${cells}</div>`, 'tr', tr.textContent || '', rawRow)
+      for (const { html, tag: rowTag, text, raw, ...layout } of tableBlocks(child, blocks.length)) {
+        addBlock(html, rowTag, text, raw)
+        Object.assign(blocks[blocks.length - 1], layout)
       }
     }
     // Split blockquotes -- each paragraph inside is commentable

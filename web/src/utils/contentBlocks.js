@@ -69,21 +69,47 @@ export const LONG_COLUMN_FLOOR_CH = 18
 
 // A body cell is 14px text, not the header's 12px uppercase label, and `ch` in
 // the template resolves at the grid's 15px (9.45px), so a body word needs its
-// own estimate. Measured live in Chromium at the cell's 14px: lowercase,
-// digits and punctuation run 7.0-8.3px per character, capitals 9.5-10, and
-// M/W/m/w 11-12 (e.g. "programme" 74.5px, "MANAGEMENT" 98px, "R-1" 21.8px).
-// The widths below sit just above those, so an ordinary word fits its column
-// unbroken; the cell's 32px of padding and a little slack are added on top.
-// Words split on whitespace only, so "R-1" stays one word.
+// own width. In a browser it is measured for real with canvas measureText, in
+// the page's font at the cell's 14px; a floor grown from an over-estimate would
+// move tables that already fit, so measured widths matter. Without canvas
+// (the node tests) it falls back to per-character widths measured live in
+// Chromium: capitals ~10px, M/W/m/w ~12px, the rest ~7.8px. Words split on
+// whitespace only, so "R-1" stays one word.
 const WORD_PX = { wide: 12, upper: 10, other: 7.8 }
 const GRID_CH_PX = 9.45
-const BODY_CELL_PAD_PX = 34
-function wordPx(word) {
+const BODY_CELL_PAD_PX = 33 // 2 x 1rem padding + 1px of slack
+let measureCtx
+function measure(word, weight) {
+  if (measureCtx === undefined) {
+    measureCtx = null
+    if (typeof OffscreenCanvas !== 'undefined' && typeof getComputedStyle === 'function') {
+      measureCtx = new OffscreenCanvas(1, 1).getContext('2d')
+    }
+  }
+  if (measureCtx) {
+    const family = getComputedStyle(document.body).fontFamily
+    measureCtx.font = `${weight} 14px ${family}`
+    return measureCtx.measureText(word).width
+  }
   let px = 0
-  for (const c of word.slice(0, LONG_COLUMN_FLOOR_CH)) {
+  for (const c of word) {
     px += /[MWmw]/.test(c) ? WORD_PX.wide : /[A-Z]/.test(c) ? WORD_PX.upper : WORD_PX.other
   }
   return px
+}
+// Widest ordinary word of a body cell; text inside <strong>/<b> is measured
+// bold, since .tbl-cell strong is 600. Only the first LONG_COLUMN_FLOOR_CH
+// characters of a word count, as a longer token is capped and may wrap.
+function bodyWordPx(cell) {
+  let widest = 0
+  const add = (text, weight) => {
+    for (const word of text.split(/\s+/).filter(Boolean)) {
+      widest = Math.max(widest, measure(word.slice(0, LONG_COLUMN_FLOOR_CH), weight))
+    }
+  }
+  add(cell.textContent || '', 400)
+  for (const bold of cell.querySelectorAll('strong, b')) add(bold.textContent || '', 600)
+  return widest
 }
 
 // Same per-column template as columnWidths, plus the sum of the floors. Every
@@ -93,7 +119,7 @@ function wordPx(word) {
 export function columnLayout(colCount, ths, ...rowCellGroups) {
   const maxLen = Array(colCount).fill(0)
   const headerLongestWord = Array(colCount).fill(0)
-  const bodyWordPx = Array(colCount).fill(0)
+  const bodyWidest = Array(colCount).fill(0)
   ths.forEach((cell, i) => {
     if (i >= colCount) return
     const text = (cell.textContent || '').trim()
@@ -106,7 +132,7 @@ export function columnLayout(colCount, ths, ...rowCellGroups) {
       if (i >= colCount) return
       const text = (cell.textContent || '').trim()
       maxLen[i] = Math.max(maxLen[i], text.length)
-      for (const word of text.split(/\s+/).filter(Boolean)) bodyWordPx[i] = Math.max(bodyWordPx[i], wordPx(word))
+      bodyWidest[i] = Math.max(bodyWidest[i], bodyWordPx(cell))
     })
   }
   let minCh = 0
@@ -115,8 +141,8 @@ export function columnLayout(colCount, ths, ...rowCellGroups) {
     let floorCh = Math.ceil(headerLongestWord[i] + 3.5)
     // Fit the longest ordinary body word, capped: a longer token (URL, long
     // identifier) wraps mid-word instead of widening the column further.
-    if (bodyWordPx[i] > 0) {
-      const bodyCh = Math.ceil((bodyWordPx[i] + BODY_CELL_PAD_PX) / GRID_CH_PX)
+    if (bodyWidest[i] > 0) {
+      const bodyCh = Math.ceil((bodyWidest[i] + BODY_CELL_PAD_PX) / GRID_CH_PX)
       floorCh = Math.max(floorCh, Math.min(bodyCh, LONG_COLUMN_FLOOR_CH))
     }
     if (n >= LONG_CELL_CHARS) floorCh = Math.max(floorCh, LONG_COLUMN_FLOOR_CH)

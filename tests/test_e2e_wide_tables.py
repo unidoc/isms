@@ -24,7 +24,7 @@ BODY = f"""# Wide Tables
 | Company | Purpose | Service | Location | Transfer |
 |---|---|---|---|---|
 | Acme Cloud | {PURPOSE} | Hosting | Frankfurt | SCCs |
-| Beta Mail | Transactional email delivery | Email | Dublin | None |
+| Beta Mail | Transactional email delivery | Monitoring | Oregon | GDPR |
 
 Between the tables.
 

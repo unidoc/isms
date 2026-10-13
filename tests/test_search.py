@@ -1,4 +1,6 @@
 """Universal search tests — verify search index works across all entity types."""
+import uuid
+
 import requests
 from conftest import ADMIN_EMAIL
 
@@ -159,7 +161,6 @@ class TestAuditSearch:
         return prog, audit, r.json()
 
     def test_01_found_by_title_and_display_id(self, api_url, admin_headers):
-        import uuid
         tag = uuid.uuid4().hex[:10]
         prog, audit, finding = self._seed(api_url, admin_headers, tag)
         cases = [
@@ -175,7 +176,6 @@ class TestAuditSearch:
             assert len(by_id) == 1, f"{type_} not found by display id {display_id}"
 
     def test_02_create_is_found_immediately(self, api_url, admin_headers):
-        import uuid
         _search(api_url, admin_headers, "")  # force the index to exist
         tag = uuid.uuid4().hex[:10]
         prog, audit, finding = self._seed(api_url, admin_headers, tag)
@@ -185,7 +185,6 @@ class TestAuditSearch:
         assert _find(results, "audit_finding", f"FIND-{finding['id']}"), "new finding missing"
 
     def test_03_rename_is_reflected_immediately(self, api_url, admin_headers):
-        import uuid
         old = uuid.uuid4().hex[:10]
         new = uuid.uuid4().hex[:10]
         prog, audit, finding = self._seed(api_url, admin_headers, old)
@@ -213,7 +212,6 @@ class TestAuditSearch:
             assert not _find(stale, type_, display_id), f"renamed {type_} still found under old title"
 
     def test_04_delete_removes_from_search(self, api_url, admin_headers):
-        import uuid
         tag = uuid.uuid4().hex[:10]
         # A programme with no audits (deletable) and a finding on another audit.
         r = requests.post(f"{api_url}/audit/programmes", headers=admin_headers, json={

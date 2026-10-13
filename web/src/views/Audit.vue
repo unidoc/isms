@@ -1931,7 +1931,9 @@ async function doItemSearch() {
     try {
       const data = await api.search(itemSearchQuery.value)
       const existing = new Set(auditItems.value.map(it => `${it.item_type}:${it.item_id}`))
-      itemSearchResults.value = (data || []).filter(s => !existing.has(`${s.type}:${s.id}`)).slice(0, 30)
+      // An audit's checklist item is never itself an audit record.
+      const auditTypes = ['audit', 'audit_finding', 'audit_programme']
+      itemSearchResults.value = (data || []).filter(s => !auditTypes.includes(s.type) && !existing.has(`${s.type}:${s.id}`)).slice(0, 30)
       itemSelectedIdx.value = 0
     } catch {
       itemSearchResults.value = []

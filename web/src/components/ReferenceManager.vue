@@ -122,6 +122,9 @@ const typeColors = {
   objective: 'bg-teal-900/40 text-teal-300 border-teal-800/50',
   task: 'bg-lime-900/40 text-lime-300 border-lime-800/50',
   program: 'bg-violet-900/40 text-violet-300 border-violet-800/50',
+  audit: 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-800/50',
+  audit_finding: 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-800/50',
+  audit_programme: 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-800/50',
 }
 
 const typeRoutes = {

@@ -100,6 +100,7 @@ const typeLabels = {
   risk: 'RISK', legal: 'LEGAL', asset: 'ASSET',
   supplier: 'SUP', system: 'SYS', incident: 'INC', change: 'CR',
   corrective_action: 'CA', objective: 'OBJ', task: 'TASK', program: 'PROG',
+  audit: 'AUDIT', audit_finding: 'FINDING', audit_programme: 'PROGRAMME',
 }
 
 const typeColors = {
@@ -122,6 +123,9 @@ const typeColors = {
   objective: 'bg-teal-900/40 text-teal-300',
   task: 'bg-lime-900/40 text-lime-300',
   program: 'bg-violet-900/40 text-violet-300',
+  audit: 'bg-fuchsia-900/40 text-fuchsia-300',
+  audit_finding: 'bg-fuchsia-900/40 text-fuchsia-300',
+  audit_programme: 'bg-fuchsia-900/40 text-fuchsia-300',
 }
 
 const typeRoutes = {
@@ -138,6 +142,8 @@ const typeRoutes = {
   task: 'tasks',
   program: 'programs',
 }
+
+const auditTabs = { audit: 'audits', audit_finding: 'findings', audit_programme: 'programmes' }
 
 function open() {
   visible.value = true
@@ -195,6 +201,9 @@ function navigate(item) {
   const docTypes = ['document', 'control', 'policy', 'procedure', 'clause', 'requirement', 'record', 'guideline']
   if (docTypes.includes(item.type)) {
     path = orgPath(`/documents/${item.id}`)
+  } else if (auditTabs[item.type]) {
+    // AUDIT-/FIND-/AP- carry the row id; Audit.vue reads it under its own tab.
+    path = orgPath(`/audit/${auditTabs[item.type]}/${item.id.replace(/^[A-Z]+-/, '')}`)
   } else {
     const base = typeRoutes[item.type]
     if (!base) return

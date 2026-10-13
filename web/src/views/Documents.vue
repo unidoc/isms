@@ -1231,7 +1231,7 @@
       <Transition name="modal">
       <div v-if="showNewDocModal" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="showNewDocModal = false" />
-        <form @submit.prevent="createDocument" class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 space-y-4">
+        <form @submit.prevent class="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 space-y-4">
           <h2 class="text-lg font-semibold text-slate-100">{{ t('documents.new_doc.heading') }}</h2>
 
           <div class="space-y-4">
@@ -1297,7 +1297,7 @@
           <div v-if="newDocError" class="text-xs text-red-400">{{ newDocError }}</div>
 
           <div class="flex gap-2 pt-2">
-            <button type="submit" :disabled="newDocSaving || !newDoc.title || !newDoc.document_id || !newDoc.folder || docIdExists"
+            <button type="button" @click="createDocument" :disabled="newDocSaving || !newDoc.title || !newDoc.document_id || !newDoc.folder || docIdExists"
               class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
               {{ newDocSaving ? t('common.state.creating') : t('documents.new_doc.create') }}
             </button>

@@ -8,7 +8,9 @@ they unmount inside their own click handler, so the submit never fired: they wer
 latent, not live. The author and folder cases here are therefore regression
 guards; the node test (web/test/newDocumentDialogButtons.test.js) is what pins
 those buttons' types. These cases open the dialog the way a user does and check,
-through the API, that nothing was created.
+through the API, that nothing was created. Only a click (or Enter on the
+focused button) on Create creates a document: the form has no submit button, so
+Enter in a field does nothing.
 
 Own file to keep the monolithic test_e2e_browser.py free of per-branch conflicts.
 
@@ -139,3 +141,39 @@ class TestNewDocumentDialog:
         dialog.get_by_role("button", name="Cancel").click()
         expect(dialog).to_be_hidden()
         assert body_status(t, slug) == 404
+
+    def test_enter_in_title_does_not_create(self, page, tokens):
+        t = tokens["admin"]
+        title, slug = new_title()
+        dialog = open_dialog(page)
+        field = dialog.get_by_placeholder("e.g. Data Classification Policy")
+        field.fill(title)
+        url = page.url
+        field.press("Enter")
+        assert_still_open(page, dialog, url, t, slug)
+
+    def test_enter_in_folder_input_does_not_create(self, page, tokens):
+        t = tokens["admin"]
+        title, slug = new_title()
+        dialog = open_dialog(page)
+        dialog.get_by_placeholder("e.g. Data Classification Policy").fill(title)
+        url = page.url
+        dialog.get_by_role("button", name="change").click()
+        folder = dialog.get_by_placeholder("Type or select folder")
+        folder.focus()
+        folder.press("Enter")
+        assert_still_open(page, dialog, url, t, slug)
+
+    def test_enter_on_focused_create_creates(self, page, tokens):
+        t = tokens["admin"]
+        title, slug = new_title()
+        dialog = open_dialog(page)
+        dialog.get_by_placeholder("e.g. Data Classification Policy").fill(title)
+        create = dialog.get_by_role("button", name="Create Document")
+        create.focus()
+        create.press("Enter")
+        try:
+            expect(dialog).to_be_hidden(timeout=10000)
+            api("get", f"/documents/{slug}/body", t, expect_status=200)
+        finally:
+            api("delete", f"/documents/{slug}", t)

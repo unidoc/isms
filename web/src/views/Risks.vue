@@ -183,7 +183,7 @@
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-slate-200">{{ risk.title || risk.risk_id }}</span>
                     <span v-if="risk.external_id" class="text-xs text-slate-500 font-mono truncate">{{ risk.external_id }}</span>
-                    <span v-if="isOverdue(risk.next_review)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
+                    <span v-if="isRiskReviewOverdue(risk)" class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-900/50 text-red-400">{{ t('common.state.overdue') }}</span>
                   </div>
                   <div v-if="risk.category" class="text-[10px] text-slate-600 mt-0.5">{{ categoryLabel(risk.category) }}</div>
                   <div v-if="risk.description" class="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{{ stripMd(risk.description) }}</div>
@@ -500,7 +500,7 @@
               <template v-if="detailTab === 'assessment'">
                 <div class="px-6 py-5 space-y-5">
                   <!-- Overdue warning -->
-                  <div v-if="selectedRisk.next_review && isOverdue(selectedRisk.next_review)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-red-950/40 border border-red-900/40 text-red-300">
+                  <div v-if="isRiskReviewOverdue(selectedRisk)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-red-950/40 border border-red-900/40 text-red-300">
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -529,7 +529,7 @@
                   </div>
                   <div class="flex gap-4 text-[10px] text-slate-500">
                     <span v-if="selectedRisk.last_review">{{ t('common.review.last', { date: formatDay(selectedRisk.last_review) }) }}</span>
-                    <span v-if="selectedRisk.next_review && !isOverdue(selectedRisk.next_review)">{{ t('common.review.next', { date: formatDay(selectedRisk.next_review) }) }}</span>
+                    <span v-if="selectedRisk.next_review && selectedRisk.status !== 'closed' && !isRiskReviewOverdue(selectedRisk)">{{ t('common.review.next', { date: formatDay(selectedRisk.next_review) }) }}</span>
                   </div>
 
                   <!-- Readings panel -->
@@ -650,6 +650,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { formatDate as formatDateValue, formatDay as formatDayValue } from '../composables/useFormat.js'
 import { useEnumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { isRiskReviewOverdue } from '../utils/reviewDue.js'
 
 const { t } = useI18n()
 const { enumLabel, entityLabel } = useEnumLabel()
@@ -868,12 +869,6 @@ const newRisk = ref({
   custom_fields: {},
   external_id: '',
 })
-
-function isOverdue(dateStr) {
-  if (!dateStr) return false
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d < new Date()
-}
 
 const stats = ref({ total: 0, critical: 0, high: 0, medium: 0, low: 0, open: 0, closed: 0, draft: 0 })
 const criticalCount = computed(() => stats.value.critical)

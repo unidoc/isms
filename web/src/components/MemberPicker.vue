@@ -8,7 +8,7 @@
       <!-- Selected member -->
       <template v-if="selected">
         <span class="text-slate-200 truncate flex-1">{{ selected.name || selected.email }}</span>
-        <button v-if="clearable" @click.stop="clear" class="text-slate-500 hover:text-slate-300 flex-shrink-0">
+        <button type="button" v-if="clearable" @click.stop="clear" class="text-slate-500 hover:text-slate-300 flex-shrink-0">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -34,11 +34,13 @@
           :placeholder="$t('common.placeholder.search')"
           class="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
           @keydown.escape="open = false"
+          @keydown.enter.prevent
         />
       </div>
       <div class="max-h-48 overflow-y-auto">
         <div v-if="filtered.length === 0" class="px-3 py-3 text-xs text-slate-600 text-center">{{ $t('components.member_picker.empty') }}</div>
         <button
+          type="button"
           v-for="member in filtered"
           :key="member.email"
           @click="select(member)"

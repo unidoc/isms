@@ -5,6 +5,8 @@ import (
 	"context"
 	cryptorand "crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -20,6 +22,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/crypto/ssh"
+	"gopkg.in/yaml.v3"
 )
 
 // ErrConflict is returned when a concurrent modification is detected (HEAD changed).
@@ -946,6 +949,175 @@ func (s *Store) FileLastCommit(filePath string) (hash string, commitTime time.Ti
 		return
 	}
 	return info.Hash, info.CommitTime, info.Message, info.Author, nil
+}
+
+// HistoryEntry is one field-level change to a document, derived from a commit.
+type HistoryEntry struct {
+	Action    string // "create" or "update"
+	Field     string // frontmatter key, or "content" for a body edit
+	OldValue  *string
+	NewValue  *string
+	ChangedBy string // commit author email
+	At        time.Time
+}
+
+// FileHistory returns the field-level history of one file on the main branch,
+// newest first. It walks first-parent only (like git log --first-parent) so
+// side-branch commits of a pushed merge are not counted twice, compares the
+// file's blob against the first parent's, and stops after limit changed commits
+// or at the commit that created the file. Frontmatter is diffed generically (any
+// key); a body change is one "content" row with no values. A side whose
+// frontmatter does not parse counts as a content change only.
+func (s *Store) FileHistory(filePath string, limit int) ([]HistoryEntry, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("not a bare repo store")
+	}
+	path := s.relPath(filePath)
+	ref, err := s.repo.Head()
+	if err != nil {
+		return nil, fmt.Errorf("reading HEAD: %w", err)
+	}
+	c, err := s.repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("reading HEAD commit: %w", err)
+	}
+
+	entries := []HistoryEntry{}
+	changed := 0
+	for c != nil && changed < limit {
+		var parent *object.Commit
+		if c.NumParents() > 0 {
+			if parent, err = c.Parent(0); err != nil {
+				return nil, fmt.Errorf("reading parent of %s: %w", c.Hash, err)
+			}
+		}
+		cur, curOK, err := s.fileAtCommit(c, path)
+		if err != nil {
+			return nil, err
+		}
+		if !curOK {
+			// Deleted or not yet there: nothing at this path to attribute.
+			break
+		}
+		var prev *object.File
+		prevOK := false
+		if parent != nil {
+			if prev, prevOK, err = s.fileAtCommit(parent, path); err != nil {
+				return nil, err
+			}
+		}
+		who, at := c.Author.Email, c.Author.When
+		if !prevOK {
+			entries = append(entries, HistoryEntry{Action: "create", ChangedBy: who, At: at})
+			break
+		}
+		if cur.Hash != prev.Hash {
+			changed++
+			entries = append(entries, diffDocumentVersions(prev, cur, who, at)...)
+		}
+		c = parent
+	}
+	return entries, nil
+}
+
+// fileAtCommit returns the file at path in commit c, and false when absent.
+func (s *Store) fileAtCommit(c *object.Commit, path string) (*object.File, bool, error) {
+	tree, err := c.Tree()
+	if err != nil {
+		return nil, false, fmt.Errorf("reading tree of %s: %w", c.Hash, err)
+	}
+	f, err := tree.File(path)
+	if err != nil {
+		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, object.ErrDirectoryNotFound) || errors.Is(err, object.ErrEntryNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("reading %s at %s: %w", path, c.Hash, err)
+	}
+	return f, true, nil
+}
+
+// diffDocumentVersions turns two versions of a document into update rows: one
+// per changed frontmatter key (sorted), then one "content" row if the body
+// changed.
+func diffDocumentVersions(prev, cur *object.File, who string, at time.Time) []HistoryEntry {
+	pRaw, pErr := prev.Contents()
+	cRaw, cErr := cur.Contents()
+	if pErr != nil || cErr != nil {
+		return []HistoryEntry{{Action: "update", Field: "content", ChangedBy: who, At: at}}
+	}
+	pFM, pBody, pOK := splitFrontmatterMap(pRaw)
+	cFM, cBody, cOK := splitFrontmatterMap(cRaw)
+	if !pOK || !cOK {
+		return []HistoryEntry{{Action: "update", Field: "content", ChangedBy: who, At: at}}
+	}
+
+	keys := map[string]struct{}{}
+	for k := range pFM {
+		keys[k] = struct{}{}
+	}
+	for k := range cFM {
+		keys[k] = struct{}{}
+	}
+	sorted := make([]string, 0, len(keys))
+	for k := range keys {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+
+	var out []HistoryEntry
+	for _, k := range sorted {
+		oldV, newV := historyValue(pFM[k]), historyValue(cFM[k])
+		if (oldV == nil) == (newV == nil) && (oldV == nil || *oldV == *newV) {
+			continue
+		}
+		out = append(out, HistoryEntry{Action: "update", Field: k, OldValue: oldV, NewValue: newV, ChangedBy: who, At: at})
+	}
+	if pBody != cBody {
+		out = append(out, HistoryEntry{Action: "update", Field: "content", ChangedBy: who, At: at})
+	}
+	return out
+}
+
+// splitFrontmatterMap parses a document's frontmatter into a generic map, so the
+// history knows no field names. ok is false when it does not parse.
+func splitFrontmatterMap(raw string) (map[string]any, string, bool) {
+	fm, body, err := parseFrontmatter(raw)
+	if err != nil {
+		return nil, "", false
+	}
+	m := map[string]any{}
+	if err := yaml.Unmarshal([]byte(fm), &m); err != nil {
+		return nil, "", false
+	}
+	return m, body, true
+}
+
+// historyValue renders a frontmatter value for display: scalars as-is, lists and
+// maps as compact JSON, nil (absent or null) as nil.
+func historyValue(v any) *string {
+	var s string
+	switch t := v.(type) {
+	case nil:
+		return nil
+	case string:
+		s = t
+	case time.Time:
+		if t.Hour() == 0 && t.Minute() == 0 && t.Second() == 0 && t.Nanosecond() == 0 {
+			s = t.Format("2006-01-02")
+		} else {
+			s = t.Format(time.RFC3339)
+		}
+	case []any, map[string]any:
+		b, err := json.Marshal(t)
+		if err != nil {
+			s = fmt.Sprint(t)
+		} else {
+			s = string(b)
+		}
+	default:
+		s = fmt.Sprint(t)
+	}
+	return &s
 }
 
 // CommitsSince returns commit messages for a file since a given commit hash.

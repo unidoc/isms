@@ -1,0 +1,68 @@
+"""Regression for #439: a document's History tab was always empty.
+
+GET /changelog/document/<document_id> answered 400 invalid_id because the route
+only understood numeric ids. A document's history now comes from git (every
+content, metadata and status change is a commit, including pushed ones), shaped
+like the other entity types' changelog rows.
+"""
+import uuid
+
+import requests
+from conftest import ADMIN_EMAIL
+
+BODY = "# Heading\n\nBody content for the document-history test.\n"
+OWNER = "history-owner@isms-test.local"
+
+
+def _create_doc(api_url, admin_headers):
+    doc_id = f"history-test-{uuid.uuid4().hex[:8]}"
+    r = requests.post(f"{api_url}/documents", headers=admin_headers, json={
+        "folder": "iso27001", "filename": doc_id + ".md",
+        "document_id": doc_id, "title": "History", "content": BODY,
+    })
+    assert r.status_code in (200, 201), r.text
+    return doc_id
+
+
+class TestDocumentHistory:
+    def test_edits_listed_with_who_and_what(self, api_url, admin_headers):
+        doc_id = _create_doc(api_url, admin_headers)
+        r = requests.put(f"{api_url}/documents/{doc_id}/metadata",
+                         headers=admin_headers, json={"fields": {"owner": OWNER}})
+        assert r.status_code == 200, r.text
+        r = requests.put(f"{api_url}/documents/{doc_id}/content",
+                         headers=admin_headers, json={"content": BODY + "\nMore.\n"})
+        assert r.status_code == 200, r.text
+
+        r = requests.get(f"{api_url}/changelog/document/{doc_id}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        rows = r.json()["data"]
+        by = {(x["action"], x.get("field", "")): x for x in rows}
+        assert ("update", "owner") in by, rows
+        assert by[("update", "owner")]["new_value"] == OWNER
+        assert ("update", "content") in by, rows
+        assert ("create", "") in by, rows
+        assert all(x["changed_by"] == ADMIN_EMAIL for x in rows), rows
+        assert all(x["created_at"] for x in rows), rows
+        # Newest first: the create row is last.
+        assert rows[-1]["action"] == "create", rows
+
+    def test_unknown_document_is_404(self, api_url, admin_headers):
+        r = requests.get(f"{api_url}/changelog/document/no-such-doc-{uuid.uuid4().hex[:8]}",
+                         headers=admin_headers)
+        assert r.status_code == 404, r.text
+
+    def test_reader_can_read_history(self, api_url, admin_headers, reader_headers):
+        doc_id = _create_doc(api_url, admin_headers)
+        r = requests.get(f"{api_url}/changelog/document/{doc_id}", headers=reader_headers)
+        assert r.status_code == 200, r.text
+        assert any(x["action"] == "create" for x in r.json()["data"])
+
+    def test_risk_changelog_unchanged(self, api_url, admin_headers):
+        r = requests.post(f"{api_url}/risks", headers=admin_headers,
+                          json={"title": "history control risk", "likelihood": 2, "impact": 2})
+        assert r.status_code in (200, 201), r.text
+        risk_id = r.json()["id"]
+        r = requests.get(f"{api_url}/changelog/risk/{risk_id}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        assert any(x["action"] == "create" for x in r.json()["data"]), r.text

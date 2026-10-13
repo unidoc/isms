@@ -1621,3 +1621,68 @@ func TestCreateSuggestion_UpdateExisting(t *testing.T) {
 		t.Errorf("suggestion should be updated:\ngot:  %q\nwant: %q", got, v2)
 	}
 }
+
+func TestFileHistory(t *testing.T) {
+	st := initBareStore(t, t.TempDir())
+	rel := "documents/iso/doc-a.md"
+	abs := filepath.Join(st.Root(), rel)
+	other := filepath.Join(st.Root(), "documents/iso/other.md")
+	const a, b = "a@example.com", "b@example.com"
+
+	write := func(p, content, who, msg string) {
+		t.Helper()
+		if _, err := st.CommitFile(p, []byte(content), "N", who, msg); err != nil {
+			t.Fatalf("CommitFile: %v", err)
+		}
+	}
+	write(abs, "---\ndocument_id: doc-a\ntitle: Doc A\nstatus: draft\n---\nv1 body\n", a, "create")
+	write(other, "---\ndocument_id: other\ntitle: O\nstatus: draft\n---\nx\n", b, "other 1")
+	if _, err := st.UpdateDocumentMetadataMulti(abs, map[string]string{"owner": "b@example.com"}, "N", b); err != nil {
+		t.Fatal(err)
+	}
+	write(other, "---\ndocument_id: other\ntitle: O\nstatus: approved\n---\ny\n", b, "other 2")
+	write(abs, "---\ndocument_id: doc-a\ntitle: Doc A\nstatus: draft\nowner: b@example.com\n---\nv2 body\n", a, "edit")
+	if _, err := st.UpdateDocumentMetadataMulti(abs, map[string]string{"status": "approved"}, "N", a); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := st.FileHistory(abs, 200)
+	if err != nil {
+		t.Fatalf("FileHistory: %v", err)
+	}
+	str := func(s string) *string { return &s }
+	type row struct {
+		action, field string
+		old, new      *string
+		by            string
+	}
+	want := []row{
+		{"update", "status", str("draft"), str("approved"), a},
+		{"update", "content", nil, nil, a},
+		{"update", "owner", nil, str("b@example.com"), b},
+		{"create", "", nil, nil, a},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d entries, want %d: %+v", len(got), len(want), got)
+	}
+	eq := func(x, y *string) bool { return (x == nil) == (y == nil) && (x == nil || *x == *y) }
+	for i, w := range want {
+		g := got[i]
+		if g.Action != w.action || g.Field != w.field || !eq(g.OldValue, w.old) || !eq(g.NewValue, w.new) || g.ChangedBy != w.by || g.At.IsZero() {
+			t.Errorf("entry %d = %+v, want %+v", i, g, w)
+		}
+	}
+
+	// limit counts commits that changed the file (not the unrelated ones
+	// between them), newest first.
+	lim, err := st.FileHistory(abs, 3)
+	if err != nil || len(lim) != 3 || lim[0].Field != "status" || lim[2].Field != "owner" {
+		t.Errorf("limit 3 = %+v, %v", lim, err)
+	}
+
+	// A path that never existed has no history and is not an error.
+	none, err := st.FileHistory(filepath.Join(st.Root(), "documents/iso/missing.md"), 200)
+	if err != nil || len(none) != 0 {
+		t.Errorf("unknown path = %+v, %v; want empty, nil", none, err)
+	}
+}

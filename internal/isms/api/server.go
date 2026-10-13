@@ -3609,8 +3609,9 @@ func hasIdentifierShape(param string) bool {
 // entityIDResolvers maps the entity_type values written to entity_changelog —
 // which are also what the web UI's HistoryPanel and the MCP server send — to the
 // resolver for that type. Types absent from this map have no display identifier
-// (document carries a string document_id; checkin and access_review are
-// numeric only), so their :id can only be a primary key.
+// (checkin and access_review are numeric only), so their :id can only be a
+// primary key. document is handled before this lookup, in handleEntityChangelog:
+// its id is a text document_id and its history is read from git.
 //
 // Keep the keys in step with common.entity_inline.* in the web locales: the
 // handlers below pass the type to Entity(), which the client looks up there.

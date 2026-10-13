@@ -1257,7 +1257,7 @@
               </svg>
               <span v-if="newDoc.folder && !showFolderPicker" class="text-slate-400">{{ newDoc.folder }}</span>
               <span v-if="!newDoc.folder && !showFolderPicker" class="text-slate-500 italic">{{ t('documents.new_doc.no_folder') }}</span>
-              <button v-if="!showFolderPicker" @click="showFolderPicker = true" class="text-blue-400 hover:text-blue-300 ml-auto text-[10px]">
+              <button type="button" v-if="!showFolderPicker" @click="showFolderPicker = true" class="text-blue-400 hover:text-blue-300 ml-auto text-[10px]">
                 {{ newDoc.folder ? t('documents.new_doc.change_folder') : t('documents.new_doc.pick_folder') }}
               </button>
               <div v-if="showFolderPicker" class="flex-1">
@@ -1270,7 +1270,7 @@
               </div>
             </div>
             <!-- Advanced (collapsed by default) -->
-            <button @click="showNewDocAdvanced = !showNewDocAdvanced" class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
+            <button type="button" @click="showNewDocAdvanced = !showNewDocAdvanced" class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
               {{ showNewDocAdvanced ? t('documents.new_doc.hide_advanced') : t('documents.new_doc.show_advanced') }}
             </button>
             <div v-if="showNewDocAdvanced" class="grid grid-cols-2 gap-3 pt-1">

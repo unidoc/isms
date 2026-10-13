@@ -212,7 +212,7 @@ func parse(out string) (rows []reportLine, summaries []string) {
 		case strings.HasPrefix(line, "ORG "):
 		case strings.HasPrefix(line, "deleted "):
 			summaries = append(summaries, line)
-		case strings.Contains(line, " broken pairs (") || strings.Contains(line, " 0 broken"):
+		case strings.Contains(line, " broken pair") || strings.Contains(line, " 0 broken"):
 			summaries = append(summaries, line)
 		default:
 			f := gap.Split(strings.TrimSpace(line), -1)
@@ -340,7 +340,7 @@ func TestCheck(t *testing.T) {
 		if res.Broken != 1 || res.BrokenRows != 2 {
 			t.Errorf("result = %+v", res)
 		}
-		if len(sums) != 2 || sums[1] != "total: 1 broken pairs (2 rows)" {
+		if len(sums) != 2 || sums[1] != "total: 1 broken pair (2 rows)" {
 			t.Errorf("summaries = %q", sums)
 		}
 	})
@@ -391,7 +391,7 @@ func TestCheck(t *testing.T) {
 				t.Errorf("output lacks %q:\n%s", w, out)
 			}
 		}
-		if !strings.Contains(out, "deleted "+orgA.Slug+" task "+aTask.Identifier+" -> asset ASSET-999 (1 rows)") {
+		if !strings.Contains(out, "deleted "+orgA.Slug+" task "+aTask.Identifier+" -> asset ASSET-999 (1 row)") {
 			t.Errorf("no per-pair deletion line for the one-direction row:\n%s", out)
 		}
 		_ = sums
@@ -438,9 +438,14 @@ func TestCheck(t *testing.T) {
 	})
 
 	t.Run("fix on B deletes B's broken pair only", func(t *testing.T) {
-		res, _, _, _ := run(orgB.Slug, true)
+		res, _, _, out := run(orgB.Slug, true)
 		if res.Deleted != 1 || res.DeletedRows != 2 {
 			t.Errorf("result = %+v", res)
+		}
+		for _, w := range []string{orgB.Slug + ": deleted 1 broken pair (2 rows)", "total: deleted 1 broken pair (2 rows)"} {
+			if !strings.Contains(out, w) {
+				t.Errorf("output lacks %q:\n%s", w, out)
+			}
 		}
 		if got := rowSet(t, d, orgB.ID); len(got) != len(beforeB)-2 {
 			t.Errorf("B rows %d -> %d, want -2", len(beforeB), len(got))

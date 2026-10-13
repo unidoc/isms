@@ -125,7 +125,7 @@ func Check(ctx context.Context, d *db.DB, w io.Writer, opts CheckOptions) (Check
 		return res, err
 	}
 	summary := func(label string, broken, rows, unchecked int) {
-		line := fmt.Sprintf("%s: %d broken pairs (%d rows)", label, broken, rows)
+		line := fmt.Sprintf("%s: %s (%s)", label, plural(broken, "broken pair"), plural(rows, "row"))
 		if unchecked > 0 {
 			line += fmt.Sprintf(", %d unchecked", unchecked)
 		}
@@ -159,7 +159,7 @@ func Check(ctx context.Context, d *db.DB, w io.Writer, opts CheckOptions) (Check
 				}
 				pairs++
 				rows += int(n)
-				lines = append(lines, fmt.Sprintf("deleted %s %s -> %s (%d rows)", of.org.Slug, f.source, f.target, n))
+				lines = append(lines, fmt.Sprintf("deleted %s %s -> %s (%s)", of.org.Slug, f.source, f.target, plural(int(n), "row")))
 			}
 			return nil
 		})
@@ -169,11 +169,11 @@ func Check(ctx context.Context, d *db.DB, w io.Writer, opts CheckOptions) (Check
 		for _, l := range lines {
 			fmt.Fprintln(w, l)
 		}
-		fmt.Fprintf(w, "%s: deleted %d broken pairs (%d rows)\n", of.org.Slug, pairs, rows)
+		fmt.Fprintf(w, "%s: deleted %s (%s)\n", of.org.Slug, plural(pairs, "broken pair"), plural(rows, "row"))
 		res.Deleted += pairs
 		res.DeletedRows += rows
 	}
-	fmt.Fprintf(w, "total: deleted %d broken pairs (%d rows)\n", res.Deleted, res.DeletedRows)
+	fmt.Fprintf(w, "total: deleted %s (%s)\n", plural(res.Deleted, "broken pair"), plural(res.DeletedRows, "row"))
 	return res, nil
 }
 
@@ -309,6 +309,14 @@ func classifyEnd(ctx context.Context, d *db.DB, r *Resolver, orgID int, viewer d
 		return endState{reason: "record deleted"}
 	}
 	return endState{reason: "not found"}
+}
+
+// plural renders a count with its noun, singular for exactly one.
+func plural(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("1 %s", word)
+	}
+	return fmt.Sprintf("%d %ss", n, word)
 }
 
 func allDigits(s string) bool {

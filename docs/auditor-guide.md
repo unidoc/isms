@@ -147,6 +147,8 @@ The platform maintains three layers of audit history:
 
 Every document edit is a git commit. The commit log shows who changed what, when, with the full diff. This is the raw working history.
 
+A document's History tab shows this log field by field, merged with its decision records (`GET /changelog/document/{docId}`).
+
 ### 2. Entity changelog
 
 The `entity_changelog` table tracks field-level changes to all operational entities (risks, incidents, suppliers, assets, systems, legal requirements, changes, corrective actions, objectives, tasks, audits, audit findings, audit programmes). Each entry records:

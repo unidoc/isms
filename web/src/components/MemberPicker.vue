@@ -34,6 +34,7 @@
           :placeholder="$t('common.placeholder.search')"
           class="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
           @keydown.escape="open = false"
+          @keydown.enter.prevent
         />
       </div>
       <div class="max-h-48 overflow-y-auto">

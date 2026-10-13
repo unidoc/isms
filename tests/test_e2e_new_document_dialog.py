@@ -91,6 +91,21 @@ class TestNewDocumentDialog:
         pick_author(dialog)
         assert_still_open(page, dialog, url, t, slug)
 
+    def test_enter_in_author_search_does_not_create(self, page, tokens):
+        t = tokens["admin"]
+        title, slug = new_title()
+        dialog = open_dialog(page)
+        dialog.get_by_placeholder("e.g. Data Classification Policy").fill(title)
+        dialog.get_by_role("button", name="Show advanced options").click()
+        url = page.url
+        dialog.get_by_text(ADMIN[2]).first.click()
+        search = dialog.get_by_placeholder("Search...")
+        search.fill("Reader")
+        search.press("Enter")
+        assert_still_open(page, dialog, url, t, slug)
+        # Enter does not pick either: the author is still the logged-in admin.
+        expect(dialog.get_by_text(ADMIN[2])).to_be_visible()
+
     def test_folder_change_does_not_create(self, page, tokens):
         t = tokens["admin"]
         title, slug = new_title()

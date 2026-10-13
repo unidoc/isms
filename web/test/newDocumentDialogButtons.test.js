@@ -32,3 +32,13 @@ test('every button in the New Document form declares a type', () => {
     assert.match(tag, /\stype=/, `typeless button: ${tag}`)
   }
 })
+
+// Enter in the picker's search box is implicit form submission; with Create as
+// the form's default button it would create the document with the old author.
+test('the MemberPicker search input swallows Enter', () => {
+  const src = readFileSync(PICKER, 'utf8')
+  const inputs = src.match(/<input\b[^>]*>/gs) ?? []
+  const search = inputs.filter(t => t.includes('ref="searchInput"'))
+  assert.equal(search.length, 1, `expected 1 search input, found ${search.length}`)
+  assert.match(search[0], /@keydown\.enter\.prevent/, `Enter not prevented: ${search[0]}`)
+})

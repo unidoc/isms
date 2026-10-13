@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -171,6 +173,65 @@ func programSearchEntries(items []db.Program) []SearchEntry {
 			Title:  p.Title,
 			Search: strings.ToLower(p.Key + " " + p.Title + " " + p.Description),
 		})
+	}
+	return entries
+}
+
+// Audit module (#436). Type strings and ID forms match what the references API
+// stores (audit -> AUDIT-<id>, audit_finding -> FIND-<id>, audit_programme ->
+// AP-<id>) so a search result can be passed straight to createReference. One
+// builder per type, used by both buildSearchIndex and the handler upserts, so
+// the two cannot drift.
+func auditProgrammeSearchEntry(p *db.AuditProgramme) SearchEntry {
+	id := fmt.Sprintf("AP-%d", p.ID)
+	return SearchEntry{
+		Type:   "audit_programme",
+		ID:     id,
+		Title:  p.Title,
+		Search: strings.ToLower(id + " " + p.Title + " " + p.Description + " " + strconv.Itoa(p.Year)),
+	}
+}
+
+func auditSearchEntry(a *db.Audit) SearchEntry {
+	id := fmt.Sprintf("AUDIT-%d", a.ID)
+	return SearchEntry{
+		Type:   "audit",
+		ID:     id,
+		Title:  a.Title,
+		Search: strings.ToLower(id + " " + a.Title + " " + a.Scope),
+	}
+}
+
+func auditFindingSearchEntry(f *db.AuditFinding) SearchEntry {
+	id := fmt.Sprintf("FIND-%d", f.ID)
+	return SearchEntry{
+		Type:   "audit_finding",
+		ID:     id,
+		Title:  f.Title,
+		Search: strings.ToLower(id + " " + f.Title + " " + f.Description),
+	}
+}
+
+func auditProgrammeSearchEntries(items []db.AuditProgramme) []SearchEntry {
+	entries := make([]SearchEntry, 0, len(items))
+	for i := range items {
+		entries = append(entries, auditProgrammeSearchEntry(&items[i]))
+	}
+	return entries
+}
+
+func auditSearchEntries(items []db.Audit) []SearchEntry {
+	entries := make([]SearchEntry, 0, len(items))
+	for i := range items {
+		entries = append(entries, auditSearchEntry(&items[i]))
+	}
+	return entries
+}
+
+func auditFindingSearchEntries(items []db.AuditFinding) []SearchEntry {
+	entries := make([]SearchEntry, 0, len(items))
+	for i := range items {
+		entries = append(entries, auditFindingSearchEntry(&items[i]))
 	}
 	return entries
 }
@@ -412,6 +473,31 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		return programSearchEntries(items)
+	})
+
+	// Audit programmes, audits and findings (#436).
+	collect(func() []SearchEntry {
+		items, err := s.db.ListAuditProgrammes(ctx, orgID)
+		if err != nil {
+			return nil
+		}
+		return auditProgrammeSearchEntries(items)
+	})
+
+	collect(func() []SearchEntry {
+		items, err := s.db.ListAudits(ctx, orgID, nil)
+		if err != nil {
+			return nil
+		}
+		return auditSearchEntries(items)
+	})
+
+	collect(func() []SearchEntry {
+		items, err := s.db.ListAllAuditFindings(ctx, orgID)
+		if err != nil {
+			return nil
+		}
+		return auditFindingSearchEntries(items)
 	})
 
 	wg.Wait()

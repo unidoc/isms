@@ -137,6 +137,7 @@ func (s *Server) handleCreateAuditProgramme(c echo.Context) error {
 	if err := s.db.CreateAuditProgramme(ctx, orgID, &p); err != nil {
 		return pgxHTTPError(err)
 	}
+	s.searchIndex.Upsert(orgID, auditProgrammeSearchEntry(&p))
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_programme",
 		EntityID:   int64(p.ID),
@@ -192,6 +193,7 @@ func (s *Server) handleUpdateAuditProgramme(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "programme not found")
 	}
+	s.searchIndex.Upsert(orgID, auditProgrammeSearchEntry(p))
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("audit_programme", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), p.ToChangeMap()); len(changes) > 0 {
 		s.logChanges(ctx, orgID, changes)
@@ -227,6 +229,7 @@ func (s *Server) handleDeleteAuditProgramme(c echo.Context) error {
 	if err := s.db.DeleteAuditProgramme(ctx, orgID, id); err != nil {
 		return pgxHTTPError(err)
 	}
+	s.searchIndex.Remove(orgID, "audit_programme", fmt.Sprintf("AP-%d", id))
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_programme",
 		EntityID:   int64(id),
@@ -316,6 +319,7 @@ func (s *Server) handleCreateAudit(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	s.searchIndex.Upsert(orgID, auditSearchEntry(out))
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit",
 		EntityID:   int64(out.ID),
@@ -386,6 +390,7 @@ func (s *Server) handleUpdateAudit(c echo.Context) error {
 	if err != nil {
 		return apiError(http.StatusNotFound, CodeNotFound, Entity("audit"))
 	}
+	s.searchIndex.Upsert(orgID, auditSearchEntry(after))
 	actor := getUserEmail(c)
 	if changes := db.DiffFields("audit", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
 		s.logChanges(ctx, orgID, changes)
@@ -749,6 +754,7 @@ func (s *Server) handleAddAuditFinding(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	s.searchIndex.Upsert(orgID, auditFindingSearchEntry(out))
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_finding",
 		EntityID:   int64(out.ID),
@@ -825,6 +831,7 @@ func (s *Server) handleUpdateAuditFinding(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	s.searchIndex.Upsert(orgID, auditFindingSearchEntry(after))
 	if changes := db.DiffFields("audit_finding", int64(id), actor, c.QueryParam("reason"), before.ToChangeMap(), after.ToChangeMap()); len(changes) > 0 {
 		s.logChanges(ctx, orgID, changes)
 	}
@@ -896,6 +903,7 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 	if err := s.db.SoftDeleteAuditFinding(ctx, orgID, id); err != nil {
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
+	s.searchIndex.Remove(orgID, "audit_finding", fmt.Sprintf("FIND-%d", id))
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
 		EntityType: "audit_finding",
 		EntityID:   int64(id),

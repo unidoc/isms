@@ -123,3 +123,113 @@ class TestSearchIndex:
         """Readers should be able to search too."""
         r = requests.get(f"{api_url}/search?q=", headers=reader_headers)
         assert r.status_code == 200
+
+
+def _search(api_url, headers, q):
+    r = requests.get(f"{api_url}/search", params={"q": q}, headers=headers)
+    assert r.status_code == 200, r.text
+    return r.json().get("data") or []
+
+
+def _find(results, type_, id_):
+    return [d for d in results if d["type"] == type_ and d["id"] == id_]
+
+
+class TestAuditSearch:
+    """Audits, findings and audit programmes are searchable (#436).
+
+    SearchIndex.Upsert is a no-op while no index exists for the org, and the
+    first search builds the index synchronously. So every freshness test forces
+    the build with a search FIRST, mutates, and only then searches again.
+    """
+
+    @staticmethod
+    def _seed(api_url, headers, tag):
+        r = requests.post(f"{api_url}/audit/programmes", headers=headers, json={
+            "title": f"Prog {tag}", "year": 2026})
+        assert r.status_code == 201, r.text
+        prog = r.json()
+        r = requests.post(f"{api_url}/audits", headers=headers, json={
+            "title": f"Audit {tag}", "status": "planned", "programme_id": prog["id"]})
+        assert r.status_code == 201, r.text
+        audit = r.json()
+        r = requests.post(f"{api_url}/audit-findings", headers=headers, json={
+            "audit_id": audit["id"], "title": f"Finding {tag}", "finding_type": "minor_nc"})
+        assert r.status_code == 201, r.text
+        return prog, audit, r.json()
+
+    def test_01_found_by_title_and_display_id(self, api_url, admin_headers):
+        import uuid
+        tag = uuid.uuid4().hex[:10]
+        prog, audit, finding = self._seed(api_url, admin_headers, tag)
+        cases = [
+            ("audit_programme", f"AP-{prog['id']}", f"Prog {tag}"),
+            ("audit", f"AUDIT-{audit['id']}", f"Audit {tag}"),
+            ("audit_finding", f"FIND-{finding['id']}", f"Finding {tag}"),
+        ]
+        for type_, display_id, title in cases:
+            by_title = _find(_search(api_url, admin_headers, tag), type_, display_id)
+            assert len(by_title) == 1, f"{type_} not found by title fragment"
+            assert by_title[0]["title"] == title
+            by_id = _find(_search(api_url, admin_headers, display_id), type_, display_id)
+            assert len(by_id) == 1, f"{type_} not found by display id {display_id}"
+
+    def test_02_create_is_found_immediately(self, api_url, admin_headers):
+        import uuid
+        _search(api_url, admin_headers, "")  # force the index to exist
+        tag = uuid.uuid4().hex[:10]
+        prog, audit, finding = self._seed(api_url, admin_headers, tag)
+        results = _search(api_url, admin_headers, tag)
+        assert _find(results, "audit_programme", f"AP-{prog['id']}"), "new programme missing"
+        assert _find(results, "audit", f"AUDIT-{audit['id']}"), "new audit missing"
+        assert _find(results, "audit_finding", f"FIND-{finding['id']}"), "new finding missing"
+
+    def test_03_rename_is_reflected_immediately(self, api_url, admin_headers):
+        import uuid
+        old = uuid.uuid4().hex[:10]
+        new = uuid.uuid4().hex[:10]
+        prog, audit, finding = self._seed(api_url, admin_headers, old)
+        _search(api_url, admin_headers, "")  # force the index to exist
+        r = requests.put(f"{api_url}/audit/programmes/{prog['id']}", headers=admin_headers,
+                         json={"title": f"Prog {new}"})
+        assert r.status_code == 200, r.text
+        r = requests.put(f"{api_url}/audits/{audit['id']}", headers=admin_headers,
+                         json={"title": f"Audit {new}"})
+        assert r.status_code == 200, r.text
+        r = requests.put(f"{api_url}/audit-findings/{finding['id']}", headers=admin_headers,
+                         json={"title": f"Finding {new}"})
+        assert r.status_code == 200, r.text
+
+        found = _search(api_url, admin_headers, new)
+        stale = _search(api_url, admin_headers, old)
+        for type_, display_id, title in [
+            ("audit_programme", f"AP-{prog['id']}", f"Prog {new}"),
+            ("audit", f"AUDIT-{audit['id']}", f"Audit {new}"),
+            ("audit_finding", f"FIND-{finding['id']}", f"Finding {new}"),
+        ]:
+            hit = _find(found, type_, display_id)
+            assert len(hit) == 1, f"renamed {type_} not found under new title"
+            assert hit[0]["title"] == title
+            assert not _find(stale, type_, display_id), f"renamed {type_} still found under old title"
+
+    def test_04_delete_removes_from_search(self, api_url, admin_headers):
+        import uuid
+        tag = uuid.uuid4().hex[:10]
+        # A programme with no audits (deletable) and a finding on another audit.
+        r = requests.post(f"{api_url}/audit/programmes", headers=admin_headers, json={
+            "title": f"Lonely {tag}", "year": 2026})
+        assert r.status_code == 201, r.text
+        prog = r.json()
+        _, _, finding = self._seed(api_url, admin_headers, tag)
+        _search(api_url, admin_headers, "")  # force the index to exist
+        assert _find(_search(api_url, admin_headers, tag), "audit_programme", f"AP-{prog['id']}")
+        assert _find(_search(api_url, admin_headers, tag), "audit_finding", f"FIND-{finding['id']}")
+
+        r = requests.delete(f"{api_url}/audit-findings/{finding['id']}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        r = requests.delete(f"{api_url}/audit/programmes/{prog['id']}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+
+        results = _search(api_url, admin_headers, tag)
+        assert not _find(results, "audit_finding", f"FIND-{finding['id']}"), "deleted finding still found"
+        assert not _find(results, "audit_programme", f"AP-{prog['id']}"), "deleted programme still found"

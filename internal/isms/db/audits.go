@@ -599,6 +599,26 @@ func (d *DB) ListAuditFindings(ctx context.Context, orgID int, auditID int) ([]A
 	return findings, nil
 }
 
+// ListAllAuditFindings returns every non-deleted finding in the org, across all
+// audits. Used to build the universal search index.
+func (d *DB) ListAllAuditFindings(ctx context.Context, orgID int) ([]AuditFinding, error) {
+	rows, err := d.pool.Query(ctx, `SELECT `+auditFindingCols+` FROM audit_findings f WHERE f.organization_id = $1 AND f.deleted_at IS NULL ORDER BY f.created_at ASC`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	findings := []AuditFinding{}
+	for rows.Next() {
+		var f AuditFinding
+		if err := scanAuditFinding(rows, &f); err != nil {
+			return nil, err
+		}
+		findings = append(findings, f)
+	}
+	return findings, rows.Err()
+}
+
 // --- Server-side findings list (filter / search / sort / pagination) ---
 
 type AuditFindingListParams struct {

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/refs"
 )
 
 // ReferenceInput is a reference to create alongside an entity.
@@ -282,217 +283,39 @@ func (s *Server) lookupEntityTitle(ctx context.Context, orgID int, viewer db.Tas
 	return title, found
 }
 
-// lookupEntity looks up an entity by type and ID, and returns its display
-// title, its canonical reference ID, and whether it was found. For most types
-// the canonical ID is entityID unchanged. Programs and objectives can be
-// addressed by row id or by key / display id (#350); both forms resolve, but
-// the canonical ID returned is always the key / display id, since that is
-// the form the UI reads and writes and the form every reference must be
-// stored in. Audits, audit findings and audit programmes likewise resolve by
-// row id or by AUDIT-<id> / FIND-<id> / AP-<id>, and canonicalise to the
-// prefixed form (#366, #394). Callers that write references (canonicalReferenceID and its
-// callers) must store the returned canonicalID, never the input entityID.
+// lookupEntity is the API's view of refs.Resolver.Lookup: the entity's display
+// title, its canonical reference ID and whether it was found. A failed lookup
+// (as opposed to a missing record) is reported as not found, which is right for
+// a request that must reject or fall back to the raw id; the CLI is the caller
+// that needs the difference. See refs.Resolver.Lookup for the rule.
 func (s *Server) lookupEntity(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (title, canonicalID string, found bool) {
-	// References store per-org identifiers (e.g. "RISK-12", "INC-3") — both
-	// the UI and createReferencesForEntity write that format. Resolve by
-	// identifier, never by numeric row id: the numeric part of an identifier
-	// and the row id are different sequences and diverge in multi-org DBs.
-	switch entityType {
-	case "risk":
-		r, err := s.db.GetRiskByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return r.Title, entityID, true
-
-	case "legal_requirement":
-		l, err := s.db.GetLegalRequirementByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return l.Title, entityID, true
-
-	case "asset":
-		a, err := s.db.GetAssetByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return a.Name, entityID, true
-
-	case "supplier":
-		sup, err := s.db.GetSupplierByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return sup.Name, entityID, true
-
-	case "system":
-		sys, err := s.db.GetSystemByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return sys.Name, entityID, true
-
-	case "incident":
-		inc, err := s.db.GetIncidentByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return inc.Title, entityID, true
-
-	case "corrective_action":
-		ca, err := s.db.GetCorrectiveActionByIdentifier(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return ca.Title, entityID, true
-
-	case "objective":
-		id, err := strconv.ParseInt(entityID, 10, 64)
-		if err != nil {
-			// Try by display_id (e.g. "ISMS-1")
-			o, err := s.db.GetObjectiveByDisplayID(ctx, orgID, entityID)
-			if err != nil {
-				return entityID, entityID, false
-			}
-			return o.Title, o.DisplayID, true
-		}
-		o, err := s.db.GetObjective(ctx, orgID, id)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return o.Title, o.DisplayID, true
-
-	case "program":
-		id, err := strconv.ParseInt(entityID, 10, 64)
-		if err != nil {
-			// Try by key (e.g. "ISMS")
-			p, err := s.db.GetProgramByKey(ctx, orgID, entityID)
-			if err != nil {
-				return entityID, entityID, false
-			}
-			return p.Title, p.Key, true
-		}
-		p, err := s.db.GetProgram(ctx, orgID, id)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return p.Title, p.Key, true
-
-	case "document":
-		st, err := s.storeForOrg(ctx, orgID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		if docPath := st.FindDocumentByID(entityID); docPath != "" {
-			if doc, err := st.LoadDocument(docPath); err == nil {
-				if doc.Frontmatter.Title != "" {
-					return doc.Frontmatter.Title, entityID, true
-				}
-				return entityID, entityID, true
-			}
-			return entityID, entityID, false
-		}
-		return entityID, entityID, false
-
-	case "audit":
-		// AUDIT-/FIND- are built from the row id (audits and audit_findings have
-		// no identifier column), so stripping is correct here — see api_audit.go.
-		// Both "5" and "AUDIT-5" resolve, but references are stored as AUDIT-<id>
-		// only, or the two spellings are two links that never meet (#366).
-		id, err := strconv.Atoi(stripPrefix(entityID, "AUDIT-"))
-		if err != nil {
-			return entityID, entityID, false
-		}
-		a, err := s.db.GetAudit(ctx, orgID, id)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return a.Title, fmt.Sprintf("AUDIT-%d", a.ID), true
-
-	case "audit_finding":
-		// FIND-<id> is the form db.SoftDeleteAuditFinding's linked-CA guard and
-		// the create-from-finding flow use; a bare row id is canonicalised to it.
-		id, err := strconv.Atoi(stripPrefix(entityID, "FIND-"))
-		if err != nil {
-			return entityID, entityID, false
-		}
-		f, err := s.db.GetAuditFinding(ctx, orgID, int64(id))
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return f.Title, fmt.Sprintf("FIND-%d", f.ID), true
-
-	case "audit_programme":
-		// AP-<id> is built from the row id (audit_programmes has no identifier
-		// column), so stripping is correct here, and is canonicalised like
-		// AUDIT-/FIND- above (#394).
-		id, err := strconv.Atoi(stripPrefix(entityID, "AP-"))
-		if err != nil {
-			return entityID, entityID, false
-		}
-		p, err := s.db.GetAuditProgramme(ctx, orgID, id)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return p.Title, fmt.Sprintf("AP-%d", p.ID), true
-
-	case "change_request":
-		// CR- identifiers come from the per-org sequence, so the suffix is not
-		// the primary key — stripping it named a different change request's
-		// title on the reference chip (#201, and the warning in db/changes.go).
-		id, err := s.resolveChangeID(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		cr, err := s.db.GetChangeRequest(ctx, orgID, int(id))
-		if err != nil {
-			return entityID, entityID, false
-		}
-		return cr.Title, entityID, true
-
-	case "task":
-		// As with CR- above: TASK- is a per-org sequence, not the primary key.
-		id, err := s.resolveTaskID(ctx, orgID, entityID)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		t, err := s.db.GetTask(ctx, orgID, id)
-		if err != nil {
-			return entityID, entityID, false
-		}
-		// Don't leak a private task's title to someone who may not see it — fall
-		// back to the identifier (mirrors db.TaskViewer's rule).
-		if t.Private && !viewer.CanSeeAll && t.Assignee != viewer.Email && t.CreatedBy != viewer.Email {
-			return entityID, entityID, true
-		}
-		return t.Title, entityID, true
-
-	default:
+	title, canonicalID, found, err := s.refResolver().Lookup(ctx, orgID, viewer, entityType, entityID)
+	if err != nil {
 		return entityID, entityID, false
 	}
+	return title, canonicalID, found
 }
 
-// sequenceIdentifierTypes are the reference types whose display identifier comes
-// from a per-org sequence. Its numeric suffix is not the primary key (#201), so a
-// bare number is never a valid reference id for them — even where the underlying
-// resolver (resolveTaskID, resolveChangeID) would accept one as a row id.
-var sequenceIdentifierTypes = map[string]bool{
-	"risk": true, "legal_requirement": true, "asset": true, "supplier": true,
-	"system": true, "incident": true, "corrective_action": true,
-	"change_request": true, "task": true,
+// refResolver builds the shared reference rule over the server's database and
+// per-org stores.
+func (s *Server) refResolver() *refs.Resolver {
+	return &refs.Resolver{DB: s.db, Store: s.storeForOrg}
 }
 
 // canonicalReferenceID resolves entityID to the form a reference must store
-// it in, and reports whether it names a real entity of entityType in the org.
-// For a program or objective this is the key / display id, even when
-// entityID was the numeric row id (#350); for an audit, audit finding or audit programme it is
-// AUDIT-<id> / FIND-<id> / AP-<id> (#366, #394); every other type returns entityID unchanged. Writers must store the returned id, never the input entityID.
+// it in, and reports whether it names a real entity of entityType in the org
+// (see refs.Resolver.Canonical). Writers must store the returned id, never the
+// input entityID.
 func (s *Server) canonicalReferenceID(ctx context.Context, orgID int, viewer db.TaskViewer, entityType, entityID string) (string, bool) {
-	if sequenceIdentifierTypes[entityType] && !hasIdentifierShape(entityID) {
+	// The shape gate runs here too, before anything touches s, so a bare number
+	// for a sequence type is rejected without a database.
+	if refs.SequenceIdentifierTypes[entityType] && !refs.HasIdentifierShape(entityID) {
 		return entityID, false
 	}
-	_, canonicalID, found := s.lookupEntity(ctx, orgID, viewer, entityType, entityID)
+	canonicalID, found, err := s.refResolver().Canonical(ctx, orgID, viewer, entityType, entityID)
+	if err != nil {
+		return entityID, false
+	}
 	return canonicalID, found
 }
 

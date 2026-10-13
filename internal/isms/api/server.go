@@ -30,6 +30,7 @@ import (
 	"isms.sh/internal/isms/i18n"
 	"isms.sh/internal/isms/mail"
 	"isms.sh/internal/isms/notify"
+	"isms.sh/internal/isms/refs"
 	"isms.sh/internal/isms/store"
 )
 
@@ -3595,9 +3596,10 @@ func (s *Server) resolveLegalID(ctx context.Context, orgID int, param string) (i
 // Its only job is to separate "malformed param" (400) from "well-formed
 // identifier that does not exist" (404). Deciding whether the identifier belongs
 // to THIS entity is the lookup's job, not this function's.
+//
+// The rule itself is refs.HasIdentifierShape, shared with the CLI.
 func hasIdentifierShape(param string) bool {
-	prefix, rest, ok := strings.Cut(param, "-")
-	return ok && prefix != "" && rest != ""
+	return refs.HasIdentifierShape(param)
 }
 
 // resolveChangeID / resolveObjectiveID / resolveSystemID / resolveAssetID / and

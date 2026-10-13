@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -77,6 +78,10 @@ func main() {
 	root.AddCommand(serverCmd())
 
 	if err := root.Execute(); err != nil {
+		var ee *exitError
+		if errors.As(err, &ee) {
+			os.Exit(ee.code)
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -96,6 +101,7 @@ func serverCmd() *cobra.Command {
 		managerCmd(),
 		mcpCmd(),
 		orgCmd(),
+		referencesCmd(),
 		userCmd(),
 		apiKeyCmd(),
 		testEmailCmd(),

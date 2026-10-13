@@ -2,6 +2,11 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // EntityReference represents a cross-reference link between two entities.
@@ -150,4 +155,90 @@ func scanReferences(rows interface {
 		refs = append(refs, r)
 	}
 	return refs, nil
+}
+
+// ListOrgReferencesTx returns every reference of the org, oldest id first. It
+// runs inside the caller's WithOrgTx so row-level security applies.
+func ListOrgReferencesTx(ctx context.Context, tx pgx.Tx, orgID int) ([]EntityReference, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT id, organization_id, source_type, source_id, target_type, target_id,
+			COALESCE(created_by, ''), created_at, origin
+		FROM entity_references
+		WHERE organization_id = $1
+		ORDER BY id
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	refs, err := scanReferences(rows)
+	if err != nil {
+		return nil, err
+	}
+	return refs, rows.Err()
+}
+
+// DeleteReferencesTx removes the given reference rows of the org and returns how
+// many were deleted. Deleting by row id, not by pair, removes exactly the rows a
+// report listed even if a new one appeared since.
+func DeleteReferencesTx(ctx context.Context, tx pgx.Tx, orgID int, ids []int64) (int64, error) {
+	tag, err := tx.Exec(ctx, `DELETE FROM entity_references WHERE organization_id = $1 AND id = ANY($2)`, orgID, ids)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
+// identifierTables maps a reference type to the table whose `identifier` column
+// holds its per-org identifier. Every one has a deleted_at column.
+var identifierTables = map[string]string{
+	"risk": "risks", "legal_requirement": "legal_requirements", "asset": "assets",
+	"supplier": "suppliers", "system": "systems", "incident": "incidents",
+	"corrective_action": "corrective_actions", "change_request": "change_requests",
+	"task": "tasks",
+}
+
+// SoftDeletedEntityExists reports whether a soft-deleted record answers to
+// entityID in the forms a reference may use (the same forms the live lookup
+// accepts), so a reference to it can be told from one to a record that never
+// existed. Documents live in git and are never soft-deleted, so the answer for
+// them, and for an unknown type, is false.
+func (d *DB) SoftDeletedEntityExists(ctx context.Context, orgID int, entityType, entityID string) (bool, error) {
+	var query string
+	var arg any = entityID
+	if table, ok := identifierTables[entityType]; ok {
+		query = fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM %s WHERE organization_id = $1 AND identifier = $2 AND deleted_at IS NOT NULL)`, table)
+	} else {
+		switch entityType {
+		case "objective", "program":
+			table, col := "objectives", "display_id"
+			if entityType == "program" {
+				table, col = "programs", "key"
+			}
+			if n, err := strconv.ParseInt(entityID, 10, 64); err == nil {
+				col, arg = "id", n
+			}
+			query = fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM %s WHERE organization_id = $1 AND %s = $2 AND deleted_at IS NOT NULL)`, table, col)
+		case "audit", "audit_finding", "audit_programme":
+			prefix, table := "AUDIT-", "audits"
+			if entityType == "audit_finding" {
+				prefix, table = "FIND-", "audit_findings"
+			} else if entityType == "audit_programme" {
+				prefix, table = "AP-", "audit_programmes"
+			}
+			n, err := strconv.Atoi(strings.TrimPrefix(entityID, prefix))
+			if err != nil {
+				return false, nil
+			}
+			arg = n
+			query = fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM %s WHERE organization_id = $1 AND id = $2 AND deleted_at IS NOT NULL)`, table)
+		default:
+			return false, nil
+		}
+	}
+	var exists bool
+	if err := d.pool.QueryRow(ctx, query, orgID, arg).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
 }

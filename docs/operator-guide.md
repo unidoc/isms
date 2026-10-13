@@ -577,6 +577,20 @@ If you have no backup but need to get running again:
 - Check disk usage on the data directory
 - Review the audit programme calendar
 
+### Checking references
+
+Records link to each other (a risk to a legal requirement, an incident to a task, and so on). The API only accepts a link whose two ends exist, but links saved by older versions may point at nothing, and a link to a record that was later deleted stays behind. Run the check after upgrading from a version that predates reference validation, and now and then afterwards:
+
+```bash
+isms server references check            # report only, changes nothing
+isms server references check --org acme # one organization
+isms server references check --fix      # delete the broken links it listed
+```
+
+The report lists each broken link with the reason: a bare number instead of an identifier, a record that does not exist, a record that was deleted, or a document that is not in the repo. If a lookup itself fails (an organization's git repo is missing on this machine, or the database errors), those links are listed as `unchecked` and are never deleted, even with `--fix`.
+
+The command exits 0 when every link resolves (with `--fix`: when every broken link was deleted and none was unchecked) and 1 when broken or unchecked links remain. Run it on the server machine with the server's environment, since it needs `DATABASE_URL` and read access to every organization's repo.
+
 ### Annually
 
 - Full document review cycle — use `isms overdue` to generate tasks for documents past their review date

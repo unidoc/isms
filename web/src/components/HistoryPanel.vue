@@ -58,6 +58,12 @@ function shortAction(e) {
     delete: t('components.history.action.delete'),
     reading: t('components.history.action.reading'),
     suggestion_applied: t('components.history.action.suggestion_applied'),
+    approved: t('components.history.action.approved'),
+    changes_requested: t('components.history.action.changes_requested'),
+    proposed_revision: t('components.history.action.proposed_revision'),
+    merged: t('components.history.action.merged'),
+    closed: t('components.history.action.closed'),
+    confirmed: t('components.history.action.confirmed'),
   }
   return m[e.action] || e.detail || e.action
 }

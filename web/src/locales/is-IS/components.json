@@ -353,7 +353,13 @@
       "update": "Breytt",
       "delete": "Eytt",
       "reading": "Mæling",
-      "suggestion_applied": "Tillögu beitt"
+      "suggestion_applied": "Tillögu beitt",
+      "approved": "Samþykkt",
+      "changes_requested": "Breytinga óskað",
+      "proposed_revision": "Endurskoðun lögð til",
+      "merged": "Sameinað",
+      "closed": "Lokað",
+      "confirmed": "Staðfest"
     },
     "tooltip": {
       "from": "Frá: {value}",

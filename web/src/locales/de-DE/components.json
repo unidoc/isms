@@ -353,7 +353,13 @@
       "update": "Geändert",
       "delete": "Gelöscht",
       "reading": "Bewertung",
-      "suggestion_applied": "Vorschlag angewendet"
+      "suggestion_applied": "Vorschlag angewendet",
+      "approved": "Genehmigt",
+      "changes_requested": "Änderungen angefordert",
+      "proposed_revision": "Überarbeitung vorgeschlagen",
+      "merged": "Zusammengeführt",
+      "closed": "Geschlossen",
+      "confirmed": "Bestätigt"
     },
     "tooltip": {
       "from": "Von: {value}",

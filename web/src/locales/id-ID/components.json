@@ -353,7 +353,13 @@
       "update": "Diubah",
       "delete": "Dihapus",
       "reading": "Pembacaan",
-      "suggestion_applied": "Saran diterapkan"
+      "suggestion_applied": "Saran diterapkan",
+      "approved": "Disetujui",
+      "changes_requested": "Perubahan diminta",
+      "proposed_revision": "Revisi diusulkan",
+      "merged": "Digabungkan",
+      "closed": "Ditutup",
+      "confirmed": "Dikonfirmasi"
     },
     "tooltip": {
       "from": "Dari: {value}",

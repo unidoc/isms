@@ -3,7 +3,9 @@ package api
 import (
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -73,7 +75,36 @@ func (s *Server) handleDocumentHistory(c echo.Context, orgID int) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{"data": documentChangelog(hist)})
+	// Approvals, change requests, closes and confirmations make no git commit,
+	// so they come from the decision log and are merged in by time.
+	decisions, err := s.db.ListDecisionRecords(c.Request().Context(), orgID, strings.ToLower(c.Param("id")))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{"data": mergeDocumentHistory(documentChangelog(hist), decisions)})
+}
+
+// mergeDocumentHistory adds decision-log rows to the git rows and orders the
+// result newest first. Ties keep each source's own order, git rows first.
+func mergeDocumentHistory(git []db.ChangelogEntry, decisions []db.DecisionRecord) []db.ChangelogEntry {
+	out := git
+	for _, d := range decisions {
+		e := db.ChangelogEntry{
+			EntityType: "document",
+			Reason:     d.Comment,
+			ChangedBy:  d.DecidedBy,
+			CreatedAt:  d.CreatedAt,
+		}
+		// Set outside the literal for the same reason as in documentChangelog.
+		e.Action = d.Decision
+		if d.Version != "" {
+			v := d.Version
+			e.NewValue = &v
+		}
+		out = append(out, e)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt.Time) })
+	return out
 }
 
 // documentChangelog maps git history rows onto the changelog row shape the

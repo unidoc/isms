@@ -357,7 +357,13 @@
       "update": "Changed",
       "delete": "Deleted",
       "reading": "Reading",
-      "suggestion_applied": "Applied suggestion"
+      "suggestion_applied": "Applied suggestion",
+      "approved": "Approved",
+      "changes_requested": "Changes requested",
+      "proposed_revision": "Revision proposed",
+      "merged": "Merged",
+      "closed": "Closed",
+      "confirmed": "Confirmed"
     },
     "tooltip": {
       "from": "From: {value}",

@@ -22,7 +22,7 @@
 // `node --test` discovers everything under test/, so this file is also executed
 // as a test file with no tests in it — which passes, and is why nothing here may
 // throw at module scope.
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { parse, compileScript } from 'vue/compiler-sfc'
 import { JSDOM } from 'jsdom'
@@ -52,10 +52,16 @@ for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGE
 // The alternative is writing the compiled file next to its source so Node
 // resolves it normally, but `node --test` runs each file in its own process and
 // a process that dies mid-run would leave that file behind under src/.
+// `from` must not be a property name (`tooltip.from', {...}` in a locale key).
 function absolutizeImports(code, sfcPath) {
   const base = pathToFileURL(sfcPath)
-  return code.replaceAll(/(\bfrom\s*|\bimport\s*\(\s*)(['"])([^'"]+)\2/g, (_m, head, q, spec) => {
-    const href = spec.startsWith('.') ? new URL(spec, base).href : import.meta.resolve(spec)
+  return code.replaceAll(/((?<![.\w])from\s*|\bimport\s*\(\s*)(['"])([^'"]+)\2/g, (_m, head, q, spec) => {
+    // Vite resolves extensionless relative imports (`'../api'`); Node does not.
+    const rel = () => {
+      const url = new URL(spec, base)
+      return existsSync(url) || /\.\w+$/.test(spec) ? url.href : `${url.href}.js`
+    }
+    const href = spec.startsWith('.') ? rel() : import.meta.resolve(spec)
     return `${head}${q}${href}${q}`
   })
 }
@@ -94,4 +100,25 @@ export async function renderSfc(component, props = {}, slots = {}) {
 // asked without them.
 export function stripComments(html) {
   return html.replaceAll(/<!--[\s\S]*?-->/g, '').trim()
+}
+
+// Like renderSfc, but for components that load data on mount: waits until
+// `ready(html)` is true (or ~1s passes), then returns the HTML it last saw. `ready` is first asked after a tick.
+export async function renderSfcSettled(component, props = {}, ready = () => true) {
+  const { createApp, h } = await import('vue')
+  const { i18n } = await import('../../src/i18n.js')
+  const app = createApp({ render: () => h(component, props) })
+  app.use(i18n)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  app.mount(host)
+  // Ticks first, then asks: the initial render is rarely the settled one.
+  for (let i = 0; i < 100; i++) {
+    await new Promise(resolve => setTimeout(resolve, 10))
+    if (ready(host.innerHTML)) break
+  }
+  const html = host.innerHTML
+  app.unmount()
+  host.remove()
+  return html
 }

@@ -349,6 +349,7 @@
   },
   "history": {
     "empty": "No history yet.",
+    "error_load": "Failed to load history: {message}",
     "field_count": "{count} field | {count} fields",
     "showing_limit": "Showing 50 of {total}",
     "more": "+{count} more",

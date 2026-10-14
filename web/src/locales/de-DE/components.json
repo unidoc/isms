@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "Noch kein Verlauf.",
+    "error_load": "Verlauf konnte nicht geladen werden: {message}",
     "field_count": "{count} Feld | {count} Felder",
     "showing_limit": "Zeige 50 von {total}",
     "more": "+{count} weitere",

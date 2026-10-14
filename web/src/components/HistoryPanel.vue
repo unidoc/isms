@@ -1,6 +1,7 @@
 <template>
   <div>
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
+    <div v-else-if="error" class="text-sm text-red-400 py-2">{{ error }}</div>
     <div v-else-if="grouped.length === 0" class="text-sm text-slate-600 italic py-2">{{ $t('components.history.empty') }}</div>
     <div v-else class="max-h-[50vh] overflow-y-auto">
       <table class="w-full text-xs">
@@ -39,6 +40,7 @@ import { api } from '../api'
 import { formatDate as formatDateValue } from '../composables/useFormat.js'
 import { useI18n } from 'vue-i18n'
 import { useMembers } from '../composables/useMembers.js'
+import { renderApiError } from '../composables/useApiError.js'
 
 const { t } = useI18n()
 const { nameFor, labelFor } = useMembers()
@@ -50,6 +52,7 @@ const props = defineProps({
 
 const history = ref([])
 const loading = ref(false)
+const error = ref('')
 
 function shortAction(e) {
   const m = {
@@ -141,11 +144,15 @@ const grouped = computed(() => {
 
 async function loadHistory() {
   loading.value = true
+  error.value = ''
   try {
     const data = await api.getEntityChangelog(props.entityType, props.entityId)
     const items = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : [])
     history.value = items.sort((a, b) => toEpoch(b.created_at) - toEpoch(a.created_at))
-  } catch { history.value = [] }
+  } catch (e) {
+    history.value = []
+    error.value = t('components.history.error_load', { message: renderApiError(e) || t('common.state.unknown') })
+  }
   loading.value = false
 }
 

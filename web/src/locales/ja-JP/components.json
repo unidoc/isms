@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "履歴はまだありません。",
+    "error_load": "履歴の読み込みに失敗しました: {message}",
     "field_count": "フィールド{count}件 | フィールド{count}件",
     "showing_limit": "{total} 件中50件を表示",
     "more": "+{count} 件",

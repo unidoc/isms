@@ -1123,6 +1123,7 @@
   "components.history.action.suggestion_applied",
   "components.history.action.update",
   "components.history.empty",
+  "components.history.error_load",
   "components.history.field_count",
   "components.history.more",
   "components.history.showing_limit",

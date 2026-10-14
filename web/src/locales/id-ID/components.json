@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "Belum ada riwayat.",
+    "error_load": "Gagal memuat riwayat: {message}",
     "field_count": "{count} kolom | {count} kolom",
     "showing_limit": "Menampilkan 50 dari {total}",
     "more": "+{count} lagi",

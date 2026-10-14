@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "Nenhum histórico ainda.",
+    "error_load": "Falha ao carregar o histórico: {message}",
     "field_count": "{count} campo | {count} campos",
     "showing_limit": "Exibindo 50 de {total}",
     "more": "+{count} mais",

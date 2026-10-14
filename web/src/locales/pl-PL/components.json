@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "Brak historii.",
+    "error_load": "Nie udało się wczytać historii: {message}",
     "field_count": "{count} pole | {count} pól",
     "showing_limit": "Wyświetlono 50 z {total}",
     "more": "+{count} więcej",

@@ -345,6 +345,7 @@
   },
   "history": {
     "empty": "Engin saga ennþá.",
+    "error_load": "Ekki tókst að sækja sögu: {message}",
     "field_count": "{count} svæði | {count} svæði",
     "showing_limit": "Sýni 50 af {total}",
     "more": "+{count} til viðbótar",

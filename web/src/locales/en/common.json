@@ -21,7 +21,8 @@
     "approve": "Approve",
     "add": "Add",
     "discard_draft": "Discard draft",
-    "discard": "Discard"
+    "discard": "Discard",
+    "retry": "Retry"
   },
   "state": {
     "loading": "Loading…",

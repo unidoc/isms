@@ -21,7 +21,8 @@
     "approve": "Zatwierdź",
     "add": "Dodaj",
     "discard_draft": "Odrzuć szkic",
-    "discard": "Odrzuć"
+    "discard": "Odrzuć",
+    "retry": "Spróbuj ponownie"
   },
   "state": {
     "loading": "Wczytywanie…",

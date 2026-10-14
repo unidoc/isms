@@ -27,7 +27,7 @@ const json = (status, body) => new Response(JSON.stringify(body), {
 
 // The changelog URL gets the scenario's answer; anything else (the member list
 // the panel also loads) gets an empty 200.
-async function mount(changelog) {
+async function mount(changelog, interact) {
   let answered = false
   globalThis.fetch = async (url) => {
     if (!String(url).includes('/changelog/')) return json(200, [])
@@ -35,7 +35,7 @@ async function mount(changelog) {
   }
   // The initial render already shows the empty text, before the load starts, so
   // "settled" is the changelog request having been answered (and a tick since).
-  return renderSfcSettled(HistoryPanel, { entityType: 'risk', entityId: '1' }, () => answered)
+  return renderSfcSettled(HistoryPanel, { entityType: 'risk', entityId: '1' }, () => answered, interact)
 }
 
 test('a 500 shows the error state, not the empty text', async () => {
@@ -69,4 +69,35 @@ test('control: a history with one entry renders a row and neither text', async (
   assert.ok(html.includes('<tr'), `row missing: ${html}`)
   assert.ok(!html.includes(EMPTY_TEXT), `empty text rendered: ${html}`)
   assert.ok(!html.includes(ERROR_TEXT), `error text rendered: ${html}`)
+})
+
+test('the error state offers Retry; empty and populated states do not', async () => {
+  const failed = await mount(async () => json(500, { message: 'boom' }))
+  assert.ok(failed.includes('<button'), `Retry button missing: ${failed}`)
+  assert.ok(failed.includes('Retry'), `Retry label missing: ${failed}`)
+  const empty = await mount(async () => json(200, []))
+  assert.ok(!empty.includes('<button'), `button rendered for empty history: ${empty}`)
+  const rows = await mount(async () => json(200, [
+    { action: 'create', changed_by: 'a@b.c', created_at: 1760000000 },
+  ]))
+  assert.ok(!rows.includes('<button'), `button rendered for populated history: ${rows}`)
+})
+
+test('clicking Retry reloads: the error clears and the row renders', async () => {
+  let calls = 0
+  const html = await mount(async () => {
+    calls++
+    return calls === 1
+      ? json(500, { message: 'boom' })
+      : json(200, [{ action: 'create', changed_by: 'a@b.c', created_at: 1760000000 }])
+  }, async (host, settle) => {
+    const button = host.querySelector('button')
+    assert.ok(button, `no Retry button to click: ${host.innerHTML}`)
+    button.click()
+    await settle(h => h.includes('<tr'))
+  })
+  assert.equal(calls, 2, 'Retry did not re-request the changelog')
+  assert.ok(html.includes('<tr'), `row missing after retry: ${html}`)
+  assert.ok(!html.includes(ERROR_TEXT), `error still shown after retry: ${html}`)
+  assert.ok(!html.includes(EMPTY_TEXT), `empty text shown after retry: ${html}`)
 })

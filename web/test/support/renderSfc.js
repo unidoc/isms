@@ -103,8 +103,9 @@ export function stripComments(html) {
 }
 
 // Like renderSfc, but for components that load data on mount: waits until
-// `ready(html)` is true (or ~1s passes), then returns the HTML it last saw. `ready` is first asked after a tick.
-export async function renderSfcSettled(component, props = {}, ready = () => true) {
+// `ready(html)` is true (or ~1s passes), then returns the HTML it last saw. `ready` is first asked after a tick. `interact(host, settle)`, if given,
+// runs after the first settle and may click and then `await settle(predicate)`.
+export async function renderSfcSettled(component, props = {}, ready = () => true, interact = null) {
   const { createApp, h } = await import('vue')
   const { i18n } = await import('../../src/i18n.js')
   const app = createApp({ render: () => h(component, props) })
@@ -112,11 +113,16 @@ export async function renderSfcSettled(component, props = {}, ready = () => true
   const host = document.createElement('div')
   document.body.appendChild(host)
   app.mount(host)
-  // Ticks first, then asks: the initial render is rarely the settled one.
-  for (let i = 0; i < 100; i++) {
-    await new Promise(resolve => setTimeout(resolve, 10))
-    if (ready(host.innerHTML)) break
+  const settle = async (isReady) => {
+    // Ticks first, then asks: the initial render is rarely the settled one.
+    for (let i = 0; i < 100; i++) {
+      await new Promise(resolve => setTimeout(resolve, 10))
+      if (isReady(host.innerHTML)) break
+    }
   }
+  await settle(ready)
+  // Optional: act on the mounted host (click a button), then wait again.
+  if (interact) await interact(host, settle)
   const html = host.innerHTML
   app.unmount()
   host.remove()

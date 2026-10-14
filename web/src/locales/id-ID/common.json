@@ -21,7 +21,8 @@
     "approve": "Setujui",
     "add": "Tambah",
     "discard_draft": "Buang draf",
-    "discard": "Buang"
+    "discard": "Buang",
+    "retry": "Coba lagi"
   },
   "state": {
     "loading": "Memuat…",

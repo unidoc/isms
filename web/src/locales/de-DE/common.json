@@ -21,7 +21,8 @@
     "approve": "Genehmigen",
     "add": "Hinzufügen",
     "discard_draft": "Entwurf verwerfen",
-    "discard": "Verwerfen"
+    "discard": "Verwerfen",
+    "retry": "Erneut versuchen"
   },
   "state": {
     "loading": "Wird geladen…",

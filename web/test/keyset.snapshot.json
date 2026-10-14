@@ -599,6 +599,7 @@
   "common.action.ok",
   "common.action.reply",
   "common.action.resolve",
+  "common.action.retry",
   "common.action.save",
   "common.action.search",
   "common.brand.product_name",

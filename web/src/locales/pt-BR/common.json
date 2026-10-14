@@ -21,7 +21,8 @@
     "approve": "Aprovar",
     "add": "Adicionar",
     "discard_draft": "Descartar rascunho",
-    "discard": "Descartar"
+    "discard": "Descartar",
+    "retry": "Tentar novamente"
   },
   "state": {
     "loading": "Carregando…",

@@ -68,6 +68,25 @@ class TestHistoryLoadError:
         expect(drawer.get_by_text(ERROR_TEXT)).to_be_visible(timeout=10000)
         expect(drawer.get_by_text(EMPTY_TEXT)).to_have_count(0)
 
+    def test_retry_reloads_the_history(self, page, tokens):
+        rid, title = seed_risk(tokens["admin"])
+        calls = []
+
+        def handler(route):
+            calls.append(1)
+            if len(calls) == 1:
+                route.fulfill(status=500, content_type="application/json", body='{"message": "boom"}')
+            else:
+                route.continue_()
+
+        page.route(CHANGELOG, handler)
+        drawer = open_history(page, rid, title)
+        expect(drawer.get_by_text(ERROR_TEXT)).to_be_visible(timeout=10000)
+        drawer.get_by_role("button", name="Retry", exact=True).click()
+        expect(drawer.locator("table tbody tr").first).to_be_visible(timeout=10000)
+        expect(drawer.get_by_text(ERROR_TEXT)).to_have_count(0)
+        expect(drawer.get_by_text(EMPTY_TEXT)).to_have_count(0)
+
     def test_control_real_history_renders(self, page, tokens):
         rid, title = seed_risk(tokens["admin"])
         drawer = open_history(page, rid, title)

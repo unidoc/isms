@@ -1,7 +1,10 @@
 <template>
   <div>
     <div v-if="loading" class="h-10 bg-slate-800 rounded animate-pulse" />
-    <div v-else-if="error" class="text-sm text-red-400 py-2">{{ error }}</div>
+    <div v-else-if="error" class="text-sm text-red-400 py-2">
+      {{ error }}
+      <button type="button" @click="loadHistory" class="ml-2 text-xs text-blue-400 hover:text-blue-300 transition-colors">{{ $t('common.action.retry') }}</button>
+    </div>
     <div v-else-if="grouped.length === 0" class="text-sm text-slate-600 italic py-2">{{ $t('components.history.empty') }}</div>
     <div v-else class="max-h-[50vh] overflow-y-auto">
       <table class="w-full text-xs">

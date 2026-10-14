@@ -21,7 +21,8 @@
     "approve": "Approuver",
     "add": "Ajouter",
     "discard_draft": "Abandonner le brouillon",
-    "discard": "Abandonner"
+    "discard": "Abandonner",
+    "retry": "Réessayer"
   },
   "state": {
     "loading": "Chargement…",

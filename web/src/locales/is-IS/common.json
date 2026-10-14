@@ -21,7 +21,8 @@
     "approve": "Samþykkja",
     "add": "Bæta við",
     "discard_draft": "Henda drögum",
-    "discard": "Henda"
+    "discard": "Henda",
+    "retry": "Reyna aftur"
   },
   "state": {
     "loading": "Hleð…",

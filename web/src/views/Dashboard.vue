@@ -543,6 +543,7 @@ import { formatDate, formatHours, formatMonthShort } from '../composables/useFor
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { useMembers } from '../composables/useMembers.js'
+import { isRiskReviewOverdue } from '../utils/reviewDue.js'
 
 const { t } = useI18n()
 const { nameFor } = useMembers()
@@ -648,7 +649,7 @@ const totalOverdueCount = computed(() => {
     const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
     return !isNaN(d.getTime()) && d < nowDate
   }
-  count += asArray(risks.value).filter(r => checkDate(r.review_date)).length
+  count += asArray(risks.value).filter(r => isRiskReviewOverdue(r, nowDate)).length
   count += asArray(suppliers.value).filter(s => checkDate(s.next_review)).length
   count += asArray(legal.value).filter(l => checkDate(l.next_review)).length
   count += asArray(tasks.value).filter((task) => task.status !== 'done' && task.status !== 'cancelled' && checkDate(task.due_date)).length
@@ -713,7 +714,7 @@ const calendarData = computed(() => {
   // Risk reviews
   for (const r of asArray(risks.value)) {
     const m = parseMonth(r.review_date || r.next_review)
-    if (m >= 0) items.push({ key: 'risk', month: m, id: 'r-' + r.id, label: r.title || r.identifier, short: (r.identifier || r.title || '').substring(0, 12), overdue: m < currentMonth })
+    if (m >= 0) items.push({ key: 'risk', month: m, id: 'r-' + r.id, label: r.title || r.identifier, short: (r.identifier || r.title || '').substring(0, 12), overdue: m < currentMonth && r.status !== 'closed' })
   }
   // Supplier reviews
   for (const s of asArray(suppliers.value)) {

@@ -98,7 +98,7 @@ func openOrgRepo(org db.Organization) (*store.Store, error) {
 		return nil, err
 	}
 	if fellBack {
-		fmt.Fprintf(os.Stderr, "warning: org %s: stored repo path %s does not exist; using %s under ISMS_DATA_DIR\n",
+		fmt.Fprintf(os.Stderr, "warning: org %s: stored repo path %s cannot be opened; using %s under ISMS_DATA_DIR\n",
 			org.Slug, org.RepoPath, path)
 	}
 	return store.NewBare(path)

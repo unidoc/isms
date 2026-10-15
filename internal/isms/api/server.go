@@ -200,8 +200,8 @@ func (s *Server) storeForOrg(ctx context.Context, orgID int) (*store.Store, erro
 		return nil, fmt.Errorf("opening repo for org %d: %w", orgID, err)
 	}
 	if fellBack {
-		log.Printf("WARNING: org %s: stored repo path %s does not exist; using %s under ISMS_DATA_DIR. The stored path can be updated to match.",
-			org.Slug, org.RepoPath, repoPath)
+		log.Printf("WARNING: org %s: stored repo path %s cannot be opened; using %s under ISMS_DATA_DIR. Run `isms server org set-repo-path --org %s --path %s` to make it permanent.",
+			org.Slug, org.RepoPath, repoPath, org.Slug, repoPath)
 	}
 	st, err := store.NewBare(repoPath)
 	if err != nil {

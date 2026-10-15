@@ -421,7 +421,7 @@ rsync -a /var/backups/isms/blobs/ /var/lib/isms/data/ --exclude repos/
 isms server serve --addr :8080
 ```
 
-The git repos must match the Postgres state. The `organizations` table stores the `repo_path` for each org. If you move repos, update those paths.
+The git repos must match the Postgres state. The `organizations` table stores the `repo_path` for each org. If that path no longer opens (for example after moving the data directory), the server falls back to `$ISMS_DATA_DIR/repos/<slug>.git` and logs a warning naming both paths. The stored path wins whenever it still opens, so remove or move any old copy left there. The database row is never rewritten automatically; see [Git repo not found for organization](#git-repo-not-found-for-organization) to make the new location permanent.
 
 ## Upgrade procedure
 
@@ -537,7 +537,7 @@ OIDC client secrets are encrypted in the database with `ISMS_SECRET`. To rotate 
 1. Provision a new server with PostgreSQL
 2. Create the database: `createdb isms`
 3. Restore the Postgres dump: `pg_restore -d isms isms-pg-TIMESTAMP.dump`
-4. Restore git repos to the same path (or update `organizations.repo_path` rows in Postgres)
+4. Restore git repos to `$ISMS_DATA_DIR/repos/<slug>.git` (the server finds them there even if the stored `repo_path` is stale; use `isms server org set-repo-path` for repos kept elsewhere)
 5. Restore blob store files
 6. Deploy the same (or newer) binary
 7. Set environment variables (same `ISMS_SECRET` — if you lost it, see secret rotation above)
@@ -682,11 +682,15 @@ There is intentionally **no default org/role**: which org someone belongs to, an
 
 ### Git repo not found for organization
 
-The `organizations` table stores `repo_path` for each org. If the path doesn't exist, the server initializes it on first access. If you moved data directories, update the paths:
+The `organizations` table stores `repo_path` for each org. If the stored path does not open as a git repository, the server and `isms server references check` fall back to `$ISMS_DATA_DIR/repos/<slug>.git` and log a warning naming both paths. If neither opens, the error names both paths. The server never creates a missing repo.
 
-```sql
-UPDATE organizations SET repo_path = '/new/path/repos/myco.git' WHERE slug = 'myco';
+The stored path wins whenever it still opens, so an old copy left at the old location keeps being used: remove or move it. The database row is never rewritten automatically. To make the new location permanent (this is required for orgs created with `--repo-path` outside the data directory), run:
+
+```bash
+isms server org set-repo-path --org myco --path /new/path/repos/myco.git
 ```
+
+The path must open as a git repository. Restart the server afterwards, because it keeps each org's repo open for the life of the process.
 
 ### Checking database migration state
 

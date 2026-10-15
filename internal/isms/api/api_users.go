@@ -267,7 +267,7 @@ func (s *Server) handleCreateOrganization(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "this slug is reserved")
 	}
 
-	// Determine repo path — ISMS_DATA_DIR is required and resolved to absolute at startup.
+	// Determine repo path — ISMS_DATA_DIR is required; it is used as given, so a relative value yields a relative repo path.
 	dataDir := os.Getenv("ISMS_DATA_DIR")
 	if dataDir == "" {
 		return echo.NewHTTPError(http.StatusInternalServerError, "ISMS_DATA_DIR not configured")

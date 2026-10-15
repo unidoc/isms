@@ -441,11 +441,6 @@ func (s *Server) handleRemoveTemplate(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 
-	org, err := s.db.GetOrganization(ctx, orgID)
-	if err != nil {
-		return errNotFound("organization")
-	}
-
 	st, err := s.storeForOrg(ctx, orgID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -459,7 +454,7 @@ func (s *Server) handleRemoveTemplate(c echo.Context) error {
 	}
 
 	// The template documents live under documents/<template>/
-	dirPath := filepath.Join(org.RepoPath, "documents", name)
+	dirPath := filepath.Join(st.Root(), "documents", name)
 	commitHash, err := st.DeleteDirectory(dirPath, authorName, email,
 		fmt.Sprintf("chore: remove %s template documents", name))
 	if err != nil {

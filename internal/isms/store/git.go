@@ -45,6 +45,31 @@ func NewBare(repoPath string) (*Store, error) {
 	return &Store{root: repoPath, repo: r}, nil
 }
 
+// ResolveRepoPath returns where an org's bare repo lives. The stored path (the
+// organizations.repo_path column) wins when it opens; otherwise the repo is
+// looked up under dataDir/repos/<slug>.git, which is where it sits after the
+// data dir was moved to another machine or path. fellBack reports the second
+// case. dataDir may be relative; an empty dataDir disables the fallback.
+func ResolveRepoPath(stored, dataDir, slug string) (path string, fellBack bool, err error) {
+	_, storedErr := git.PlainOpen(stored)
+	if storedErr == nil {
+		return stored, false, nil
+	}
+	if dataDir == "" {
+		return "", false, fmt.Errorf("opening repo %s: %w (ISMS_DATA_DIR not set, no fallback)", stored, storedErr)
+	}
+	abs, err := filepath.Abs(dataDir)
+	if err != nil {
+		return "", false, fmt.Errorf("resolving ISMS_DATA_DIR %q: %w", dataDir, err)
+	}
+	fallback := filepath.Join(abs, "repos", slug+".git")
+	if _, err := git.PlainOpen(fallback); err != nil {
+		return "", false, fmt.Errorf("repo for org %q not found at stored path %s (%v) or at %s (%v)",
+			slug, stored, storedErr, fallback, err)
+	}
+	return fallback, true, nil
+}
+
 // headTree returns the tree object for the HEAD commit.
 func (s *Store) headTree() (*object.Tree, error) {
 	ref, err := s.repo.Head()

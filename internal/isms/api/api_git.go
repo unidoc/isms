@@ -46,7 +46,11 @@ func (s *Server) resolveGitOrg(c echo.Context) (string, error) {
 	c.Set("org_id", org.ID)
 	c.Set("user_role", role)
 
-	return org.RepoPath, nil
+	st, err := s.storeForOrg(c.Request().Context(), org.ID)
+	if err != nil {
+		return "", echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return st.Root(), nil
 }
 
 // handleGitInfoRefs handles GET /git/:uuid/info/refs for the git smart HTTP protocol.

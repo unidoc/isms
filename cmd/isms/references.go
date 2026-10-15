@@ -93,5 +93,13 @@ func referencesExit(res refs.CheckResult) error {
 // openOrgRepo opens an org's bare repo read-only: PlainOpen never creates one,
 // so a repo missing on this machine is an error, not an empty store.
 func openOrgRepo(org db.Organization) (*store.Store, error) {
-	return store.NewBare(org.RepoPath)
+	path, fellBack, err := store.ResolveRepoPath(org.RepoPath, os.Getenv("ISMS_DATA_DIR"), org.Slug)
+	if err != nil {
+		return nil, err
+	}
+	if fellBack {
+		fmt.Fprintf(os.Stderr, "warning: org %s: stored repo path %s does not exist; using %s under ISMS_DATA_DIR\n",
+			org.Slug, org.RepoPath, path)
+	}
+	return store.NewBare(path)
 }

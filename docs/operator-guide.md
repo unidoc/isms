@@ -579,17 +579,17 @@ If you have no backup but need to get running again:
 
 ### Checking references
 
-Records link to each other (a risk to a legal requirement, an incident to a task, and so on). The API only accepts a link whose two ends exist, but links saved by older versions may point at nothing, and a link to a record that was later deleted stays behind. Run the check after upgrading from a version that predates reference validation, and now and then afterwards:
+Records link to each other (a risk to a legal requirement, an incident to a task, and so on). The API only accepts a link whose two ends exist, but links saved by older versions may point at nothing, and a link to a record that was later deleted stays behind. Some links are also stored under the other spelling of a record (a program by row id instead of its key, an objective by row id instead of its display id, an audit, finding or audit programme by bare number instead of `AUDIT-`, `FIND-` or `AP-`), which can show the same record twice on a Links tab. Run the check after upgrading, since links made by older versions may be stored that way, and now and then afterwards:
 
 ```bash
 isms server references check            # report only, changes nothing
 isms server references check --org acme # one organization
-isms server references check --fix      # delete the broken links it listed
+isms server references check --fix      # delete the broken links, rewrite or merge the rest
 ```
 
-The report lists each broken link with the reason: a bare number instead of an identifier, a record that does not exist, a record that was deleted, or a document that is not in the repo. If a lookup itself fails (an organization's git repo is missing on this machine, or the database errors), those links are listed as `unchecked` and are never deleted, even with `--fix`.
+The report lists each broken link with the reason: a bare number instead of an identifier, a record that does not exist, a record that was deleted, or a document that is not in the repo. Links under the other spelling of a record are listed after them, with the id they should have and whether `--fix` rewrites them or merges them into the link that already uses it (the merged link stays manual if either was). Comment mentions stored that way are rewritten too. If a lookup itself fails (an organization's git repo is missing on this machine, or the database errors), those links are listed as `unchecked` and are never deleted, even with `--fix`.
 
-The command exits 0 when every link resolves (with `--fix`: when every broken link was deleted and none was unchecked) and 1 when broken or unchecked links remain. Run it on the server machine with the server's environment, since it needs `DATABASE_URL` and read access to every organization's repo.
+The command exits 0 when every link resolves and uses its canonical id (with `--fix`: when every broken link was deleted, every other link was rewritten or merged, and none was unchecked) and 1 when broken, unchecked or non-canonical links remain. Run it on the server machine with the server's environment, since it needs `DATABASE_URL` and read access to every organization's repo.
 
 ### Annually
 

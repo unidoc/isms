@@ -847,6 +847,9 @@ func TestCheckCanonical(t *testing.T) {
 		res, out := run(org, false)
 		_, _, _, canonSums := split(out)
 		has(t, out, org.Slug+": 2 comment mention rows use a non-canonical id", "total: 2 comment mention rows use a non-canonical id")
+		if strings.Contains(out, "mention rows uses") {
+			t.Errorf("plural verb must agree:\n%s", out)
+		}
 		if res.NonCanonicalComments != 2 || res.NonCanonical != 2 {
 			t.Errorf("result = %+v\n%v", res, canonSums)
 		}
@@ -881,6 +884,19 @@ func TestCheckCanonical(t *testing.T) {
 				t.Errorf("comment-only link survived its comment: %+v", r)
 			}
 		}
+	})
+
+	t.Run("a single comment mention row reads in the singular", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-single")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		risk := s.risk("r")
+		s.link("risk", risk.Identifier, "program", str(prog.ID), true)
+		s.commentMention("entity_comment", 4244, "risk", risk.Identifier, "program", str(prog.ID))
+		_, out := run(org, false)
+		has(t, out, org.Slug+": 1 comment mention row uses a non-canonical id", "total: 1 comment mention row uses a non-canonical id")
+		_, out = run(org, true)
+		has(t, out, org.Slug+": fixed 1 comment mention row")
 	})
 
 	t.Run("a broken pair is only broken, even if its healthy end is non-canonical", func(t *testing.T) {

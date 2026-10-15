@@ -243,12 +243,12 @@ func Check(ctx context.Context, d *db.DB, w io.Writer, opts CheckOptions) (Check
 				summary(of.org.Slug, len(of.canon), of.canonRows, of.duplicates)
 			}
 			if len(of.commentRows) > 0 {
-				fmt.Fprintf(w, "%s: %s use a non-canonical id\n", of.org.Slug, plural(len(of.commentRows), "comment mention row"))
+				fmt.Fprintf(w, "%s: %s a non-canonical id\n", of.org.Slug, useVerb(len(of.commentRows), "comment mention row"))
 			}
 		}
 		summary("total", res.NonCanonical, res.NonCanonicalRows, res.Duplicates)
 		if res.NonCanonicalComments > 0 {
-			fmt.Fprintf(w, "total: %s use a non-canonical id\n", plural(res.NonCanonicalComments, "comment mention row"))
+			fmt.Fprintf(w, "total: %s a non-canonical id\n", useVerb(res.NonCanonicalComments, "comment mention row"))
 		}
 	}
 
@@ -547,6 +547,14 @@ func plural(n int, word string) string {
 		return fmt.Sprintf("1 %s", word)
 	}
 	return fmt.Sprintf("%d %ss", n, word)
+}
+
+// useVerb renders a count with its noun and a verb that agrees with it.
+func useVerb(n int, word string) string {
+	if n == 1 {
+		return plural(n, word) + " uses"
+	}
+	return plural(n, word) + " use"
 }
 
 func allDigits(s string) bool {

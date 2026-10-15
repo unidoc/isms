@@ -17,7 +17,7 @@ func orgCmd() *cobra.Command {
 		Short: "Manage organizations (multi-tenant)",
 	}
 
-	cmd.AddCommand(orgCreateCmd(), orgListCmd(), orgAddMemberCmd(), orgMembersCmd())
+	cmd.AddCommand(orgCreateCmd(), orgListCmd(), orgAddMemberCmd(), orgMembersCmd(), orgSetRepoPathCmd())
 	return cmd
 }
 
@@ -105,6 +105,62 @@ func orgCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&repoPath, "repo-path", "", "Path to bare git repo (default: $ISMS_DATA_DIR/repos/{slug}.git or ./data/repos/{slug}.git)")
 	cmd.Flags().StringVar(&domain, "domain", "", "Custom domain (e.g. isms.mycompany.com)")
 
+	return cmd
+}
+
+// validateRepoPath absolutises path and checks that it opens as a git repo.
+func validateRepoPath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolving --path: %w", err)
+	}
+	if _, err := git.PlainOpen(abs); err != nil {
+		return "", fmt.Errorf("%s is not a git repository: %w", abs, err)
+	}
+	return abs, nil
+}
+
+func orgSetRepoPathCmd() *cobra.Command {
+	var slug, path string
+
+	cmd := &cobra.Command{
+		Use:   "set-repo-path",
+		Short: "Update where an organization's git repo is stored (e.g. after moving the data dir)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if slug == "" {
+				return fmt.Errorf("--org is required")
+			}
+			if path == "" {
+				return fmt.Errorf("--path is required")
+			}
+			abs, err := validateRepoPath(path)
+			if err != nil {
+				return err
+			}
+			d, err := connectDB()
+			if err != nil {
+				return err
+			}
+			defer d.Close()
+
+			ctx := cmd.Context()
+			org, err := d.GetOrganizationBySlug(ctx, slug)
+			if err != nil {
+				return fmt.Errorf("organization %q not found", slug)
+			}
+			if err := d.SetOrganizationRepoPath(ctx, org.ID, abs); err != nil {
+				return fmt.Errorf("updating repo path: %w", err)
+			}
+			fmt.Printf("Repo path for %s updated:\n", org.Slug)
+			fmt.Printf("  Old: %s\n", org.RepoPath)
+			fmt.Printf("  New: %s\n", abs)
+			fmt.Printf("\nRestart a running server to pick up the change.\n")
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&slug, "org", "", "Organization slug (required)")
+	cmd.Flags().StringVar(&path, "path", "", "Path to the bare git repo (required)")
 	return cmd
 }
 

@@ -470,6 +470,22 @@ func (d *DB) DeleteOrganization(ctx context.Context, orgID int) error {
 	return err
 }
 
+// SetOrganizationRepoPath updates where an organization's bare git repo lives.
+// It errors when no live organization has the id.
+func (d *DB) SetOrganizationRepoPath(ctx context.Context, orgID int, path string) error {
+	tag, err := d.pool.Exec(ctx, `
+		UPDATE organizations SET repo_path = $2, updated_at = now()
+		WHERE id = $1 AND deleted_at IS NULL
+	`, orgID, path)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("organization %d not found", orgID)
+	}
+	return nil
+}
+
 // HardDeleteOrganization permanently removes an org row and, via ON DELETE
 // CASCADE (every organization_id foreign key in the schema cascades), every
 // row across every table that belonged to it. There is no undo.

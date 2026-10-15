@@ -203,24 +203,44 @@ func rowSet(t *testing.T, d *db.DB, orgID int) []string {
 
 type reportLine struct{ Org, Source, Target, Reason string }
 
+// canonLine is one row of the non-canonical table.
+type canonLine struct{ Org, Stored, Canonical, Action string }
+
 var gap = regexp.MustCompile(` {2,}`)
 
-// parse splits a Check report into its table rows and its summary lines.
-func parse(out string) (rows []reportLine, summaries []string) {
+// split divides a Check report into the broken table, the non-canonical table
+// and the summary lines of each. The two tables are told apart by their header.
+func split(out string) (broken []reportLine, canon []canonLine, brokenSums, canonSums []string) {
+	inCanon := false
 	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
 		switch {
+		case strings.HasPrefix(line, "ORG ") && strings.Contains(line, "STORED"):
+			inCanon = true
 		case strings.HasPrefix(line, "ORG "):
-		case strings.HasPrefix(line, "deleted "):
-			summaries = append(summaries, line)
-		case strings.Contains(line, " broken pair") || strings.Contains(line, " 0 broken"):
-			summaries = append(summaries, line)
+			inCanon = false
+		case strings.HasPrefix(line, "deleted ") || strings.Contains(line, " broken pair") || strings.Contains(line, " 0 broken"):
+			brokenSums = append(brokenSums, line)
+		case strings.HasPrefix(line, "rewrote ") || strings.HasPrefix(line, "merged ") ||
+			strings.Contains(line, "non-canonical") || strings.Contains(line, "comment mention"):
+			canonSums = append(canonSums, line)
 		default:
 			f := gap.Split(strings.TrimSpace(line), -1)
-			if len(f) == 4 {
-				rows = append(rows, reportLine{f[0], f[1], f[2], f[3]})
+			if len(f) != 4 {
+				continue
+			}
+			if inCanon {
+				canon = append(canon, canonLine{f[0], f[1], f[2], f[3]})
+			} else {
+				broken = append(broken, reportLine{f[0], f[1], f[2], f[3]})
 			}
 		}
 	}
+	return
+}
+
+// parse returns the broken table and the broken-section summary lines.
+func parse(out string) (rows []reportLine, summaries []string) {
+	rows, _, summaries, _ = split(out)
 	return rows, summaries
 }
 
@@ -255,15 +275,17 @@ func TestCheck(t *testing.T) {
 	aAudit := a.audit()
 	aDeleted := a.risk("a risk to delete")
 
-	// Valid.
+	// Valid and canonical.
 	a.link("risk", aRisk.Identifier, "legal_requirement", aLegal.Identifier, true)
 	a.link("incident", aInc.Identifier, "task", aTask.Identifier, true)
 	a.link("change_request", aCR.Identifier, "document", "doc-1", true)
 	a.link("risk", aRisk.Identifier, "program", "PA", true)
-	a.link("incident", aInc.Identifier, "program", strconv.FormatInt(aProg.ID, 10), true)
 	a.link("risk", aRisk.Identifier, "objective", aObj.DisplayID, true)
-	a.link("incident", aInc.Identifier, "objective", strconv.FormatInt(aObj.ID, 10), true)
 	a.link("task", aTask.Identifier, "audit", fmt.Sprintf("AUDIT-%d", aAudit.ID), true)
+	// Resolve, but stored under the other spelling: two get rewritten, the audit
+	// one is a duplicate of the canonical row above and is merged into it.
+	a.link("incident", aInc.Identifier, "program", strconv.FormatInt(aProg.ID, 10), true)
+	a.link("incident", aInc.Identifier, "objective", strconv.FormatInt(aObj.ID, 10), true)
 	a.link("task", aTask.Identifier, "audit", strconv.Itoa(aAudit.ID), true)
 	// Broken.
 	a.link("incident", aInc.Identifier, "legal_requirement", strconv.FormatInt(aLegal.ID, 10), true)
@@ -309,6 +331,9 @@ func TestCheck(t *testing.T) {
 		{orgA.Slug, "risk " + aRisk.Identifier, "document no-such-doc", "not found"},
 	}
 
+	aProgID, aObjID := strconv.FormatInt(aProg.ID, 10), strconv.FormatInt(aObj.ID, 10)
+	aAuditNum := strconv.Itoa(aAudit.ID)
+	aLegalRowID := strconv.FormatInt(aLegal.ID, 10)
 	beforeA, beforeB, beforeC := rowSet(t, d, orgA.ID), rowSet(t, d, orgB.ID), rowSet(t, d, orgC.ID)
 
 	t.Run("report lists exactly the broken pairs and changes nothing", func(t *testing.T) {
@@ -325,6 +350,22 @@ func TestCheck(t *testing.T) {
 		wantSums := []string{orgA.Slug + ": 5 broken pairs (9 rows)", "total: 5 broken pairs (9 rows)"}
 		if fmt.Sprint(sums) != fmt.Sprint(wantSums) {
 			t.Errorf("summaries = %q, want %q", sums, wantSums)
+		}
+		_, canon, _, canonSums := split(out)
+		wantCanon := []canonLine{
+			{orgA.Slug, "incident " + aInc.Identifier + " -> program " + aProgID, "incident " + aInc.Identifier + " -> program PA", "rewrite"},
+			{orgA.Slug, "incident " + aInc.Identifier + " -> objective " + aObjID, "incident " + aInc.Identifier + " -> objective " + aObj.DisplayID, "rewrite"},
+			{orgA.Slug, "task " + aTask.Identifier + " -> audit " + aAuditNum, "task " + aTask.Identifier + " -> audit AUDIT-" + aAuditNum, "merge (duplicate)"},
+		}
+		if fmt.Sprint(canon) != fmt.Sprint(wantCanon) {
+			t.Errorf("non-canonical rows:\n got %v\nwant %v\nfull output:\n%s", canon, wantCanon, out)
+		}
+		wantCanonSums := []string{orgA.Slug + ": 3 non-canonical pairs (6 rows), 1 duplicate", "total: 3 non-canonical pairs (6 rows), 1 duplicate"}
+		if fmt.Sprint(canonSums) != fmt.Sprint(wantCanonSums) {
+			t.Errorf("non-canonical summaries = %q, want %q", canonSums, wantCanonSums)
+		}
+		if res.NonCanonical != 3 || res.NonCanonicalRows != 6 || res.Duplicates != 1 || res.Fixed != 0 {
+			t.Errorf("result = %+v, want 3 non-canonical (6 rows), 1 duplicate, 0 fixed", res)
 		}
 		if got := rowSet(t, d, orgA.ID); fmt.Sprint(got) != fmt.Sprint(beforeA) {
 			t.Errorf("a read-only check changed the rows:\nbefore %v\nafter  %v", beforeA, got)
@@ -381,12 +422,21 @@ func TestCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("fix deletes exactly the broken rows, and a second check is clean", func(t *testing.T) {
-		res, _, sums, out := run(orgA.Slug, true)
+	t.Run("fix deletes the broken rows, canonicalises the rest, and a second check is clean", func(t *testing.T) {
+		rowsBefore := refRows(t, d, orgA.ID)
+		res, _, _, out := run(orgA.Slug, true)
 		if res.Broken != 5 || res.Deleted != 5 || res.DeletedRows != 9 {
 			t.Errorf("result = %+v, want 5 broken, 5 deleted (9 rows)", res)
 		}
-		for _, w := range []string{orgA.Slug + ": deleted 5 broken pairs (9 rows)", "total: deleted 5 broken pairs (9 rows)"} {
+		if res.Fixed != 3 || res.FixedRows != 6 || res.FixedComments != 0 {
+			t.Errorf("result = %+v, want 3 canonical pairs fixed (6 rows)", res)
+		}
+		for _, w := range []string{
+			orgA.Slug + ": deleted 5 broken pairs (9 rows)", "total: deleted 5 broken pairs (9 rows)",
+			orgA.Slug + ": fixed 3 non-canonical pairs (6 rows)", "total: fixed 3 non-canonical pairs (6 rows)",
+			"rewrote " + orgA.Slug + " incident " + aInc.Identifier + " -> program " + aProgID + " as incident " + aInc.Identifier + " -> program PA (2 rows)",
+			"merged " + orgA.Slug + " task " + aTask.Identifier + " -> audit " + aAuditNum + " into task " + aTask.Identifier + " -> audit AUDIT-" + aAuditNum + " (2 rows)",
+		} {
 			if !strings.Contains(out, w) {
 				t.Errorf("output lacks %q:\n%s", w, out)
 			}
@@ -394,32 +444,66 @@ func TestCheck(t *testing.T) {
 		if !strings.Contains(out, "deleted "+orgA.Slug+" task "+aTask.Identifier+" -> asset ASSET-999 (1 row)") {
 			t.Errorf("no per-pair deletion line for the one-direction row:\n%s", out)
 		}
-		_ = sums
 
-		// Compare by full row set: only the broken pairs' rows are gone.
-		afterA := rowSet(t, d, orgA.ID)
-		gone := map[string]bool{}
-		for _, row := range beforeA {
-			gone[row] = true
+		// The broken pairs' 9 rows are gone, the audit duplicate left 2 rows
+		// fewer, and nothing else was deleted.
+		rowsAfter := refRows(t, d, orgA.ID)
+		if want := len(rowsBefore) - 9 - 2; len(rowsAfter) != want {
+			t.Errorf("row count %d -> %d, want %d", len(rowsBefore), len(rowsAfter), want)
 		}
-		for _, row := range afterA {
-			delete(gone, row)
+		after := map[int64]string{}
+		for _, r := range rowsAfter {
+			after[r.ID] = fmt.Sprintf("%s %s -> %s %s", r.SourceType, r.SourceID, r.TargetType, r.TargetID)
 		}
-		if len(gone) != 9 {
-			t.Errorf("%d rows removed, want 9: %v", len(gone), gone)
-		}
-		for row := range gone {
-			if strings.Contains(row, "legal_requirement "+aLegal.Identifier) || strings.Contains(row, "program") ||
-				strings.Contains(row, "objective") || strings.Contains(row, "audit") || strings.Contains(row, "document doc-1") {
-				t.Errorf("a valid row was deleted: %s", row)
+		for _, r := range rowsBefore {
+			broken := strings.Contains(fmt.Sprint(r), "LEGAL-99999") || strings.Contains(fmt.Sprint(r), "ASSET-999") ||
+				strings.Contains(fmt.Sprint(r), "no-such-doc") || strings.Contains(fmt.Sprint(r), aDeleted.Identifier) ||
+				(r.SourceType == "legal_requirement" && r.SourceID == aLegalRowID) || (r.TargetType == "legal_requirement" && r.TargetID == aLegalRowID)
+			if _, ok := after[r.ID]; broken && ok {
+				t.Errorf("broken row %d survived the fix", r.ID)
 			}
 		}
-		if len(afterA) != len(beforeA)-9 {
-			t.Errorf("row count %d -> %d, want -9", len(beforeA), len(afterA))
+		// A rewritten row keeps its id and now reads canonically.
+		for _, c := range []struct {
+			aType, aID, bType, bID, want string
+		}{
+			{"incident", aInc.Identifier, "program", aProgID, "incident " + aInc.Identifier + " -> program PA"},
+			{"program", aProgID, "incident", aInc.Identifier, "program PA -> incident " + aInc.Identifier},
+			{"incident", aInc.Identifier, "objective", aObjID, "incident " + aInc.Identifier + " -> objective " + aObj.DisplayID},
+			{"objective", aObjID, "incident", aInc.Identifier, "objective " + aObj.DisplayID + " -> incident " + aInc.Identifier},
+		} {
+			id := findRow(t, rowsBefore, c.aType, c.aID, c.bType, c.bID)
+			if after[id] != c.want {
+				t.Errorf("row %d reads %q, want %q", id, after[id], c.want)
+			}
+		}
+		// The audit duplicate: the canonical rows stay, the bare ones are gone.
+		for _, c := range [][4]string{
+			{"task", aTask.Identifier, "audit", aAuditNum}, {"audit", aAuditNum, "task", aTask.Identifier},
+		} {
+			if id := findRow(t, rowsBefore, c[0], c[1], c[2], c[3]); after[id] != "" {
+				t.Errorf("bare audit row %d survived: %q", id, after[id])
+			}
+		}
+		var auditRows []string
+		for _, v := range after {
+			if strings.Contains(v, "audit ") {
+				auditRows = append(auditRows, v)
+			}
+		}
+		sort.Strings(auditRows)
+		wantAudit := []string{
+			"audit AUDIT-" + aAuditNum + " -> task " + aTask.Identifier,
+			"task " + aTask.Identifier + " -> audit AUDIT-" + aAuditNum,
+		}
+		if fmt.Sprint(auditRows) != fmt.Sprint(wantAudit) {
+			t.Errorf("audit rows = %v, want %v", auditRows, wantAudit)
 		}
 
 		res2, rows2, _, out2 := run(orgA.Slug, false)
-		if res2.Broken != 0 || res2.Unchecked != 0 || len(rows2) != 0 || !strings.Contains(out2, "0 broken") {
+		if res2.Broken != 0 || res2.Unchecked != 0 || res2.NonCanonical != 0 || res2.NonCanonicalComments != 0 || len(rows2) != 0 ||
+			!strings.Contains(out2, "0 broken pairs (0 rows): every reference resolves") ||
+			!strings.Contains(out2, "0 non-canonical pairs (0 rows): every reference uses its canonical id") {
 			t.Errorf("second check not clean: %+v\n%s", res2, out2)
 		}
 	})
@@ -453,4 +537,391 @@ func TestCheck(t *testing.T) {
 	})
 }
 
+// refRows is the org's whole entity_references table, ordered by row id.
+func refRows(t *testing.T, d *db.DB, orgID int) []db.EntityReference {
+	t.Helper()
+	var rows []db.EntityReference
+	err := d.WithOrgTx(context.Background(), orgID, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		rows, err = db.ListOrgReferencesTx(ctx, tx, orgID)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("reading references: %v", err)
+	}
+	return rows
+}
+
+func findRow(t *testing.T, rows []db.EntityReference, st, sid, tt, tid string) int64 {
+	t.Helper()
+	for _, r := range rows {
+		if r.SourceType == st && r.SourceID == sid && r.TargetType == tt && r.TargetID == tid {
+			return r.ID
+		}
+	}
+	t.Fatalf("no row %s %s -> %s %s", st, sid, tt, tid)
+	return 0
+}
+
+func execSQL(t *testing.T, d *db.DB, orgID int, sql string, args ...any) {
+	t.Helper()
+	err := d.WithOrgTx(context.Background(), orgID, func(ctx context.Context, tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, sql, args...)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("%s: %v", sql, err)
+	}
+}
+
+// setOrigin sets the origin of both directions of a pair, as stored.
+func (s seeder) setOrigin(aType, aID, bType, bID, origin string) {
+	s.t.Helper()
+	execSQL(s.t, s.d, s.org.ID, `
+		UPDATE entity_references SET origin = $5
+		WHERE organization_id = $6
+		  AND ((source_type = $1 AND source_id = $2 AND target_type = $3 AND target_id = $4)
+		    OR (source_type = $3 AND source_id = $4 AND target_type = $1 AND target_id = $2))`,
+		aType, aID, bType, bID, origin, s.org.ID)
+}
+
+// commentMention inserts a comment_references row exactly as spelled.
+func (s seeder) commentMention(commentType string, commentID int64, aType, aID, bType, bID string) {
+	s.t.Helper()
+	execSQL(s.t, s.d, s.org.ID, `
+		INSERT INTO comment_references (organization_id, comment_type, comment_id, source_type, source_id, target_type, target_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, s.org.ID, commentType, commentID, aType, aID, bType, bID)
+}
+
+func commentMentions(t *testing.T, d *db.DB, orgID int, commentID int64) []string {
+	t.Helper()
+	var out []string
+	err := d.WithOrgTx(context.Background(), orgID, func(ctx context.Context, tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `
+			SELECT source_type, source_id, target_type, target_id FROM comment_references
+			WHERE organization_id = $1 AND comment_id = $2 ORDER BY id`, orgID, commentID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var a, b, c, e string
+			if err := rows.Scan(&a, &b, &c, &e); err != nil {
+				return err
+			}
+			out = append(out, fmt.Sprintf("%s %s -> %s %s", a, b, c, e))
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		t.Fatalf("reading comment mentions: %v", err)
+	}
+	return out
+}
+
 func timeNow() time.Time { return time.Now() }
+
+const (
+	cleanBroken = "0 broken pairs (0 rows): every reference resolves"
+	cleanCanon  = "0 non-canonical pairs (0 rows): every reference uses its canonical id"
+)
+
+// TestCheckCanonical covers links that resolve but are stored under the other
+// spelling of the same record: report, rewrite, merge into an existing
+// canonical row, and the origin and comment_references that go with them.
+func TestCheckCanonical(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	open := func(db.Organization) (*store.Store, error) { return bareRepo(t), nil }
+	run := func(org checkOrg, fix bool) (CheckResult, string) {
+		t.Helper()
+		var buf bytes.Buffer
+		res, err := Check(ctx, d, &buf, CheckOptions{OrgSlug: org.Slug, Fix: fix, OpenStore: open})
+		if err != nil {
+			t.Fatalf("Check(%s, fix=%v): %v", org.Slug, fix, err)
+		}
+		return res, buf.String()
+	}
+	has := func(t *testing.T, out string, want ...string) {
+		t.Helper()
+		for _, w := range want {
+			if !strings.Contains(out, w) {
+				t.Errorf("output lacks %q:\n%s", w, out)
+			}
+		}
+	}
+	str := func(n int64) string { return strconv.FormatInt(n, 10) }
+
+	t.Run("report lists rewrite and merge and changes nothing", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-report")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		inc, risk, audit := s.incident("i"), s.risk("r"), s.audit()
+		s.link("incident", inc.Identifier, "program", str(prog.ID), true)
+		s.link("risk", risk.Identifier, "audit", strconv.Itoa(audit.ID), true)
+		s.link("risk", risk.Identifier, "audit", fmt.Sprintf("AUDIT-%d", audit.ID), true)
+		before := rowSet(t, d, org.ID)
+
+		res, out := run(org, false)
+		_, canon, brokenSums, canonSums := split(out)
+		want := []canonLine{
+			{org.Slug, "incident " + inc.Identifier + " -> program " + str(prog.ID), "incident " + inc.Identifier + " -> program PA", "rewrite"},
+			{org.Slug, fmt.Sprintf("risk %s -> audit %d", risk.Identifier, audit.ID), fmt.Sprintf("risk %s -> audit AUDIT-%d", risk.Identifier, audit.ID), "merge (duplicate)"},
+		}
+		if fmt.Sprint(canon) != fmt.Sprint(want) {
+			t.Errorf("rows:\n got %v\nwant %v\n%s", canon, want, out)
+		}
+		wantSums := []string{org.Slug + ": 2 non-canonical pairs (4 rows), 1 duplicate", "total: 2 non-canonical pairs (4 rows), 1 duplicate"}
+		if fmt.Sprint(canonSums) != fmt.Sprint(wantSums) {
+			t.Errorf("summaries = %q, want %q", canonSums, wantSums)
+		}
+		if fmt.Sprint(brokenSums) != fmt.Sprint([]string{cleanBroken}) {
+			t.Errorf("broken section = %q, want the clean line only", brokenSums)
+		}
+		if hdr := regexp.MustCompile(`ORG +STORED`).FindStringIndex(out); hdr == nil || strings.Index(out, cleanBroken) > hdr[0] {
+			t.Errorf("canonical section must come after the broken section:\n%s", out)
+		}
+		if res.NonCanonical != 2 || res.NonCanonicalRows != 4 || res.Duplicates != 1 || res.Broken != 0 || res.Fixed != 0 {
+			t.Errorf("result = %+v", res)
+		}
+		if got := rowSet(t, d, org.ID); fmt.Sprint(got) != fmt.Sprint(before) {
+			t.Errorf("a read-only check changed the rows:\nbefore %v\nafter  %v", before, got)
+		}
+	})
+
+	t.Run("fix rewrites in place, merges, and handles a one-direction twin", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-fix")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		obj := s.objective(prog.ID)
+		inc, risk, audit, task := s.incident("i"), s.risk("r"), s.audit(), s.task("t")
+		s.link("incident", inc.Identifier, "program", str(prog.ID), true) // rewrite
+		s.link("risk", risk.Identifier, "audit", strconv.Itoa(audit.ID), true)
+		s.link("risk", risk.Identifier, "audit", fmt.Sprintf("AUDIT-%d", audit.ID), true) // merge, both directions
+		s.link("task", task.Identifier, "objective", str(obj.ID), true)
+		s.link("task", task.Identifier, "objective", obj.DisplayID, false) // canonical twin in one direction only
+		before := refRows(t, d, org.ID)
+
+		res, out := run(org, true)
+		if res.NonCanonical != 3 || res.NonCanonicalRows != 6 || res.Duplicates != 2 || res.Fixed != 3 || res.FixedRows != 6 {
+			t.Errorf("result = %+v, want 3 pairs (6 rows), 2 duplicates, all fixed", res)
+		}
+		has(t, out,
+			"rewrote "+org.Slug+" incident "+inc.Identifier+" -> program "+str(prog.ID)+" as incident "+inc.Identifier+" -> program PA (2 rows)",
+			fmt.Sprintf("merged %s risk %s -> audit %d into risk %s -> audit AUDIT-%d (2 rows)", org.Slug, risk.Identifier, audit.ID, risk.Identifier, audit.ID),
+			"merged "+org.Slug+" task "+task.Identifier+" -> objective "+str(obj.ID)+" into task "+task.Identifier+" -> objective "+obj.DisplayID+" (2 rows)",
+			org.Slug+": fixed 3 non-canonical pairs (6 rows)", "total: fixed 3 non-canonical pairs (6 rows)")
+		_, canon, _, _ := split(out)
+		wantTwin := canonLine{org.Slug, "task " + task.Identifier + " -> objective " + str(obj.ID), "task " + task.Identifier + " -> objective " + obj.DisplayID, "merge (duplicate)"}
+		if len(canon) != 3 || canon[2] != wantTwin {
+			t.Errorf("rows = %v, want the third to be %v", canon, wantTwin)
+		}
+
+		after := map[int64]string{}
+		for _, r := range refRows(t, d, org.ID) {
+			after[r.ID] = fmt.Sprintf("%s %s -> %s %s", r.SourceType, r.SourceID, r.TargetType, r.TargetID)
+		}
+		// Rewrite: same row ids.
+		for _, c := range [][5]string{
+			{"incident", inc.Identifier, "program", str(prog.ID), "incident " + inc.Identifier + " -> program PA"},
+			{"program", str(prog.ID), "incident", inc.Identifier, "program PA -> incident " + inc.Identifier},
+			// One-direction twin: the old A->B row is deleted, the old B->A row rewritten.
+			{"objective", str(obj.ID), "task", task.Identifier, "objective " + obj.DisplayID + " -> task " + task.Identifier},
+		} {
+			id := findRow(t, before, c[0], c[1], c[2], c[3])
+			if after[id] != c[4] {
+				t.Errorf("row %d reads %q, want %q", id, after[id], c[4])
+			}
+		}
+		// Merge: the old rows are gone.
+		for _, c := range [][4]string{
+			{"risk", risk.Identifier, "audit", strconv.Itoa(audit.ID)}, {"audit", strconv.Itoa(audit.ID), "risk", risk.Identifier},
+			{"task", task.Identifier, "objective", str(obj.ID)},
+		} {
+			if id := findRow(t, before, c[0], c[1], c[2], c[3]); after[id] != "" {
+				t.Errorf("old row %d survived as %q", id, after[id])
+			}
+		}
+		// The canonical row that already existed is untouched.
+		canonID := findRow(t, before, "task", task.Identifier, "objective", obj.DisplayID)
+		if after[canonID] != "task "+task.Identifier+" -> objective "+obj.DisplayID {
+			t.Errorf("canonical row %d = %q", canonID, after[canonID])
+		}
+		if len(after) != len(before)-3 {
+			t.Errorf("row count %d -> %d, want -3", len(before), len(after))
+		}
+		if res2, out2 := run(org, false); res2.NonCanonical != 0 || !strings.Contains(out2, cleanCanon) {
+			t.Errorf("second check not clean: %+v\n%s", res2, out2)
+		}
+	})
+
+	t.Run("merge keeps manual when either row was manual", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-origin")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		pid := str(prog.ID)
+		r1, r2, r3 := s.risk("r1"), s.risk("r2"), s.risk("r3")
+		for _, c := range []struct {
+			risk       *db.Risk
+			old, canon string
+		}{{r1, "manual", "comment"}, {r2, "comment", "comment"}, {r3, "comment", "manual"}} {
+			s.link("risk", c.risk.Identifier, "program", pid, true)
+			s.link("risk", c.risk.Identifier, "program", "PA", true)
+			s.setOrigin("risk", c.risk.Identifier, "program", pid, c.old)
+			// The canonical rows come second, so set theirs by exact spelling.
+			execSQL(t, d, org.ID, `UPDATE entity_references SET origin = $1 WHERE organization_id = $2
+				AND ((source_type = 'risk' AND source_id = $3 AND target_id = 'PA') OR (source_type = 'program' AND source_id = 'PA' AND target_id = $3))`,
+				c.canon, org.ID, c.risk.Identifier)
+		}
+		res, out := run(org, true)
+		if res.Fixed != 3 || res.Duplicates != 3 {
+			t.Errorf("result = %+v\n%s", res, out)
+		}
+		got := map[string]string{}
+		for _, r := range refRows(t, d, org.ID) {
+			if r.SourceType == "risk" {
+				got[r.SourceID+" -> "+r.TargetID] = r.Origin
+			}
+		}
+		want := map[string]string{
+			r1.Identifier + " -> PA": "manual", r2.Identifier + " -> PA": "comment", r3.Identifier + " -> PA": "manual",
+		}
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Errorf("origins after merge = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("two spellings of one pair with no canonical row yet: rewrite then merge", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-twice")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		obj := s.objective(prog.ID)
+		s.link("objective", str(obj.ID), "program", str(prog.ID), true)
+		s.link("objective", obj.DisplayID, "program", str(prog.ID), true)
+
+		res, out := run(org, false)
+		_, canon, _, _ := split(out)
+		want := []canonLine{
+			{org.Slug, "objective " + str(obj.ID) + " -> program " + str(prog.ID), "objective " + obj.DisplayID + " -> program PA", "rewrite"},
+			{org.Slug, "objective " + obj.DisplayID + " -> program " + str(prog.ID), "objective " + obj.DisplayID + " -> program PA", "merge (duplicate)"},
+		}
+		if fmt.Sprint(canon) != fmt.Sprint(want) {
+			t.Errorf("rows:\n got %v\nwant %v\n%s", canon, want, out)
+		}
+		if res.NonCanonical != 2 || res.Duplicates != 1 {
+			t.Errorf("result = %+v", res)
+		}
+		res, out = run(org, true)
+		if res.Fixed != 2 || res.FixedRows != 4 {
+			t.Errorf("fix result = %+v\n%s", res, out)
+		}
+		var got []string
+		for _, r := range refRows(t, d, org.ID) {
+			got = append(got, fmt.Sprintf("%s %s -> %s %s", r.SourceType, r.SourceID, r.TargetType, r.TargetID))
+		}
+		sort.Strings(got)
+		wantRows := []string{"objective " + obj.DisplayID + " -> program PA", "program PA -> objective " + obj.DisplayID}
+		if fmt.Sprint(got) != fmt.Sprint(wantRows) {
+			t.Errorf("rows after fix = %v, want %v", got, wantRows)
+		}
+	})
+
+	t.Run("comment mentions in the old spelling are reported and rewritten", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-comment")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		pid := str(prog.ID)
+		r1, r2 := s.risk("r1"), s.risk("r2")
+		// r1: a comment-only link under the old spelling.
+		s.link("risk", r1.Identifier, "program", pid, true)
+		s.setOrigin("risk", r1.Identifier, "program", pid, "comment")
+		s.commentMention("entity_comment", 4242, "risk", r1.Identifier, "program", pid)
+		// r2: the same comment already holds the canonical mention too.
+		s.link("risk", r2.Identifier, "program", pid, true)
+		s.link("risk", r2.Identifier, "program", "PA", true)
+		s.setOrigin("risk", r2.Identifier, "program", pid, "comment")
+		s.setOrigin("risk", r2.Identifier, "program", "PA", "comment")
+		s.commentMention("entity_comment", 4243, "risk", r2.Identifier, "program", pid)
+		s.commentMention("entity_comment", 4243, "risk", r2.Identifier, "program", "PA")
+
+		res, out := run(org, false)
+		_, _, _, canonSums := split(out)
+		has(t, out, org.Slug+": 2 comment mention rows use a non-canonical id", "total: 2 comment mention rows use a non-canonical id")
+		if res.NonCanonicalComments != 2 || res.NonCanonical != 2 {
+			t.Errorf("result = %+v\n%v", res, canonSums)
+		}
+		if got := commentMentions(t, d, org.ID, 4242); fmt.Sprint(got) != fmt.Sprint([]string{"risk " + r1.Identifier + " -> program " + pid}) {
+			t.Errorf("a read-only check changed the mentions: %v", got)
+		}
+
+		res, out = run(org, true)
+		if res.FixedComments != 2 {
+			t.Errorf("fix result = %+v\n%s", res, out)
+		}
+		has(t, out, org.Slug+": fixed 2 comment mention rows")
+		if got := commentMentions(t, d, org.ID, 4242); fmt.Sprint(got) != fmt.Sprint([]string{"risk " + r1.Identifier + " -> program PA"}) {
+			t.Errorf("mention not rewritten: %v", got)
+		}
+		if got := commentMentions(t, d, org.ID, 4243); fmt.Sprint(got) != fmt.Sprint([]string{"risk " + r2.Identifier + " -> program PA"}) {
+			t.Errorf("duplicate mention not removed: %v", got)
+		}
+		if res2, out2 := run(org, false); res2.NonCanonical != 0 || res2.NonCanonicalComments != 0 || !strings.Contains(out2, cleanCanon) {
+			t.Errorf("second check not clean: %+v\n%s", res2, out2)
+		}
+
+		// Deleting comment 4242 now finds, and removes, the rewritten link.
+		err := d.WithOrgTx(ctx, org.ID, func(ctx context.Context, tx pgx.Tx) error {
+			return db.RemoveCommentReferencesTx(ctx, tx, org.ID, "entity_comment", 4242)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range refRows(t, d, org.ID) {
+			if r.SourceID == r1.Identifier || r.TargetID == r1.Identifier {
+				t.Errorf("comment-only link survived its comment: %+v", r)
+			}
+		}
+	})
+
+	t.Run("a broken pair is only broken, even if its healthy end is non-canonical", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-broken")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		s.link("program", str(prog.ID), "risk", "RISK-99999", true)
+
+		res, out := run(org, false)
+		rows, canon, _, _ := split(out)
+		if len(rows) != 1 || rows[0].Reason != "not found" || len(canon) != 0 {
+			t.Errorf("broken %v, canonical %v\n%s", rows, canon, out)
+		}
+		has(t, out, cleanCanon)
+		if res.Broken != 1 || res.NonCanonical != 0 {
+			t.Errorf("result = %+v", res)
+		}
+		res, out = run(org, true)
+		if res.Deleted != 1 || res.DeletedRows != 2 || res.Fixed != 0 || strings.Contains(out, "rewrote") {
+			t.Errorf("fix result = %+v\n%s", res, out)
+		}
+		if left := rowSet(t, d, org.ID); len(left) != 0 {
+			t.Errorf("rows left: %v", left)
+		}
+	})
+
+	t.Run("a clean org says so in both sections", func(t *testing.T) {
+		org := newCheckOrg(t, d, "can-clean")
+		s := seeder{t, d, org}
+		prog := s.program("PA")
+		risk := s.risk("r")
+		s.link("risk", risk.Identifier, "program", "PA", true)
+		_ = prog
+		for _, fix := range []bool{false, true} {
+			res, out := run(org, fix)
+			if res != (CheckResult{}) {
+				t.Errorf("fix=%v: result = %+v, want zero", fix, res)
+			}
+			if out != cleanBroken+"\n"+cleanCanon+"\n" {
+				t.Errorf("fix=%v: output =\n%s", fix, out)
+			}
+		}
+	})
+}

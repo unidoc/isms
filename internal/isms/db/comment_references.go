@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -93,4 +94,69 @@ func RemoveCommentReferencesTx(ctx context.Context, tx pgx.Tx, orgID int, commen
 		}
 	}
 	return nil
+}
+
+// CommentReferenceRow is one stored comment_references row.
+type CommentReferenceRow struct {
+	ID          int64
+	CommentType string
+	CommentID   int64
+	CommentReference
+}
+
+// ListOrgCommentReferencesTx returns every comment_references row of the org,
+// oldest first. It runs inside the caller's org transaction.
+func ListOrgCommentReferencesTx(ctx context.Context, tx pgx.Tx, orgID int) ([]CommentReferenceRow, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT id, comment_type, comment_id, source_type, source_id, target_type, target_id
+		FROM comment_references
+		WHERE organization_id = $1
+		ORDER BY id
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CommentReferenceRow
+	for rows.Next() {
+		var r CommentReferenceRow
+		if err := rows.Scan(&r.ID, &r.CommentType, &r.CommentID, &r.SourceType, &r.SourceID, &r.TargetType, &r.TargetID); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// CanonicalizeCommentReferenceTx moves comment_references row id to the
+// canonical ids. If the same comment already holds the canonical mention, the
+// old row is deleted (ReferenceMerged); otherwise it is updated in place. Like
+// CanonicalizeReferenceTx it decides from the current state.
+func CanonicalizeCommentReferenceTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, sourceID, targetID string) (ReferenceFix, error) {
+	var r CommentReferenceRow
+	err := tx.QueryRow(ctx, `
+		SELECT comment_type, comment_id, source_type, source_id, target_type, target_id
+		FROM comment_references WHERE organization_id = $1 AND id = $2 FOR UPDATE
+	`, orgID, id).Scan(&r.CommentType, &r.CommentID, &r.SourceType, &r.SourceID, &r.TargetType, &r.TargetID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ReferenceGone, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	var exists bool
+	err = tx.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM comment_references
+			WHERE organization_id = $1 AND comment_type = $2 AND comment_id = $3
+			  AND source_type = $4 AND source_id = $5 AND target_type = $6 AND target_id = $7 AND id <> $8)
+	`, orgID, r.CommentType, r.CommentID, r.SourceType, sourceID, r.TargetType, targetID, id).Scan(&exists)
+	if err != nil {
+		return 0, err
+	}
+	if exists {
+		_, err = tx.Exec(ctx, `DELETE FROM comment_references WHERE organization_id = $1 AND id = $2`, orgID, id)
+		return ReferenceMerged, err
+	}
+	_, err = tx.Exec(ctx, `UPDATE comment_references SET source_id = $3, target_id = $4 WHERE organization_id = $1 AND id = $2`, orgID, id, sourceID, targetID)
+	return ReferenceRewritten, err
 }

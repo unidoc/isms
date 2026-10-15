@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -187,6 +188,58 @@ func DeleteReferencesTx(ctx context.Context, tx pgx.Tx, orgID int, ids []int64) 
 		return 0, err
 	}
 	return tag.RowsAffected(), nil
+}
+
+// ReferenceFix is what CanonicalizeReferenceTx did to a row.
+type ReferenceFix int
+
+const (
+	ReferenceGone      ReferenceFix = iota // the row no longer exists; nothing done
+	ReferenceRewritten                     // the row now carries the canonical ids
+	ReferenceMerged                        // the canonical row existed; the old row was deleted
+)
+
+// CanonicalizeReferenceTx moves row id to the canonical tuple. It decides from
+// the current state: if a row with the canonical tuple already exists it wins
+// (and becomes 'manual' when the old row was), and the old row is deleted;
+// otherwise the old row is updated in place, keeping its id, created_at,
+// created_by and origin. A row deleted since the scan is left alone.
+func CanonicalizeReferenceTx(ctx context.Context, tx pgx.Tx, orgID int, id int64, sourceType, sourceID, targetType, targetID string) (ReferenceFix, error) {
+	var origin string
+	err := tx.QueryRow(ctx, `SELECT origin FROM entity_references WHERE organization_id = $1 AND id = $2 FOR UPDATE`, orgID, id).Scan(&origin)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ReferenceGone, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	var keptID int64
+	err = tx.QueryRow(ctx, `
+		SELECT id FROM entity_references
+		WHERE organization_id = $1 AND source_type = $2 AND source_id = $3 AND target_type = $4 AND target_id = $5
+		FOR UPDATE
+	`, orgID, sourceType, sourceID, targetType, targetID).Scan(&keptID)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		_, err = tx.Exec(ctx, `
+			UPDATE entity_references SET source_id = $3, target_id = $4
+			WHERE organization_id = $1 AND id = $2
+		`, orgID, id, sourceID, targetID)
+		return ReferenceRewritten, err
+	case err != nil:
+		return 0, err
+	case keptID == id:
+		return ReferenceGone, nil
+	}
+	if origin == ReferenceOriginManual {
+		if _, err := tx.Exec(ctx, `UPDATE entity_references SET origin = 'manual' WHERE organization_id = $1 AND id = $2`, orgID, keptID); err != nil {
+			return 0, err
+		}
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM entity_references WHERE organization_id = $1 AND id = $2`, orgID, id); err != nil {
+		return 0, err
+	}
+	return ReferenceMerged, nil
 }
 
 // identifierTables maps a reference type to the table whose `identifier` column

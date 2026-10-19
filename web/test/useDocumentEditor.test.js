@@ -91,3 +91,61 @@ test('a version-only edit sends just the version', async () => {
   assert.equal(author, undefined)
   assert.equal(owner, undefined)
 })
+
+// Edit must not open before the document's content has loaded: startEdit copies
+// rawContent once, so an early click left the editor empty and Save wiped the body.
+function setupReady(contentReady) {
+  const rawContent = ref('')
+  const editor = useDocumentEditor({
+    activeId: ref('doc-ready'),
+    activeDoc: ref({ ...doc }),
+    activeType: ref('policies'),
+    rawContent,
+    contentReady,
+    api: { updateDocumentContent: async () => {} },
+    loadContent: async () => {},
+    loadChangedDocs: async () => {},
+    loadNeedsReview: async () => {},
+  })
+  return { editor, rawContent }
+}
+
+test('startEdit does nothing while the content is not ready', () => {
+  const { editor } = setupReady(ref(false))
+  editor.editContent.value = 'untouched'
+  editor.startEdit()
+  try {
+    assert.equal(editor.editMode.value, false)
+    assert.equal(editor.editContent.value, 'untouched')
+  } finally {
+    editor.cancelEdit() // stops the autosave interval a wrongly-entered edit leaves running
+  }
+})
+
+test('startEdit copies the content once it is ready', () => {
+  const contentReady = ref(false)
+  const { editor, rawContent } = setupReady(contentReady)
+  try {
+    editor.startEdit()
+    assert.equal(editor.editMode.value, false)
+    rawContent.value = 'loaded body'
+    contentReady.value = true
+    editor.startEdit()
+    assert.equal(editor.editMode.value, true)
+    assert.equal(editor.editContent.value, 'loaded body')
+  } finally {
+    editor.cancelEdit()
+  }
+})
+
+test('startEdit behaves as before when no contentReady is passed', () => {
+  const { editor, rawContent } = setupReady(undefined)
+  rawContent.value = 'body'
+  editor.startEdit()
+  try {
+    assert.equal(editor.editMode.value, true)
+    assert.equal(editor.editContent.value, 'body')
+  } finally {
+    editor.cancelEdit()
+  }
+})

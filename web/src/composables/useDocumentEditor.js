@@ -18,8 +18,10 @@ import { renderApiError } from './useApiError.js'
  * @param {Function} deps.loadContent - function(folder, id) to reload content
  * @param {Function} deps.loadChangedDocs - function to reload changed docs list
  * @param {Function} deps.loadNeedsReview - function to reload needs-review list
+ * @param {import('vue').Ref<boolean>} [deps.contentReady] - true once rawContent holds the loaded document;
+ *   startEdit is a no-op while it is false. Omit to allow editing at any time.
  */
-export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent, api, loadContent, loadChangedDocs, loadNeedsReview }) {
+export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent, api, loadContent, loadChangedDocs, loadNeedsReview, contentReady }) {
   const editMode = ref(false)
   const editContent = ref('')
   const savingEdit = ref(false)
@@ -82,6 +84,7 @@ export function useDocumentEditor({ activeId, activeDoc, activeType, rawContent,
   const draftSavedAt = ref('')
 
   function startEdit() {
+    if (contentReady && !contentReady.value) return
     editMode.value = true
     editVersion.value = activeDoc.value?.version || '0.1'
     originalAuthor = activeDoc.value?.author || ''

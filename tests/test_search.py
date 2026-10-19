@@ -2,7 +2,7 @@
 import uuid
 
 import requests
-from conftest import ADMIN_EMAIL
+from conftest import ADMIN_EMAIL, API
 
 
 class TestSearchIndex:
@@ -231,3 +231,64 @@ class TestAuditSearch:
         results = _search(api_url, admin_headers, tag)
         assert not _find(results, "audit_finding", f"FIND-{finding['id']}"), "deleted finding still found"
         assert not _find(results, "audit_programme", f"AP-{prog['id']}"), "deleted programme still found"
+
+
+class TestFindingSeedHeadingNotSearchable:
+    """A finding created without a description is seeded with a "## Corrective
+    Action" heading. That scaffolding must not make every finding match
+    "corrective action" (#451); text the user wrote still does."""
+
+    PASSWORD = "TestPass123!"
+
+    def _fresh_org_headers(self):
+        suffix = uuid.uuid4().hex[:8]
+        email = f"find-search-{suffix}@isms-test.local"
+        slug = f"find-search-{suffix}"
+        r = requests.post(f"{API}/auth/signup", json={"email": email, "password": self.PASSWORD, "name": "Finding Search"})
+        assert r.status_code in (200, 201), r.text
+        headers = {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+        r = requests.post(f"{API}/organizations", headers=headers, json={"name": slug, "slug": slug})
+        assert r.status_code in (200, 201), r.text
+        r = requests.post(f"{API}/auth/login", json={"email": email, "password": self.PASSWORD, "organization": slug})
+        assert r.status_code == 200, r.text
+        return email, {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+
+    def _finding(self, headers, audit_id, title, **extra):
+        r = requests.post(f"{API}/audit-findings", headers=headers, json={
+            "audit_id": audit_id, "finding_type": "minor_nc", "title": title, **extra,
+        })
+        assert r.status_code in (200, 201), r.text
+        return r.json()["id"]
+
+    def _finding_ids(self, headers, q):
+        r = requests.get(f"{API}/search", headers=headers, params={"q": q})
+        assert r.status_code == 200, r.text
+        return {i["id"] for i in (r.json().get("data") or []) if i.get("type") == "audit_finding"}
+
+    def test_seeded_heading_does_not_match(self):
+        email, headers = self._fresh_org_headers()
+        token = uuid.uuid4().hex[:8]
+
+        r = requests.post(f"{API}/audit/programmes", headers=headers, json={"title": "Seed programme", "year": 2026})
+        assert r.status_code in (200, 201), r.text
+        r = requests.post(f"{API}/audits", headers=headers, json={
+            "programme_id": r.json()["id"], "title": "Seed audit", "scope": "iso27001-*",
+            "auditor": email, "audit_type": "internal", "planned_date": 1781740800,
+        })
+        assert r.status_code in (200, 201), r.text
+        audit_id = r.json()["id"]
+        requests.put(f"{API}/audits/{audit_id}/status", headers=headers, json={"status": "in_progress"})
+
+        # A goes through the index build, B through the handler upsert.
+        a = self._finding(headers, audit_id, f"Plain finding A {token}")
+        assert self._finding_ids(headers, token) == {f"FIND-{a}"}
+        b = self._finding(headers, audit_id, f"Plain finding B {token}")
+        assert self._finding_ids(headers, token) == {f"FIND-{a}", f"FIND-{b}"}
+
+        c = self._finding(headers, audit_id, f"Corrective action overdue {token}")
+        d = self._finding(headers, audit_id, f"Finding D {token}",
+                          description=f"## Corrective Action\n\nRotate {token} keys")
+
+        for q in ("corrective action", "corrective", "action"):
+            assert self._finding_ids(headers, q) == {f"FIND-{c}"}, q
+        assert self._finding_ids(headers, f"rotate {token}") == {f"FIND-{d}"}

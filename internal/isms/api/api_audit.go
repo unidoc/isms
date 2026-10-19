@@ -709,10 +709,10 @@ func (s *Server) buildAuditFindingCreate(ctx context.Context, orgID int, req *au
 		}
 	}
 
-	// Seed description with ## Corrective Action heading if not provided.
+	// Seed description with the corrective action heading if not provided.
 	desc := req.Description
 	if desc == "" {
-		desc = "## Corrective Action\n\n"
+		desc = auditFindingSeedHeading + "\n\n"
 	}
 	return &db.AuditFinding{
 		AuditID:     req.AuditID,
@@ -917,3 +917,7 @@ func (s *Server) handleDeleteAuditFinding(c echo.Context) error {
 	})
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 }
+
+// auditFindingSeedHeading is the heading a finding's description is seeded with.
+// auditFindingSearchEntry drops it from the indexed text (#451).
+const auditFindingSeedHeading = "## Corrective Action"

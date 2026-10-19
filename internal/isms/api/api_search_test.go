@@ -169,3 +169,39 @@ func TestLegalSearchEntry(t *testing.T) {
 		t.Errorf("Search=%q, want %q", e.Search, want)
 	}
 }
+
+func TestAuditFindingSearchEntrySeededHeading(t *testing.T) {
+	seed := auditFindingSeedHeading + "\n\n"
+	search := func(title, desc string) string {
+		return auditFindingSearchEntry(&db.AuditFinding{ID: 3, Title: title, Description: desc}).Search
+	}
+
+	got := search("Missing review", seed)
+	for _, bad := range []string{"corrective"} {
+		if strings.Contains(got, bad) {
+			t.Errorf("seeded-only Search %q should not contain %q", got, bad)
+		}
+	}
+	for _, want := range []string{"find-3", "missing review"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("seeded-only Search %q should contain %q", got, want)
+		}
+	}
+
+	got = search("Missing review", seed+"Rotate the leaked keys")
+	if !strings.Contains(got, "rotate the leaked keys") || strings.Contains(got, "corrective action") {
+		t.Errorf("user text under heading: Search=%q", got)
+	}
+
+	if got := search("Corrective action overdue", seed); !strings.Contains(got, "corrective action") {
+		t.Errorf("title must stay searchable: Search=%q", got)
+	}
+
+	if got := search("t", "  ## Corrective Action  \n\nx"); strings.Contains(got, "corrective") {
+		t.Errorf("padded heading should be stripped: Search=%q", got)
+	}
+
+	if got := search("t", "Raise a corrective action with IT"); !strings.Contains(got, "raise a corrective action with it") {
+		t.Errorf("prose containing the words must stay searchable: Search=%q", got)
+	}
+}

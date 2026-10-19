@@ -133,9 +133,11 @@ jobs:
 
       # The unit job has no database, so these skip there. They run here, against
       # the schema `server migrate` just applied: the db round-trips (notification
-      # INSERT/SELECT column order, the JSONB params column) and the references check.
+      # INSERT/SELECT column order, the JSONB params column), the references check, and
+      # the API package's database tests (identifier resolution, reference validation,
+      # suggestion apply, mentions...).
       - name: Database round-trip tests
-        run: ISMS_TEST_DATABASE_URL="$DATABASE_URL" go test ./internal/isms/db/... ./internal/isms/refs/... -count=1 -timeout 120s
+        run: ISMS_TEST_DATABASE_URL="$DATABASE_URL" go test ./internal/isms/db/... ./internal/isms/refs/... ./internal/isms/api/ -count=1 -timeout 120s
 
       - name: Run test suite
         run: ISMS_TEST_URL=http://localhost:9090 .venv/bin/pytest tests/ --tb=short

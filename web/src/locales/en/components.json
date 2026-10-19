@@ -19,6 +19,7 @@
     "notes_placeholder": "Assessment notes...",
     "save": "Save Reading",
     "empty": "No readings yet.",
+    "error_load": "Failed to load readings: {message}",
     "error_save": "Failed to save reading",
     "rating": {
       "very_low": "Very Low (1)",

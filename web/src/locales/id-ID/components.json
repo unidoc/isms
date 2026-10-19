@@ -19,6 +19,7 @@
     "notes_placeholder": "Catatan penilaian…",
     "save": "Simpan Pembacaan",
     "empty": "Belum ada pembacaan.",
+    "error_load": "Gagal memuat pembacaan: {message}",
     "error_save": "Gagal menyimpan pembacaan",
     "rating": {
       "very_low": "Sangat Rendah (1)",

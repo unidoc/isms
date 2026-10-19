@@ -1167,6 +1167,7 @@
   "components.readings.cia_classification",
   "components.readings.confidentiality",
   "components.readings.empty",
+  "components.readings.error_load",
   "components.readings.error_save",
   "components.readings.form_for",
   "components.readings.impact",

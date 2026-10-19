@@ -19,6 +19,7 @@
     "notes_placeholder": "Notatki z oceny...",
     "save": "Zapisz pomiar",
     "empty": "Brak pomiarów.",
+    "error_load": "Nie udało się wczytać pomiarów: {message}",
     "error_save": "Nie udało się zapisać pomiaru",
     "rating": {
       "very_low": "Bardzo niskie (1)",

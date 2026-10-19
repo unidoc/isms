@@ -19,6 +19,7 @@
     "notes_placeholder": "Athugasemdir við mat...",
     "save": "Vista mælingu",
     "empty": "Engar mælingar ennþá.",
+    "error_load": "Ekki tókst að sækja mælingar: {message}",
     "error_save": "Ekki tókst að vista mælingu",
     "rating": {
       "very_low": "Mjög litlar (1)",

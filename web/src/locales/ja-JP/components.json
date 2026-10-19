@@ -19,6 +19,7 @@
     "notes_placeholder": "評価メモ…",
     "save": "評価を保存",
     "empty": "評価はまだありません。",
+    "error_load": "評価の読み込みに失敗しました: {message}",
     "error_save": "評価の保存に失敗しました",
     "rating": {
       "very_low": "非常に低い（1）",

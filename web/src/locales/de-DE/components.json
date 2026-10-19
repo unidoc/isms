@@ -19,6 +19,7 @@
     "notes_placeholder": "Bewertungsnotizen...",
     "save": "Bewertung speichern",
     "empty": "Noch keine Bewertungen.",
+    "error_load": "Bewertungen konnten nicht geladen werden: {message}",
     "error_save": "Bewertung konnte nicht gespeichert werden",
     "rating": {
       "very_low": "Sehr niedrig (1)",

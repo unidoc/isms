@@ -19,6 +19,7 @@
     "notes_placeholder": "Notas da avaliação...",
     "save": "Salvar Leitura",
     "empty": "Nenhuma leitura ainda.",
+    "error_load": "Falha ao carregar as leituras: {message}",
     "error_save": "Falha ao salvar leitura",
     "rating": {
       "very_low": "Muito Baixo (1)",

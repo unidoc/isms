@@ -19,6 +19,7 @@
     "notes_placeholder": "Notes d'évaluation...",
     "save": "Enregistrer l'évaluation",
     "empty": "Aucune évaluation pour le moment.",
+    "error_load": "Échec du chargement des évaluations : {message}",
     "error_save": "Échec de l'enregistrement de l'évaluation",
     "rating": {
       "very_low": "Très faible (1)",

@@ -19,6 +19,7 @@
     "notes_placeholder": "Notas de la evaluación...",
     "save": "Guardar Medición",
     "empty": "Aún no hay mediciones.",
+    "error_load": "No se pudieron cargar las mediciones: {message}",
     "error_save": "No se pudo guardar la medición",
     "rating": {
       "very_low": "Muy Baja (1)",

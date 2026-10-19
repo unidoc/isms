@@ -146,6 +146,7 @@
     <!-- Reading history -->
     <div v-if="expanded" class="space-y-1">
       <div v-if="loadingReadings" class="h-8 bg-slate-800 rounded animate-pulse" />
+      <div v-else-if="loadError" class="text-[11px] text-red-400 py-2">{{ loadError }} <button type="button" @click="loadReadings" class="ml-2 text-[10px] text-blue-400 hover:text-blue-300 transition-colors">{{ $t('common.action.retry') }}</button></div>
       <div v-else-if="readings.length === 0" class="text-[11px] text-slate-600 italic py-2">{{ $t('components.readings.empty') }}</div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-[11px]">
@@ -228,6 +229,7 @@ const showForm = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
 const loadingReadings = ref(false)
+const loadError = ref('')
 const readings = ref([])
 
 const form = ref({})
@@ -337,6 +339,7 @@ const isFormValid = computed(() => {
 
 async function loadReadings() {
   loadingReadings.value = true
+  loadError.value = ''
   try {
     let data
     if (props.entityType === 'risk') data = await api.getRiskReadings(props.entityId)
@@ -346,7 +349,10 @@ async function loadReadings() {
     else if (props.entityType === 'system') data = await api.getSystemReadings(props.entityId)
     else return
     readings.value = Array.isArray(data) ? data : (data?.data || [])
-  } catch { readings.value = [] }
+  } catch (e) {
+    readings.value = []
+    loadError.value = t('components.readings.error_load', { message: renderApiError(e) || t('common.state.unknown') })
+  }
   finally { loadingReadings.value = false }
 }
 

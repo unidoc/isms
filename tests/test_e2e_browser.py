@@ -1373,7 +1373,8 @@ class TestCodeWrap:
         try:
             do_login(page, ADMIN[0], ADMIN[1])
             page.goto(f"{BASE}/{ORG}/documents/{self.DOC}")
-            expect(page.locator("text=Wrap").first).to_be_visible(timeout=10000)
+            # Wait for the rendered block; "Wrap" alone also matches the title "E2E Code Wrap".
+            page.locator(".doc-prose .code-block.wrapped").first.wait_for(state="visible", timeout=10000)
             page.get_by_role("button", name="Edit", exact=True).first.click()
             # The wrapped fence opens with the wrap toggle already active.
             block = page.locator(".editor-code-block.wrapped").first

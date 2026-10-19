@@ -266,8 +266,6 @@ export const api = {
   addRisk: (risk) => postJSON(`${API}/risks`, risk),
   getRiskTaxonomy: () => fetchJSON(`${API}/risks/taxonomy`),
   getRiskAdvisories: (id) => fetchJSON(`${API}/risks/${id}/advisories`),
-  getRiskReadings: (id) => fetchJSON(`${API}/risks/${id}/readings`),
-  createRiskReading: (id, data) => postJSON(`${API}/risks/${id}/readings`, data),
 
   // Assets
   getAssets: () => fetchJSON(`${API}/assets`),
@@ -277,8 +275,6 @@ export const api = {
   // Suppliers
   getSuppliers: () => fetchJSON(`${API}/suppliers`),
   addSupplier: (supplier) => postJSON(`${API}/suppliers`, supplier),
-  getSupplierReadings: (id) => fetchJSON(`${API}/suppliers/${id}/readings`),
-  createSupplierReading: (id, data) => postJSON(`${API}/suppliers/${id}/readings`, data),
 
   // Reviews
   // `params` adds query parameters, e.g. { involving: 'me', limit: 200 } for the
@@ -396,8 +392,6 @@ export const api = {
   listSystemsLinked: (params) => fetchJSON(`${API}/systems?${new URLSearchParams(params || {})}`),
   createSystem: (system) => postJSON(`${API}/systems`, system),
   updateSystem: (id, data) => putJSON(`${API}/systems/${id}`, data),
-  getSystemReadings: (id) => fetchJSON(`${API}/systems/${id}/readings`),
-  createSystemReading: (id, data) => postJSON(`${API}/systems/${id}/readings`, data),
   getAccessReviews: (systemId) => fetchJSON(`${API}/systems/${systemId}/access-reviews`),
   createAccessReview: (systemId, review) => postJSON(`${API}/systems/${systemId}/access-reviews`, review),
   deleteAccessReview: (id) => deleteJSON(`${API}/access-reviews/${id}`),
@@ -441,12 +435,6 @@ export const api = {
   getLegalItem: (id) => fetchJSON(`${API}/legal/${id}`),
   updateLegal: (id, data) => putJSON(`${API}/legal/${id}`, data),
   deleteLegal: (id) => deleteJSON(`${API}/legal/${id}`),
-  getLegalReadings: (id) => fetchJSON(`${API}/legal/${id}/readings`),
-  createLegalReading: (id, data) => postJSON(`${API}/legal/${id}/readings`, data),
-  getAssetReadings: (id) => fetchJSON(`${API}/assets/${id}/readings`),
-  createAssetReading: (id, data) => postJSON(`${API}/assets/${id}/readings`, data),
-  getSupplierReadings: (id) => fetchJSON(`${API}/suppliers/${id}/readings`),
-  createSupplierReading: (id, data) => postJSON(`${API}/suppliers/${id}/readings`, data),
 
   // Incidents
   getIncidents: (status, severity, assignee) => fetchJSON(`${API}/incidents?${new URLSearchParams({ ...(status && { status }), ...(severity && { severity }), ...(assignee && { assignee }) })}`),
@@ -569,7 +557,6 @@ export const api = {
   // Auth
   login,
   logout: () => postJSON(`${API}/auth/logout`, {}),
-  fetchJSON: (url) => fetchJSON(url),
   refresh: async () => {
     const res = await fetch(`${API}/auth/refresh`, {
       method: 'POST',

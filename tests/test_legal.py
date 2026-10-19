@@ -1,5 +1,8 @@
 """Legal register tests — comprehensive coverage."""
+import uuid
+
 import requests
+from conftest import API
 
 
 class TestLegalCRUD:
@@ -136,3 +139,60 @@ class TestLegalExternalID:
         payload = r.json()
         data = payload.get("data") or payload
         assert any(i.get("external_id") == "LEGALZZ-2026-777" for i in data), payload
+
+
+class TestLegalSearchIndex:
+    """Legal requirements stay in universal search under one type, `legal` (#450).
+
+    The index build used `legal` while the handlers wrote `legal_requirement`, so
+    a create added an unroutable row, a rename added a second row and a delete
+    left the old one behind. Runs in a fresh org so the index state is
+    deterministic.
+    """
+
+    PASSWORD = "TestPass123!"
+
+    def _fresh_org_headers(self):
+        suffix = uuid.uuid4().hex[:8]
+        email = f"legal-search-{suffix}@isms-test.local"
+        slug = f"legal-search-{suffix}"
+        r = requests.post(f"{API}/auth/signup", json={"email": email, "password": self.PASSWORD, "name": "Legal Search"})
+        assert r.status_code in (200, 201), r.text
+        headers = {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+        r = requests.post(f"{API}/organizations", headers=headers, json={"name": slug, "slug": slug})
+        assert r.status_code in (200, 201), r.text
+        r = requests.post(f"{API}/auth/login", json={"email": email, "password": self.PASSWORD, "organization": slug})
+        assert r.status_code == 200, r.text
+        return {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+
+    def _rows(self, headers, token, identifier):
+        r = requests.get(f"{API}/search", headers=headers, params={"q": token})
+        assert r.status_code == 200, r.text
+        return [i for i in (r.json().get("data") or []) if i.get("id") == identifier]
+
+    def test_create_rename_delete_keep_one_legal_row(self):
+        headers = self._fresh_org_headers()
+        token = "alpaca" + uuid.uuid4().hex[:8]
+
+        # The first search builds the index; Upsert is a no-op until it exists.
+        r = requests.get(f"{API}/search", headers=headers, params={"q": token})
+        assert r.status_code == 200, r.text
+
+        r = requests.post(f"{API}/legal", headers=headers, json={
+            "title": f"Alpaca act {token}", "jurisdiction": "EU", "category": "privacy",
+        })
+        assert r.status_code in (200, 201), r.text
+        created = r.json()
+        ident = created["identifier"]
+
+        rows = self._rows(headers, token, ident)
+        assert [(x["type"], x["title"]) for x in rows] == [("legal", f"Alpaca act {token}")], rows
+
+        r = requests.put(f"{API}/legal/{created['id']}", headers=headers, json={"title": f"Vicuna act {token}"})
+        assert r.status_code == 200, r.text
+        rows = self._rows(headers, token, ident)
+        assert [(x["type"], x["title"]) for x in rows] == [("legal", f"Vicuna act {token}")], rows
+
+        r = requests.delete(f"{API}/legal/{created['id']}", headers=headers)
+        assert r.status_code in (200, 204), r.text
+        assert self._rows(headers, token, ident) == []

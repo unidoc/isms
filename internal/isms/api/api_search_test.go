@@ -152,3 +152,20 @@ func TestAuditSearchEntriesEmpty(t *testing.T) {
 		t.Errorf("nil findings → %d entries, want 0", len(got))
 	}
 }
+
+func TestLegalSearchEntry(t *testing.T) {
+	lr := db.LegalRequirement{Identifier: "LEGAL-7", Title: "Data Protection Act", Description: "Privacy law", Jurisdiction: "IS"}
+	e := legalSearchEntry(&lr)
+	if e.Type != "legal" {
+		t.Errorf("Type=%q, want legal (the type GlobalSearch routes on, not legal_requirement)", e.Type)
+	}
+	if e.ID != "LEGAL-7" {
+		t.Errorf("ID=%q, want LEGAL-7", e.ID)
+	}
+	if e.Title != "Data Protection Act" {
+		t.Errorf("Title=%q, want Data Protection Act", e.Title)
+	}
+	if want := legalSearchText(&lr); e.Search != want {
+		t.Errorf("Search=%q, want %q", e.Search, want)
+	}
+}

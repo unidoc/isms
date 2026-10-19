@@ -212,6 +212,18 @@ func auditFindingSearchEntry(f *db.AuditFinding) SearchEntry {
 	}
 }
 
+// Legal requirements (#450). The type is `legal`, which GlobalSearch and
+// ReferenceManager route on. One builder, used by both buildSearchIndex and the
+// handler upserts, so the build and the handlers cannot drift.
+func legalSearchEntry(lr *db.LegalRequirement) SearchEntry {
+	return SearchEntry{
+		Type:   "legal",
+		ID:     lr.Identifier,
+		Title:  lr.Title,
+		Search: legalSearchText(lr),
+	}
+}
+
 func auditProgrammeSearchEntries(items []db.AuditProgramme) []SearchEntry {
 	entries := make([]SearchEntry, 0, len(items))
 	for i := range items {
@@ -313,13 +325,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, lr := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "legal",
-				ID:     lr.Identifier,
-				Title:  lr.Title,
-				Search: legalSearchText(&lr),
-			})
+		for i := range items {
+			entries = append(entries, legalSearchEntry(&items[i]))
 		}
 		return entries
 	})

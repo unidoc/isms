@@ -586,3 +586,52 @@ class TestChangesUpdate:
         assert r.status_code == 200
         assert r.json()["priority"] == "high"
         assert r.json()["justification"] == "Now has proper justification."
+
+
+class TestChangeFollowupTaskLifecycle:
+    """#422: one 'Implement CR-n' task per change. Revoking the approval
+    cancels it; approving again reopens the same task instead of adding a
+    second one."""
+
+    def _followups(self, api_url, admin_headers, ident):
+        # Search by the CR identifier so pagination on a persistent stack
+        # can't hide the tasks.
+        r = requests.get(f"{api_url}/tasks", headers=admin_headers,
+                         params={"q": ident, "task_type": "change_followup", "limit": 100})
+        assert r.status_code == 200, r.text
+        return [t for t in (r.json().get("data") or [])
+                if (t.get("title") or "").startswith(f"Implement {ident}:")]
+
+    def _new_change(self, api_url, admin_headers, title):
+        r = requests.post(f"{api_url}/changes", headers=admin_headers,
+                          json={"title": title, "description": "x"})
+        assert r.status_code == 201, r.text
+        return r.json()["id"], r.json()["identifier"]
+
+    def _status(self, api_url, admin_headers, cid, status):
+        r = requests.put(f"{api_url}/changes/{cid}/status", headers=admin_headers,
+                         json={"status": status})
+        assert r.status_code == 200, r.text
+
+    def test_send_back_and_reapprove_keeps_one_task(self, api_url, admin_headers):
+        cid, ident = self._new_change(api_url, admin_headers, "Followup lifecycle resend")
+        self._status(api_url, admin_headers, cid, "approved")
+        first = self._followups(api_url, admin_headers, ident)
+        assert len(first) == 1 and first[0]["status"] == "open", first
+
+        self._status(api_url, admin_headers, cid, "proposed")
+        mid = self._followups(api_url, admin_headers, ident)
+        assert len(mid) == 1 and mid[0]["status"] == "cancelled", mid
+
+        self._status(api_url, admin_headers, cid, "approved")
+        again = self._followups(api_url, admin_headers, ident)
+        assert len(again) == 1, again
+        assert again[0]["identifier"] == first[0]["identifier"]
+        assert again[0]["status"] == "open"
+
+    def test_rejection_cancels_the_task(self, api_url, admin_headers):
+        cid, ident = self._new_change(api_url, admin_headers, "Followup lifecycle reject")
+        self._status(api_url, admin_headers, cid, "approved")
+        self._status(api_url, admin_headers, cid, "rejected")
+        tasks = self._followups(api_url, admin_headers, ident)
+        assert len(tasks) == 1 and tasks[0]["status"] == "cancelled", tasks

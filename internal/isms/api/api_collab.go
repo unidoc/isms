@@ -3141,10 +3141,10 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 	})
 
 	// Same side effect as the dedicated status endpoint — approving via the
-	// edit form must also create the implementation task.
-	if req.Status != nil && *req.Status == "approved" && old.Status != "approved" {
-		s.createChangeFollowupTask(ctx, orgID, updated, actor)
-	}
+	// edit form must also create the implementation task, and a withdrawal
+	// (including #197's) must cancel it. updated.Status is the status after
+	// any withdrawal override.
+	s.syncChangeFollowupTask(ctx, orgID, updated, old.Status, updated.Status, actor)
 
 	return c.JSON(http.StatusOK, updated)
 }
@@ -3227,33 +3227,82 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 		Detail: fmt.Sprintf("Change #%d status changed to %s", id, req.Status),
 	})
 
-	// Auto-create implementation task on approval, assigned to the change requester
-	if req.Status == "approved" && oldStatus != "approved" {
-		s.createChangeFollowupTask(ctx, orgID, updated, actor)
-	}
+	// Keep the implementation task in step: created on approval, cancelled when
+	// the approval is revoked (#422).
+	s.syncChangeFollowupTask(ctx, orgID, updated, oldStatus, req.Status, actor)
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
 }
 
-// createChangeFollowupTask auto-creates the "Implement <CR>" task when a
-// change transitions into approved, assigned to the change requester. Shared
-// by handleUpdateChange (edit-form saves) and handleUpdateChangeStatus so
-// both status-change paths behave identically.
-func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, updated *db.ChangeRequest, actor string) {
+// syncChangeFollowupTask keeps the "Implement <CR>" task in step with its change
+// (#422): one task per change, found through tasks.change_request_id. Entering
+// approved creates it, or reopens the cancelled one so a send-back and
+// re-approval does not leave two; a revoking status (proposed, rejected)
+// cancels the live one. A done task is history and is never touched, so a
+// re-approval after it was finished starts a new one. Shared by the status
+// endpoint, the edit form and suggestion apply so all three behave identically.
+// Best-effort like the other side effects: a failed task write never fails the
+// change transition, and a lost race on the one-live-task index is just skipped.
+func (s *Server) syncChangeFollowupTask(ctx context.Context, orgID int, updated *db.ChangeRequest, oldStatus, newStatus, actor string) {
+	if oldStatus == newStatus {
+		return
+	}
+	existing, err := s.db.FindChangeFollowupTask(ctx, orgID, updated.ID)
+	if err != nil {
+		return
+	}
+	live := existing != nil && (existing.Status == "open" || existing.Status == "in_progress")
+
+	if revoked, _ := db.ChangeStatusClears(newStatus); revoked {
+		if live {
+			s.setFollowupTaskStatus(ctx, orgID, existing, "cancelled", actor)
+		}
+		return
+	}
+	if newStatus != "approved" || live {
+		return
+	}
+
 	assignee := updated.AssignedTo
 	if assignee == "" {
 		assignee = updated.RequestedBy
 	}
 	due := db.NewEpoch(time.Now().AddDate(0, 0, 14))
+	title := fmt.Sprintf("Implement %s: %s", updated.Identifier, updated.Title)
+	desc := fmt.Sprintf("Auto-created from approved change %s. Verify implementation and mark this task done.", updated.Identifier)
+
+	if existing != nil && existing.Status == "cancelled" {
+		before := *existing
+		existing.Title, existing.Description = title, desc
+		existing.Assignee, existing.Status, existing.DueDate = assignee, "open", &due
+		if err := s.db.UpdateTask(ctx, orgID, existing); err != nil {
+			return
+		}
+		existing.CompletedAt = nil
+		if diffs := db.DiffFields("task", existing.ID, actor, "", before.ToChangeMap(), existing.ToChangeMap()); len(diffs) > 0 {
+			s.logChanges(ctx, orgID, diffs)
+		}
+		s.searchUpsert(orgID, "task", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "task_status_changed",
+			Detail: fmt.Sprintf("Task #%d status changed to open (change %s approved again)", existing.ID, updated.Identifier),
+		})
+		s.mailFollowupAssignee(ctx, orgID, existing, assignee, actor)
+		return
+	}
+
+	crID := updated.ID
 	t := &db.Task{
-		Title:       fmt.Sprintf("Implement %s: %s", updated.Identifier, updated.Title),
-		Description: fmt.Sprintf("Auto-created from approved change %s. Verify implementation and mark this task done.", updated.Identifier),
-		TaskType:    "change_followup",
-		Assignee:    assignee,
-		CreatedBy:   actor,
-		Status:      "open",
-		Priority:    "medium",
-		DueDate:     &due,
+		Title:           title,
+		Description:     desc,
+		TaskType:        "change_followup",
+		Assignee:        assignee,
+		CreatedBy:       actor,
+		Status:          "open",
+		Priority:        "medium",
+		DueDate:         &due,
+		ChangeRequestID: &crID,
 	}
 	if err := s.db.CreateTask(ctx, orgID, t); err == nil {
 		s.logChange(ctx, orgID, &db.ChangelogEntry{
@@ -3268,10 +3317,32 @@ func (s *Server) createChangeFollowupTask(ctx context.Context, orgID int, update
 			Action: "task_created",
 			Detail: fmt.Sprintf("Auto-task %s for approved change %s", t.Identifier, updated.Identifier),
 		})
-		if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
-			m := s.orgMail(ctx, orgID)
-			_ = s.mailer.SendTaskAssignedBranded(assignee, s.userDisplayName(ctx, assignee), s.userLabel(ctx, actor), t.Title, t.Priority, m.AppURL, m.Branding)
-		}
+		s.mailFollowupAssignee(ctx, orgID, t, assignee, actor)
+	}
+}
+
+// setFollowupTaskStatus moves a change's follow-up task to status and writes
+// the changelog row and activity entry the task status endpoint would.
+func (s *Server) setFollowupTaskStatus(ctx context.Context, orgID int, t *db.Task, status, actor string) {
+	if err := s.db.UpdateTaskStatus(ctx, orgID, t.ID, status); err != nil {
+		return
+	}
+	after := *t
+	after.Status = status
+	if diffs := db.DiffFields("task", t.ID, actor, "", t.ToChangeMap(), after.ToChangeMap()); len(diffs) > 0 {
+		s.logChanges(ctx, orgID, diffs)
+	}
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		Actor:  actor,
+		Action: "task_status_changed",
+		Detail: fmt.Sprintf("Task #%d status changed to %s (change approval withdrawn)", t.ID, status),
+	})
+}
+
+func (s *Server) mailFollowupAssignee(ctx context.Context, orgID int, t *db.Task, assignee, actor string) {
+	if assignee != "" && s.mailer != nil && s.mailer.Enabled() {
+		m := s.orgMail(ctx, orgID)
+		_ = s.mailer.SendTaskAssignedBranded(assignee, s.userDisplayName(ctx, assignee), s.userLabel(ctx, actor), t.Title, t.Priority, m.AppURL, m.Branding)
 	}
 }
 

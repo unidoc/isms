@@ -1340,16 +1340,15 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 			return "", 0, err
 		}
 		updated.Status = *req.Status
-		// The HTTP status paths auto-create the "Implement <CR>" task on
-		// approval; keep suggestion-apply identical (#26 acceptance criterion).
-		// Deferred to post-commit — createChangeFollowupTask writes via the pool
-		// and sends mail, neither safe inside this transaction.
-		if *req.Status == "approved" {
-			followup := updated
-			registerApplyPostCommit(ctx, func() {
-				s.createChangeFollowupTask(context.Background(), orgID, &followup, actor)
-			})
-		}
+		// The HTTP status paths keep the "Implement <CR>" task in step with the
+		// status (create on approval, cancel on revocation); keep suggestion-apply
+		// identical (#26 acceptance criterion, #422). Deferred to post-commit —
+		// syncChangeFollowupTask writes via the pool and sends mail, neither safe
+		// inside this transaction.
+		followup, oldStatus := updated, old.Status
+		registerApplyPostCommit(ctx, func() {
+			s.syncChangeFollowupTask(context.Background(), orgID, &followup, oldStatus, followup.Status, actor)
+		})
 	}
 	if err := db.UpdateChangeRequestTx(ctx, tx, orgID, updated.ID, &updated); err != nil {
 		return "", 0, err

@@ -169,3 +169,19 @@ WHERE e.entity_type = 'objective' AND e.entity_id ~ '^[0-9]{1,18}$'
 ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
 ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
     CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review'));
+
+-- #422: the "Implement CR-n" task created on approval was tied to its change
+-- only by title, so revoking the approval left it open and the next approval
+-- created a second one. Link the task to its change instead. No backfill:
+-- tasks created before this column stay unlinked. Re-runnable throughout.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS change_request_id INTEGER;
+-- Composite so a task can never point at another organisation's change.
+-- Change requests are only soft-deleted, so the FK never blocks a delete.
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_change_request_fk;
+ALTER TABLE tasks ADD CONSTRAINT tasks_change_request_fk
+    FOREIGN KEY (organization_id, change_request_id) REFERENCES change_requests(organization_id, id);
+-- At most one live (open / in_progress) task per change; cancelled and done
+-- ones are history and may sit beside a live one.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_change_request_live
+    ON tasks(organization_id, change_request_id)
+    WHERE change_request_id IS NOT NULL AND deleted_at IS NULL AND status IN ('open','in_progress');

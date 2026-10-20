@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -82,6 +83,10 @@ type Task struct {
 	CreatedAt      Epoch  `json:"created_at"`
 	UpdatedAt      Epoch  `json:"updated_at"`
 	Private        bool   `json:"private"`
+	// ChangeRequestID links a change's auto-created follow-up task back to its
+	// change (#422). Internal: written by CreateTask, read only through
+	// FindChangeFollowupTask, so it is not in taskSelectCols or the JSON.
+	ChangeRequestID *int `json:"-"`
 	// InboxGroup ("assigned" | "delegated") and NeedsAction are filled only by
 	// PaginatedTasks, and only when TaskListParams.Involving is set. NeedsAction
 	// is true only for tasks assigned to the viewer: a delegated task is listed
@@ -128,12 +133,36 @@ func (d *DB) CreateTask(ctx context.Context, orgID int, t *Task) error {
 	}
 	t.Identifier = ident
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes, private)
-		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $6), $7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12, $13)
+		INSERT INTO tasks (organization_id, identifier, title, description, task_type, assignee_id, created_by, created_by_user_id, status, priority, due_date, recurrence_days, notes, private, change_request_id)
+		VALUES ($1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $6), $7, (SELECT id FROM users WHERE email = $7), $8, $9, $10, $11, $12, $13, $14)
 		RETURNING id, created_at, updated_at
 	`, orgID, t.Identifier, t.Title, t.Description, t.TaskType,
-		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes), t.Private,
+		t.Assignee, t.CreatedBy, t.Status, t.Priority, t.DueDate, t.RecurrenceDays, nilIfEmpty(t.Notes), t.Private, t.ChangeRequestID,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
+}
+
+// FindChangeFollowupTask returns the non-deleted task linked to a change (#422),
+// or (nil, nil) when there is none. A live (open / in_progress) task wins, then
+// a cancelled one (reopenable), then the newest done one.
+func (d *DB) FindChangeFollowupTask(ctx context.Context, orgID, changeID int) (*Task, error) {
+	var t Task
+	err := d.pool.QueryRow(ctx, `
+		SELECT `+taskSelectCols+`
+		FROM tasks t
+		WHERE t.organization_id = $1 AND t.change_request_id = $2 AND t.deleted_at IS NULL
+		ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 0 WHEN 'cancelled' THEN 1 ELSE 2 END, t.id DESC
+		LIMIT 1
+	`, orgID, changeID).Scan(&t.ID, &t.OrganizationID, &t.Identifier, &t.Title, &t.Description, &t.TaskType,
+		&t.Assignee, &t.CreatedBy, &t.Status, &t.Priority, &t.DueDate, &t.CompletedAt, &t.RecurrenceDays,
+		&t.Notes, &t.CreatedAt, &t.UpdatedAt, &t.Private)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	t.ChangeRequestID = &changeID
+	return &t, nil
 }
 
 func (d *DB) ListTasks(ctx context.Context, orgID int, viewer TaskViewer, assignee, status string, limit int) ([]Task, error) {

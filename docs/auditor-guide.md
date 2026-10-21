@@ -78,11 +78,14 @@ The review status follows a strict state machine:
 open --> approved (via approve endpoint)
 open --> changes_requested (via approve endpoint with changes_requested decision)
 changes_requested --> open (via resubmit)
+approved --> open (via resubmit, only when the document changed after it was sent and the review has no reviewer edits)
 approved --> merged (via merge endpoint)
 Any active status --> closed (via status endpoint)
 ```
 
 Each transition goes through its dedicated handler. There is no generic status update endpoint that can bypass the state machine.
+
+An approved review that is not yet published can be sent again only when the document changed after it was sent. Sending again discards the approval and starts a new round, so the reviewers must approve again. Otherwise sending is refused: when nothing changed the review only needs publishing, and when the review contains reviewer edits it must be closed before a new review is started.
 
 ### Inline comments and suggestions
 

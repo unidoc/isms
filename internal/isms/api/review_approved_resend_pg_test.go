@@ -617,3 +617,80 @@ func TestReviewApprovedIdenticalReviewerSaveDoesNotBlockResend(t *testing.T) {
 	rec, err := f.send(f.rev2)
 	f.expectNewRound(rec, err)
 }
+
+// --- Part D: document responses say which approved state applies ---
+
+// docResponses returns both document responses for the fixture document.
+func (f *approvedFixture) docResponses() map[string]map[string]any {
+	f.t.Helper()
+	out := map[string]map[string]any{}
+	for name, h := range map[string]func(echo.Context) error{
+		"handleGetDocument":     f.s.handleGetDocument,
+		"handleGetDocumentBody": f.s.handleGetDocumentBody,
+	} {
+		c, rec := reviewCtxForPath(f.orgID, http.MethodGet, "/api/v1/documents/"+f.docID, "", "admin", f.admin)
+		c.SetParamNames("docId", "folder", "id")
+		c.SetParamValues(f.docID, "test", f.docID)
+		if err := h(c); err != nil {
+			f.t.Fatalf("%s: %v", name, err)
+		}
+		var got map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			f.t.Fatalf("%s: decoding: %v", name, err)
+		}
+		out[name] = got
+	}
+	return out
+}
+
+func TestDocumentResponsesCarryApprovedReviewState(t *testing.T) {
+	cases := []struct {
+		name           string
+		setup          func(f *approvedFixture)
+		changed, edits bool
+	}{
+		{"unchanged", func(f *approvedFixture) {}, false, false},
+		{"changed without reviewer edits", func(f *approvedFixture) { f.putBody("author text\n") }, true, false},
+		{"changed with reviewer edits", func(f *approvedFixture) { f.putBody("author text\n") }, true, true},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			slug := "dstate-" + strconv.Itoa(i)
+			var f *approvedFixture
+			if tc.edits {
+				f = newOpenFixture(t, slug)
+				f.reviewerEdit(f.rev1, "reviewer text\n")
+				f.approve(f.rev1)
+			} else {
+				f = newApprovedFixture(t, slug)
+			}
+			tc.setup(f)
+			for name, got := range f.docResponses() {
+				if got["active_review_status"] != "approved" {
+					t.Fatalf("%s: active_review_status = %v", name, got["active_review_status"])
+				}
+				if got["active_review_changed_since_sent"] != tc.changed {
+					t.Errorf("%s: active_review_changed_since_sent = %v, want %v", name, got["active_review_changed_since_sent"], tc.changed)
+				}
+				if got["active_review_has_reviewer_edits"] != tc.edits {
+					t.Errorf("%s: active_review_has_reviewer_edits = %v, want %v", name, got["active_review_has_reviewer_edits"], tc.edits)
+				}
+			}
+		})
+	}
+}
+
+// Control: the pair is only added for an approved review.
+func TestDocumentResponsesOmitApprovedStateForOpenReview(t *testing.T) {
+	f := newOpenFixture(t, "dstate-open")
+	for name, got := range f.docResponses() {
+		if got["active_review_status"] != "open" {
+			t.Fatalf("%s: active_review_status = %v", name, got["active_review_status"])
+		}
+		for _, k := range []string{"active_review_changed_since_sent", "active_review_has_reviewer_edits"} {
+			if _, ok := got[k]; ok {
+				t.Errorf("%s: %s must be absent for an open review", name, k)
+			}
+		}
+	}
+}

@@ -4336,31 +4336,22 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		// "add reviewers" fallthrough below: that path would attach a pending
 		// assignment to a review whose status stays approved.
 		if existingReview.Status == "approved" {
-			// Same predicate as publish (performMerge -> MergeSuggestion): the
-			// whole file at sent_head, falling back to commit_hash, against
-			// the current file. If publish would refuse the file, the review
+			// Same predicate as publish (performMerge -> MergeSuggestion); see
+			// approvedReviewState. If publish would refuse the file, the review
 			// cannot be published as it stands, so start a new round instead
-			// of leaving the document stuck. A read error counts as
-			// unchanged, exactly as it does for publish.
-			baseRef := existingReview.SentHead
-			if baseRef == "" {
-				baseRef = existingReview.CommitHash
-			}
-			if docPath := resolveDocPathFromStore(st, docID); docPath != "" && baseRef != "" {
-				if changed, chErr := st.FileChangedSince(docPath, baseRef); chErr == nil && changed {
-					// Reviewer edits live on review/<id>, and publish commits
-					// that branch over main. A new round would keep the branch
-					// and silently overwrite the author's later change with it,
-					// so refuse instead. A missing branch or unreadable ref
-					// counts as no reviewer edits. (The changes_requested path
-					// below resubmits without this check and has the same
-					// underlying issue.)
-					branch := fmt.Sprintf("review/%d", existingReview.ID)
-					if edited, edErr := st.FileDiffersBetween(docPath, branch, baseRef); edErr == nil && edited {
-						return apiError(http.StatusConflict, CodeReviewHasReviewerEdits)
-					}
-					return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
+			// of leaving the document stuck.
+			changed, reviewerEdits := approvedReviewState(st, resolveDocPathFromStore(st, docID), existingReview)
+			if changed {
+				// Reviewer edits live on review/<id>, and publish commits
+				// that branch over main. A new round would keep the branch
+				// and silently overwrite the author's later change with it,
+				// so refuse instead. (The changes_requested path below
+				// resubmits without this check and has the same underlying
+				// issue.)
+				if reviewerEdits {
+					return apiError(http.StatusConflict, CodeReviewHasReviewerEdits)
 				}
+				return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
 			}
 			return apiError(http.StatusConflict, CodeReviewAwaitingPublication)
 		}
@@ -4442,6 +4433,31 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		"review_id": review.ID,
 		"version":   version,
 	})
+}
+
+// approvedReviewState reports, for an approved but unpublished review, whether
+// the document file changed since the review was sent and whether the review
+// branch holds reviewer edits. "Changed" is the predicate publish uses: the
+// whole file at sent_head (commit_hash when empty) against the current file.
+// "Reviewer edits" means review/<id> exists and its file differs from the file
+// at that base ref. A missing document, base ref or branch, or any read error,
+// counts as false, exactly as it does for publish.
+func approvedReviewState(st *store.Store, docPath string, r *db.Review) (changed, reviewerEdits bool) {
+	baseRef := r.SentHead
+	if baseRef == "" {
+		baseRef = r.CommitHash
+	}
+	if docPath == "" || baseRef == "" {
+		return false, false
+	}
+	if c, err := st.FileChangedSince(docPath, baseRef); err == nil {
+		changed = c
+	}
+	branch := fmt.Sprintf("review/%d", r.ID)
+	if e, err := st.FileDiffersBetween(docPath, branch, baseRef); err == nil {
+		reviewerEdits = e
+	}
+	return changed, reviewerEdits
 }
 
 // resubmitReviewRound starts a new round of an existing review: the document

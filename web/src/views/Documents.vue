@@ -618,7 +618,30 @@
                   </router-link>
                 </div>
               </div>
-              <!-- Open / approved-but-not-merged: simple in-review banner -->
+              <!-- Approved, not yet published. The server says which state applies:
+                   unchanged since sending (just publish), changed since sending
+                   (send again for a new round), or changed with reviewer edits
+                   (send is refused; the review must be closed). -->
+              <div v-else-if="activeDoc.active_review_status === 'approved'" class="flex items-center gap-2 text-xs flex-wrap">
+                <template v-if="!activeDoc.active_review_changed_since_sent">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <span class="text-emerald-400">{{ t('documents.banner.approved_awaiting_publication') }}</span>
+                  <router-link :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
+                    class="text-emerald-400 hover:text-emerald-300 ml-auto">{{ t('documents.banner.open_review_to_publish') }}</router-link>
+                </template>
+                <template v-else>
+                  <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                  <span class="text-amber-400">{{ activeDoc.active_review_has_reviewer_edits
+                    ? t('documents.banner.approved_reviewer_edits_conflict')
+                    : t('documents.banner.approved_changed_since_sent') }}</span>
+                  <div class="ml-auto flex gap-3">
+                    <button v-if="canEditMetadata && !activeDoc.active_review_has_reviewer_edits" @click="showReviewModal = true" class="text-blue-400 hover:text-blue-300">{{ t('documents.banner.send_for_review') }}</button>
+                    <router-link :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
+                      class="text-blue-400 hover:text-blue-300">{{ t('documents.banner.view_review') }}</router-link>
+                  </div>
+                </template>
+              </div>
+              <!-- Open: simple in-review banner -->
               <div v-else class="flex items-center gap-2 text-xs">
                 <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
                 <span class="text-blue-400">

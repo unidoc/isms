@@ -1895,6 +1895,14 @@ func (s *Server) handleNeedsReview(c echo.Context) error {
 				if approvedRef == "" {
 					approvedRef = review.CommitHash
 				}
+				// An approved review that is not yet published has no
+				// merge_commit, and commit_hash is the previous publish (or
+				// empty for a first review). What was approved is what was
+				// sent: reviewer edits live on review/<id> and never touch
+				// main. So compare against sent_head.
+				if review.Status == "approved" && review.SentHead != "" {
+					approvedRef = review.SentHead
+				}
 				if approvedRef == commitHash {
 					return nil // no changes since approval
 				}

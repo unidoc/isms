@@ -412,3 +412,123 @@ func TestReviewApprovedUnchangedStillRefusesAfterOtherCommits(t *testing.T) {
 		t.Fatalf("expected 409 %q, got %d %q", CodeReviewAwaitingPublication, status, code)
 	}
 }
+
+// --- Part C: needs-review for an approved, unpublished review ---
+
+// needsReviewEntry runs handleNeedsReview and returns the fixture document's
+// entry, or nil when it is not listed.
+func (f *approvedFixture) needsReviewEntry() map[string]any {
+	f.t.Helper()
+	c, rec := reviewCtxForPath(f.orgID, http.MethodGet, "/api/v1/documents/needs-review", "", "admin", f.admin)
+	if err := f.s.handleNeedsReview(c); err != nil || rec.Code != http.StatusOK {
+		f.t.Fatalf("handleNeedsReview: err=%v code=%d body=%s", err, rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		f.t.Fatalf("decoding needs-review: %v", err)
+	}
+	for _, e := range resp.Data {
+		if e["document_id"] == f.docID {
+			return e
+		}
+	}
+	return nil
+}
+
+// sendNew sends the document for a fresh review (no active review exists) and
+// makes it the fixture's current review.
+func (f *approvedFixture) sendNew(reviewers ...string) {
+	f.t.Helper()
+	rec, err := f.send(reviewers...)
+	if err != nil || rec.Code != http.StatusCreated {
+		f.t.Fatalf("send: err=%v code=%d body=%s", err, rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		ReviewID int `json:"review_id"`
+	}
+	if jerr := json.Unmarshal(rec.Body.Bytes(), &resp); jerr != nil || resp.ReviewID == 0 {
+		f.t.Fatalf("decoding send: %v %s", jerr, rec.Body.String())
+	}
+	f.reviewID = resp.ReviewID
+}
+
+func (f *approvedFixture) mustMerge() {
+	f.t.Helper()
+	if status, body := f.merge(); status != http.StatusOK {
+		f.t.Fatalf("merge: %d %s", status, body)
+	}
+}
+
+func TestNeedsReviewApprovedUnpublished(t *testing.T) {
+	t.Run("first review approved and unchanged is not listed", func(t *testing.T) {
+		f := newApprovedFixture(t, "nr-first")
+		if e := f.needsReviewEntry(); e != nil {
+			t.Fatalf("an approved, unchanged document must not be listed, got %+v", e)
+		}
+	})
+	t.Run("later review approved and unchanged since sending is not listed", func(t *testing.T) {
+		f := newOpenFixture(t, "nr-later")
+		f.approve(f.rev1)
+		f.mustMerge()
+		f.putBody("second round body\n")
+		f.sendNew(f.rev1)
+		f.approve(f.rev1)
+		if e := f.needsReviewEntry(); e != nil {
+			t.Fatalf("approved and unchanged since the second send must not be listed, got %+v", e)
+		}
+	})
+	t.Run("body edited after approval is listed", func(t *testing.T) {
+		f := newApprovedFixture(t, "nr-body")
+		f.putBody("edited after approval\n")
+		e := f.needsReviewEntry()
+		if e == nil {
+			t.Fatal("a body edit after approval must be listed")
+		}
+		if e["never_approved"] != false {
+			t.Errorf("never_approved = %v, want false", e["never_approved"])
+		}
+	})
+	t.Run("frontmatter-only edit after approval is not listed", func(t *testing.T) {
+		f := newApprovedFixture(t, "nr-fm")
+		f.putMetadata("classification", "internal")
+		if e := f.needsReviewEntry(); e != nil {
+			t.Fatalf("a frontmatter-only edit must not be listed, got %+v", e)
+		}
+	})
+}
+
+// Controls: behaviour that must not change.
+func TestNeedsReviewControls(t *testing.T) {
+	t.Run("never reviewed is listed as never approved", func(t *testing.T) {
+		s := testServer(t)
+		orgID := newTestOrg(t, s, "nr-never")
+		seedRepoForOrg(t, s, orgID, "doc-nr-never")
+		seedReviewUser(t, s, orgID, "admin@nr-never.test", "admin")
+		st, _ := s.storeForOrg(context.Background(), orgID)
+		f := &approvedFixture{t: t, s: s, st: st, orgID: orgID, docID: "doc-nr-never", admin: "admin@nr-never.test"}
+		e := f.needsReviewEntry()
+		if e == nil || e["never_approved"] != true {
+			t.Fatalf("expected listed with never_approved true, got %+v", e)
+		}
+	})
+	t.Run("merged with a later body edit is listed", func(t *testing.T) {
+		f := newOpenFixture(t, "nr-merged-edit")
+		f.approve(f.rev1)
+		f.mustMerge()
+		f.putBody("edited after publish\n")
+		e := f.needsReviewEntry()
+		if e == nil || e["never_approved"] != false {
+			t.Fatalf("expected listed with never_approved false, got %+v", e)
+		}
+	})
+	t.Run("merged with no later edit is not listed", func(t *testing.T) {
+		f := newOpenFixture(t, "nr-merged-clean")
+		f.approve(f.rev1)
+		f.mustMerge()
+		if e := f.needsReviewEntry(); e != nil {
+			t.Fatalf("expected not listed, got %+v", e)
+		}
+	})
+}

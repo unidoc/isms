@@ -10,6 +10,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/store"
 )
 
@@ -274,5 +275,140 @@ func TestReviewCreateSlotTakenIsCoded409(t *testing.T) {
 	status, code := outcome(t, nil, reviewCreateHTTPError(err))
 	if status != http.StatusConflict || code != CodeReviewAlreadyActive {
 		t.Fatalf("expected 409 %q, got %d %q (%v)", CodeReviewAlreadyActive, status, code, err)
+	}
+}
+
+// --- Part B: approved, then edited after sending -> a new round ---
+
+func (f *approvedFixture) putBody(body string) {
+	f.t.Helper()
+	payload, _ := json.Marshal(map[string]string{"content": body})
+	c, rec := reviewCtxForPath(f.orgID, http.MethodPut, "/api/v1/documents/"+f.docID+"/content", string(payload), "admin", f.admin)
+	c.SetParamNames("docId")
+	c.SetParamValues(f.docID)
+	if err := f.s.handleUpdateDocumentContent(c); err != nil || rec.Code != http.StatusOK {
+		f.t.Fatalf("content edit: err=%v code=%d body=%s", err, rec.Code, rec.Body.String())
+	}
+}
+
+func (f *approvedFixture) putMetadata(field, value string) {
+	f.t.Helper()
+	payload, _ := json.Marshal(map[string]any{"fields": map[string]string{field: value}})
+	c, rec := reviewCtxForPath(f.orgID, http.MethodPut, "/api/v1/documents/"+f.docID+"/metadata", string(payload), "admin", f.admin)
+	c.SetParamNames("docId")
+	c.SetParamValues(f.docID)
+	if err := f.s.handleUpdateDocumentMetadata(c); err != nil || rec.Code != http.StatusOK {
+		f.t.Fatalf("metadata edit: err=%v code=%d body=%s", err, rec.Code, rec.Body.String())
+	}
+}
+
+func (f *approvedFixture) merge() (int, string) {
+	f.t.Helper()
+	id := strconv.Itoa(f.reviewID)
+	c, rec := reviewCtxForPath(f.orgID, http.MethodPost, "/api/v1/reviews/"+id+"/merge", "", "admin", f.admin)
+	c.SetParamNames("id")
+	c.SetParamValues(id)
+	err := f.s.handleMergeReview(c)
+	status, _ := outcome(f.t, rec, err)
+	return status, rec.Body.String() + "|" + errString(err)
+}
+
+func errString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
+// expectNewRound asserts the 200 resubmit outcome: same review, round 2, open,
+// every assignment pending and reviewer 2 added, comments outdated, sent_head
+// at the current HEAD.
+func (f *approvedFixture) expectNewRound(rec *httptest.ResponseRecorder, err error) {
+	f.t.Helper()
+	if status, code := outcome(f.t, rec, err); status != http.StatusOK {
+		f.t.Fatalf("expected 200, got %d %q (err=%v body=%s)", status, code, err, rec.Body.String())
+	}
+	var resp struct {
+		ReviewID int `json:"review_id"`
+		Round    int `json:"round"`
+	}
+	if jerr := json.Unmarshal(rec.Body.Bytes(), &resp); jerr != nil || resp.ReviewID != f.reviewID || resp.Round != 2 {
+		f.t.Errorf("expected review %d round 2, got %s", f.reviewID, rec.Body.String())
+	}
+	ctx := context.Background()
+	r, _ := f.s.db.GetReview(ctx, f.orgID, f.reviewID)
+	if r.Status != "open" || r.Round != 2 {
+		f.t.Errorf("expected open round 2, got %q round %d", r.Status, r.Round)
+	}
+	if r.SentHead != f.head() {
+		f.t.Errorf("sent_head %s should be the new HEAD %s", r.SentHead, f.head())
+	}
+	as, _ := f.s.db.ListAssignmentsForReview(ctx, f.orgID, f.reviewID)
+	got := map[string]string{}
+	for _, a := range as {
+		got[a.Reviewer] = a.Status
+	}
+	if len(got) != 2 || got[f.rev1] != "pending" || got[f.rev2] != "pending" {
+		f.t.Errorf("expected both reviewers pending, got %+v", got)
+	}
+	if n := f.reviewCount(); n != 1 {
+		f.t.Errorf("expected still exactly 1 review row, got %d", n)
+	}
+}
+
+// f. body edited after approval: Send starts a new round, and the document can
+// then be approved again and published (the "unstuck" proof).
+func TestReviewApprovedEditedBodyResendsAsNewRound(t *testing.T) {
+	f := newApprovedFixture(t, "apv-body")
+	ctx := context.Background()
+	if err := f.s.db.AddComment(ctx, f.orgID, &db.Comment{ReviewID: &f.reviewID, DocumentID: f.docID, Author: f.rev1, Body: "round one note", Status: "open"}); err != nil {
+		t.Fatalf("AddComment: %v", err)
+	}
+
+	f.putBody("edited after approval\n")
+	rec, err := f.send(f.rev2)
+	f.expectNewRound(rec, err)
+
+	cs, _ := f.s.db.CommentsForReview(ctx, f.orgID, f.reviewID)
+	if len(cs) != 1 || !cs[0].IsOutdated {
+		t.Errorf("earlier comments should be outdated, got %+v", cs)
+	}
+
+	f.approve(f.rev1)
+	f.approve(f.rev2)
+	if status, body := f.merge(); status != http.StatusOK {
+		t.Fatalf("publish after the new round: expected 200, got %d %s", status, body)
+	}
+	r, _ := f.s.db.GetReview(ctx, f.orgID, f.reviewID)
+	if r.Status != "merged" {
+		t.Errorf("expected merged, got %q", r.Status)
+	}
+}
+
+// g. a frontmatter-only edit also blocks publish (whole-file compare), so it
+// must also allow the new round, or the document stays stuck.
+func TestReviewApprovedEditedFrontmatterResendsAsNewRound(t *testing.T) {
+	f := newApprovedFixture(t, "apv-fm")
+	f.putMetadata("classification", "internal")
+
+	// Prove the premise on this base: publish refuses a frontmatter-only edit.
+	if status, body := f.merge(); status != http.StatusConflict {
+		t.Fatalf("premise: expected publish to refuse with 409, got %d %s", status, body)
+	}
+
+	rec, err := f.send(f.rev2)
+	f.expectNewRound(rec, err)
+}
+
+// h. approved + unchanged still refuses, even after unrelated churn elsewhere
+// in the repo (another document is not this file).
+func TestReviewApprovedUnchangedStillRefusesAfterOtherCommits(t *testing.T) {
+	f := newApprovedFixture(t, "apv-other")
+	if _, err := f.st.CommitFile(f.st.Root()+"/documents/test/other.md", []byte("---\ndocument_id: other\ntitle: O\nstatus: draft\n---\nx\n"), "T", "t@example.com", "other doc"); err != nil {
+		t.Fatalf("CommitFile: %v", err)
+	}
+	rec, err := f.send(f.rev2)
+	if status, code := outcome(t, rec, err); status != http.StatusConflict || code != CodeReviewAwaitingPublication {
+		t.Fatalf("expected 409 %q, got %d %q", CodeReviewAwaitingPublication, status, code)
 	}
 }

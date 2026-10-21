@@ -4336,88 +4336,26 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		// "add reviewers" fallthrough below: that path would attach a pending
 		// assignment to a review whose status stays approved.
 		if existingReview.Status == "approved" {
+			// Same predicate as publish (performMerge -> MergeSuggestion): the
+			// whole file at sent_head, falling back to commit_hash, against
+			// the current file. If publish would refuse the file, the review
+			// cannot be published as it stands, so start a new round instead
+			// of leaving the document stuck. A read error counts as
+			// unchanged, exactly as it does for publish.
+			baseRef := existingReview.SentHead
+			if baseRef == "" {
+				baseRef = existingReview.CommitHash
+			}
+			if docPath := resolveDocPathFromStore(st, docID); docPath != "" && baseRef != "" {
+				if changed, chErr := st.FileChangedSince(docPath, baseRef); chErr == nil && changed {
+					return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
+				}
+			}
 			return apiError(http.StatusConflict, CodeReviewAwaitingPublication)
 		}
 		if existingReview.Status == "changes_requested" {
 			// Resubmission after changes_requested: new review round on the same review.
-			// Update document status back to in_review.
-			if err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor); err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("setting document status: %v", err))
-			}
-			// Capture new HEAD as the resubmission snapshot.
-			newSentHead, _ := st.HeadHash()
-
-			// Steps 1-3 must be atomic with RLS: update review, reset assignments, add new reviewers.
-			txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-				// 1. Mark comments outdated, update review: new sent_head, status back to open, round++.
-				if err := db.MarkCommentsOutdatedTx(ctx, tx, orgID, existingReview.ID); err != nil {
-					return fmt.Errorf("marking comments outdated: %w", err)
-				}
-				if err := db.ResubmitReviewTx(ctx, tx, orgID, existingReview.ID, newSentHead); err != nil {
-					return fmt.Errorf("updating review: %w", err)
-				}
-				// 2. Reset all existing assignment statuses back to pending.
-				if err := db.ResetAssignmentsTx(ctx, tx, orgID, existingReview.ID); err != nil {
-					return fmt.Errorf("resetting assignments: %w", err)
-				}
-				// 3. Add any new reviewers that weren't already assigned.
-				for _, reviewer := range req.Reviewers {
-					if err := db.AddReviewAssignmentTx(ctx, tx, orgID, existingReview.ID, reviewer); err != nil {
-						return fmt.Errorf("assigning reviewer %s: %w", reviewer, err)
-					}
-				}
-				return nil
-			})
-			if txErr != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
-			}
-			// Notify all assigned reviewers about the resubmission.
-			allAssignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, existingReview.ID)
-			var m orgMailCtx
-			if s.mailer != nil && s.mailer.Enabled() {
-				m = s.orgMail(ctx, orgID)
-			}
-			for _, a := range allAssignments {
-				notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
-				// Separate with-note frame — see handleForwardReview for why the
-				// label cannot be an optional interpolation.
-				bodyKey := NotifyKeyReviewResubmittedBody
-				params := map[string]any{
-					"actor":   actor,
-					"doc_id":  docID,
-					"title":   title,
-					"version": version,
-				}
-				if req.Message != "" {
-					notifBody += "\n\nNote: " + req.Message
-					bodyKey = NotifyKeyReviewResubmittedBodyWithNote
-					params["note"] = req.Message
-				}
-				s.db.CreateNotificationContentByEmail(ctx, orgID, a.Reviewer, db.NotificationContent{
-					Title:    fmt.Sprintf("Review resubmitted: %s", title),
-					TitleKey: NotifyKeyReviewResubmitted,
-					Body:     notifBody,
-					BodyKey:  bodyKey,
-					Params:   params,
-					Link:     fmt.Sprintf("/reviews/%d", existingReview.ID),
-				})
-				if s.mailer != nil && s.mailer.Enabled() {
-					_ = s.mailer.SendReviewRequestBranded(a.Reviewer, s.userDisplayName(ctx, a.Reviewer), s.userLabel(ctx, actor), docID, title, version, m.AppURL, existingReview.ID, req.Message, m.Branding)
-				}
-			}
-			s.logAndNotify(ctx, orgID, &db.Activity{
-				DocumentID: docID,
-				ReviewID:   &existingReview.ID,
-				Actor:      actor,
-				Action:     "review_resubmitted",
-				Detail:     fmt.Sprintf("Resubmitted %s v%s for review (review #%d)", docID, version, existingReview.ID),
-			})
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"review_id": existingReview.ID,
-				"version":   version,
-				"round":     existingReview.Round + 1,
-				"message":   "review resubmitted with changes",
-			})
+			return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
 		}
 
 		// Review is still open — add all new reviewers atomically with RLS.
@@ -4492,6 +4430,95 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"review_id": review.ID,
 		"version":   version,
+	})
+}
+
+// resubmitReviewRound starts a new round of an existing review: the document
+// goes back to in_review, earlier comments are marked outdated, the review is
+// reset to open with sent_head at the new HEAD and round+1, every assignment
+// goes back to pending (so a fresh approval is really required), and any new
+// reviewers are added. Everyone assigned is notified. Used for a review in
+// changes_requested and for an approved review whose file changed after it was
+// sent.
+func (s *Server) resubmitReviewRound(c echo.Context, st *store.Store, orgID int, review *db.Review, docID, title, version, actor, message string, reviewers []string) error {
+	ctx := c.Request().Context()
+	// Update document status back to in_review.
+	if err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("setting document status: %v", err))
+	}
+	// Capture new HEAD as the resubmission snapshot.
+	newSentHead, _ := st.HeadHash()
+
+	// Steps 1-3 must be atomic with RLS: update review, reset assignments, add new reviewers.
+	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		// 1. Mark comments outdated, update review: new sent_head, status back to open, round++.
+		if err := db.MarkCommentsOutdatedTx(ctx, tx, orgID, review.ID); err != nil {
+			return fmt.Errorf("marking comments outdated: %w", err)
+		}
+		if err := db.ResubmitReviewTx(ctx, tx, orgID, review.ID, newSentHead); err != nil {
+			return fmt.Errorf("updating review: %w", err)
+		}
+		// 2. Reset all existing assignment statuses back to pending.
+		if err := db.ResetAssignmentsTx(ctx, tx, orgID, review.ID); err != nil {
+			return fmt.Errorf("resetting assignments: %w", err)
+		}
+		// 3. Add any new reviewers that weren't already assigned.
+		for _, reviewer := range reviewers {
+			if err := db.AddReviewAssignmentTx(ctx, tx, orgID, review.ID, reviewer); err != nil {
+				return fmt.Errorf("assigning reviewer %s: %w", reviewer, err)
+			}
+		}
+		return nil
+	})
+	if txErr != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
+	}
+	// Notify all assigned reviewers about the resubmission.
+	allAssignments, _ := s.db.ListAssignmentsForReview(ctx, orgID, review.ID)
+	var m orgMailCtx
+	if s.mailer != nil && s.mailer.Enabled() {
+		m = s.orgMail(ctx, orgID)
+	}
+	for _, a := range allAssignments {
+		notifBody := fmt.Sprintf("%s resubmitted %s (%s v%s) for review", actor, docID, title, version)
+		// Separate with-note frame — see handleForwardReview for why the
+		// label cannot be an optional interpolation.
+		bodyKey := NotifyKeyReviewResubmittedBody
+		params := map[string]any{
+			"actor":   actor,
+			"doc_id":  docID,
+			"title":   title,
+			"version": version,
+		}
+		if message != "" {
+			notifBody += "\n\nNote: " + message
+			bodyKey = NotifyKeyReviewResubmittedBodyWithNote
+			params["note"] = message
+		}
+		s.db.CreateNotificationContentByEmail(ctx, orgID, a.Reviewer, db.NotificationContent{
+			Title:    fmt.Sprintf("Review resubmitted: %s", title),
+			TitleKey: NotifyKeyReviewResubmitted,
+			Body:     notifBody,
+			BodyKey:  bodyKey,
+			Params:   params,
+			Link:     fmt.Sprintf("/reviews/%d", review.ID),
+		})
+		if s.mailer != nil && s.mailer.Enabled() {
+			_ = s.mailer.SendReviewRequestBranded(a.Reviewer, s.userDisplayName(ctx, a.Reviewer), s.userLabel(ctx, actor), docID, title, version, m.AppURL, review.ID, message, m.Branding)
+		}
+	}
+	s.logAndNotify(ctx, orgID, &db.Activity{
+		DocumentID: docID,
+		ReviewID:   &review.ID,
+		Actor:      actor,
+		Action:     "review_resubmitted",
+		Detail:     fmt.Sprintf("Resubmitted %s v%s for review (review #%d)", docID, version, review.ID),
+	})
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"review_id": review.ID,
+		"version":   version,
+		"round":     review.Round + 1,
+		"message":   "review resubmitted with changes",
 	})
 }
 

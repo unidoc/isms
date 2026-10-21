@@ -236,7 +236,8 @@ const (
 // a new status-carrying code cannot ship without an entry.
 var errorStatusValues = map[string][]string{
 	// review.Status, whose state machine is documented in CLAUDE.md:
-	// open -> approved | changes_requested -> open, approved -> merged, and
+	// open -> approved | changes_requested -> open, approved -> merged,
+	// approved -> open (resubmit after the file changed), and
 	// any active status -> closed. `draft` is reachable through the document
 	// status the same field carries at :912.
 	CodeReviewWrongStatus:   {"draft", "open", "in_review", "approved", "changes_requested", "merged", "closed"},

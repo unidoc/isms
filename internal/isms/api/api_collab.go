@@ -4348,6 +4348,17 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			}
 			if docPath := resolveDocPathFromStore(st, docID); docPath != "" && baseRef != "" {
 				if changed, chErr := st.FileChangedSince(docPath, baseRef); chErr == nil && changed {
+					// Reviewer edits live on review/<id>, and publish commits
+					// that branch over main. A new round would keep the branch
+					// and silently overwrite the author's later change with it,
+					// so refuse instead. A missing branch or unreadable ref
+					// counts as no reviewer edits. (The changes_requested path
+					// below resubmits without this check and has the same
+					// underlying issue.)
+					branch := fmt.Sprintf("review/%d", existingReview.ID)
+					if edited, edErr := st.FileDiffersBetween(docPath, branch, baseRef); edErr == nil && edited {
+						return apiError(http.StatusConflict, CodeReviewHasReviewerEdits)
+					}
 					return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
 				}
 			}

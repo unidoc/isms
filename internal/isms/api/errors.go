@@ -111,6 +111,7 @@ const (
 	// one-active-review-per-document slot.
 	CodeReviewAwaitingPublication = "review_awaiting_publication"
 	CodeReviewAlreadyActive       = "review_already_active"
+	CodeReviewHasReviewerEdits    = "review_has_reviewer_edits"
 
 	// Change requests.
 	CodeChangeInvalidTransition = "change_invalid_transition"
@@ -180,6 +181,7 @@ var errorMessages = map[string]string{
 
 	CodeReviewAwaitingPublication: "this document already has an approved review awaiting publication",
 	CodeReviewAlreadyActive:       "this document already has a review in progress",
+	CodeReviewHasReviewerEdits:    "this approved review contains reviewer edits that would overwrite later changes to the document — close it to start a new review",
 
 	CodeChangeInvalidTransition: "change is {status}, cannot move to {value}",
 

@@ -71,7 +71,7 @@ Review status is a state machine. Only dedicated endpoints may transition betwee
 - `open` → `approved` (via approve endpoint)
 - `open` → `changes_requested` (via approve endpoint with changes_requested/proposed_revision)
 - `changes_requested` → `open` (via resubmit)
-- `approved` → `open` (via resubmit, only when the document file changed since the review was sent; send refuses otherwise)
+- `approved` → `open` (via resubmit, only when the document file changed since the review was sent and the review has no reviewer edits; send refuses otherwise)
 - `approved` → `merged` (via merge endpoint)
 - Any active status → `closed` (via status endpoint — the ONLY transition it allows)
 

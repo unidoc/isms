@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -531,4 +532,88 @@ func TestNeedsReviewControls(t *testing.T) {
 			t.Fatalf("expected not listed, got %+v", e)
 		}
 	})
+}
+
+// --- Part B2: an approved review carrying reviewer edits is not resent ---
+
+// reviewerEdit saves content to the review branch as the given reviewer, the
+// way PUT /reviews/:id/content does.
+func (f *approvedFixture) reviewerEdit(who, content string) {
+	f.t.Helper()
+	id := strconv.Itoa(f.reviewID)
+	payload, _ := json.Marshal(map[string]string{"content": content})
+	c, rec := reviewCtxForPath(f.orgID, http.MethodPut, "/api/v1/reviews/"+id+"/content", string(payload), "contributor", who)
+	c.SetParamNames("id")
+	c.SetParamValues(id)
+	if err := f.s.handleUpdateReviewContent(c); err != nil || rec.Code != http.StatusOK {
+		f.t.Fatalf("reviewer edit: err=%v code=%d body=%s", err, rec.Code, rec.Body.String())
+	}
+}
+
+func (f *approvedFixture) publishedFile() string {
+	f.t.Helper()
+	raw, err := f.st.ReadFile(f.st.Root() + "/documents/test/" + f.docID + ".md")
+	if err != nil {
+		f.t.Fatalf("ReadFile: %v", err)
+	}
+	return string(raw)
+}
+
+func TestReviewApprovedWithReviewerEditsAndMainEditIsRefused(t *testing.T) {
+	f := newOpenFixture(t, "rve-refuse")
+	f.reviewerEdit(f.rev1, "reviewer text\n")
+	f.approve(f.rev1)
+	f.putBody("author text\n")
+	headBefore := f.head()
+
+	rec, err := f.send(f.rev2)
+	status, code := outcome(t, rec, err)
+	if status != http.StatusConflict || code != CodeReviewHasReviewerEdits {
+		t.Fatalf("expected 409 %q, got %d %q (err=%v body=%s)", CodeReviewHasReviewerEdits, status, code, err, rec.Body.String())
+	}
+	ctx := context.Background()
+	r, _ := f.s.db.GetReview(ctx, f.orgID, f.reviewID)
+	if r.Status != "approved" || r.Round != 1 {
+		t.Errorf("review should stay approved round 1, got %q round %d", r.Status, r.Round)
+	}
+	as, _ := f.s.db.ListAssignmentsForReview(ctx, f.orgID, f.reviewID)
+	if len(as) != 1 || as[0].Reviewer != f.rev1 || as[0].Status != "approved" {
+		t.Errorf("assignments must be untouched, got %+v", as)
+	}
+	if h := f.head(); h != headBefore {
+		t.Errorf("a refused send must not commit: HEAD moved %s -> %s", headBefore, h)
+	}
+}
+
+func TestReviewApprovedWithReviewerEditsUnchangedPublishesTheEdit(t *testing.T) {
+	f := newOpenFixture(t, "rve-publish")
+	f.reviewerEdit(f.rev1, "reviewer text\n")
+	f.approve(f.rev1)
+
+	rec, err := f.send(f.rev2)
+	if status, code := outcome(t, rec, err); status != http.StatusConflict || code != CodeReviewAwaitingPublication {
+		t.Fatalf("expected 409 %q, got %d %q", CodeReviewAwaitingPublication, status, code)
+	}
+	f.mustMerge()
+	if got := f.publishedFile(); !strings.Contains(got, "reviewer text") {
+		t.Errorf("published file should carry the reviewer edit, got %q", got)
+	}
+}
+
+func TestReviewApprovedNoReviewerEditMainEditedResends(t *testing.T) {
+	f := newApprovedFixture(t, "rve-none")
+	f.putBody("author text\n")
+	rec, err := f.send(f.rev2)
+	f.expectNewRound(rec, err)
+}
+
+// A reviewer "edit" that saves the content unchanged leaves the branch file
+// equal to the base: no reviewer edit, so a main edit still starts a new round.
+func TestReviewApprovedIdenticalReviewerSaveDoesNotBlockResend(t *testing.T) {
+	f := newOpenFixture(t, "rve-same")
+	f.reviewerEdit(f.rev1, "body\n")
+	f.approve(f.rev1)
+	f.putBody("author text\n")
+	rec, err := f.send(f.rev2)
+	f.expectNewRound(rec, err)
 }

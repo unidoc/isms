@@ -2216,6 +2216,28 @@ func (s *Store) FileChangedSince(docPath, ref string) (bool, error) {
 	return s.fileChangedSinceUnlocked(docPath, ref)
 }
 
+// FileDiffersBetween reports whether the document file at docPath differs
+// between two refs (commit hashes or branch names), comparing the whole file.
+// A ref or file that cannot be read is reported as an error, not as a
+// difference.
+func (s *Store) FileDiffersBetween(docPath, refA, refB string) (bool, error) {
+	if s.repo == nil {
+		return false, fmt.Errorf("not a bare repo store")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	relPath := strings.ReplaceAll(s.relPath(docPath), string(filepath.Separator), "/")
+	a, err := s.ReadFileAtRef(refA, relPath)
+	if err != nil {
+		return false, err
+	}
+	b, err := s.ReadFileAtRef(refB, relPath)
+	if err != nil {
+		return false, err
+	}
+	return string(a) != string(b), nil
+}
+
 func (s *Store) fileChangedSinceUnlocked(docPath, ref string) (bool, error) {
 	relPath := strings.ReplaceAll(s.relPath(docPath), string(filepath.Separator), "/")
 	oldContent, err := s.ReadFileAtRef(ref, relPath)

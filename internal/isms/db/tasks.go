@@ -141,6 +141,21 @@ func (d *DB) CreateTask(ctx context.Context, orgID int, t *Task) error {
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
+// ChangeIdentifierForTask returns the identifier (CR-2) of the change a task is
+// linked to (#478), or "" when the task has no change.
+func (d *DB) ChangeIdentifierForTask(ctx context.Context, orgID int, taskID int64) (string, error) {
+	var ident string
+	err := d.pool.QueryRow(ctx, `
+		SELECT cr.identifier
+		FROM tasks t JOIN change_requests cr ON cr.id = t.change_request_id AND cr.organization_id = t.organization_id
+		WHERE t.id = $1 AND t.organization_id = $2
+	`, taskID, orgID).Scan(&ident)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return ident, err
+}
+
 // FindChangeFollowupTask returns the non-deleted task linked to a change (#422),
 // or (nil, nil) when there is none. A live (open / in_progress) task wins, then
 // a cancelled one (reopenable), then the newest done one.

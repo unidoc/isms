@@ -921,6 +921,7 @@
   "common.error.api_key_required",
   "common.error.api_key_wrong_org",
   "common.error.change_invalid_transition",
+  "common.error.change_task_already_live",
   "common.error.comment_has_replies",
   "common.error.current_password_incorrect",
   "common.error.current_password_required",

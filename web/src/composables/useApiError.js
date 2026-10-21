@@ -15,14 +15,14 @@ import { FALLBACK, i18n } from '../i18n.js'
 import { enumLabelInline, entityLabel } from './useEnumLabel.js'
 
 // How each param name resolves. The set is closed on the Go side
-// (ParamEntity/ParamField/ParamStatus/ParamCount/ParamValue), and each name has
+// (ParamEntity/ParamField/ParamStatus/ParamCount/ParamValue/ParamRef), and each name has
 // exactly one rule — which is the property that makes this table possible
 // rather than a per-code mapping.
 //
-// `count` and `value` are spliced raw and so are absent here: count is a
-// number, and value is the caller's own input echoed back ("invalid status:
-// draught"), which by construction is not a member of any set the catalogue
-// could enumerate.
+// `count`, `value` and `ref` are spliced raw and so are absent here: count is
+// a number, value is the caller's own input echoed back ("invalid status:
+// draught"), and ref is an entity's identifier such as CR-2. Neither of the
+// last two is a member of any set the catalogue could enumerate.
 const PARAM_RESOLVERS = {
   entity: (v) => entityLabel(v, { inline: true }),
   status: (v) => enumLabelInline('status', v),

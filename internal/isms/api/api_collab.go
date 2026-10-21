@@ -2464,6 +2464,9 @@ func (s *Server) handleUpdateTaskStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "contributors can only change the status of tasks assigned to them")
 	}
 	if err := s.db.UpdateTaskStatus(ctx, orgID, id, req.Status); err != nil {
+		if conflict := s.liveChangeTaskConflict(ctx, orgID, id, err); conflict != nil {
+			return conflict
+		}
 		return pgxHTTPError(err)
 	}
 	after, err := s.db.GetTask(ctx, orgID, id)
@@ -2672,6 +2675,9 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	t.ID = id
 
 	if err := s.db.UpdateTask(ctx, orgID, &t); err != nil {
+		if conflict := s.liveChangeTaskConflict(ctx, orgID, id, err); conflict != nil {
+			return conflict
+		}
 		return pgxHTTPError(err)
 	}
 
@@ -3232,6 +3238,24 @@ func (s *Server) handleUpdateChangeStatus(c echo.Context) error {
 	s.syncChangeFollowupTask(ctx, orgID, updated, oldStatus, req.Status, actor)
 
 	return c.JSON(http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// liveChangeTaskConflict maps a write refused by the one-live-task-per-change
+// index (#422) to a coded 409 naming the change, e.g. reopening an old done task
+// while the change already has a newer open one (#478). It returns nil for any
+// other error so the caller keeps its pgxHTTPError path. The live task is not
+// named: it may be private. The lookup runs on the pool, not a transaction,
+// because the violation has already aborted the caller's.
+func (s *Server) liveChangeTaskConflict(ctx context.Context, orgID int, taskID int64, err error) error {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" || pgErr.ConstraintName != "idx_tasks_change_request_live" {
+		return nil
+	}
+	ident, lerr := s.db.ChangeIdentifierForTask(ctx, orgID, taskID)
+	if lerr != nil {
+		log.Printf("liveChangeTaskConflict: resolve change of task %d: %v", taskID, lerr)
+	}
+	return apiError(http.StatusConflict, CodeChangeTaskAlreadyLive, Ref(ident))
 }
 
 // syncChangeFollowupTask keeps the "Implement <CR>" task in step with its change

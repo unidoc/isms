@@ -460,6 +460,7 @@
     "review_wrong_status": "review is {status}",
     "review_already_status": "review is already {status}",
     "change_invalid_transition": "change is {status}, cannot move to {value}",
+    "change_task_already_live": "{ref} already has an open implementation task",
     "comment_has_replies": "this comment still has replies ({count}) — delete them first",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"

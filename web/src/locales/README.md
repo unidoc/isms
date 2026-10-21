@@ -98,7 +98,7 @@ exactly one lookup path:
 | `entity` | `common.entity_inline.*` |
 | `field` | `common.field.*` |
 | `status` | `common.enum_inline.status.*` |
-| `count`, `value` | spliced raw — a number, and the caller's own echoed input |
+| `count`, `value`, `ref` | spliced raw — a number, the caller's own echoed input, and a record's identifier such as CR-2 |
 
 **The `_inline` groups, not the standalone ones.** An error sentence puts the
 noun mid-sentence ("risk not found"), and which words a language capitalises

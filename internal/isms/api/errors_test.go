@@ -290,9 +290,9 @@ func TestApiErrorRendering(t *testing.T) {
 }
 
 func TestParamConstructorsCoverTheClosedSet(t *testing.T) {
-	got := []string{Entity("x").Key, Field("x").Key, Status("x").Key, Count(1).Key, Value("x").Key}
+	got := []string{Entity("x").Key, Field("x").Key, Status("x").Key, Count(1).Key, Value("x").Key, Ref("x").Key}
 	sort.Strings(got)
-	want := []string{ParamCount, ParamEntity, ParamField, ParamStatus, ParamValue}
+	want := []string{ParamCount, ParamEntity, ParamField, ParamRef, ParamStatus, ParamValue}
 	sort.Strings(want)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("constructors emit %v, want the closed set %v", got, want)
@@ -347,11 +347,11 @@ func TestErrorCodeParamsReadsTheTemplate(t *testing.T) {
 	}
 }
 
-// Every param a template names must be one of the four the client knows how to
-// resolve. A fifth name is not merely unrecognised — it is spliced in raw, so
+// Every param a template names must be one the client knows how to resolve. A
+// name outside the set is not merely unrecognised — it is spliced in raw, so
 // an identifier reaches the reader untranslated in every language.
 func TestTemplatesUseOnlyTheClosedParamSet(t *testing.T) {
-	closed := map[string]bool{ParamEntity: true, ParamField: true, ParamStatus: true, ParamCount: true, ParamValue: true}
+	closed := map[string]bool{ParamEntity: true, ParamField: true, ParamStatus: true, ParamCount: true, ParamValue: true, ParamRef: true}
 	for _, code := range ErrorCodes() {
 		for _, p := range ErrorCodeParams(code) {
 			if !closed[p] {
@@ -703,6 +703,8 @@ func TestCallSitesMatchTheirCodes(t *testing.T) {
 					got = append(got, ParamCount)
 				case "Value":
 					got = append(got, ParamValue)
+				case "Ref":
+					got = append(got, ParamRef)
 				default:
 					return true
 				}

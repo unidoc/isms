@@ -1534,6 +1534,10 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	}
 	updated.ID = taskID
 	if err := db.UpdateTaskTx(ctx, tx, orgID, &updated); err != nil {
+		// The violation has aborted tx; the helper looks the change up on the pool.
+		if conflict := s.liveChangeTaskConflict(ctx, orgID, taskID, err); conflict != nil {
+			return "", 0, conflict
+		}
 		return "", 0, err
 	}
 	// A task that is (or becomes) private must leave the shared search index, as

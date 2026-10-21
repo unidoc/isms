@@ -107,6 +107,7 @@ const (
 
 	// Change requests.
 	CodeChangeInvalidTransition = "change_invalid_transition"
+	CodeChangeTaskAlreadyLive   = "change_task_already_live"
 
 	// Comments.
 	CodeCommentHasReplies = "comment_has_replies"
@@ -172,6 +173,7 @@ var errorMessages = map[string]string{
 	CodeReviewAlreadyStatus:  "review is already {status}",
 
 	CodeChangeInvalidTransition: "change is {status}, cannot move to {value}",
+	CodeChangeTaskAlreadyLive:   "{ref} already has an open implementation task",
 
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 
@@ -182,13 +184,14 @@ var errorMessages = map[string]string{
 // The closed param set. An open-ended bag makes the client's translate-params
 // step unenforceable: the renderer has to know, for every param name, whether
 // the value is an identifier that needs a catalogue lookup or a value to
-// splice in raw. Five names, each with exactly one rule:
+// splice in raw. Six names, each with exactly one rule:
 //
 //	entity -> common.entity_inline.<value>
 //	field  -> common.field.<value>
 //	status -> common.enum_inline.status.<value>
 //	count  -> spliced raw; it is a number, not an identifier
 //	value  -> spliced raw; it is the caller's own input echoed back
+//	ref    -> spliced raw; it is an entity's human identifier, such as CR-2
 //
 // `status` is not an arbitrary name — it is the name of an existing enum group
 // in common.json, which is what lets the renderer derive the lookup path from
@@ -202,14 +205,20 @@ var errorMessages = map[string]string{
 // every lookup misses and an unbounded caller-supplied string is spliced into
 // an otherwise translated sentence — the leak this catalogue exists to
 // prevent, dressed as a translation. Two rules, not one, is the honest model;
-// a sixth name is still a design decision rather than a call-site
+// a seventh name is still a design decision rather than a call-site
 // convenience.
+//
+// `ref` is the sixth name, added for the same reason `value` was: "CR-2
+// already has an open implementation task" names a record, and that
+// identifier is neither the caller's input nor a member of any set the
+// catalogue can enumerate.
 const (
 	ParamEntity = "entity"
 	ParamField  = "field"
 	ParamStatus = "status"
 	ParamCount  = "count"
 	ParamValue  = "value"
+	ParamRef    = "ref"
 )
 
 // errorStatusValues declares which `status` members each code carrying that
@@ -238,7 +247,7 @@ var errorStatusValues = map[string][]string{
 	CodeChangeInvalidTransition: {"proposed", "approved", "rejected", "in_progress", "implemented", "closed"},
 }
 
-// ErrorParam is a single param, constructible only through the four functions
+// ErrorParam is a single param, constructible only through the functions
 // below. This is what makes the closed set a compile-time property rather than
 // a comment: apiError takes ...ErrorParam, not ...any, so a call site cannot
 // invent a name.
@@ -270,6 +279,12 @@ func Count(n int) ErrorParam { return ErrorParam{ParamCount, strconv.Itoa(n)} }
 // caller supplied; anything drawn from a known set belongs in Entity, Field or
 // Status, where the client can translate it.
 func Value(v string) ErrorParam { return ErrorParam{ParamValue, v} }
+
+// Ref is an entity's human identifier, such as "CR-2". Never translated and
+// never looked up: it is a name the organization's own data supplies, so it is
+// spliced raw. Not for caller input (that is Value) and not for anything drawn
+// from a known set (Entity, Field, Status).
+func Ref(v string) ErrorParam { return ErrorParam{ParamRef, v} }
 
 // errorBody is the response payload. It must not implement error or
 // json.Marshaler; see the wire-shape note at the top of this file.
@@ -352,7 +367,7 @@ func collapseSpaces(s string) string { return spaceRE.ReplaceAllString(s, " ") }
 // practice means acronyms.
 func humanizeParam(p ErrorParam) string {
 	switch p.Key {
-	case ParamCount, ParamValue:
+	case ParamCount, ParamValue, ParamRef:
 		return p.Value
 	}
 	if override, ok := paramMessageOverrides[p.Value]; ok {

@@ -105,6 +105,13 @@ const (
 	CodeReviewWrongStatus    = "review_wrong_status"
 	CodeReviewAlreadyStatus  = "review_already_status"
 
+	// CodeReviewAwaitingPublication: the document's review is approved, not yet
+	// published, and the file is unchanged since it was sent — there is nothing
+	// to resend. CodeReviewAlreadyActive: a send lost the race for the
+	// one-active-review-per-document slot.
+	CodeReviewAwaitingPublication = "review_awaiting_publication"
+	CodeReviewAlreadyActive       = "review_already_active"
+
 	// Change requests.
 	CodeChangeInvalidTransition = "change_invalid_transition"
 
@@ -170,6 +177,9 @@ var errorMessages = map[string]string{
 	CodeNotesRequired:        "notes are required — describe what was reviewed and confirmed",
 	CodeReviewWrongStatus:    "review is {status}",
 	CodeReviewAlreadyStatus:  "review is already {status}",
+
+	CodeReviewAwaitingPublication: "this document already has an approved review awaiting publication",
+	CodeReviewAlreadyActive:       "this document already has a review in progress",
 
 	CodeChangeInvalidTransition: "change is {status}, cannot move to {value}",
 

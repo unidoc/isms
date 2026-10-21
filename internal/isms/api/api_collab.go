@@ -441,7 +441,7 @@ func (s *Server) handleCreateReview(c echo.Context) error {
 		}
 	}
 
-	existing, err := s.db.GetOpenReviewForDocument(ctx, orgID, req.DocumentID)
+	existing, err := s.db.GetActiveReviewForDocument(ctx, orgID, req.DocumentID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking existing reviews: %v", err))
 	}
@@ -461,7 +461,7 @@ func (s *Server) handleCreateReview(c echo.Context) error {
 
 	review, err := s.createReviewWithAssignments(ctx, st, orgID, actor, req.DocumentID, title, version, docType, message, reviewers)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return reviewCreateHTTPError(err)
 	}
 	return c.JSON(http.StatusCreated, review)
 }
@@ -4267,15 +4267,16 @@ func (s *Server) handleConfirmDocumentReview(c echo.Context) error {
 
 // --- Open-review probe (read-only) ---
 
-// handleGetOpenReview returns the open (or changes_requested) review for a
-// document without firing any side effects.  HTTP 200 with {review_id} if one
-// exists, HTTP 404 otherwise.
+// handleGetOpenReview returns the document's active review (open,
+// changes_requested, or approved but not yet published) without firing any side
+// effects.  HTTP 200 with {review_id, status, version} if one exists, HTTP 404
+// otherwise.
 func (s *Server) handleGetOpenReview(c echo.Context) error {
 	orgID := getOrgID(c)
 	docID := c.Param("docId")
 	ctx := c.Request().Context()
 
-	review, err := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
+	review, err := s.db.GetActiveReviewForDocument(ctx, orgID, docID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking open review: %v", err))
 	}
@@ -4326,11 +4327,17 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	}
 
 	// c. Check if there's already an open review for this document
-	existingReview, existErr := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
+	existingReview, existErr := s.db.GetActiveReviewForDocument(ctx, orgID, docID)
 	if existErr != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("checking existing reviews: %v", existErr))
 	}
 	if existingReview != nil {
+		// Approved but not yet published. This must be handled before the
+		// "add reviewers" fallthrough below: that path would attach a pending
+		// assignment to a review whose status stays approved.
+		if existingReview.Status == "approved" {
+			return apiError(http.StatusConflict, CodeReviewAwaitingPublication)
+		}
 		if existingReview.Status == "changes_requested" {
 			// Resubmission after changes_requested: new review round on the same review.
 			// Update document status back to in_review.
@@ -4479,13 +4486,23 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 
 	review, err := s.createReviewWithAssignments(ctx, st, orgID, actor, docID, title, version, docType, req.Message, req.Reviewers)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return reviewCreateHTTPError(err)
 	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"review_id": review.ID,
 		"version":   version,
 	})
+}
+
+// reviewCreateHTTPError maps an error from createReviewWithAssignments to its
+// HTTP response: a coded error passes through, anything else is a 500.
+func reviewCreateHTTPError(err error) error {
+	var he *echo.HTTPError
+	if errors.As(err, &he) {
+		return he
+	}
+	return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 }
 
 // createReviewWithAssignments runs the fresh-review path shared by
@@ -4549,6 +4566,15 @@ func (s *Server) createReviewWithAssignments(
 		return nil
 	})
 	if txErr != nil {
+		// Lost a race for the document's active-review slot: the lookups in
+		// the callers passed, then a concurrent send inserted first. The
+		// in_review status commit above has already happened and is not
+		// rolled back — one stray status commit is acceptable in this narrow
+		// race (the document is in_review because the winner's review is).
+		var pgErr *pgconn.PgError
+		if errors.As(txErr, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_reviews_active_doc" {
+			return nil, apiError(http.StatusConflict, CodeReviewAlreadyActive)
+		}
 		return nil, txErr
 	}
 

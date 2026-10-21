@@ -1318,7 +1318,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: An open review already exists for this document
+          description: >-
+            The document already has an active review (open, changes requested
+            or approved and awaiting publication)
           content:
             application/json:
               schema:
@@ -1466,6 +1468,11 @@ paths:
           description: Review created and sent
         '200':
           description: Reviewers added to an existing open review, or the review was resubmitted
+        '409':
+          description: >-
+            The document's review is approved and awaiting publication
+            (`review_awaiting_publication`), or another send took the
+            document's one active-review slot first (`review_already_active`).
 
   /comments/open:
     get:

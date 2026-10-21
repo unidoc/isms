@@ -1234,7 +1234,7 @@ func (s *Server) handleGetDocument(c echo.Context) error {
 	}
 	if found.Frontmatter.Status == "in_review" {
 		ctx := c.Request().Context()
-		if openReview, _ := s.db.GetOpenReviewForDocument(ctx, orgID, docID); openReview != nil {
+		if openReview, _ := s.db.GetActiveReviewForDocument(ctx, orgID, docID); openReview != nil {
 			resp["active_review_id"] = openReview.ID
 			resp["active_review_status"] = openReview.Status
 			resp["active_review_round"] = openReview.Round
@@ -1335,7 +1335,7 @@ func (s *Server) handleGetDocumentBody(c echo.Context) error {
 	// Include active review ID so the frontend can link directly to it
 	if pf.Frontmatter.Status == "in_review" {
 		ctx := c.Request().Context()
-		if openReview, _ := s.db.GetOpenReviewForDocument(ctx, orgID, docID); openReview != nil {
+		if openReview, _ := s.db.GetActiveReviewForDocument(ctx, orgID, docID); openReview != nil {
 			resp["active_review_id"] = openReview.ID
 			resp["active_review_status"] = openReview.Status
 			resp["active_review_round"] = openReview.Round
@@ -1785,7 +1785,7 @@ func (s *Server) handleUpdateDocumentContent(c echo.Context) error {
 
 	// After successful save, check for open review and log activity
 	ctx := c.Request().Context()
-	openReview, _ := s.db.GetOpenReviewForDocument(ctx, orgID, docID)
+	openReview, _ := s.db.GetActiveReviewForDocument(ctx, orgID, docID)
 	if openReview != nil {
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			DocumentID: docID,

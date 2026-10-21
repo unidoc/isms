@@ -2202,6 +2202,33 @@ func (s *Store) ListSuggestionBranches(prefix string) ([]string, error) {
 	return branches, nil
 }
 
+// FileChangedSince reports whether the document file at docPath differs from
+// its content at ref, comparing the WHOLE file (frontmatter included). It is
+// the exact predicate MergeSuggestion uses to refuse a publish, exposed so a
+// caller can tell beforehand whether publishing would conflict. A file that
+// cannot be read at either side is reported as an error, not as a change.
+func (s *Store) FileChangedSince(docPath, ref string) (bool, error) {
+	if s.repo == nil {
+		return false, fmt.Errorf("not a bare repo store")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.fileChangedSinceUnlocked(docPath, ref)
+}
+
+func (s *Store) fileChangedSinceUnlocked(docPath, ref string) (bool, error) {
+	relPath := strings.ReplaceAll(s.relPath(docPath), string(filepath.Separator), "/")
+	oldContent, err := s.ReadFileAtRef(ref, relPath)
+	if err != nil {
+		return false, err
+	}
+	curContent, err := s.readFile(docPath)
+	if err != nil {
+		return false, err
+	}
+	return string(oldContent) != string(curContent), nil
+}
+
 // MergeSuggestion reads the file content from a suggestion branch and commits it to HEAD (main).
 // If baseCommit is provided and non-empty, it verifies HEAD hasn't moved since the suggestion was created.
 func (s *Store) MergeSuggestion(docPath, branchName string, authorName, authorEmail string, baseCommit ...string) (string, error) {
@@ -2215,14 +2242,7 @@ func (s *Store) MergeSuggestion(docPath, branchName string, authorName, authorEm
 	// This is file-level conflict detection, not repo-level — changes to
 	// other documents don't block merge.
 	if len(baseCommit) > 0 && baseCommit[0] != "" {
-		relPath := s.relPath(docPath)
-		relPath = strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-		// Read file content at baseCommit
-		oldContent, oldErr := s.ReadFileAtRef(baseCommit[0], relPath)
-		// Read file content at current HEAD
-		curContent, curErr := s.readFile(docPath)
-		// If both readable and different, the file was modified → conflict
-		if oldErr == nil && curErr == nil && string(oldContent) != string(curContent) {
+		if changed, chErr := s.fileChangedSinceUnlocked(docPath, baseCommit[0]); chErr == nil && changed {
 			return "", ErrConflict
 		}
 	}

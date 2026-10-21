@@ -654,7 +654,10 @@ func (d *DB) GetLastApprovedReview(ctx context.Context, orgID int, documentID st
 	return &r, nil
 }
 
-// GetOpenReviewForDocument returns any open or changes_requested review for a document.
+// GetOpenReviewForDocument returns any open or changes_requested review for a
+// document. It does NOT see an approved, unpublished review although that
+// review holds the active slot; use GetActiveReviewForDocument for "is there a
+// review in flight?" questions.
 // Returns nil, nil if no such review exists.
 func (d *DB) GetOpenReviewForDocument(ctx context.Context, orgID int, documentID string) (*Review, error) {
 	var r Review
@@ -669,6 +672,28 @@ func (d *DB) GetOpenReviewForDocument(ctx context.Context, orgID int, documentID
 			return nil, nil // no open review found
 		}
 		return nil, fmt.Errorf("querying open review: %w", err)
+	}
+	return &r, nil
+}
+
+// GetActiveReviewForDocument returns the review that holds the document's
+// one-active-review slot: open, changes_requested or approved (approved but not
+// yet published). The status set matches the idx_reviews_active_doc partial
+// unique index, so a nil result means an insert cannot collide with it.
+// Returns nil, nil if no such review exists.
+func (d *DB) GetActiveReviewForDocument(ctx context.Context, orgID int, documentID string) (*Review, error) {
+	var r Review
+	err := d.pool.QueryRow(ctx, `
+		SELECT r.id, r.organization_id, r.document_id, r.document_type, r.title, r.version, COALESCE(r.commit_hash, ''), COALESCE(r.sent_head, ''), COALESCE(r.merge_commit, ''), r.round,
+			(SELECT email FROM users WHERE id = r.requested_by_id), COALESCE(r.message, ''), r.status, r.created_at, r.updated_at
+		FROM reviews r WHERE r.organization_id = $1 AND r.document_id = $2 AND r.status IN ('open', 'changes_requested', 'approved')
+		ORDER BY r.updated_at DESC LIMIT 1
+	`, orgID, documentID).Scan(&r.ID, &r.OrganizationID, &r.DocumentID, &r.DocumentType, &r.Title, &r.Version, &r.CommitHash, &r.SentHead, &r.MergeCommit, &r.Round, &r.RequestedBy, &r.Message, &r.Status, &r.CreatedAt, &r.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // no active review found
+		}
+		return nil, fmt.Errorf("querying active review: %w", err)
 	}
 	return &r, nil
 }

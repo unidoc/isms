@@ -1239,7 +1239,7 @@ func (s *Server) handleGetDocument(c echo.Context) error {
 			resp["active_review_status"] = openReview.Status
 			resp["active_review_round"] = openReview.Round
 			if openReview.Status == "approved" {
-				changed, edits := approvedReviewState(st, found.Path, openReview)
+				changed, edits := reviewEditState(st, found.Path, openReview)
 				resp["active_review_changed_since_sent"] = changed
 				resp["active_review_has_reviewer_edits"] = edits
 			}
@@ -1345,7 +1345,7 @@ func (s *Server) handleGetDocumentBody(c echo.Context) error {
 			resp["active_review_status"] = openReview.Status
 			resp["active_review_round"] = openReview.Round
 			if openReview.Status == "approved" {
-				changed, edits := approvedReviewState(st, pf.Path, openReview)
+				changed, edits := reviewEditState(st, pf.Path, openReview)
 				resp["active_review_changed_since_sent"] = changed
 				resp["active_review_has_reviewer_edits"] = edits
 			}

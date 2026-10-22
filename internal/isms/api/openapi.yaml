@@ -1473,8 +1473,8 @@ paths:
             The document's review is approved and awaiting publication
             (`review_awaiting_publication`), or another send took the
             document's one active-review slot first (`review_already_active`),
-            or the approved review carries reviewer edits that a new round
-            would use to overwrite later changes to the document
+            or the approved or changes-requested review carries reviewer edits
+            that a new round would use to overwrite later changes to the document
             (`review_has_reviewer_edits`).
 
   /comments/open:

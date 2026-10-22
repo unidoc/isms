@@ -117,3 +117,47 @@ func TestReviewChangesRequestedNoBranchMainEditResubmits(t *testing.T) {
 		t.Errorf("published file should keep the author edit, got %q", got)
 	}
 }
+
+// The document responses tell the Documents page which changes_requested
+// banner to show: whether the reviewer edited the review and whether the
+// document changed since it was sent.
+func TestDocumentResponsesCarryChangesRequestedReviewState(t *testing.T) {
+	cases := []struct {
+		name           string
+		setup          func(f *approvedFixture)
+		changed, edits bool
+	}{
+		{"reviewer edit only", func(f *approvedFixture) {}, false, true},
+		{"reviewer edit and main edit", func(f *approvedFixture) { f.putBody("author text\n") }, true, true},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newOpenFixture(t, "cr-dstate-"+strconv.Itoa(i))
+			f.reviewerEdit(f.rev1, "reviewer text\n")
+			f.decide(f.rev1, "changes_requested")
+			tc.setup(f)
+			f.expectDocFlags(tc.changed, tc.edits)
+		})
+	}
+	t.Run("no review branch", func(t *testing.T) {
+		f := newOpenFixture(t, "cr-dstate-nb")
+		f.decide(f.rev1, "changes_requested")
+		f.putBody("author text\n")
+		f.expectDocFlags(true, false)
+	})
+}
+
+func (f *approvedFixture) expectDocFlags(changed, edits bool) {
+	f.t.Helper()
+	for name, got := range f.docResponses() {
+		if got["active_review_status"] != "changes_requested" {
+			f.t.Fatalf("%s: active_review_status = %v", name, got["active_review_status"])
+		}
+		if got["active_review_changed_since_sent"] != changed {
+			f.t.Errorf("%s: active_review_changed_since_sent = %v, want %v", name, got["active_review_changed_since_sent"], changed)
+		}
+		if got["active_review_has_reviewer_edits"] != edits {
+			f.t.Errorf("%s: active_review_has_reviewer_edits = %v, want %v", name, got["active_review_has_reviewer_edits"], edits)
+		}
+	}
+}

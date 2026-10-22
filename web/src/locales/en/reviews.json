@@ -117,6 +117,7 @@
     "request_another_review": "Request Another Review",
     "propose_new_revision": "Propose New Revision",
     "changes_were_requested": "Changes were requested. Edit the document and resubmit.",
+    "resubmit_blocked": "The reviewer edited the text in this review, and the document was also changed on the Documents page after it was sent. It can't be resubmitted or published without losing one of the two. Withdraw this review and send a new one.",
     "edit_and_resubmit": "Edit & Resubmit",
     "you_sent_this": "You sent this review.",
     "waiting_for_feedback": "Waiting for reviewer feedback.",

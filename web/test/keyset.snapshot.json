@@ -2122,6 +2122,7 @@
   "reviews.actions.request_another_review",
   "reviews.actions.request_changes",
   "reviews.actions.requirements_not_met",
+  "reviews.actions.resubmit_blocked",
   "reviews.actions.revision_proposed_by",
   "reviews.actions.stale_warning",
   "reviews.actions.submit_request",

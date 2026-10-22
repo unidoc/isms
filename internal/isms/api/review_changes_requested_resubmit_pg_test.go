@@ -161,3 +161,60 @@ func (f *approvedFixture) expectDocFlags(changed, edits bool) {
 		}
 	}
 }
+
+// GET /reviews/:id carries the same pair for the Reviews page, only for the
+// statuses where a resubmit or publish is decided on it.
+func (f *approvedFixture) reviewJSON() map[string]any {
+	f.t.Helper()
+	id := strconv.Itoa(f.reviewID)
+	c, rec := reviewCtxForPath(f.orgID, http.MethodGet, "/api/v1/reviews/"+id, "", "admin", f.admin)
+	c.SetParamNames("id")
+	c.SetParamValues(id)
+	if err := f.s.handleGetReview(c); err != nil {
+		f.t.Fatalf("handleGetReview: %v", err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		f.t.Fatalf("decoding review: %v", err)
+	}
+	return got
+}
+
+func TestGetReviewCarriesChangesRequestedState(t *testing.T) {
+	cases := []struct {
+		name                 string
+		branchEdit, mainEdit bool
+	}{
+		{"reviewer edit only", true, false},
+		{"reviewer edit and main edit", true, true},
+		{"no review branch, main edit", false, true},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newOpenFixture(t, "cr-getrev-"+strconv.Itoa(i))
+			if tc.branchEdit {
+				f.reviewerEdit(f.rev1, "reviewer text\n")
+			}
+			f.decide(f.rev1, "changes_requested")
+			if tc.mainEdit {
+				f.putBody("author text\n")
+			}
+			got := f.reviewJSON()
+			if got["changed_since_sent"] != tc.mainEdit {
+				t.Errorf("changed_since_sent = %v, want %v", got["changed_since_sent"], tc.mainEdit)
+			}
+			if got["has_reviewer_edits"] != tc.branchEdit {
+				t.Errorf("has_reviewer_edits = %v, want %v", got["has_reviewer_edits"], tc.branchEdit)
+			}
+		})
+	}
+	t.Run("open review omits both", func(t *testing.T) {
+		f := newOpenFixture(t, "cr-getrev-open")
+		got := f.reviewJSON()
+		for _, k := range []string{"changed_since_sent", "has_reviewer_edits"} {
+			if _, ok := got[k]; ok {
+				t.Errorf("%s must be absent for an open review", k)
+			}
+		}
+	})
+}

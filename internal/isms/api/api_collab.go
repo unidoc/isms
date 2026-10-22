@@ -480,11 +480,22 @@ func (s *Server) handleGetReview(c echo.Context) error {
 	type reviewWithAgent struct {
 		*db.Review
 		AuthorIsAgent bool `json:"author_is_agent"`
+		// Set for approved and changes_requested reviews, where the author's
+		// resubmit or publish depends on them; see reviewEditState.
+		ChangedSinceSent *bool `json:"changed_since_sent,omitempty"`
+		HasReviewerEdits *bool `json:"has_reviewer_edits,omitempty"`
 	}
-	return c.JSON(http.StatusOK, &reviewWithAgent{
+	resp := &reviewWithAgent{
 		Review:        review,
 		AuthorIsAgent: s.db.IsUserAgent(c.Request().Context(), review.RequestedBy),
-	})
+	}
+	if review.Status == "approved" || review.Status == "changes_requested" {
+		if st, err := s.storeForOrg(c.Request().Context(), orgID); err == nil {
+			changed, edits := reviewEditState(st, resolveDocPathFromStore(st, review.DocumentID), review)
+			resp.ChangedSinceSent, resp.HasReviewerEdits = &changed, &edits
+		}
+	}
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) handleListReviewAssignments(c echo.Context) error {

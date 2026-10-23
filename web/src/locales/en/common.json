@@ -461,7 +461,7 @@
     "review_already_status": "review is already {status}",
     "review_awaiting_publication": "this document already has an approved review awaiting publication",
     "review_already_active": "this document already has a review in progress",
-    "review_has_reviewer_edits": "this approved review contains reviewer edits that would overwrite later changes to the document — close it to start a new review",
+    "review_has_reviewer_edits": "this review contains reviewer edits that would overwrite later changes to the document — close it to start a new review",
     "change_invalid_transition": "change is {status}, cannot move to {value}",
     "change_task_already_live": "{ref} already has an open implementation task",
     "comment_has_replies": "this comment still has replies ({count}) — delete them first",

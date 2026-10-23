@@ -480,11 +480,22 @@ func (s *Server) handleGetReview(c echo.Context) error {
 	type reviewWithAgent struct {
 		*db.Review
 		AuthorIsAgent bool `json:"author_is_agent"`
+		// Set for approved and changes_requested reviews, where the author's
+		// resubmit or publish depends on them; see reviewEditState.
+		ChangedSinceSent *bool `json:"changed_since_sent,omitempty"`
+		HasReviewerEdits *bool `json:"has_reviewer_edits,omitempty"`
 	}
-	return c.JSON(http.StatusOK, &reviewWithAgent{
+	resp := &reviewWithAgent{
 		Review:        review,
 		AuthorIsAgent: s.db.IsUserAgent(c.Request().Context(), review.RequestedBy),
-	})
+	}
+	if review.Status == "approved" || review.Status == "changes_requested" {
+		if st, err := s.storeForOrg(c.Request().Context(), orgID); err == nil {
+			changed, edits := reviewEditState(st, resolveDocPathFromStore(st, review.DocumentID), review)
+			resp.ChangedSinceSent, resp.HasReviewerEdits = &changed, &edits
+		}
+	}
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) handleListReviewAssignments(c echo.Context) error {
@@ -4361,17 +4372,16 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		// assignment to a review whose status stays approved.
 		if existingReview.Status == "approved" {
 			// Same predicate as publish (performMerge -> MergeSuggestion); see
-			// approvedReviewState. If publish would refuse the file, the review
+			// reviewEditState. If publish would refuse the file, the review
 			// cannot be published as it stands, so start a new round instead
 			// of leaving the document stuck.
-			changed, reviewerEdits := approvedReviewState(st, resolveDocPathFromStore(st, docID), existingReview)
+			changed, reviewerEdits := reviewEditState(st, resolveDocPathFromStore(st, docID), existingReview)
 			if changed {
 				// Reviewer edits live on review/<id>, and publish commits
 				// that branch over main. A new round would keep the branch
 				// and silently overwrite the author's later change with it,
 				// so refuse instead. (The changes_requested path below
-				// resubmits without this check and has the same underlying
-				// issue.)
+				// applies the same check.)
 				if reviewerEdits {
 					return apiError(http.StatusConflict, CodeReviewHasReviewerEdits)
 				}
@@ -4381,6 +4391,13 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 		}
 		if existingReview.Status == "changes_requested" {
 			// Resubmission after changes_requested: new review round on the same review.
+			// A resubmit moves sent_head to the new HEAD, which would blind the
+			// publish guard. If the reviewer edited the branch and main changed
+			// too, publish would overwrite main with the branch, so refuse
+			// before any side effect.
+			if changed, reviewerEdits := reviewEditState(st, resolveDocPathFromStore(st, docID), existingReview); changed && reviewerEdits {
+				return apiError(http.StatusConflict, CodeReviewHasReviewerEdits)
+			}
 			return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
 		}
 
@@ -4459,14 +4476,14 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 	})
 }
 
-// approvedReviewState reports, for an approved but unpublished review, whether
-// the document file changed since the review was sent and whether the review
-// branch holds reviewer edits. "Changed" is the predicate publish uses: the
-// whole file at sent_head (commit_hash when empty) against the current file.
-// "Reviewer edits" means review/<id> exists and its file differs from the file
-// at that base ref. A missing document, base ref or branch, or any read error,
-// counts as false, exactly as it does for publish.
-func approvedReviewState(st *store.Store, docPath string, r *db.Review) (changed, reviewerEdits bool) {
+// reviewEditState reports, for an approved but unpublished review or one in
+// changes_requested, whether the document file changed since the review was
+// sent and whether the review branch holds reviewer edits. "Changed" is the
+// predicate publish uses: the whole file at sent_head (commit_hash when empty)
+// against the current file. "Reviewer edits" means review/<id> exists and its
+// file differs from the file at that base ref. A missing document, base ref or
+// branch, or any read error, counts as false, exactly as it does for publish.
+func reviewEditState(st *store.Store, docPath string, r *db.Review) (changed, reviewerEdits bool) {
 	baseRef := r.SentHead
 	if baseRef == "" {
 		baseRef = r.CommitHash

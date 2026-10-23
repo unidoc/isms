@@ -77,13 +77,15 @@ The review status follows a strict state machine:
 ```
 open --> approved (via approve endpoint)
 open --> changes_requested (via approve endpoint with changes_requested decision)
-changes_requested --> open (via resubmit)
+changes_requested --> open (via resubmit, refused when the reviewer edited the review and the document was also changed outside it after it was sent)
 approved --> open (via resubmit, only when the document changed after it was sent and the review has no reviewer edits)
 approved --> merged (via merge endpoint)
 Any active status --> closed (via status endpoint)
 ```
 
 Each transition goes through its dedicated handler. There is no generic status update endpoint that can bypass the state machine.
+
+A review in `changes_requested` can be resubmitted, except when the reviewer edited the text in the review and the document was also changed outside the review after it was sent. Publishing would then overwrite one of the two, so the resubmit is refused: close the review and start a new one. To avoid this, make the changes inside the review rather than on the Documents page.
 
 An approved review that is not yet published can be sent again only when the document changed after it was sent. Sending again discards the approval and starts a new round, so the reviewers must approve again. Otherwise sending is refused: when nothing changed the review only needs publishing, and when the review contains reviewer edits it must be closed before a new review is started.
 

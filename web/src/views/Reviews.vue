@@ -537,8 +537,12 @@
 
               <!-- Author view (hidden during edit mode) -->
               <template v-else-if="userIsAuthor && !reviewEditMode">
+                <!-- Reviewer edit and a later document change: nothing here can keep both -->
+                <div v-if="resubmitBlocked" class="px-3 py-2 bg-amber-950/30 border border-amber-800/30 rounded-lg text-xs text-amber-400">
+                  {{ t('reviews.actions.resubmit_blocked') }}
+                </div>
                 <!-- Proposed revision — reviewer edited the document -->
-                <div v-if="review.status === 'changes_requested' && hasProposedRevision" class="space-y-2">
+                <div v-else-if="review.status === 'changes_requested' && hasProposedRevision" class="space-y-2">
                   <div class="px-3 py-2 bg-blue-950/30 border border-blue-800/30 rounded-lg text-xs text-blue-400">
                     <i18n-t keypath="reviews.actions.revision_proposed_by" tag="span" scope="global">
                       <template #name><span class="font-medium">{{ proposedRevisionBy }}</span></template>
@@ -908,6 +912,10 @@ const userAssignmentStatus = computed(() => {
 })
 
 const userIsAuthor = computed(() => review.value?.requested_by === userEmail.value)
+// Reviewer edits on the review branch plus a later change to the document: neither a
+// resubmit nor a publish can keep both, so the author's actions are replaced by a notice.
+const resubmitBlocked = computed(() => review.value?.status === 'changes_requested'
+  && review.value?.has_reviewer_edits === true && review.value?.changed_since_sent === true)
 
 // Assignment — not role — is what grants comment rights on a review (CLAUDE.md:
 // "Review assignment grants approve/comment rights to any role"), so an assigned

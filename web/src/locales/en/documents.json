@@ -107,6 +107,8 @@
     "pending_suggestions": "{count} pending suggestion to address. | {count} pending suggestions to address.",
     "feedback_waiting": "Reviewer feedback is waiting on the conversation.",
     "then_resubmit": "Address the feedback, then resubmit for the next round.",
+    "changes_requested_reviewer_edits_conflict": "The reviewer edited the text in the review, and the document was also changed here after it was sent. It can't be resubmitted without losing one of the two. Close the review to start a new one.",
+    "reviewer_edited_in_review": "The reviewer edited the text in the review. Make your changes there (Open review, then Edit and resubmit), not on this page.",
     "open_review": "Open review",
     "in_review": "This document is in review.",
     "in_review_round": "This document is in review (Round {round}).",

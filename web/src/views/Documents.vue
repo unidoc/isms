@@ -602,15 +602,24 @@
                     <div class="text-sm text-amber-300 font-medium">
                       {{ t('documents.banner.round_complete', { round: activeDoc.active_review_round || 1 }) }}
                     </div>
-                    <div class="text-xs text-amber-400/80 mt-0.5">
-                      <span v-if="activeDoc.active_review_pending_suggestions > 0">
-                        {{ t('documents.banner.pending_suggestions',
-                             { count: activeDoc.active_review_pending_suggestions },
-                             activeDoc.active_review_pending_suggestions) }}
-                      </span>
-                      <span v-else>{{ t('documents.banner.feedback_waiting') }}</span>
-                      {{ t('documents.banner.then_resubmit') }}
+                    <div v-if="activeDoc.active_review_has_reviewer_edits && activeDoc.active_review_changed_since_sent"
+                      class="text-xs text-amber-400/80 mt-0.5">
+                      {{ t('documents.banner.changes_requested_reviewer_edits_conflict') }}
                     </div>
+                    <template v-else>
+                      <div class="text-xs text-amber-400/80 mt-0.5">
+                        <span v-if="activeDoc.active_review_pending_suggestions > 0">
+                          {{ t('documents.banner.pending_suggestions',
+                               { count: activeDoc.active_review_pending_suggestions },
+                               activeDoc.active_review_pending_suggestions) }}
+                        </span>
+                        <span v-else>{{ t('documents.banner.feedback_waiting') }}</span>
+                        {{ t('documents.banner.then_resubmit') }}
+                      </div>
+                      <div v-if="activeDoc.active_review_has_reviewer_edits" class="text-xs text-amber-400/80 mt-0.5">
+                        {{ t('documents.banner.reviewer_edited_in_review') }}
+                      </div>
+                    </template>
                   </div>
                   <router-link :to="orgPath(`/reviews/${activeDoc.active_review_id}`)"
                     class="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-medium transition-colors flex-shrink-0">

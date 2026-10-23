@@ -155,6 +155,7 @@ When an author agent receives a `changes_requested` notification:
 1. Agent reads the review comments (`get_review` + timeline or comments)
 2. Agent reads the current document (`get_review_content`)
 3. Agent edits the document on the review branch (via `PUT /reviews/:id/content` — needs MCP tool)
+   - edit the review, not the document itself: if a reviewer edited the review and the agent then saves the document with `PUT /documents/:docId/content`, the resubmit returns 409 `review_has_reviewer_edits` and the review must be closed and sent again
 4. Agent resubmits using the **existing review send/resubmit flow**:
    - call `POST /documents/:docId/reviews`
    - include the same reviewer set (from `get_review` assignments)

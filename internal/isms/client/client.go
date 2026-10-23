@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -530,10 +531,14 @@ type ReviewSendRequest struct {
 type ReviewSendResult struct {
 	ReviewID int    `json:"review_id"`
 	Version  string `json:"version"`
+	// Round is set only when an existing review was resubmitted.
+	Round int `json:"round,omitempty"`
+	// Message is set when the send acted on an existing review.
+	Message string `json:"message,omitempty"`
 }
 
 func (c *Client) SendReview(docID string, req *ReviewSendRequest) (*ReviewSendResult, error) {
-	data, err := c.post("/v1/reviews/"+docID+"/send", req)
+	data, err := c.post("/v1/documents/"+url.PathEscape(docID)+"/reviews", req)
 	if err != nil {
 		return nil, err
 	}

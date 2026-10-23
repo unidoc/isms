@@ -4384,6 +4384,13 @@ func (s *Server) handleReviewSend(c echo.Context) error {
 			return s.resubmitReviewRound(c, st, orgID, existingReview, docID, title, version, actor, req.Message, req.Reviewers)
 		}
 
+		// Review is still open: the send can only add reviewers. With none named
+		// it would add nobody yet log and notify "Added reviewers  to existing
+		// review". (Resubmits above reuse existing assignments, so they may omit them.)
+		if len(req.Reviewers) == 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "at least one reviewer required")
+		}
+
 		// Review is still open — add all new reviewers atomically with RLS.
 		txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 			for _, reviewer := range req.Reviewers {

@@ -42,9 +42,14 @@ Use 'isms review assign' to add reviewers to an open review later.`,
 				return err
 			}
 			list := strings.Join(reviewers, ", ")
+			// Template documents have no version.
+			ver := ""
+			if result.Version != "" {
+				ver = "v" + result.Version
+			}
 			switch {
 			case result.Round > 0:
-				fmt.Printf("Review #%d for %s resubmitted (round %d, v%s)\n", result.ReviewID, docID, result.Round, result.Version)
+				fmt.Printf("Review #%d for %s resubmitted (%s)\n", result.ReviewID, docID, strings.Join(nonEmpty("round "+strconv.Itoa(result.Round), ver), ", "))
 				if len(reviewers) > 0 {
 					fmt.Printf("Reviewers added: %s\n", list)
 				}
@@ -54,7 +59,7 @@ Use 'isms review assign' to add reviewers to an open review later.`,
 					fmt.Printf("Reviewers: %s\n", list)
 				}
 			default:
-				fmt.Printf("Review #%d created for %s (v%s)\n", result.ReviewID, docID, result.Version)
+				fmt.Printf("Review #%d created for %s%s\n", result.ReviewID, docID, paren(ver))
 				fmt.Printf("Reviewers: %s\n", list)
 			}
 			return nil
@@ -218,4 +223,22 @@ func reviewCloseCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// paren returns " (s)", or "" when s is empty.
+func paren(s string) string {
+	if s == "" {
+		return ""
+	}
+	return " (" + s + ")"
+}
+
+func nonEmpty(ss ...string) []string {
+	var out []string
+	for _, s := range ss {
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }

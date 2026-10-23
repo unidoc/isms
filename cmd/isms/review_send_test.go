@@ -74,6 +74,22 @@ func TestReviewSendPrintsEachOutcome(t *testing.T) {
 			want:   []string{"resubmitted (round 2, v1.1)", "Reviewers added: c@x.io"},
 		},
 		{
+			name:   "no version",
+			status: http.StatusCreated,
+			body:   `{"review_id":4,"version":""}`,
+			args:   []string{"iso-1", "--to", "a@x.io"},
+			want:   []string{"Review #4 created for iso-1\n"},
+			absent: []string{"(v", "()"},
+		},
+		{
+			name:   "resubmitted no version",
+			status: http.StatusOK,
+			body:   `{"review_id":1,"version":"","round":2,"message":"review resubmitted with changes"}`,
+			args:   []string{"iso-1"},
+			want:   []string{"Review #1 for iso-1 resubmitted (round 2)\n"},
+			absent: []string{"v)", ", )"},
+		},
+		{
 			name:   "reviewers added",
 			status: http.StatusOK,
 			body:   `{"review_id":7,"version":"1.1","message":"reviewers added to existing review"}`,
@@ -92,8 +108,8 @@ func TestReviewSendPrintsEachOutcome(t *testing.T) {
 			if err != nil {
 				t.Fatalf("review send: %v", err)
 			}
-			if got.method != http.MethodPost || got.path != "/v1/documents/pol-1/reviews" {
-				t.Errorf("request = %s %s, want POST /v1/documents/pol-1/reviews", got.method, got.path)
+			if want := "/v1/documents/" + tc.args[0] + "/reviews"; got.method != http.MethodPost || got.path != want {
+				t.Errorf("request = %s %s, want POST %s", got.method, got.path, want)
 			}
 			for _, w := range tc.want {
 				if !strings.Contains(out, w) {

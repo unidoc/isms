@@ -25,9 +25,11 @@ func reviewSendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send <document-id>",
 		Short: "Send a document for review",
-		Long: `Creates a review request. Optionally assign reviewers with --to.
-If no reviewers specified, the review is created for self-check.
-Use 'isms review forward' to assign reviewers later.`,
+		Long: `Sends a document for review. A first send needs at least one reviewer (--to).
+When changes were requested (or an approved review was edited since it was
+sent), the review is resubmitted; --to is then optional and the existing
+reviewers are kept and notified again.
+Use 'isms review assign' to add reviewers to an open review later.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			docID := args[0]
@@ -39,17 +41,32 @@ Use 'isms review forward' to assign reviewers later.`,
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Review #%d created for %s (v%s)\n", result.ReviewID, docID, result.Version)
-			if len(reviewers) > 0 {
-				fmt.Printf("Reviewers: %s\n", strings.Join(reviewers, ", "))
-			} else {
-				fmt.Println("No reviewers assigned — use 'isms review forward' to assign when ready.")
+			list := strings.Join(reviewers, ", ")
+			// Template documents have no version.
+			ver := ""
+			if result.Version != "" {
+				ver = "v" + result.Version
+			}
+			switch {
+			case result.Round > 0:
+				fmt.Printf("Review #%d for %s resubmitted (%s)\n", result.ReviewID, docID, strings.Join(nonEmpty("round "+strconv.Itoa(result.Round), ver), ", "))
+				if len(reviewers) > 0 {
+					fmt.Printf("Reviewers added: %s\n", list)
+				}
+			case result.Message != "":
+				fmt.Printf("Review #%d for %s is already open: %s\n", result.ReviewID, docID, result.Message)
+				if len(reviewers) > 0 {
+					fmt.Printf("Reviewers: %s\n", list)
+				}
+			default:
+				fmt.Printf("Review #%d created for %s%s\n", result.ReviewID, docID, paren(ver))
+				fmt.Printf("Reviewers: %s\n", list)
 			}
 			return nil
 		},
 	}
 
-	cmd.Flags().StringArrayVar(&reviewers, "to", nil, "Reviewer email (repeatable, optional)")
+	cmd.Flags().StringArrayVar(&reviewers, "to", nil, "Reviewer email (repeatable; required for a first send, optional when resubmitting)")
 	return cmd
 }
 
@@ -206,4 +223,22 @@ func reviewCloseCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// paren returns " (s)", or "" when s is empty.
+func paren(s string) string {
+	if s == "" {
+		return ""
+	}
+	return " (" + s + ")"
+}
+
+func nonEmpty(ss ...string) []string {
+	var out []string
+	for _, s := range ss {
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }

@@ -1468,6 +1468,11 @@ paths:
           description: Review created and sent
         '200':
           description: Reviewers added to an existing open review, or the review was resubmitted
+        '400':
+          description: >-
+            No reviewers were given for a fresh review, or for a review that is
+            already open (nobody would be added). A resubmit after changes were
+            requested may omit them.
         '409':
           description: >-
             The document's review is approved and awaiting publication

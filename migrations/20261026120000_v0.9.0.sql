@@ -185,3 +185,31 @@ ALTER TABLE tasks ADD CONSTRAINT tasks_change_request_fk
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_change_request_live
     ON tasks(organization_id, change_request_id)
     WHERE change_request_id IS NOT NULL AND deleted_at IS NULL AND status IN ('open','in_progress');
+
+-- #367: deleting a program only marked the program deleted, so its objectives
+-- stayed live (lists, stats, overdue check-in reminders). Soft-delete every
+-- live objective whose program is deleted, stamping it with the program's own
+-- deleted_at, and give each one an objective 'delete' History row with the same
+-- reason the app now writes. The actor is copied from the program's most recent
+-- delete History row (an old double delete could leave several); a program with
+-- none gets 'system'. Re-runnable: the UPDATE only matches live objectives, and
+-- after one pass none remain under a deleted program, so a second run inserts
+-- nothing.
+WITH orphaned AS (
+    UPDATE objectives o SET deleted_at = p.deleted_at, updated_at = now()
+    FROM programs p
+    WHERE p.id = o.program_id AND p.organization_id = o.organization_id
+      AND o.deleted_at IS NULL AND p.deleted_at IS NOT NULL
+    RETURNING o.id AS objective_id, o.organization_id, p.id AS program_id, p.key AS program_key
+)
+INSERT INTO entity_changelog (organization_id, entity_type, entity_id, action, changed_by, changed_by_user_id, reason)
+SELECT x.organization_id, 'objective', x.objective_id, 'delete',
+       COALESCE(c.changed_by, 'system'), c.changed_by_user_id,
+       'program ' || x.program_key || ' deleted'
+FROM orphaned x
+LEFT JOIN LATERAL (
+    SELECT changed_by, changed_by_user_id FROM entity_changelog
+    WHERE organization_id = x.organization_id AND entity_type = 'program'
+      AND action = 'delete' AND entity_id = x.program_id
+    ORDER BY created_at DESC, id DESC LIMIT 1
+) c ON true;

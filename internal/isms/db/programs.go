@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -20,8 +21,34 @@ type Program struct {
 	UpdatedAt      Epoch  `json:"updated_at"`
 }
 
+// ErrProgramKeyRetired means a deleted program with the same key still has
+// objective rows. Objective display ids are <key>-<seq> and are unique per
+// organization even among deleted rows, so a new program on that key could
+// never create its first objective.
+var ErrProgramKeyRetired = errors.New("program key belonged to a deleted program that had objectives")
+
+// programKeyRetired returns ErrProgramKeyRetired when key is retired in the org.
+func programKeyRetired(ctx context.Context, q rowQuerier, orgID int, key string) error {
+	var retired bool
+	if err := q.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM programs p
+			JOIN objectives o ON o.program_id = p.id AND o.organization_id = p.organization_id
+			WHERE p.organization_id = $1 AND p.key = $2 AND p.deleted_at IS NOT NULL)
+	`, orgID, key).Scan(&retired); err != nil {
+		return err
+	}
+	if retired {
+		return ErrProgramKeyRetired
+	}
+	return nil
+}
+
 func (d *DB) CreateProgram(ctx context.Context, orgID int, p *Program) error {
 	p.OrganizationID = orgID
+	if err := programKeyRetired(ctx, d.pool, orgID, p.Key); err != nil {
+		return err
+	}
 	ident, err := d.NextIdentifier(ctx, orgID, "program")
 	if err != nil {
 		return err

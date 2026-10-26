@@ -1745,6 +1745,9 @@ func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg
 		return "", 0, err
 	}
 	if err := db.CreateProgramTx(ctx, tx, orgID, &pr); err != nil {
+		if errors.Is(err, db.ErrProgramKeyRetired) {
+			return "", 0, apiError(http.StatusConflict, CodeProgramKeyRetired, Ref(pr.Key))
+		}
 		return "", 0, err
 	}
 	if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{

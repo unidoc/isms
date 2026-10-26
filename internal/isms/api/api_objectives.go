@@ -131,6 +131,9 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	}
 
 	if err := s.db.CreateProgram(ctx, orgID, &p); err != nil {
+		if errors.Is(err, db.ErrProgramKeyRetired) {
+			return apiError(http.StatusConflict, CodeProgramKeyRetired, Ref(p.Key))
+		}
 		return pgxHTTPError(err)
 	}
 

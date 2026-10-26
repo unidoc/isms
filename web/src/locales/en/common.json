@@ -464,6 +464,7 @@
     "review_has_reviewer_edits": "this review contains reviewer edits that would overwrite later changes to the document — close it to start a new review",
     "change_invalid_transition": "change is {status}, cannot move to {value}",
     "change_task_already_live": "{ref} already has an open implementation task",
+    "program_key_retired": "the key {ref} belonged to a deleted program that had objectives and can't be reused",
     "comment_has_replies": "this comment still has replies ({count}) — delete them first",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"

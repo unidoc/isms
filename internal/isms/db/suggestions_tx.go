@@ -702,6 +702,9 @@ func UpdateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 // DB.CreateProgram; the transaction is already scoped to the org.
 func CreateProgramTx(ctx context.Context, tx pgx.Tx, orgID int, p *Program) error {
 	p.OrganizationID = orgID
+	if err := programKeyRetired(ctx, tx, orgID, p.Key); err != nil {
+		return err
+	}
 	ident, err := nextIdentifierTx(ctx, tx, orgID, "program")
 	if err != nil {
 		return err

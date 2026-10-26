@@ -232,6 +232,7 @@
                 <div v-if="canWrite" class="border border-red-900/40 rounded-lg p-4 space-y-3">
                   <div class="text-[11px] font-semibold text-red-400 uppercase tracking-wider">{{ t('common.heading.danger_zone') }}</div>
                   <div class="text-xs text-slate-400">{{ t('programs.danger.warning') }}</div>
+                  <div class="text-xs text-slate-400">{{ t('programs.danger.key_retired', { key: selected.key }) }}</div>
                   <button @click="deleteSelected" class="px-3 py-1.5 text-xs font-medium bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-800/50 rounded-lg transition-colors">
                     {{ t('programs.danger.delete') }}
                   </button>
@@ -464,7 +465,8 @@ async function createProgram() {
 
 async function deleteSelected() {
   if (!selected.value) return
-  const question = t('programs.danger.confirm', { key: selected.value.key })
+  const key = selected.value.key
+  const question = t('programs.danger.confirm', { key }) + ' ' + t('programs.danger.key_retired', { key })
   if (!await confirmAsk(question, { confirm: t('common.action.delete'), variant: 'danger' })) return
   try {
     await api.deleteProgram(selected.value.id)

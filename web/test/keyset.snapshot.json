@@ -2084,6 +2084,7 @@
   "programs.create.title_placeholder",
   "programs.danger.confirm",
   "programs.danger.delete",
+  "programs.danger.key_retired",
   "programs.danger.warning",
   "programs.detail.notes",
   "programs.detail.overview",

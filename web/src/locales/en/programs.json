@@ -43,6 +43,7 @@
   "danger": {
     "warning": "Deleting this program also deletes all objectives under it. This cannot be undone.",
     "delete": "Delete program",
+    "key_retired": "If it has objectives, the key {key} can't be used for a new program afterwards.",
     "confirm": "Delete program \"{key}\"? All objectives under it will also be deleted."
   }
 }

@@ -44,23 +44,18 @@ func programKeyRetired(ctx context.Context, q rowQuerier, orgID int, key string)
 	return nil
 }
 
+// CreateProgram creates a program in its own transaction, sharing
+// CreateProgramTx with the suggestion path.
 func (d *DB) CreateProgram(ctx context.Context, orgID int, p *Program) error {
-	p.OrganizationID = orgID
-	if err := programKeyRetired(ctx, d.pool, orgID, p.Key); err != nil {
-		return err
-	}
-	ident, err := d.NextIdentifier(ctx, orgID, "program")
+	tx, err := d.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	p.Identifier = ident
-	return d.pool.QueryRow(ctx, `
-		INSERT INTO programs (organization_id, identifier, key, title, description, notes, owner_id)
-		VALUES ($1, $2, $3, $4, $5, $6,
-			CASE WHEN $7 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $7) END)
-		RETURNING id, created_at, updated_at
-	`, orgID, p.Identifier, p.Key, p.Title, nilIfEmpty(p.Description), nilIfEmpty(p.Notes), p.Owner,
-	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
+	defer tx.Rollback(ctx)
+	if err := CreateProgramTx(ctx, tx, orgID, p); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (d *DB) GetProgram(ctx context.Context, orgID int, id int64) (*Program, error) {

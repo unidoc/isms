@@ -119,6 +119,7 @@ const (
 
 	// Programs.
 	CodeProgramKeyRetired = "program_key_retired"
+	CodeProgramKeyTaken   = "program_key_taken"
 
 	// Comments.
 	CodeCommentHasReplies = "comment_has_replies"
@@ -191,6 +192,7 @@ var errorMessages = map[string]string{
 	CodeChangeTaskAlreadyLive:   "{ref} already has an open implementation task",
 
 	CodeProgramKeyRetired: "the key {ref} belonged to a deleted program that had objectives and can't be reused",
+	CodeProgramKeyTaken:   "a program with the key {ref} already exists",
 
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 

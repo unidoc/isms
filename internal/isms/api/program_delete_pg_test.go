@@ -149,6 +149,22 @@ func TestProgramDeleteCascadesToObjectives(t *testing.T) {
 		}
 	})
 
+	t.Run("activity names the program key", func(t *testing.T) {
+		acts, err := s.db.RecentActivity(ctx, orgID, 20)
+		if err != nil {
+			t.Fatalf("RecentActivity: %v", err)
+		}
+		for _, a := range acts {
+			if a.Action == "program_deleted" {
+				if a.Detail != "Program PDA deleted" {
+					t.Errorf("detail = %q, want %q", a.Detail, "Program PDA deleted")
+				}
+				return
+			}
+		}
+		t.Errorf("no program_deleted activity in %+v", acts)
+	})
+
 	t.Run("deleting again is a 404 and logs nothing", func(t *testing.T) {
 		c, _ := programDeleteCtx(orgID, http.MethodDelete, "/api/v1/programs/"+pid, pid, "")
 		err := s.handleDeleteProgram(c)

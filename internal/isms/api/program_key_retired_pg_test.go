@@ -157,7 +157,7 @@ func TestProgramKeyFreeWhenDeletedProgramHadNoObjectives(t *testing.T) {
 	}
 }
 
-func TestProgramKeyHeldByLiveProgramStillConflicts(t *testing.T) {
+func TestProgramKeyHeldByLiveProgramIsRefusedWithItsOwnCode(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
 	orgID := newTestOrg(t, s, "program-key-live")
@@ -167,9 +167,33 @@ func TestProgramKeyHeldByLiveProgramStillConflicts(t *testing.T) {
 	if err := s.db.CreateProgram(ctx, orgID, p); err != nil {
 		t.Fatalf("CreateProgram: %v", err)
 	}
-	_, err, _ := createProgramVia(t, s, orgID, "LVK")
-	he := wantHTTPStatus(t, err, http.StatusConflict)
-	if eb, ok := he.Message.(errorBody); ok && eb.Code == CodeProgramKeyRetired {
-		t.Errorf("live duplicate reported as %s, want the plain duplicate-key 409", CodeProgramKeyRetired)
+	wantTaken := func(t *testing.T, err error) {
+		t.Helper()
+		he := wantHTTPStatus(t, err, http.StatusConflict)
+		eb, ok := he.Message.(errorBody)
+		if !ok || eb.Code != CodeProgramKeyTaken {
+			t.Fatalf("expected %s, got %#v", CodeProgramKeyTaken, he.Message)
+		}
+		if eb.Params[ParamRef] != "LVK" {
+			t.Errorf("params = %#v, want ref=LVK", eb.Params)
+		}
+		if want := "a program with the key LVK already exists"; eb.Message != want {
+			t.Errorf("message = %q, want %q", eb.Message, want)
+		}
 	}
+
+	t.Run("HTTP", func(t *testing.T) {
+		_, err, _ := createProgramVia(t, s, orgID, "lvk")
+		wantTaken(t, err)
+	})
+	t.Run("suggestion", func(t *testing.T) {
+		sg := newTestSuggestion(t, s, orgID, &db.Suggestion{
+			EntityType:     "program",
+			SuggestionType: "create",
+			Payload:        json.RawMessage(`{"key":"LVK","title":"By suggestion"}`),
+		})
+		contractTestUser(t, s, orgID, suggestionChangelogActor, "manager")
+		c, _ := suggestionCtx(orgID, http.MethodPost, sg.ID)
+		wantTaken(t, s.handleApplyEntitySuggestion(c))
+	})
 }

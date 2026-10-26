@@ -948,6 +948,7 @@
   "common.error.notes_required",
   "common.error.password_too_short",
   "common.error.program_key_retired",
+  "common.error.program_key_taken",
   "common.error.provider_other_org",
   "common.error.required",
   "common.error.review_already_active",

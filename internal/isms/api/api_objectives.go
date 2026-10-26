@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -101,6 +102,21 @@ func (s *Server) handleListPrograms(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{"data": programs})
 }
 
+// programKeyConflict maps a refused program create to a coded 409 naming the
+// key: a retired key (#367) or one a live program holds, matched by constraint
+// name so a concurrent duplicate is covered too. It returns nil for any other
+// error so the caller keeps its own path.
+func programKeyConflict(err error, key string) error {
+	if errors.Is(err, db.ErrProgramKeyRetired) {
+		return apiError(http.StatusConflict, CodeProgramKeyRetired, Ref(key))
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "uq_programs_org_key" {
+		return apiError(http.StatusConflict, CodeProgramKeyTaken, Ref(key))
+	}
+	return nil
+}
+
 func (s *Server) handleCreateProgram(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -131,8 +147,8 @@ func (s *Server) handleCreateProgram(c echo.Context) error {
 	}
 
 	if err := s.db.CreateProgram(ctx, orgID, &p); err != nil {
-		if errors.Is(err, db.ErrProgramKeyRetired) {
-			return apiError(http.StatusConflict, CodeProgramKeyRetired, Ref(p.Key))
+		if perr := programKeyConflict(err, p.Key); perr != nil {
+			return perr
 		}
 		return pgxHTTPError(err)
 	}
@@ -252,11 +268,13 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 	}
 
 	user := getUserEmail(c)
+	var key string
 	err = s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		key, objectiveIDs, err := db.DeleteProgramTx(ctx, tx, orgID, id)
+		k, objectiveIDs, err := db.DeleteProgramTx(ctx, tx, orgID, id)
 		if err != nil {
 			return err
 		}
+		key = k
 		if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
 			EntityType: "program",
 			EntityID:   id,
@@ -288,7 +306,7 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  user,
 		Action: "program_deleted",
-		Detail: fmt.Sprintf("Program %d deleted", id),
+		Detail: fmt.Sprintf("Program %s deleted", key),
 	})
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})

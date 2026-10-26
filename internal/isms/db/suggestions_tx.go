@@ -702,6 +702,20 @@ func UpdateAssetTx(ctx context.Context, tx pgx.Tx, orgID int, a *Asset) error {
 // DB.CreateProgram; the transaction is already scoped to the org.
 func CreateProgramTx(ctx context.Context, tx pgx.Tx, orgID int, p *Program) error {
 	p.OrganizationID = orgID
+	// Lock every program row with this key, deleted ones included, so a create
+	// overlapping an uncommitted delete of the live program waits for it. The
+	// retired check below is a new statement and sees the committed delete;
+	// without the lock it could pass, then the insert would wait on the unique
+	// index and succeed once the delete commits, leaving a key no objective can use.
+	lockRows, err := tx.Query(ctx,
+		`SELECT id FROM programs WHERE organization_id = $1 AND key = $2 FOR UPDATE`, orgID, p.Key)
+	if err != nil {
+		return err
+	}
+	lockRows.Close()
+	if err := lockRows.Err(); err != nil {
+		return err
+	}
 	if err := programKeyRetired(ctx, tx, orgID, p.Key); err != nil {
 		return err
 	}

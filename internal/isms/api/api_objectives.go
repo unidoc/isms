@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
@@ -247,17 +248,40 @@ func (s *Server) handleDeleteProgram(c echo.Context) error {
 		return errNotFound("program")
 	}
 
-	if err := s.db.DeleteProgram(ctx, orgID, id); err != nil {
+	user := getUserEmail(c)
+	err = s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		key, objectiveIDs, err := db.DeleteProgramTx(ctx, tx, orgID, id)
+		if err != nil {
+			return err
+		}
+		if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+			EntityType: "program",
+			EntityID:   id,
+			Action:     "delete",
+			ChangedBy:  user,
+		}); err != nil {
+			return err
+		}
+		for _, oid := range objectiveIDs {
+			if err := db.LogChangeTx(ctx, tx, orgID, &db.ChangelogEntry{
+				EntityType: "objective",
+				EntityID:   oid,
+				Action:     "delete",
+				ChangedBy:  user,
+				Reason:     fmt.Sprintf("program %s deleted", key),
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errNotFound("program")
+	}
+	if err != nil {
 		return pgxHTTPError(err)
 	}
 
-	user := getUserEmail(c)
-	s.logChange(ctx, orgID, &db.ChangelogEntry{
-		EntityType: "program",
-		EntityID:   id,
-		Action:     "delete",
-		ChangedBy:  user,
-	})
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  user,
 		Action: "program_deleted",
@@ -368,6 +392,10 @@ func (s *Server) handleCreateObjective(c echo.Context) error {
 		return err
 	}
 	if err := s.db.CreateObjective(ctx, orgID, &o); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// The program was deleted after the pre-check above.
+			return apiError(http.StatusBadRequest, CodeNotFoundInOrg, Entity("program"))
+		}
 		return pgxHTTPError(err)
 	}
 

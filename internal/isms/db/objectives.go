@@ -72,10 +72,14 @@ type Objective struct {
 // same program serialize instead of racing on MAX+1 and colliding on
 // UNIQUE(program_id, seq_number) / UNIQUE(org, display_id) → duplicate-key 409.
 // Both create paths (CreateObjective + CreateObjectiveTx) route through this so
-// the lock is mutually effective (#183 follow-up).
+// the lock is mutually effective (#183 follow-up). A program deleted meanwhile
+// yields a wrapped pgx.ErrNoRows rather than an orphan objective.
 func nextObjectiveSeqTx(ctx context.Context, tx pgx.Tx, programID int64) (int, error) {
-	if _, err := tx.Exec(ctx, `SELECT id FROM programs WHERE id = $1 FOR UPDATE`, programID); err != nil {
-		return 0, fmt.Errorf("lock program: %w", err)
+	var lockedID int64
+	if err := tx.QueryRow(ctx,
+		`SELECT id FROM programs WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+		programID).Scan(&lockedID); err != nil {
+		return 0, fmt.Errorf("program not found: %w", err)
 	}
 	var maxSeq int
 	if err := tx.QueryRow(ctx,

@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Program groups related objectives under a keyed programme.
@@ -99,9 +101,40 @@ func (d *DB) UpdateProgram(ctx context.Context, orgID int, p *Program) error {
 	return err
 }
 
-func (d *DB) DeleteProgram(ctx context.Context, orgID int, id int64) error {
-	_, err := d.pool.Exec(ctx, `UPDATE programs SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
-	return err
+// DeleteProgramTx soft-deletes a live program and all its live objectives
+// (archived ones included), returning the program key and the objective ids.
+// pgx.ErrNoRows means no live program matched. The program row is updated
+// first so its lock serializes against concurrent objective creates.
+func DeleteProgramTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (string, []int64, error) {
+	var key string
+	if err := tx.QueryRow(ctx, `
+		UPDATE programs SET deleted_at = now(), updated_at = now()
+		WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+		RETURNING key
+	`, id, orgID).Scan(&key); err != nil {
+		return "", nil, err
+	}
+	rows, err := tx.Query(ctx, `
+		UPDATE objectives SET deleted_at = now(), updated_at = now()
+		WHERE program_id = $1 AND organization_id = $2 AND deleted_at IS NULL
+		RETURNING id
+	`, id, orgID)
+	if err != nil {
+		return "", nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var oid int64
+		if err := rows.Scan(&oid); err != nil {
+			return "", nil, err
+		}
+		ids = append(ids, oid)
+	}
+	if err := rows.Err(); err != nil {
+		return "", nil, err
+	}
+	return key, ids, nil
 }
 
 func (p *Program) ToChangeMap() map[string]string {

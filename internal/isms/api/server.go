@@ -812,6 +812,13 @@ func (s *Server) routes() {
 	api.POST("/references", s.handleCreateReference)
 	api.DELETE("/references/:id", s.handleDeleteReference)
 
+	// External evidence links on register records (#316; suppliers only so far)
+	api.GET("/external-links", s.handleListExternalLinks)
+	api.POST("/external-links", s.handleCreateExternalLink)
+	api.PUT("/external-links/:id", s.handleUpdateExternalLink)
+	api.POST("/external-links/:id/verify", s.handleVerifyExternalLink)
+	api.DELETE("/external-links/:id", s.handleDeleteExternalLink)
+
 	// Entity Comments (generic comments on any entity)
 	api.GET("/entity-comments/:type/:id", s.handleListEntityComments)
 	api.POST("/entity-comments", s.handleCreateEntityComment)

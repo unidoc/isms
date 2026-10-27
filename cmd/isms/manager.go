@@ -93,7 +93,9 @@ func runManager(quiet bool) error {
 	if !quiet {
 		fmt.Printf("\nISMS manager: %d org(s), %d tasks created (%d unassigned, %d failed), %d review dates backfilled, %d notifications sent\n",
 			len(orgs), totalCreated, totalUnassigned, totalFailed, totalBackfilled, totalNotified)
-	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 || totalUnassigned > 0 || totalFailed > 0 {
+	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 || totalFailed > 0 {
+		// Unassigned alone does not print: an item without an owner stays
+		// unassigned on every run, and --quiet is for cron, which mails any output.
 		fmt.Printf("isms manager: %d tasks created (%d unassigned, %d failed), %d backfilled, %d notified [%s]\n",
 			totalCreated, totalUnassigned, totalFailed, totalBackfilled, totalNotified, time.Now().Format("2006-01-02 15:04"))
 	}

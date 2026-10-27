@@ -490,7 +490,7 @@ Structured log lines include HTTP method, path, status code, and latency for eve
 
 ## Scheduled housekeeping
 
-`isms server manager` runs the platform's automated housekeeping for every organization. The server does not schedule it: run it from cron (or any scheduler) with the same environment as the server, including `DATABASE_URL`. It is idempotent, so running it more often than needed creates no duplicates.
+`isms server manager` runs the platform's automated housekeeping for every organization. The server does not schedule it: run it from cron (or any scheduler) with the same environment as the server, including `DATABASE_URL`. Running it often creates no duplicates while a task is open; once that task is completed or cancelled, an item that is still overdue gets a new task on the next run. An item stops producing tasks when its review is recorded (its next review date moves forward) or, for a contract, when its expiry date is updated.
 
 Each run:
 

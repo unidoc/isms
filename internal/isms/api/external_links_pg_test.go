@@ -372,3 +372,45 @@ func TestExternalLinkChangelogAndVerifier(t *testing.T) {
 		t.Errorf("changed_by: %q / %q", rows[0].ChangedBy, rows[5].ChangedBy)
 	}
 }
+
+// A link whose supplier is soft-deleted cannot be edited, verified or removed,
+// and nothing is written to the changelog.
+func TestExternalLinkWritesRefusedForDeletedSupplier(t *testing.T) {
+	const name = "extlink-delsup"
+	e := newELEnv(t, name)
+	admin := e.email("admin", name)
+	_, l := e.post(t, "admin", admin, e.validBody(nil))
+	id := strconv.FormatInt(l.ID, 10)
+	before := len(e.changelog(t))
+
+	if err := e.s.db.DeleteSupplier(context.Background(), e.orgID, e.sup.ID); err != nil {
+		t.Fatalf("DeleteSupplier: %v", err)
+	}
+	body, _ := json.Marshal(map[string]any{"url": "https://example.com/z", "label": "z", "link_type": "other"})
+	for label, call := range map[string]func() int{
+		"PUT": func() int {
+			c, _ := e.call(t, e.orgID, "admin", admin, e.s.handleUpdateExternalLink, http.MethodPut, "/x", id, string(body))
+			return c
+		},
+		"verify": func() int {
+			c, _ := e.call(t, e.orgID, "admin", admin, e.s.handleVerifyExternalLink, http.MethodPost, "/x", id, "")
+			return c
+		},
+		"DELETE": func() int {
+			c, _ := e.call(t, e.orgID, "admin", admin, e.s.handleDeleteExternalLink, http.MethodDelete, "/x", id, "")
+			return c
+		},
+	} {
+		if code := call(); code != http.StatusNotFound {
+			t.Errorf("%s on a deleted supplier's link: %d, want 404", label, code)
+		}
+	}
+	if after := len(e.changelog(t)); after != before {
+		t.Errorf("changelog rows %d -> %d, want no new rows", before, after)
+	}
+	var verified, deleted bool
+	if err := e.s.db.Pool().QueryRow(context.Background(),
+		`SELECT verified_at IS NOT NULL, deleted_at IS NOT NULL FROM external_links WHERE id = $1`, l.ID).Scan(&verified, &deleted); err != nil || verified || deleted {
+		t.Errorf("link was written (verified=%v deleted=%v err=%v)", verified, deleted, err)
+	}
+}

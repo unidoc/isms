@@ -98,14 +98,18 @@ func (d *DB) ListExternalLinks(ctx context.Context, orgID int, entityType string
 }
 
 // GetExternalLinkTx reads a live link and locks it for the rest of the
-// transaction. pgx.ErrNoRows when it does not exist, is deleted, or belongs to
-// another organization.
+// transaction. pgx.ErrNoRows when it does not exist, is deleted, belongs to
+// another organization, or hangs off a soft-deleted supplier, so every write
+// path that starts here refuses those.
 func GetExternalLinkTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*ExternalLink, error) {
 	var l ExternalLink
 	row := tx.QueryRow(ctx, `
 		SELECT `+externalLinkCols+`
 		FROM external_links l
 		WHERE l.id = $1 AND l.organization_id = $2 AND l.deleted_at IS NULL
+			AND (l.entity_type <> 'supplier' OR EXISTS (
+				SELECT 1 FROM suppliers s
+				WHERE s.id = l.entity_id AND s.organization_id = l.organization_id AND s.deleted_at IS NULL))
 		FOR UPDATE OF l
 	`, id, orgID)
 	if err := scanExternalLink(row, &l); err != nil {

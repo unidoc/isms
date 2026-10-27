@@ -103,7 +103,8 @@
     "policy": "policy",
     "passkey": "passkey",
     "evidence": "evidence",
-    "item": "item"
+    "item": "item",
+    "external_link": "external link"
   },
   "field": {
     "title": "title",
@@ -124,7 +125,9 @@
     "new_email": "new email",
     "entity_type": "entity type",
     "entity_id": "entity id",
-    "suggestion_type": "suggestion type"
+    "suggestion_type": "suggestion type",
+    "url": "URL",
+    "label": "label"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Record",
       "clause": "Clause",
       "requirement": "Requirement"
+    },
+    "external_link_type": {
+      "certificate": "Certificate",
+      "audit_report": "Audit report",
+      "penetration_test": "Penetration test",
+      "attestation": "Attestation",
+      "contract": "Contract",
+      "other": "Other"
+    },
+    "external_link_state": {
+      "expired": "Expired",
+      "expiring": "Expiring soon",
+      "current": "Current"
     }
   },
   "enum_inline": {

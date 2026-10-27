@@ -415,6 +415,7 @@
               <template v-if="detailTab === 'links'">
                 <div class="px-6 py-5 space-y-4">
                   <ReferenceManager entityType="supplier" :entityId="selectedItem.identifier || ('SUPPLIER-' + selectedItem.id)" :editable="canWrite" />
+                  <ExternalLinks entityType="supplier" :entityId="selectedItem.identifier || ('SUPPLIER-' + selectedItem.id)" :editable="canWrite" />
                 </div>
               </template>
 
@@ -475,6 +476,7 @@ import RefreshButton from '../components/RefreshButton.vue'
 import MemberPicker from '../components/MemberPicker.vue'
 import MarkdownField from '../components/MarkdownField.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
+import ExternalLinks from '../components/ExternalLinks.vue'
 import CopyLinkButton from '../components/CopyLinkButton.vue'
 import SuggestionPanel from '../components/SuggestionPanel.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'

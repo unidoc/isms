@@ -103,7 +103,8 @@
     "policy": "kebijakan",
     "passkey": "passkey",
     "evidence": "bukti",
-    "item": "item"
+    "item": "item",
+    "external_link": "tautan eksternal"
   },
   "field": {
     "title": "judul",
@@ -124,7 +125,9 @@
     "new_email": "email baru",
     "entity_type": "jenis entitas",
     "entity_id": "ID entitas",
-    "suggestion_type": "jenis saran"
+    "suggestion_type": "jenis saran",
+    "url": "URL",
+    "label": "label"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Rekaman",
       "clause": "Klausul",
       "requirement": "Persyaratan"
+    },
+    "external_link_type": {
+      "certificate": "Sertifikat",
+      "audit_report": "Laporan audit",
+      "penetration_test": "Uji penetrasi",
+      "attestation": "Atestasi",
+      "contract": "Kontrak",
+      "other": "Lainnya"
+    },
+    "external_link_state": {
+      "expired": "Kedaluwarsa",
+      "expiring": "Segera berakhir",
+      "current": "Berlaku"
     }
   },
   "enum_inline": {

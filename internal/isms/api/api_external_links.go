@@ -90,11 +90,17 @@ func validateExternalLinkURL(raw string) (string, bool) {
 
 // externalLinkInput validates the editable fields of a request body.
 func externalLinkInput(req *externalLinkBody) (db.ExternalLinkInput, error) {
+	if strings.TrimSpace(req.URL) == "" {
+		return db.ExternalLinkInput{}, errRequired("url")
+	}
 	rawURL, ok := validateExternalLinkURL(req.URL)
 	if !ok {
 		return db.ExternalLinkInput{}, apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	label := strings.TrimSpace(req.Label)
+	if label == "" {
+		return db.ExternalLinkInput{}, errRequired("label")
+	}
 	if n := len([]rune(label)); n < 1 || n > externalLinkMaxLabel {
 		return db.ExternalLinkInput{}, apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
@@ -149,7 +155,7 @@ func externalLinkChange(supplierID int64, actor string, old, new *db.ExternalLin
 func externalLinkID(c echo.Context) (int64, error) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
-		return 0, errNotFound("evidence")
+		return 0, errNotFound("external_link")
 	}
 	return id, nil
 }
@@ -318,7 +324,7 @@ func (s *Server) handleDeleteExternalLink(c echo.Context) error {
 // externalLinkWriteError maps a missing (or other-organization) link to 404.
 func externalLinkWriteError(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
-		return errNotFound("evidence")
+		return errNotFound("external_link")
 	}
 	return pgxHTTPError(err)
 }

@@ -548,6 +548,12 @@ export const api = {
   getReferences: (type, id) => fetchJSON(`${API}/references?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`),
   createReference: (ref) => postJSON(`${API}/references`, ref),
   deleteReference: (id) => deleteJSON(`${API}/references/${id}`),
+  // External evidence links on register records (suppliers so far)
+  getExternalLinks: (type, id) => fetchJSON(`${API}/external-links?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`),
+  createExternalLink: (body) => postJSON(`${API}/external-links`, body),
+  updateExternalLink: (id, body) => putJSON(`${API}/external-links/${id}`, body),
+  verifyExternalLink: (id) => postJSON(`${API}/external-links/${id}/verify`, {}),
+  deleteExternalLink: (id) => deleteJSON(`${API}/external-links/${id}`),
 
   // Personal Access Tokens (self-service)
   getMyAPIKeys: () => fetchJSON(`${API}/auth/api-keys`),

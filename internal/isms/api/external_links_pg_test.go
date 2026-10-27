@@ -25,6 +25,8 @@ type elEnv struct {
 	s     *Server
 	orgID int
 	sup   *db.Supplier
+	// lastErr is the body of the error the most recent call answered with.
+	lastErr errorBody
 }
 
 func newELEnv(t *testing.T, name string) *elEnv {
@@ -64,6 +66,7 @@ func (e *elEnv) call(t *testing.T, orgID int, role, email string, handler func(e
 	if err := handler(c); err != nil {
 		var he *echo.HTTPError
 		if errors.As(err, &he) {
+			e.lastErr, _ = he.Message.(errorBody)
 			return he.Code, nil
 		}
 		t.Fatalf("handler error is not an HTTPError: %v", err)
@@ -143,6 +146,16 @@ func TestExternalLinkRejectsUnsafeURLs(t *testing.T) {
 			t.Errorf("url %q: status %d, want 400", bad[:min(len(bad), 40)], code)
 		}
 	}
+	// An empty URL is "required"; every other bad value is a plain invalid request.
+	for _, empty := range []string{"", "   "} {
+		if code, _ := e.post(t, "admin", admin, e.validBody(map[string]any{"url": empty})); code != http.StatusBadRequest ||
+			e.lastErr.Code != CodeRequired || e.lastErr.Params[ParamField] != "url" {
+			t.Errorf("empty url: %d %+v, want 400 required/url", code, e.lastErr)
+		}
+	}
+	if code, _ := e.post(t, "admin", admin, e.validBody(map[string]any{"url": "javascript:alert(1)"})); code != http.StatusBadRequest || e.lastErr.Code != CodeInvalidRequest {
+		t.Errorf("javascript url: %d %+v, want 400 invalid_request", code, e.lastErr)
+	}
 	for _, good := range []string{"http://example.com/a", "https://example.com/a?b=1#c", "HTTPS://EXAMPLE.com/x"} {
 		if code, _ := e.post(t, "admin", admin, e.validBody(map[string]any{"url": good})); code != http.StatusCreated {
 			t.Errorf("url %q: status %d, want 201", good, code)
@@ -182,6 +195,15 @@ func TestExternalLinkValidatesFields(t *testing.T) {
 		if code != want {
 			t.Errorf("%s: status %d, want %d", label, code, want)
 		}
+	}
+	for _, empty := range []string{"", "   "} {
+		if code, _ := e.post(t, "admin", admin, e.validBody(map[string]any{"label": empty})); code != http.StatusBadRequest ||
+			e.lastErr.Code != CodeRequired || e.lastErr.Params[ParamField] != "label" {
+			t.Errorf("empty label: %d %+v, want 400 required/label", code, e.lastErr)
+		}
+	}
+	if code, _ := e.post(t, "admin", admin, e.validBody(map[string]any{"label": strings.Repeat("x", 201)})); code != http.StatusBadRequest || e.lastErr.Code != CodeInvalidRequest {
+		t.Errorf("201 char label: %d %+v, want 400 invalid_request", code, e.lastErr)
 	}
 	if code, l := e.post(t, "admin", admin, e.validBody(map[string]any{"label": strings.Repeat("x", 200)})); code != http.StatusCreated || len(l.Label) != 200 {
 		t.Errorf("200 char label: status %d", code)
@@ -267,8 +289,9 @@ func TestExternalLinkOrgIsolation(t *testing.T) {
 	if code, _ := e.call(t, e.orgID, "admin", e.email("admin", "extlink-iso-a"), e.s.handleDeleteExternalLink, http.MethodDelete, "/x", id, ""); code != http.StatusNotFound {
 		t.Errorf("second delete: %d, want 404", code)
 	}
-	if code, _ := e.call(t, e.orgID, "admin", e.email("admin", "extlink-iso-a"), e.s.handleVerifyExternalLink, http.MethodPost, "/x", "999999999", ""); code != http.StatusNotFound {
-		t.Errorf("verify missing: %d, want 404", code)
+	if code, _ := e.call(t, e.orgID, "admin", e.email("admin", "extlink-iso-a"), e.s.handleVerifyExternalLink, http.MethodPost, "/x", "999999999", ""); code != http.StatusNotFound ||
+		e.lastErr.Code != CodeNotFound || e.lastErr.Params[ParamEntity] != "external_link" {
+		t.Errorf("verify missing: %d %+v, want 404 not_found/external_link", code, e.lastErr)
 	}
 }
 

@@ -103,7 +103,8 @@
     "policy": "Richtlinie",
     "passkey": "Passkey",
     "evidence": "Nachweis",
-    "item": "Element"
+    "item": "Element",
+    "external_link": "externer Link"
   },
   "field": {
     "title": "Titel",
@@ -124,7 +125,9 @@
     "new_email": "neue E-Mail",
     "entity_type": "Objekttyp",
     "entity_id": "Objekt-ID",
-    "suggestion_type": "Vorschlagstyp"
+    "suggestion_type": "Vorschlagstyp",
+    "url": "URL",
+    "label": "Bezeichnung"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Aufzeichnung",
       "clause": "Abschnitt",
       "requirement": "Anforderung"
+    },
+    "external_link_type": {
+      "certificate": "Zertifikat",
+      "audit_report": "Auditbericht",
+      "penetration_test": "Penetrationstest",
+      "attestation": "Testat",
+      "contract": "Vertrag",
+      "other": "Sonstiges"
+    },
+    "external_link_state": {
+      "expired": "Abgelaufen",
+      "expiring": "Läuft bald ab",
+      "current": "Aktuell"
     }
   },
   "enum_inline": {

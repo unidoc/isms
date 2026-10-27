@@ -395,7 +395,7 @@
     "external_link_type": {
       "certificate": "Vottorð",
       "audit_report": "Úttektarskýrsla",
-      "penetration_test": "Skarpskyggniprófun",
+      "penetration_test": "Innbrotsprófun",
       "attestation": "Staðfesting",
       "contract": "Samningur",
       "other": "Annað"

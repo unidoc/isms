@@ -53,27 +53,27 @@
     <div v-else class="space-y-1.5">
       <div v-for="l in links" :key="l.id" data-testid="external-link-row"
         class="border border-slate-800 rounded-lg px-3 py-2 space-y-1">
-      <div class="flex items-center gap-2 flex-wrap">
-        <a v-if="safeHref(l.url)" :href="safeHref(l.url)" target="_blank" rel="noopener noreferrer"
-          class="text-xs font-medium text-blue-400 hover:text-blue-300 truncate max-w-[260px]">{{ l.label }}</a>
-        <span v-else class="text-xs font-medium text-slate-300 truncate max-w-[260px]">{{ l.label }}</span>
-        <span class="text-[10px] text-slate-500 truncate">{{ hostOf(l.url) }}</span>
-        <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">{{ typeLabel(l.link_type) }}</span>
-        <span v-if="l.state" class="text-[9px] font-semibold px-1.5 py-0.5 rounded" :class="stateClass(l.state)">{{ stateLabel(l.state) }}</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a v-if="safeHref(l.url)" :href="safeHref(l.url)" target="_blank" rel="noopener noreferrer"
+            class="text-xs font-medium text-blue-400 hover:text-blue-300 truncate max-w-[260px]">{{ l.label }}</a>
+          <span v-else class="text-xs font-medium text-slate-300 truncate max-w-[260px]">{{ l.label }}</span>
+          <span class="text-[10px] text-slate-500 truncate">{{ hostOf(l.url) }}</span>
+          <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">{{ typeLabel(l.link_type) }}</span>
+          <span v-if="l.state" class="text-[9px] font-semibold px-1.5 py-0.5 rounded" :class="stateClass(l.state)">{{ stateLabel(l.state) }}</span>
+        </div>
+        <div v-if="l.valid_until || l.verified_at" class="text-[10px] text-slate-500 flex flex-wrap gap-x-3">
+          <span v-if="l.valid_until">{{ $t('components.external_links.valid_until_row', { date: formatDay(l.valid_until) }) }}</span>
+          <span v-if="l.verified_at">{{ l.verified_by
+            ? $t('components.external_links.verified_by', { date: formatDay(l.verified_at), name: nameFor(l.verified_by) })
+            : $t('components.external_links.verified_on_row', { date: formatDay(l.verified_at) }) }}</span>
+        </div>
+        <div v-if="editable" class="flex gap-3 text-[10px]">
+          <button type="button" @click="openEdit(l)" class="text-blue-400 hover:text-blue-300">{{ $t('common.action.edit') }}</button>
+          <button type="button" @click="verify(l)" class="text-emerald-400 hover:text-emerald-300">{{ $t('components.external_links.mark_verified') }}</button>
+          <button type="button" @click="remove(l)" class="text-slate-500 hover:text-red-400">{{ $t('common.action.delete') }}</button>
+        </div>
       </div>
-      <div v-if="l.valid_until || l.verified_at" class="text-[10px] text-slate-500 flex flex-wrap gap-x-3">
-        <span v-if="l.valid_until">{{ $t('components.external_links.valid_until_row', { date: formatDay(l.valid_until) }) }}</span>
-        <span v-if="l.verified_at">{{ l.verified_by
-          ? $t('components.external_links.verified_by', { date: formatDay(l.verified_at), name: nameFor(l.verified_by) })
-          : $t('components.external_links.verified_on_row', { date: formatDay(l.verified_at) }) }}</span>
-      </div>
-      <div v-if="editable" class="flex gap-3 text-[10px]">
-        <button type="button" @click="openEdit(l)" class="text-blue-400 hover:text-blue-300">{{ $t('common.action.edit') }}</button>
-        <button type="button" @click="verify(l)" class="text-emerald-400 hover:text-emerald-300">{{ $t('components.external_links.mark_verified') }}</button>
-        <button type="button" @click="remove(l)" class="text-slate-500 hover:text-red-400">{{ $t('common.action.delete') }}</button>
-      </div>
-  </div>
-</div>
+    </div>
   </div>
 </template>
 

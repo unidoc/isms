@@ -118,6 +118,19 @@ func GetExternalLinkTx(ctx context.Context, tx pgx.Tx, orgID int, id int64) (*Ex
 	return &l, nil
 }
 
+// LockLiveSupplierTx takes a shared lock on a live supplier for the rest of the
+// transaction. A concurrent soft delete either committed first (pgx.ErrNoRows
+// here) or waits for this transaction, so a link can never be added to a
+// supplier that is deleted underneath it.
+func LockLiveSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, supplierID int64) error {
+	var one int
+	return tx.QueryRow(ctx, `
+		SELECT 1 FROM suppliers
+		WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+		FOR SHARE
+	`, supplierID, orgID).Scan(&one)
+}
+
 // CreateExternalLinkTx inserts a link. A set verified_at is stamped with
 // verifier (the actor's email).
 func CreateExternalLinkTx(ctx context.Context, tx pgx.Tx, orgID int, entityType string, entityID int64, in ExternalLinkInput, createdBy string) (*ExternalLink, error) {

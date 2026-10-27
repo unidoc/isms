@@ -211,6 +211,12 @@ func (s *Server) handleCreateExternalLink(c echo.Context) error {
 
 	var link *db.ExternalLink
 	err = s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if err := db.LockLiveSupplierTx(ctx, tx, orgID, sup.ID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errNotFound("supplier")
+			}
+			return err
+		}
 		var err error
 		link, err = db.CreateExternalLinkTx(ctx, tx, orgID, "supplier", sup.ID, in, actor)
 		if err != nil {
@@ -219,6 +225,10 @@ func (s *Server) handleCreateExternalLink(c echo.Context) error {
 		return db.LogChangeTx(ctx, tx, orgID, externalLinkChange(sup.ID, actor, nil, link))
 	})
 	if err != nil {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
 		return pgxHTTPError(err)
 	}
 	return c.JSON(http.StatusCreated, link)

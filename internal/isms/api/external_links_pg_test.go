@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -435,5 +436,67 @@ func TestExternalLinkWritesRefusedForDeletedSupplier(t *testing.T) {
 	if err := e.s.db.Pool().QueryRow(context.Background(),
 		`SELECT verified_at IS NOT NULL, deleted_at IS NOT NULL FROM external_links WHERE id = $1`, l.ID).Scan(&verified, &deleted); err != nil || verified || deleted {
 		t.Errorf("link was written (verified=%v deleted=%v err=%v)", verified, deleted, err)
+	}
+}
+
+// A supplier deleted between the handler's liveness check and its insert must
+// not gain a link. The delete is held open in its own transaction, the create is
+// started and (with the lock) blocks behind it, then the delete commits.
+func TestExternalLinkCreateRacingSupplierDelete(t *testing.T) {
+	const name = "extlink-race"
+	e := newELEnv(t, name)
+	ctx := context.Background()
+	pool := e.s.db.Pool()
+
+	del, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer del.Rollback(ctx)
+	if _, err := del.Exec(ctx, `UPDATE suppliers SET deleted_at = now() WHERE id = $1`, e.sup.ID); err != nil {
+		t.Fatalf("soft delete: %v", err)
+	}
+
+	type result struct {
+		code int
+		body errorBody
+	}
+	done := make(chan result, 1)
+	go func() {
+		b, _ := json.Marshal(e.validBody(nil))
+		// A private env copy: lastErr is written by call.
+		local := &elEnv{s: e.s, orgID: e.orgID, sup: e.sup}
+		code, _ := local.call(t, e.orgID, "admin", e.email("admin", name), e.s.handleCreateExternalLink, http.MethodPost, "/x", "", string(b))
+		done <- result{code, local.lastErr}
+	}()
+
+	// Wait for the create to block on the uncommitted delete. Without the lock it
+	// never blocks (it inserts and returns), so this times out and the assertions
+	// below fail instead.
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		var waiting int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
+			t.Fatalf("pg_stat_activity: %v", err)
+		}
+		if waiting > 0 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err := del.Commit(ctx); err != nil {
+		t.Fatalf("commit delete: %v", err)
+	}
+
+	r := <-done
+	if r.code != http.StatusNotFound || r.body.Code != CodeNotFound || r.body.Params[ParamEntity] != "supplier" {
+		t.Errorf("create racing a delete: %d %+v, want 404 not_found/supplier", r.code, r.body)
+	}
+	var n int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM external_links WHERE entity_type = 'supplier' AND entity_id = $1`, e.sup.ID).Scan(&n); err != nil || n != 0 {
+		t.Errorf("%d link rows on the deleted supplier (err %v), want 0", n, err)
+	}
+	if rows := e.changelog(t); len(rows) != 0 {
+		t.Errorf("%d changelog rows for the refused create, want 0", len(rows))
 	}
 }

@@ -21,6 +21,9 @@ Tasks performed:
   - Create review tasks for overdue risks, suppliers, systems, legal requirements
   - Create review tasks for documents past their review cycle
   - Create check-in tasks for objectives with overdue check-ins
+  - Create renewal tasks for supplier contracts that are expiring or expired
+  Tasks are assigned to the item's owner; an item with no owner is skipped and
+  reported as unassigned. A task that cannot be created is reported as failed.
   - Backfill missing next_review dates on suppliers and systems
   - Notify on supplier contracts 30 days, 7 days, and 0 days from expiry
   - Report summary of actions taken
@@ -64,11 +67,13 @@ func runManager(quiet bool) error {
 	totalCreated := 0
 	totalBackfilled := 0
 	totalNotified := 0
+	totalUnassigned := 0
+	totalFailed := 0
 
 	for _, org := range orgs {
 		orgID := org.ID
 
-		created, backfilled, notified, err := manageOrg(ctx, d, orgID, quiet)
+		created, backfilled, notified, unassigned, failed, err := manageOrg(ctx, d, orgID, quiet)
 		if err != nil && !quiet {
 			fmt.Printf("[%s] error: %v\n", org.Slug, err)
 			continue
@@ -76,25 +81,27 @@ func runManager(quiet bool) error {
 		totalCreated += created
 		totalBackfilled += backfilled
 		totalNotified += notified
+		totalUnassigned += unassigned
+		totalFailed += failed
 
-		if !quiet && (created > 0 || backfilled > 0 || notified > 0) {
-			fmt.Printf("[%s] created %d tasks, backfilled %d review dates, sent %d notifications\n",
-				org.Slug, created, backfilled, notified)
+		if !quiet && (created > 0 || backfilled > 0 || notified > 0 || unassigned > 0 || failed > 0) {
+			fmt.Printf("[%s] created %d tasks (%d unassigned, %d failed), backfilled %d review dates, sent %d notifications\n",
+				org.Slug, created, unassigned, failed, backfilled, notified)
 		}
 	}
 
 	if !quiet {
-		fmt.Printf("\nISMS manager: %d org(s), %d tasks created, %d review dates backfilled, %d notifications sent\n",
-			len(orgs), totalCreated, totalBackfilled, totalNotified)
-	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 {
-		fmt.Printf("isms manager: %d tasks created, %d backfilled, %d notified [%s]\n",
-			totalCreated, totalBackfilled, totalNotified, time.Now().Format("2006-01-02 15:04"))
+		fmt.Printf("\nISMS manager: %d org(s), %d tasks created (%d unassigned, %d failed), %d review dates backfilled, %d notifications sent\n",
+			len(orgs), totalCreated, totalUnassigned, totalFailed, totalBackfilled, totalNotified)
+	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 || totalUnassigned > 0 || totalFailed > 0 {
+		fmt.Printf("isms manager: %d tasks created (%d unassigned, %d failed), %d backfilled, %d notified [%s]\n",
+			totalCreated, totalUnassigned, totalFailed, totalBackfilled, totalNotified, time.Now().Format("2006-01-02 15:04"))
 	}
 
 	return nil
 }
 
-func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, backfilled, notified int, err error) {
+func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, backfilled, notified, unassigned, failed int, err error) {
 	// 1. Backfill missing next_review on suppliers
 	suppliers, err := d.ListSuppliers(ctx, orgID)
 	if err == nil {
@@ -141,11 +148,16 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 
 	// 3. Create tasks for all overdue items
 	// Use "system" as the actor since this is automated
-	result, err := d.CreateOverdueReviewTasks(ctx, orgID, "system")
+	// "system" is not a user, so items without an owner are skipped and reported
+	// (unassigned) rather than assigned to it; the dashboard button, which has a
+	// real user to fall back on, handles those.
+	result, err := d.CreateOverdueReviewTasks(ctx, orgID, "system", "")
 	if err != nil {
-		return created, backfilled, notified, err
+		return created, backfilled, notified, unassigned, failed, err
 	}
 	created = len(result.Created)
+	unassigned = result.Unassigned
+	failed = result.Failed
 
 	// 4. Supplier contract expiry notifications (#44).
 	// Non-fatal: a notification failure must not stop the cron from having done
@@ -155,5 +167,5 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 		fmt.Printf("[warn] supplier contract expiry notifications failed: %v\n", nerr)
 	}
 
-	return created, backfilled, notified, nil
+	return created, backfilled, notified, unassigned, failed, nil
 }

@@ -99,9 +99,9 @@ Examples:
 
 			if !createTasks {
 				overdueReviews := len(summary.Risks) + len(summary.Suppliers) +
-					len(summary.Systems) + len(summary.Legal)
+					len(summary.Systems) + len(summary.Legal) + len(summary.SupplierContracts)
 				if overdueReviews > 0 {
-					fmt.Printf("\nRun `isms overdue --create-tasks` to create review tasks for %d overdue items.\n", overdueReviews)
+					fmt.Printf("\nRun `isms overdue --create-tasks` to create tasks for %d overdue items.\n", overdueReviews)
 				}
 				return nil
 			}
@@ -121,6 +121,12 @@ Examples:
 			}
 			if result.Skipped > 0 {
 				fmt.Printf("Skipped %d (task already exists).\n", result.Skipped)
+			}
+			if result.Unassigned > 0 {
+				fmt.Printf("%d item(s) have no owner and were not assigned.\n", result.Unassigned)
+			}
+			if result.Failed > 0 {
+				fmt.Printf("%d task(s) could not be created; see the server log.\n", result.Failed)
 			}
 			if len(result.Created) == 0 && result.Skipped > 0 {
 				fmt.Println("All overdue items already have open tasks.")

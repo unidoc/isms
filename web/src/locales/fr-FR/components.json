@@ -388,7 +388,8 @@
     "all_on_schedule": "Toutes les revues sont à jour",
     "contract": "contrat",
     "contract_expired": "il y a {count} j",
-    "contract_expires_in": "dans {count} j"
+    "contract_expires_in": "dans {count} j",
+    "created_failed": ", {count} en échec"
   },
   "suggest_new": {
     "button": "Suggérer",

@@ -388,7 +388,8 @@
     "all_on_schedule": "Alle Prüfungen im Zeitplan",
     "contract": "Vertrag",
     "contract_expired": "vor {count} T",
-    "contract_expires_in": "in {count} T"
+    "contract_expires_in": "in {count} T",
+    "created_failed": ", {count} fehlgeschlagen"
   },
   "suggest_new": {
     "button": "Vorschlagen",

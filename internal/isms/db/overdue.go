@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log"
 	"time"
 )
 
@@ -68,7 +69,8 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 
 	// Overdue suppliers
 	rows2, err := d.pool.Query(ctx, `
-		SELECT identifier, name, criticality, next_review
+		SELECT identifier, name, criticality, next_review,
+			COALESCE((SELECT email FROM users WHERE id = suppliers.owner_id), '')
 		FROM suppliers
 		WHERE organization_id = $1
 			AND next_review IS NOT NULL
@@ -81,7 +83,7 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 		for rows2.Next() {
 			var item OverdueItem
 			var reviewDate Epoch
-			if err := rows2.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate); err != nil {
+			if err := rows2.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
 				break
 			}
 			item.EntityType = "supplier"
@@ -98,7 +100,8 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 	// now.Sub(midnight)/24h is off by one either side of a timezone boundary.
 	rowsC, err := d.pool.Query(ctx, `
 		SELECT identifier, name, criticality, contract_expiry,
-			(contract_expiry - CURRENT_DATE)::int AS days_until
+			(contract_expiry - CURRENT_DATE)::int AS days_until,
+			COALESCE((SELECT email FROM users WHERE id = suppliers.owner_id), '')
 		FROM suppliers
 		WHERE organization_id = $1
 			AND contract_expiry IS NOT NULL
@@ -113,7 +116,7 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			var item OverdueItem
 			var expiry Epoch
 			var daysUntil int
-			if err := rowsC.Scan(&item.EntityID, &item.Title, &item.Criticality, &expiry, &daysUntil); err != nil {
+			if err := rowsC.Scan(&item.EntityID, &item.Title, &item.Criticality, &expiry, &daysUntil, &item.Owner); err != nil {
 				break
 			}
 			item.EntityType = "supplier_contract"
@@ -133,7 +136,8 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 
 	// Overdue systems (access reviews)
 	rows3, err := d.pool.Query(ctx, `
-		SELECT identifier, name, criticality, next_review
+		SELECT identifier, name, criticality, next_review,
+			COALESCE((SELECT email FROM users WHERE id = systems.owner_id), '')
 		FROM systems
 		WHERE organization_id = $1
 			AND next_review IS NOT NULL
@@ -146,7 +150,7 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 		for rows3.Next() {
 			var item OverdueItem
 			var reviewDate Epoch
-			if err := rows3.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate); err != nil {
+			if err := rows3.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
 				break
 			}
 			item.EntityType = "system"
@@ -228,6 +232,11 @@ type CreatedReviewTasks struct {
 	Created []Task `json:"created"`
 	Skipped int    `json:"skipped"` // already had open task
 	Total   int    `json:"total"`
+	// Failed counts items whose task could not be created (each is logged).
+	Failed int `json:"failed"`
+	// Unassigned counts items with no owner and no fallback assignee, which are
+	// skipped rather than attempted.
+	Unassigned int `json:"unassigned"`
 }
 
 // CreateOverdueReviewTasks creates tasks for all overdue items.
@@ -339,7 +348,12 @@ func (d *DB) OverdueObjectiveCheckins(ctx context.Context, orgID int) ([]Overdue
 	return items, nil
 }
 
-func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy string) (*CreatedReviewTasks, error) {
+// Every task is a "review" task: the title says what it is for, and the tasks
+// table accepts no other review-like type. An item with no owner goes to
+// fallbackAssignee (a real user's email, e.g. whoever clicked the button); with
+// an empty fallback it is skipped and counted in Unassigned. A failed insert is
+// counted in Failed and logged, never ignored.
+func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy, fallbackAssignee string) (*CreatedReviewTasks, error) {
 	// System rollup — needs full visibility so review tasks are created for every
 	// overdue task (incl. private) and dedup is correct.
 	summary, err := d.GetOverdueSummary(ctx, orgID, TaskViewer{CanSeeAll: true})
@@ -372,7 +386,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, r := range summary.Risks {
 		pending = append(pending, pendingTask{
 			title:    "Risk review: " + r.Title + " (" + r.EntityID + ")",
-			taskType: "risk_review",
+			taskType: "review",
 			priority: levelToPriority(r.Criticality),
 			dueDate:  r.NextReview,
 			owner:    r.Owner,
@@ -381,7 +395,16 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, s := range summary.Suppliers {
 		pending = append(pending, pendingTask{
 			title:    "Supplier review: " + s.Title + " (" + s.EntityID + ")",
-			taskType: "supplier_review",
+			taskType: "review",
+			priority: criticalityToPriority(s.Criticality),
+			dueDate:  s.NextReview,
+			owner:    s.Owner,
+		})
+	}
+	for _, s := range summary.SupplierContracts {
+		pending = append(pending, pendingTask{
+			title:    "Contract renewal: " + s.Title + " (" + s.EntityID + ")",
+			taskType: "review",
 			priority: criticalityToPriority(s.Criticality),
 			dueDate:  s.NextReview,
 			owner:    s.Owner,
@@ -390,7 +413,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, s := range summary.Systems {
 		pending = append(pending, pendingTask{
 			title:    "Access review: " + s.Title + " (" + s.EntityID + ")",
-			taskType: "access_review",
+			taskType: "review",
 			priority: criticalityToPriority(s.Criticality),
 			dueDate:  s.NextReview,
 			owner:    s.Owner,
@@ -399,7 +422,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, l := range summary.Legal {
 		pending = append(pending, pendingTask{
 			title:    "Legal review: " + l.Title + " (" + l.EntityID + ")",
-			taskType: "legal_review",
+			taskType: "review",
 			priority: levelToPriority(l.Criticality),
 			dueDate:  l.NextReview,
 			owner:    l.Owner,
@@ -411,7 +434,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, dv := range docVersions {
 		pending = append(pending, pendingTask{
 			title:    "Document review: " + dv.Title + " (" + dv.EntityID + ")",
-			taskType: "document_review",
+			taskType: "review",
 			priority: "medium",
 			dueDate:  dv.NextReview,
 			owner:    dv.Owner,
@@ -423,7 +446,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 	for _, oc := range objCheckins {
 		pending = append(pending, pendingTask{
 			title:    "Objective check-in: " + oc.Title + " (" + oc.EntityID + ")",
-			taskType: "objective_checkin",
+			taskType: "review",
 			priority: "medium",
 			dueDate:  oc.NextReview,
 			owner:    oc.Owner,
@@ -440,7 +463,11 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 		}
 		assignee := p.owner
 		if assignee == "" {
-			assignee = createdBy
+			assignee = fallbackAssignee
+		}
+		if assignee == "" {
+			result.Unassigned++
+			continue
 		}
 		task := Task{
 			Title:     p.title,
@@ -452,6 +479,8 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy 
 			DueDate:   p.dueDate,
 		}
 		if err := d.CreateTask(ctx, orgID, &task); err != nil {
+			result.Failed++
+			log.Printf("overdue tasks: org %d: creating %q (assignee %q) failed: %v", orgID, p.title, assignee, err)
 			continue
 		}
 		result.Created = append(result.Created, task)

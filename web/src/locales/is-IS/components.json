@@ -388,7 +388,8 @@
     "all_on_schedule": "Allar yfirferðir á áætlun",
     "contract": "samningur",
     "contract_expired": "{count}d síðan",
-    "contract_expires_in": "eftir {count}d"
+    "contract_expires_in": "eftir {count}d",
+    "created_failed": ", {count} mistókst"
   },
   "suggest_new": {
     "button": "Leggja til",

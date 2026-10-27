@@ -20,6 +20,7 @@
     <!-- Task creation result -->
     <div v-if="taskResult" class="px-5 py-2.5 bg-emerald-950/30 border-b border-slate-800 text-xs text-emerald-300">
       {{ $t('components.overdue.created', taskResult.created?.length || 0) }}{{ taskResult.skipped > 0 ? $t('components.overdue.created_skipped', { count: taskResult.skipped }) : '' }}
+      <span v-if="taskResult.failed > 0" class="text-red-300">{{ $t('components.overdue.created_failed', { count: taskResult.failed }) }}</span>
     </div>
 
     <div v-if="allItems.length > 0" class="divide-y divide-slate-800/50 max-h-[400px] overflow-y-auto">

@@ -3432,7 +3432,7 @@ func (s *Server) handleCreateOverdueTasks(c echo.Context) error {
 	orgID := getOrgID(c)
 	ctx := c.Request().Context()
 	actor := getUserEmail(c)
-	result, err := s.db.CreateOverdueReviewTasks(ctx, orgID, actor)
+	result, err := s.db.CreateOverdueReviewTasks(ctx, orgID, actor, actor)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -3442,7 +3442,7 @@ func (s *Server) handleCreateOverdueTasks(c echo.Context) error {
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "overdue_tasks_created",
-		Detail: fmt.Sprintf("Created %d review tasks (%d skipped, already existed)", len(result.Created), result.Skipped),
+		Detail: fmt.Sprintf("Created %d review tasks (%d skipped, already existed, %d failed)", len(result.Created), result.Skipped, result.Failed),
 	})
 	return c.JSON(http.StatusOK, result)
 }

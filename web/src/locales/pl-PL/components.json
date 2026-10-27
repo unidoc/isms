@@ -388,7 +388,8 @@
     "all_on_schedule": "Wszystkie przeglądy zgodne z harmonogramem",
     "contract": "umowa",
     "contract_expired": "{count}d temu",
-    "contract_expires_in": "za {count}d"
+    "contract_expires_in": "za {count}d",
+    "created_failed": ", nie udało się utworzyć: {count}"
   },
   "suggest_new": {
     "button": "Zaproponuj",

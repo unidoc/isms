@@ -488,6 +488,27 @@ Structured log lines include HTTP method, path, status code, and latency for eve
 - **Disk space** — git repos grow with every document edit; blob store grows with evidence uploads
 - **Migration failures** — if the server fails to start after upgrade, check logs for migration errors
 
+## Scheduled housekeeping
+
+`isms server manager` runs the platform's automated housekeeping for every organization. The server does not schedule it: run it from cron (or any scheduler) with the same environment as the server, including `DATABASE_URL`. It is idempotent, so running it more often than needed creates no duplicates.
+
+Each run:
+
+- Creates review tasks for overdue risks, suppliers, systems, legal requirements, documents past their review cycle, and objectives with overdue check-ins.
+- Creates renewal tasks for supplier contracts that are expiring or expired.
+- Backfills missing next-review dates on suppliers and systems.
+- Notifies on supplier contracts 30 days, 7 days, and 0 days from expiry.
+
+Tasks are assigned to the item's owner. An item with no owner is skipped and reported as unassigned (the dashboard's Create Tasks button assigns those to whoever clicks it). A task that cannot be created is reported as failed and logged. The first run on an existing installation creates a task for every item that is overdue at that moment, so expect a one-off batch.
+
+```bash
+# Every hour, printing only when something was done
+0 * * * * /usr/local/bin/isms server manager --quiet
+
+# Daily at 8am, with a summary
+0 8 * * * /usr/local/bin/isms server manager
+```
+
 ## Secret rotation
 
 ### ISMS_SECRET

@@ -392,7 +392,8 @@
     "all_on_schedule": "All reviews on schedule",
     "contract": "contract",
     "contract_expired": "{count}d ago",
-    "contract_expires_in": "in {count}d"
+    "contract_expires_in": "in {count}d",
+    "created_failed": ", {count} failed"
   },
   "suggest_new": {
     "button": "Suggest",

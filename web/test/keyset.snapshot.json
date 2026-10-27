@@ -1157,6 +1157,7 @@
   "components.overdue.contract_expires_in",
   "components.overdue.create_tasks",
   "components.overdue.created",
+  "components.overdue.created_failed",
   "components.overdue.created_skipped",
   "components.overdue.creating",
   "components.overdue.days_late",

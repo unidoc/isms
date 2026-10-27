@@ -388,7 +388,8 @@
     "all_on_schedule": "Todas las revisiones al día",
     "contract": "contrato",
     "contract_expired": "hace {count}d",
-    "contract_expires_in": "en {count}d"
+    "contract_expires_in": "en {count}d",
+    "external_link": "enlace"
   },
   "suggest_new": {
     "button": "Sugerir",

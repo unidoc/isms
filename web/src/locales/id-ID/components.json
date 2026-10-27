@@ -388,7 +388,8 @@
     "all_on_schedule": "Semua tinjauan sesuai jadwal",
     "contract": "kontrak",
     "contract_expired": "{count}h lalu",
-    "contract_expires_in": "dalam {count}h"
+    "contract_expires_in": "dalam {count}h",
+    "external_link": "tautan"
   },
   "suggest_new": {
     "button": "Usulkan",

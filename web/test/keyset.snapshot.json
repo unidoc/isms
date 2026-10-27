@@ -1160,6 +1160,7 @@
   "components.overdue.created_skipped",
   "components.overdue.creating",
   "components.overdue.days_late",
+  "components.overdue.external_link",
   "components.overdue.overdue",
   "components.overdue.title",
   "components.pagination.per_page",

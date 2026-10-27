@@ -145,6 +145,19 @@ func statusCmd() *cobra.Command {
 							sc.EntityID, truncate(sc.Title, 35), state, sc.Criticality)
 					}
 				}
+				if len(summary.ExternalLinks) > 0 {
+					fmt.Printf("  External links (%d)\n", len(summary.ExternalLinks))
+					for _, el := range summary.ExternalLinks {
+						var state string
+						if el.State == "expired" {
+							state = fmt.Sprintf("expired %dd ago", el.DaysLate)
+						} else {
+							state = fmt.Sprintf("expires in %dd", -el.DaysLate)
+						}
+						fmt.Printf("    %-12s %-35s %-20s [%s]\n",
+							el.EntityID, truncate(el.Title+" - "+el.ParentTitle, 35), state, el.Criticality)
+					}
+				}
 				if len(summary.Tasks) > 0 {
 					fmt.Printf("  Tasks (%d)\n", len(summary.Tasks))
 					for _, t := range summary.Tasks {

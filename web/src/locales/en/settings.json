@@ -7,6 +7,12 @@
     "role": "Role",
     "name_updated": "Name updated"
   },
+  "digest": {
+    "title": "Weekly digest",
+    "label": "Email me a weekly digest of what is waiting on me in {org}",
+    "note": "Sent on Mondays, only when something is waiting on you. This setting applies to this organization only.",
+    "saved": "Saved"
+  },
   "password": {
     "title": "Password",
     "current": "Current password",

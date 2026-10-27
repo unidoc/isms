@@ -240,6 +240,8 @@ export const api = {
   // Users
   getMe: () => fetchJSON(`${API}/me`),
   getMyOrgs: () => fetchJSON(`${API}/me/organizations`),
+  getMyDigest: () => fetchJSON(`${API}/me/digest`),
+  setMyDigest: (enabled) => putJSON(`${API}/me/digest`, { enabled }),
   getUsers: () => fetchJSON(`${API}/users`),
   upsertUser: (user) => postJSON(`${API}/users`, user),
   getAvailableTemplates: () => fetchJSON(`${API}/templates/available`),

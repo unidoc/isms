@@ -538,6 +538,8 @@ func (s *Server) routes() {
 	// Auth / user
 	api.GET("/me", s.handleMe)
 	api.GET("/me/organizations", s.handleMyOrganizations)
+	api.GET("/me/digest", s.handleGetMyDigest)
+	api.PUT("/me/digest", s.handleSetMyDigest)
 	api.GET("/users", s.handleListUsers)
 	api.POST("/users", s.handleUpsertUser)
 	api.POST("/organizations", s.handleCreateOrganization)

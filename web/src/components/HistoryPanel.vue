@@ -21,6 +21,7 @@
                   <span v-if="g.entries[0].field" class="text-slate-500 ml-1">{{ g.entries[0].field.replace(/_/g, ' ') }}</span>
                   <span v-if="g.entries[0].new_value && !g.entries[0].old_value" class="text-emerald-400/60 ml-1">{{ trunc(g.entries[0].new_value) }}</span>
                   <span v-if="g.entries[0].old_value && g.entries[0].new_value" class="text-slate-600 ml-1">{{ trunc(g.entries[0].old_value) }} → {{ trunc(g.entries[0].new_value) }}</span>
+                  <span v-if="g.entries[0].old_value && !g.entries[0].new_value" class="text-slate-600 line-through ml-1">{{ trunc(g.entries[0].old_value) }}</span>
                 </template>
                 <template v-else>
                   <span class="font-medium">{{ groupLabel(g) }}</span>

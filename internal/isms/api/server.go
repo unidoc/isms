@@ -268,13 +268,7 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	srv.subdomainRouting = os.Getenv("ISMS_SUBDOMAIN_ROUTING") == "1"
 
 	// SMTP mailer from env vars
-	srv.mailer = mail.New(mail.Config{
-		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
-		User:     os.Getenv("SMTP_USER"),
-		Password: os.Getenv("SMTP_PASSWORD"),
-		From:     os.Getenv("SMTP_FROM"),
-	})
+	srv.mailer = mail.New(mail.ConfigFromEnv())
 	// Notifier — reads per-org settings from Postgres at send time.
 	// BaseURL is the only platform-level config (used for links in messages).
 	srv.notifier = notify.New(notify.Config{

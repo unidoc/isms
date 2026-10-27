@@ -7,6 +7,7 @@ import (
 	"net"
 	netmail "net/mail"
 	"net/smtp"
+	"os"
 	"strings"
 )
 
@@ -17,6 +18,18 @@ type Config struct {
 	User     string // SMTP_USER
 	Password string // SMTP_PASSWORD
 	From     string // SMTP_FROM — either bare `noreply@host` or `"Display Name" <noreply@host>`
+}
+
+// ConfigFromEnv reads the SMTP_* environment variables. The server and the
+// manager cron both build their mailer from it, so they cannot drift apart.
+func ConfigFromEnv() Config {
+	return Config{
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		User:     os.Getenv("SMTP_USER"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     os.Getenv("SMTP_FROM"),
+	}
 }
 
 // Mailer sends emails via SMTP.

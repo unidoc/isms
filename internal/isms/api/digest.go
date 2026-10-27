@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/mail"
@@ -212,4 +214,149 @@ func digestSnippet(s string) string {
 		return string(r[:140]) + "..."
 	}
 	return s
+}
+
+// DigestRunResult counts what one SendDigests run did.
+type DigestRunResult struct {
+	Sent    int
+	Empty   int
+	Skipped int
+	Failed  int
+	NotDue  bool
+	// Disabled is why nothing was attempted (no mailer, no base URL); empty
+	// when the run went ahead.
+	Disabled string
+}
+
+// digestPeriod returns the ISO-week key ("2026-W44") of now in UTC and whether
+// the week's digest is due: from Monday 08:00 UTC of that week on. Both come
+// from the same UTC clock, so the due check and the claim key cannot disagree.
+func digestPeriod(now time.Time) (period string, due bool) {
+	now = now.UTC()
+	year, week := now.ISOWeek()
+	sinceMonday := (int(now.Weekday()) + 6) % 7
+	monday := time.Date(now.Year(), now.Month(), now.Day()-sinceMonday, 8, 0, 0, 0, time.UTC)
+	return fmt.Sprintf("%d-W%02d", year, week), !now.Before(monday)
+}
+
+// SendDigests sends this ISO week's digest to every eligible member of every
+// organization. It is idempotent per (organization, member, week): a member
+// is handled once, so an hourly or daily cron, or two replicas, cannot send a
+// week twice. Nothing is attempted, and nothing is claimed, without a mailer
+// or a base URL (a digest without links is not worth sending); the result says
+// why. An error is returned only when the organizations cannot be listed;
+// per-member problems are logged and counted in Failed.
+func SendDigests(ctx context.Context, d *db.DB, m *mail.Mailer, baseURL string, subdomainRouting bool, now time.Time) (DigestRunResult, error) {
+	if reason := digestDisabledReason(m, baseURL); reason != "" {
+		return DigestRunResult{Disabled: reason}, nil
+	}
+	if _, due := digestPeriod(now); !due {
+		return DigestRunResult{NotDue: true}, nil
+	}
+	orgs, err := d.ListOrganizations(ctx)
+	if err != nil {
+		return DigestRunResult{}, fmt.Errorf("digest: listing organizations: %w", err)
+	}
+	return runDigests(ctx, d, orgs, m, baseURL, subdomainRouting, now), nil
+}
+
+func digestDisabledReason(m *mail.Mailer, baseURL string) string {
+	switch {
+	case !m.Enabled():
+		return "email is not configured (SMTP_HOST / SMTP_FROM)"
+	case strings.TrimSpace(baseURL) == "":
+		return "ISMS_BASE_URL is not set, so the digest would have no links"
+	}
+	return ""
+}
+
+// runDigests is SendDigests over the given organizations.
+//
+// Per member: skip agents, inactive users, unverified emails and members who
+// turned the digest off; skip those already handled this week; build the
+// digest (an error is counted and NOT claimed, so the next run retries); an
+// empty digest only records the week as handled, so an item arriving later
+// the same week does not trigger a mid-week mail; otherwise claim the week
+// and send, releasing the claim if the send fails.
+func runDigests(ctx context.Context, d *db.DB, orgs []db.Organization, m *mail.Mailer, baseURL string, subdomainRouting bool, now time.Time) DigestRunResult {
+	var res DigestRunResult
+	if res.Disabled = digestDisabledReason(m, baseURL); res.Disabled != "" {
+		return res
+	}
+	period, due := digestPeriod(now)
+	if !due {
+		res.NotDue = true
+		return res
+	}
+	for _, org := range orgs {
+		members, err := d.ListOrgUsers(ctx, org.ID)
+		if err != nil {
+			log.Printf("digest: org %s: listing members: %v", org.Slug, err)
+			res.Failed++
+			continue
+		}
+		optOut, err := d.ListDigestOptOuts(ctx, org.ID)
+		if err != nil {
+			log.Printf("digest: org %s: reading preferences: %v", org.Slug, err)
+			res.Failed++
+			continue
+		}
+		claimed, err := d.ListDigestClaims(ctx, org.ID, period)
+		if err != nil {
+			log.Printf("digest: org %s: reading sent digests: %v", org.Slug, err)
+			res.Failed++
+			continue
+		}
+		var om orgMailCtx
+		for _, u := range members {
+			if u.IsAgent || !u.Active || !u.EmailVerified || optOut[u.ID] || claimed[u.ID] {
+				res.Skipped++
+				continue
+			}
+			dg, err := BuildDigest(ctx, d, org.ID, u.Email, u.Role)
+			if err != nil {
+				log.Printf("digest: org %s: %s: %v", org.Slug, u.Email, err)
+				res.Failed++
+				continue
+			}
+			if dg.Empty() {
+				if won, err := d.ClaimDigest(ctx, org.ID, u.ID, period, "empty"); err != nil {
+					log.Printf("digest: org %s: %s: recording empty week: %v", org.Slug, u.Email, err)
+					res.Failed++
+				} else if won {
+					res.Empty++
+				} else {
+					res.Skipped++
+				}
+				continue
+			}
+			won, err := d.ClaimDigest(ctx, org.ID, u.ID, period, "sent")
+			if err != nil {
+				log.Printf("digest: org %s: %s: claiming: %v", org.Slug, u.Email, err)
+				res.Failed++
+				continue
+			}
+			if !won {
+				res.Skipped++ // another run or replica holds it
+				continue
+			}
+			if om.AppURL == "" {
+				om = orgMailFor(ctx, d, org.ID, baseURL, subdomainRouting)
+			}
+			name := u.Name
+			if name == "" {
+				name = u.Email
+			}
+			if err := m.SendDigestBranded(u.Email, name, om.AppURL, dg, om.Branding); err != nil {
+				log.Printf("digest: org %s: %s: sending: %v", org.Slug, u.Email, err)
+				if rerr := d.ReleaseDigestClaim(ctx, org.ID, u.ID, period); rerr != nil {
+					log.Printf("digest: org %s: %s: releasing claim: %v", org.Slug, u.Email, rerr)
+				}
+				res.Failed++
+				continue
+			}
+			res.Sent++
+		}
+	}
+	return res
 }

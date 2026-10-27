@@ -95,17 +95,24 @@ type orgMailCtx struct {
 // tenant's mail never carries another org's identity, the operator's SMTP_FROM
 // display name (#16 sender leak), or a link into the wrong org.
 func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
-	raw := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
+	return orgMailFor(ctx, s.db, orgID, os.Getenv("ISMS_BASE_URL"), s.subdomainRouting)
+}
+
+// orgMailFor is orgMail without a Server, for jobs that only hold a *db.DB
+// (the manager cron): baseURL is ISMS_BASE_URL as configured, and
+// subdomainRouting is the deployment's ISMS_SUBDOMAIN_ROUTING.
+func orgMailFor(ctx context.Context, d *db.DB, orgID int, baseURL string, subdomainRouting bool) orgMailCtx {
+	raw := strings.TrimRight(baseURL, "/")
 	m := orgMailCtx{AppURL: raw, PublicURL: raw}
-	org, err := s.db.GetOrganization(ctx, orgID)
+	org, err := d.GetOrganization(ctx, orgID)
 	if err != nil || org == nil {
 		return m
 	}
-	m.Branding.Name = s.db.OrgBrandName(ctx, org)
-	if color, err := s.db.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
+	m.Branding.Name = d.OrgBrandName(ctx, org)
+	if color, err := d.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
 		m.Branding.Color = color
 	}
-	m.AppURL, m.PublicURL = orgURLs(raw, org, s.subdomainRouting)
+	m.AppURL, m.PublicURL = orgURLs(raw, org, subdomainRouting)
 	return m
 }
 

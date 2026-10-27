@@ -279,6 +279,120 @@ func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, pri
 	return m.sendAs(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body, b.name())
 }
 
+// DigestItem is one row of a digest: something waiting on the recipient.
+type DigestItem struct {
+	Ref    string // identifier shown beside the title (INC-3, a document id)
+	Title  string
+	Detail string // one short line of context, may be empty
+	Path   string // SPA route, joined to the org's app URL ("/reviews/7")
+}
+
+// DigestSection is a titled list of items of one kind.
+type DigestSection struct {
+	Title string
+	Items []DigestItem
+}
+
+// DigestCount is one line of the org snapshot.
+type DigestCount struct {
+	Label string
+	Count int
+}
+
+// Digest is the content of a personal digest email: the work waiting on the
+// recipient, then a compact count of what is overdue across the org.
+type Digest struct {
+	Sections     []DigestSection
+	Overdue      []DigestCount
+	OverdueTotal int
+}
+
+// Empty reports whether nothing is waiting on the recipient. The org snapshot
+// is deliberately ignored: a digest is only worth sending when it asks
+// something of its reader.
+func (d *Digest) Empty() bool {
+	for _, s := range d.Sections {
+		if len(s.Items) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// digestMaxItems caps each section so one backlog cannot make the mail
+// unreadable; the remainder is summarised and the Inbox link covers it.
+const digestMaxItems = 10
+
+// SendDigestBranded sends a recipient their pending-work digest. appURL is the
+// org's app base (it already carries the org slug on path-based hosts), so
+// every link lands in the right org. Every user-supplied string is escaped.
+func (m *Mailer) SendDigestBranded(to, recipientName, appURL string, d *Digest, b Branding) error {
+	base := strings.TrimRight(appURL, "/")
+	color := html.EscapeString(b.color())
+	esc := html.EscapeString
+
+	total := 0
+	var sections strings.Builder
+	for _, s := range d.Sections {
+		if len(s.Items) == 0 {
+			continue
+		}
+		total += len(s.Items)
+		fmt.Fprintf(&sections, `<h3 style="margin:24px 0 8px; font-size:15px; color:#0f172a;">%s (%d)</h3>`+"\n", esc(s.Title), len(s.Items))
+		for i, it := range s.Items {
+			if i == digestMaxItems {
+				fmt.Fprintf(&sections, `<p style="margin:4px 0; color:#64748b;">and %d more in your <a href="%s/inbox" style="color:%s;">Inbox</a></p>`+"\n",
+					len(s.Items)-digestMaxItems, esc(base), color)
+				break
+			}
+			ref := ""
+			if it.Ref != "" {
+				ref = fmt.Sprintf(`<span style="color:#64748b;">%s</span> `, esc(it.Ref))
+			}
+			title := esc(it.Title)
+			if it.Path != "" {
+				title = fmt.Sprintf(`<a href="%s%s" style="color:%s; text-decoration:none; font-weight:bold;">%s</a>`, esc(base), esc(it.Path), color, title)
+			} else {
+				title = "<strong>" + title + "</strong>"
+			}
+			detail := ""
+			if it.Detail != "" {
+				detail = fmt.Sprintf(`<div style="color:#64748b; font-size:13px;">%s</div>`, esc(it.Detail))
+			}
+			fmt.Fprintf(&sections, `<div style="margin:6px 0;">%s%s%s</div>`+"\n", ref, title, detail)
+		}
+	}
+
+	var snapshot strings.Builder
+	if d.OverdueTotal == 0 {
+		snapshot.WriteString(`<p style="margin:4px 0;">Nothing is overdue.</p>`)
+	} else {
+		noun := "items"
+		if d.OverdueTotal == 1 {
+			noun = "item"
+		}
+		fmt.Fprintf(&snapshot, `<p style="margin:4px 0;"><strong>%d %s overdue</strong></p>`, d.OverdueTotal, noun)
+		for _, c := range d.Overdue {
+			if c.Count > 0 {
+				fmt.Fprintf(&snapshot, `<div style="margin:2px 0;">%s: %d</div>`, esc(c.Label), c.Count)
+			}
+		}
+	}
+
+	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; color:#0f172a;">
+<h2>Your weekly digest</h2>
+<p>Hi %s, here is what is waiting on you.</p>
+%s
+<h3 style="margin:24px 0 8px; font-size:15px;">Overdue across the organization</h3>
+%s
+<p style="margin-top:24px;"><a href="%s/inbox" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Open your Inbox</a></p>
+<p style="color:#94a3b8; font-size:12px; margin-top:24px;">You get this email once a week. You can <a href="%s/settings" style="color:#94a3b8;">turn this digest off in Settings</a>.</p>
+</div>`, esc(recipientName), sections.String(), snapshot.String(), esc(base), color, esc(base))
+
+	subject := fmt.Sprintf("%s — Your weekly digest: %d waiting on you", b.name(), total)
+	return m.sendAs(to, subject, body, b.name())
+}
+
 // SendOTPCode sends a one-time login code via email (magic link alternative),
 // branded with the org so the From display name is the tenant's, not the
 // operator's SMTP_FROM identity — consistent with every other Send* here.

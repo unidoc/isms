@@ -168,3 +168,92 @@ func TestSendReviewRequestBrandedEscapesNames(t *testing.T) {
 		t.Errorf("raw markup leaked into body:\n%s", body)
 	}
 }
+
+func sampleDigest() *Digest {
+	return &Digest{
+		Sections: []DigestSection{
+			{Title: "Reviews", Items: []DigestItem{
+				{Ref: "doc-1", Title: "Access control policy", Detail: "Review requested by ann@x.io", Path: "/reviews/7"},
+			}},
+			{Title: "Tasks", Items: []DigestItem{
+				{Ref: "TASK-3", Title: "Rotate <script>alert(1)</script> keys", Detail: "Due soon", Path: "/tasks/3"},
+				{Ref: "TASK-4", Title: "Fix <b>bold</b> thing", Path: "/tasks/4"},
+			}},
+		},
+		Overdue:      []DigestCount{{Label: "Risks", Count: 2}, {Label: "Suppliers", Count: 0}, {Label: "Tasks", Count: 1}},
+		OverdueTotal: 3,
+	}
+}
+
+func TestSendDigestBrandedRenders(t *testing.T) {
+	host, port, data := fakeSMTP(t)
+	m := New(Config{Host: host, Port: port, From: "noreply@isms.sh"})
+	err := m.SendDigestBranded("eve@x.io", "Eve", "https://isms.example/acme", sampleDigest(),
+		Branding{Name: "Acme Corp", Color: "#ff0000"})
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	body := <-data
+	for _, want := range []string{
+		"Subject: Acme Corp",
+		"Hi Eve",
+		"Access control policy",
+		"https://isms.example/acme/reviews/7",
+		"https://isms.example/acme/tasks/3",
+		"Reviews (1)",
+		"Tasks (2)",
+		"Risks: 2",
+		"3 items overdue",
+		"https://isms.example/acme/inbox",
+		`href="https://isms.example/acme/settings"`,
+		"#ff0000",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "Suppliers: 0") {
+		t.Errorf("zero-count row should be omitted:\n%s", body)
+	}
+}
+
+// Titles are user content: markup in them must arrive escaped.
+func TestSendDigestBrandedEscapesUserContent(t *testing.T) {
+	host, port, data := fakeSMTP(t)
+	m := New(Config{Host: host, Port: port, From: "noreply@isms.sh"})
+	d := sampleDigest()
+	d.Sections[0].Items[0].Ref = "<i>ref</i>"
+	d.Sections[0].Items[0].Detail = "by <u>x</u>"
+	if err := m.SendDigestBranded("eve@x.io", "Eve <b>X</b>", "https://isms.example", d, Branding{Name: "A&B"}); err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	body := <-data
+	for _, raw := range []string{"<script>", "<b>bold</b>", "<i>ref</i>", "<u>x</u>", "Eve <b>X</b>"} {
+		if strings.Contains(body, raw) {
+			t.Errorf("raw markup %q leaked into body:\n%s", raw, body)
+		}
+	}
+	if !strings.Contains(body, "Subject: A&B") {
+		t.Errorf("the subject is a header, not HTML, so the brand name stays literal:\n%s", body)
+	}
+	for _, want := range []string{"&lt;script&gt;alert(1)&lt;/script&gt;", "Fix &lt;b&gt;bold&lt;/b&gt; thing"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing escaped %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestDigestEmpty(t *testing.T) {
+	d := &Digest{Overdue: []DigestCount{{Label: "Risks", Count: 4}}, OverdueTotal: 4}
+	if !d.Empty() {
+		t.Error("a digest with only a snapshot must be empty: the snapshot never triggers a send")
+	}
+	d.Sections = []DigestSection{{Title: "Tasks"}}
+	if !d.Empty() {
+		t.Error("a section with no items must still count as empty")
+	}
+	d.Sections[0].Items = []DigestItem{{Ref: "T-1", Title: "x"}}
+	if d.Empty() {
+		t.Error("a digest with an item is not empty")
+	}
+}

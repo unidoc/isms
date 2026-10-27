@@ -169,6 +169,8 @@ The `entity_changelog` table tracks field-level changes to all operational entit
 
 This provides a complete diff-level trail for every register mutation. You can query it per-entity to see the full history of how a risk score evolved, when a supplier was reassessed, or who changed an incident severity.
 
+A supplier's external links (certificates, audit reports and similar evidence hosted elsewhere) are logged on the supplier itself as `update` rows with the field `external_link`. Each row holds a one-line summary of the link before and after the change: empty before for an added link, empty after for a removed one.
+
 ### 3. Activity log
 
 The `activity` table logs high-level actions on documents and reviews:
@@ -231,6 +233,7 @@ GET /documents/{docId}/decisions   # Decision log
 GET /risks                         # Risk register
 GET /assets                        # Asset register
 GET /suppliers                     # Supplier register
+GET /external-links?type=supplier&id={SUPPLIER-n}   # External links on a supplier
 GET /incidents                     # Incident register
 GET /legal                         # Legal requirements
 GET /changelog                     # Entity changelog

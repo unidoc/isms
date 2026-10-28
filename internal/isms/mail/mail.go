@@ -7,6 +7,7 @@ import (
 	"net"
 	netmail "net/mail"
 	"net/smtp"
+	"net/url"
 	"strings"
 )
 
@@ -105,6 +106,15 @@ func (m *Mailer) SendBranded(to, subject, body string, b Branding) error {
 	return m.sendAs(to, subject, body, b.name())
 }
 
+// lineBreaks turns every CR and LF into a space.
+var lineBreaks = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ")
+
+func oneLine(s string) string { return lineBreaks.Replace(s) }
+
+// esc escapes a value for HTML text or a quoted attribute. Every caller-supplied
+// string goes through it at the point it is interpolated: the bodies are HTML.
+func esc(s string) string { return html.EscapeString(s) }
+
 // sendAs sends an email, overriding the From display name with fromName when set.
 func (m *Mailer) sendAs(to, subject, body, fromName string) error {
 	if m == nil {
@@ -112,7 +122,11 @@ func (m *Mailer) sendAs(to, subject, body, fromName string) error {
 	}
 
 	addr := net.JoinHostPort(m.config.Host, m.config.Port)
-	fromHeader, envelopeFrom := resolveFrom(m.config.From, fromName)
+	// Subjects carry user content (titles, document ids) and the display name is
+	// an org-chosen brand: a line break in either would start a new header or the
+	// body, so both are flattened before they are written.
+	subject = oneLine(subject)
+	fromHeader, envelopeFrom := resolveFrom(m.config.From, oneLine(fromName))
 
 	msg := strings.Join([]string{
 		"From: " + fromHeader,
@@ -148,7 +162,7 @@ func (m *Mailer) SendVerificationBranded(to, name, baseURL, token string, b Bran
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Verify Email &amp; Set Password</a></p>
 <p>Or copy this link: %s</p>
 <p style="color: #666; font-size: 12px;">This link expires in 72 hours.</p>
-</div>`, b.name(), name, link, b.color(), link)
+</div>`, esc(b.name()), esc(name), esc(link), esc(b.color()), esc(link))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Verify your email", b.name()), body, b.name())
 }
@@ -170,7 +184,7 @@ func (m *Mailer) SendEmailChangeVerificationBranded(to, name, baseURL, token str
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Confirm new email</a></p>
 <p>Or copy this link: %s</p>
 <p style="color: #666; font-size: 12px;">This link expires in 2 hours. If you didn't request this change, you can safely ignore this email — nothing will change.</p>
-</div>`, b.name(), name, link, b.color(), link)
+</div>`, esc(b.name()), esc(name), esc(link), esc(b.color()), esc(link))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Confirm your new email", b.name()), body, b.name())
 }
@@ -193,7 +207,7 @@ func (m *Mailer) SendPasswordResetBranded(to, name, baseURL, token string, b Bra
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Set new password</a></p>
 <p>Or copy this link: %s</p>
 <p style="color: #666; font-size: 12px;">If you didn't request a password reset, you can safely ignore this email.</p>
-</div>`, b.name(), name, link, b.color(), link)
+</div>`, esc(b.name()), esc(name), esc(link), esc(b.color()), esc(link))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Reset your password", b.name()), body, b.name())
 }
@@ -205,13 +219,11 @@ func (m *Mailer) SendReviewRequest(to, reviewerName, actor, docID, title, versio
 
 // SendReviewRequestBranded sends a review request with org branding.
 func (m *Mailer) SendReviewRequestBranded(to, reviewerName, actor, docID, title, version, baseURL string, reviewID int, message string, b Branding) error {
-	reviewerName = html.EscapeString(reviewerName)
-	actor = html.EscapeString(actor)
 	link := fmt.Sprintf("%s/reviews/%d", strings.TrimRight(baseURL, "/"), reviewID)
 
 	note := ""
 	if message != "" {
-		note = fmt.Sprintf(`<p style="background:#f1f5f9; padding:12px; border-radius:6px; color:#334155;"><strong>Note:</strong> %s</p>`, message)
+		note = fmt.Sprintf(`<p style="background:#f1f5f9; padding:12px; border-radius:6px; color:#334155;"><strong>Note:</strong> %s</p>`, esc(message))
 	}
 
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
@@ -222,7 +234,7 @@ func (m *Mailer) SendReviewRequestBranded(to, reviewerName, actor, docID, title,
 %s
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Open Review</a></p>
 <p>Or copy this link: %s</p>
-</div>`, reviewerName, actor, docID, title, version, note, link, b.color(), link)
+</div>`, esc(reviewerName), esc(actor), esc(docID), esc(title), esc(version), note, esc(link), esc(b.color()), esc(link))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Review requested: %s v%s", b.name(), docID, version), body, b.name())
 }
@@ -234,9 +246,7 @@ func (m *Mailer) SendReviewDecision(to, authorName, reviewer, docID, title, vers
 
 // SendReviewDecisionBranded sends a review decision with org branding.
 func (m *Mailer) SendReviewDecisionBranded(to, authorName, reviewer, docID, title, version, decision, baseURL string, b Branding) error {
-	authorName = html.EscapeString(authorName)
-	reviewer = html.EscapeString(reviewer)
-	link := fmt.Sprintf("%s/documents/%s", strings.TrimRight(baseURL, "/"), docID)
+	link := fmt.Sprintf("%s/documents/%s", strings.TrimRight(baseURL, "/"), url.PathEscape(docID))
 
 	icon := "approved"
 	color := "#16a34a"
@@ -251,7 +261,7 @@ func (m *Mailer) SendReviewDecisionBranded(to, authorName, reviewer, docID, titl
 <p><strong>%s</strong> has <strong style="color:%s;">%s</strong> your document:</p>
 <p style="font-size:16px; font-weight:bold;">%s &mdash; %s (v%s)</p>
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">View Document</a></p>
-</div>`, color, icon, authorName, reviewer, color, icon, docID, title, version, link, b.color())
+</div>`, color, icon, esc(authorName), esc(reviewer), color, icon, esc(docID), esc(title), esc(version), esc(link), esc(b.color()))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Review %s: %s v%s", b.name(), icon, docID, version), body, b.name())
 }
@@ -263,8 +273,6 @@ func (m *Mailer) SendTaskAssigned(to, assigneeName, actor, taskTitle, priority, 
 
 // SendTaskAssignedBranded sends a task assignment with org branding.
 func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, priority, baseURL string, b Branding) error {
-	assigneeName = html.EscapeString(assigneeName)
-	actor = html.EscapeString(actor)
 	link := fmt.Sprintf("%s/tasks", strings.TrimRight(baseURL, "/"))
 
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
@@ -274,9 +282,53 @@ func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, pri
 <p style="font-size:16px; font-weight:bold;">%s</p>
 <p>Priority: <strong>%s</strong></p>
 <p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">View Tasks</a></p>
-</div>`, assigneeName, actor, taskTitle, priority, link, b.color())
+</div>`, esc(assigneeName), esc(actor), esc(taskTitle), esc(priority), esc(link), esc(b.color()))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body, b.name())
+}
+
+// SendCorrectiveActionAssignedBranded tells an assignee a corrective action was
+// assigned to them. link is the full URL of the record. The description is free
+// text, so it is escaped and shown with its line breaks kept; any markdown in it
+// appears literally.
+func (m *Mailer) SendCorrectiveActionAssignedBranded(to, assigneeName, actor, identifier, title, severity, description, link string, b Branding) error {
+	return m.sendRecordAssigned(to, "Corrective action assigned", "a corrective action",
+		fmt.Sprintf("%s — Corrective Action: %s", b.name(), title),
+		assigneeName, actor, identifier, title, description, link, "View Corrective Action", b,
+		[2]string{"Severity", severity})
+}
+
+// SendIncidentAssignedBranded tells an assignee an incident was assigned to
+// them; see SendCorrectiveActionAssignedBranded.
+func (m *Mailer) SendIncidentAssignedBranded(to, assigneeName, actor, identifier, title, severity, status, description, link string, b Branding) error {
+	return m.sendRecordAssigned(to, "Incident assigned", "an incident",
+		fmt.Sprintf("%s — Incident [%s]: %s", b.name(), strings.ToUpper(severity), title),
+		assigneeName, actor, identifier, title, description, link, "View Incident", b,
+		[2]string{"Severity", severity}, [2]string{"Status", status})
+}
+
+// sendRecordAssigned is the layout the two register assignment emails share
+// (the task email's, plus the description). One helper with two thin wrappers
+// keeps the wording and the escaping in one place.
+func (m *Mailer) sendRecordAssigned(to, heading, what, subject, assigneeName, actor, identifier, title, description, link, button string, b Branding, facts ...[2]string) error {
+	var details strings.Builder
+	for _, f := range facts {
+		fmt.Fprintf(&details, "<p>%s: <strong>%s</strong></p>\n", f[0], esc(f[1]))
+	}
+	desc := ""
+	if strings.TrimSpace(description) != "" {
+		desc = fmt.Sprintf(`<div style="white-space:pre-wrap; background:#f1f5f9; padding:12px; border-radius:6px; color:#334155;">%s</div>`+"\n", esc(description))
+	}
+
+	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+<h2>%s</h2>
+<p>Hi %s,</p>
+<p><strong>%s</strong> has assigned you %s:</p>
+<p style="font-size:16px; font-weight:bold;">%s &mdash; %s</p>
+%s%s<p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">%s</a></p>
+</div>`, heading, esc(assigneeName), esc(actor), what, esc(identifier), esc(title), details.String(), desc, esc(link), esc(b.color()), button)
+
+	return m.sendAs(to, subject, body, b.name())
 }
 
 // SendOTPCode sends a one-time login code via email (magic link alternative),
@@ -289,7 +341,7 @@ func (m *Mailer) SendOTPCode(to, name, code string, b Branding) error {
 <p>Your login code is:</p>
 <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; padding: 16px; background: #f1f5f9; border-radius: 8px; text-align: center;">%s</p>
 <p style="color: #666; font-size: 12px;">This code expires in 10 minutes.</p>
-</div>`, name, code)
+</div>`, esc(name), esc(code))
 
 	return m.sendAs(to, fmt.Sprintf("%s — Login code", b.name()), body, b.name())
 }

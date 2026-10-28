@@ -168,3 +168,246 @@ func TestSendReviewRequestBrandedEscapesNames(t *testing.T) {
 		t.Errorf("raw markup leaked into body:\n%s", body)
 	}
 }
+
+// message splits a captured message into its header block and body.
+func message(t *testing.T, raw string) (headers []string, body string) {
+	t.Helper()
+	head, body, ok := strings.Cut(raw, "\n\n")
+	if !ok {
+		t.Fatalf("no blank line between headers and body:\n%s", raw)
+	}
+	return strings.Split(head, "\n"), body
+}
+
+// capture sends through fn and returns the captured message.
+func capture(t *testing.T, fn func(m *Mailer) error) (headers []string, body string) {
+	t.Helper()
+	host, port, data := fakeSMTP(t)
+	m := New(Config{Host: host, Port: port, From: "noreply@isms.sh"})
+	if err := fn(m); err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	return message(t, <-data)
+}
+
+// markup returns a tag-shaped value that names the parameter it was passed in,
+// so a failure says which one arrived raw. It has no quotes: html.EscapeString
+// turns it into &lt;b id=NAME&gt;.
+func markup(name string) string { return "<b id=" + name + ">" }
+
+// Every caller-supplied value in every email is user content (a signup name, a
+// document title, a review message) and the mail is HTML, so each must arrive
+// escaped, wherever it lands in the body.
+func TestEveryEmailEscapesUserContent(t *testing.T) {
+	brand := Branding{Name: markup("brand"), Color: markup("color")}
+	const base = "https://isms.example"
+	cases := []struct {
+		name   string
+		params []string // parameters that show up as text in the body
+		send   func(m *Mailer) error
+	}{
+		{"verification", []string{"name", "brand"}, func(m *Mailer) error {
+			return m.SendVerificationBranded("a@x.io", markup("name"), base, "tok", brand)
+		}},
+		{"email change", []string{"name", "brand"}, func(m *Mailer) error {
+			return m.SendEmailChangeVerificationBranded("a@x.io", markup("name"), base, "tok", brand)
+		}},
+		{"password reset", []string{"name", "brand"}, func(m *Mailer) error {
+			return m.SendPasswordResetBranded("a@x.io", markup("name"), base, "tok", brand)
+		}},
+		{"review request", []string{"reviewer", "actor", "doc", "title", "version", "message"}, func(m *Mailer) error {
+			return m.SendReviewRequestBranded("a@x.io", markup("reviewer"), markup("actor"), markup("doc"),
+				markup("title"), markup("version"), base, 7, markup("message"), brand)
+		}},
+		{"review decision", []string{"author", "reviewer", "doc", "title", "version"}, func(m *Mailer) error {
+			return m.SendReviewDecisionBranded("a@x.io", markup("author"), markup("reviewer"), markup("doc"),
+				markup("title"), markup("version"), "approved", base, brand)
+		}},
+		{"task assigned", []string{"assignee", "actor", "title", "priority"}, func(m *Mailer) error {
+			return m.SendTaskAssignedBranded("a@x.io", markup("assignee"), markup("actor"), markup("title"), markup("priority"), base, brand)
+		}},
+		{"otp", []string{"name", "code"}, func(m *Mailer) error {
+			return m.SendOTPCode("a@x.io", markup("name"), markup("code"), brand)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, body := capture(t, tc.send)
+			if strings.Contains(body, "<b id=") {
+				t.Errorf("raw markup reached the body:\n%s", body)
+			}
+			for _, p := range tc.params {
+				if want := "&lt;b id=" + p + "&gt;"; !strings.Contains(body, want) {
+					t.Errorf("parameter %q not escaped in the body (want %q):\n%s", p, want, body)
+				}
+			}
+			if strings.Contains(body, "style=\"") && strings.Contains(body, "background: <") {
+				t.Errorf("raw markup inside a style attribute:\n%s", body)
+			}
+		})
+	}
+}
+
+// A newline in a subject must not start a header or the body. Titles and
+// document ids go into subjects.
+func TestSubjectLineBreaksCannotInjectHeaders(t *testing.T) {
+	headers, body := capture(t, func(m *Mailer) error {
+		return m.SendTaskAssignedBranded("a@x.io", "Eve", "Bob", "Fix it\r\nBcc: evil@x.io\r\n\r\ninjected body", "high",
+			"https://isms.example", Branding{Name: "Acme\r\nX-Evil: 1"})
+	})
+	if len(headers) != 5 {
+		t.Errorf("header block has %d lines, want 5 (From, To, Subject, MIME-Version, Content-Type): %q", len(headers), headers)
+	}
+	for _, h := range headers {
+		if strings.HasPrefix(h, "Bcc:") || strings.HasPrefix(h, "X-Evil:") {
+			t.Errorf("injected header line %q in %q", h, headers)
+		}
+	}
+	if !strings.HasPrefix(body, "<div") {
+		t.Errorf("the body does not start with the template (the subject ended the headers early): %q", body)
+	}
+	if subject := strings.Join(headers, "\n"); !strings.Contains(subject, "Subject: Acme") || !strings.Contains(subject, "Fix it") {
+		t.Errorf("the subject lost its text: %q", headers)
+	}
+}
+
+// Escaping must not break what the mail is for: links still go to the right
+// place, and a normal name reads normally, with an ampersand escaped once.
+func TestEscapingKeepsLinksAndNormalText(t *testing.T) {
+	const base = "https://isms.example/acme"
+	_, body := capture(t, func(m *Mailer) error {
+		return m.SendVerificationBranded("a@x.io", "Tom & Jerry", base+"/", "tok123", Branding{Name: "Smith & Co", Color: "#ff0000"})
+	})
+	for _, want := range []string{
+		`href="` + base + `/verify-email?token=tok123"`,
+		"Or copy this link: " + base + "/verify-email?token=tok123",
+		"Hi Tom &amp; Jerry,",
+		"Welcome to Smith &amp; Co",
+		"background: #ff0000",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "&amp;amp;") {
+		t.Errorf("an ampersand was escaped twice:\n%s", body)
+	}
+
+	_, body = capture(t, func(m *Mailer) error {
+		return m.SendReviewRequestBranded("a@x.io", "Eve", "Bob", "policy-1", "Access & control", "2", base, 7, "Please look", Branding{})
+	})
+	for _, want := range []string{`href="` + base + `/reviews/7"`, "policy-1 &mdash; Access &amp; control (v2)", "Please look"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("review body missing %q:\n%s", want, body)
+		}
+	}
+
+	_, body = capture(t, func(m *Mailer) error {
+		return m.SendReviewDecisionBranded("a@x.io", "Ann", "Bob", "policy-1", "Policy", "2", "approved", base, Branding{})
+	})
+	if !strings.Contains(body, `href="`+base+`/documents/policy-1"`) {
+		t.Errorf("decision link wrong:\n%s", body)
+	}
+	_, body = capture(t, func(m *Mailer) error {
+		return m.SendTaskAssignedBranded("a@x.io", "Eve", "Bob", "Task", "high", base, Branding{})
+	})
+	if !strings.Contains(body, `href="`+base+`/tasks"`) {
+		t.Errorf("task link wrong:\n%s", body)
+	}
+}
+
+// Corrective-action and incident assignment emails used to send the record's
+// raw description as the whole HTML body. They now use the branded layout, with
+// every value escaped and the description's line breaks kept.
+func TestRecordAssignedEmailsEscapeAndKeepLayout(t *testing.T) {
+	const link = "https://isms.example/acme/corrective-actions/CA-4"
+	brand := Branding{Name: markup("brand"), Color: "#112233"}
+	desc := "Line one with <script>alert(1)</script>\n\n**line three** & more"
+
+	for _, tc := range []struct {
+		name    string
+		send    func(m *Mailer) error
+		subject string
+		params  []string
+		heading string
+	}{
+		{"corrective action", func(m *Mailer) error {
+			return m.SendCorrectiveActionAssignedBranded("a@x.io", markup("assignee"), markup("actor"), markup("ident"),
+				markup("title"), markup("severity"), desc, link, brand)
+		}, "Subject: <b id=brand> — Corrective Action: <b id=title>", []string{"assignee", "actor", "ident", "title", "severity"}, "Corrective action assigned"},
+		{"incident", func(m *Mailer) error {
+			return m.SendIncidentAssignedBranded("a@x.io", markup("assignee"), markup("actor"), markup("ident"),
+				markup("title"), markup("severity"), markup("status"), desc, link, brand)
+		}, "", []string{"assignee", "actor", "ident", "title", "severity", "status"}, "Incident assigned"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			headers, body := capture(t, tc.send)
+			if strings.Contains(body, "<b id=") || strings.Contains(body, "<script>") {
+				t.Errorf("raw markup reached the body:\n%s", body)
+			}
+			for _, p := range tc.params {
+				if want := "&lt;b id=" + p + "&gt;"; !strings.Contains(body, want) {
+					t.Errorf("parameter %q not escaped (want %q):\n%s", p, want, body)
+				}
+			}
+			for _, want := range []string{
+				tc.heading,
+				"&lt;script&gt;alert(1)&lt;/script&gt;",
+				"**line three** &amp; more", // markdown shown literally, ampersand escaped once
+				`white-space:pre-wrap`,
+				`href="` + link + `"`,
+				"background: #112233",
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("body missing %q:\n%s", want, body)
+				}
+			}
+			// The description keeps its line breaks, inside the pre-wrap block.
+			if !strings.Contains(body, "alert(1)&lt;/script&gt;\n\n**line three**") {
+				t.Errorf("line breaks of the description were lost:\n%s", body)
+			}
+			if !strings.HasPrefix(body, "<div") {
+				t.Errorf("body is not the branded layout:\n%s", body)
+			}
+			if tc.subject != "" && !strings.Contains(strings.Join(headers, "\n"), tc.subject) {
+				t.Errorf("subject = %q, want it to contain %q", headers, tc.subject)
+			}
+		})
+	}
+}
+
+func TestRecordAssignedEmailsReadNormally(t *testing.T) {
+	const base = "https://isms.example/acme"
+	headers, body := capture(t, func(m *Mailer) error {
+		return m.SendIncidentAssignedBranded("a@x.io", "Eve", "Bob (bob@x.io)", "INC-12", "Phishing & spoofing", "high", "open",
+			"Users got a mail.\nSecond line.", base+"/incidents/INC-12", Branding{Name: "Acme"})
+	})
+	h := strings.Join(headers, "\n")
+	if !strings.Contains(h, "Subject: Acme — Incident [HIGH]: Phishing & spoofing") {
+		t.Errorf("subject wrong: %q", headers)
+	}
+	for _, want := range []string{
+		"Hi Eve,", "Bob (bob@x.io)", "INC-12", "Phishing &amp; spoofing", "Severity: <strong>high</strong>",
+		"Status: <strong>open</strong>", "Users got a mail.\nSecond line.", `href="` + base + `/incidents/INC-12"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "&amp;amp;") {
+		t.Errorf("double escaping:\n%s", body)
+	}
+
+	headers, body = capture(t, func(m *Mailer) error {
+		return m.SendCorrectiveActionAssignedBranded("a@x.io", "Eve", "Bob", "CA-4", "Fix MFA", "minor_nc", "Do it",
+			base+"/corrective-actions/CA-4", Branding{Name: "Acme"})
+	})
+	if !strings.Contains(strings.Join(headers, "\n"), "Subject: Acme — Corrective Action: Fix MFA") {
+		t.Errorf("subject wrong: %q", headers)
+	}
+	for _, want := range []string{"CA-4", "Fix MFA", "Severity: <strong>minor_nc</strong>", `href="` + base + `/corrective-actions/CA-4"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body missing %q:\n%s", want, body)
+		}
+	}
+}

@@ -163,9 +163,9 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 			Link:     "/corrective-actions",
 		})
 		if s.mailer.Enabled() {
-			s.mailer.SendBranded(ca.Assignee,
-				fmt.Sprintf("Corrective Action: %s", ca.Title),
-				ca.Description, s.orgMail(ctx, orgID).Branding)
+			m := s.orgMail(ctx, orgID)
+			_ = s.mailer.SendCorrectiveActionAssignedBranded(ca.Assignee, s.userDisplayName(ctx, ca.Assignee), s.userLabel(ctx, ca.CreatedBy),
+				ca.Identifier, ca.Title, ca.Severity, ca.Description, m.AppURL+entityLink("corrective_action", ca.Identifier), m.Branding)
 		}
 	}
 

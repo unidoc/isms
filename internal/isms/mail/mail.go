@@ -2,6 +2,8 @@
 package mail
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"html"
 	"net"
@@ -9,6 +11,7 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 // Config holds SMTP settings from environment variables.
@@ -142,7 +145,79 @@ func (m *Mailer) sendAs(to, subject, body, fromName string) error {
 		auth = smtp.PlainAuth("", m.config.User, m.config.Password, m.config.Host)
 	}
 
-	return smtp.SendMail(addr, auth, envelopeFrom, []string{to}, []byte(msg))
+	return deliver(m.config.Host, addr, auth, envelopeFrom, to, []byte(msg))
+}
+
+// Timeouts for one delivery. Without them a relay that accepts the connection
+// and then stalls would hang the caller (the manager cron, or a request
+// handler) forever. Variables so tests can shorten them.
+var (
+	dialTimeout = 30 * time.Second
+	// sessionTimeout bounds the whole conversation, from connect to QUIT.
+	sessionTimeout = 60 * time.Second
+)
+
+// deliver is net/smtp.SendMail with two differences: the connection has a dial
+// timeout and an overall deadline, and once the server has accepted the message
+// (the DATA terminator got its 250) nothing that happens afterwards is an
+// error. SendMail returns the QUIT error, so a relay that took the message and
+// then dropped the connection made a delivered mail look failed, and a caller
+// that retries on failure (the weekly digest) sent it again.
+//
+// The rest keeps SendMail's safety behaviour: CR/LF in an address is refused,
+// STARTTLS is used when offered, and AUTH is attempted only when asked for.
+func deliver(host, addr string, auth smtp.Auth, from, to string, msg []byte) error {
+	if strings.ContainsAny(from, "\r\n") || strings.ContainsAny(to, "\r\n") {
+		return errors.New("smtp: A line must not contain CR or LF")
+	}
+	conn, err := net.DialTimeout("tcp", addr, dialTimeout)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if err := conn.SetDeadline(time.Now().Add(sessionTimeout)); err != nil {
+		return err
+	}
+	c, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+	if err := c.Hello("localhost"); err != nil {
+		return err
+	}
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err := c.StartTLS(&tls.Config{ServerName: host}); err != nil {
+			return err
+		}
+	}
+	if auth != nil {
+		if ok, _ := c.Extension("AUTH"); !ok {
+			return errors.New("smtp: server doesn't support AUTH")
+		}
+		if err := c.Auth(auth); err != nil {
+			return err
+		}
+	}
+	if err := c.Mail(from); err != nil {
+		return err
+	}
+	if err := c.Rcpt(to); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(msg); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	// Accepted. A failed QUIT changes nothing about that; the deferred
+	// conn.Close ends the session either way.
+	_ = c.Quit()
+	return nil
 }
 
 // SendVerification sends an email verification link.

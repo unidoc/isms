@@ -44,11 +44,18 @@ func deriveNameFromEmail(email string) string {
 // granted separately by an admin (Admin → Members) or the CLI; until then the
 // user has no org and can authenticate but not load an org's data.
 //
+// Both callers have already verified the Cloudflare identity (JWT signature and
+// email) before calling, so the email is marked verified here, like password,
+// OIDC and passkey sign-in (#493). The write happens only while the flag is
+// false; a failed write is logged and never fails the request, and is retried on
+// the next one.
+//
 // Shared by the auth middleware (API/CLI/git) and the cf-session handler (web)
 // so both behave identically. Returns (user, created, error); created is true on
 // JIT provisioning.
 func resolveCFUser(ctx context.Context, d *db.DB, email, name string, pc cfProvisionConfig) (*db.User, bool, error) {
 	if u, err := d.GetUserByEmail(ctx, email); err == nil {
+		markCFEmailVerified(ctx, d, u)
 		return u, false, nil
 	}
 	if !pc.Enabled {
@@ -62,7 +69,21 @@ func resolveCFUser(ctx context.Context, d *db.DB, email, name string, pc cfProvi
 	if err := d.UpsertUser(ctx, u); err != nil {
 		return nil, false, fmt.Errorf("%w: %v", errProvisionFailed, err)
 	}
+	markCFEmailVerified(ctx, d, u)
 	return u, true, nil
+}
+
+// markCFEmailVerified sets email_verified for a Cloudflare-authenticated user,
+// on the row and on u so the rest of the request sees it. No-op when already set.
+func markCFEmailVerified(ctx context.Context, d *db.DB, u *db.User) {
+	if u.EmailVerified {
+		return
+	}
+	if err := d.SetEmailVerified(ctx, u.ID); err != nil {
+		log.Printf("[cf-access] marking %s verified failed: %v", u.Email, err)
+		return
+	}
+	u.EmailVerified = true
 }
 
 // handleCFSession mints an ISMS session token for a user already authenticated

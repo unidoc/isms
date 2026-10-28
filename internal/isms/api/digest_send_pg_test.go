@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,6 +34,7 @@ type sinkMsg struct{ To, Body string }
 type smtpSink struct {
 	host, port string
 	reject     atomic.Bool
+	dropQuit   atomic.Bool // answer the end of DATA, then drop the connection
 	mu         sync.Mutex
 	msgs       []sinkMsg
 }
@@ -80,6 +82,9 @@ func (k *smtpSink) serve(conn net.Conn) {
 				k.mu.Unlock()
 				body.Reset()
 				write("250 OK")
+				if k.dropQuit.Load() {
+					return
+				}
 				continue
 			}
 			body.WriteString(line + "\n")
@@ -257,7 +262,8 @@ func TestSendDigestsNotDueBeforeMondayEight(t *testing.T) {
 	wantCounts(t, r, 1, 0, 0, 0)
 }
 
-// (d) Opted-out members, agents, inactive users and unverified emails get nothing.
+// (d) Opted-out members, agents and inactive users get nothing. An unverified
+// email still gets its digest (Cloudflare Access users are never verified).
 func TestSendDigestsSkipsIneligibleMembers(t *testing.T) {
 	f := newSendFixture(t, "dgs-skip")
 	f.member(t, 0, "ok@dgs-skip.test", userOpts{})
@@ -270,12 +276,14 @@ func TestSendDigestsSkipsIneligibleMembers(t *testing.T) {
 	}
 
 	r := f.run(t, wednesday)
-	wantCounts(t, r, 1, 0, 4, 0)
-	if got := f.sink.to(); len(got) != 1 || got[0] != "ok@dgs-skip.test" {
-		t.Errorf("recipients = %v, want only ok@dgs-skip.test", got)
+	wantCounts(t, r, 2, 0, 3, 0)
+	got := f.sink.to()
+	sort.Strings(got)
+	if strings.Join(got, ",") != "ok@dgs-skip.test,unverified@dgs-skip.test" {
+		t.Errorf("recipients = %v, want ok and unverified only", got)
 	}
-	if f.claims(t, 0) != 1 {
-		t.Errorf("claims = %d, want 1: skipped members must not be claimed", f.claims(t, 0))
+	if f.claims(t, 0) != 2 {
+		t.Errorf("claims = %d, want 2: skipped members must not be claimed", f.claims(t, 0))
 	}
 }
 
@@ -334,6 +342,25 @@ func TestSendDigestsFailedSendIsRetried(t *testing.T) {
 	wantCounts(t, r, 2, 0, 0, 0)
 	if len(f.sink.messages()) != 2 {
 		t.Errorf("%d mails after the retry, want 2", len(f.sink.messages()))
+	}
+}
+
+// A relay that takes the message and then drops the connection before QUIT has
+// delivered it: the claim stays and the next run sends nothing.
+func TestSendDigestsAcceptedMessageIsNotResent(t *testing.T) {
+	f := newSendFixture(t, "dgs-quit")
+	f.member(t, 0, "a@dgs-quit.test", userOpts{})
+
+	f.sink.dropQuit.Store(true)
+	r := f.run(t, wednesday)
+	wantCounts(t, r, 1, 0, 0, 0)
+	if f.claims(t, 0) != 1 {
+		t.Fatalf("claims = %d, want 1", f.claims(t, 0))
+	}
+	r = f.run(t, wednesday.Add(time.Hour))
+	wantCounts(t, r, 0, 0, 1, 0)
+	if n := len(f.sink.messages()); n != 1 {
+		t.Errorf("%d mails, want exactly 1", n)
 	}
 }
 

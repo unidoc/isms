@@ -309,7 +309,7 @@ func runDigests(ctx context.Context, d *db.DB, orgs []db.Organization, m *mail.M
 		}
 		var om orgMailCtx
 		for _, u := range members {
-			if u.IsAgent || !u.Active || !u.EmailVerified || optOut[u.ID] || claimed[u.ID] {
+			if u.IsAgent || !u.Active || optOut[u.ID] || claimed[u.ID] {
 				res.Skipped++
 				continue
 			}

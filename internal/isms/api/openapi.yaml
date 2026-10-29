@@ -3677,49 +3677,72 @@ components:
         created_by: { type: string }
         created_at: { type: string, format: date-time }
 
+    # Unix epoch seconds, as db.Epoch marshals them. Nullability rule, applied to
+    # every response schema and enforced by openapi_contract_test.go:
+    #   - a key the server omits when empty (Go omitempty) is not in `required`
+    #     and uses EpochSeconds (never null);
+    #   - a key that is always present but may be unset (nil pointer or zero
+    #     Epoch marshals as null) uses EpochSecondsNullable;
+    #   - created_at and updated_at are always set by the database and use
+    #     EpochSeconds.
+    EpochSeconds:
+      type: integer
+      format: int64
+      description: >-
+        Unix epoch seconds (UTC). Never null: a key that can be unset is either
+        omitted from the response (not listed in required) or typed
+        EpochSecondsNullable.
+
+    EpochSecondsNullable:
+      type: [integer, 'null']
+      format: int64
+      description: >-
+        Unix epoch seconds (UTC), or null when unset. Used for keys that are
+        always present in the response.
+
     Risk:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "RISK-001" }
+        id: { type: integer, format: int64, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "RISK-001", readOnly: true }
         title: { type: string }
-        description: { type: string, description: "Markdown body. Includes ## Potential consequences (seeded on create when empty)." }
+        description: { type: string, description: "Markdown body. Includes ## Potential consequences (seeded on create when empty). Omitted when empty." }
         risk_type: { type: string, enum: [threat, opportunity] }
         origin: { type: string, enum: [internal, external, "internal and external"] }
-        category: { type: string }
-        current_likelihood: { type: integer, minimum: 1, maximum: 5 }
-        current_impact: { type: integer, minimum: 1, maximum: 5 }
-        current_score: { type: integer }
-        current_level: { type: string }
-        confidentiality_impact: { type: integer, minimum: 0, maximum: 5 }
-        integrity_impact: { type: integer, minimum: 0, maximum: 5 }
-        availability_impact: { type: integer, minimum: 0, maximum: 5 }
-        inherent_likelihood: { type: integer }
-        inherent_impact: { type: integer }
-        inherent_score: { type: integer }
-        inherent_confidentiality_impact: { type: integer }
-        inherent_integrity_impact: { type: integer }
-        inherent_availability_impact: { type: integer }
-        target_likelihood: { type: integer }
-        target_impact: { type: integer }
-        target_score: { type: integer }
+        category: { type: string, description: "Omitted when empty." }
+        custom_fields: { type: object, additionalProperties: true, description: "Admin-defined extra values keyed by the field key from the risk_custom_fields org setting. Omitted when there are none." }
+        current_likelihood: { type: [integer, 'null'], minimum: 1, maximum: 5, description: "null when not assessed." }
+        current_impact: { type: [integer, 'null'], minimum: 1, maximum: 5, description: "null when not assessed." }
+        current_score: { type: [integer, 'null'], readOnly: true, description: "Computed from likelihood and impact; null when not assessed." }
+        current_level: { type: string, readOnly: true }
+        confidentiality_impact: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not assessed." }
+        integrity_impact: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not assessed." }
+        availability_impact: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not assessed." }
+        inherent_likelihood: { type: integer, description: "Omitted when not assessed." }
+        inherent_impact: { type: integer, description: "Omitted when not assessed." }
+        inherent_score: { type: integer, readOnly: true, description: "Computed; omitted when not assessed." }
+        inherent_confidentiality_impact: { type: integer, description: "Omitted when not assessed." }
+        inherent_integrity_impact: { type: integer, description: "Omitted when not assessed." }
+        inherent_availability_impact: { type: integer, description: "Omitted when not assessed." }
+        target_likelihood: { type: integer, description: "Omitted when not set." }
+        target_impact: { type: integer, description: "Omitted when not set." }
+        target_score: { type: integer, readOnly: true, description: "Computed; omitted when not set." }
+        target_level: { type: string, readOnly: true, description: "Computed; omitted when not set." }
         treatment: { type: string, enum: [mitigate, accept, transfer, avoid] }
-        treatment_plan: { type: string }
-        treatment_due_date: { type: string, format: date-time }
-        accepted_at: { type: string, format: date-time }
-        accepted_by_id: { type: integer }
-        accepted_by: { type: string, description: "accepted_by_id resolved to an email, read-only." }
-        assets: { type: array, items: { type: string } }
-        documents: { type: array, items: { type: string } }
-        interested_parties: { type: array, items: { type: string } }
-        owner: { type: string }
+        treatment_plan: { type: string, description: "Omitted when empty." }
+        treatment_due_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        accepted_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Set when the risk is accepted; omitted otherwise." }
+        accepted_by_id: { type: integer, readOnly: true, description: "Omitted when not accepted." }
+        accepted_by: { type: string, readOnly: true, description: "accepted_by_id resolved to an email. Omitted when not accepted." }
+        owner: { type: string, description: "Omitted when empty." }
         status: { type: string, enum: [draft, open, accepted, closed] }
-        last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: "Derived from current_level unless the request sets it; an explicit date is stored as sent." }
-        notes: { type: string }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        last_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when never reviewed." }
+        next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Derived from current_level unless the request sets it; an explicit date is stored as sent. Omitted when not set." }
+        notes: { type: string, description: "Omitted when empty." }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     Asset:
       type: object

@@ -263,15 +263,9 @@ Each org's email is sent under its own name: the sender display name and the bra
 
 Slack and Matrix notifications are configured **per-organization** in the web UI under **Admin > Settings**. There are no server-level env vars for notifications — each org manages its own webhook URLs and tokens.
 
-### Scheduled housekeeping and the weekly digest
+### Weekly digest
 
-`isms server manager` is the platform's cron job. It creates review tasks for overdue items, backfills review dates, notifies on supplier contract expiry, and emails each member their weekly digest. The server (`isms server`) never runs it: a deployment must schedule it, for example every hour:
-
-```
-0 * * * * /usr/local/bin/isms server manager --quiet
-```
-
-It is safe to run as often as you like. Without it, no digest is sent.
+The weekly digest is sent by `isms server manager`, which the server never runs on its own: a deployment must schedule it (see [Scheduled housekeeping](#scheduled-housekeeping)). Without it, no digest is sent.
 
 **The weekly digest** lists what is waiting on a member (the same items as their Inbox: reviews to review or resubmit, comments awaiting a reply, tasks, changes, incidents and corrective actions assigned to them, and suggestions for managers) plus a count of overdue items across the organization. It is sent once per member, per organization, per ISO week, from Monday 08:00 UTC on, and only when something is waiting on that member; a member with nothing pending gets no email that week, and an item arriving later the same week does not trigger one. Agents, inactive users and members who turned the digest off are skipped.
 
@@ -514,6 +508,7 @@ Each run:
 - Creates renewal tasks for supplier contracts that are expiring or expired.
 - Backfills missing next-review dates on suppliers and systems.
 - Notifies on supplier contracts 30 days, 7 days, and 0 days from expiry.
+- Emails each member their weekly digest (see [Weekly digest](#weekly-digest)).
 
 Tasks are assigned to the item's owner. An item with no owner is skipped and reported as unassigned (the dashboard's Create Tasks button assigns those to whoever clicks it). A task that cannot be created is reported as failed and logged. The first run on an existing installation creates a task for every item that is overdue at that moment, so expect a one-off batch.
 

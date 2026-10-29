@@ -346,7 +346,7 @@ func (d *DB) OverdueDocumentReviews(ctx context.Context, orgID int) ([]OverdueIt
 		var createdAt Epoch
 		var reviewCycleMonths int
 		if err := rows.Scan(&docID, &version, &createdBy, &createdAt, &title, &owner, &reviewCycleMonths); err != nil {
-			continue
+			return nil, err
 		}
 		if reviewCycleMonths <= 0 {
 			reviewCycleMonths = 12
@@ -365,6 +365,9 @@ func (d *DB) OverdueDocumentReviews(ctx context.Context, orgID int) ([]OverdueIt
 			NextReview: &due,
 			DaysLate:   daysLate,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return items, nil
 }
@@ -395,7 +398,7 @@ func (d *DB) OverdueObjectiveCheckins(ctx context.Context, orgID int) ([]Overdue
 		var lastCheckin *Epoch
 		var baseline Epoch
 		if err := rows.Scan(&id, &displayID, &title, &owner, &cycle, &lastCheckin, &baseline); err != nil {
-			continue
+			return nil, err
 		}
 		if cycle <= 0 {
 			cycle = 12
@@ -421,6 +424,9 @@ func (d *DB) OverdueObjectiveCheckins(ctx context.Context, orgID int) ([]Overdue
 			DaysLate:   daysLate,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
@@ -440,7 +446,7 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy,
 	// Load existing open review tasks to deduplicate.
 	existingTasks, err := d.ListTasksWhere(ctx, orgID, TaskViewer{CanSeeAll: true}, "status NOT IN ('done','cancelled')", 1000)
 	if err != nil {
-		existingTasks = nil
+		return nil, fmt.Errorf("overdue tasks: listing open tasks: %w", err)
 	}
 	existing := map[string]bool{}
 	for _, t := range existingTasks {
@@ -515,7 +521,10 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy,
 	}
 
 	// Document reviews — from document_versions table (most recent per doc)
-	docVersions, _ := d.OverdueDocumentReviews(ctx, orgID)
+	docVersions, err := d.OverdueDocumentReviews(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("overdue tasks: document reviews: %w", err)
+	}
 	for _, dv := range docVersions {
 		pending = append(pending, pendingTask{
 			title:    "Document review: " + dv.Title + " (" + dv.EntityID + ")",
@@ -527,7 +536,10 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy,
 	}
 
 	// Objective check-ins overdue
-	objCheckins, _ := d.OverdueObjectiveCheckins(ctx, orgID)
+	objCheckins, err := d.OverdueObjectiveCheckins(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("overdue tasks: objective check-ins: %w", err)
+	}
 	for _, oc := range objCheckins {
 		pending = append(pending, pendingTask{
 			title:    "Objective check-in: " + oc.Title + " (" + oc.EntityID + ")",

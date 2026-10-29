@@ -11,12 +11,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// shadowSystemsDB returns a DB whose own connection pool sees a view named
-// "systems" in a private schema ahead of public.systems. The overdue queries use
+// shadowTableDB returns a DB whose own connection pool sees a view named after
+// table in a private schema ahead of public.<table>. The overdue queries use
 // unqualified table names, so only this pool is affected: the shared public
 // schema is never altered, which keeps the parallel db/refs/api test packages
-// safe. viewSelect is the SELECT list (over public.systems s) of the view.
-func shadowSystemsDB(t *testing.T, viewSelect string) *DB {
+// safe. viewSelect is the SELECT list (over public.<table> s) of the view.
+func shadowTableDB(t *testing.T, table, viewSelect string) *DB {
 	t.Helper()
 	ctx := context.Background()
 	url := os.Getenv("ISMS_TEST_DATABASE_URL")
@@ -32,7 +32,7 @@ func shadowSystemsDB(t *testing.T, viewSelect string) *DB {
 	defer admin.Close()
 	for _, stmt := range []string{
 		`CREATE SCHEMA ` + schema,
-		`CREATE VIEW ` + schema + `.systems AS SELECT ` + viewSelect + ` FROM public.systems s`,
+		`CREATE VIEW ` + schema + `.` + table + ` AS SELECT ` + viewSelect + ` FROM public.` + table + ` s`,
 	} {
 		if _, err := admin.Exec(ctx, stmt); err != nil {
 			_, _ = admin.Exec(ctx, `DROP SCHEMA IF EXISTS `+schema+` CASCADE`)
@@ -96,7 +96,7 @@ func TestGetOverdueSummaryReturnsQueryError(t *testing.T) {
 	d := testDB(t)
 	orgID := seedOverdueOrg(t, d, "overdue-qerr")
 	// No next_review column: the systems query fails when it is prepared.
-	shadow := shadowSystemsDB(t, `s.id, s.organization_id, s.identifier, s.name, s.criticality, s.owner_id, s.deleted_at`)
+	shadow := shadowTableDB(t, "systems", `s.id, s.organization_id, s.identifier, s.name, s.criticality, s.owner_id, s.deleted_at`)
 
 	summary, err := shadow.GetOverdueSummary(context.Background(), orgID, TaskViewer{CanSeeAll: true})
 	if err == nil {
@@ -115,7 +115,7 @@ func TestGetOverdueSummaryReturnsScanError(t *testing.T) {
 	orgID := seedOverdueOrg(t, d, "overdue-scan")
 	// criticality is an integer array here, which cannot be scanned into the string
 	// the loop scans it into: the query runs, rows.Scan fails.
-	shadow := shadowSystemsDB(t, `s.id, s.organization_id, s.identifier, s.name, ARRAY[1] AS criticality, s.next_review, s.owner_id, s.deleted_at`)
+	shadow := shadowTableDB(t, "systems", `s.id, s.organization_id, s.identifier, s.name, ARRAY[1] AS criticality, s.next_review, s.owner_id, s.deleted_at`)
 
 	summary, err := shadow.GetOverdueSummary(context.Background(), orgID, TaskViewer{CanSeeAll: true})
 	if err == nil {
@@ -132,7 +132,7 @@ func TestGetOverdueSummaryReturnsRowsErr(t *testing.T) {
 	// Division by zero while the server produces the first row: the query is
 	// accepted, Next() returns false without ever reaching Scan, and the failure
 	// is only visible through rows.Err().
-	shadow := shadowSystemsDB(t, `s.id, s.organization_id, s.identifier, s.name, (1 / (s.id - s.id))::text AS criticality, s.next_review, s.owner_id, s.deleted_at`)
+	shadow := shadowTableDB(t, "systems", `s.id, s.organization_id, s.identifier, s.name, (1 / (s.id - s.id))::text AS criticality, s.next_review, s.owner_id, s.deleted_at`)
 
 	summary, err := shadow.GetOverdueSummary(context.Background(), orgID, TaskViewer{CanSeeAll: true})
 	if err == nil {

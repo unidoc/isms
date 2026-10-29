@@ -510,10 +510,10 @@ Each run:
 - Notifies on supplier contracts 30 days, 7 days, and 0 days from expiry.
 - Emails each member their weekly digest (see [Weekly digest](#weekly-digest)).
 
-Tasks are assigned to the item's owner. An item with no owner is skipped and reported as unassigned (the dashboard's Create Tasks button assigns those to whoever clicks it). A task that cannot be created is reported as failed and logged. The first run on an existing installation creates a task for every item that is overdue at that moment, so expect a one-off batch.
+Tasks are assigned to the item's owner. An item with no owner is skipped and reported as unassigned (the dashboard's Create Tasks button assigns those to whoever clicks it). A task that cannot be created is reported as failed and logged. If an organization's overdue data cannot be read, that organization's run creates no tasks and reports an error (printed even with `--quiet`), while its contract-expiry notifications are still sent. The first run on an existing installation creates a task for every item that is overdue at that moment, so expect a one-off batch.
 
 ```bash
-# Every hour, printing only when something was done
+# Every hour, printing only when something was done or failed
 0 * * * * /usr/local/bin/isms server manager --quiet
 
 # Daily at 8am, with a summary

@@ -405,6 +405,7 @@ var paramMessageOverrides = map[string]string{
 	"oidc_provider": "OIDC provider",
 	"api_key":       "API key",
 	"document_id":   "document ID",
+	"url":           "URL",
 }
 
 // ErrorCodes is every code this build can emit, sorted. Derived from

@@ -213,3 +213,38 @@ LEFT JOIN LATERAL (
       AND action = 'delete' AND entity_id = x.program_id
     ORDER BY created_at DESC, id DESC LIMIT 1
 ) c ON true;
+
+-- #316: external evidence links on register records (a certificate, an audit
+-- report, a pen-test summary hosted elsewhere), with an optional valid-until
+-- date that feeds the overdue summary. Keyed by the parent's row id, like
+-- entity_changelog; the CHECK already lists the other register types so wiring
+-- them later needs no migration (the API accepts suppliers only for now).
+-- Soft-deleted rows stay for history. Re-runnable throughout.
+CREATE TABLE IF NOT EXISTS external_links (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    entity_type     TEXT NOT NULL CHECK (entity_type IN ('supplier', 'asset', 'system', 'legal_requirement')),
+    entity_id       BIGINT NOT NULL,
+    url             TEXT NOT NULL CHECK (length(url) BETWEEN 1 AND 2048),
+    label           TEXT NOT NULL CHECK (length(label) BETWEEN 1 AND 200),
+    link_type       TEXT NOT NULL CHECK (link_type IN ('certificate', 'audit_report', 'penetration_test', 'attestation', 'contract', 'other')),
+    valid_until     DATE,
+    verified_at     DATE,
+    verified_by_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_by      TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at      TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_external_links_entity
+    ON external_links(organization_id, entity_type, entity_id) WHERE deleted_at IS NULL;
+
+ALTER TABLE external_links ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'external_links' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON external_links
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;

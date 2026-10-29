@@ -103,7 +103,8 @@
     "policy": "polityka",
     "passkey": "klucz dostępu",
     "evidence": "dowód",
-    "item": "element"
+    "item": "element",
+    "external_link": "link zewnętrzny"
   },
   "field": {
     "title": "tytuł",
@@ -124,7 +125,9 @@
     "new_email": "nowy e-mail",
     "entity_type": "typ encji",
     "entity_id": "identyfikator encji",
-    "suggestion_type": "typ sugestii"
+    "suggestion_type": "typ sugestii",
+    "url": "URL",
+    "label": "etykieta"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Zapis",
       "clause": "Klauzula",
       "requirement": "Wymaganie"
+    },
+    "external_link_type": {
+      "certificate": "Certyfikat",
+      "audit_report": "Raport z audytu",
+      "penetration_test": "Test penetracyjny",
+      "attestation": "Atestacja",
+      "contract": "Umowa",
+      "other": "Inne"
+    },
+    "external_link_state": {
+      "expired": "Wygasło",
+      "expiring": "Wkrótce wygasa",
+      "current": "Aktualny"
     }
   },
   "enum_inline": {

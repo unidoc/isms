@@ -263,6 +263,22 @@ Each org's email is sent under its own name: the sender display name and the bra
 
 Slack and Matrix notifications are configured **per-organization** in the web UI under **Admin > Settings**. There are no server-level env vars for notifications — each org manages its own webhook URLs and tokens.
 
+### Scheduled housekeeping and the weekly digest
+
+`isms server manager` is the platform's cron job. It creates review tasks for overdue items, backfills review dates, notifies on supplier contract expiry, and emails each member their weekly digest. The server (`isms server`) never runs it: a deployment must schedule it, for example every hour:
+
+```
+0 * * * * /usr/local/bin/isms server manager --quiet
+```
+
+It is safe to run as often as you like. Without it, no digest is sent.
+
+**The weekly digest** lists what is waiting on a member (the same items as their Inbox: reviews to review or resubmit, comments awaiting a reply, tasks, changes, incidents and corrective actions assigned to them, and suggestions for managers) plus a count of overdue items across the organization. It is sent once per member, per organization, per ISO week, from Monday 08:00 UTC on, and only when something is waiting on that member; a member with nothing pending gets no email that week, and an item arriving later the same week does not trigger one. Agents, inactive users and members who turned the digest off are skipped.
+
+The digest needs `SMTP_HOST`, `SMTP_FROM` (see above) and `ISMS_BASE_URL` in the manager's environment, and honours `ISMS_SUBDOMAIN_ROUTING=1` like the server. If SMTP or `ISMS_BASE_URL` is missing the step is skipped (the manager says so unless run with `--quiet`) rather than sending mail without links. A message that fails to send is retried on the next run.
+
+Each member can turn the digest off for an organization under **Settings > Weekly digest**; the choice applies to that organization only. It is on by default.
+
 ### Git commit signing (optional)
 
 | Variable | Description |

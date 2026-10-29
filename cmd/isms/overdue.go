@@ -88,6 +88,21 @@ Examples:
 				}
 			}
 
+			if len(summary.ExternalLinks) > 0 {
+				fmt.Printf("\n  External links (%d)\n", len(summary.ExternalLinks))
+				fmt.Println("  " + repeat("─", 66))
+				for _, el := range summary.ExternalLinks {
+					var state string
+					if el.State == "expired" {
+						state = fmt.Sprintf("expired %dd ago", el.DaysLate)
+					} else {
+						state = fmt.Sprintf("expires in %dd", -el.DaysLate)
+					}
+					fmt.Printf("  %-14s %-32s %-20s [%s]\n",
+						el.EntityID, truncate(el.Title+" - "+el.ParentTitle, 32), state, el.Criticality)
+				}
+			}
+
 			if len(summary.Tasks) > 0 {
 				fmt.Printf("\n  Overdue tasks (%d)\n", len(summary.Tasks))
 				fmt.Println("  " + repeat("─", 66))

@@ -2,12 +2,16 @@
 package mail
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"html"
 	"net"
 	netmail "net/mail"
 	"net/smtp"
+	"os"
 	"strings"
+	"time"
 )
 
 // Config holds SMTP settings from environment variables.
@@ -17,6 +21,18 @@ type Config struct {
 	User     string // SMTP_USER
 	Password string // SMTP_PASSWORD
 	From     string // SMTP_FROM — either bare `noreply@host` or `"Display Name" <noreply@host>`
+}
+
+// ConfigFromEnv reads the SMTP_* environment variables. The server and the
+// manager cron both build their mailer from it, so they cannot drift apart.
+func ConfigFromEnv() Config {
+	return Config{
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		User:     os.Getenv("SMTP_USER"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     os.Getenv("SMTP_FROM"),
+	}
 }
 
 // Mailer sends emails via SMTP.
@@ -129,7 +145,79 @@ func (m *Mailer) sendAs(to, subject, body, fromName string) error {
 		auth = smtp.PlainAuth("", m.config.User, m.config.Password, m.config.Host)
 	}
 
-	return smtp.SendMail(addr, auth, envelopeFrom, []string{to}, []byte(msg))
+	return deliver(m.config.Host, addr, auth, envelopeFrom, to, []byte(msg))
+}
+
+// Timeouts for one delivery. Without them a relay that accepts the connection
+// and then stalls would hang the caller (the manager cron, or a request
+// handler) forever. Variables so tests can shorten them.
+var (
+	dialTimeout = 30 * time.Second
+	// sessionTimeout bounds the whole conversation, from connect to QUIT.
+	sessionTimeout = 60 * time.Second
+)
+
+// deliver is net/smtp.SendMail with two differences: the connection has a dial
+// timeout and an overall deadline, and once the server has accepted the message
+// (the DATA terminator got its 250) nothing that happens afterwards is an
+// error. SendMail returns the QUIT error, so a relay that took the message and
+// then dropped the connection made a delivered mail look failed, and a caller
+// that retries on failure (the weekly digest) sent it again.
+//
+// The rest keeps SendMail's safety behaviour: CR/LF in an address is refused,
+// STARTTLS is used when offered, and AUTH is attempted only when asked for.
+func deliver(host, addr string, auth smtp.Auth, from, to string, msg []byte) error {
+	if strings.ContainsAny(from, "\r\n") || strings.ContainsAny(to, "\r\n") {
+		return errors.New("smtp: A line must not contain CR or LF")
+	}
+	conn, err := net.DialTimeout("tcp", addr, dialTimeout)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if err := conn.SetDeadline(time.Now().Add(sessionTimeout)); err != nil {
+		return err
+	}
+	c, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+	if err := c.Hello("localhost"); err != nil {
+		return err
+	}
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err := c.StartTLS(&tls.Config{ServerName: host}); err != nil {
+			return err
+		}
+	}
+	if auth != nil {
+		if ok, _ := c.Extension("AUTH"); !ok {
+			return errors.New("smtp: server doesn't support AUTH")
+		}
+		if err := c.Auth(auth); err != nil {
+			return err
+		}
+	}
+	if err := c.Mail(from); err != nil {
+		return err
+	}
+	if err := c.Rcpt(to); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(msg); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	// Accepted. A failed QUIT changes nothing about that; the deferred
+	// conn.Close ends the session either way.
+	_ = c.Quit()
+	return nil
 }
 
 // SendVerification sends an email verification link.
@@ -277,6 +365,120 @@ func (m *Mailer) SendTaskAssignedBranded(to, assigneeName, actor, taskTitle, pri
 </div>`, assigneeName, actor, taskTitle, priority, link, b.color())
 
 	return m.sendAs(to, fmt.Sprintf("%s — Task assigned: %s", b.name(), taskTitle), body, b.name())
+}
+
+// DigestItem is one row of a digest: something waiting on the recipient.
+type DigestItem struct {
+	Ref    string // identifier shown beside the title (INC-3, a document id)
+	Title  string
+	Detail string // one short line of context, may be empty
+	Path   string // SPA route, joined to the org's app URL ("/reviews/7")
+}
+
+// DigestSection is a titled list of items of one kind.
+type DigestSection struct {
+	Title string
+	Items []DigestItem
+}
+
+// DigestCount is one line of the org snapshot.
+type DigestCount struct {
+	Label string
+	Count int
+}
+
+// Digest is the content of a personal digest email: the work waiting on the
+// recipient, then a compact count of what is overdue across the org.
+type Digest struct {
+	Sections     []DigestSection
+	Overdue      []DigestCount
+	OverdueTotal int
+}
+
+// Empty reports whether nothing is waiting on the recipient. The org snapshot
+// is deliberately ignored: a digest is only worth sending when it asks
+// something of its reader.
+func (d *Digest) Empty() bool {
+	for _, s := range d.Sections {
+		if len(s.Items) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// digestMaxItems caps each section so one backlog cannot make the mail
+// unreadable; the remainder is summarised and the Inbox link covers it.
+const digestMaxItems = 10
+
+// SendDigestBranded sends a recipient their pending-work digest. appURL is the
+// org's app base (it already carries the org slug on path-based hosts), so
+// every link lands in the right org. Every user-supplied string is escaped.
+func (m *Mailer) SendDigestBranded(to, recipientName, appURL string, d *Digest, b Branding) error {
+	base := strings.TrimRight(appURL, "/")
+	color := html.EscapeString(b.color())
+	esc := html.EscapeString
+
+	total := 0
+	var sections strings.Builder
+	for _, s := range d.Sections {
+		if len(s.Items) == 0 {
+			continue
+		}
+		total += len(s.Items)
+		fmt.Fprintf(&sections, `<h3 style="margin:24px 0 8px; font-size:15px; color:#0f172a;">%s (%d)</h3>`+"\n", esc(s.Title), len(s.Items))
+		for i, it := range s.Items {
+			if i == digestMaxItems {
+				fmt.Fprintf(&sections, `<p style="margin:4px 0; color:#64748b;">and %d more in your <a href="%s/inbox" style="color:%s;">Inbox</a></p>`+"\n",
+					len(s.Items)-digestMaxItems, esc(base), color)
+				break
+			}
+			ref := ""
+			if it.Ref != "" {
+				ref = fmt.Sprintf(`<span style="color:#64748b;">%s</span> `, esc(it.Ref))
+			}
+			title := esc(it.Title)
+			if it.Path != "" {
+				title = fmt.Sprintf(`<a href="%s%s" style="color:%s; text-decoration:none; font-weight:bold;">%s</a>`, esc(base), esc(it.Path), color, title)
+			} else {
+				title = "<strong>" + title + "</strong>"
+			}
+			detail := ""
+			if it.Detail != "" {
+				detail = fmt.Sprintf(`<div style="color:#64748b; font-size:13px;">%s</div>`, esc(it.Detail))
+			}
+			fmt.Fprintf(&sections, `<div style="margin:6px 0;">%s%s%s</div>`+"\n", ref, title, detail)
+		}
+	}
+
+	var snapshot strings.Builder
+	if d.OverdueTotal == 0 {
+		snapshot.WriteString(`<p style="margin:4px 0;">Nothing is overdue.</p>`)
+	} else {
+		noun := "items"
+		if d.OverdueTotal == 1 {
+			noun = "item"
+		}
+		fmt.Fprintf(&snapshot, `<p style="margin:4px 0;"><strong>%d %s overdue</strong></p>`, d.OverdueTotal, noun)
+		for _, c := range d.Overdue {
+			if c.Count > 0 {
+				fmt.Fprintf(&snapshot, `<div style="margin:2px 0;">%s: %d</div>`, esc(c.Label), c.Count)
+			}
+		}
+	}
+
+	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; color:#0f172a;">
+<h2>Your weekly digest</h2>
+<p>Hi %s, here is what is waiting on you.</p>
+%s
+<h3 style="margin:24px 0 8px; font-size:15px;">Overdue across the organization</h3>
+%s
+<p style="margin-top:24px;"><a href="%s/inbox" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Open your Inbox</a></p>
+<p style="color:#94a3b8; font-size:12px; margin-top:24px;">You get this email once a week. You can <a href="%s/settings" style="color:#94a3b8;">turn this digest off in Settings</a>.</p>
+</div>`, esc(recipientName), sections.String(), snapshot.String(), esc(base), color, esc(base))
+
+	subject := fmt.Sprintf("%s — Your weekly digest: %d waiting on you", b.name(), total)
+	return m.sendAs(to, subject, body, b.name())
 }
 
 // SendOTPCode sends a one-time login code via email (magic link alternative),

@@ -103,7 +103,8 @@
     "policy": "stefna",
     "passkey": "aðgangslykill",
     "evidence": "sönnunargagn",
-    "item": "atriði"
+    "item": "atriði",
+    "external_link": "ytri tengill"
   },
   "field": {
     "title": "titill",
@@ -124,7 +125,9 @@
     "new_email": "nýtt netfang",
     "entity_type": "tegund færslu",
     "entity_id": "auðkenni færslu",
-    "suggestion_type": "tegund tillögu"
+    "suggestion_type": "tegund tillögu",
+    "url": "vefslóð",
+    "label": "heiti"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Skrá",
       "clause": "Grein",
       "requirement": "Krafa"
+    },
+    "external_link_type": {
+      "certificate": "Vottorð",
+      "audit_report": "Úttektarskýrsla",
+      "penetration_test": "Innbrotsprófun",
+      "attestation": "Staðfesting",
+      "contract": "Samningur",
+      "other": "Annað"
+    },
+    "external_link_state": {
+      "expired": "Útrunnið",
+      "expiring": "Rennur bráðum út",
+      "current": "Í gildi"
     }
   },
   "enum_inline": {

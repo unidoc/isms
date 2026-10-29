@@ -47,6 +47,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/store"
 )
 
 // contractShape is one Go value a handler passes to c.JSON for a component.
@@ -263,6 +264,182 @@ var contractTable = []contractEntry{
 		//   api_objectives.go:996 handleListEvidence:   {"data": evidence} evidence is []db.Evidence (ListEvidence)
 		shapes: []contractShape{shape(tReq(db.Evidence{}), "api_objectives.go:982 handleUploadEvidence: c.JSON(201, ev), ev is db.Evidence")},
 	},
+	{
+		component: "APIKey",
+		//   api_auth.go:1101 handleListMyAPIKeys: {"data": keys} keys is []db.APIKey (ListUserAPIKeys)
+		//   api_admin.go:156 handleAdminListAPIKeys: {"data": keys} keys is []db.APIKey (ListAllAPIKeysForOrg)
+		// db.APIKey has no token or hash field, so neither is ever serialized by
+		// a list; the token is returned only by the create response (CreatedAPIKey).
+		shapes: []contractShape{shape(tReq(db.APIKey{}), "api_auth.go:1101 handleListMyAPIKeys: element of the data array, db.APIKey")},
+	},
+	{
+		component: "CreatedAPIKey",
+		// api_auth.go:1145 handleCreateMyAPIKey: c.JSON(201, map[string]interface{}{token, id, name,
+		// permissions, organization_id}); mirrors a map, all keys always present.
+		shapes: []contractShape{shape(tReq(createdAPIKeyMirror{}), "api_auth.go:1145 handleCreateMyAPIKey: map literal mirrored by createdAPIKeyMirror")},
+	},
+	{
+		component: "Approval",
+		//   api_collab.go:2289 handleListApprovals: {"data": approvals} approvals is []db.Approval (ApprovalsForDocument)
+		shapes: []contractShape{shape(tReq(db.Approval{}), "api_collab.go:2289 handleListApprovals: element of the data array, db.Approval")},
+	},
+	{
+		component: "ChangelogEntry",
+		//   api_changelog.go:30 handleListChangelog: {"data": entries} entries is []db.ChangelogEntry (ListChangelog)
+		//   api_changelog.go:59 handleEntityChangelog: {"data": entries} entries is []db.ChangelogEntry (ListEntityChangelog)
+		//   api_changelog.go:~80 handleDocumentHistory (GET /changelog/document/{id}): git history and
+		//     decision-log rows mapped onto db.ChangelogEntry (mergeDocumentHistory)
+		shapes: []contractShape{shape(tReq(db.ChangelogEntry{}), "api_changelog.go:30 handleListChangelog: element of the data array, db.ChangelogEntry")},
+	},
+	{
+		component: "Comment",
+		//   api_collab.go:1900 handleAllOpenComments: {"data": comments} comments is []db.Comment
+		//   api_collab.go:1916 handleListCommentsDB:  {"data": comments} comments is []db.Comment (CommentsForDocument)
+		//   api_collab.go:2004 handleAddCommentDB:    c.JSON(201, comment) comment is db.Comment
+		shapes: []contractShape{shape(tReq(db.Comment{}), "api_collab.go:2004 handleAddCommentDB: c.JSON(201, comment), comment is db.Comment")},
+	},
+	{
+		component: "Document",
+		// server.go:1262 handleGetDocument: c.JSON(200, resp) where resp is a
+		// map[string]interface{} built at server.go:1232-1244, with the active_review_* keys
+		// added at server.go:1248-1262 only when the document is in_review and has an open
+		// review. documentMirror mirrors the map; the conditional keys are pointers with omitempty.
+		shapes: []contractShape{shape(tReq(documentMirror{}), "server.go:1262 handleGetDocument: map mirrored by documentMirror")},
+	},
+	{
+		component: "DocumentFolder",
+		// server.go:1187 handleListAllDocuments: {"data": folders} where folders is []DocFolder, a
+		// type declared inside the handler (server.go:1105); docFolderMirror mirrors it.
+		shapes: []contractShape{shape(tReq(docFolderMirror{}), "server.go:1187 handleListAllDocuments: element of the data array, DocFolder mirrored by docFolderMirror")},
+	},
+	{
+		component: "DocumentFile",
+		// server.go:1096 DocFile, the element of DocFolder.files (declared inside handleListAllDocuments).
+		shapes: []contractShape{shape(tReq(docFileMirror{}), "server.go:1158 handleListAllDocuments: DocFile element of files, mirrored by docFileMirror")},
+	},
+	{
+		component: "DocumentNeedingReview",
+		// server.go:1975 handleNeedsReview: {"data": results} where results is []NeedsReviewDoc, a type
+		// declared inside the handler (server.go:1841); needsReviewDocMirror mirrors it.
+		shapes: []contractShape{shape(tReq(needsReviewDocMirror{}), "server.go:1975 handleNeedsReview: element of the data array, NeedsReviewDoc mirrored by needsReviewDocMirror")},
+	},
+	{
+		component: "ChangedDocument",
+		// server.go:1313 handleChangedDocuments: {"data": changed} where changed is []store.ChangedFile.
+		shapes: []contractShape{shape(tReq(store.ChangedFile{}), "server.go:1313 handleChangedDocuments: element of the data array, store.ChangedFile")},
+	},
+	{
+		component: "DocumentVersion",
+		//   api_diff.go:28 handleListVersions: {"data": versions} versions is []db.DocumentVersion (ListVersions)
+		shapes: []contractShape{shape(tReq(db.DocumentVersion{}), "api_diff.go:28 handleListVersions: element of the data array, db.DocumentVersion")},
+	},
+	{
+		component: "EntityReference",
+		//   api_references.go:222 handleCreateReference: c.JSON(201, fwd) fwd is *db.EntityReference
+		//   api_references.go:155 handleListReferences: {"data": result} result is []refWithTitle, a
+		//     type declared inside the handler (api_references.go:127): db.EntityReference plus
+		//     title (shadowing the embedded one, no omitempty) and subtype; refWithTitleMirror mirrors it.
+		shapes: []contractShape{
+			shape(tReq(db.EntityReference{}), "api_references.go:222 handleCreateReference: c.JSON(201, fwd), fwd is *db.EntityReference"),
+			shape(tReq(refWithTitleMirror{}), "api_references.go:155 handleListReferences: element of the data array, refWithTitle mirrored by refWithTitleMirror"),
+		},
+		// The request body is the anonymous struct at api_references.go:166; createReferenceRequestMirror mirrors it.
+		requests: []reflect.Type{tReq(createReferenceRequestMirror{})},
+	},
+	{
+		component: "Error",
+		//   errors.go:371 apiError: echo.NewHTTPError(status, errorBody{Message, Code, Params}); echo writes
+		//     the errorBody as the response body (see the wire-shape note at the top of errors.go).
+		//   echo.NewHTTPError(status, "text") sites: echo wraps the string as {"message": "text"}.
+		shapes: []contractShape{
+			shape(tReq(errorBody{}), "errors.go:371 apiError: errorBody{Message, Code, Params}"),
+			shape(tReq(legacyErrorMirror{}), "echo DefaultHTTPErrorHandler: echo.NewHTTPError(status, string) is written as {\"message\": text}, mirrored by legacyErrorMirror"),
+		},
+	},
+	{
+		component: "ImplementationStatus",
+		//   api_collab.go:3437 handleListImplementation: {"data": items} items is []db.ImplementationStatus
+		//   api_collab.go:3506 handleUpdateImplementation: c.JSON(200, impl) impl is db.ImplementationStatus
+		shapes:   []contractShape{shape(tReq(db.ImplementationStatus{}), "api_collab.go:3506 handleUpdateImplementation: c.JSON(200, impl), impl is db.ImplementationStatus")},
+		requests: []reflect.Type{tReq(implementationUpdateRequest{})},
+	},
+	{
+		component: "Notification",
+		//   api_collab.go:3785 handleListNotifications: {"data": notifications} notifications is []db.Notification
+		shapes: []contractShape{shape(tReq(db.Notification{}), "api_collab.go:3785 handleListNotifications: element of the data array, db.Notification")},
+	},
+	{
+		component: "OIDCProvider",
+		//   api_admin.go:181 handleAdminListOIDC: {"data": providers} providers is []db.OIDCProvider; client_secret
+		//     is replaced by "********" when set (api_admin.go:175-179).
+		//   api_admin.go:215 handleAdminCreateOIDC: c.JSON(201, p) p is db.OIDCProvider with ClientSecret cleared (api_admin.go:214)
+		//   api_admin.go:261 handleAdminUpdateOIDC: c.JSON(200, p) p is db.OIDCProvider with ClientSecret cleared (api_admin.go:260)
+		// The request body is the db struct itself (c.Bind(&p)), so every key binds; the handler
+		// overwrites id and organization_id, and the database sets created_at.
+		shapes:    []contractShape{shape(tReq(db.OIDCProvider{}), "api_admin.go:215 handleAdminCreateOIDC: c.JSON(201, p), p is db.OIDCProvider")},
+		requests:  []reflect.Type{tReq(db.OIDCProvider{})},
+		serverSet: []string{"id", "organization_id", "created_at"},
+	},
+	{
+		component: "Organization",
+		//   api_users.go:212 handleMyOrganizations: {"data": result} result is []orgWithRole, a type declared
+		//     inside the handler (api_users.go:203): db.Organization plus role; orgWithRoleMirror mirrors it.
+		//   api_users.go:318 handleCreateOrganization: c.JSON(201, map[string]interface{}{uuid, name, slug});
+		//     createdOrgMirror mirrors the map.
+		shapes: []contractShape{
+			shape(tReq(orgWithRoleMirror{}), "api_users.go:212 handleMyOrganizations: element of the data array, orgWithRole mirrored by orgWithRoleMirror"),
+			shape(tReq(createdOrgMirror{}), "api_users.go:318 handleCreateOrganization: map literal mirrored by createdOrgMirror"),
+		},
+	},
+	{
+		component: "Review",
+		//   api_collab.go:353 handleListReviews: {"data": items, ...} items is []db.Review (PaginatedReviews)
+		//   api_collab.go:466 handleCreateReview: c.JSON(201, review) review is *db.Review
+		//   api_collab.go:498 handleGetReview: c.JSON(200, resp) resp is *reviewWithAgent, a type declared
+		//     inside the handler (api_collab.go:480): *db.Review plus author_is_agent, changed_since_sent and
+		//     has_reviewer_edits; reviewWithAgentMirror mirrors it (db.Review by value, same JSON).
+		shapes: []contractShape{
+			shape(tReq(db.Review{}), "api_collab.go:466 handleCreateReview: c.JSON(201, review), review is *db.Review"),
+			shape(tReq(reviewWithAgentMirror{}), "api_collab.go:498 handleGetReview: c.JSON(200, resp), reviewWithAgent mirrored by reviewWithAgentMirror"),
+		},
+	},
+	{
+		component: "SearchResult",
+		//   server.go:1290 handleSearchDocuments: {"data": results} results is []store.SearchResult
+		shapes: []contractShape{shape(tReq(store.SearchResult{}), "server.go:1290 handleSearchDocuments: element of the data array, store.SearchResult")},
+	},
+	{
+		component: "Suggestion",
+		//   api_suggestions.go:277 handleListEntitySuggestions: {"data": kept} kept is []db.Suggestion (ListSuggestions)
+		//   api_suggestions.go:221 handleCreateEntitySuggestion: c.JSON(201, sg) sg is db.Suggestion
+		shapes: []contractShape{shape(tReq(db.Suggestion{}), "api_suggestions.go:221 handleCreateEntitySuggestion: c.JSON(201, sg), sg is db.Suggestion")},
+	},
+	{
+		component: "UserWithRole",
+		//   api_users.go:123 handleListUsers: {"data": users} users is []db.UserWithRole (ListOrgUsers)
+		//   api_admin.go:47 handleAdminListMembers: {"data": users} users is []db.UserWithRole (ListOrgUsers)
+		// UserWithRole is allOf User plus role; db.User is only ever serialized embedded in db.UserWithRole.
+		shapes: []contractShape{shape(tReq(db.UserWithRole{}), "api_users.go:123 handleListUsers: element of the data array, db.UserWithRole")},
+	},
+	{
+		component: "LoginResponse",
+		//   api_auth.go:176 handleLogin, api_auth.go:419 handleSwitchOrg, api_passkey.go:340
+		//   handlePasskeyLoginComplete: c.JSON(200, loginResponse{...}); api_auth.go:92 returns
+		//   loginResponse{OTPRequired: true} alone, which the omitempty keys cover.
+		shapes: []contractShape{shape(tReq(loginResponse{}), "api_auth.go:176 handleLogin: c.JSON(200, loginResponse{...})")},
+	},
+	{
+		component: "CurrentUser",
+		//   api_users.go:107 handleMe: c.JSON(200, resp) where resp is a map[string]interface{} built at
+		//     api_users.go:79-96, plus organization_uuid/slug/name added at api_users.go:98-104 when the
+		//     request has an organization; meMirror mirrors it.
+		//   api_users.go:27-33 handleMe, no authenticated user: a map with email, name, role, authenticated;
+		//     anonymousMeMirror mirrors it.
+		shapes: []contractShape{
+			shape(tReq(meMirror{}), "api_users.go:107 handleMe: c.JSON(200, resp), map mirrored by meMirror"),
+			shape(tReq(anonymousMeMirror{}), "api_users.go:27 handleMe: map literal mirrored by anonymousMeMirror"),
+		},
+	},
 }
 
 // noGoType lists components that are not responses of any handler, with the
@@ -270,17 +447,7 @@ var contractTable = []contractEntry{
 var noGoType = map[string]string{
 	"EpochSeconds":         "primitive shared by response schemas (db.Epoch), no handler returns it alone",
 	"EpochSecondsNullable": "primitive shared by response schemas (db.Epoch), no handler returns it alone",
-}
-
-// pendingPartB lists the components not yet checked against their Go type.
-// The list shrinks as schemas are aligned; the goal is an empty list.
-var pendingPartB = map[string]bool{
-	"Error": true, "User": true, "UserWithRole": true, "Organization": true,
-	"APIKey": true, "Document": true, "SearchResult": true,
-	"DocumentVersion": true, "Review": true, "Comment": true,
-	"Approval": true, "Suggestion": true, "ImplementationStatus": true,
-	"Notification": true, "EntityReference": true, "ChangelogEntry": true,
-	"OIDCProvider": true,
+	"User":                 "db.User is only serialized embedded in db.UserWithRole (db/users.go:43), which is checked and merges this schema through allOf; no handler returns a bare db.User",
 }
 
 // neverNullKeys are JSON keys the database always fills; see the header.
@@ -328,6 +495,8 @@ type specDoc struct {
 	requestBodies map[string][]string
 	// inlineRequests maps "METHOD /path" to an inline (non-$ref) request schema.
 	inlineRequests map[string]map[string]any
+	// paths is the raw paths object, for inline response schemas.
+	paths map[string]map[string]any
 }
 
 type specSchemas map[string]any
@@ -346,7 +515,7 @@ func loadSpec(t *testing.T) specDoc {
 	if len(doc.Components.Schemas) == 0 {
 		t.Fatal("openapi.yaml has no components/schemas")
 	}
-	out := specDoc{schemas: doc.Components.Schemas, requestBodies: map[string][]string{}, inlineRequests: map[string]map[string]any{}}
+	out := specDoc{schemas: doc.Components.Schemas, requestBodies: map[string][]string{}, inlineRequests: map[string]map[string]any{}, paths: doc.Paths}
 	const prefix = "#/components/schemas/"
 	for path, item := range doc.Paths {
 		for method, op := range item {
@@ -382,6 +551,42 @@ func (s specSchemas) resolve(node any) (map[string]any, error) {
 	m, ok := node.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("schema is %T, not a mapping", node)
+	}
+	if parts, ok := m["allOf"].([]any); ok {
+		// allOf: merge the parts' properties and required lists.
+		merged := map[string]any{}
+		props := map[string]any{}
+		var required []any
+		for k, v := range m {
+			if k != "allOf" {
+				merged[k] = v
+			}
+		}
+		for _, part := range parts {
+			pm, err := s.resolve(part)
+			if err != nil {
+				return nil, err
+			}
+			for k, v := range pm {
+				switch k {
+				case "properties":
+					for pk, pv := range v.(map[string]any) {
+						props[pk] = pv
+					}
+				case "required":
+					required = append(required, v.([]any)...)
+				default:
+					if _, ok := merged[k]; !ok {
+						merged[k] = v
+					}
+				}
+			}
+		}
+		merged["properties"] = props
+		if required != nil {
+			merged["required"] = required
+		}
+		return merged, nil
 	}
 	ref, ok := m["$ref"].(string)
 	if !ok {
@@ -486,6 +691,7 @@ func sortedKeys[V any](m map[string]V) []string {
 // objSeen accumulates, across shapes, which keys the responses emitted for one
 // object path.
 type objSeen struct {
+	path   string
 	sch    map[string]any
 	shapes int
 	keys   map[string]int // key -> number of shapes that emitted it
@@ -495,6 +701,14 @@ type objSeen struct {
 // types, and keys the spec does not document. Keys the response emitted are
 // recorded in seen; "documented but absent" is judged after all shapes ran.
 func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*objSeen, errs *[]string) {
+	// Objects reached through the same $ref share one record, so a recursive
+	// schema (a folder holding folders) is judged across all its levels.
+	seenKey := path
+	if nm, ok := node.(map[string]any); ok {
+		if ref, ok := nm["$ref"].(string); ok {
+			seenKey = "ref:" + ref
+		}
+	}
 	sch, err := s.resolve(node)
 	if err != nil {
 		*errs = append(*errs, fmt.Sprintf("%s: %v", path, err))
@@ -527,10 +741,10 @@ func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*
 			}
 			return
 		}
-		o := seen[path]
+		o := seen[seenKey]
 		if o == nil {
-			o = &objSeen{sch: sch, keys: map[string]int{}}
-			seen[path] = o
+			o = &objSeen{path: path, sch: sch, keys: map[string]int{}}
+			seen[seenKey] = o
 		}
 		o.shapes++
 		for _, k := range sortedKeys(v) {
@@ -557,8 +771,9 @@ func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*
 // checkUnion reports documented keys no shape emitted (writeOnly keys are
 // request-only and exempt) and required keys some shape did not emit.
 func (s specSchemas) checkUnion(seen map[string]*objSeen, errs *[]string) {
-	for _, path := range sortedKeys(seen) {
-		o := seen[path]
+	for _, sk := range sortedKeys(seen) {
+		o := seen[sk]
+		path := o.path
 		props, _ := o.sch["properties"].(map[string]any)
 		reqs, _ := o.sch["required"].([]any)
 		for _, r := range reqs {
@@ -673,7 +888,19 @@ var (
 // element, Epoch and time non-zero, json.RawMessage a valid JSON object.
 func fill(v reflect.Value, depth int) {
 	if depth > 6 {
-		return
+		// Recursive types stop growing here: an empty slice or map keeps the
+		// deepest level marshaling as [] or {} rather than null, a pointer
+		// stays nil, and scalars are still filled.
+		switch v.Kind() {
+		case reflect.Slice:
+			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+			return
+		case reflect.Map:
+			v.Set(reflect.MakeMap(v.Type()))
+			return
+		case reflect.Ptr:
+			return
+		}
 	}
 	switch v.Type() {
 	case epochType:
@@ -1044,25 +1271,17 @@ func TestOpenAPIComponentsAccountedFor(t *testing.T) {
 		if _, ok := noGoType[name]; ok {
 			n++
 		}
-		if pendingPartB[name] {
-			n++
-		}
 		switch n {
 		case 0:
-			t.Errorf("component %s is not checked: add it to contractTable (with its handler file:line), noGoType or pendingPartB", name)
+			t.Errorf("component %s is not checked: add it to contractTable (with its handler file:line) or noGoType (with the reason it has no handler)", name)
 		case 1:
 		default:
-			t.Errorf("component %s is listed in more than one of contractTable, noGoType and pendingPartB", name)
+			t.Errorf("component %s is listed in both contractTable and noGoType", name)
 		}
 	}
 	for name := range noGoType {
 		if _, ok := schemas[name]; !ok {
 			t.Errorf("noGoType lists %s which is not in components/schemas", name)
-		}
-	}
-	for name := range pendingPartB {
-		if _, ok := schemas[name]; !ok {
-			t.Errorf("pendingPartB lists %s which is not in components/schemas", name)
 		}
 	}
 }
@@ -1086,5 +1305,209 @@ func TestOpenAPIEpochSchemas(t *testing.T) {
 		if sch["format"] != "int64" {
 			t.Errorf("%s: format must be int64, got %v", name, sch["format"])
 		}
+	}
+}
+
+// Mirrors of response shapes that handlers build without a named exported
+// type: a map[string]interface{} literal or a type declared inside the
+// handler. Each mirrors the keys and value types the handler really emits;
+// the comment on the contractTable entry cites the construction.
+
+// api_auth.go:1145 handleCreateMyAPIKey (map literal).
+type createdAPIKeyMirror struct {
+	Token          string `json:"token"`
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	Permissions    string `json:"permissions"`
+	OrganizationID *int   `json:"organization_id"`
+}
+
+// server.go:1232-1262 handleGetDocument (map literal; the active_review_* keys
+// are added only for a document in review, hence pointers with omitempty).
+type documentMirror struct {
+	DocumentID                    string  `json:"document_id"`
+	Title                         string  `json:"title"`
+	Type                          string  `json:"type"`
+	Version                       string  `json:"version"`
+	Status                        string  `json:"status"`
+	Author                        string  `json:"author"`
+	Owner                         string  `json:"owner"`
+	ReviewCycle                   int     `json:"review_cycle"`
+	NextReview                    string  `json:"next_review"`
+	Content                       string  `json:"content"`
+	Folder                        string  `json:"folder"`
+	ActiveReviewID                *int    `json:"active_review_id,omitempty"`
+	ActiveReviewStatus            *string `json:"active_review_status,omitempty"`
+	ActiveReviewRound             *int    `json:"active_review_round,omitempty"`
+	ActiveReviewChangedSinceSent  *bool   `json:"active_review_changed_since_sent,omitempty"`
+	ActiveReviewHasReviewerEdits  *bool   `json:"active_review_has_reviewer_edits,omitempty"`
+	ActiveReviewPendingSuggestion *int    `json:"active_review_pending_suggestions,omitempty"`
+}
+
+// server.go:1096 DocFile, declared inside handleListAllDocuments.
+type docFileMirror struct {
+	DocumentID string `json:"document_id"`
+	Title      string `json:"title"`
+	Version    string `json:"version"`
+	Status     string `json:"status"`
+	Author     string `json:"author"`
+	Path       string `json:"path"`
+	Folder     string `json:"folder"`
+}
+
+// server.go:1105 DocFolder, declared inside handleListAllDocuments.
+type docFolderMirror struct {
+	Name       string            `json:"name"`
+	Title      string            `json:"title,omitempty"`
+	Files      []docFileMirror   `json:"files"`
+	SubFolders []docFolderMirror `json:"subfolders,omitempty"`
+}
+
+// server.go:1841 NeedsReviewDoc, declared inside handleNeedsReview.
+type needsReviewDocMirror struct {
+	DocumentID        string   `json:"document_id"`
+	Title             string   `json:"title"`
+	Folder            string   `json:"folder"`
+	Path              string   `json:"path"`
+	CurrentCommit     string   `json:"current_commit"`
+	CurrentCommitTime string   `json:"current_commit_time"`
+	ApprovedCommit    string   `json:"approved_commit"`
+	ApprovedAt        string   `json:"approved_at"`
+	ApprovedVersion   string   `json:"approved_version"`
+	ChangeSummary     []string `json:"change_summary"`
+	NeverApproved     bool     `json:"never_approved"`
+}
+
+// api_references.go:127 refWithTitle, declared inside handleListReferences. The
+// outer title shadows the embedded one, as in the handler.
+type refWithTitleMirror struct {
+	db.EntityReference
+	Title   string `json:"title"`
+	Subtype string `json:"subtype,omitempty"`
+}
+
+// api_references.go:166 the anonymous request struct of handleCreateReference.
+type createReferenceRequestMirror struct {
+	SourceType string `json:"source_type"`
+	SourceID   string `json:"source_id"`
+	TargetType string `json:"target_type"`
+	TargetID   string `json:"target_id"`
+}
+
+// echo.NewHTTPError(status, "text") is written by echo as {"message": "text"}.
+type legacyErrorMirror struct {
+	Message string `json:"message"`
+}
+
+// api_users.go:203 orgWithRole, declared inside handleMyOrganizations.
+type orgWithRoleMirror struct {
+	db.Organization
+	Role string `json:"role"`
+}
+
+// api_users.go:318 handleCreateOrganization (map literal).
+type createdOrgMirror struct {
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+// api_collab.go:480 reviewWithAgent, declared inside handleGetReview (it embeds
+// *db.Review; by value marshals the same).
+type reviewWithAgentMirror struct {
+	db.Review
+	AuthorIsAgent    bool  `json:"author_is_agent"`
+	ChangedSinceSent *bool `json:"changed_since_sent,omitempty"`
+	HasReviewerEdits *bool `json:"has_reviewer_edits,omitempty"`
+}
+
+// api_users.go:79-104 handleMe (map literal; organization_* keys are added only
+// when the request has an organization and it resolves).
+type meMirror struct {
+	ID               int     `json:"id"`
+	Email            string  `json:"email"`
+	Name             string  `json:"name"`
+	Role             string  `json:"role"`
+	IsAgent          bool    `json:"is_agent"`
+	Active           bool    `json:"active"`
+	Authenticated    bool    `json:"authenticated"`
+	HasPassword      bool    `json:"has_password"`
+	OTPEnabled       bool    `json:"otp_enabled"`
+	EmailVerified    bool    `json:"email_verified"`
+	PendingEmail     *string `json:"pending_email"`
+	OrganizationID   int     `json:"organization_id"`
+	AIEnabled        bool    `json:"ai_enabled"`
+	Locale           string  `json:"locale"`
+	LocalePreference *string `json:"locale_preference"`
+	OrganizationUUID string  `json:"organization_uuid,omitempty"`
+	OrganizationSlug string  `json:"organization_slug,omitempty"`
+	OrganizationName string  `json:"organization_name,omitempty"`
+}
+
+// api_users.go:27-33 handleMe without an authenticated user (map literal).
+type anonymousMeMirror struct {
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	Role          string `json:"role"`
+	Authenticated bool   `json:"authenticated"`
+}
+
+// inlineResponseChecks lists operations whose response schema (or the items of
+// its data array) is inline, not a component, and must match the Go value the
+// handler serializes.
+var inlineResponseChecks = []struct {
+	op      string
+	status  string
+	items   bool // the schema is properties.data.items of the response
+	typ     reflect.Type
+	handler string
+}{
+	{"GET /auth/passkeys", "200", true, tReq(passkeyListItem{}), "api_passkey.go:387 handleListPasskeys: {\"data\": items} items is []passkeyListItem"},
+	{"GET /inbox", "200", true, tReq(inboxItem{}), "api_collab.go:3952 handleInbox: {\"data\": items} items is []inboxItem"},
+	{"GET /activity", "200", true, tReq(db.Activity{}), "api_collab.go:3845 handleListActivity: {\"data\": activities} activities is []db.Activity (RecentActivity)"},
+	{"GET /documents/{docId}/activity", "200", true, tReq(db.Activity{}), "api_collab.go:3859 handleDocumentActivity: {\"data\": activities} activities is []db.Activity (ActivityForDocument)"},
+}
+
+func TestOpenAPIInlineResponses(t *testing.T) {
+	spec := loadSpec(t)
+	for _, c := range inlineResponseChecks {
+		t.Run(c.op, func(t *testing.T) {
+			parts := strings.SplitN(c.op, " ", 2)
+			op, _ := spec.paths[parts[1]][strings.ToLower(parts[0])].(map[string]any)
+			resp, _ := op["responses"].(map[string]any)[c.status].(map[string]any)
+			content, _ := resp["content"].(map[string]any)
+			mt, _ := content["application/json"].(map[string]any)
+			var node any = mt["schema"]
+			if node == nil {
+				t.Fatalf("%s: no inline %s response schema in the spec", c.op, c.status)
+			}
+			if c.items {
+				sch, _ := node.(map[string]any)
+				props, _ := sch["properties"].(map[string]any)
+				data, _ := props["data"].(map[string]any)
+				node = data["items"]
+				if node == nil {
+					t.Fatalf("%s: the response has no data.items schema", c.op)
+				}
+			}
+			if _, isRef := node.(map[string]any)["$ref"]; isRef {
+				t.Fatalf("%s: the schema is a $ref; list it in contractTable instead", c.op)
+			}
+			var errs []string
+			filled := reflect.New(c.typ)
+			fill(filled.Elem(), 0)
+			full := marshalToMap(t, filled.Interface())
+			zero := marshalToMap(t, reflect.New(c.typ).Interface())
+			seen := map[string]*objSeen{}
+			facts := map[string]*zeroFact{}
+			spec.schemas.checkFull(c.op, full, node, seen, &errs)
+			spec.schemas.collectZero(c.op, zero, full, node, facts)
+			spec.schemas.checkUnion(seen, &errs)
+			spec.schemas.judgeZero(facts, map[string]bool{}, &errs)
+			sort.Strings(errs)
+			for _, msg := range errs {
+				t.Error(msg)
+			}
+		})
 	}
 }

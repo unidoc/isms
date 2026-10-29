@@ -2968,18 +2968,22 @@ paths:
     get:
       tags: [References]
       summary: List entity references
+      description: >-
+        Returns the links where the entity is either end: a link created from
+        either side is listed once, with the other entity's title resolved. id
+        accepts the same forms as source_id on EntityReference (a program or
+        objective may be given by row id; an audit, finding or programme by row
+        id). Responds 400 when type or id is missing.
       parameters:
-        - name: source_type
+        - name: type
           in: query
-          schema: { type: string }
-        - name: source_id
+          required: true
+          description: Entity type of the entity whose links to list.
+          schema: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, objective, program, audit, audit_finding, audit_programme, change_request, task] }
+        - name: id
           in: query
-          schema: { type: string }
-        - name: target_type
-          in: query
-          schema: { type: string }
-        - name: target_id
-          in: query
+          required: true
+          description: Identifier of that entity, for example RISK-12.
           schema: { type: string }
       responses:
         '200':
@@ -3822,7 +3826,7 @@ components:
       type: object
       description: A link to create together with a new record, naming the target entity.
       properties:
-        type: { type: string, description: "Entity type of the target, for example risk or asset." }
+        type: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, objective, program, audit, audit_finding, audit_programme, change_request, task], description: "Entity type of the target. The API stores change requests as change_request." }
         id: { type: string, description: "Identifier of the target, for example RISK-3. Resolved and stored in its canonical form." }
 
     Risk:
@@ -4139,7 +4143,7 @@ components:
         inbox_group: { type: string, enum: [assigned, delegated], readOnly: true, description: "Only with involving=me. Omitted when empty." }
         needs_action: { type: boolean, readOnly: true, description: "Only with involving=me; true when the caller has to act. Omitted when false." }
         references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references. Set on create; ignored on update." }
-        # Cross-entity links (incident, document, control, etc.) live in entity_references
+        # Cross-entity links (incident, document, etc.) live in entity_references
 
     ChangeRequest:
       type: object
@@ -4369,9 +4373,9 @@ components:
       type: object
       properties:
         id: { type: integer, readOnly: true }
-        source_type: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, audit_programme, change_request, task] }
+        source_type: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, objective, program, audit, audit_finding, audit_programme, change_request, task] }
         source_id: { type: string, description: "For most types, the entity's per-org identifier (e.g. \"RISK-12\"). A program accepts its row id or key; an objective accepts its row id or display id. Both are stored and returned in key / display id form (e.g. \"REG\", \"REG-1\"), regardless of which form was sent. An audit, audit finding or audit programme accepts its row id or AUDIT-<id> / FIND-<id> / AP-<id>, and is stored and returned in the prefixed form." }
-        target_type: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, control, objective, program, audit, audit_finding, audit_programme, change_request, task] }
+        target_type: { type: string, enum: [document, risk, legal_requirement, asset, supplier, system, incident, corrective_action, objective, program, audit, audit_finding, audit_programme, change_request, task] }
         target_id: { type: string, description: "Same rules as source_id." }
         title: { type: string, readOnly: true, description: "Resolved display name of the other entity. In GET /references it is always present (empty when it cannot be resolved); the create response omits it when empty." }
         created_by: { type: string, readOnly: true, description: "Omitted when empty." }

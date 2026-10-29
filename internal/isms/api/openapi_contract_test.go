@@ -39,8 +39,15 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1619,6 +1626,178 @@ func TestOpenAPIInlineResponses(t *testing.T) {
 			sort.Strings(errs)
 			for _, msg := range errs {
 				t.Error(msg)
+			}
+		})
+	}
+}
+
+// referenceTypesFromResolver returns the reference types the API accepts: the
+// string cases of the switch on entityType in refs.Resolver.Lookup
+// (internal/isms/refs/refs.go), the one place that decides whether a type names
+// a real entity (unknown types fall to the default case: not found). It reads
+// the source because the list is a switch, not a value.
+func referenceTypesFromResolver(t *testing.T) []string {
+	t.Helper()
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filepath.Join("..", "refs", "refs.go"), nil, 0)
+	if err != nil {
+		t.Fatalf("parse refs.go: %v", err)
+	}
+	var types []string
+	ast.Inspect(f, func(n ast.Node) bool {
+		fd, ok := n.(*ast.FuncDecl)
+		if !ok || fd.Name.Name != "Lookup" {
+			return true
+		}
+		ast.Inspect(fd.Body, func(n ast.Node) bool {
+			sw, ok := n.(*ast.SwitchStmt)
+			if !ok {
+				return true
+			}
+			if id, ok := sw.Tag.(*ast.Ident); !ok || id.Name != "entityType" {
+				return true
+			}
+			for _, st := range sw.Body.List {
+				cc := st.(*ast.CaseClause)
+				for _, e := range cc.List {
+					if bl, ok := e.(*ast.BasicLit); ok && bl.Kind == token.STRING {
+						v, _ := strconv.Unquote(bl.Value)
+						types = append(types, v)
+					}
+				}
+			}
+			return false
+		})
+		return false
+	})
+	sort.Strings(types)
+	if len(types) == 0 {
+		t.Fatal("found no reference types in refs.Resolver.Lookup")
+	}
+	return types
+}
+
+// referenceTypesFromMigrations returns the types the latest entity_references
+// CHECK constraint (column is source_type or target_type) allows.
+func referenceTypesFromMigrations(t *testing.T, column string) []string {
+	t.Helper()
+	files, _ := filepath.Glob(filepath.Join("..", "..", "..", "migrations", "*.sql"))
+	sort.Strings(files)
+	re := regexp.MustCompile(`entity_references_` + column + `_check\s+CHECK \(` + column + ` IN \(([^)]*)\)\)`)
+	var last []string
+	for _, f := range files {
+		raw, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range re.FindAllStringSubmatch(string(raw), -1) {
+			last = nil
+			for _, v := range strings.Split(m[1], ",") {
+				last = append(last, strings.Trim(strings.TrimSpace(v), "'"))
+			}
+		}
+	}
+	if last == nil {
+		t.Fatalf("no entity_references_%s_check constraint found in migrations", column)
+	}
+	sort.Strings(last)
+	return last
+}
+
+func enumOf(sch map[string]any) []string {
+	var out []string
+	list, _ := sch["enum"].([]any)
+	for _, v := range list {
+		out = append(out, fmt.Sprint(v))
+	}
+	sort.Strings(out)
+	return out
+}
+
+// The reference type enums in the spec must equal the types the code accepts,
+// and the code and the database CHECK must agree.
+func TestOpenAPIReferenceTypes(t *testing.T) {
+	spec := loadSpec(t)
+	canon := referenceTypesFromResolver(t)
+	want := strings.Join(canon, ",")
+	for _, col := range []string{"source_type", "target_type"} {
+		if got := strings.Join(referenceTypesFromMigrations(t, col), ","); got != want {
+			t.Errorf("refs.Resolver.Lookup accepts [%s] but the latest entity_references %s CHECK allows [%s]", want, col, got)
+		}
+	}
+	prop := func(comp, key string) map[string]any {
+		sch, err := spec.schemas.resolve(spec.schemas[comp])
+		if err != nil {
+			t.Fatal(err)
+		}
+		ps, err := spec.schemas.resolve(sch["properties"].(map[string]any)[key])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ps
+	}
+	for _, c := range []struct{ comp, key string }{
+		{"EntityReference", "source_type"}, {"EntityReference", "target_type"}, {"ReferenceInput", "type"},
+	} {
+		if got := strings.Join(enumOf(prop(c.comp, c.key)), ","); got != want {
+			t.Errorf("%s.%s: spec enum [%s] differs from the reference types in code [%s]", c.comp, c.key, got, want)
+		}
+	}
+}
+
+// queryParamChecks lists the query parameters a handler reads (c.QueryParam),
+// to compare with the operation's documented parameters.
+var queryParamChecks = []struct {
+	op       string
+	required []string // read and rejected with 400 when empty
+	handler  string
+}{
+	{"GET /references", []string{"id", "type"}, "api_references.go:98-101 handleListReferences reads type and id only and returns 400 when either is empty"},
+}
+
+func TestOpenAPIQueryParams(t *testing.T) {
+	spec := loadSpec(t)
+	for _, c := range queryParamChecks {
+		t.Run(c.op, func(t *testing.T) {
+			parts := strings.SplitN(c.op, " ", 2)
+			op, _ := spec.paths[parts[1]][strings.ToLower(parts[0])].(map[string]any)
+			params, _ := op["parameters"].([]any)
+			got := map[string]bool{}
+			for _, p := range params {
+				pm, _ := p.(map[string]any)
+				if pm["in"] != "query" {
+					continue
+				}
+				name, _ := pm["name"].(string)
+				got[name] = flag(pm, "required")
+			}
+			for _, k := range c.required {
+				req, ok := got[k]
+				switch {
+				case !ok:
+					t.Errorf("%s: the handler reads query parameter %q but the spec does not document it", c.op, k)
+				case !req:
+					t.Errorf("%s: query parameter %q is required by the handler but not marked required", c.op, k)
+				}
+			}
+			want := map[string]bool{}
+			for _, k := range c.required {
+				want[k] = true
+			}
+			for _, k := range sortedKeys(got) {
+				if !want[k] {
+					t.Errorf("%s: the spec documents query parameter %q but the handler does not read it", c.op, k)
+				}
+			}
+			// the type parameter carries the reference type enum
+			for _, p := range params {
+				pm, _ := p.(map[string]any)
+				if pm["name"] == "type" {
+					sch, _ := pm["schema"].(map[string]any)
+					if got, want := strings.Join(enumOf(sch), ","), strings.Join(referenceTypesFromResolver(t), ","); got != want {
+						t.Errorf("%s: parameter type enum [%s] differs from the reference types in code [%s]", c.op, got, want)
+					}
+				}
 			}
 		})
 	}

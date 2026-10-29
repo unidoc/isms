@@ -13,7 +13,8 @@ package api
 // component that an operation takes as its request body must list its DTOs,
 // and each DTO field must be able to decode the type the schema documents.
 //
-// Nullability rule (mirrors the EpochSeconds description in openapi.yaml):
+// Nullability rule (stated once in the comment above EpochSeconds in
+// openapi.yaml; the test enforces it mechanically):
 //   - a key that is omitted when empty (omitempty) is not in "required" and its
 //     type does not include null;
 //   - a key that marshals to null at its zero value (nil pointer, nil slice or
@@ -74,6 +75,10 @@ type contractEntry struct {
 	// ignores (for example when the request body is the db struct itself); the
 	// spec marks them readOnly.
 	serverSet []string
+	// fullReplace marks an update request that replaces the whole record, so
+	// omitting a pointer field or sending null clears it (not just Optional
+	// fields). Such fields must be nullable and say "Omit or send null to clear."
+	fullReplace bool
 	// requestOnly marks a component that no handler returns: it is the element
 	// type of a request field. It is checked as a request shape (accepted keys
 	// and types), not as a response.
@@ -360,8 +365,11 @@ var contractTable = []contractEntry{
 		component: "ImplementationStatus",
 		//   api_collab.go:3437 handleListImplementation: {"data": items} items is []db.ImplementationStatus
 		//   api_collab.go:3506 handleUpdateImplementation: c.JSON(200, impl) impl is db.ImplementationStatus
-		shapes:   []contractShape{shape(tReq(db.ImplementationStatus{}), "api_collab.go:3506 handleUpdateImplementation: c.JSON(200, impl), impl is db.ImplementationStatus")},
-		requests: []reflect.Type{tReq(implementationUpdateRequest{})},
+		// PUT replaces the whole record (UpsertImplementationStatus, db/implementation.go:21-35:
+		// ON CONFLICT DO UPDATE sets every column), so omitting owner, notes or target_date clears them.
+		shapes:      []contractShape{shape(tReq(db.ImplementationStatus{}), "api_collab.go:3506 handleUpdateImplementation: c.JSON(200, impl), impl is db.ImplementationStatus")},
+		requests:    []reflect.Type{tReq(implementationUpdateRequest{})},
+		fullReplace: true,
 	},
 	{
 		component: "Notification",
@@ -376,7 +384,12 @@ var contractTable = []contractEntry{
 		//   api_admin.go:261 handleAdminUpdateOIDC: c.JSON(200, p) p is db.OIDCProvider with ClientSecret cleared (api_admin.go:260)
 		// The request body is the db struct itself (c.Bind(&p)), so every key binds; the handler
 		// overwrites id and organization_id, and the database sets created_at.
-		shapes:    []contractShape{shape(tReq(db.OIDCProvider{}), "api_admin.go:215 handleAdminCreateOIDC: c.JSON(201, p), p is db.OIDCProvider")},
+		// Update returns the freshly bound struct: created_at is zero (null) or what the client sent
+		// (api_admin.go:238, db/oidc.go:209-222 has no RETURNING).
+		shapes: []contractShape{
+			shape(tReq(db.OIDCProvider{}), "api_admin.go:215 handleAdminCreateOIDC: c.JSON(201, p), p is db.OIDCProvider"),
+			shape(tReq(db.OIDCProvider{}), "api_admin.go:261 handleAdminUpdateOIDC: c.JSON(200, p), p is db.OIDCProvider bound from the request"),
+		},
 		requests:  []reflect.Type{tReq(db.OIDCProvider{})},
 		serverSet: []string{"id", "organization_id", "created_at"},
 	},
@@ -424,8 +437,9 @@ var contractTable = []contractEntry{
 	{
 		component: "LoginResponse",
 		//   api_auth.go:176 handleLogin, api_auth.go:419 handleSwitchOrg, api_passkey.go:340
-		//   handlePasskeyLoginComplete: c.JSON(200, loginResponse{...}); api_auth.go:92 returns
-		//   loginResponse{OTPRequired: true} alone, which the omitempty keys cover.
+		//   handlePasskeyLoginComplete, api_auth.go:1073 handleVerifyEmail: c.JSON(200, loginResponse{...});
+		//   api_auth.go:92 returns loginResponse{OTPRequired: true} alone: token, email, name and role
+		//   have no omitempty, so they are emitted as empty strings.
 		shapes: []contractShape{shape(tReq(loginResponse{}), "api_auth.go:176 handleLogin: c.JSON(200, loginResponse{...})")},
 	},
 	{
@@ -457,6 +471,9 @@ var neverNullKeys = map[string]bool{"created_at": true, "updated_at": true}
 // in the database and filled by the handler before insert, so they never
 // marshal as null in practice. Each entry cites the column and the code.
 var neverNullByComponent = map[string]map[string]string{
+	"DocumentNeedingReview": {
+		"change_summary": "both branches of handleNeedsReview set a non-empty slice: server.go:1909 (never reviewed) and server.go:1944-1950 (changeSummary falls back to a one-item slice)",
+	},
 	"AccessReview": {
 		"reviewed_at": "access_reviews.reviewed_at is NOT NULL DEFAULT now(); handleCreateAccessReview (server.go:3244) fills a zero value before insert",
 	},
@@ -469,13 +486,73 @@ var neverNullByComponent = map[string]map[string]string{
 	},
 }
 
+// notNeverNull lists keys of the global never-null set that are nevertheless
+// null in some response of the component, with the evidence.
+var notNeverNull = map[string]map[string]string{
+	"OIDCProvider": {
+		"created_at": "handleAdminUpdateOIDC (api_admin.go:238) binds a fresh db.OIDCProvider and UpdateOIDCProvider (db/oidc.go:209-222) has no RETURNING, so the update response carries null, or whatever the client sent",
+	},
+}
+
+// neverPopulated lists struct fields a handler's query never fills, so the
+// response never carries them even though the Go type has the field. The fill
+// leaves them at the zero value instead of fabricating them.
+var neverPopulated = map[string]map[string]string{
+	"UserWithRole": {
+		"pending_email": "ListOrgUsers (db/users.go:701, scan at :715) does not select pending_email",
+		"locale":        "ListOrgUsers (db/users.go:701, scan at :715) does not select locale",
+	},
+}
+
 func isNeverNull(path, key string) bool {
+	comp := path[:strings.Index(path+".", ".")]
+	if _, ok := notNeverNull[comp][key]; ok {
+		return false
+	}
 	if neverNullKeys[key] {
 		return true
 	}
-	comp := path[:strings.Index(path+".", ".")]
 	_, ok := neverNullByComponent[comp][key]
 	return ok
+}
+
+// zeroJSONField sets the field with the given JSON name (searching embedded
+// structs) back to its zero value.
+func zeroJSONField(v reflect.Value, name string) bool {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		n := strings.Split(f.Tag.Get("json"), ",")[0]
+		if f.Anonymous && n == "" && f.Type.Kind() == reflect.Struct {
+			if zeroJSONField(v.Field(i), name) {
+				return true
+			}
+			continue
+		}
+		if n == name {
+			v.Field(i).Set(reflect.Zero(f.Type))
+			return true
+		}
+	}
+	return false
+}
+
+// rawJSONKeys returns the JSON names of top-level json.RawMessage fields. The
+// fill can only invent a placeholder for them ({"k":"v"}), so the JSON type the
+// schema documents for them is not asserted from it: the type comes from the
+// evidence cited in the schema description, not from the fill.
+func rawJSONKeys(t reflect.Type, into map[string]bool) {
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		n := strings.Split(f.Tag.Get("json"), ",")[0]
+		if f.Anonymous && n == "" && f.Type.Kind() == reflect.Struct {
+			rawJSONKeys(f.Type, into)
+			continue
+		}
+		if f.Type == rawJSONType && n != "" && n != "-" {
+			into[n] = true
+		}
+	}
 }
 
 // inlineRequestChecks lists operations whose request body is an inline schema
@@ -486,6 +563,13 @@ var inlineRequestChecks = []struct {
 }{
 	{"PUT /audits/{id}", reflect.TypeOf(auditUpdateRequest{})},
 	{"PUT /audit-findings/{id}", reflect.TypeOf(auditFindingUpdateRequest{})},
+	// api_auth.go:388 handleSwitchOrg binds an anonymous struct with "slug".
+	{"POST /auth/switch-org", reflect.TypeOf(switchOrgRequestMirror{})},
+}
+
+// api_auth.go:388 the anonymous request struct of handleSwitchOrg.
+type switchOrgRequestMirror struct {
+	Slug string `json:"slug"`
 }
 
 type specDoc struct {
@@ -558,7 +642,15 @@ func (s specSchemas) resolve(node any) (map[string]any, error) {
 		props := map[string]any{}
 		var required []any
 		for k, v := range m {
-			if k != "allOf" {
+			switch k {
+			case "allOf":
+			case "properties": // siblings of allOf merge with the parts' properties
+				for pk, pv := range v.(map[string]any) {
+					props[pk] = pv
+				}
+			case "required":
+				required = append(required, v.([]any)...)
+			default:
 				merged[k] = v
 			}
 		}
@@ -700,7 +792,10 @@ type objSeen struct {
 // checkFull compares one fully populated response value with its schema:
 // types, and keys the spec does not document. Keys the response emitted are
 // recorded in seen; "documented but absent" is judged after all shapes ran.
-func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*objSeen, errs *[]string) {
+func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*objSeen, skip map[string]bool, errs *[]string) {
+	if skip[path] {
+		return
+	}
 	// Objects reached through the same $ref share one record, so a recursive
 	// schema (a folder holding folders) is judged across all its levels.
 	seenKey := path
@@ -736,7 +831,7 @@ func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*
 		if props == nil {
 			if ap, ok := sch["additionalProperties"].(map[string]any); ok {
 				for _, k := range sortedKeys(v) {
-					s.checkFull(path+"."+k, v[k], ap, seen, errs)
+					s.checkFull(path+"."+k, v[k], ap, seen, skip, errs)
 				}
 			}
 			return
@@ -757,12 +852,12 @@ func (s specSchemas) checkFull(path string, val any, node any, seen map[string]*
 			if ps, err := s.resolve(p); err == nil && flag(ps, "writeOnly") {
 				*errs = append(*errs, fmt.Sprintf("%s.%s: marked writeOnly but the response emits it", path, k))
 			}
-			s.checkFull(path+"."+k, v[k], p, seen, errs)
+			s.checkFull(path+"."+k, v[k], p, seen, skip, errs)
 		}
 	case []any:
 		if items, ok := sch["items"]; ok {
 			for i, e := range v {
-				s.checkFull(fmt.Sprintf("%s[%d]", path, i), e, items, seen, errs)
+				s.checkFull(fmt.Sprintf("%s[%d]", path, i), e, items, seen, skip, errs)
 			}
 		}
 	}
@@ -853,7 +948,7 @@ func (s specSchemas) judgeZero(facts map[string]*zeroFact, clearable map[string]
 		switch {
 		case isNeverNull(p, key):
 			if allowsNull(f.prop) {
-				*errs = append(*errs, fmt.Sprintf("%s: the database always sets this key, spec type must not include null", p))
+				*errs = append(*errs, fmt.Sprintf("%s: this key is never null in practice (the database or the handler always sets it), so the spec type must not include null", p))
 			}
 		case clearable[p]:
 			// A null from the client clears the value, so the type includes
@@ -1143,7 +1238,7 @@ func TestOpenAPIContract(t *testing.T) {
 			}
 			clearable := map[string]bool{}
 			for k, rt := range update {
-				if isOptional(rt) {
+				if isOptional(rt) || (e.fullReplace && rt.Kind() == reflect.Ptr) {
 					clearable[e.component+"."+k] = true
 				}
 			}
@@ -1157,12 +1252,23 @@ func TestOpenAPIContract(t *testing.T) {
 				}
 				filled := reflect.New(sh.typ)
 				fill(filled.Elem(), 0)
+				for _, k := range sortedKeys(neverPopulated[e.component]) {
+					if !zeroJSONField(filled.Elem(), k) {
+						errs = append(errs, fmt.Sprintf("%s: neverPopulated lists %q which is not a field of %s", e.component, k, sh.typ))
+					}
+				}
 				full := marshalToMap(t, filled.Interface())
 				zero := marshalToMap(t, reflect.New(sh.typ).Interface())
 				for k := range full {
 					emitted[k] = true
 				}
-				schemas.checkFull(e.component, full, node, seen, &errs)
+				raw := map[string]bool{}
+				rawJSONKeys(sh.typ, raw)
+				skip := map[string]bool{}
+				for k := range raw {
+					skip[e.component+"."+k] = true
+				}
+				schemas.checkFull(e.component, full, node, seen, skip, &errs)
 				schemas.collectZero(e.component, zero, full, node, facts)
 			}
 			schemas.checkUnion(seen, &errs)
@@ -1217,6 +1323,12 @@ func TestOpenAPIContract(t *testing.T) {
 						errs = append(errs, fmt.Sprintf("%s.%s: the update request clears this key on null (Optional) but the spec type does not include null", e.component, k))
 					case isOptional(urt) && !strings.Contains(desc, clearPhrase):
 						errs = append(errs, fmt.Sprintf("%s.%s: the update request clears this key on null, so the description must say %q", e.component, k, clearPhrase))
+					case e.fullReplace && urt.Kind() == reflect.Ptr && !allowsNull(ps):
+						errs = append(errs, fmt.Sprintf("%s.%s: the update request replaces the record, so null clears this key, but the spec type does not include null", e.component, k))
+					case e.fullReplace && urt.Kind() == reflect.Ptr && !strings.Contains(desc, "Omit or send null to clear."):
+						errs = append(errs, fmt.Sprintf("%s.%s: the update request replaces the record, so the description must say %q", e.component, k, "Omit or send null to clear."))
+					case e.fullReplace && urt.Kind() == reflect.Ptr:
+						// documented above
 					case !isOptional(urt) && allowsNull(ps) && !isNeverNull(e.component, k) && !nullFromResponse(facts, e.component, k):
 						errs = append(errs, fmt.Sprintf("%s.%s: spec type includes null but the update field is not Optional, so null does not clear it", e.component, k))
 					}
@@ -1237,7 +1349,7 @@ func TestOpenAPIContract(t *testing.T) {
 			fields := map[string]reflect.Type{}
 			jsonFields(c.dto, fields)
 			var errs []string
-			schemas.checkRequestFields(c.op, props, fields, true, "Send null", &errs)
+			schemas.checkRequestFields(c.op, props, fields, isUpdateDTO(c.dto), "Send null", &errs)
 			sort.Strings(errs)
 			for _, msg := range errs {
 				t.Error(msg)
@@ -1500,7 +1612,7 @@ func TestOpenAPIInlineResponses(t *testing.T) {
 			zero := marshalToMap(t, reflect.New(c.typ).Interface())
 			seen := map[string]*objSeen{}
 			facts := map[string]*zeroFact{}
-			spec.schemas.checkFull(c.op, full, node, seen, &errs)
+			spec.schemas.checkFull(c.op, full, node, seen, nil, &errs)
 			spec.schemas.collectZero(c.op, zero, full, node, facts)
 			spec.schemas.checkUnion(seen, &errs)
 			spec.schemas.judgeZero(facts, map[string]bool{}, &errs)

@@ -137,6 +137,9 @@ paths:
       responses:
         '200':
           description: Email verified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -250,9 +253,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [org_slug]
+              required: [slug]
               properties:
-                org_slug: { type: string }
+                slug: { type: string, description: Slug of the organization to switch to }
       responses:
         '200':
           description: New token for switched organization
@@ -1856,12 +1859,16 @@ paths:
           description: "Item ID (e.g. ISO27001-A.5.1, ISO27001-4.1)"
       requestBody:
         required: true
+        description: "Replaces the whole record: owner, notes and target_date are cleared when omitted."
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ImplementationStatus' }
       responses:
         '200':
           description: Status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImplementationStatus' }
 
   /implementation/progress:
     get:
@@ -3347,6 +3354,9 @@ paths:
       responses:
         '201':
           description: OIDC provider created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OIDCProvider' }
         '403':
           $ref: '#/components/responses/Forbidden'
 
@@ -3364,6 +3374,9 @@ paths:
       responses:
         '200':
           description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OIDCProvider' }
         '403':
           $ref: '#/components/responses/Forbidden'
     delete:
@@ -3606,10 +3619,8 @@ components:
         name: { type: string }
         otp_verified: { type: boolean }
         email_verified: { type: boolean }
-        pending_email: { type: string, format: email, description: "Address awaiting change confirmation. Omitted when none." }
         is_agent: { type: boolean }
         active: { type: boolean }
-        locale: { type: string, description: "Omitted when not set." }
         created_at: { $ref: '#/components/schemas/EpochSeconds' }
         last_seen: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
 
@@ -3622,16 +3633,16 @@ components:
 
     LoginResponse:
       type: object
-      description: "Response of POST /auth/login, POST /auth/switch-org and POST /auth/passkey/login/complete."
+      description: "Response of POST /auth/login, POST /auth/switch-org, POST /auth/passkey/login/complete and POST /auth/verify-email. When POST /auth/login needs a one-time code it returns otp_required: true with token, email, name and role as empty strings."
       properties:
         token: { type: string, description: "JWT session token." }
         email: { type: string }
         name: { type: string }
         role: { type: string }
-        otp_required: { type: boolean, description: "true when the password was accepted but a one-time code is still needed; the response then carries no token. Omitted otherwise." }
+        otp_required: { type: boolean, description: "true when the password was accepted but a one-time code is still needed; token, email, name and role are then empty strings. Omitted otherwise." }
         organization_id: { type: integer, description: "Omitted when 0." }
         organization_name: { type: string, description: "Omitted when empty." }
-        organization_slug: { type: string, description: "Omitted when empty." }
+        organization_slug: { type: string, description: "Only in the /auth/login response. Omitted when empty." }
 
     CurrentUser:
       type: object
@@ -3701,7 +3712,7 @@ components:
         title: { type: string }
         type: { type: string, description: "Document type from the frontmatter (control, policy, procedure, clause, record, guideline); empty for a plain document." }
         version: { type: string, example: "1.0" }
-        status: { type: string, enum: [draft, in_review, approved, retired] }
+        status: { type: string, enum: [draft, in_review, approved, retired], description: "Other values can appear if set outside the API (PUT metadata and git push do not enforce the list)." }
         author: { type: string }
         owner: { type: string }
         review_cycle: { type: integer, description: "Review cycle in months; 0 when not set." }
@@ -3746,10 +3757,10 @@ components:
         path: { type: string }
         current_commit: { type: string }
         current_commit_time: { type: string, description: "Commit time as a formatted string, not epoch seconds." }
-        approved_commit: { type: string }
+        approved_commit: { type: string, description: "The literal \"never\" when the document was never approved." }
         approved_at: { type: string, description: "Date and time of the approval, formatted YYYY-MM-DD HH:MM (a string, not epoch seconds)." }
         approved_version: { type: string }
-        change_summary: { type: [array, 'null'], items: { type: string } }
+        change_summary: { type: array, items: { type: string }, description: "Never empty: a single explanatory item when no commit summary is available." }
         never_approved: { type: boolean }
 
     ChangedDocument:
@@ -4168,7 +4179,7 @@ components:
         title: { type: string }
         payload: { type: [object, 'null'], additionalProperties: true, description: "The proposed change. null when empty." }
         rationale: { type: string, description: "Omitted when empty." }
-        source_refs: { type: object, additionalProperties: true, description: "Omitted when empty." }
+        source_refs: { type: array, items: { description: "Supporting evidence: {type, id} objects linking to entities (the MCP create_suggestion tool), or plain strings such as URLs; stored as sent." }, description: "Stored as sent, so the type is not checked against the Go fill. Omitted when empty." }
         entity_updated_at: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
         status: { type: string, enum: [open, in_review, applied, rejected, withdrawn] }
         suggested_by: { type: string }
@@ -4190,9 +4201,9 @@ components:
         item_id: { type: string, readOnly: true, description: "Item ID (e.g. ISO27001-A.5.1, ISO27001-4.1)." }
         item_type: { type: string }
         status: { type: string, enum: [not_started, in_progress, implemented, verified] }
-        owner: { type: string, description: "Omitted when empty." }
-        target_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
-        notes: { type: string, description: "Omitted when empty." }
+        owner: { type: string, description: "Omit or send an empty string to clear. Omitted when empty." }
+        target_date: { $ref: '#/components/schemas/EpochSecondsNullable', description: "Omit or send null to clear. Omitted when not set." }
+        notes: { type: string, description: "Omit or send an empty string to clear. Omitted when empty." }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     Notification:
@@ -4371,10 +4382,10 @@ components:
     ChangelogEntry:
       type: object
       properties:
-        id: { type: integer }
-        organization_id: { type: integer }
+        id: { type: integer, description: "0 in document-history rows, which are built from git and the decision log." }
+        organization_id: { type: integer, description: "0 in document-history rows." }
         entity_type: { type: string }
-        entity_id: { type: integer, description: "Row id of the entity; 0 for a document, whose id is text." }
+        entity_id: { type: integer, description: "Row id of the entity; 0 in document-history rows, because a document's id is text." }
         action: { type: string, description: "create, update, delete, a suggestion action, or, for document history, a git or decision action." }
         field: { type: string, description: "Omitted when empty." }
         old_value: { type: string, description: "Omitted when not set." }
@@ -4386,17 +4397,17 @@ components:
 
     OIDCProvider:
       type: object
-      description: "An OpenID Connect provider. The client secret is masked or omitted in every response."
+      description: "An OpenID Connect provider as the admin endpoints return it. GET /admin/oidc masks client_secret as \"********\" when a secret is stored; the create and update responses omit it."
       properties:
         id: { type: integer, readOnly: true }
         organization_id: { type: integer, readOnly: true }
         provider_name: { type: string }
         display_name: { type: string }
         client_id: { type: string }
-        client_secret: { type: string, description: "Accepted on create and update. List responses return \"********\" when a secret is stored; create and update responses omit it. Omitted when empty." }
+        client_secret: { type: string, description: "Accepted on create and update. GET /admin/oidc returns \"********\" when a secret is stored; the create and update responses omit it." }
         discovery_url: { type: string, description: "The provider's OpenID Connect discovery URL." }
         scopes: { type: string, description: "Space- or comma-separated scope list, stored as sent." }
         auto_add_members: { type: boolean }
         default_role: { type: string }
         enabled: { type: boolean }
-        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        created_at: { $ref: '#/components/schemas/EpochSecondsNullable', readOnly: true, description: "Set on create. null in the update response, which does not read it back (or the value the client sent)." }

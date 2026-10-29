@@ -88,7 +88,8 @@
     "changes_none": "brak oczekujących",
     "overdue": "Po terminie",
     "overdue_detail": "elementów po terminie",
-    "overdue_none": "wszystko na czas"
+    "overdue_none": "wszystko na czas",
+    "overdue_unavailable": "nie udało się wczytać"
   },
   "heatmap_title": "Mapa ryzyka",
   "calendar": {

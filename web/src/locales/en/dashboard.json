@@ -88,7 +88,8 @@
     "changes_none": "none pending",
     "overdue": "Overdue",
     "overdue_detail": "items past due",
-    "overdue_none": "all on track"
+    "overdue_none": "all on track",
+    "overdue_unavailable": "could not load"
   },
   "heatmap_title": "Risk Map",
   "calendar": {

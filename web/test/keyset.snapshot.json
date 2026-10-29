@@ -1525,6 +1525,7 @@
   "dashboard.stats.overdue",
   "dashboard.stats.overdue_detail",
   "dashboard.stats.overdue_none",
+  "dashboard.stats.overdue_unavailable",
   "dashboard.stats.risks",
   "dashboard.stats.risks_detail",
   "dashboard.stats.risks_none",

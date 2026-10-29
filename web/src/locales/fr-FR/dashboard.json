@@ -88,7 +88,8 @@
     "changes_none": "aucun en attente",
     "overdue": "En retard",
     "overdue_detail": "éléments en retard",
-    "overdue_none": "tout est à jour"
+    "overdue_none": "tout est à jour",
+    "overdue_unavailable": "chargement impossible"
   },
   "heatmap_title": "Cartographie des risques",
   "calendar": {

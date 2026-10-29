@@ -88,7 +88,8 @@
     "changes_none": "engar í bið",
     "overdue": "Fram yfir skiladag",
     "overdue_detail": "atriði komin fram yfir tíma",
-    "overdue_none": "allt á áætlun"
+    "overdue_none": "allt á áætlun",
+    "overdue_unavailable": "ekki tókst að hlaða"
   },
   "heatmap_title": "Áhættukort",
   "calendar": {

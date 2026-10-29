@@ -432,17 +432,17 @@
           <!-- Overdue -->
           <router-link :to="orgPath('/inbox')" class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors group">
             <div class="flex items-center gap-3 mb-3">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="totalOverdueCount > 0 ? 'bg-red-950/60' : 'bg-emerald-950/60'">
-                <svg class="w-4 h-4" :class="totalOverdueCount > 0 ? 'text-red-400' : 'text-emerald-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="overdueFailed ? 'bg-slate-800' : totalOverdueCount > 0 ? 'bg-red-950/60' : 'bg-emerald-950/60'">
+                <svg class="w-4 h-4" :class="overdueFailed ? 'text-slate-400' : totalOverdueCount > 0 ? 'text-red-400' : 'text-emerald-400'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">{{ t('dashboard.stats.overdue') }}</div>
             </div>
-            <div class="text-3xl font-bold tabular-nums" :class="totalOverdueCount > 0 ? 'text-red-400' : 'text-emerald-400'">
-              {{ totalOverdueCount }}
+            <div class="text-3xl font-bold tabular-nums" :class="overdueFailed ? 'text-slate-400' : totalOverdueCount > 0 ? 'text-red-400' : 'text-emerald-400'">
+              {{ overdueFailed ? '—' : totalOverdueCount }}
             </div>
-            <div class="text-xs text-slate-600 mt-1">{{ totalOverdueCount > 0 ? t('dashboard.stats.overdue_detail') : t('dashboard.stats.overdue_none') }}</div>
+            <div class="text-xs text-slate-600 mt-1">{{ overdueFailed ? t('dashboard.stats.overdue_unavailable') : totalOverdueCount > 0 ? t('dashboard.stats.overdue_detail') : t('dashboard.stats.overdue_none') }}</div>
           </router-link>
         </div>
       </div>
@@ -543,7 +543,6 @@ import { formatDate, formatHours, formatMonthShort } from '../composables/useFor
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { useMembers } from '../composables/useMembers.js'
-import { isRiskReviewOverdue } from '../utils/reviewDue.js'
 
 const { t } = useI18n()
 const { nameFor } = useMembers()
@@ -562,6 +561,7 @@ const tasks = ref([])
 const suppliers = ref([])
 const progress = ref(null)
 const overdueSummary = ref(null)
+const overdueFailed = ref(false)
 const activity = ref([])
 const systemsList = ref([])
 const incidents = ref([])
@@ -638,23 +638,7 @@ const needsReviewCount = computed(() =>
   allDocs.value.filter(d => d.status === 'in_review').length
 )
 
-const totalOverdueCount = computed(() => {
-  if (overdueSummary.value) return overdueSummary.value.total_count || 0
-  // Fallback to client-side calculation
-  const now = new Date()
-  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  let count = 0
-  const checkDate = (dateStr) => {
-    if (!dateStr && dateStr !== 0) return false
-    const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-    return !isNaN(d.getTime()) && d < nowDate
-  }
-  count += asArray(risks.value).filter(r => isRiskReviewOverdue(r, nowDate)).length
-  count += asArray(suppliers.value).filter(s => checkDate(s.next_review)).length
-  count += asArray(legal.value).filter(l => checkDate(l.next_review)).length
-  count += asArray(tasks.value).filter((task) => task.status !== 'done' && task.status !== 'cancelled' && checkDate(task.due_date)).length
-  return count
-})
+const totalOverdueCount = computed(() => overdueSummary.value?.total_count || 0)
 
 const isAdmin = computed(() => {
   const role = me.value?.role || ''
@@ -872,7 +856,9 @@ onMounted(async () => {
       api.getAudits().catch(() => []),
       api.getLegal().catch(() => []),
       api.getAssets().catch(() => []),
-      api.getOverdue().catch(() => null),
+      // A failed load is shown as unavailable, never as a count: no number is
+      // better than a wrong one (#492).
+      api.getOverdue().catch(() => { overdueFailed.value = true; return null }),
     ])
     // Flatten folder structure into a flat list of documents
     const flatDocs = []

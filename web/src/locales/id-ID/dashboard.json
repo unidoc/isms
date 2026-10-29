@@ -88,7 +88,8 @@
     "changes_none": "tidak ada yang tertunda",
     "overdue": "Terlambat",
     "overdue_detail": "item melewati tenggat",
-    "overdue_none": "semua sesuai jadwal"
+    "overdue_none": "semua sesuai jadwal",
+    "overdue_unavailable": "gagal dimuat"
   },
   "heatmap_title": "Peta Risiko",
   "calendar": {

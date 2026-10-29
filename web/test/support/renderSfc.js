@@ -68,12 +68,21 @@ function absolutizeImports(code, sfcPath) {
 
 // Returns the component's default export, compiled the way Vite compiles it for
 // the browser.
-export async function compileSfc(sfcPath) {
+//
+// `stubChildren` replaces every imported `.vue` child component with one that
+// renders nothing: node cannot load a `.vue` import, so a view that nests other
+// components can only be mounted this way, and then only for what the view
+// itself renders.
+export async function compileSfc(sfcPath, { stubChildren = false } = {}) {
   const source = readFileSync(sfcPath, 'utf8')
   const { descriptor, errors } = parse(source, { filename: sfcPath })
   if (errors.length) throw new Error(`parsing ${sfcPath}: ${errors[0].message}`)
   const { content } = compileScript(descriptor, { id: sfcPath, inlineTemplate: true })
-  const mod = `data:text/javascript,${encodeURIComponent(absolutizeImports(content, sfcPath))}`
+  let code = absolutizeImports(content, sfcPath)
+  if (stubChildren) {
+    code = code.replaceAll(/(from\s*)(['"])file:[^'"]+\.vue\2/g, '$1"data:text/javascript,export default {render(){return null}}"')
+  }
+  const mod = `data:text/javascript,${encodeURIComponent(code)}`
   return (await import(mod)).default
 }
 

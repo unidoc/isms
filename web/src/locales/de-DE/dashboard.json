@@ -88,7 +88,8 @@
     "changes_none": "keine ausstehend",
     "overdue": "Überfällig",
     "overdue_detail": "überfällige Elemente",
-    "overdue_none": "alles im Zeitplan"
+    "overdue_none": "alles im Zeitplan",
+    "overdue_unavailable": "konnte nicht geladen werden"
   },
   "heatmap_title": "Risikokarte",
   "calendar": {

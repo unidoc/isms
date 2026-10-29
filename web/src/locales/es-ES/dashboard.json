@@ -88,7 +88,8 @@
     "changes_none": "ninguno pendiente",
     "overdue": "Vencidos",
     "overdue_detail": "elementos vencidos",
-    "overdue_none": "todo al día"
+    "overdue_none": "todo al día",
+    "overdue_unavailable": "no se pudo cargar"
   },
   "heatmap_title": "Mapa de Riesgos",
   "calendar": {

@@ -388,7 +388,8 @@
     "all_on_schedule": "Todas las revisiones al día",
     "contract": "contrato",
     "contract_expired": "hace {count}d",
-    "contract_expires_in": "en {count}d"
+    "contract_expires_in": "en {count}d",
+    "external_link": "enlace"
   },
   "suggest_new": {
     "button": "Sugerir",
@@ -428,5 +429,30 @@
       "request_asset_review": "Solicitar revisión de activo",
       "edit_entity": "Editar {entity}"
     }
+  },
+  "external_links": {
+    "title": "Enlaces externos",
+    "empty": "Sin enlaces externos",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Etiqueta",
+    "label_placeholder": "p. ej., informe SOC 2 Tipo II",
+    "type": "Tipo",
+    "valid_until": "Válido hasta",
+    "verified_on": "Verificado el",
+    "valid_until_row": "Válido hasta {date}",
+    "verified_by": "Verificado el {date} por {name}",
+    "verified_on_row": "Verificado el {date}",
+    "mark_verified": "Marcar como verificado hoy",
+    "url_required": "La URL es obligatoria",
+    "url_invalid": "Introduce una dirección completa http:// o https://",
+    "label_required": "La etiqueta es obligatoria",
+    "label_too_long": "La etiqueta no puede superar los 200 caracteres",
+    "type_required": "Elige un tipo",
+    "error_load": "No se pudieron cargar los enlaces externos: {message}",
+    "error_save": "No se pudo guardar el enlace externo: {message}",
+    "error_verify": "No se pudo marcar el enlace externo como verificado: {message}",
+    "error_remove": "No se pudo eliminar el enlace externo: {message}",
+    "confirm_remove": "¿Eliminar este enlace externo?"
   }
 }

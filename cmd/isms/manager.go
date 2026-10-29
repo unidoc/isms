@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/api"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/mail"
 )
 
 func managerCmd() *cobra.Command {
@@ -23,6 +25,8 @@ Tasks performed:
   - Create check-in tasks for objectives with overdue check-ins
   - Backfill missing next_review dates on suppliers and systems
   - Notify on supplier contracts 30 days, 7 days, and 0 days from expiry
+  - Email each member their weekly digest of pending work (Monday 08:00 UTC
+    onward, once per ISO week; needs SMTP_HOST, SMTP_FROM and ISMS_BASE_URL)
   - Report summary of actions taken
 
 Example cron (every hour):
@@ -83,12 +87,25 @@ func runManager(quiet bool) error {
 		}
 	}
 
+	// Weekly digests run after the housekeeping above, so a failure here never
+	// costs the run its primary output. Mail settings come from the same env
+	// vars `serve` reads; without SMTP or ISMS_BASE_URL the step is skipped
+	// (a digest without links is not worth sending), with a line unless quiet.
+	digests, derr := api.SendDigests(ctx, d, mail.New(mail.ConfigFromEnv()), os.Getenv("ISMS_BASE_URL"),
+		os.Getenv("ISMS_SUBDOMAIN_ROUTING") == "1", time.Now())
+	if derr != nil {
+		fmt.Printf("[warn] weekly digests failed: %v\n", derr)
+	}
+	if digests.Disabled != "" && !quiet {
+		fmt.Printf("weekly digests skipped: %s\n", digests.Disabled)
+	}
+
 	if !quiet {
-		fmt.Printf("\nISMS manager: %d org(s), %d tasks created, %d review dates backfilled, %d notifications sent\n",
-			len(orgs), totalCreated, totalBackfilled, totalNotified)
-	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 {
-		fmt.Printf("isms manager: %d tasks created, %d backfilled, %d notified [%s]\n",
-			totalCreated, totalBackfilled, totalNotified, time.Now().Format("2006-01-02 15:04"))
+		fmt.Printf("\nISMS manager: %d org(s), %d tasks created, %d review dates backfilled, %d notifications sent, %d digests sent, %d digests failed\n",
+			len(orgs), totalCreated, totalBackfilled, totalNotified, digests.Sent, digests.Failed)
+	} else if totalCreated > 0 || totalBackfilled > 0 || totalNotified > 0 || digests.Sent > 0 || digests.Failed > 0 {
+		fmt.Printf("isms manager: %d tasks created, %d backfilled, %d notified, %d digests sent, %d digests failed [%s]\n",
+			totalCreated, totalBackfilled, totalNotified, digests.Sent, digests.Failed, time.Now().Format("2006-01-02 15:04"))
 	}
 
 	return nil

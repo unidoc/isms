@@ -103,7 +103,8 @@
     "policy": "ポリシー",
     "passkey": "パスキー",
     "evidence": "証跡",
-    "item": "項目"
+    "item": "項目",
+    "external_link": "外部リンク"
   },
   "field": {
     "title": "タイトル",
@@ -124,7 +125,9 @@
     "new_email": "新しいメール",
     "entity_type": "エンティティ種別",
     "entity_id": "エンティティID",
-    "suggestion_type": "提案種別"
+    "suggestion_type": "提案種別",
+    "url": "URL",
+    "label": "ラベル"
   },
   "enum": {
     "status": {

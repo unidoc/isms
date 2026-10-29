@@ -42,6 +42,9 @@
       </div>
     </section>
 
+    <!-- Weekly digest (per organization) -->
+    <DigestToggle v-if="user?.organization_id" :org-name="user.organization_name || ''" />
+
     <!-- Change Password (only for local login users) -->
     <section v-if="user?.has_password" class="bg-slate-900 border border-slate-800 rounded-xl p-6">
       <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.password.title') }}</h2>
@@ -315,6 +318,7 @@ import { useI18n } from 'vue-i18n'
 import QRCode from 'qrcode'
 import api from '../api.js'
 import LocalePicker from '../components/LocalePicker.vue'
+import DigestToggle from '../components/DigestToggle.vue'
 import { formatDate } from '../composables/useFormat.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'

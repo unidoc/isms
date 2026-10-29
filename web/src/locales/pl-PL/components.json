@@ -388,7 +388,8 @@
     "all_on_schedule": "Wszystkie przeglądy zgodne z harmonogramem",
     "contract": "umowa",
     "contract_expired": "{count}d temu",
-    "contract_expires_in": "za {count}d"
+    "contract_expires_in": "za {count}d",
+    "external_link": "link"
   },
   "suggest_new": {
     "button": "Zaproponuj",
@@ -428,5 +429,30 @@
       "request_asset_review": "Poproś o przegląd aktywa",
       "edit_entity": "Edytuj: {entity}"
     }
+  },
+  "external_links": {
+    "title": "Linki zewnętrzne",
+    "empty": "Brak linków zewnętrznych",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Etykieta",
+    "label_placeholder": "np. raport SOC 2 Type II",
+    "type": "Typ",
+    "valid_until": "Ważne do",
+    "verified_on": "Zweryfikowano dnia",
+    "valid_until_row": "Ważne do {date}",
+    "verified_by": "Zweryfikowano {date} przez {name}",
+    "verified_on_row": "Zweryfikowano {date}",
+    "mark_verified": "Oznacz jako zweryfikowane dzisiaj",
+    "url_required": "URL jest wymagany",
+    "url_invalid": "Podaj pełny adres http:// lub https://",
+    "label_required": "Etykieta jest wymagana",
+    "label_too_long": "Etykieta może mieć maksymalnie 200 znaków",
+    "type_required": "Wybierz typ",
+    "error_load": "Nie udało się wczytać linków zewnętrznych: {message}",
+    "error_save": "Nie udało się zapisać linku zewnętrznego: {message}",
+    "error_verify": "Nie udało się oznaczyć linku zewnętrznego jako zweryfikowanego: {message}",
+    "error_remove": "Nie udało się usunąć linku zewnętrznego: {message}",
+    "confirm_remove": "Usunąć ten link zewnętrzny?"
   }
 }

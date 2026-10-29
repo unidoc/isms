@@ -95,17 +95,24 @@ type orgMailCtx struct {
 // tenant's mail never carries another org's identity, the operator's SMTP_FROM
 // display name (#16 sender leak), or a link into the wrong org.
 func (s *Server) orgMail(ctx context.Context, orgID int) orgMailCtx {
-	raw := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
+	return orgMailFor(ctx, s.db, orgID, os.Getenv("ISMS_BASE_URL"), s.subdomainRouting)
+}
+
+// orgMailFor is orgMail without a Server, for jobs that only hold a *db.DB
+// (the manager cron): baseURL is ISMS_BASE_URL as configured, and
+// subdomainRouting is the deployment's ISMS_SUBDOMAIN_ROUTING.
+func orgMailFor(ctx context.Context, d *db.DB, orgID int, baseURL string, subdomainRouting bool) orgMailCtx {
+	raw := strings.TrimRight(baseURL, "/")
 	m := orgMailCtx{AppURL: raw, PublicURL: raw}
-	org, err := s.db.GetOrganization(ctx, orgID)
+	org, err := d.GetOrganization(ctx, orgID)
 	if err != nil || org == nil {
 		return m
 	}
-	m.Branding.Name = s.db.OrgBrandName(ctx, org)
-	if color, err := s.db.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
+	m.Branding.Name = d.OrgBrandName(ctx, org)
+	if color, err := d.GetOrgSetting(ctx, orgID, "branding_color"); err == nil {
 		m.Branding.Color = color
 	}
-	m.AppURL, m.PublicURL = orgURLs(raw, org, s.subdomainRouting)
+	m.AppURL, m.PublicURL = orgURLs(raw, org, subdomainRouting)
 	return m
 }
 
@@ -261,13 +268,7 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	srv.subdomainRouting = os.Getenv("ISMS_SUBDOMAIN_ROUTING") == "1"
 
 	// SMTP mailer from env vars
-	srv.mailer = mail.New(mail.Config{
-		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
-		User:     os.Getenv("SMTP_USER"),
-		Password: os.Getenv("SMTP_PASSWORD"),
-		From:     os.Getenv("SMTP_FROM"),
-	})
+	srv.mailer = mail.New(mail.ConfigFromEnv())
 	// Notifier — reads per-org settings from Postgres at send time.
 	// BaseURL is the only platform-level config (used for links in messages).
 	srv.notifier = notify.New(notify.Config{
@@ -531,6 +532,8 @@ func (s *Server) routes() {
 	// Auth / user
 	api.GET("/me", s.handleMe)
 	api.GET("/me/organizations", s.handleMyOrganizations)
+	api.GET("/me/digest", s.handleGetMyDigest)
+	api.PUT("/me/digest", s.handleSetMyDigest)
 	api.GET("/users", s.handleListUsers)
 	api.POST("/users", s.handleUpsertUser)
 	api.POST("/organizations", s.handleCreateOrganization)
@@ -811,6 +814,13 @@ func (s *Server) routes() {
 	api.GET("/references", s.handleListReferences)
 	api.POST("/references", s.handleCreateReference)
 	api.DELETE("/references/:id", s.handleDeleteReference)
+
+	// External evidence links on register records (#316; suppliers only so far)
+	api.GET("/external-links", s.handleListExternalLinks)
+	api.POST("/external-links", s.handleCreateExternalLink)
+	api.PUT("/external-links/:id", s.handleUpdateExternalLink)
+	api.POST("/external-links/:id/verify", s.handleVerifyExternalLink)
+	api.DELETE("/external-links/:id", s.handleDeleteExternalLink)
 
 	// Entity Comments (generic comments on any entity)
 	api.GET("/entity-comments/:type/:id", s.handleListEntityComments)

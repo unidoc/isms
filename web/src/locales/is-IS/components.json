@@ -388,7 +388,8 @@
     "all_on_schedule": "Allar yfirferðir á áætlun",
     "contract": "samningur",
     "contract_expired": "{count}d síðan",
-    "contract_expires_in": "eftir {count}d"
+    "contract_expires_in": "eftir {count}d",
+    "external_link": "tengill"
   },
   "suggest_new": {
     "button": "Leggja til",
@@ -428,5 +429,30 @@
       "request_asset_review": "Óska eftir yfirferð eignar",
       "edit_entity": "Breyta {entity}"
     }
+  },
+  "external_links": {
+    "title": "Ytri tenglar",
+    "empty": "Engir ytri tenglar",
+    "url": "Vefslóð",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Heiti",
+    "label_placeholder": "t.d. SOC 2 Type II skýrsla",
+    "type": "Tegund",
+    "valid_until": "Gildir til",
+    "verified_on": "Sannreynt þann",
+    "valid_until_row": "Gildir til {date}",
+    "verified_by": "Sannreynt {date} af {name}",
+    "verified_on_row": "Sannreynt {date}",
+    "mark_verified": "Merkja sannreynt í dag",
+    "url_required": "Vefslóð er nauðsynleg",
+    "url_invalid": "Sláðu inn fullt http:// eða https:// vistfang",
+    "label_required": "Heiti er nauðsynlegt",
+    "label_too_long": "Heiti má ekki vera lengra en 200 stafir",
+    "type_required": "Veldu tegund",
+    "error_load": "Mistókst að hlaða ytri tenglum: {message}",
+    "error_save": "Mistókst að vista ytri tengil: {message}",
+    "error_verify": "Mistókst að merkja ytri tengil sem sannreyndan: {message}",
+    "error_remove": "Mistókst að fjarlægja ytri tengil: {message}",
+    "confirm_remove": "Fjarlægja þennan ytri tengil?"
   }
 }

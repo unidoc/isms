@@ -388,7 +388,8 @@
     "all_on_schedule": "Alle Prüfungen im Zeitplan",
     "contract": "Vertrag",
     "contract_expired": "vor {count} T",
-    "contract_expires_in": "in {count} T"
+    "contract_expires_in": "in {count} T",
+    "external_link": "Link"
   },
   "suggest_new": {
     "button": "Vorschlagen",
@@ -428,5 +429,30 @@
       "request_asset_review": "Prüfung des Vermögenswerts anfordern",
       "edit_entity": "{entity}: Bearbeiten"
     }
+  },
+  "external_links": {
+    "title": "Externe Links",
+    "empty": "Keine externen Links",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Bezeichnung",
+    "label_placeholder": "z. B. SOC-2-Type-II-Bericht",
+    "type": "Typ",
+    "valid_until": "Gültig bis",
+    "verified_on": "Verifiziert am",
+    "valid_until_row": "Gültig bis {date}",
+    "verified_by": "Verifiziert am {date} von {name}",
+    "verified_on_row": "Verifiziert am {date}",
+    "mark_verified": "Heute als verifiziert markieren",
+    "url_required": "URL ist erforderlich",
+    "url_invalid": "Vollständige http://- oder https://-Adresse eingeben",
+    "label_required": "Bezeichnung ist erforderlich",
+    "label_too_long": "Die Bezeichnung darf höchstens 200 Zeichen lang sein",
+    "type_required": "Typ auswählen",
+    "error_load": "Externe Links konnten nicht geladen werden: {message}",
+    "error_save": "Externer Link konnte nicht gespeichert werden: {message}",
+    "error_verify": "Externer Link konnte nicht als verifiziert markiert werden: {message}",
+    "error_remove": "Externer Link konnte nicht entfernt werden: {message}",
+    "confirm_remove": "Diesen externen Link entfernen?"
   }
 }

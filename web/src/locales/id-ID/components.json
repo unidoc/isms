@@ -388,7 +388,8 @@
     "all_on_schedule": "Semua tinjauan sesuai jadwal",
     "contract": "kontrak",
     "contract_expired": "{count}h lalu",
-    "contract_expires_in": "dalam {count}h"
+    "contract_expires_in": "dalam {count}h",
+    "external_link": "tautan"
   },
   "suggest_new": {
     "button": "Usulkan",
@@ -428,5 +429,30 @@
       "request_asset_review": "Minta tinjauan aset",
       "edit_entity": "Sunting {entity}"
     }
+  },
+  "external_links": {
+    "title": "Tautan eksternal",
+    "empty": "Belum ada tautan eksternal",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Label",
+    "label_placeholder": "mis. laporan SOC 2 Tipe II",
+    "type": "Jenis",
+    "valid_until": "Berlaku hingga",
+    "verified_on": "Diverifikasi pada",
+    "valid_until_row": "Berlaku hingga {date}",
+    "verified_by": "Diverifikasi {date} oleh {name}",
+    "verified_on_row": "Diverifikasi {date}",
+    "mark_verified": "Tandai terverifikasi hari ini",
+    "url_required": "URL wajib diisi",
+    "url_invalid": "Masukkan alamat lengkap http:// atau https://",
+    "label_required": "Label wajib diisi",
+    "label_too_long": "Label maksimal 200 karakter",
+    "type_required": "Pilih jenis",
+    "error_load": "Gagal memuat tautan eksternal: {message}",
+    "error_save": "Gagal menyimpan tautan eksternal: {message}",
+    "error_verify": "Gagal menandai tautan eksternal sebagai terverifikasi: {message}",
+    "error_remove": "Gagal menghapus tautan eksternal: {message}",
+    "confirm_remove": "Hapus tautan eksternal ini?"
   }
 }

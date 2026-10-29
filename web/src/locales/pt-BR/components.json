@@ -388,7 +388,8 @@
     "all_on_schedule": "Todas as revisões estão em dia",
     "contract": "contrato",
     "contract_expired": "há {count}d",
-    "contract_expires_in": "em {count}d"
+    "contract_expires_in": "em {count}d",
+    "external_link": "link"
   },
   "suggest_new": {
     "button": "Sugerir",
@@ -428,5 +429,30 @@
       "request_asset_review": "Solicitar revisão de ativo",
       "edit_entity": "Editar {entity}"
     }
+  },
+  "external_links": {
+    "title": "Links externos",
+    "empty": "Nenhum link externo",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Rótulo",
+    "label_placeholder": "ex.: relatório SOC 2 Tipo II",
+    "type": "Tipo",
+    "valid_until": "Válido até",
+    "verified_on": "Verificado em",
+    "valid_until_row": "Válido até {date}",
+    "verified_by": "Verificado em {date} por {name}",
+    "verified_on_row": "Verificado em {date}",
+    "mark_verified": "Marcar como verificado hoje",
+    "url_required": "A URL é obrigatória",
+    "url_invalid": "Informe um endereço completo http:// ou https://",
+    "label_required": "O rótulo é obrigatório",
+    "label_too_long": "O rótulo deve ter no máximo 200 caracteres",
+    "type_required": "Escolha um tipo",
+    "error_load": "Falha ao carregar os links externos: {message}",
+    "error_save": "Falha ao salvar o link externo: {message}",
+    "error_verify": "Falha ao marcar o link externo como verificado: {message}",
+    "error_remove": "Falha ao remover o link externo: {message}",
+    "confirm_remove": "Remover este link externo?"
   }
 }

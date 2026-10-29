@@ -392,7 +392,8 @@
     "all_on_schedule": "All reviews on schedule",
     "contract": "contract",
     "contract_expired": "{count}d ago",
-    "contract_expires_in": "in {count}d"
+    "contract_expires_in": "in {count}d",
+    "external_link": "link"
   },
   "suggest_new": {
     "button": "Suggest",
@@ -432,5 +433,30 @@
       "request_asset_review": "Request asset review",
       "edit_entity": "Edit {entity}"
     }
+  },
+  "external_links": {
+    "title": "External links",
+    "empty": "No external links",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Label",
+    "label_placeholder": "e.g. SOC 2 Type II report",
+    "type": "Type",
+    "valid_until": "Valid until",
+    "verified_on": "Verified on",
+    "valid_until_row": "Valid until {date}",
+    "verified_by": "Verified {date} by {name}",
+    "verified_on_row": "Verified {date}",
+    "mark_verified": "Mark verified today",
+    "url_required": "URL is required",
+    "url_invalid": "Enter a full http:// or https:// address",
+    "label_required": "Label is required",
+    "label_too_long": "Label must be 200 characters or fewer",
+    "type_required": "Choose a type",
+    "error_load": "Failed to load external links: {message}",
+    "error_save": "Failed to save external link: {message}",
+    "error_verify": "Failed to mark external link verified: {message}",
+    "error_remove": "Failed to remove external link: {message}",
+    "confirm_remove": "Remove this external link?"
   }
 }

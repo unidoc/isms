@@ -388,7 +388,8 @@
     "all_on_schedule": "Toutes les revues sont à jour",
     "contract": "contrat",
     "contract_expired": "il y a {count} j",
-    "contract_expires_in": "dans {count} j"
+    "contract_expires_in": "dans {count} j",
+    "external_link": "lien"
   },
   "suggest_new": {
     "button": "Suggérer",
@@ -428,5 +429,30 @@
       "request_asset_review": "Demander une revue de l'actif",
       "edit_entity": "Modifier {entity}"
     }
+  },
+  "external_links": {
+    "title": "Liens externes",
+    "empty": "Aucun lien externe",
+    "url": "URL",
+    "url_placeholder": "https://example.com/report.pdf",
+    "label": "Libellé",
+    "label_placeholder": "p. ex. rapport SOC 2 Type II",
+    "type": "Type",
+    "valid_until": "Valable jusqu'au",
+    "verified_on": "Vérifié le",
+    "valid_until_row": "Valable jusqu'au {date}",
+    "verified_by": "Vérifié le {date} par {name}",
+    "verified_on_row": "Vérifié le {date}",
+    "mark_verified": "Marquer comme vérifié aujourd'hui",
+    "url_required": "L'URL est obligatoire",
+    "url_invalid": "Saisissez une adresse complète http:// ou https://",
+    "label_required": "Le libellé est obligatoire",
+    "label_too_long": "Le libellé ne peut pas dépasser 200 caractères",
+    "type_required": "Choisissez un type",
+    "error_load": "Échec du chargement des liens externes : {message}",
+    "error_save": "Échec de l'enregistrement du lien externe : {message}",
+    "error_verify": "Échec du marquage du lien externe comme vérifié : {message}",
+    "error_remove": "Échec de la suppression du lien externe : {message}",
+    "confirm_remove": "Supprimer ce lien externe ?"
   }
 }

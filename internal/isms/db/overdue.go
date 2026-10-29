@@ -15,10 +15,15 @@ type OverdueItem struct {
 	DaysLate    int    `json:"days_late"`
 	Criticality string `json:"criticality,omitempty"` // risk level or criticality
 	// State is set only for entity types whose problem is not lateness against a
-	// review date: "expiring" or "expired" for supplier contracts. Empty for
+	// review date: "expiring" or "expired" for supplier contracts and external links. Empty for
 	// every review-cycle item, which is what keeps the existing clients — and
 	// the "N days overdue" column — reading exactly as they did.
 	State string `json:"state,omitempty"`
+	// ParentTitle and LinkID are set only for external_link items (#316):
+	// Title is the link's label, ParentTitle the record it hangs off, and LinkID
+	// tells two links on one record apart (EntityID is the record's identifier).
+	ParentTitle string `json:"parent_title,omitempty"`
+	LinkID      int64  `json:"link_id,omitempty"`
 }
 
 // OverdueSummary is the aggregate overdue status across all entity types.
@@ -28,6 +33,7 @@ type OverdueSummary struct {
 	Systems           []OverdueItem `json:"systems"`
 	Legal             []OverdueItem `json:"legal"`
 	SupplierContracts []OverdueItem `json:"supplier_contracts"`
+	ExternalLinks     []OverdueItem `json:"external_links"`
 	Tasks             []OverdueItem `json:"tasks"`
 	TotalCount        int           `json:"total_count"`
 }
@@ -131,6 +137,45 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 		rowsC.Close()
 	}
 
+	// External evidence links on suppliers that expire within 30 days or have
+	// expired (#316). Same SQL-side date arithmetic and exclusions as the
+	// contract block above; not review-cycle items, so not turned into tasks.
+	rowsL, err := d.pool.Query(ctx, `
+		SELECT s.identifier, s.name, s.criticality, l.id, l.label, l.valid_until,
+			(l.valid_until - CURRENT_DATE)::int AS days_until
+		FROM external_links l
+		JOIN suppliers s ON s.id = l.entity_id AND s.organization_id = l.organization_id
+		WHERE l.organization_id = $1
+			AND l.entity_type = 'supplier'
+			AND l.valid_until IS NOT NULL
+			AND (l.valid_until - CURRENT_DATE)::int <= 30
+			AND l.deleted_at IS NULL
+			AND COALESCE(s.status, 'active') <> 'terminated'
+			AND s.deleted_at IS NULL
+		ORDER BY l.valid_until ASC, l.id ASC
+	`, orgID)
+	if err == nil {
+		defer rowsL.Close()
+		for rowsL.Next() {
+			var item OverdueItem
+			var validUntil Epoch
+			var daysUntil int
+			if err := rowsL.Scan(&item.EntityID, &item.ParentTitle, &item.Criticality, &item.LinkID, &item.Title, &validUntil, &daysUntil); err != nil {
+				break
+			}
+			item.EntityType = "external_link"
+			item.NextReview = &validUntil
+			item.DaysLate = -daysUntil
+			if daysUntil < 0 {
+				item.State = "expired"
+			} else {
+				item.State = "expiring"
+			}
+			summary.ExternalLinks = append(summary.ExternalLinks, item)
+		}
+		rowsL.Close()
+	}
+
 	// Overdue systems (access reviews)
 	rows3, err := d.pool.Query(ctx, `
 		SELECT identifier, name, criticality, next_review
@@ -218,7 +263,7 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 
 	summary.TotalCount = len(summary.Risks) + len(summary.Suppliers) +
 		len(summary.Systems) + len(summary.Legal) + len(summary.Tasks) +
-		len(summary.SupplierContracts)
+		len(summary.SupplierContracts) + len(summary.ExternalLinks)
 
 	return summary, nil
 }

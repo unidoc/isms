@@ -103,7 +103,8 @@
     "policy": "política",
     "passkey": "clave de acceso",
     "evidence": "evidencia",
-    "item": "elemento"
+    "item": "elemento",
+    "external_link": "enlace externo"
   },
   "field": {
     "title": "título",
@@ -124,7 +125,9 @@
     "new_email": "nuevo correo electrónico",
     "entity_type": "tipo de entidad",
     "entity_id": "ID de entidad",
-    "suggestion_type": "tipo de sugerencia"
+    "suggestion_type": "tipo de sugerencia",
+    "url": "URL",
+    "label": "etiqueta"
   },
   "enum": {
     "status": {
@@ -388,6 +391,19 @@
       "record": "Registro",
       "clause": "Cláusula",
       "requirement": "Requisito"
+    },
+    "external_link_type": {
+      "certificate": "Certificado",
+      "audit_report": "Informe de auditoría",
+      "penetration_test": "Prueba de penetración",
+      "attestation": "Atestación",
+      "contract": "Contrato",
+      "other": "Otro"
+    },
+    "external_link_state": {
+      "expired": "Vencido",
+      "expiring": "Vence pronto",
+      "current": "Vigente"
     }
   },
   "enum_inline": {

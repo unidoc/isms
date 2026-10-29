@@ -379,6 +379,12 @@ func (s *Server) RoleMiddleware() echo.MiddlewareFunc {
 					(strings.HasPrefix(path, "/api/v1/comments/") && strings.HasSuffix(path, "/resolve")) {
 					return next(c)
 				}
+				// A member's own weekly-digest preference: it changes nothing
+				// but their own mail, and the handler only ever touches the
+				// caller's membership.
+				if path == "/api/v1/me/digest" {
+					return next(c)
+				}
 				return echo.NewHTTPError(http.StatusForbidden, "read-only access")
 			}
 

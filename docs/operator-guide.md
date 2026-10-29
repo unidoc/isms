@@ -505,7 +505,7 @@ Structured log lines include HTTP method, path, status code, and latency for eve
 Each run:
 
 - Creates review tasks for overdue risks, suppliers, systems, legal requirements, documents past their review cycle, and objectives with overdue check-ins.
-- Creates renewal tasks for supplier contracts that are expiring or expired.
+- Creates renewal tasks for supplier contracts and supplier evidence links that are expiring or expired.
 - Backfills missing next-review dates on suppliers and systems.
 - Notifies on supplier contracts 30 days, 7 days, and 0 days from expiry.
 - Emails each member their weekly digest (see [Weekly digest](#weekly-digest)).

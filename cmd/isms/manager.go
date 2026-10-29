@@ -23,7 +23,8 @@ Tasks performed:
   - Create review tasks for overdue risks, suppliers, systems, legal requirements
   - Create review tasks for documents past their review cycle
   - Create check-in tasks for objectives with overdue check-ins
-  - Create renewal tasks for supplier contracts that are expiring or expired
+  - Create renewal tasks for supplier contracts and supplier evidence links
+    that are expiring or expired
   Tasks are assigned to the item's owner; an item with no owner is skipped and
   reported as unassigned. A task that cannot be created is reported as failed.
   - Backfill missing next_review dates on suppliers and systems

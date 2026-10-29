@@ -75,6 +75,13 @@ func newOverdueTasksFixture(t *testing.T, name string) *overdueTasksFixture {
 	f.contract = newTestSupplier(t, d, orgID, "Contract Supplier")
 	own("suppliers", f.contract.ID)
 	offsetDays(t, d, f.contract.ID, 10)
+	// An evidence link on the same supplier that expires in 12 days.
+	if _, err := d.pool.Exec(ctx, `
+		INSERT INTO external_links (organization_id, entity_type, entity_id, url, label, link_type, valid_until, created_by)
+		VALUES ($1, 'supplier', $2, 'https://trust.example/iso', 'ISO 27001 certificate', 'certificate', CURRENT_DATE + 12, $3)`,
+		orgID, f.contract.ID, owner); err != nil {
+		t.Fatalf("seeding external link: %v", err)
+	}
 
 	// A document past its 12-month review cycle (owner snapshot on the version).
 	if _, err := d.pool.Exec(ctx, `
@@ -125,7 +132,7 @@ func TestCreateOverdueReviewTasksCreatesEveryKind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOverdueReviewTasks: %v", err)
 	}
-	const want = 7 // risk, supplier, system, legal, contract renewal, document, objective
+	const want = 8 // risk, supplier, system, legal, contract renewal, link renewal, document, objective
 	if len(res.Created) != want || res.Total != want || res.Failed != 0 || res.Unassigned != 0 || res.Skipped != 0 {
 		t.Fatalf("created %d total %d failed %d unassigned %d skipped %d, want %d/%d/0/0/0: %v",
 			len(res.Created), res.Total, res.Failed, res.Unassigned, res.Skipped, want, want, titles(res.Created))
@@ -143,6 +150,8 @@ func TestCreateOverdueReviewTasksCreatesEveryKind(t *testing.T) {
 		"Risk review: Overdue risk": f.owner, "Access review: Overdue System": f.owner,
 		"Legal review: Overdue legal": f.owner, "Contract renewal: Contract Supplier": f.owner,
 		"Document review: ": f.owner, "Objective check-in: Overdue objective": f.owner,
+		// The evidence link is renewed by its supplier's owner.
+		"Renewal: ISO 27001 certificate": f.owner,
 		// No owner: the fallback.
 		"Supplier review: Ownerless Supplier": f.fallback,
 	}
@@ -162,6 +171,14 @@ func TestCreateOverdueReviewTasksCreatesEveryKind(t *testing.T) {
 		t.Errorf("renewal due date is not the contract expiry (err %v)", err)
 	}
 
+	link := f.taskByPrefix(t, res, "Renewal: ")
+	if want := "Renewal: ISO 27001 certificate - Contract Supplier (" + f.contract.Identifier + ")"; link.Title != want {
+		t.Errorf("link renewal title %q, want %q", link.Title, want)
+	}
+	if err := f.d.pool.QueryRow(ctx, `SELECT due_date::date = CURRENT_DATE + 12 FROM tasks WHERE id = $1`, link.ID).Scan(&sameDay); err != nil || !sameDay {
+		t.Errorf("link renewal due date is not the link's valid_until (err %v)", err)
+	}
+
 	// Second run: nothing new, everything skipped.
 	again, err := f.d.CreateOverdueReviewTasks(ctx, f.orgID, f.owner, f.fallback)
 	if err != nil {
@@ -178,8 +195,8 @@ func TestCreateOverdueReviewTasksOwnerlessWithoutFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOverdueReviewTasks: %v", err)
 	}
-	if res.Unassigned != 1 || res.Failed != 0 || len(res.Created) != 6 {
-		t.Errorf("unassigned %d failed %d created %d, want 1/0/6", res.Unassigned, res.Failed, len(res.Created))
+	if res.Unassigned != 1 || res.Failed != 0 || len(res.Created) != 7 {
+		t.Errorf("unassigned %d failed %d created %d, want 1/0/7", res.Unassigned, res.Failed, len(res.Created))
 	}
 	for _, task := range res.Created {
 		if strings.Contains(task.Title, "Ownerless Supplier") {
@@ -195,8 +212,8 @@ func TestCreateOverdueReviewTasksCountsFailures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOverdueReviewTasks: %v", err)
 	}
-	if res.Failed != 1 || res.Unassigned != 0 || len(res.Created) != 6 {
-		t.Errorf("failed %d unassigned %d created %d, want 1/0/6", res.Failed, res.Unassigned, len(res.Created))
+	if res.Failed != 1 || res.Unassigned != 0 || len(res.Created) != 7 {
+		t.Errorf("failed %d unassigned %d created %d, want 1/0/7", res.Failed, res.Unassigned, len(res.Created))
 	}
 }
 
@@ -208,6 +225,9 @@ func TestOverdueSummaryReportsSupplierAndSystemOwners(t *testing.T) {
 	}
 	if len(sum.SupplierContracts) != 1 || sum.SupplierContracts[0].Owner != f.owner {
 		t.Errorf("contract owner: %+v, want %q", sum.SupplierContracts, f.owner)
+	}
+	if len(sum.ExternalLinks) != 1 || sum.ExternalLinks[0].Owner != f.owner {
+		t.Errorf("external link owner: %+v, want %q", sum.ExternalLinks, f.owner)
 	}
 	if len(sum.Systems) != 1 || sum.Systems[0].Owner != f.owner {
 		t.Errorf("system owner: %+v, want %q", sum.Systems, f.owner)

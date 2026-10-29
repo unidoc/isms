@@ -142,10 +142,12 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 
 	// External evidence links on suppliers that expire within 30 days or have
 	// expired (#316). Same SQL-side date arithmetic and exclusions as the
-	// contract block above; not review-cycle items, so not turned into tasks.
+	// contract block above. Like a contract, a link gets a renewal task, owned
+	// by the supplier's owner (#489).
 	rowsL, err := d.pool.Query(ctx, `
 		SELECT s.identifier, s.name, s.criticality, l.id, l.label, l.valid_until,
-			(l.valid_until - CURRENT_DATE)::int AS days_until
+			(l.valid_until - CURRENT_DATE)::int AS days_until,
+			COALESCE((SELECT email FROM users WHERE id = s.owner_id), '')
 		FROM external_links l
 		JOIN suppliers s ON s.id = l.entity_id AND s.organization_id = l.organization_id
 		WHERE l.organization_id = $1
@@ -163,7 +165,7 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			var item OverdueItem
 			var validUntil Epoch
 			var daysUntil int
-			if err := rowsL.Scan(&item.EntityID, &item.ParentTitle, &item.Criticality, &item.LinkID, &item.Title, &validUntil, &daysUntil); err != nil {
+			if err := rowsL.Scan(&item.EntityID, &item.ParentTitle, &item.Criticality, &item.LinkID, &item.Title, &validUntil, &daysUntil, &item.Owner); err != nil {
 				break
 			}
 			item.EntityType = "external_link"
@@ -453,6 +455,15 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy,
 			priority: criticalityToPriority(s.Criticality),
 			dueDate:  s.NextReview,
 			owner:    s.Owner,
+		})
+	}
+	for _, l := range summary.ExternalLinks {
+		pending = append(pending, pendingTask{
+			title:    "Renewal: " + l.Title + " - " + l.ParentTitle + " (" + l.EntityID + ")",
+			taskType: "review",
+			priority: criticalityToPriority(l.Criticality),
+			dueDate:  l.NextReview,
+			owner:    l.Owner,
 		})
 	}
 	for _, s := range summary.Systems {

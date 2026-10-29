@@ -79,9 +79,11 @@ func runManager(quiet bool) error {
 		orgID := org.ID
 
 		created, backfilled, notified, unassigned, failed, err := manageOrg(ctx, d, orgID, quiet)
-		if err != nil && !quiet {
+		// Printed even under --quiet: cron mails any output, which is what a
+		// failure should do. The counts still go into the totals, because what
+		// manageOrg did before failing (e.g. notifications) did happen.
+		if err != nil {
 			fmt.Printf("[%s] error: %v\n", org.Slug, err)
-			continue
 		}
 		totalCreated += created
 		totalBackfilled += backfilled
@@ -171,13 +173,13 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	// "system" is not a user, so items without an owner are skipped and reported
 	// (unassigned) rather than assigned to it; the dashboard button, which has a
 	// real user to fall back on, handles those.
-	result, err := d.CreateOverdueReviewTasks(ctx, orgID, "system", "")
-	if err != nil {
-		return created, backfilled, notified, unassigned, failed, err
+	// A failure is returned at the end, not here: step 4 does not depend on it.
+	result, terr := d.CreateOverdueReviewTasks(ctx, orgID, "system", "")
+	if terr == nil {
+		created = len(result.Created)
+		unassigned = result.Unassigned
+		failed = result.Failed
 	}
-	created = len(result.Created)
-	unassigned = result.Unassigned
-	failed = result.Failed
 
 	// 4. Supplier contract expiry notifications (#44).
 	// Non-fatal: a notification failure must not stop the cron from having done
@@ -187,5 +189,5 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 		fmt.Printf("[warn] supplier contract expiry notifications failed: %v\n", nerr)
 	}
 
-	return created, backfilled, notified, unassigned, failed, nil
+	return created, backfilled, notified, unassigned, failed, terr
 }

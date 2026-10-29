@@ -344,6 +344,9 @@ class TestRegisterSeedHeadingNotSearchable:
         assert r.json()[seed_f] == seed, "create no longer seeds the field; test would pass vacuously"
         # Build the index now: Upsert is a no-op while the org has no index.
         assert self._ids(headers, type_, token) == {a["identifier"]}
+        # The build-indexed seeded A must not match the headings yet.
+        for q in queries:
+            assert self._ids(headers, type_, q) == set(), f"build path: {q}"
         b = self._create(headers, coll, self._body(type_, f"Plain {type_} B {token}"))
         assert self._ids(headers, type_, token) == {a["identifier"], b["identifier"]}
 

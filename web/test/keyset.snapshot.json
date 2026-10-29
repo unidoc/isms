@@ -1196,6 +1196,8 @@
   "components.overdue.created_skipped",
   "components.overdue.creating",
   "components.overdue.days_late",
+  "components.overdue.error_create",
+  "components.overdue.error_load",
   "components.overdue.external_link",
   "components.overdue.overdue",
   "components.overdue.title",

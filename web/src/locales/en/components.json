@@ -394,6 +394,8 @@
     "contract_expired": "{count}d ago",
     "contract_expires_in": "in {count}d",
     "created_failed": ", {count} failed",
+    "error_create": "Could not create tasks: {message}",
+    "error_load": "Failed to load overdue items: {message}",
     "external_link": "link"
   },
   "suggest_new": {

@@ -18,6 +18,7 @@
     </div>
 
     <!-- Task creation result -->
+    <div v-if="createError" class="px-5 py-2.5 bg-red-950/30 border-b border-slate-800 text-xs text-red-300">{{ createError }}</div>
     <div v-if="taskResult" class="px-5 py-2.5 bg-emerald-950/30 border-b border-slate-800 text-xs text-emerald-300">
       {{ $t('components.overdue.created', taskResult.created?.length || 0) }}{{ taskResult.skipped > 0 ? $t('components.overdue.created_skipped', { count: taskResult.skipped }) : '' }}
       <span v-if="taskResult.failed > 0" class="text-red-300">{{ $t('components.overdue.created_failed', { count: taskResult.failed }) }}</span>
@@ -80,6 +81,7 @@
         </div>
       </div>
     </div>
+    <div v-else-if="loadError" class="p-8 text-center text-xs text-red-400">{{ loadError }} <button type="button" @click="loadOverdue" class="ml-2 text-blue-400 hover:text-blue-300 transition-colors">{{ $t('common.action.retry') }}</button></div>
     <div v-else class="p-8 text-center">
       <div class="text-sm text-emerald-400 font-medium">{{ $t('components.overdue.all_on_schedule') }}</div>
     </div>
@@ -88,7 +90,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
+import { renderApiError } from '../composables/useApiError.js'
 
 const props = defineProps({
   isAdmin: { type: Boolean, default: false },
@@ -96,7 +100,11 @@ const props = defineProps({
 
 const emit = defineEmits(['updated'])
 
+const { t } = useI18n()
+
 const overdue = ref(null)
+const loadError = ref('')
+const createError = ref('')
 const creating = ref(false)
 const taskResult = ref(null)
 
@@ -118,14 +126,21 @@ const allItems = computed(() => {
 })
 
 async function loadOverdue() {
+  loadError.value = ''
   try {
     overdue.value = await api.getOverdue()
-  } catch { /* ignore */ }
+    createError.value = ''
+  } catch (e) {
+    // Never show a stale or empty list as "all on schedule" when the load failed.
+    overdue.value = null
+    loadError.value = t('components.overdue.error_load', { message: renderApiError(e) || t('common.state.unknown') })
+  }
 }
 
 async function createTasks() {
   creating.value = true
   taskResult.value = null
+  createError.value = ''
   try {
     taskResult.value = await api.createOverdueTasks()
     // Refresh the overdue list
@@ -133,7 +148,9 @@ async function createTasks() {
     emit('updated')
     // Auto-hide result after 5 seconds
     setTimeout(() => { taskResult.value = null }, 5000)
-  } catch { /* ignore */ }
+  } catch (e) {
+    createError.value = t('components.overdue.error_create', { message: renderApiError(e) || t('common.state.unknown') })
+  }
   creating.value = false
 }
 

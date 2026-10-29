@@ -390,6 +390,8 @@
     "contract_expired": "hace {count}d",
     "contract_expires_in": "en {count}d",
     "created_failed": ", {count} con error",
+    "error_create": "No se pudieron crear las tareas: {message}",
+    "error_load": "No se pudieron cargar los elementos vencidos: {message}",
     "external_link": "enlace"
   },
   "suggest_new": {

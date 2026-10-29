@@ -390,6 +390,8 @@
     "contract_expired": "il y a {count} j",
     "contract_expires_in": "dans {count} j",
     "created_failed": ", {count} en échec",
+    "error_create": "Impossible de créer les tâches : {message}",
+    "error_load": "Échec du chargement des éléments en retard : {message}",
     "external_link": "lien"
   },
   "suggest_new": {

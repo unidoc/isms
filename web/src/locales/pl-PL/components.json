@@ -390,6 +390,8 @@
     "contract_expired": "{count}d temu",
     "contract_expires_in": "za {count}d",
     "created_failed": ", nie udało się utworzyć: {count}",
+    "error_create": "Nie udało się utworzyć zadań: {message}",
+    "error_load": "Nie udało się wczytać zaległych pozycji: {message}",
     "external_link": "link"
   },
   "suggest_new": {

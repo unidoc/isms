@@ -390,6 +390,8 @@
     "contract_expired": "vor {count} T",
     "contract_expires_in": "in {count} T",
     "created_failed": ", {count} fehlgeschlagen",
+    "error_create": "Aufgaben konnten nicht erstellt werden: {message}",
+    "error_load": "Überfällige Einträge konnten nicht geladen werden: {message}",
     "external_link": "Link"
   },
   "suggest_new": {

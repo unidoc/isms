@@ -390,6 +390,8 @@
     "contract_expired": "{count}d síðan",
     "contract_expires_in": "eftir {count}d",
     "created_failed": ", {count} mistókst",
+    "error_create": "Ekki tókst að búa til verkefni: {message}",
+    "error_load": "Ekki tókst að hlaða inn seinkuðum atriðum: {message}",
     "external_link": "tengill"
   },
   "suggest_new": {

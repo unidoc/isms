@@ -452,7 +452,7 @@
       <!-- ============================================ -->
       <div v-if="risks.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <HeatMap :items="risks" :title="t('dashboard.heatmap_title')" />
-        <OverdueItems :is-admin="isAdmin" @updated="refreshTasks" />
+        <OverdueItems :is-admin="isAdmin" @updated="refreshTasks" @loaded="onOverdueLoaded" @load-failed="overdueFailed = true" />
       </div>
 
       <!-- ============================================ -->
@@ -637,6 +637,13 @@ const pendingChangeCount = computed(() =>
 const needsReviewCount = computed(() =>
   allDocs.value.filter(d => d.status === 'in_review').length
 )
+
+// The panel reloads the same summary (Retry, after Create Tasks); keep the stat
+// card in step with whatever it last got.
+function onOverdueLoaded(summary) {
+  overdueSummary.value = summary
+  overdueFailed.value = false
+}
 
 const totalOverdueCount = computed(() => overdueSummary.value?.total_count || 0)
 

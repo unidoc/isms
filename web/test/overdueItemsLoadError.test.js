@@ -38,13 +38,17 @@ const retryButton = host =>
   [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Retry')
 
 // `overdue` answers GET /overdue, `create` answers POST /overdue/tasks.
-async function mount(overdue, create, interact) {
+async function mount(overdue, create, interact, events = []) {
   let answered = false
   globalThis.fetch = async (url, opts = {}) => {
     if (String(url).includes('/overdue/tasks') && opts.method === 'POST') return create()
     try { return await overdue() } finally { answered = true }
   }
-  return renderSfcSettled(OverdueItems, { isAdmin: true }, () => answered, interact)
+  return renderSfcSettled(OverdueItems, {
+    isAdmin: true,
+    onLoaded: s => events.push(['loaded', s]),
+    'onLoad-failed': () => events.push(['load-failed']),
+  }, () => answered, interact)
 }
 
 test('a 500 shows the load error, not "all on schedule"', async () => {
@@ -94,4 +98,18 @@ test('control: an empty 200 shows "all on schedule" and no error', async () => {
   assert.ok(html.includes(ALL_CLEAR), `all-clear missing: ${html}`)
   assert.ok(!html.includes(LOAD_ERROR), `error rendered for success: ${html}`)
   assert.ok(!html.includes('Retry'), `Retry rendered for success: ${html}`)
+})
+
+test('every load reports its outcome: a failure, then a Retry success with the summary', async () => {
+  const events = []
+  let calls = 0
+  await mount(async () => {
+    calls++
+    return calls === 1 ? json(500, { message: 'boom' }) : json(200, SUMMARY)
+  }, null, async (host, settle) => {
+    retryButton(host).click()
+    await settle(h => h.includes('Old risk'))
+  }, events)
+  assert.deepEqual(events.map(e => e[0]), ['load-failed', 'loaded'])
+  assert.equal(events[1][1].total_count, 1)
 })

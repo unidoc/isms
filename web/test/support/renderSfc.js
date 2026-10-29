@@ -72,7 +72,9 @@ function absolutizeImports(code, sfcPath) {
 // `stubChildren` replaces every imported `.vue` child component with one that
 // renders nothing: node cannot load a `.vue` import, so a view that nests other
 // components can only be mounted this way, and then only for what the view
-// itself renders.
+// itself renders. Each stub render pushes its `$attrs` onto
+// `globalThis.__sfcStubAttrs`, so a test can call the listeners a real child
+// would have been given.
 export async function compileSfc(sfcPath, { stubChildren = false } = {}) {
   const source = readFileSync(sfcPath, 'utf8')
   const { descriptor, errors } = parse(source, { filename: sfcPath })
@@ -80,7 +82,7 @@ export async function compileSfc(sfcPath, { stubChildren = false } = {}) {
   const { content } = compileScript(descriptor, { id: sfcPath, inlineTemplate: true })
   let code = absolutizeImports(content, sfcPath)
   if (stubChildren) {
-    code = code.replaceAll(/(from\s*)(['"])file:[^'"]+\.vue\2/g, '$1"data:text/javascript,export default {render(){return null}}"')
+    code = code.replaceAll(/(from\s*)(['"])file:[^'"]+\.vue\2/g, '$1"data:text/javascript,export default {render(){(globalThis.__sfcStubAttrs ??= []).push(this.$attrs);return null}}"')
   }
   const mod = `data:text/javascript,${encodeURIComponent(code)}`
   return (await import(mod)).default

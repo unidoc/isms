@@ -29,7 +29,7 @@ const json = (status, body) => new Response(JSON.stringify(body), {
 const LATE_TASK = { id: 1, title: 'Late task', status: 'open', due_date: '2020-01-01' }
 
 // Every endpoint answers an empty 200 except /me, /overdue and /tasks.
-async function mountCard(overdue, tasks = []) {
+async function mountCard(overdue, tasks = [], interact = null, risks = []) {
   const { createApp, h } = await import('vue')
   const { createRouter, createMemoryHistory } = await import('vue-router')
   const { i18n } = await import('../src/i18n.js')
@@ -39,6 +39,7 @@ async function mountCard(overdue, tasks = []) {
     if (u.endsWith('/me')) return json(200, { organization_id: 1, role: 'admin', email: 'a@b.c' })
     if (u.endsWith('/overdue')) { try { return await overdue() } finally { overdueAnswered = true } }
     if (u.includes('/tasks')) return json(200, tasks)
+    if (u.endsWith('/risks')) return json(200, risks)
     return json(200, [])
   }
   const router = createRouter({
@@ -56,6 +57,10 @@ async function mountCard(overdue, tasks = []) {
     if (overdueAnswered && host.innerHTML.includes('Overdue')) break
   }
   await new Promise(r => setTimeout(r, 50))
+  if (interact) {
+    await interact()
+    await new Promise(r => setTimeout(r, 50))
+  }
   // The card is the one whose label is "Overdue": take its link element.
   const card = [...host.querySelectorAll('a')].find(a => a.textContent.includes('Overdue') && a.textContent.length < 80)
   const text = card ? card.textContent.replace(/\s+/g, ' ').trim() : null
@@ -90,4 +95,30 @@ test('control: total_count 0 shows 0 and "all on track"', async () => {
   const card = await mountCard(async () => json(200, { total_count: 0 }))
   assert.ok(card.includes('0') && card.includes('all on track'), card)
   assert.ok(!card.includes('could not load') && !card.includes('—'), card)
+})
+
+// The panel (OverdueItems) reloads the summary on Retry and after Create Tasks;
+// the card follows what it last got. The panel is stubbed here, so its events are
+// fired through the listeners the Dashboard gave the stub.
+const panelListeners = () => (globalThis.__sfcStubAttrs ?? []).filter(a => a.onLoaded).at(-1)
+
+test('the card recovers when the panel reports a successful load', async () => {
+  globalThis.__sfcStubAttrs = []
+  const card = await mountCard(async () => json(500, { message: 'boom' }), [], async () => {
+    const l = panelListeners()
+    assert.ok(l, 'the Dashboard gave the panel no loaded listener')
+    l.onLoaded({ total_count: 2 })
+  }, [{ id: 1, title: 'r' }])
+  assert.ok(card.includes('2') && card.includes('items past due'), card)
+  assert.ok(!card.includes('—'), card)
+})
+
+test('the card goes unavailable when the panel reports a failed load', async () => {
+  globalThis.__sfcStubAttrs = []
+  const card = await mountCard(async () => json(200, { total_count: 2 }), [], async () => {
+    const l = panelListeners()
+    assert.ok(l, 'the Dashboard gave the panel no loaded listener')
+    l.onLoadFailed()
+  }, [{ id: 1, title: 'r' }])
+  assert.ok(card.includes('—') && card.includes('could not load'), card)
 })

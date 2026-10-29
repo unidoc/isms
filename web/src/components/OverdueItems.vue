@@ -98,7 +98,7 @@ const props = defineProps({
   isAdmin: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['updated'])
+const emit = defineEmits(['updated', 'loaded', 'load-failed'])
 
 const { t } = useI18n()
 
@@ -130,10 +130,12 @@ async function loadOverdue() {
   try {
     overdue.value = await api.getOverdue()
     createError.value = ''
+    emit('loaded', overdue.value)
   } catch (e) {
     // Never show a stale or empty list as "all on schedule" when the load failed.
     overdue.value = null
     loadError.value = t('components.overdue.error_load', { message: renderApiError(e) || t('common.state.unknown') })
+    emit('load-failed')
   }
 }
 

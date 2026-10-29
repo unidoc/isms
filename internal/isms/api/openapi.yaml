@@ -3700,6 +3700,13 @@ components:
         Unix epoch seconds (UTC), or null when unset. Used for keys that are
         always present in the response.
 
+    ReferenceInput:
+      type: object
+      description: A link to create together with a new record, naming the target entity.
+      properties:
+        type: { type: string, description: "Entity type of the target, for example risk or asset." }
+        id: { type: string, description: "Identifier of the target, for example RISK-3. Resolved and stored in its canonical form." }
+
     Risk:
       type: object
       properties:
@@ -3741,127 +3748,137 @@ components:
         next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Derived from current_level unless the request sets it; an explicit date is stored as sent. Omitted when not set." }
         notes: { type: string, description: "Omitted when empty." }
         external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
         created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     Asset:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "ASSET-1" }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "ASSET-1", readOnly: true }
         name: { type: string }
-        description: { type: string }
+        description: { type: string, description: "Omitted when empty." }
         asset_type: { type: string, enum: [infrastructure, processing_devices, software, financial_info, personal_data, ipr, sales_marketing, processing_facility, products_services, supply_chain, system, network, service, other] }
         status: { type: string, enum: [draft, open, archived] }
-        owner: { type: string }
-        primary_location: { type: string, enum: [company_office, third_party_dc, on_person, everywhere, other] }
-        confidentiality: { type: integer, minimum: 0, maximum: 5 }
-        integrity: { type: integer, minimum: 0, maximum: 5 }
-        availability: { type: integer, minimum: 0, maximum: 5 }
-        last_review: { type: string, format: date }
-        next_review: { type: string, format: date }
-        notes: { type: string }
-        tags: { type: array, items: { type: string } }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        owner: { type: string, description: "Omitted when empty." }
+        primary_location: { type: string, enum: [company_office, third_party_dc, on_person, everywhere, other], description: "Omitted when empty." }
+        confidentiality: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        integrity: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        availability: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        last_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        notes: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     Supplier:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "SUPPLIER-001" }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "SUPPLIER-001", readOnly: true }
         name: { type: string }
         supplier_type: { type: string, enum: [cloud, saas, consulting, hosting, infrastructure, software, contractor, other] }
         criticality: { type: string, enum: [low, medium, high, critical] }
         data_access: { type: boolean }
-        contact: { type: string }
-        contract_ref: { type: string }
+        contact: { type: string, description: "Omitted when empty." }
+        contract_ref: { type: string, description: "Omitted when empty." }
         status: { type: string, enum: [active, under_review, suspended, terminated] }
-        owner: { type: string, description: Owner email }
-        contract_expiry: { type: string, format: date }
-        confidentiality: { type: integer, minimum: 0, maximum: 5 }
-        integrity: { type: integer, minimum: 0, maximum: 5 }
-        availability: { type: integer, minimum: 0, maximum: 5 }
-        last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: "Derived from criticality unless the request sets it; an explicit date is stored as sent." }
-        notes: { type: string, description: "Markdown body. Includes ## Services (seeded on create when empty). Assessment status is derivable from last_review/next_review and supplier_reviews." }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        owner_id: { type: integer, readOnly: true, description: "Omitted when not set." }
+        owner: { type: string, description: "Owner email. Omitted when empty." }
+        contract_expiry: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        confidentiality: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        integrity: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        availability: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        last_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Derived from criticality unless the request sets it; an explicit date is stored as sent. Omitted when not set." }
+        notes: { type: string, description: "Markdown body. Includes ## Services (seeded on create when empty). Assessment status is derivable from last_review/next_review and supplier_reviews. Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     System:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "SYS-001" }
+        id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "SYS-001", readOnly: true }
+        organization_id: { type: integer, readOnly: true }
         name: { type: string }
-        description: { type: string, description: "Markdown body. Includes ## Purpose (seeded on create when empty)." }
-        supplier_id: { type: integer }
-        department: { type: string }
+        description: { type: string, description: "Markdown body. Includes ## Purpose (seeded on create when empty). Omitted when empty." }
+        supplier_id: { type: integer, description: "Omitted when not set." }
+        department: { type: string, description: "Omitted when empty." }
         classification: { type: string, enum: [public, internal, confidential, restricted] }
         criticality: { type: string, enum: [low, medium, high, critical] }
         status: { type: string, enum: [active, under_review, decommissioned] }
-        rpo_hours: { type: integer, description: Recovery Point Objective in hours }
-        rto_hours: { type: integer, description: Recovery Time Objective in hours }
-        confidentiality: { type: integer, minimum: 0, maximum: 5 }
-        integrity: { type: integer, minimum: 0, maximum: 5 }
-        availability: { type: integer, minimum: 0, maximum: 5 }
-        last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: "Derived from criticality unless the request sets it; an explicit date is stored as sent." }
-        owner: { type: string }
-        assets: { type: array, items: { type: string } }
-        notes: { type: string, description: "Markdown body. Includes ## Access control (seeded on create when empty)." }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        rpo_hours: { type: integer, description: "Recovery Point Objective in hours." }
+        rto_hours: { type: integer, description: "Recovery Time Objective in hours." }
+        confidentiality: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        integrity: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        availability: { type: [integer, 'null'], minimum: 0, maximum: 5, description: "null when not set." }
+        last_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Derived from criticality unless the request sets it; an explicit date is stored as sent. Omitted when not set." }
+        owner: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Markdown body. Includes ## Access control (seeded on create when empty). Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     AccessReview:
       type: object
       properties:
-        id: { type: integer }
-        system_id: { type: integer }
-        reviewed_at: { type: string, format: date-time }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        system_id: { type: integer, readOnly: true }
+        reviewed_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: "null when not set." }
         reviewed_by: { type: string }
         users_added: { type: integer }
         users_removed: { type: integer }
-        notes: { type: string }
-        created_at: { type: string, format: date-time }
+        notes: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     LegalRequirement:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "LEG-001" }
+        id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "LEG-001", readOnly: true }
+        organization_id: { type: integer, readOnly: true }
         title: { type: string }
-        description: { type: string }
+        description: { type: string, description: "Omitted when empty." }
         jurisdiction: { type: string }
         category: { type: string, enum: [privacy, security, sector, contractual, employment, intellectual_property, financial, environmental, corporate, other] }
-        reference: { type: string }
-        url: { type: string, format: uri }
+        reference: { type: string, description: "Omitted when empty." }
+        url: { type: string, format: uri, description: "Omitted when empty." }
         status: { type: string, enum: [draft, open, closed] }
-        owner: { type: string }
-        documents: { type: array, items: { type: string } }
-        last_review: { type: string, format: date }
-        next_review: { type: string, format: date, description: "Derived from current_level and last_review unless the request sets it; an explicit date is stored as sent." }
-        notes: { type: string }
-        current_likelihood: { type: integer, minimum: 1, maximum: 5 }
-        current_impact: { type: integer, minimum: 1, maximum: 5 }
-        current_score: { type: integer }
-        current_level: { type: string }
+        owner: { type: string, description: "Omitted when empty." }
+        last_review: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        next_review: { $ref: '#/components/schemas/EpochSeconds', description: "Derived from current_level and last_review unless the request sets it; an explicit date is stored as sent. Omitted when not set." }
+        notes: { type: string, description: "Omitted when empty." }
+        current_likelihood: { type: [integer, 'null'], minimum: 1, maximum: 5, description: "null when not set." }
+        current_impact: { type: [integer, 'null'], minimum: 1, maximum: 5, description: "null when not set." }
+        current_score: { type: [integer, 'null'], readOnly: true, description: "null when not set." }
+        current_level: { type: string, readOnly: true }
         treatment: { type: string, enum: [mitigate, accept, transfer, avoid] }
-        treatment_plan: { type: string }
-        target_likelihood: { type: integer }
-        target_impact: { type: integer }
+        treatment_plan: { type: string, description: "Omitted when empty." }
+        target_likelihood: { type: integer, description: "Omitted when not set." }
+        target_impact: { type: integer, description: "Omitted when not set." }
         completion: { type: integer, minimum: 0, maximum: 100 }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     Incident:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, readOnly: true }
         title: { type: string }
         description: { type: string }
         severity: { type: string, enum: [low, medium, high, critical] }
@@ -3871,44 +3888,49 @@ components:
         affects_a: { type: boolean }
         incident_type: { type: string, enum: [incident, event, weakness] }
         source: { type: string, enum: [internal, external, "internal and external"] }
-        confidentiality: { type: integer }
-        integrity: { type: integer }
-        availability: { type: integer }
-        linked_risks: { type: array, items: { type: string } }
-        affected_assets: { type: array, items: { type: string } }
-        affected_systems: { type: array, items: { type: string } }
+        notes: { type: string, description: "Omitted when empty." }
+        data_breach: { type: boolean }
+        gdpr_role: { type: string, enum: [controller, processor], description: "Omitted when empty." }
+        authority_notified: { type: string, enum: [not_required, pending, notified] }
+        authority_notified_at: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        subjects_notified: { type: string, enum: [not_required, pending, notified] }
+        subjects_notified_at: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
         reporter: { type: string }
-        assignee: { type: string }
-        detected_at: { type: string, format: date-time }
-        contained_at: { type: string, format: date-time }
-        resolved_at: { type: string, format: date-time }
-        closed_at: { type: string, format: date-time }
-        root_cause: { type: string }
-        lessons_learned: { type: string }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        assignee: { type: string, description: "Omitted when empty." }
+        detected_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: "null when not set." }
+        contained_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        resolved_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        closed_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        root_cause: { type: string, description: "Omitted when empty." }
+        lessons_learned: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     CorrectiveAction:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, readOnly: true }
         title: { type: string }
         description: { type: string }
         source: { type: string, enum: [internal_audit, external_audit, risk_assessment, security_incident, objective, feedback, other] }
         severity: { type: string, enum: [major_nc, minor_nc, observation, opportunity] }
         status: { type: string, enum: [todo, assessment, awaiting_approval, implementation, monitoring, resolved] }
-        assignee: { type: string }
-        created_by: { type: string }
-        due_date: { type: string, format: date }
-        root_cause: { type: string }
-        notes: { type: string }
+        assignee: { type: string, description: "Omitted when empty." }
+        created_by: { type: string, readOnly: true }
+        due_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        root_cause: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Omitted when empty." }
+        resolved_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        resolved_by: { type: string, readOnly: true, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
         # Cross-entity links live in entity_references (POST /references)
-        resolved_at: { type: string, format: date-time }
-        resolved_by: { type: string }
-        external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique." }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
 
     Review:
       type: object
@@ -3962,42 +3984,54 @@ components:
     Task:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, readOnly: true }
         title: { type: string }
-        description: { type: string }
-        task_type: { type: string }
-        # Cross-entity links (incident, document, control, etc.) live in entity_references
+        description: { type: string, description: "Omitted when empty." }
+        task_type: { type: string, enum: [general, review, incident_followup, audit_followup, ca_followup, change_followup, onboarding, offboarding, training, other] }
         assignee: { type: string, format: email }
-        created_by: { type: string }
+        created_by: { type: string, readOnly: true }
         status: { type: string, enum: [open, in_progress, done, cancelled] }
         priority: { type: string, enum: [low, medium, high, critical] }
-        due_date: { type: string, format: date-time }
-        completed_at: { type: string, format: date-time }
-        recurrence_days: { type: integer, description: Recurrence interval in days }
-        inbox_group: { type: string, enum: [assigned, delegated], description: "Only with involving=me" }
-        needs_action: { type: boolean, description: "Only with involving=me; true when the caller has to act" }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        due_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        completed_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        recurrence_days: { type: integer, description: "Recurrence interval in days. Omitted when not set." }
+        notes: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        private: { type: boolean }
+        inbox_group: { type: string, enum: [assigned, delegated], readOnly: true, description: "Only with involving=me. Omitted when empty." }
+        needs_action: { type: boolean, readOnly: true, description: "Only with involving=me; true when the caller has to act. Omitted when false." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
+        # Cross-entity links (incident, document, control, etc.) live in entity_references
 
     ChangeRequest:
       type: object
       properties:
-        id: { type: integer }
-        type: { type: string, enum: [change, access_request], default: change, description: "Record kind — a change, or an access request captured as a change record (#128)" }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        identifier: { type: string, readOnly: true }
+        type: { type: string, enum: [change, access_request], default: "change", description: "Record kind — a change, or an access request captured as a change record (#128)." }
         title: { type: string }
         description: { type: string }
-        justification: { type: string }
-        requested_by: { type: string }
-        assigned_to: { type: string }
+        justification: { type: string, description: "Omitted when empty." }
+        priority: { type: string, enum: [low, medium, high, critical] }
+        category: { type: string, enum: [process, technology, people, documentation, infrastructure, other] }
+        risk_level: { type: string, enum: [low, medium, high, critical] }
+        rollback_plan: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Omitted when empty." }
+        requested_by: { type: string, readOnly: true }
+        assigned_to: { type: string, description: "Omitted when empty." }
         status: { type: string, enum: [proposed, approved, rejected, in_progress, implemented, closed] }
-        approved_by: { type: string }
-        approved_at: { type: string, format: date-time }
-        planned_at: { type: string, format: date-time }
-        implemented_at: { type: string, format: date-time }
-        document_ids: { type: array, items: { type: string } }
-        needs_action: { type: boolean, description: "Only with involving=me; true when the caller has to act" }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        approved_by: { type: string, readOnly: true, description: "Omitted when empty." }
+        approved_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        planned_at: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        implemented_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        needs_action: { type: boolean, readOnly: true, description: "Only with involving=me; true when the caller has to act. Omitted when false." }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     Suggestion:
       type: object
@@ -4043,125 +4077,146 @@ components:
     AuditProgramme:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
         title: { type: string }
         year: { type: integer }
-        description: { type: string }
-        notes: { type: string }
+        description: { type: string, description: "Omitted when empty." }
         status: { type: string, enum: [draft, active, closed] }
-        created_by: { type: string }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        notes: { type: string, description: "Omitted when empty." }
+        created_by: { type: string, readOnly: true }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        audit_count: { type: integer, readOnly: true, description: "Omitted when 0." }
 
     Audit:
       type: object
       properties:
-        id: { type: integer }
-        programme_id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        programme_id: { type: integer, description: "Omitted when not set." }
         title: { type: string }
-        scope: { type: string, description: "Comma-separated scope patterns (e.g. ISO27001-*,SOC2-*)" }
+        scope: { type: string, description: "Comma-separated scope patterns (e.g. ISO27001-*,SOC2-*)." }
         auditor: { type: string }
         audit_type: { type: string, enum: [internal, external, surveillance, certification, recertification] }
         status: { type: string, enum: [planned, in_progress, completed] }
-        planned_date: { type: string, format: date-time }
-        end_date: { type: string, format: date }
-        started_at: { type: string, format: date-time }
-        completed_at: { type: string, format: date-time }
-        summary: { type: string }
-        item_count: { type: integer }
-        finding_count: { type: integer }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        planned_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        end_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        started_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        completed_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        summary: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        item_count: { type: integer, readOnly: true, description: "Omitted when 0." }
+        finding_count: { type: integer, readOnly: true, description: "Omitted when 0." }
+        open_findings: { type: integer, readOnly: true, description: "Omitted when 0." }
 
     AuditItem:
       type: object
       properties:
-        id: { type: integer }
-        audit_id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        audit_id: { type: integer, readOnly: true }
         item_id: { type: string }
         item_type: { type: string }
         title: { type: string }
         result: { type: string, enum: [not_assessed, conforming, minor_nc, major_nc, observation, opportunity] }
-        evidence: { type: string }
-        notes: { type: string }
-        assessed_at: { type: string, format: date-time }
-        created_at: { type: string, format: date-time }
+        evidence: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Omitted when empty." }
+        assessed_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        assessed_by: { type: string, readOnly: true, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     AuditFinding:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
         audit_id: { type: integer }
-        audit_item_id: { type: integer, description: "FK to audit_items (replaces denormalized item_id text)" }
+        audit_title: { type: string, readOnly: true, description: "Omitted when empty." }
+        audit_item_id: { type: integer, description: "FK to audit_items (replaces denormalized item_id text). Omitted when not set." }
         finding_type: { type: string, enum: [major_nc, minor_nc, observation, opportunity] }
         title: { type: string }
         description: { type: string, description: "Markdown body. Includes ## Corrective Action (seeded on create when empty)." }
-        owner: { type: string }
-        # Cross-entity links (e.g. implementation task) live in entity_references
         status: { type: string, enum: [open, closed] }
-        due_date: { type: string, format: date-time }
-        closed_at: { type: string, format: date-time }
-        closed_by: { type: string }
-        created_at: { type: string, format: date-time }
+        due_date: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        owner: { type: string, description: "Omitted when empty." }
+        closed_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        closed_by: { type: string, readOnly: true, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        # Cross-entity links (e.g. implementation task) live in entity_references
 
     Program:
       type: object
       properties:
-        id: { type: integer }
-        identifier: { type: string, example: "PRG-001" }
-        key: { type: string, description: "Short key used for objective display IDs" }
+        id: { type: integer, readOnly: true }
+        identifier: { type: string, example: "PRG-001", readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        key: { type: string, description: "Short key used for objective display IDs." }
         title: { type: string }
-        description: { type: string }
-        owner: { type: string }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        description: { type: string, description: "Omitted when empty." }
+        notes: { type: string, description: "Omitted when empty." }
+        owner: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     Objective:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
         program_id: { type: integer }
-        display_id: { type: string, example: "ISMS-1" }
+        display_id: { type: string, example: "ISMS-1", readOnly: true }
+        seq_number: { type: integer, readOnly: true }
         title: { type: string }
-        description: { type: string }
-        owner: { type: string }
-        source: { type: string }
-        measurement_method: { type: string }
-        target_value: { type: number }
+        description: { type: string, description: "Omitted when empty." }
+        owner: { type: string, description: "Omitted when empty." }
+        source: { type: string, description: "Omitted when empty." }
+        measurement_method: { type: string, description: "Omitted when empty." }
+        target_value: { type: number, description: "Omitted when not set." }
         target_operator: { type: string, enum: [gte, lte, eq, gt, lt] }
-        unit: { type: string }
-        window_seconds: { type: integer }
+        unit: { type: string, description: "Omitted when empty." }
+        window_seconds: { type: integer, description: "Omitted when not set." }
         grace_seconds: { type: integer }
+        checkin_cycle: { type: integer }
         status: { type: string, enum: [draft, active, at_risk, paused, complete] }
-        started_at: { type: string, format: date-time }
-        archived_at: { type: string, format: date-time }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        started_at: { $ref: '#/components/schemas/EpochSeconds', description: "Omitted when not set." }
+        archived_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Omitted when not set." }
+        notes: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
+        references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references." }
 
     Checkin:
       type: object
       properties:
-        id: { type: integer }
-        objective_id: { type: integer }
-        occurred_at: { type: string, format: date-time }
-        recorded_at: { type: string, format: date-time }
-        created_by: { type: string }
-        success: { type: boolean }
-        value_numeric: { type: number }
-        message: { type: string }
-        public_note: { type: string }
-        created_at: { type: string, format: date-time }
+        id: { type: integer, readOnly: true }
+        organization_id: { type: integer, readOnly: true }
+        objective_id: { type: integer, readOnly: true }
+        occurred_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: "null when not set." }
+        recorded_at: { $ref: '#/components/schemas/EpochSecondsNullable', readOnly: true, description: "null when not set." }
+        created_by: { type: string, readOnly: true, description: "Omitted when empty." }
+        success: { type: [boolean, 'null'], description: "null when not set." }
+        value_numeric: { type: number, description: "Omitted when not set." }
+        message: { type: string, description: "Omitted when empty." }
+        public_note: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
 
     Evidence:
       type: object
       properties:
         id: { type: integer }
+        organization_id: { type: integer }
         checkin_id: { type: integer }
         title: { type: string }
+        object_key: { type: string }
         content_type: { type: string }
-        size_bytes: { type: integer }
-        sha256: { type: string }
-        created_at: { type: string, format: date-time }
+        size_bytes: { type: integer, description: "Omitted when not set." }
+        sha256: { type: string, description: "Omitted when empty." }
+        created_at: { $ref: '#/components/schemas/EpochSeconds' }
 
     EntityReference:
       type: object

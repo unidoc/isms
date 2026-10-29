@@ -19,9 +19,21 @@ package api
 //   - a key that marshals to null at its zero value (nil pointer, nil slice or
 //     map, zero db.Epoch) has a type that includes null;
 //   - every other key is never null, so its type does not include null;
-//   - neverNullKeys are exempt from the second pass: the database always sets
-//     them (now() defaults), so their zero value is an artifact of the test and
-//     the spec documents them as non-null.
+//   - neverNullKeys (and neverNullByComponent) are exempt from the second
+//     pass: the database always sets them (now() defaults), so their zero value
+//     is an artifact of the test and the spec documents them as non-null;
+//   - the exception to all of the above: a key some update request decodes
+//     through Optional[T] clears the stored value when it receives null, so its
+//     schema type includes null and its description says "Send null on update
+//     to clear." Any other update field leaves the value alone on null, so its
+//     type must not include null because of the update.
+//
+// Create-only keys (accepted by a create request, not by the update request)
+// are silently ignored on update, so their description says so.
+//
+// readOnly and writeOnly are enforced only for entries that list request DTOs
+// (the components that are request bodies, plus those with DTOs). A
+// response-only component such as Evidence carries neither, by design.
 
 import (
 	"encoding/json"
@@ -62,7 +74,8 @@ type contractEntry struct {
 	// spec marks them readOnly.
 	serverSet []string
 	// requestOnly marks a component that no handler returns: it is the element
-	// type of a request field, checked against that Go type.
+	// type of a request field. It is checked as a request shape (accepted keys
+	// and types), not as a response.
 	requestOnly bool
 }
 
@@ -273,11 +286,48 @@ var pendingPartB = map[string]bool{
 // neverNullKeys are JSON keys the database always fills; see the header.
 var neverNullKeys = map[string]bool{"created_at": true, "updated_at": true}
 
+// neverNullByComponent lists value-Epoch keys that are NOT NULL DEFAULT now()
+// in the database and filled by the handler before insert, so they never
+// marshal as null in practice. Each entry cites the column and the code.
+var neverNullByComponent = map[string]map[string]string{
+	"AccessReview": {
+		"reviewed_at": "access_reviews.reviewed_at is NOT NULL DEFAULT now(); handleCreateAccessReview (server.go:3244) fills a zero value before insert",
+	},
+	"Incident": {
+		"detected_at": "incidents.detected_at is NOT NULL DEFAULT now(); applyIncidentDefaults (api_writepath_defaults.go:225) fills a zero value",
+	},
+	"Checkin": {
+		"occurred_at": "checkins.occurred_at is NOT NULL DEFAULT now(); CreateCheckin (db/checkins.go:43) fills a zero value",
+		"recorded_at": "checkins.recorded_at is NOT NULL DEFAULT now(); CreateCheckin inserts now() (db/checkins.go:49)",
+	},
+}
+
+func isNeverNull(path, key string) bool {
+	if neverNullKeys[key] {
+		return true
+	}
+	comp := path[:strings.Index(path+".", ".")]
+	_, ok := neverNullByComponent[comp][key]
+	return ok
+}
+
+// inlineRequestChecks lists operations whose request body is an inline schema
+// (not a component) that must still match the request DTO.
+var inlineRequestChecks = []struct {
+	op  string
+	dto reflect.Type
+}{
+	{"PUT /audits/{id}", reflect.TypeOf(auditUpdateRequest{})},
+	{"PUT /audit-findings/{id}", reflect.TypeOf(auditFindingUpdateRequest{})},
+}
+
 type specDoc struct {
 	schemas specSchemas
 	// requestBodies maps a component to the "METHOD /path" operations that
 	// reference it directly as their request body.
 	requestBodies map[string][]string
+	// inlineRequests maps "METHOD /path" to an inline (non-$ref) request schema.
+	inlineRequests map[string]map[string]any
 }
 
 type specSchemas map[string]any
@@ -296,7 +346,7 @@ func loadSpec(t *testing.T) specDoc {
 	if len(doc.Components.Schemas) == 0 {
 		t.Fatal("openapi.yaml has no components/schemas")
 	}
-	out := specDoc{schemas: doc.Components.Schemas, requestBodies: map[string][]string{}}
+	out := specDoc{schemas: doc.Components.Schemas, requestBodies: map[string][]string{}, inlineRequests: map[string]map[string]any{}}
 	const prefix = "#/components/schemas/"
 	for path, item := range doc.Paths {
 		for method, op := range item {
@@ -312,6 +362,8 @@ func loadSpec(t *testing.T) specDoc {
 				if ref, ok := sch["$ref"].(string); ok && strings.HasPrefix(ref, prefix) {
 					name := strings.TrimPrefix(ref, prefix)
 					out.requestBodies[name] = append(out.requestBodies[name], strings.ToUpper(method)+" "+path)
+				} else if sch != nil {
+					out.inlineRequests[strings.ToUpper(method)+" "+path] = sch
 				}
 			}
 		}
@@ -508,6 +560,12 @@ func (s specSchemas) checkUnion(seen map[string]*objSeen, errs *[]string) {
 	for _, path := range sortedKeys(seen) {
 		o := seen[path]
 		props, _ := o.sch["properties"].(map[string]any)
+		reqs, _ := o.sch["required"].([]any)
+		for _, r := range reqs {
+			if name, _ := r.(string); props[name] == nil {
+				*errs = append(*errs, fmt.Sprintf("%s: required lists %q which is not a property", path, name))
+			}
+		}
 		for _, k := range sortedKeys(props) {
 			ps, err := s.resolve(props[k])
 			if err != nil {
@@ -572,16 +630,20 @@ func (s specSchemas) collectZero(path string, zero, full map[string]any, node an
 	}
 }
 
-func (s specSchemas) judgeZero(facts map[string]*zeroFact, errs *[]string) {
+func (s specSchemas) judgeZero(facts map[string]*zeroFact, clearable map[string]bool, errs *[]string) {
 	for _, p := range sortedKeys(facts) {
 		f := facts[p]
 		key := p[strings.LastIndex(p, ".")+1:]
 		typ := strings.Join(schemaTypes(f.prop), "|")
 		switch {
-		case neverNullKeys[key]:
+		case isNeverNull(p, key):
 			if allowsNull(f.prop) {
 				*errs = append(*errs, fmt.Sprintf("%s: the database always sets this key, spec type must not include null", p))
 			}
+		case clearable[p]:
+			// A null from the client clears the value, so the type includes
+			// null whether or not the response ever emits it (checked with the
+			// request fields).
 		case f.null > 0:
 			if !allowsNull(f.prop) {
 				*errs = append(*errs, fmt.Sprintf("%s: emitted null at its zero value, spec type %s does not include null", p, typ))
@@ -731,6 +793,62 @@ func acceptedKinds(t reflect.Type) []string {
 	return nil
 }
 
+func isOptional(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t.Kind() == reflect.Struct && strings.HasPrefix(t.Name(), "Optional[")
+}
+
+func isUpdateDTO(t reflect.Type) bool { return strings.HasSuffix(t.Name(), "UpdateRequest") }
+
+const (
+	clearPhrase      = "Send null on update to clear."
+	createOnlyPhrase = "ignored on update"
+)
+
+// checkRequestFields compares the fields a request type decodes with the
+// schema properties: both directions, and the type each field can decode. For
+// an update request, an Optional field clears on null (so the schema type
+// includes null and says so) and any other field must not advertise null.
+func (s specSchemas) checkRequestFields(label string, props map[string]any, fields map[string]reflect.Type, update bool, phrase string, errs *[]string) {
+	for _, k := range sortedKeys(fields) {
+		if _, ok := props[k]; !ok {
+			*errs = append(*errs, fmt.Sprintf("%s: the request accepts %q but the spec does not document it", label, k))
+		}
+	}
+	for _, k := range sortedKeys(props) {
+		rt, ok := fields[k]
+		if !ok {
+			*errs = append(*errs, fmt.Sprintf("%s.%s: documented but the request does not accept it", label, k))
+			continue
+		}
+		ps, err := s.resolve(props[k])
+		if err != nil {
+			*errs = append(*errs, fmt.Sprintf("%s.%s: %v", label, k, err))
+			continue
+		}
+		if kinds := acceptedKinds(rt); kinds != nil {
+			for _, st := range schemaTypes(ps) {
+				if st != "null" && !hasType(kinds, st) {
+					*errs = append(*errs, fmt.Sprintf("%s.%s: spec type %s but the request field (%s) only decodes %s", label, k, st, rt, strings.Join(kinds, "|")))
+				}
+			}
+		}
+		if update {
+			desc, _ := ps["description"].(string)
+			switch {
+			case isOptional(rt) && !allowsNull(ps):
+				*errs = append(*errs, fmt.Sprintf("%s.%s: the update request clears this key on null (Optional) but the spec type does not include null", label, k))
+			case isOptional(rt) && !strings.Contains(desc, phrase):
+				*errs = append(*errs, fmt.Sprintf("%s.%s: the update request clears this key on null, so the description must say %q", label, k, phrase))
+			case !isOptional(rt) && allowsNull(ps):
+				*errs = append(*errs, fmt.Sprintf("%s.%s: spec type includes null but the update field is not Optional, so null does not clear it", label, k))
+			}
+		}
+	}
+}
+
 func TestOpenAPIContract(t *testing.T) {
 	spec := loadSpec(t)
 	schemas := spec.schemas
@@ -744,12 +862,63 @@ func TestOpenAPIContract(t *testing.T) {
 				t.Fatalf("%s: contractTable entry has no shapes", e.component)
 			}
 			var errs []string
+			defer func() {
+				sort.Strings(errs)
+				for _, msg := range errs {
+					t.Error(msg)
+				}
+			}()
+			sch, err := schemas.resolve(node)
+			if err != nil {
+				t.Fatalf("%s: %v", e.component, err)
+			}
+			props, _ := sch["properties"].(map[string]any)
+
+			// A request-only component is checked as a request shape.
+			if e.requestOnly {
+				fields := map[string]reflect.Type{}
+				jsonFields(e.shapes[0].typ, fields)
+				schemas.checkRequestFields(e.component, props, fields, false, "", &errs)
+				return
+			}
 
 			// Request-body coverage: a component some operation takes as its
 			// request body must say which DTOs it binds, or the readOnly and
 			// writeOnly checks below would silently be skipped.
 			if ops := spec.requestBodies[e.component]; len(ops) > 0 && len(e.requests) == 0 {
 				errs = append(errs, fmt.Sprintf("component %s is a request body for %s but lists no request DTOs", e.component, ops[0]))
+			}
+
+			// Create and update requests stay separate: a key only a create
+			// request accepts is ignored on update, and only Optional update
+			// fields clear on null.
+			create := map[string]reflect.Type{}
+			update := map[string]reflect.Type{}
+			for _, r := range e.requests {
+				if isUpdateDTO(r) {
+					jsonFields(r, update)
+				} else {
+					jsonFields(r, create)
+				}
+			}
+			serverSet := map[string]bool{}
+			for _, k := range e.serverSet {
+				serverSet[k] = true
+			}
+			accepted := map[string]reflect.Type{}
+			for k, rt := range create {
+				if !serverSet[k] {
+					accepted[k] = rt
+				}
+			}
+			for k, rt := range update {
+				accepted[k] = rt
+			}
+			clearable := map[string]bool{}
+			for k, rt := range update {
+				if isOptional(rt) {
+					clearable[e.component+"."+k] = true
+				}
 			}
 
 			seen := map[string]*objSeen{}
@@ -770,70 +939,91 @@ func TestOpenAPIContract(t *testing.T) {
 				schemas.collectZero(e.component, zero, full, node, facts)
 			}
 			schemas.checkUnion(seen, &errs)
-			schemas.judgeZero(facts, &errs)
+			schemas.judgeZero(facts, clearable, &errs)
 
-			sch, err := schemas.resolve(node)
-			if err != nil {
-				errs = append(errs, fmt.Sprintf("%s: %v", e.component, err))
+			if len(e.requests) == 0 {
+				return
 			}
-			props, _ := sch["properties"].(map[string]any)
-
-			if len(e.requests) > 0 && err == nil {
-				accepted := map[string]reflect.Type{}
-				for _, r := range e.requests {
-					jsonFields(r, accepted)
+			for _, k := range sortedKeys(accepted) {
+				if _, ok := props[k]; !ok {
+					errs = append(errs, fmt.Sprintf("%s: a request body accepts %q but the spec does not document it", e.component, k))
 				}
-				serverSet := map[string]bool{}
-				for _, k := range e.serverSet {
-					serverSet[k] = true
+			}
+			for _, k := range sortedKeys(props) {
+				ps, err := schemas.resolve(props[k])
+				if err != nil {
+					continue
 				}
-				for _, k := range sortedKeys(accepted) {
-					if serverSet[k] {
-						continue
-					}
-					if _, ok := props[k]; !ok {
-						errs = append(errs, fmt.Sprintf("%s: a request body accepts %q but the spec does not document it", e.component, k))
-					}
+				desc, _ := ps["description"].(string)
+				ro, wo := flag(ps, "readOnly"), flag(ps, "writeOnly")
+				rt, acc := accepted[k]
+				switch {
+				case ro && acc:
+					errs = append(errs, fmt.Sprintf("%s.%s: marked readOnly but the request body accepts it", e.component, k))
+				case !ro && !acc && emitted[k]:
+					errs = append(errs, fmt.Sprintf("%s.%s: not readOnly but the request body does not accept it", e.component, k))
+				case wo && emitted[k]:
+					// reported by checkFull
+				case wo && !acc:
+					errs = append(errs, fmt.Sprintf("%s.%s: marked writeOnly but no request body accepts it", e.component, k))
+				case !wo && acc && !emitted[k]:
+					errs = append(errs, fmt.Sprintf("%s.%s: accepted by a request body but never emitted, so it must be writeOnly", e.component, k))
 				}
-				for _, k := range sortedKeys(props) {
-					ps, err := schemas.resolve(props[k])
-					if err != nil {
-						continue
-					}
-					ro, wo := flag(ps, "readOnly"), flag(ps, "writeOnly")
-					_, acc := accepted[k]
-					acc = acc && !serverSet[k]
-					switch {
-					case ro && acc:
-						errs = append(errs, fmt.Sprintf("%s.%s: marked readOnly but the request body accepts it", e.component, k))
-					case !ro && !acc && emitted[k]:
-						errs = append(errs, fmt.Sprintf("%s.%s: not readOnly but the request body does not accept it", e.component, k))
-					case wo && emitted[k]:
-						// reported by checkFull
-					case wo && !acc:
-						errs = append(errs, fmt.Sprintf("%s.%s: marked writeOnly but no request body accepts it", e.component, k))
-					case !wo && acc && !emitted[k]:
-						errs = append(errs, fmt.Sprintf("%s.%s: accepted by a request body but never emitted, so it must be writeOnly", e.component, k))
-					}
-					// Request field type: the schema type is what a client
-					// sends, so the DTO field must decode it.
-					if rt, ok := accepted[k]; ok && acc && !ro {
-						if kinds := acceptedKinds(rt); kinds != nil {
-							for _, st := range schemaTypes(ps) {
-								if st != "null" && !hasType(kinds, st) {
-									errs = append(errs, fmt.Sprintf("%s.%s: spec type %s but the request field (%s) only decodes %s", e.component, k, st, rt, strings.Join(kinds, "|")))
-								}
-							}
+				if !acc || ro {
+					continue
+				}
+				// Request field type: the schema type is what a client sends,
+				// so the DTO field must decode it.
+				if kinds := acceptedKinds(rt); kinds != nil {
+					for _, st := range schemaTypes(ps) {
+						if st != "null" && !hasType(kinds, st) {
+							errs = append(errs, fmt.Sprintf("%s.%s: spec type %s but the request field (%s) only decodes %s", e.component, k, st, rt, strings.Join(kinds, "|")))
 						}
 					}
 				}
+				if len(update) == 0 {
+					continue
+				}
+				if urt, inUpdate := update[k]; inUpdate {
+					switch {
+					case isOptional(urt) && !allowsNull(ps):
+						errs = append(errs, fmt.Sprintf("%s.%s: the update request clears this key on null (Optional) but the spec type does not include null", e.component, k))
+					case isOptional(urt) && !strings.Contains(desc, clearPhrase):
+						errs = append(errs, fmt.Sprintf("%s.%s: the update request clears this key on null, so the description must say %q", e.component, k, clearPhrase))
+					case !isOptional(urt) && allowsNull(ps) && !isNeverNull(e.component, k) && !nullFromResponse(facts, e.component, k):
+						errs = append(errs, fmt.Sprintf("%s.%s: spec type includes null but the update field is not Optional, so null does not clear it", e.component, k))
+					}
+				} else if !strings.Contains(desc, createOnlyPhrase) {
+					errs = append(errs, fmt.Sprintf("%s.%s: only a create request accepts it; the description must say it is %q", e.component, k, createOnlyPhrase))
+				}
 			}
+		})
+	}
+
+	for _, c := range inlineRequestChecks {
+		t.Run(c.op, func(t *testing.T) {
+			sch, ok := spec.inlineRequests[c.op]
+			if !ok {
+				t.Fatalf("%s: no inline request schema in the spec", c.op)
+			}
+			props, _ := sch["properties"].(map[string]any)
+			fields := map[string]reflect.Type{}
+			jsonFields(c.dto, fields)
+			var errs []string
+			schemas.checkRequestFields(c.op, props, fields, true, "Send null", &errs)
 			sort.Strings(errs)
 			for _, msg := range errs {
 				t.Error(msg)
 			}
 		})
 	}
+}
+
+// nullFromResponse reports whether the response itself emits null at the key's
+// zero value, which legitimately puts null in the schema type.
+func nullFromResponse(facts map[string]*zeroFact, comp, key string) bool {
+	f := facts[comp+"."+key]
+	return f != nil && f.null > 0
 }
 
 // Every component must be checked, deliberately exempt, or pending.

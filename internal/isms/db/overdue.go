@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 )
@@ -57,20 +58,24 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND deleted_at IS NULL
 		ORDER BY next_review ASC
 	`, orgID, now)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var item OverdueItem
-			var reviewDate Epoch
-			if err := rows.Scan(&item.EntityID, &item.Title, &item.Owner, &reviewDate, &item.Criticality); err != nil {
-				break
-			}
-			item.EntityType = "risk"
-			item.NextReview = &reviewDate
-			item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
-			summary.Risks = append(summary.Risks, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue risks: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item OverdueItem
+		var reviewDate Epoch
+		if err := rows.Scan(&item.EntityID, &item.Title, &item.Owner, &reviewDate, &item.Criticality); err != nil {
+			return nil, fmt.Errorf("overdue risks: %w", err)
 		}
-		rows.Close()
+		item.EntityType = "risk"
+		item.NextReview = &reviewDate
+		item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
+		summary.Risks = append(summary.Risks, item)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("overdue risks: %w", err)
 	}
 
 	// Overdue suppliers
@@ -84,20 +89,24 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND deleted_at IS NULL
 		ORDER BY next_review ASC
 	`, orgID, now)
-	if err == nil {
-		defer rows2.Close()
-		for rows2.Next() {
-			var item OverdueItem
-			var reviewDate Epoch
-			if err := rows2.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
-				break
-			}
-			item.EntityType = "supplier"
-			item.NextReview = &reviewDate
-			item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
-			summary.Suppliers = append(summary.Suppliers, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue suppliers: %w", err)
+	}
+	defer rows2.Close()
+	for rows2.Next() {
+		var item OverdueItem
+		var reviewDate Epoch
+		if err := rows2.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
+			return nil, fmt.Errorf("overdue suppliers: %w", err)
 		}
-		rows2.Close()
+		item.EntityType = "supplier"
+		item.NextReview = &reviewDate
+		item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
+		summary.Suppliers = append(summary.Suppliers, item)
+	}
+	rows2.Close()
+	if err := rows2.Err(); err != nil {
+		return nil, fmt.Errorf("overdue suppliers: %w", err)
 	}
 
 	// Supplier contracts expiring within 30 days, or already expired (#44,
@@ -116,28 +125,32 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND deleted_at IS NULL
 		ORDER BY contract_expiry ASC
 	`, orgID)
-	if err == nil {
-		defer rowsC.Close()
-		for rowsC.Next() {
-			var item OverdueItem
-			var expiry Epoch
-			var daysUntil int
-			if err := rowsC.Scan(&item.EntityID, &item.Title, &item.Criticality, &expiry, &daysUntil, &item.Owner); err != nil {
-				break
-			}
-			item.EntityType = "supplier_contract"
-			item.NextReview = &expiry
-			// Negative until the contract expires, so the shared "days late"
-			// column reads correctly the moment it does.
-			item.DaysLate = -daysUntil
-			if daysUntil < 0 {
-				item.State = "expired"
-			} else {
-				item.State = "expiring"
-			}
-			summary.SupplierContracts = append(summary.SupplierContracts, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue supplier contracts: %w", err)
+	}
+	defer rowsC.Close()
+	for rowsC.Next() {
+		var item OverdueItem
+		var expiry Epoch
+		var daysUntil int
+		if err := rowsC.Scan(&item.EntityID, &item.Title, &item.Criticality, &expiry, &daysUntil, &item.Owner); err != nil {
+			return nil, fmt.Errorf("overdue supplier contracts: %w", err)
 		}
-		rowsC.Close()
+		item.EntityType = "supplier_contract"
+		item.NextReview = &expiry
+		// Negative until the contract expires, so the shared "days late"
+		// column reads correctly the moment it does.
+		item.DaysLate = -daysUntil
+		if daysUntil < 0 {
+			item.State = "expired"
+		} else {
+			item.State = "expiring"
+		}
+		summary.SupplierContracts = append(summary.SupplierContracts, item)
+	}
+	rowsC.Close()
+	if err := rowsC.Err(); err != nil {
+		return nil, fmt.Errorf("overdue supplier contracts: %w", err)
 	}
 
 	// External evidence links on suppliers that expire within 30 days or have
@@ -159,26 +172,30 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND s.deleted_at IS NULL
 		ORDER BY l.valid_until ASC, l.id ASC
 	`, orgID)
-	if err == nil {
-		defer rowsL.Close()
-		for rowsL.Next() {
-			var item OverdueItem
-			var validUntil Epoch
-			var daysUntil int
-			if err := rowsL.Scan(&item.EntityID, &item.ParentTitle, &item.Criticality, &item.LinkID, &item.Title, &validUntil, &daysUntil, &item.Owner); err != nil {
-				break
-			}
-			item.EntityType = "external_link"
-			item.NextReview = &validUntil
-			item.DaysLate = -daysUntil
-			if daysUntil < 0 {
-				item.State = "expired"
-			} else {
-				item.State = "expiring"
-			}
-			summary.ExternalLinks = append(summary.ExternalLinks, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue external links: %w", err)
+	}
+	defer rowsL.Close()
+	for rowsL.Next() {
+		var item OverdueItem
+		var validUntil Epoch
+		var daysUntil int
+		if err := rowsL.Scan(&item.EntityID, &item.ParentTitle, &item.Criticality, &item.LinkID, &item.Title, &validUntil, &daysUntil, &item.Owner); err != nil {
+			return nil, fmt.Errorf("overdue external links: %w", err)
 		}
-		rowsL.Close()
+		item.EntityType = "external_link"
+		item.NextReview = &validUntil
+		item.DaysLate = -daysUntil
+		if daysUntil < 0 {
+			item.State = "expired"
+		} else {
+			item.State = "expiring"
+		}
+		summary.ExternalLinks = append(summary.ExternalLinks, item)
+	}
+	rowsL.Close()
+	if err := rowsL.Err(); err != nil {
+		return nil, fmt.Errorf("overdue external links: %w", err)
 	}
 
 	// Overdue systems (access reviews)
@@ -192,20 +209,24 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND deleted_at IS NULL
 		ORDER BY next_review ASC
 	`, orgID, now)
-	if err == nil {
-		defer rows3.Close()
-		for rows3.Next() {
-			var item OverdueItem
-			var reviewDate Epoch
-			if err := rows3.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
-				break
-			}
-			item.EntityType = "system"
-			item.NextReview = &reviewDate
-			item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
-			summary.Systems = append(summary.Systems, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue systems: %w", err)
+	}
+	defer rows3.Close()
+	for rows3.Next() {
+		var item OverdueItem
+		var reviewDate Epoch
+		if err := rows3.Scan(&item.EntityID, &item.Title, &item.Criticality, &reviewDate, &item.Owner); err != nil {
+			return nil, fmt.Errorf("overdue systems: %w", err)
 		}
-		rows3.Close()
+		item.EntityType = "system"
+		item.NextReview = &reviewDate
+		item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
+		summary.Systems = append(summary.Systems, item)
+	}
+	rows3.Close()
+	if err := rows3.Err(); err != nil {
+		return nil, fmt.Errorf("overdue systems: %w", err)
 	}
 
 	// Overdue legal requirements
@@ -220,20 +241,24 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND deleted_at IS NULL
 		ORDER BY next_review ASC
 	`, orgID, now)
-	if err == nil {
-		defer rows4.Close()
-		for rows4.Next() {
-			var item OverdueItem
-			var reviewDate Epoch
-			if err := rows4.Scan(&item.EntityID, &item.Title, &item.Owner, &reviewDate, &item.Criticality); err != nil {
-				break
-			}
-			item.EntityType = "legal"
-			item.NextReview = &reviewDate
-			item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
-			summary.Legal = append(summary.Legal, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue legal requirements: %w", err)
+	}
+	defer rows4.Close()
+	for rows4.Next() {
+		var item OverdueItem
+		var reviewDate Epoch
+		if err := rows4.Scan(&item.EntityID, &item.Title, &item.Owner, &reviewDate, &item.Criticality); err != nil {
+			return nil, fmt.Errorf("overdue legal requirements: %w", err)
 		}
-		rows4.Close()
+		item.EntityType = "legal"
+		item.NextReview = &reviewDate
+		item.DaysLate = int(now.Sub(reviewDate.Time).Hours() / 24)
+		summary.Legal = append(summary.Legal, item)
+	}
+	rows4.Close()
+	if err := rows4.Err(); err != nil {
+		return nil, fmt.Errorf("overdue legal requirements: %w", err)
 	}
 
 	// Overdue tasks — scoped to the viewer so a private task's title/assignee
@@ -251,20 +276,24 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 			AND t.deleted_at IS NULL`+visT+`
 		ORDER BY t.due_date ASC
 	`, append([]interface{}{orgID, now}, visArgs...)...)
-	if err == nil {
-		defer rows5.Close()
-		for rows5.Next() {
-			var item OverdueItem
-			var dueDate Epoch
-			if err := rows5.Scan(&item.EntityID, &item.Title, &item.Owner, &dueDate, &item.Criticality); err != nil {
-				break
-			}
-			item.EntityType = "task"
-			item.NextReview = &dueDate
-			item.DaysLate = int(now.Sub(dueDate.Time).Hours() / 24)
-			summary.Tasks = append(summary.Tasks, item)
+	if err != nil {
+		return nil, fmt.Errorf("overdue tasks: %w", err)
+	}
+	defer rows5.Close()
+	for rows5.Next() {
+		var item OverdueItem
+		var dueDate Epoch
+		if err := rows5.Scan(&item.EntityID, &item.Title, &item.Owner, &dueDate, &item.Criticality); err != nil {
+			return nil, fmt.Errorf("overdue tasks: %w", err)
 		}
-		rows5.Close()
+		item.EntityType = "task"
+		item.NextReview = &dueDate
+		item.DaysLate = int(now.Sub(dueDate.Time).Hours() / 24)
+		summary.Tasks = append(summary.Tasks, item)
+	}
+	rows5.Close()
+	if err := rows5.Err(); err != nil {
+		return nil, fmt.Errorf("overdue tasks: %w", err)
 	}
 
 	summary.TotalCount = len(summary.Risks) + len(summary.Suppliers) +

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -202,14 +203,15 @@ func auditSearchEntry(a *db.Audit) SearchEntry {
 	}
 }
 
-// The seeded heading is scaffolding, not content: indexed, it would make every
-// finding match "corrective action" (#451). Only lines that are exactly the
-// heading go; anything the user wrote stays searchable.
-func stripAuditFindingSeedHeading(desc string) string {
-	lines := strings.Split(desc, "\n")
+// Seeded headings are scaffolding, not content: indexed, they would make every
+// finding match "corrective action" (#451) and every seeded risk, system or
+// supplier match "description", "purpose" or "services" (#474). Only lines that
+// are exactly a heading go; anything the user wrote stays searchable.
+func stripSeedHeadings(text string, headings ...string) string {
+	lines := strings.Split(text, "\n")
 	kept := lines[:0]
 	for _, l := range lines {
-		if strings.TrimSpace(l) != auditFindingSeedHeading {
+		if !slices.Contains(headings, strings.TrimSpace(l)) {
 			kept = append(kept, l)
 		}
 	}
@@ -222,7 +224,37 @@ func auditFindingSearchEntry(f *db.AuditFinding) SearchEntry {
 		Type:   "audit_finding",
 		ID:     id,
 		Title:  f.Title,
-		Search: strings.ToLower(id + " " + f.Title + " " + stripAuditFindingSeedHeading(f.Description)),
+		Search: strings.ToLower(id + " " + f.Title + " " + stripSeedHeadings(f.Description, auditFindingSeedHeading)),
+	}
+}
+
+// Risks, systems and suppliers (#474): one builder per type, used by the build
+// and the handler upserts, with the seeded headings stripped.
+func riskSearchEntry(r *db.Risk) SearchEntry {
+	desc := stripSeedHeadings(r.Description, riskDescriptionSeedHeading, riskConsequencesSeedHeading)
+	return SearchEntry{
+		Type:   "risk",
+		ID:     r.Identifier,
+		Title:  r.Title,
+		Search: strings.ToLower(r.Identifier + " " + r.Title + " " + desc + " " + r.Category),
+	}
+}
+
+func systemSearchEntry(sys *db.System) SearchEntry {
+	return SearchEntry{
+		Type:   "system",
+		ID:     sys.Identifier,
+		Title:  sys.Name,
+		Search: strings.ToLower(sys.Identifier + " " + sys.Name + " " + stripSeedHeadings(sys.Description, systemPurposeSeedHeading)),
+	}
+}
+
+func supplierSearchEntry(sup *db.Supplier) SearchEntry {
+	return SearchEntry{
+		Type:   "supplier",
+		ID:     sup.Identifier,
+		Title:  sup.Name,
+		Search: strings.ToLower(sup.Identifier + " " + sup.Name + " " + stripSeedHeadings(sup.Notes, supplierServicesSeedHeading)),
 	}
 }
 
@@ -321,13 +353,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, r := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "risk",
-				ID:     r.Identifier,
-				Title:  r.Title,
-				Search: strings.ToLower(r.Identifier + " " + r.Title + " " + r.Description + " " + r.Category),
-			})
+		for i := range items {
+			entries = append(entries, riskSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -352,13 +379,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, sup := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "supplier",
-				ID:     sup.Identifier,
-				Title:  sup.Name,
-				Search: strings.ToLower(sup.Identifier + " " + sup.Name + " " + sup.Notes),
-			})
+		for i := range items {
+			entries = append(entries, supplierSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -388,13 +410,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, sys := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "system",
-				ID:     sys.Identifier,
-				Title:  sys.Name,
-				Search: strings.ToLower(sys.Identifier + " " + sys.Name + " " + sys.Description),
-			})
+		for i := range items {
+			entries = append(entries, systemSearchEntry(&items[i]))
 		}
 		return entries
 	})

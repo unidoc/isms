@@ -5,6 +5,24 @@ import requests
 from conftest import ADMIN_EMAIL, API
 
 
+PASSWORD = "TestPass123!"
+
+
+def _fresh_org_headers(prefix):
+    """Sign up a new user with its own org; return (email, org-scoped headers)."""
+    suffix = uuid.uuid4().hex[:8]
+    email = f"{prefix}-{suffix}@isms-test.local"
+    slug = f"{prefix}-{suffix}"
+    r = requests.post(f"{API}/auth/signup", json={"email": email, "password": PASSWORD, "name": "Search Test"})
+    assert r.status_code in (200, 201), r.text
+    headers = {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+    r = requests.post(f"{API}/organizations", headers=headers, json={"name": slug, "slug": slug})
+    assert r.status_code in (200, 201), r.text
+    r = requests.post(f"{API}/auth/login", json={"email": email, "password": PASSWORD, "organization": slug})
+    assert r.status_code == 200, r.text
+    return email, {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+
+
 class TestSearchIndex:
     """Search should find entities across all types."""
 
@@ -238,20 +256,8 @@ class TestFindingSeedHeadingNotSearchable:
     Action" heading. That scaffolding must not make every finding match
     "corrective action" (#451); text the user wrote still does."""
 
-    PASSWORD = "TestPass123!"
-
     def _fresh_org_headers(self):
-        suffix = uuid.uuid4().hex[:8]
-        email = f"find-search-{suffix}@isms-test.local"
-        slug = f"find-search-{suffix}"
-        r = requests.post(f"{API}/auth/signup", json={"email": email, "password": self.PASSWORD, "name": "Finding Search"})
-        assert r.status_code in (200, 201), r.text
-        headers = {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
-        r = requests.post(f"{API}/organizations", headers=headers, json={"name": slug, "slug": slug})
-        assert r.status_code in (200, 201), r.text
-        r = requests.post(f"{API}/auth/login", json={"email": email, "password": self.PASSWORD, "organization": slug})
-        assert r.status_code == 200, r.text
-        return email, {"Authorization": f"Bearer {r.json()['token']}", "Content-Type": "application/json"}
+        return _fresh_org_headers("find-search")
 
     def _finding(self, headers, audit_id, title, **extra):
         r = requests.post(f"{API}/audit-findings", headers=headers, json={
@@ -292,3 +298,74 @@ class TestFindingSeedHeadingNotSearchable:
         for q in ("corrective action", "corrective", "action"):
             assert self._finding_ids(headers, q) == {f"FIND-{c}"}, q
         assert self._finding_ids(headers, f"rotate {token}") == {f"FIND-{d}"}
+
+
+class TestRegisterSeedHeadingNotSearchable:
+    """Risks, systems and suppliers created without a description/notes are
+    seeded with section headings. That scaffolding must not make every seeded
+    record match "purpose", "services" or "description" (#474); text the user
+    wrote still does."""
+
+    # type -> (collection, name field, seeded field, seed bytes, heading queries)
+    CASES = {
+        "risk": ("risks", "title", "description",
+                 "## Description\n\n\n\n## Potential consequences\n\n",
+                 ["potential consequences", "consequences", "description"]),
+        "system": ("systems", "name", "description", "## Purpose\n\n", ["purpose"]),
+        "supplier": ("suppliers", "name", "notes", "## Services\n\n", ["services"]),
+    }
+
+    def _create(self, headers, coll, body):
+        r = requests.post(f"{API}/{coll}", headers=headers, json=body)
+        assert r.status_code in (200, 201), r.text
+        return r.json()
+
+    def _ids(self, headers, type_, q):
+        r = requests.get(f"{API}/search", headers=headers, params={"q": q})
+        assert r.status_code == 200, r.text
+        return {i["id"] for i in (r.json().get("data") or []) if i.get("type") == type_}
+
+    def _body(self, type_, name, **extra):
+        body = {self.CASES[type_][1]: name, **extra}
+        if type_ == "risk":
+            body.update({"risk_type": "threat", "origin": "external", "status": "open",
+                         "current_likelihood": 2, "current_impact": 2})
+        return body
+
+    def _run(self, type_):
+        coll, name_f, seed_f, seed, queries = self.CASES[type_]
+        _, headers = _fresh_org_headers(f"seed-{type_}")
+        token = uuid.uuid4().hex[:8]
+
+        # A goes through the index build, B through the create-handler upsert.
+        a = self._create(headers, coll, self._body(type_, f"Plain {type_} A {token}"))
+        r = requests.get(f"{API}/{coll}/{a['id']}", headers=headers)
+        assert r.status_code == 200, r.text
+        assert r.json()[seed_f] == seed, "create no longer seeds the field; test would pass vacuously"
+        # Build the index now: Upsert is a no-op while the org has no index.
+        assert self._ids(headers, type_, token) == {a["identifier"]}
+        b = self._create(headers, coll, self._body(type_, f"Plain {type_} B {token}"))
+        assert self._ids(headers, type_, token) == {a["identifier"], b["identifier"]}
+
+        # A goes through the update-handler upsert; the PUT leaves the seed.
+        r = requests.put(f"{API}/{coll}/{a['id']}", headers=headers, json={name_f: f"Renamed {type_} A {token}"})
+        assert r.status_code == 200, r.text
+        assert self._ids(headers, type_, f"renamed {type_} a") == {a["identifier"]}
+
+        c = self._create(headers, coll, self._body(type_, f"{' '.join(queries)} {type_} C {token}"))
+        d = self._create(headers, coll, self._body(
+            type_, f"Plain {type_} D {token}",
+            **{seed_f: seed.split("\n")[0] + f"\n\nRuns {token} payroll"}))
+
+        for q in queries:
+            assert self._ids(headers, type_, q) == {c["identifier"]}, q
+        assert self._ids(headers, type_, f"runs {token} payroll") == {d["identifier"]}
+
+    def test_risk(self):
+        self._run("risk")
+
+    def test_system(self):
+        self._run("system")
+
+    def test_supplier(self):
+        self._run("supplier")

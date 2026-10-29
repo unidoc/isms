@@ -205,3 +205,150 @@ func TestAuditFindingSearchEntrySeededHeading(t *testing.T) {
 		t.Errorf("prose containing the words must stay searchable: Search=%q", got)
 	}
 }
+
+func TestRiskSearchEntrySeededHeading(t *testing.T) {
+	seed := riskDescriptionSeedHeading + "\n\n\n\n" + riskConsequencesSeedHeading + "\n\n"
+	search := func(title, desc string) string {
+		return riskSearchEntry(&db.Risk{Identifier: "RISK-9", Title: title, Description: desc, Category: "operational"}).Search
+	}
+
+	e := riskSearchEntry(&db.Risk{Identifier: "RISK-9", Title: "Lost laptop", Description: seed, Category: "operational"})
+	if e.Type != "risk" || e.ID != "RISK-9" || e.Title != "Lost laptop" {
+		t.Errorf("entry=%+v, want type risk, ID RISK-9, Title Lost laptop", e)
+	}
+
+	got := search("Lost laptop", seed)
+	for _, bad := range []string{"description", "potential consequences", "consequences"} {
+		if strings.Contains(got, bad) {
+			t.Errorf("seeded-only Search %q should not contain %q", got, bad)
+		}
+	}
+	for _, want := range []string{"risk-9", "lost laptop", "operational"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("seeded-only Search %q should contain %q", got, want)
+		}
+	}
+
+	got = search("Lost laptop", riskDescriptionSeedHeading+"\n\nDevice stolen from a car\n\n"+riskConsequencesSeedHeading+"\n\nData exposure")
+	for _, want := range []string{"device stolen from a car", "data exposure"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("user text under heading: Search=%q should contain %q", got, want)
+		}
+	}
+	if strings.Contains(got, "potential consequences") || strings.Contains(got, "description") {
+		t.Errorf("headings should be stripped: Search=%q", got)
+	}
+
+	if got := search("Description of potential consequences", seed); !strings.Contains(got, "description of potential consequences") {
+		t.Errorf("title must stay searchable: Search=%q", got)
+	}
+
+	if got := search("t", "  ## Potential consequences  \n  ## Description\nx"); strings.Contains(got, "consequences") || strings.Contains(got, "description") {
+		t.Errorf("padded headings should be stripped: Search=%q", got)
+	}
+
+	if got := search("t", "A long description of the potential consequences"); !strings.Contains(got, "a long description of the potential consequences") {
+		t.Errorf("prose containing the words must stay searchable: Search=%q", got)
+	}
+}
+
+func TestSystemSearchEntrySeededHeading(t *testing.T) {
+	seed := systemPurposeSeedHeading + "\n\n"
+	search := func(name, desc string) string {
+		return systemSearchEntry(&db.System{Identifier: "SYS-4", Name: name, Description: desc}).Search
+	}
+
+	e := systemSearchEntry(&db.System{Identifier: "SYS-4", Name: "Payroll", Description: seed})
+	if e.Type != "system" || e.ID != "SYS-4" || e.Title != "Payroll" {
+		t.Errorf("entry=%+v, want type system, ID SYS-4, Title Payroll", e)
+	}
+
+	got := search("Payroll", seed)
+	if strings.Contains(got, "purpose") {
+		t.Errorf("seeded-only Search %q should not contain purpose", got)
+	}
+	for _, want := range []string{"sys-4", "payroll"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("seeded-only Search %q should contain %q", got, want)
+		}
+	}
+
+	got = search("Payroll", seed+"Runs monthly salaries")
+	if !strings.Contains(got, "runs monthly salaries") || strings.Contains(got, "purpose") {
+		t.Errorf("user text under heading: Search=%q", got)
+	}
+
+	if got := search("Purpose built CRM", seed); !strings.Contains(got, "purpose built crm") {
+		t.Errorf("name must stay searchable: Search=%q", got)
+	}
+
+	if got := search("t", "  ## Purpose  \n\nx"); strings.Contains(got, "purpose") {
+		t.Errorf("padded heading should be stripped: Search=%q", got)
+	}
+
+	if got := search("t", "Purpose: hosting payroll"); !strings.Contains(got, "purpose: hosting payroll") {
+		t.Errorf("prose containing the word must stay searchable: Search=%q", got)
+	}
+}
+
+func TestSupplierSearchEntrySeededHeading(t *testing.T) {
+	seed := supplierServicesSeedHeading + "\n\n"
+	search := func(name, notes string) string {
+		return supplierSearchEntry(&db.Supplier{Identifier: "SUP-2", Name: name, Notes: notes}).Search
+	}
+
+	e := supplierSearchEntry(&db.Supplier{Identifier: "SUP-2", Name: "Acme", Notes: seed})
+	if e.Type != "supplier" || e.ID != "SUP-2" || e.Title != "Acme" {
+		t.Errorf("entry=%+v, want type supplier, ID SUP-2, Title Acme", e)
+	}
+
+	got := search("Acme", seed)
+	if strings.Contains(got, "services") {
+		t.Errorf("seeded-only Search %q should not contain services", got)
+	}
+	for _, want := range []string{"sup-2", "acme"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("seeded-only Search %q should contain %q", got, want)
+		}
+	}
+
+	got = search("Acme", seed+"Payroll processing")
+	if !strings.Contains(got, "payroll processing") || strings.Contains(got, "services") {
+		t.Errorf("user text under heading: Search=%q", got)
+	}
+
+	if got := search("Cloud Services Ltd", seed); !strings.Contains(got, "cloud services ltd") {
+		t.Errorf("name must stay searchable: Search=%q", got)
+	}
+
+	if got := search("t", "  ## Services  \n\nx"); strings.Contains(got, "services") {
+		t.Errorf("padded heading should be stripped: Search=%q", got)
+	}
+
+	if got := search("t", "Hosting services for payroll"); !strings.Contains(got, "hosting services for payroll") {
+		t.Errorf("prose containing the word must stay searchable: Search=%q", got)
+	}
+}
+
+// Existing rows hold these exact bytes; if a default drifts, the stored seed no
+// longer equals the heading constants and stops being stripped (#474).
+func TestSeededDefaultsBytes(t *testing.T) {
+	var r db.Risk
+	applyRiskDefaults(&r, "a@b.c")
+	if want := "## Description\n\n\n\n## Potential consequences\n\n"; r.Description != want {
+		t.Errorf("risk description=%q, want %q", r.Description, want)
+	}
+	var sys db.System
+	applySystemDefaults(&sys, "a@b.c")
+	if want := "## Purpose\n\n"; sys.Description != want {
+		t.Errorf("system description=%q, want %q", sys.Description, want)
+	}
+	if want := "## Access control\n\n"; sys.Notes != want {
+		t.Errorf("system notes=%q, want %q", sys.Notes, want)
+	}
+	var sup db.Supplier
+	applySupplierDefaults(&sup, "a@b.c")
+	if want := "## Services\n\n"; sup.Notes != want {
+		t.Errorf("supplier notes=%q, want %q", sup.Notes, want)
+	}
+}

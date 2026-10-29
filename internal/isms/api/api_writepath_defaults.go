@@ -28,6 +28,15 @@ func applyAssetDefaults(a *db.Asset, actor string) {
 	}
 }
 
+// Section headings the create defaults seed into empty fields. Search strips
+// these exact lines (#474), so the constants must match the stored bytes.
+const (
+	riskDescriptionSeedHeading  = "## Description"
+	riskConsequencesSeedHeading = "## Potential consequences"
+	systemPurposeSeedHeading    = "## Purpose"
+	supplierServicesSeedHeading = "## Services"
+)
+
 func applySupplierDefaults(sup *db.Supplier, actor string) {
 	if sup.Status == "" {
 		sup.Status = "active"
@@ -42,7 +51,7 @@ func applySupplierDefaults(sup *db.Supplier, actor string) {
 		sup.Owner = actor
 	}
 	if sup.Notes == "" {
-		sup.Notes = "## Services\n\n"
+		sup.Notes = supplierServicesSeedHeading + "\n\n"
 	}
 }
 
@@ -75,7 +84,7 @@ func applySystemDefaults(sys *db.System, actor string) {
 		sys.Owner = actor
 	}
 	if sys.Description == "" {
-		sys.Description = "## Purpose\n\n"
+		sys.Description = systemPurposeSeedHeading + "\n\n"
 	}
 	if sys.Notes == "" {
 		sys.Notes = "## Access control\n\n"
@@ -161,7 +170,7 @@ func applyRiskDefaults(r *db.Risk, actor string) {
 	// Seed description with section headings when empty, so the user has clear
 	// places to fill in both the risk description and its potential consequences.
 	if r.Description == "" {
-		r.Description = "## Description\n\n\n\n## Potential consequences\n\n"
+		r.Description = riskDescriptionSeedHeading + "\n\n\n\n" + riskConsequencesSeedHeading + "\n\n"
 	}
 }
 

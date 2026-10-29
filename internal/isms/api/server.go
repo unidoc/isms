@@ -2236,7 +2236,7 @@ func (s *Server) handleCreateSystem(c echo.Context) error {
 		Action:     "create",
 		ChangedBy:  actor,
 	})
-	s.searchUpsert(orgID, "system", sys.Identifier, sys.Name, sys.Identifier+" "+sys.Name+" "+sys.Description)
+	s.searchIndex.Upsert(orgID, systemSearchEntry(&sys))
 	// Re-fetch to populate resolved owner email and computed fields
 	if fresh, err := s.db.GetSystem(ctx, orgID, sys.ID); err == nil && fresh != nil {
 		sys = *fresh
@@ -2445,7 +2445,7 @@ func (s *Server) handleAddRisk(c echo.Context) error {
 		Action:     "create",
 		ChangedBy:  actor,
 	})
-	s.searchUpsert(orgID, "risk", r.Identifier, r.Title, r.Identifier+" "+r.Title+" "+r.Description+" "+r.Category)
+	s.searchIndex.Upsert(orgID, riskSearchEntry(&r))
 	if out, err := s.db.GetRisk(ctx, orgID, r.ID); err == nil {
 		return c.JSON(http.StatusCreated, out)
 	}
@@ -2704,7 +2704,7 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		Action:     "create",
 		ChangedBy:  actor,
 	})
-	s.searchUpsert(orgID, "supplier", sup.Identifier, sup.Name, sup.Identifier+" "+sup.Name+" "+sup.Notes)
+	s.searchIndex.Upsert(orgID, supplierSearchEntry(&sup))
 	// Re-fetch to populate resolved owner email and computed fields
 	if fresh, err := s.db.GetSupplier(ctx, orgID, sup.ID); err == nil && fresh != nil {
 		sup = *fresh
@@ -3027,7 +3027,7 @@ func (s *Server) handleUpdateRisk(c echo.Context) error {
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
 		}
-		s.searchUpsert(orgID, "risk", after.Identifier, after.Title, after.Identifier+" "+after.Title+" "+after.Description+" "+after.Category)
+		s.searchIndex.Upsert(orgID, riskSearchEntry(after))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "risk_updated",
@@ -3159,7 +3159,7 @@ func (s *Server) handleUpdateSystem(c echo.Context) error {
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
 		}
-		s.searchUpsert(orgID, "system", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Description)
+		s.searchIndex.Upsert(orgID, systemSearchEntry(after))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "system_updated",
@@ -3387,7 +3387,7 @@ func (s *Server) handleUpdateSupplier(c echo.Context) error {
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
 		}
-		s.searchUpsert(orgID, "supplier", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Notes)
+		s.searchIndex.Upsert(orgID, supplierSearchEntry(after))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "supplier_updated",

@@ -36,3 +36,20 @@ def test_migration_files_named_after_version():
         "per release, named after the version (e.g. 20260713000000_v0.7.1.sql). "
         "Offending: " + ", ".join(offenders)
     )
+
+
+def test_one_migration_file_per_version():
+    # The name check above accepts two files for one version, and git merges two
+    # branches that each renamed the release file to a different later timestamp
+    # without a conflict, so both copies (each holding the whole release) land.
+    versions = {}
+    for p in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        if p.name in GRANDFATHERED or not VERSION_NAME.match(p.name):
+            continue
+        versions.setdefault(p.name.split("_", 1)[1], []).append(p.name)
+    duplicated = {v: names for v, names in versions.items() if len(names) > 1}
+    assert not duplicated, (
+        "one migration file per release: merge these into the latest-timestamped "
+        "file (and keep it re-runnable). Duplicated: " + "; ".join(
+            f"{v}: {', '.join(names)}" for v, names in sorted(duplicated.items()))
+    )

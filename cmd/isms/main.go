@@ -26,6 +26,12 @@ func main() {
 		Short: "isms.sh — The Intelligent Management System",
 		Long:  "Manage your ISMS with AI. Git-native, API-first, multi-tenant.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// PersistentPreRun runs only after flags and arguments parsed, so a
+			// usage mistake still gets cobra's message and usage block. From here
+			// on an error is a runtime failure: main prints it once, without
+			// the usage block or cobra's duplicate "Error:" line.
+			cmd.SilenceUsage = true
+			cmd.SilenceErrors = true
 			// --env flag overrides everything
 			ef := envFile
 			if ef == "" {

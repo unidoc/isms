@@ -284,3 +284,49 @@ def test_admin_hint_names_what_is_adjusted_for_readability(page, brand):
 
     color.fill("#3b82f6")
     expect(hint).to_have_count(0, timeout=5000)
+
+
+def test_late_login_config_does_not_reset_the_brand(pw_browser, tokens, brand):
+    """A sign-in page's /config that lands after the app loaded must be ignored.
+
+    With several orgs, pre-login /config carries no branding in path mode, so
+    applying it late would wipe the brand the app applied with the org token.
+    A single-org server includes the branding in it, so the test strips it from
+    the held response to stand in for the multi-org case.
+    """
+    brand(DARK_BRAND)
+    ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+    page = ctx.new_page()
+    held = []
+
+    def hold_unauthenticated(route):
+        # Park only requests made before sign-in; the test releases them later.
+        if route.request.headers.get("authorization"):
+            route.continue_()
+        else:
+            held.append(route)
+
+    page.route("**/api/v1/config*", hold_unauthenticated)
+    try:
+        page.goto(f"{BASE}/{ORG}/login")
+        email = page.get_by_placeholder("you@company.com")
+        email.wait_for(state="visible", timeout=10000)
+        email.fill(ADMIN[0])
+        page.get_by_placeholder("Password", exact=True).fill(ADMIN[1])
+        page.get_by_role("button", name="Sign in").click()
+        page.locator("aside").first.wait_for(state="visible", timeout=10000)
+        assert held, "the sign-in page's /config was not held, so the test proves nothing"
+
+        org_name = page.locator(".brand-org-name").first
+        expect(org_name).to_be_visible(timeout=10000)
+        dark_text = resolved_rgb(org_name)
+        assert dark_text != blue_400_rgb(page), "the app did not apply the dark brand"
+
+        for route in held:  # the late, branding-less response lands now
+            body = route.fetch().json()
+            body.pop("branding", None)
+            route.fulfill(json=body)
+        page.wait_for_timeout(1500)
+        assert resolved_rgb(org_name) == dark_text, "late /config reset the brand"
+    finally:
+        ctx.close()

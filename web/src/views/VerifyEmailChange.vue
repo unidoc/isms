@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import api from '../api'
@@ -68,10 +68,14 @@ const newEmail = ref('')
 const logoUrl = ref(null)
 const logoError = ref(false)
 
+// A late /config must not reset the brand the app applied after this page closed.
+let closed = false
+onBeforeUnmount(() => { closed = true })
+
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
-    applyBrandColor(cfg.branding?.branding_color)
+    if (!closed) applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
   } catch { /* ignore */ }
 

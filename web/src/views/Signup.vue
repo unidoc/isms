@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import api from '../api'
@@ -104,6 +104,10 @@ async function doSignup() {
   }
 }
 
+// A late /config must not reset the brand the app applied after this page closed.
+let closed = false
+onBeforeUnmount(() => { closed = true })
+
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
@@ -116,7 +120,7 @@ onMounted(async () => {
     if (cfg.organization?.name) orgName.value = cfg.organization.name
     if (cfg.organization_name) orgName.value = cfg.organization_name
     if (cfg.branding?.branding_name) orgName.value = cfg.branding.branding_name
-    applyBrandColor(cfg.branding?.branding_color)
+    if (!closed) applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     if (cfg.terms_url) termsUrl.value = cfg.terms_url

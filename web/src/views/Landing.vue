@@ -182,7 +182,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import api from '../api'
 import { applyBrandColor } from '../utils/brandColor.js'
 import { applyConfigLocales } from '../composables/useLocale'
@@ -226,6 +226,10 @@ const frameworks = [
   'NIS2', 'HIPAA', 'PCI DSS', 'NIST CSF', 'NIST 800-53', 'DORA',
 ]
 
+// A late /config must not reset the brand the app applied after this page closed.
+let closed = false
+onBeforeUnmount(() => { closed = true })
+
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
@@ -238,7 +242,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_footer) {
       brandFooter.value = cfg.branding.branding_footer
     }
-    applyBrandColor(cfg.branding?.branding_color)
+    if (!closed) applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true

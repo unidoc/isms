@@ -119,9 +119,27 @@ test('the Admin form default (#3b82f6, any spelling) counts as unbranded', () =>
   })
 })
 
-test('no applyBrandColor call is guarded by an if on branding_color', () => {
+// True when the line is an `if (...)` that opens a block, or a braceless `if (...)`
+// whose condition ends the line (so the next line is its body). A complete
+// one-line `if (x) stmt` is not.
+function opensIf(line) {
+  const t = line.trim()
+  if (!/^(\}\s*)?(else\s+)?if\s*\(/.test(t)) return false
+  if (t.endsWith('{')) return true
+  let depth = 0
+  for (let i = t.indexOf('('); i < t.length; i++) {
+    if (t[i] === '(') depth++
+    else if (t[i] === ')' && --depth === 0) return i === t.length - 1
+  }
+  return false
+}
+
+test('no applyBrandColor call is guarded by an if', () => {
   // A guard would keep the previous org's colors on screen when the new
-  // org has none; applyBrandColor itself resets on an empty value.
+  // org has none; applyBrandColor itself resets on an empty value. The one
+  // allowed exception is the `if (!closed)` unmounted-page check (#408), on
+  // the same line as the call; any other `if` on that line, or an `if` line
+  // directly above it, is a guard.
   const src = fileURLToPath(new URL('../src', import.meta.url))
   const calls = []
   const bad = []
@@ -134,8 +152,8 @@ test('no applyBrandColor call is guarded by an if on branding_color', () => {
       calls.push(where)
       const prev = lines[i - 1] || ''
       if (!/applyBrandColor\([^)]*branding_color[^)]*\)/.test(line)) bad.push(`${where} argument`)
-      if (/\bif\b[^\n]*branding_color/.test(line.replace(/applyBrandColor\(.*$/, '')) ||
-          /^\s*if\b[^\n]*branding_color/.test(prev)) bad.push(`${where} guarded`)
+      const before = line.replace(/applyBrandColor\(.*$/, '').replace(/^\s*if \(!closed\)\s*/, '')
+      if (/\bif\b/.test(before) || opensIf(prev)) bad.push(`${where} guarded`)
     })
   }
   assert.equal(calls.length, 8, `expected 8 call sites, got ${calls.join(', ')}`)
@@ -260,15 +278,19 @@ test('brand fills carrying white labels use --brand-fill-color', () => {
   assert.doesNotMatch(btn, /background-color:\s*var\(--brand-color/)
 })
 
-test('brand fill hover rules darken, so white labels stay readable', () => {
-  const app = readFileSync(fileURLToPath(new URL('../src/App.vue', import.meta.url)), 'utf8')
-  const css = readFileSync(fileURLToPath(new URL('../src/style.css', import.meta.url)), 'utf8')
-  const hover = /a\.bg-blue-600:hover\s*\{([^}]*)\}/.exec(app)?.[1]
-  const btn = /\.brand-btn:hover:not\(:disabled\)\s*\{([^}]*)\}/.exec(css)?.[1]
-  for (const body of [hover, btn]) {
-    assert.ok(body, 'hover rule not found')
+test('every brand fill hover rule darkens, so white labels stay readable', () => {
+  const rules = []
+  for (const file of ['App.vue', 'style.css']) {
+    const text = readFileSync(fileURLToPath(new URL(`../src/${file}`, import.meta.url)), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+    for (const m of text.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      if (/bg-blue-600:hover|\.brand-btn:hover/.test(m[1])) rules.push({ file, sel: m[1].trim(), body: m[2] })
+    }
+  }
+  assert.ok(rules.length >= 2, `found ${rules.length} fill hover rules`)
+  for (const { file, sel, body } of rules) {
     const v = /filter:\s*brightness\(([\d.]+)\)/.exec(body)?.[1]
-    assert.ok(v !== undefined && Number(v) < 1, `brightness(${v}) does not darken`)
+    assert.ok(v !== undefined && Number(v) < 1, `${file}: ${sel} brightness(${v}) does not darken`)
   }
 })
 

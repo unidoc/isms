@@ -369,17 +369,19 @@
             <div class="flex items-center gap-3">
               <input v-model="branding.branding_color" type="color"
                 class="w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer p-0.5" />
-              <input v-model="branding.branding_color" type="text"
+              <input v-model="branding.branding_color" type="text" aria-describedby="brand-color-hint"
                 class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
                 placeholder="#3b82f6" />
               <div class="w-8 h-8 rounded-lg border border-slate-700" :style="{ backgroundColor: branding.branding_color }" />
             </div>
+            <div id="brand-color-hint" aria-live="polite">
             <i18n-t v-if="brandHint" :keypath="brandHint.keypath" tag="p" scope="global"
-              class="text-xs text-slate-500 mt-2" data-testid="brand-adjusted-hint">
+              class="text-xs text-slate-400 mt-2" data-testid="brand-adjusted-hint">
               <template v-for="slot in brandHint.slots" :key="slot.name" #[slot.name]>
                 <span class="inline-block w-3 h-3 rounded-sm border border-slate-700 align-middle mr-1" :style="{ backgroundColor: slot.hex }" /><span class="font-mono text-slate-400">{{ slot.hex }}</span>
               </template>
             </i18n-t>
+            </div>
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">{{ t('admin.branding.logo') }}</label>

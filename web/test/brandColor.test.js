@@ -62,7 +62,7 @@ function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
     if (statSync(p).isDirectory()) walk(p, out)
-    else if (/\.(js|vue)$/.test(name)) out.push(p)
+    else if (/\.(js|vue|css)$/.test(name)) out.push(p)
   }
   return out
 }
@@ -70,7 +70,7 @@ function walk(dir, out = []) {
 test('only utils/brandColor.js writes --brand-color', () => {
   const src = fileURLToPath(new URL('../src', import.meta.url))
   const hits = walk(src)
-    .filter((f) => readFileSync(f, 'utf8').includes("setProperty('--brand-color'"))
+    .filter((f) => /setProperty\(\s*['"`]--brand-color['"`]/.test(readFileSync(f, 'utf8')))
     .map((f) => f.slice(src.length + 1))
   assert.deepEqual(hits, ['utils/brandColor.js'])
 })
@@ -82,4 +82,18 @@ test('App.vue link/button text uses --brand-text-color', () => {
   assert.match(m[1], /color:\s*var\(--brand-text-color\)/)
   assert.doesNotMatch(m[1], /var\(--brand-color\)/)
   assert.match(css, /:root\s*\{[^}]*--brand-text-color:/)
+})
+
+test('no text color is drawn from the raw --brand-color', () => {
+  // Text uses --brand-text-color; fills, borders and shadows keep --brand-color.
+  // The pattern skips background-color/border-color and --brand-color-* names.
+  const src = fileURLToPath(new URL('../src', import.meta.url))
+  const re = /(^|[^-\w])color:\s*[^;"}]*var\(--brand-color\b/
+  const hits = []
+  for (const f of walk(src)) {
+    readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (re.test(line)) hits.push(`${f.slice(src.length + 1)}:${i + 1}`)
+    })
+  }
+  assert.deepEqual(hits, [], `text color from var(--brand-color): ${hits.join(', ')}`)
 })

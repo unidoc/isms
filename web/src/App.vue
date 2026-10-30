@@ -843,7 +843,8 @@ watch(() => route.path, (newPath) => {
 /* Brand color integration — uses --brand-color CSS variable set from admin branding config.
    Falls back to Tailwind blue-500 (#3b82f6) when no brand color is configured.
    --brand-text-color is the brand color lightened until text on slate-800 reaches
-   4.5:1 (utils/brandColor.js); it defaults to blue-400 (the mention color). */
+   4.5:1 (utils/brandColor.js); it defaults to blue-400 (the mention color).
+   All brand-colored text uses it; fills, borders and accents keep --brand-color. */
 :root {
   --brand-color: #3b82f6;
   --brand-text-color: var(--color-blue-400);
@@ -851,7 +852,7 @@ watch(() => route.path, (newPath) => {
 
 /* Org name in sidebar header */
 .brand-org-name {
-  color: var(--brand-color);
+  color: var(--brand-text-color);
 }
 
 /* Active sidebar nav items get a left accent bar in the brand color */

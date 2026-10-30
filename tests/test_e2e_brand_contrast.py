@@ -104,6 +104,10 @@ def test_entity_link_in_comment_is_readable_on_dark_brand(page, dark_brand):
         link_color = f"rgb{link_rgb}"
         ratio = contrast(link_rgb, SLATE_800)
         assert ratio >= 4.5, f"link color {link_color} is {ratio:.2f}:1 on slate-800"
+        org_name = page.locator(".brand-org-name").first
+        expect(org_name).to_be_visible(timeout=10000)
+        org_rgb = resolved_rgb(org_name)
+        assert contrast(org_rgb, SLATE_800) >= 4.5, f"sidebar org name rgb{org_rgb} is {contrast(org_rgb, SLATE_800):.2f}:1"
         # Control: not matched by the brand rule, stays Tailwind blue-400.
         assert resolved_rgb(mention) == blue_400_rgb(page)
         assert resolved_rgb(mention) != link_rgb
@@ -137,3 +141,26 @@ def test_unbranded_link_matches_mention_color(page, tokens):
     finally:
         api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
         api("put", "/admin/settings", t, json={"key": "branding_color", "value": original}, expect_status=[200, 204])
+
+
+def test_login_link_uses_default_text_color(pw_browser, tokens):
+    """Logged-out auth screens use the derived brand text color, not the raw one.
+
+    On path-mode deployments the login page shows the default (unbranded) color
+    for every org, so this exercises the default: --brand-text-color resolves to
+    blue-400. (The raw default --brand-color is blue-500, rgb(59, 130, 246).)
+    """
+    ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+    p = ctx.new_page()
+    try:
+        p.goto(f"{BASE}/login")
+        org_input = p.get_by_placeholder("Organization name, e.g. acme")
+        if org_input.is_visible(timeout=3000):
+            org_input.fill(ORG)
+            p.get_by_role("button", name="Continue").click()
+        p.get_by_placeholder("you@company.com").wait_for(state="visible", timeout=10000)
+        link = p.locator("a.brand-text[href$='/forgot-password']").first
+        expect(link).to_be_visible(timeout=10000)
+        assert resolved_rgb(link) == blue_400_rgb(p)
+    finally:
+        ctx.close()

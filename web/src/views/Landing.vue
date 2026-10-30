@@ -134,8 +134,8 @@
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">{{ $t('landing.deploy.cloud_title') }}</h3>
           <p class="text-sm text-slate-400 leading-relaxed mb-4">{{ $t('landing.deploy.cloud_desc') }}</p>
-          <router-link v-if="signupEnabled" to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">{{ $t('landing.deploy.cloud_cta') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
-          <router-link v-else to="/login" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">{{ $t('landing.deploy.cloud_cta_signin') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
+          <router-link v-if="signupEnabled" to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-text-color)">{{ $t('landing.deploy.cloud_cta') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
+          <router-link v-else to="/login" class="text-sm font-medium hover:underline" style="color: var(--brand-text-color)">{{ $t('landing.deploy.cloud_cta_signin') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
         </div>
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">{{ $t('landing.deploy.selfhost_title') }}</h3>

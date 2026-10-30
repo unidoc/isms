@@ -31,6 +31,8 @@ func TestAdminUpdateSettingRejectsBadReviewCycle(t *testing.T) {
 		{"fractional", "supplier_review_cycle_low", "1.5"},
 		{"over the 120 ceiling", "supplier_review_cycle_critical", "999"},
 		{"shared guard also covers risk_review_cycle_", "risk_review_cycle_high", "abc"},
+		{"shared guard also covers system_review_cycle_", "system_review_cycle_high", "abc"},
+		{"system_review_cycle_ zero", "system_review_cycle_critical", "0"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			body := `{"key":"` + tc.key + `","value":"` + tc.val + `"}`
@@ -79,6 +81,11 @@ func TestAdminUpdateSettingAcceptsValidReviewCycle(t *testing.T) {
 		// regression back to SetOrgSetting(""), which would leave the value
 		// pinned at whatever was last stored instead of reverting.
 		{"empty reverts to the registry default", "supplier_review_cycle_medium", "", "6", true},
+		// Same masking condition for the system keys (#308): critical stays
+		// configured while medium is set and then cleared.
+		{"system critical configured", "system_review_cycle_critical", "2", "2", false},
+		{"system medium set before clearing", "system_review_cycle_medium", "3", "3", false},
+		{"system empty reverts to the registry default", "system_review_cycle_medium", "", "6", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			body := `{"key":"` + tc.key + `","value":"` + tc.val + `"}`

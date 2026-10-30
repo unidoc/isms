@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Prüfzyklus für mittlere Risiken",
       "risk_review_cycle_low": "Prüfzyklus für niedrige Risiken",
       "supplier_review_cycle_critical": "Prüfzyklus für kritische Lieferanten",
+      "system_review_cycle_critical": "Prüfzyklus für kritische Systeme",
       "supplier_review_cycle_high": "Prüfzyklus für Lieferanten hoher Kritikalität",
+      "system_review_cycle_high": "Prüfzyklus für Systeme hoher Kritikalität",
       "supplier_review_cycle_medium": "Prüfzyklus für Lieferanten mittlerer Kritikalität",
+      "system_review_cycle_medium": "Prüfzyklus für Systeme mittlerer Kritikalität",
       "supplier_review_cycle_low": "Prüfzyklus für Lieferanten niedriger Kritikalität",
+      "system_review_cycle_low": "Prüfzyklus für Systeme niedriger Kritikalität",
       "risk_appetite": "Risikoappetit",
       "task_default_private": "Aufgaben standardmäßig privat"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Prüfzyklus für mittlere Risiken (Monate)",
       "risk_review_cycle_low": "Prüfzyklus für niedrige Risiken (Monate)",
       "supplier_review_cycle_critical": "Prüfzyklus für kritische Lieferanten (Monate)",
+      "system_review_cycle_critical": "Prüfzyklus für kritische Systeme (Monate)",
       "supplier_review_cycle_high": "Prüfzyklus für Lieferanten hoher Kritikalität (Monate)",
+      "system_review_cycle_high": "Prüfzyklus für Systeme hoher Kritikalität (Monate)",
       "supplier_review_cycle_medium": "Prüfzyklus für Lieferanten mittlerer Kritikalität (Monate)",
+      "system_review_cycle_medium": "Prüfzyklus für Systeme mittlerer Kritikalität (Monate)",
       "supplier_review_cycle_low": "Prüfzyklus für Lieferanten niedriger Kritikalität (Monate)",
+      "system_review_cycle_low": "Prüfzyklus für Systeme niedriger Kritikalität (Monate)",
       "risk_appetite": "Schwellenwert für den Risikoappetit (ein aktueller Wert darüber erfordert eine Behandlung)",
       "task_default_private": "Neue Aufgaben sind standardmäßig privat (nur für Verantwortlichen, Ersteller und Manager sichtbar)"
     }

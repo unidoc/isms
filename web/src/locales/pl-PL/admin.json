@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Cykl przeglądu ryzyk średnich",
       "risk_review_cycle_low": "Cykl przeglądu ryzyk niskich",
       "supplier_review_cycle_critical": "Cykl przeglądu dostawców krytycznych",
+      "system_review_cycle_critical": "Cykl przeglądu systemów krytycznych",
       "supplier_review_cycle_high": "Cykl przeglądu dostawców o wysokiej krytyczności",
+      "system_review_cycle_high": "Cykl przeglądu systemów o wysokiej krytyczności",
       "supplier_review_cycle_medium": "Cykl przeglądu dostawców o średniej krytyczności",
+      "system_review_cycle_medium": "Cykl przeglądu systemów o średniej krytyczności",
       "supplier_review_cycle_low": "Cykl przeglądu dostawców o niskiej krytyczności",
+      "system_review_cycle_low": "Cykl przeglądu systemów o niskiej krytyczności",
       "risk_appetite": "Apetyt na ryzyko",
       "task_default_private": "Zadania domyślnie prywatne"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Cykl przeglądu ryzyk średnich (miesiące)",
       "risk_review_cycle_low": "Cykl przeglądu ryzyk niskich (miesiące)",
       "supplier_review_cycle_critical": "Cykl przeglądu dostawców krytycznych (miesiące)",
+      "system_review_cycle_critical": "Cykl przeglądu systemów krytycznych (miesiące)",
       "supplier_review_cycle_high": "Cykl przeglądu dostawców o wysokiej krytyczności (miesiące)",
+      "system_review_cycle_high": "Cykl przeglądu systemów o wysokiej krytyczności (miesiące)",
       "supplier_review_cycle_medium": "Cykl przeglądu dostawców o średniej krytyczności (miesiące)",
+      "system_review_cycle_medium": "Cykl przeglądu systemów o średniej krytyczności (miesiące)",
       "supplier_review_cycle_low": "Cykl przeglądu dostawców o niskiej krytyczności (miesiące)",
+      "system_review_cycle_low": "Cykl przeglądu systemów o niskiej krytyczności (miesiące)",
       "risk_appetite": "Próg apetytu na ryzyko (bieżący wynik powyżej tej wartości wymaga postępowania z ryzykiem)",
       "task_default_private": "Nowe zadania są domyślnie prywatne (widoczne tylko dla przypisanej osoby, twórcy i menedżerów)"
     }

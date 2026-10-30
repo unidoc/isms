@@ -196,6 +196,10 @@
       "supplier_review_cycle_high": "High Supplier Review Cycle",
       "supplier_review_cycle_medium": "Medium Supplier Review Cycle",
       "supplier_review_cycle_low": "Low Supplier Review Cycle",
+      "system_review_cycle_critical": "Critical System Review Cycle",
+      "system_review_cycle_high": "High System Review Cycle",
+      "system_review_cycle_medium": "Medium System Review Cycle",
+      "system_review_cycle_low": "Low System Review Cycle",
       "risk_appetite": "Risk Appetite",
       "task_default_private": "Private Tasks by Default"
     },
@@ -215,6 +219,10 @@
       "supplier_review_cycle_high": "Review cycle for high-criticality suppliers (months)",
       "supplier_review_cycle_medium": "Review cycle for medium-criticality suppliers (months)",
       "supplier_review_cycle_low": "Review cycle for low-criticality suppliers (months)",
+      "system_review_cycle_critical": "Review cycle for critical systems (months)",
+      "system_review_cycle_high": "Review cycle for high-criticality systems (months)",
+      "system_review_cycle_medium": "Review cycle for medium-criticality systems (months)",
+      "system_review_cycle_low": "Review cycle for low-criticality systems (months)",
       "risk_appetite": "Risk appetite threshold (a current score above this requires treatment)",
       "task_default_private": "New tasks default to private (visible only to the assignee, creator, and managers)"
     }

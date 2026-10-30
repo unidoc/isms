@@ -587,8 +587,9 @@ func writeSystemFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int
 	now := db.NewEpoch(time.Now())
 	sys.LastReview = &now
 
+	cycles := s.db.SystemReviewCycles(ctx, orgID)
 	// A user-supplied date wins; nil lets UpdateSystemTx derive one from the
-	// hardcoded review-month switch. Review date is recomputed inside the helper.
+	// criticality-based cycles. Review date is recomputed inside the helper.
 	var explicitNextReview *db.Epoch
 	if nextReview != "" {
 		if t, err := time.Parse("2006-01-02", nextReview); err == nil {
@@ -597,5 +598,5 @@ func writeSystemFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int
 		}
 	}
 	_ = actor
-	return db.UpdateSystemTx(ctx, tx, orgID, sys, explicitNextReview)
+	return db.UpdateSystemTx(ctx, tx, orgID, sys, cycles, explicitNextReview)
 }

@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Ciclo de Revisión de Riesgos Medios",
       "risk_review_cycle_low": "Ciclo de Revisión de Riesgos Bajos",
       "supplier_review_cycle_critical": "Ciclo de Revisión de Proveedores Críticos",
+      "system_review_cycle_critical": "Ciclo de Revisión de Sistemas Críticos",
       "supplier_review_cycle_high": "Ciclo de Revisión de Proveedores de Criticidad Alta",
+      "system_review_cycle_high": "Ciclo de Revisión de Sistemas de Criticidad Alta",
       "supplier_review_cycle_medium": "Ciclo de Revisión de Proveedores de Criticidad Media",
+      "system_review_cycle_medium": "Ciclo de Revisión de Sistemas de Criticidad Media",
       "supplier_review_cycle_low": "Ciclo de Revisión de Proveedores de Criticidad Baja",
+      "system_review_cycle_low": "Ciclo de Revisión de Sistemas de Criticidad Baja",
       "risk_appetite": "Apetito de Riesgo",
       "task_default_private": "Tareas Privadas por Defecto"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Ciclo de revisión de riesgos medios (meses)",
       "risk_review_cycle_low": "Ciclo de revisión de riesgos bajos (meses)",
       "supplier_review_cycle_critical": "Ciclo de revisión de proveedores críticos (meses)",
+      "system_review_cycle_critical": "Ciclo de revisión de sistemas críticos (meses)",
       "supplier_review_cycle_high": "Ciclo de revisión de proveedores de criticidad alta (meses)",
+      "system_review_cycle_high": "Ciclo de revisión de sistemas de criticidad alta (meses)",
       "supplier_review_cycle_medium": "Ciclo de revisión de proveedores de criticidad media (meses)",
+      "system_review_cycle_medium": "Ciclo de revisión de sistemas de criticidad media (meses)",
       "supplier_review_cycle_low": "Ciclo de revisión de proveedores de criticidad baja (meses)",
+      "system_review_cycle_low": "Ciclo de revisión de sistemas de criticidad baja (meses)",
       "risk_appetite": "Umbral de apetito de riesgo (una puntuación actual superior a este valor requiere tratamiento)",
       "task_default_private": "Las tareas nuevas son privadas por defecto (visibles solo para el responsable, el creador y los gestores)"
     }

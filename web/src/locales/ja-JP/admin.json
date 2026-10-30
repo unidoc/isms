@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "中リスクのレビューサイクル",
       "risk_review_cycle_low": "低リスクのレビューサイクル",
       "supplier_review_cycle_critical": "重大サプライヤーのレビューサイクル",
+      "system_review_cycle_critical": "重大システムのレビューサイクル",
       "supplier_review_cycle_high": "高重要度サプライヤーのレビューサイクル",
+      "system_review_cycle_high": "高重要度システムのレビューサイクル",
       "supplier_review_cycle_medium": "中重要度サプライヤーのレビューサイクル",
+      "system_review_cycle_medium": "中重要度システムのレビューサイクル",
       "supplier_review_cycle_low": "低重要度サプライヤーのレビューサイクル",
+      "system_review_cycle_low": "低重要度システムのレビューサイクル",
       "risk_appetite": "リスク選好",
       "task_default_private": "タスクを既定で非公開にする"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "中リスクのレビューサイクル（月）",
       "risk_review_cycle_low": "低リスクのレビューサイクル（月）",
       "supplier_review_cycle_critical": "重大サプライヤーのレビューサイクル（月）",
+      "system_review_cycle_critical": "重大システムのレビューサイクル（月）",
       "supplier_review_cycle_high": "高重要度サプライヤーのレビューサイクル（月）",
+      "system_review_cycle_high": "高重要度システムのレビューサイクル（月）",
       "supplier_review_cycle_medium": "中重要度サプライヤーのレビューサイクル（月）",
+      "system_review_cycle_medium": "中重要度システムのレビューサイクル（月）",
       "supplier_review_cycle_low": "低重要度サプライヤーのレビューサイクル（月）",
+      "system_review_cycle_low": "低重要度システムのレビューサイクル（月）",
       "risk_appetite": "リスク選好しきい値（現在のスコアがこれを上回ると対応が必要）",
       "task_default_private": "新規タスクを非公開（担当者・作成者・マネージャーのみ閲覧可能）にします"
     }

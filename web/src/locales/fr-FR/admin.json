@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Cycle de revue des risques moyens",
       "risk_review_cycle_low": "Cycle de revue des risques faibles",
       "supplier_review_cycle_critical": "Cycle de revue des fournisseurs critiques",
+      "system_review_cycle_critical": "Cycle de revue des systèmes critiques",
       "supplier_review_cycle_high": "Cycle de revue des fournisseurs de criticité élevée",
+      "system_review_cycle_high": "Cycle de revue des systèmes de criticité élevée",
       "supplier_review_cycle_medium": "Cycle de revue des fournisseurs de criticité moyenne",
+      "system_review_cycle_medium": "Cycle de revue des systèmes de criticité moyenne",
       "supplier_review_cycle_low": "Cycle de revue des fournisseurs de criticité faible",
+      "system_review_cycle_low": "Cycle de revue des systèmes de criticité faible",
       "risk_appetite": "Appétence au risque",
       "task_default_private": "Tâches privées par défaut"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Cycle de revue des risques moyens (mois)",
       "risk_review_cycle_low": "Cycle de revue des risques faibles (mois)",
       "supplier_review_cycle_critical": "Cycle de revue des fournisseurs critiques (mois)",
+      "system_review_cycle_critical": "Cycle de revue des systèmes critiques (mois)",
       "supplier_review_cycle_high": "Cycle de revue des fournisseurs de criticité élevée (mois)",
+      "system_review_cycle_high": "Cycle de revue des systèmes de criticité élevée (mois)",
       "supplier_review_cycle_medium": "Cycle de revue des fournisseurs de criticité moyenne (mois)",
+      "system_review_cycle_medium": "Cycle de revue des systèmes de criticité moyenne (mois)",
       "supplier_review_cycle_low": "Cycle de revue des fournisseurs de criticité faible (mois)",
+      "system_review_cycle_low": "Cycle de revue des systèmes de criticité faible (mois)",
       "risk_appetite": "Seuil d'appétence au risque (un score actuel supérieur à ce seuil nécessite un traitement)",
       "task_default_private": "Les nouvelles tâches sont privées par défaut (visibles uniquement par le responsable, le créateur et les managers)"
     }

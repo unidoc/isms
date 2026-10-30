@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Siklus Tinjauan Risiko Sedang",
       "risk_review_cycle_low": "Siklus Tinjauan Risiko Rendah",
       "supplier_review_cycle_critical": "Siklus Tinjauan Pemasok Kritis",
+      "system_review_cycle_critical": "Siklus Tinjauan Sistem Kritis",
       "supplier_review_cycle_high": "Siklus Tinjauan Pemasok Kritikalitas Tinggi",
+      "system_review_cycle_high": "Siklus Tinjauan Sistem Kritikalitas Tinggi",
       "supplier_review_cycle_medium": "Siklus Tinjauan Pemasok Kritikalitas Sedang",
+      "system_review_cycle_medium": "Siklus Tinjauan Sistem Kritikalitas Sedang",
       "supplier_review_cycle_low": "Siklus Tinjauan Pemasok Kritikalitas Rendah",
+      "system_review_cycle_low": "Siklus Tinjauan Sistem Kritikalitas Rendah",
       "risk_appetite": "Selera Risiko",
       "task_default_private": "Tugas Privat secara Bawaan"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Siklus tinjauan untuk risiko sedang (bulan)",
       "risk_review_cycle_low": "Siklus tinjauan untuk risiko rendah (bulan)",
       "supplier_review_cycle_critical": "Siklus tinjauan untuk pemasok kritis (bulan)",
+      "system_review_cycle_critical": "Siklus tinjauan untuk sistem kritis (bulan)",
       "supplier_review_cycle_high": "Siklus tinjauan untuk pemasok dengan kritikalitas tinggi (bulan)",
+      "system_review_cycle_high": "Siklus tinjauan untuk sistem dengan kritikalitas tinggi (bulan)",
       "supplier_review_cycle_medium": "Siklus tinjauan untuk pemasok dengan kritikalitas sedang (bulan)",
+      "system_review_cycle_medium": "Siklus tinjauan untuk sistem dengan kritikalitas sedang (bulan)",
       "supplier_review_cycle_low": "Siklus tinjauan untuk pemasok dengan kritikalitas rendah (bulan)",
+      "system_review_cycle_low": "Siklus tinjauan untuk sistem dengan kritikalitas rendah (bulan)",
       "risk_appetite": "Ambang selera risiko (skor saat ini di atas nilai ini memerlukan penanganan)",
       "task_default_private": "Tugas baru bersifat privat secara bawaan (hanya terlihat oleh penerima tugas, pembuat, dan manajer)"
     }

@@ -1316,7 +1316,8 @@ async function saveSetting(s) {
   s._saving = true
   settingsMsg.value = ''
   try {
-    await api.putJSON('/api/v1/admin/settings', { key: s.key, value: s.value })
+    // A type="number" v-model hands back a Number; the server binds a string.
+    await api.putJSON('/api/v1/admin/settings', { key: s.key, value: s.value == null ? '' : String(s.value) })
     settingsMsg.value = t('admin.settings.saved', { key: settingLabel(s) })
     settingsError.value = false
   } catch (e) {

@@ -650,10 +650,12 @@ func UpdateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 //
 // explicitNextReview, when non-nil, is a user-supplied date that wins over the
 // derived one. CalculateNextReview always recomputes NextReview, so the override
-// has to happen after it (#288). Systems still use the hardcoded review-month
-// switch, not the settings registry (that is #308) — there is no cycles parameter.
-func UpdateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System, explicitNextReview *Epoch) error {
-	sys.CalculateNextReview()
+// has to happen after it (#288).
+//
+// cycles comes from DB.SystemReviewCycles — pass the org's real cycles, never
+// nil, or the org's configured review schedule is ignored (#308).
+func UpdateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System, cycles map[string]int, explicitNextReview *Epoch) error {
+	sys.CalculateNextReview(cycles)
 	if explicitNextReview != nil {
 		sys.NextReview = explicitNextReview
 	}
@@ -782,11 +784,11 @@ func CreateObjectiveTx(ctx context.Context, tx pgx.Tx, orgID int, o *Objective) 
 }
 
 // CreateSystemTx creates a system within an existing transaction.
-func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System) error {
+func CreateSystemTx(ctx context.Context, tx pgx.Tx, orgID int, sys *System, cycles map[string]int) error {
 	sys.OrganizationID = orgID
 	// An explicit next_review on create wins over the calculated one (#202).
 	explicitNextReview := sys.NextReview
-	sys.CalculateNextReview()
+	sys.CalculateNextReview(cycles)
 	if explicitNextReview != nil {
 		sys.NextReview = explicitNextReview
 	}

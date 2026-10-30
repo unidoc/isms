@@ -46,14 +46,20 @@ def do_login(page, email, pw, then_goto=None):
     On subdomain deployments the org is implicit and step 1 is skipped.
     """
     page.set_default_timeout(8000)
-    page.goto(f"{BASE}/login")
+    # Wait for /config before choosing a step: on a single-org server it makes
+    # the login page skip the org-slug step, and is_visible() does not wait, so
+    # the slug input could be seen here and gone by the time it is filled.
+    with page.expect_response(lambda r: "/api/v1/config" in r.url):
+        page.goto(f"{BASE}/login")
     # Step 1: org discovery. Fill the org slug and continue if the input is shown.
     org_input = page.get_by_placeholder("Organization name, e.g. acme")
-    if org_input.is_visible(timeout=3000):
+    email_input = page.get_by_placeholder("you@company.com")
+    org_input.or_(email_input).first.wait_for(state="visible", timeout=8000)
+    if org_input.is_visible():
         org_input.fill(ORG)
         page.get_by_role("button", name="Continue").click()
     # Step 2: email + password.
-    page.get_by_placeholder("you@company.com").wait_for(state="visible", timeout=8000)
+    email_input.wait_for(state="visible", timeout=8000)
     page.get_by_placeholder("you@company.com").fill(email)
     page.get_by_placeholder("Password", exact=True).fill(pw)
     page.get_by_role("button", name="Sign in").click()

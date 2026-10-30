@@ -19,7 +19,7 @@ import uuid
 import pytest
 from playwright.sync_api import expect
 
-from test_e2e_browser import api, do_login, ADMIN, BASE, ORG, pw_browser, tokens  # noqa: F401
+from test_e2e_browser import api, do_login, open_login, ADMIN, BASE, ORG, pw_browser, tokens  # noqa: F401
 
 DARK_BRAND = "#1a365d"
 SLATE_800 = (0x1d, 0x29, 0x3d)  # Tailwind v4 slate-800 as rendered
@@ -156,22 +156,20 @@ def test_unbranded_link_matches_mention_color(page, tokens, brand):
         api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
 
 
-def test_login_link_uses_default_text_color(pw_browser, tokens):
+def test_login_link_uses_default_text_color(pw_browser, tokens, brand):
     """Logged-out auth screens use the derived brand text color, not the raw one.
 
-    On path-mode deployments the login page shows the default (unbranded) color
-    for every org, so this exercises the default: --brand-text-color resolves to
-    blue-400. (The raw default --brand-color is blue-500, rgb(59, 130, 246).)
+    On a single-org server the login page shows that org's stored brand, so the
+    brand is cleared first; the link must then resolve to the default text
+    color (--brand-text-color = blue-400). On multi-org path-mode servers the
+    page shows the default for every org anyway. The raw default --brand-color
+    is blue-500, rgb(59, 130, 246).
     """
+    brand("")
     ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
     p = ctx.new_page()
     try:
-        p.goto(f"{BASE}/login")
-        org_input = p.get_by_placeholder("Organization name, e.g. acme")
-        if org_input.is_visible(timeout=3000):
-            org_input.fill(ORG)
-            p.get_by_role("button", name="Continue").click()
-        p.get_by_placeholder("you@company.com").wait_for(state="visible", timeout=10000)
+        open_login(p)
         link = p.locator("a.brand-text[href$='/forgot-password']").first
         expect(link).to_be_visible(timeout=10000)
         assert resolved_rgb(link) == blue_400_rgb(p)

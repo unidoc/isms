@@ -374,6 +374,12 @@
                 placeholder="#3b82f6" />
               <div class="w-8 h-8 rounded-lg border border-slate-700" :style="{ backgroundColor: branding.branding_color }" />
             </div>
+            <i18n-t v-if="brandHint" :keypath="brandHint.keypath" tag="p" scope="global"
+              class="text-xs text-slate-500 mt-2" data-testid="brand-adjusted-hint">
+              <template v-for="slot in brandHint.slots" :key="slot.name" #[slot.name]>
+                <span class="inline-block w-3 h-3 rounded-sm border border-slate-700 align-middle mr-1" :style="{ backgroundColor: slot.hex }" /><span class="font-mono text-slate-400">{{ slot.hex }}</span>
+              </template>
+            </i18n-t>
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">{{ t('admin.branding.logo') }}</label>
@@ -786,7 +792,7 @@ import { useI18n } from 'vue-i18n'
 import { FALLBACK } from '../i18n.js'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
-import { applyBrandColor } from '../utils/brandColor.js'
+import { applyBrandColor, brandAdjustments } from '../utils/brandColor.js'
 import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useLocale } from '../composables/useLocale'
@@ -1604,6 +1610,17 @@ async function saveCustomFields() {
     customFieldsSaving.value = false
   }
 }
+
+// Live hint under the color field: names only what is adjusted for readability.
+const brandHint = computed(() => {
+  const { text, fill } = brandAdjustments(branding.value.branding_color)
+  if (text && fill) {
+    return { keypath: 'admin.branding.adjusted_both', slots: [{ name: 'text', hex: text }, { name: 'fill', hex: fill }] }
+  }
+  if (text) return { keypath: 'admin.branding.adjusted_links', slots: [{ name: 'color', hex: text }] }
+  if (fill) return { keypath: 'admin.branding.adjusted_buttons', slots: [{ name: 'color', hex: fill }] }
+  return null
+})
 
 function loadBrandingFromSettings() {
   // Extract branding keys from the already-loaded settings list

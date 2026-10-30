@@ -88,3 +88,17 @@ export function applyBrandColor(hex) {
   root.setProperty('--brand-text-color', readableTextColor(hex))
   root.setProperty('--brand-fill-color', readableFillColor(hex))
 }
+
+// What the readability derivation changes for the Admin hint: the derived text
+// and fill colors, each null when it equals the chosen color. All null for an
+// empty, invalid or default color, which render as unbranded.
+export function brandAdjustments(hex) {
+  const rgb = parseHex(hex)
+  const none = { text: null, fill: null }
+  if (!rgb) return none
+  const own = toHex(rgb)
+  if (own === DEFAULT_BRAND) return none
+  const text = readableTextColor(hex)
+  const fill = readableFillColor(hex)
+  return { text: text === own ? null : text, fill: fill === own ? null : fill }
+}

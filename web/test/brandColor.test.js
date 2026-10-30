@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  parseHex, contrastRatio, readableTextColor, readableFillColor, applyBrandColor, DEFAULT_BRAND, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
+  parseHex, contrastRatio, readableTextColor, readableFillColor, applyBrandColor, brandAdjustments, DEFAULT_BRAND, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
 } from '../src/utils/brandColor.js'
 
 const SLATE_800 = '#1d293d' // Tailwind v4 slate-800 as rendered
@@ -316,4 +316,22 @@ test('landing gradients use the derived colors', () => {
   assert.match(ctaBg, /var\(--brand-fill-color\)/)
   assert.doesNotMatch(ctaBg, /var\(--brand-color\b/)
   assert.ok(Number(/brightness\(([\d.]+)\)/.exec(hover)?.[1]) < 1, 'CTA hover must darken')
+})
+
+// ---- Admin hint (#408) ----
+test('brandAdjustments names only what the readability derivation changes', () => {
+  assert.deepEqual(brandAdjustments('#1a365d'), { text: '#8190a6', fill: null })
+  assert.deepEqual(brandAdjustments('#fde047'), { text: null, fill: readableFillColor('#fde047') })
+  assert.deepEqual(brandAdjustments('#60a5fa'), { text: null, fill: readableFillColor('#60a5fa') })
+  const both = brandAdjustments('#ff4477')
+  assert.equal(both.text, readableTextColor('#ff4477'))
+  assert.equal(both.fill, readableFillColor('#ff4477'))
+  assert.ok(both.text && both.fill)
+  assert.deepEqual(brandAdjustments('#DC2626'), { text: '#e76767', fill: null })
+})
+
+test('brandAdjustments is empty for colors that need nothing or render as unbranded', () => {
+  for (const none of ['#3b82f6', '#3B82F6', '#3b82f6ff', '', undefined, null, '#12345']) {
+    assert.deepEqual(brandAdjustments(none), { text: null, fill: null }, String(none))
+  }
 })

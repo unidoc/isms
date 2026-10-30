@@ -258,3 +258,29 @@ def test_clearing_the_brand_color_in_admin_resets_without_reload(page, tokens, b
     expect(btn).to_be_visible(timeout=15000)
     assert resolved_rgb(btn, "backgroundColor") == DEFAULT_FILL
     assert resolved_rgb(page.locator(".brand-org-name").first) == blue_400_rgb(page)
+
+
+def test_admin_hint_names_what_is_adjusted_for_readability(page, brand):
+    """Typing a color in Admin > Branding shows a live hint (nothing is saved)."""
+    brand(DARK_BRAND)  # known stored color; restored by the fixture afterwards
+    page.goto(f"{BASE}/{ORG}/admin/branding")
+    color = page.locator('input[type="text"][placeholder="#3b82f6"]')
+    expect(color).to_be_visible(timeout=15000)
+    hint = page.locator('[data-testid="brand-adjusted-hint"]')
+
+    color.fill("#1a365d")
+    expect(hint).to_contain_text("For readability, links use", timeout=5000)
+    expect(hint).to_contain_text("#8190a6")
+    assert "buttons" not in hint.inner_text()
+
+    color.fill("#fde047")
+    expect(hint).to_contain_text("For readability, buttons use", timeout=5000)
+    expect(hint).to_contain_text("#847425")
+    assert "links" not in hint.inner_text()
+
+    color.fill("#ff4477")
+    expect(hint).to_contain_text("links use", timeout=5000)
+    expect(hint).to_contain_text("and buttons use")
+
+    color.fill("#3b82f6")
+    expect(hint).to_have_count(0, timeout=5000)

@@ -16,7 +16,17 @@ import (
 	"isms.sh/internal/isms/db"
 )
 
+// publicOIDCProvider is what the unauthenticated provider list exposes: just
+// enough for the login page to render a button and start the flow. Never add
+// credentials or provider configuration here.
+type publicOIDCProvider struct {
+	ID           int    `json:"id"`
+	ProviderName string `json:"provider_name"`
+	DisplayName  string `json:"display_name"`
+}
+
 // handleOIDCProviders returns the list of enabled OIDC providers for an organization.
+// Public route: only the fields in publicOIDCProvider are returned.
 // GET /auth/oidc/providers?org=slug
 func (s *Server) handleOIDCProviders(c echo.Context) error {
 	slug := c.QueryParam("org")
@@ -34,12 +44,12 @@ func (s *Server) handleOIDCProviders(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "listing providers: "+err.Error())
 	}
-	if providers == nil {
-		providers = []db.OIDCProvider{}
+	out := make([]publicOIDCProvider, 0, len(providers))
+	for _, p := range providers {
+		out = append(out, publicOIDCProvider{ID: p.ID, ProviderName: p.ProviderName, DisplayName: p.DisplayName})
 	}
 
-	// ClientSecret is json:"-" so it is already excluded from the response.
-	return c.JSON(http.StatusOK, map[string]interface{}{"data": providers})
+	return c.JSON(http.StatusOK, map[string]interface{}{"data": out})
 }
 
 // handleOIDCAuthorize initiates the OIDC authorization code flow.

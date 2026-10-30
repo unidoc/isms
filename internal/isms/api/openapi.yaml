@@ -552,8 +552,8 @@ paths:
                       type: object
                       properties:
                         id: { type: integer }
-                        name: { type: string }
-                        slug: { type: string }
+                        provider_name: { type: string }
+                        display_name: { type: string }
 
   /auth/oidc/authorize:
     get:

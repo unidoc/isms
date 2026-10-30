@@ -22,7 +22,7 @@ from playwright.sync_api import expect
 from test_e2e_browser import api, do_login, ADMIN, BASE, ORG, pw_browser, tokens  # noqa: F401
 
 DARK_BRAND = "#1a365d"
-SLATE_800 = (0x1e, 0x29, 0x3b)
+SLATE_800 = (0x1d, 0x29, 0x3d)  # Tailwind v4 slate-800 as rendered
 DOC = "iso27001-4-1"
 
 
@@ -115,11 +115,25 @@ def test_entity_link_in_comment_is_readable_on_dark_brand(page, dark_brand):
         api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
 
 
-def test_unbranded_link_matches_mention_color(page, tokens):
-    """With no brand color the link falls back to blue-400, same as a mention."""
+@pytest.fixture
+def brand(tokens):
+    """Set branding_color for one test and restore the original afterwards."""
     t = tokens["admin"]
     original = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color", "")
-    api("put", "/admin/settings", t, json={"key": "branding_color", "value": ""}, expect_status=[200, 204])
+
+    def set_brand(value):
+        api("put", "/admin/settings", t, json={"key": "branding_color", "value": value}, expect_status=[200, 204])
+
+    try:
+        yield set_brand
+    finally:
+        set_brand(original)
+
+
+def test_unbranded_link_matches_mention_color(page, tokens, brand):
+    """With no brand color the link falls back to blue-400, same as a mention."""
+    t = tokens["admin"]
+    brand("")
     risk = api("post", "/risks", t, json={
         "title": f"E2E brand {uuid.uuid4().hex[:8]}", "description": "e2e brand contrast",
         "risk_type": "threat", "origin": "internal", "status": "open", "treatment": "mitigate",
@@ -140,7 +154,6 @@ def test_unbranded_link_matches_mention_color(page, tokens):
         assert resolved_rgb(link) == resolved_rgb(mention) == blue_400_rgb(page)
     finally:
         api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
-        api("put", "/admin/settings", t, json={"key": "branding_color", "value": original}, expect_status=[200, 204])
 
 
 def test_login_link_uses_default_text_color(pw_browser, tokens):
@@ -166,21 +179,6 @@ def test_login_link_uses_default_text_color(pw_browser, tokens):
         ctx.close()
 
 
-@pytest.fixture
-def brand(tokens):
-    """Set branding_color for one test and restore the original afterwards."""
-    t = tokens["admin"]
-    original = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color", "")
-
-    def set_brand(value):
-        api("put", "/admin/settings", t, json={"key": "branding_color", "value": value}, expect_status=[200, 204])
-
-    try:
-        yield set_brand
-    finally:
-        set_brand(original)
-
-
 def add_risk_button(page):
     page.goto(f"{BASE}/{ORG}/risks")
     btn = page.locator("button.bg-blue-600.text-white:not([disabled])").first
@@ -194,6 +192,7 @@ def test_primary_button_label_is_readable_on_light_brand(page, brand):
     btn = add_risk_button(page)
     bg, fg = resolved_rgb(btn, "backgroundColor"), resolved_rgb(btn)
     assert contrast(bg, fg) >= 4.5, f"button rgb{bg} with label rgb{fg} is {contrast(bg, fg):.2f}:1"
+    assert bg == (132, 116, 37), f"fill rgb{bg} is not the derived #847425"
 
 
 def test_primary_button_fill_unchanged_on_dark_brand(page, brand):

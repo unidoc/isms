@@ -6,7 +6,8 @@
 // white reaches 4.5:1. Other fills and accents keep the raw --brand-color.
 // Every writer goes through applyBrandColor so the variables never drift apart.
 
-export const TEXT_BACKGROUND = '#1e293b' // Tailwind slate-800, the card/sidebar surface
+// Tailwind v4 slate-800 as rendered, oklch(27.9% .041 260.031); v3 was #1e293b.
+export const TEXT_BACKGROUND = '#1d293d' // the card/sidebar surface
 export const MIN_TEXT_CONTRAST = 4.5 // WCAG AA for normal text
 
 // Returns [r, g, b] for #rgb, #rgba, #rrggbb and #rrggbbaa (alpha dropped),
@@ -57,15 +58,17 @@ export function readableTextColor(hex) {
 }
 
 // The brand color as a fill that carries a white label: unchanged when white
-// already reaches 4.5:1, otherwise mixed toward black. null for an unparseable hex.
+// already reaches 4.5:1, otherwise mixed toward black. null for an unparseable
+// hex.
 export function readableFillColor(hex) {
   const rgb = parseHex(hex)
   if (!rgb) return null
   return mixUntilReadable(rgb, 0, (c) => contrastRatio('#ffffff', c))
 }
 
-// Sets --brand-color (raw), --brand-text-color and --brand-fill-color (derived). Does nothing for
-// an unparseable value so a bad stored color cannot blank the theme.
+// Sets --brand-color (raw), --brand-text-color and --brand-fill-color
+// (derived). Does nothing for an unparseable value so a bad stored color cannot
+// blank the theme.
 export function applyBrandColor(hex) {
   if (!parseHex(hex)) return
   const root = document.documentElement.style

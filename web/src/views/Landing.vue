@@ -249,16 +249,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Gradient-clipped text and white-labelled buttons use the derived colors so they
+   stay readable on any brand (#408); shadows keep the raw brand color. */
 .hero-accent-gradient {
-  background-image: linear-gradient(to right, var(--brand-color), color-mix(in srgb, var(--brand-color) 60%, #c084fc));
+  background-image: linear-gradient(to right, var(--brand-text-color), color-mix(in srgb, var(--brand-text-color) 60%, #c084fc));
 }
 
 .brand-cta-btn {
-  background: linear-gradient(to right, var(--brand-color), color-mix(in srgb, var(--brand-color) 85%, white));
+  background: linear-gradient(to right, var(--brand-fill-color), color-mix(in srgb, var(--brand-fill-color) 85%, black));
   box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-color) 25%, transparent);
 }
 .brand-cta-btn:hover {
-  filter: brightness(1.12);
+  filter: brightness(0.9);
   box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-color) 40%, transparent);
 }
 </style>

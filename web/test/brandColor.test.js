@@ -271,3 +271,49 @@ test('brand fill hover rules darken, so white labels stay readable', () => {
     assert.ok(v !== undefined && Number(v) < 1, `brightness(${v}) does not darken`)
   }
 })
+
+// ---- Landing gradients (#408) ----
+const LANDING_BG = '#0a0e1a' // bg-[#0a0e1a] in Landing.vue
+// CSS color-mix(in srgb, a pct%, b): per-channel linear mix of gamma-encoded values.
+function srgbMix(a, pct, b) {
+  const [x, y] = [parseHex(a), parseHex(b)]
+  return '#' + x.map((v, i) => Math.round(v * pct / 100 + y[i] * (100 - pct) / 100))
+    .map((v) => v.toString(16).padStart(2, '0')).join('')
+}
+const BRAND_SAMPLE = ['#1a365d', '#000000', '#3b82f6', '#fde047', '#ffffff', '#16a34a', '#dc2626',
+  '#51a2ff' /* unbranded: Tailwind v4 blue-400, rgb(80, 162, 255) */]
+
+test('landing hero gradient text stays >= 4.5:1 on the page background', () => {
+  for (const x of BRAND_SAMPLE) {
+    const start = readableTextColor(x)
+    const end = srgbMix(start, 60, '#c084fc')
+    assert.ok(contrastRatio(start, LANDING_BG) >= 4.5, `${x} start ${start}`)
+    assert.ok(contrastRatio(end, LANDING_BG) >= 4.5, `${x} end ${end}`)
+  }
+})
+
+test('landing CTA gradient keeps a white label >= 4.5:1 at both ends', () => {
+  for (const x of BRAND_SAMPLE) {
+    const start = readableFillColor(x)
+    const end = srgbMix(start, 85, '#000000')
+    assert.ok(contrastRatio('#ffffff', start) >= 4.5, `${x} start ${start}`)
+    assert.ok(contrastRatio('#ffffff', end) >= 4.5, `${x} end ${end}`)
+  }
+})
+
+test('landing gradients use the derived colors', () => {
+  const vue = readFileSync(fileURLToPath(new URL('../src/views/Landing.vue', import.meta.url)), 'utf8')
+  const rule = (sel) => new RegExp(`${sel}\\s*\\{([^}]*)\\}`).exec(vue)?.[1]
+  const hero = rule('\\.hero-accent-gradient')
+  const cta = rule('\\.brand-cta-btn')
+  const hover = rule('\\.brand-cta-btn:hover')
+  assert.ok(hero && cta && hover, 'rules not found')
+  const bg = (body, prop) => new RegExp(`${prop}:\\s*([^;]*);`).exec(body)?.[1] ?? ''
+  const heroBg = bg(hero, 'background-image')
+  const ctaBg = bg(cta, 'background')
+  assert.match(heroBg, /var\(--brand-text-color\)/)
+  assert.doesNotMatch(heroBg, /var\(--brand-color\b/)
+  assert.match(ctaBg, /var\(--brand-fill-color\)/)
+  assert.doesNotMatch(ctaBg, /var\(--brand-color\b/)
+  assert.ok(Number(/brightness\(([\d.]+)\)/.exec(hover)?.[1]) < 1, 'CTA hover must darken')
+})

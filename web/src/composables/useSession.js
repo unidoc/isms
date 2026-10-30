@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { api, getCurrentUser, clearApiToken, setApiToken, setCurrentUser } from '../api'
 import { applyConfigLocales, applySessionLocale } from './useLocale'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
 const user = ref(getCurrentUser())
@@ -176,7 +177,7 @@ export function useSession() {
         if (!link.parentNode) document.head.appendChild(link)
       }
       if (cfg.branding?.branding_color) {
-        document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
+        applyBrandColor(cfg.branding.branding_color)
       }
       if (cfg.terms_url) termsUrl.value = cfg.terms_url
       else if (cfg.has_terms) termsUrl.value = '/terms'

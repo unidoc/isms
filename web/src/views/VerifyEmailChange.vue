@@ -53,6 +53,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import api from '../api'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { renderApiError } from '../composables/useApiError.js'
 
 const { t } = useI18n()
@@ -70,7 +71,7 @@ const logoError = ref(false)
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
-    if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
+    if (cfg.branding?.branding_color) applyBrandColor(cfg.branding.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
   } catch { /* ignore */ }
 

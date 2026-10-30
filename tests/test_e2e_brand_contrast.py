@@ -1,0 +1,139 @@
+"""E2E (#408): link text stays readable whatever brand color the admin picks.
+
+A global rule recoloured every `a.text-blue-400` / `button.text-blue-400` to the
+raw org brand color, so a dark brand such as #1a365d turned the #RISK-n links in
+comments into ~1.2:1 text on the dark theme. The links now use a derived text
+color (>= 4.5:1). The @mention span, which is not matched by that rule, is the
+control and must keep Tailwind blue-400.
+
+The original branding_color is restored afterwards; other tests leave a dark
+color behind on their org, so nothing here depends on test order.
+
+Own file to keep the monolithic test_e2e_browser.py free of per-branch conflicts.
+
+Requires: pip install playwright && playwright install chromium
+Run:      pytest tests/test_e2e_brand_contrast.py -v
+"""
+import uuid
+
+import pytest
+from playwright.sync_api import expect
+
+from test_e2e_browser import api, do_login, ADMIN, BASE, ORG, pw_browser, tokens  # noqa: F401
+
+DARK_BRAND = "#1a365d"
+SLATE_800 = (0x1e, 0x29, 0x3b)
+DOC = "iso27001-4-1"
+
+
+def luminance(rgb):
+    def lin(v):
+        s = v / 255
+        return s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def contrast(a, b):
+    la, lb = luminance(a), luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def blue_400_rgb(page):
+    """Tailwind v4's --color-blue-400 as sRGB (it must exist at runtime)."""
+    return tuple(page.evaluate("""() => {
+        const v = getComputedStyle(document.documentElement).getPropertyValue('--color-blue-400').trim()
+        if (!v) throw new Error('--color-blue-400 is not defined')
+        const c = document.createElement('canvas'); c.width = c.height = 1
+        const x = c.getContext('2d'); x.fillStyle = v
+        x.fillRect(0, 0, 1, 1); return Array.from(x.getImageData(0, 0, 1, 1).data.slice(0, 3))
+    }"""))
+
+
+def resolved_rgb(locator):
+    """Computed text color as sRGB. Tailwind v4 colors compute as oklch(), so
+    paint the value on a canvas and read the pixel back."""
+    return tuple(locator.evaluate("""e => {
+        const c = document.createElement('canvas'); c.width = c.height = 1
+        const x = c.getContext('2d'); x.fillStyle = getComputedStyle(e).color
+        x.fillRect(0, 0, 1, 1); return Array.from(x.getImageData(0, 0, 1, 1).data.slice(0, 3))
+    }"""))
+
+
+@pytest.fixture
+def dark_brand(tokens):
+    t = tokens["admin"]
+    original = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color", "")
+    api("put", "/admin/settings", t, json={"key": "branding_color", "value": DARK_BRAND}, expect_status=[200, 204])
+    try:
+        yield t
+    finally:
+        api("put", "/admin/settings", t, json={"key": "branding_color", "value": original}, expect_status=[200, 204])
+
+
+@pytest.fixture
+def page(pw_browser, tokens):
+    ctx = pw_browser.new_context(viewport={"width": 1440, "height": 900})
+    p = ctx.new_page()
+    do_login(p, ADMIN[0], ADMIN[1])
+    yield p
+    ctx.close()
+
+
+def test_entity_link_in_comment_is_readable_on_dark_brand(page, dark_brand):
+    t = dark_brand
+    risk = api("post", "/risks", t, json={
+        "title": f"E2E brand {uuid.uuid4().hex[:8]}", "description": "e2e brand contrast",
+        "risk_type": "threat", "origin": "internal", "status": "open", "treatment": "mitigate",
+        "current_likelihood": 2, "current_impact": 2,
+    }, expect_status=[200, 201]).json()
+    ident = risk.get("identifier") or f"RISK-{risk['id']}"
+    body = f"ping @{ADMIN[0]} about #{ident} {uuid.uuid4().hex[:6]}"
+    c = api("post", "/comments", t, json={"document_id": DOC, "body": body, "paragraph_index": 0},
+            expect_status=[200, 201]).json()
+    try:
+        page.goto(f"{BASE}/{ORG}/documents/{DOC}")
+        page.locator("h1").first.wait_for(state="visible", timeout=10000)
+        page.locator('button[title="Comments"]').click()
+        link = page.locator("a.text-blue-400", has_text=f"#{ident}").first
+        expect(link).to_be_visible(timeout=10000)
+        mention = page.locator("span.text-blue-400", has_text=f"@{ADMIN[0]}").first
+        expect(mention).to_be_visible(timeout=10000)
+
+        link_rgb = resolved_rgb(link)
+        link_color = f"rgb{link_rgb}"
+        ratio = contrast(link_rgb, SLATE_800)
+        assert ratio >= 4.5, f"link color {link_color} is {ratio:.2f}:1 on slate-800"
+        # Control: not matched by the brand rule, stays Tailwind blue-400.
+        assert resolved_rgb(mention) == blue_400_rgb(page)
+        assert resolved_rgb(mention) != link_rgb
+    finally:
+        api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
+
+
+def test_unbranded_link_matches_mention_color(page, tokens):
+    """With no brand color the link falls back to blue-400, same as a mention."""
+    t = tokens["admin"]
+    original = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color", "")
+    api("put", "/admin/settings", t, json={"key": "branding_color", "value": ""}, expect_status=[200, 204])
+    risk = api("post", "/risks", t, json={
+        "title": f"E2E brand {uuid.uuid4().hex[:8]}", "description": "e2e brand contrast",
+        "risk_type": "threat", "origin": "internal", "status": "open", "treatment": "mitigate",
+        "current_likelihood": 2, "current_impact": 2,
+    }, expect_status=[200, 201]).json()
+    ident = risk.get("identifier") or f"RISK-{risk['id']}"
+    c = api("post", "/comments", t, json={
+        "document_id": DOC, "body": f"ping @{ADMIN[0]} about #{ident} {uuid.uuid4().hex[:6]}", "paragraph_index": 0,
+    }, expect_status=[200, 201]).json()
+    try:
+        page.goto(f"{BASE}/{ORG}/documents/{DOC}")
+        page.locator("h1").first.wait_for(state="visible", timeout=10000)
+        page.locator('button[title="Comments"]').click()
+        link = page.locator("a.text-blue-400", has_text=f"#{ident}").first
+        mention = page.locator("span.text-blue-400", has_text=f"@{ADMIN[0]}").first
+        expect(link).to_be_visible(timeout=10000)
+        expect(mention).to_be_visible(timeout=10000)
+        assert resolved_rgb(link) == resolved_rgb(mention) == blue_400_rgb(page)
+    finally:
+        api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
+        api("put", "/admin/settings", t, json={"key": "branding_color", "value": original}, expect_status=[200, 204])

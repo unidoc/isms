@@ -841,9 +841,12 @@ watch(() => route.path, (newPath) => {
 
 <style>
 /* Brand color integration — uses --brand-color CSS variable set from admin branding config.
-   Falls back to Tailwind blue-500 (#3b82f6) when no brand color is configured. */
+   Falls back to Tailwind blue-500 (#3b82f6) when no brand color is configured.
+   --brand-text-color is the brand color lightened until text on slate-800 reaches
+   4.5:1 (utils/brandColor.js); it defaults to blue-400 (the mention color). */
 :root {
   --brand-color: #3b82f6;
+  --brand-text-color: var(--color-blue-400);
 }
 
 /* Org name in sidebar header */
@@ -868,10 +871,10 @@ a.bg-blue-600:hover {
   filter: brightness(1.15);
 }
 
-/* Link-style actions that use blue-400 text (e.g. "Mark all read") */
+/* Link-style actions that use blue-400 text (e.g. "Mark all read"), in the readable text color */
 button.text-blue-400,
 a.text-blue-400 {
-  color: var(--brand-color);
+  color: var(--brand-text-color);
 }
 button.text-blue-400:hover,
 a.text-blue-400:hover {

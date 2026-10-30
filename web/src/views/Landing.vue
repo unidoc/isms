@@ -184,6 +184,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import api from '../api'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { applyConfigLocales } from '../composables/useLocale'
 import LocalePicker from '../components/LocalePicker.vue'
 import { useI18n } from 'vue-i18n'
@@ -237,7 +238,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_footer) {
       brandFooter.value = cfg.branding.branding_footer
     }
-    if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
+    if (cfg.branding?.branding_color) applyBrandColor(cfg.branding.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true

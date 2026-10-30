@@ -786,6 +786,7 @@ import { useI18n } from 'vue-i18n'
 import { FALLBACK } from '../i18n.js'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useLocale } from '../composables/useLocale'
@@ -1626,7 +1627,7 @@ async function saveBranding() {
     }
     // Apply color immediately
     if (branding.value.branding_color) {
-      document.documentElement.style.setProperty('--brand-color', branding.value.branding_color)
+      applyBrandColor(branding.value.branding_color)
     }
     brandingMsg.value = t('admin.branding.saved')
     brandingError.value = false

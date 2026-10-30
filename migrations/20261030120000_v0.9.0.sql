@@ -283,3 +283,15 @@ DO $$ BEGIN
             WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
     END IF;
 END $$;
+
+-- Per-org system review cycles (#308, Annex A 5.22). Same shape as the
+-- supplier keys added in 0.8.0 (#43): system cycle length was a hard-coded
+-- per-criticality switch.
+-- default_value is populated so 1/3/6/12 apply to every existing org with zero
+-- rows in organization_settings and zero backfill.
+INSERT INTO settings (key, description, category, default_value, sensitive) VALUES
+    ('system_review_cycle_critical', 'Review cycle for critical systems (months)', 'review_cycles', '1',  false),
+    ('system_review_cycle_high',     'Review cycle for high-criticality systems (months)', 'review_cycles', '3',  false),
+    ('system_review_cycle_medium',   'Review cycle for medium-criticality systems (months)', 'review_cycles', '6',  false),
+    ('system_review_cycle_low',      'Review cycle for low-criticality systems (months)', 'review_cycles', '12', false)
+ON CONFLICT (key) DO NOTHING;

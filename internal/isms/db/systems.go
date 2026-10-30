@@ -102,25 +102,29 @@ func (sys *System) ToChangeMap() map[string]string {
 	}
 }
 
-// systemReviewMonths derives review cycle (months) from criticality.
-// Mirrors the supplier pattern: critical=1, high=3, medium=6, low/unset=12.
-func systemReviewMonths(criticality string) int {
-	switch criticality {
-	case "critical":
-		return 1
-	case "high":
-		return 3
-	case "medium":
-		return 6
-	default:
-		return 12
-	}
+// SystemReviewCycles resolves the org's system review cycles. Exported because
+// every system write path outside this package (api readings, suggestion apply,
+// the manager cron) must resolve real cycles — passing nil there would silently
+// ignore the org's configuration (#308).
+func (d *DB) SystemReviewCycles(ctx context.Context, orgID int) map[string]int {
+	return d.reviewCyclesFor(ctx, orgID, "system_review_cycle_")
 }
 
-// CalculateNextReview sets next_review based on criticality.
-// Cycle is derived; an explicit next_review on create, update or a reading overrides it.
-func (sys *System) CalculateNextReview() {
-	months := systemReviewMonths(sys.Criticality)
+// CalculateNextReview sets next_review from the system's criticality.
+// cycles maps criticality level → months; pass nil to use reviewCycleDefaults
+// (1/3/6/12). Resolve a real map with DB.SystemReviewCycles — do not pass nil
+// from outside this package, or the org's configured cycles are ignored (#308).
+//
+// Cycle is derived; an explicit next_review on create, update or a reading
+// overrides it (the write paths re-apply it after this runs).
+func (sys *System) CalculateNextReview(cycles map[string]int) {
+	if cycles == nil {
+		cycles = reviewCycleDefaults
+	}
+	months, ok := cycles[sys.Criticality]
+	if !ok {
+		months = 12
+	}
 	base := time.Now()
 	if sys.LastReview != nil && !sys.LastReview.IsZero() {
 		base = sys.LastReview.Time
@@ -173,7 +177,7 @@ func (d *DB) CreateSystem(ctx context.Context, orgID int, sys *System) error {
 	sys.OrganizationID = orgID
 	// An explicit next_review on create wins over the calculated one (#202).
 	explicitNextReview := sys.NextReview
-	sys.CalculateNextReview()
+	sys.CalculateNextReview(d.SystemReviewCycles(ctx, orgID))
 	if explicitNextReview != nil {
 		sys.NextReview = explicitNextReview
 	}
@@ -376,7 +380,7 @@ func (d *DB) PaginatedSystems(ctx context.Context, orgID int, p SystemListParams
 // criticality-derived one. CalculateNextReview always recomputes NextReview, so
 // the override has to come after it (#202). Pass nil to keep the derived date.
 func (d *DB) UpdateSystem(ctx context.Context, orgID int, sys *System, explicitNextReview *Epoch) error {
-	sys.CalculateNextReview()
+	sys.CalculateNextReview(d.SystemReviewCycles(ctx, orgID))
 	if explicitNextReview != nil {
 		sys.NextReview = explicitNextReview
 	}

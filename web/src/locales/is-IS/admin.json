@@ -193,9 +193,13 @@
       "risk_review_cycle_medium": "Yfirferðartíðni miðlungs áhættu",
       "risk_review_cycle_low": "Yfirferðartíðni lágrar áhættu",
       "supplier_review_cycle_critical": "Yfirferðartíðni mjög mikilvægra birgja",
+      "system_review_cycle_critical": "Yfirferðartíðni mjög mikilvægra kerfa",
       "supplier_review_cycle_high": "Yfirferðartíðni mikilvægra birgja",
+      "system_review_cycle_high": "Yfirferðartíðni mikilvægra kerfa",
       "supplier_review_cycle_medium": "Yfirferðartíðni birgja í meðallagi mikilvægra",
+      "system_review_cycle_medium": "Yfirferðartíðni kerfa í meðallagi mikilvægra",
       "supplier_review_cycle_low": "Yfirferðartíðni lítið mikilvægra birgja",
+      "system_review_cycle_low": "Yfirferðartíðni lítið mikilvægra kerfa",
       "risk_appetite": "Áhættuvilji",
       "task_default_private": "Verkefni sjálfgefið einkamál"
     },
@@ -212,9 +216,13 @@
       "risk_review_cycle_medium": "Yfirferðartíðni miðlungs áhættu (mánuðir)",
       "risk_review_cycle_low": "Yfirferðartíðni lágrar áhættu (mánuðir)",
       "supplier_review_cycle_critical": "Yfirferðartíðni mjög mikilvægra birgja (mánuðir)",
+      "system_review_cycle_critical": "Yfirferðartíðni mjög mikilvægra kerfa (mánuðir)",
       "supplier_review_cycle_high": "Yfirferðartíðni mikilvægra birgja (mánuðir)",
+      "system_review_cycle_high": "Yfirferðartíðni mikilvægra kerfa (mánuðir)",
       "supplier_review_cycle_medium": "Yfirferðartíðni birgja í meðallagi mikilvægra (mánuðir)",
+      "system_review_cycle_medium": "Yfirferðartíðni kerfa í meðallagi mikilvægra (mánuðir)",
       "supplier_review_cycle_low": "Yfirferðartíðni lítið mikilvægra birgja (mánuðir)",
+      "system_review_cycle_low": "Yfirferðartíðni lítið mikilvægra kerfa (mánuðir)",
       "risk_appetite": "Viðmiðunarmörk áhættuvilja (núverandi áhættustig yfir þessum mörkum krefst meðhöndlunar)",
       "task_default_private": "Ný verkefni eru sjálfgefið einkamál (aðeins sýnileg ábyrgðaraðila, stofnanda og stjórnendum)"
     }

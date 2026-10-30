@@ -433,7 +433,8 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 	// not parse, which means a typo degrades to the 12-month fallback with no signal.
 	// Reject it here instead — same diagnosability argument as default_locale above.
 	// Empty is allowed and meaningful: it reverts the org to the registry default.
-	if strings.HasPrefix(req.Key, "supplier_review_cycle_") || strings.HasPrefix(req.Key, "risk_review_cycle_") {
+	if strings.HasPrefix(req.Key, "supplier_review_cycle_") || strings.HasPrefix(req.Key, "risk_review_cycle_") ||
+		strings.HasPrefix(req.Key, "system_review_cycle_") {
 		v := strings.TrimSpace(req.Value)
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 120 {

@@ -238,7 +238,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_footer) {
       brandFooter.value = cfg.branding.branding_footer
     }
-    if (cfg.branding?.branding_color) applyBrandColor(cfg.branding.branding_color)
+    applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true

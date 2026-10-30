@@ -1625,10 +1625,8 @@ async function saveBranding() {
     for (const key of keys) {
       await api.putJSON('/api/v1/admin/settings', { key, value: branding.value[key] })
     }
-    // Apply color immediately
-    if (branding.value.branding_color) {
-      applyBrandColor(branding.value.branding_color)
-    }
+    // Apply color immediately (an empty color resets to the defaults)
+    applyBrandColor(branding.value.branding_color)
     brandingMsg.value = t('admin.branding.saved')
     brandingError.value = false
   } catch (e) {

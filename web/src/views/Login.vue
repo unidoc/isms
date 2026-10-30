@@ -544,7 +544,7 @@ onMounted(async () => {
     if (cfg.organization?.name) orgName.value = cfg.organization.name
     if (cfg.organization_name) orgName.value = cfg.organization_name
     if (cfg.branding?.branding_name) orgName.value = cfg.branding.branding_name
-    if (cfg.branding?.branding_color) applyBrandColor(cfg.branding.branding_color)
+    applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true

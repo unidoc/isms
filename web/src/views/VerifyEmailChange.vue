@@ -71,7 +71,7 @@ const logoError = ref(false)
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
-    if (cfg.branding?.branding_color) applyBrandColor(cfg.branding.branding_color)
+    applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
   } catch { /* ignore */ }
 

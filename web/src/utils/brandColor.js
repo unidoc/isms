@@ -66,12 +66,24 @@ export function readableFillColor(hex) {
   return mixUntilReadable(rgb, 0, (c) => contrastRatio('#ffffff', c))
 }
 
+// The Admin > Branding form starts its color at this value and saves every key,
+// so orgs that saved branding for any reason store it (#408). It renders
+// exactly like an unbranded org.
+export const DEFAULT_BRAND = '#3b82f6'
+
+const OVERRIDES = ['--brand-color', '--brand-text-color', '--brand-fill-color']
+
 // Sets --brand-color (raw), --brand-text-color and --brand-fill-color
-// (derived). Does nothing for an unparseable value so a bad stored color cannot
-// blank the theme.
+// (derived). A missing, empty or unparseable value, or the default brand,
+// removes all three so the :root defaults in App.vue apply; this also clears
+// the previous org's colors when the new one has none.
 export function applyBrandColor(hex) {
-  if (!parseHex(hex)) return
   const root = document.documentElement.style
+  const rgb = parseHex(hex)
+  if (!rgb || toHex(rgb) === DEFAULT_BRAND) {
+    OVERRIDES.forEach((name) => root.removeProperty(name))
+    return
+  }
   root.setProperty('--brand-color', hex)
   root.setProperty('--brand-text-color', readableTextColor(hex))
   root.setProperty('--brand-fill-color', readableFillColor(hex))

@@ -176,9 +176,7 @@ export function useSession() {
         link.href = cfg.branding.branding_favicon + '?t=' + Date.now()
         if (!link.parentNode) document.head.appendChild(link)
       }
-      if (cfg.branding?.branding_color) {
-        applyBrandColor(cfg.branding.branding_color)
-      }
+      applyBrandColor(cfg.branding?.branding_color)
       if (cfg.terms_url) termsUrl.value = cfg.terms_url
       else if (cfg.has_terms) termsUrl.value = '/terms'
       if (cfg.privacy_url) privacyUrl.value = cfg.privacy_url

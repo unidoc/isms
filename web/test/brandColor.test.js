@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  parseHex, contrastRatio, readableTextColor, readableFillColor, applyBrandColor, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
+  parseHex, contrastRatio, readableTextColor, readableFillColor, applyBrandColor, DEFAULT_BRAND, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
 } from '../src/utils/brandColor.js'
 
 const SLATE_800 = '#1d293d' // Tailwind v4 slate-800 as rendered
@@ -67,7 +67,7 @@ test('derived colors are minimal: one 1% step less mixing fails', () => {
   assert.ok(checkedText >= 5 && checkedFill >= 3, `${checkedText}/${checkedFill} checked`)
 })
 
-test('applyBrandColor sets the three variables, and nothing for bad input', () => {
+function withFakeDocument(fn) {
   const had = Object.getOwnPropertyDescriptor(globalThis, 'document')
   const props = {}
   globalThis.document = { documentElement: { style: {
@@ -75,19 +75,71 @@ test('applyBrandColor sets the three variables, and nothing for bad input', () =
     removeProperty(k) { delete props[k] },
   } } }
   try {
+    fn(props)
+  } finally {
+    if (had) Object.defineProperty(globalThis, 'document', had)
+    else delete globalThis.document
+  }
+}
+
+test('applyBrandColor sets the three variables for a real brand', () => {
+  withFakeDocument((props) => {
     applyBrandColor('#1a365d')
     assert.deepEqual(props, {
       '--brand-color': '#1a365d',
       '--brand-text-color': '#8190a6',
       '--brand-fill-color': '#1a365d',
     })
-    for (const k of Object.keys(props)) delete props[k]
-    applyBrandColor('#12345')
-    assert.deepEqual(props, {})
-  } finally {
-    if (had) Object.defineProperty(globalThis, 'document', had)
-    else delete globalThis.document
+  })
+})
+
+test('applyBrandColor removes the overrides for a missing, empty or invalid color', () => {
+  for (const none of ['', undefined, null, '#12345']) {
+    withFakeDocument((props) => {
+      applyBrandColor('#1a365d')
+      assert.equal(Object.keys(props).length, 3)
+      applyBrandColor(none)
+      assert.deepEqual(props, {}, String(none))
+    })
   }
+})
+
+test('the Admin form default (#3b82f6, any spelling) counts as unbranded', () => {
+  assert.equal(DEFAULT_BRAND, '#3b82f6')
+  for (const same of ['#3b82f6', '#3B82F6', '#3b82f6ff']) {
+    withFakeDocument((props) => {
+      applyBrandColor('#1a365d')
+      applyBrandColor(same)
+      assert.deepEqual(props, {}, same)
+    })
+  }
+  withFakeDocument((props) => {
+    applyBrandColor('#3b82f7')
+    assert.equal(Object.keys(props).length, 3)
+  })
+})
+
+test('no applyBrandColor call is guarded by an if on branding_color', () => {
+  // A guard would keep the previous org's colors on screen when the new
+  // org has none; applyBrandColor itself resets on an empty value.
+  const src = fileURLToPath(new URL('../src', import.meta.url))
+  const calls = []
+  const bad = []
+  for (const f of walk(src)) {
+    if (f.endsWith('utils/brandColor.js')) continue
+    const lines = readFileSync(f, 'utf8').split('\n')
+    lines.forEach((line, i) => {
+      if (!/\bapplyBrandColor\(/.test(line) || /^\s*import\b/.test(line)) return
+      const where = `${f.slice(src.length + 1)}:${i + 1}`
+      calls.push(where)
+      const prev = lines[i - 1] || ''
+      if (!/applyBrandColor\([^)]*branding_color[^)]*\)/.test(line)) bad.push(`${where} argument`)
+      if (/\bif\b[^\n]*branding_color/.test(line.replace(/applyBrandColor\(.*$/, '')) ||
+          /^\s*if\b[^\n]*branding_color/.test(prev)) bad.push(`${where} guarded`)
+    })
+  }
+  assert.equal(calls.length, 8, `expected 8 call sites, got ${calls.join(', ')}`)
+  assert.deepEqual(bad, [])
 })
 
 test('readableTextColor keeps already readable colors, normalised', () => {

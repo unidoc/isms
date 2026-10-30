@@ -200,3 +200,61 @@ def test_primary_button_fill_unchanged_on_dark_brand(page, brand):
     brand(DARK_BRAND)
     btn = add_risk_button(page)
     assert resolved_rgb(btn, "backgroundColor") == (26, 54, 93)
+
+
+DEFAULT_FILL = (52, 114, 216)  # readableFillColor('#3b82f6') = #3472d8
+
+
+def test_stored_default_brand_renders_as_unbranded(page, tokens, brand):
+    """The Admin form saves #3b82f6 with every branding save; it must look unbranded."""
+    t = tokens["admin"]
+    brand("#3b82f6")
+    risk = api("post", "/risks", t, json={
+        "title": f"E2E brand {uuid.uuid4().hex[:8]}", "description": "e2e brand contrast",
+        "risk_type": "threat", "origin": "internal", "status": "open", "treatment": "mitigate",
+        "current_likelihood": 2, "current_impact": 2,
+    }, expect_status=[200, 201]).json()
+    ident = risk.get("identifier") or f"RISK-{risk['id']}"
+    c = api("post", "/comments", t, json={
+        "document_id": DOC, "body": f"ping @{ADMIN[0]} about #{ident} {uuid.uuid4().hex[:6]}", "paragraph_index": 0,
+    }, expect_status=[200, 201]).json()
+    try:
+        page.goto(f"{BASE}/{ORG}/documents/{DOC}")
+        page.locator("h1").first.wait_for(state="visible", timeout=10000)
+        page.locator('button[title="Comments"]').click()
+        link = page.locator("a.text-blue-400", has_text=f"#{ident}").first
+        mention = page.locator("span.text-blue-400", has_text=f"@{ADMIN[0]}").first
+        expect(link).to_be_visible(timeout=10000)
+        expect(mention).to_be_visible(timeout=10000)
+        assert resolved_rgb(link) == resolved_rgb(mention) == blue_400_rgb(page)
+        btn = add_risk_button(page)
+        assert resolved_rgb(btn, "backgroundColor") == DEFAULT_FILL
+    finally:
+        api("post", f"/comments/{c['id']}/resolve", t, expect_status=[200, 204])
+
+
+def test_clearing_the_brand_color_in_admin_resets_without_reload(page, tokens, brand):
+    """Clear + save in Admin > Branding must drop the old colors in the same session."""
+    t = tokens["admin"]
+    brand(DARK_BRAND)
+    page.goto(f"{BASE}/{ORG}/admin/branding")
+    color = page.locator('input[type="text"][placeholder="#3b82f6"]')
+    expect(color).to_be_visible(timeout=15000)
+    expect(color).to_have_value(DARK_BRAND, timeout=10000)
+    org_name = page.locator(".brand-org-name").first
+    dark_text = resolved_rgb(org_name)
+    assert dark_text != blue_400_rgb(page), "dark brand text should differ from the default"
+
+    color.fill("")
+    page.get_by_role("button", name="Save branding").click()
+    expect(page.get_by_text("Branding saved")).to_be_visible(timeout=10000)
+    stored = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color")
+    assert not stored, f"the server did not store an empty color: {stored!r}"
+
+    # No reload: the variables live on <html> and must already be reset.
+    assert resolved_rgb(org_name) == blue_400_rgb(page)
+    page.evaluate("() => document.querySelector('#app').__vue_app__.config.globalProperties.$router.push('/%s/risks')" % ORG)
+    btn = page.locator("button.bg-blue-600.text-white:not([disabled])").first
+    expect(btn).to_be_visible(timeout=15000)
+    assert resolved_rgb(btn, "backgroundColor") == DEFAULT_FILL
+    assert resolved_rgb(page.locator(".brand-org-name").first) == blue_400_rgb(page)

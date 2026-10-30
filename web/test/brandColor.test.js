@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  parseHex, contrastRatio, readableTextColor, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
+  parseHex, contrastRatio, readableTextColor, readableFillColor, MIN_TEXT_CONTRAST, TEXT_BACKGROUND,
 } from '../src/utils/brandColor.js'
 
 const SLATE_800 = '#1e293b'
@@ -96,4 +96,52 @@ test('no text color is drawn from the raw --brand-color', () => {
     })
   }
   assert.deepEqual(hits, [], `text color from var(--brand-color): ${hits.join(', ')}`)
+})
+
+test('readableFillColor darkens fills until a white label reaches 4.5:1', () => {
+  for (const hex of ['#3b82f6', '#fde047', '#ffffff', '#60a5fa', '#16a34a']) {
+    const out = readableFillColor(hex)
+    assert.match(out, /^#[0-9a-f]{6}$/, hex)
+    assert.ok(contrastRatio('#ffffff', out) >= 4.5, `${hex} -> ${out}`)
+    const [r, g, b] = parseHex(hex)
+    const [R, G, B] = parseHex(out)
+    assert.ok(R <= r && G <= g && B <= b, `${hex} -> ${out} is not darker`)
+  }
+  assert.equal(readableFillColor('#3b82f6'), '#3472d8')
+})
+
+test('readableFillColor keeps fills that already carry white, normalised', () => {
+  assert.equal(readableFillColor('#1a365d'), '#1a365d')
+  assert.equal(readableFillColor('#000000'), '#000000')
+  assert.equal(readableFillColor('#2563eb'), '#2563eb')
+  assert.equal(readableFillColor('#DC2626'), '#dc2626')
+})
+
+test('readableFillColor rejects malformed input', () => {
+  for (const bad of ['#12345', '#xyz', '', undefined, null]) {
+    assert.equal(readableFillColor(bad), null, String(bad))
+  }
+})
+
+test('hard-coded fill defaults equal readableFillColor of the default brand', () => {
+  const want = readableFillColor('#3b82f6')
+  const app = readFileSync(fileURLToPath(new URL('../src/App.vue', import.meta.url)), 'utf8')
+  const css = readFileSync(fileURLToPath(new URL('../src/style.css', import.meta.url)), 'utf8')
+  assert.equal(/:root\s*\{[^}]*--brand-fill-color:\s*(#[0-9a-f]{6})/i.exec(app)?.[1], want)
+  const btn = /\.brand-btn\s*\{[^}]*var\(--brand-fill-color,\s*(#[0-9a-f]{6})\)/i.exec(css)
+  assert.equal(btn?.[1], want)
+})
+
+test('brand fills carrying white labels use --brand-fill-color', () => {
+  const app = readFileSync(fileURLToPath(new URL('../src/App.vue', import.meta.url)), 'utf8')
+  const css = readFileSync(fileURLToPath(new URL('../src/style.css', import.meta.url)), 'utf8')
+  const rules = [...app.matchAll(/(button|a)\.bg-blue-600(?::hover)?\s*(?:,\s*a\.bg-blue-600(?::hover)?\s*)?\{([^}]*)\}/g)]
+  assert.equal(rules.length, 2, 'expected the bg-blue-600 rule and its :hover rule')
+  for (const [, , body] of rules) {
+    assert.match(body, /background-color:\s*var\(--brand-fill-color\)/)
+    assert.doesNotMatch(body, /background-color:\s*var\(--brand-color\)/)
+  }
+  const btn = /\.brand-btn\s*\{([^}]*)\}/.exec(css)[1]
+  assert.match(btn, /background-color:\s*var\(--brand-fill-color/)
+  assert.doesNotMatch(btn, /background-color:\s*var\(--brand-color/)
 })

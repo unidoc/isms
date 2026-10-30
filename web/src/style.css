@@ -809,7 +809,7 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-color, #3b82f6) 30%, transparent);
 }
 .brand-btn {
-  background-color: var(--brand-color, #3b82f6);
+  background-color: var(--brand-fill-color, #3472d8);
 }
 .brand-btn:hover:not(:disabled) {
   filter: brightness(1.15);

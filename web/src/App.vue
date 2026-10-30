@@ -848,6 +848,8 @@ watch(() => route.path, (newPath) => {
 :root {
   --brand-color: #3b82f6;
   --brand-text-color: var(--color-blue-400);
+  /* readableFillColor('#3b82f6'): the default fill with a white label at >= 4.5:1 */
+  --brand-fill-color: #3472d8;
 }
 
 /* Org name in sidebar header */
@@ -861,14 +863,15 @@ aside nav a.router-link-active {
   padding-left: calc(0.5rem - 3px);
 }
 
-/* Primary action buttons — override Tailwind bg-blue-600 with brand color */
+/* Primary action buttons — override Tailwind bg-blue-600 with the brand fill
+   color (the brand color darkened until the white label reaches 4.5:1) */
 button.bg-blue-600,
 a.bg-blue-600 {
-  background-color: var(--brand-color);
+  background-color: var(--brand-fill-color);
 }
 button.bg-blue-600:hover,
 a.bg-blue-600:hover {
-  background-color: var(--brand-color);
+  background-color: var(--brand-fill-color);
   filter: brightness(1.15);
 }
 

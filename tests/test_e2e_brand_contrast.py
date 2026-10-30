@@ -50,14 +50,14 @@ def blue_400_rgb(page):
     }"""))
 
 
-def resolved_rgb(locator):
+def resolved_rgb(locator, prop="color"):
     """Computed text color as sRGB. Tailwind v4 colors compute as oklch(), so
     paint the value on a canvas and read the pixel back."""
-    return tuple(locator.evaluate("""e => {
+    return tuple(locator.evaluate("""(e, prop) => {
         const c = document.createElement('canvas'); c.width = c.height = 1
-        const x = c.getContext('2d'); x.fillStyle = getComputedStyle(e).color
+        const x = c.getContext('2d'); x.fillStyle = getComputedStyle(e)[prop]
         x.fillRect(0, 0, 1, 1); return Array.from(x.getImageData(0, 0, 1, 1).data.slice(0, 3))
-    }"""))
+    }""", prop))
 
 
 @pytest.fixture
@@ -164,3 +164,40 @@ def test_login_link_uses_default_text_color(pw_browser, tokens):
         assert resolved_rgb(link) == blue_400_rgb(p)
     finally:
         ctx.close()
+
+
+@pytest.fixture
+def brand(tokens):
+    """Set branding_color for one test and restore the original afterwards."""
+    t = tokens["admin"]
+    original = api("get", "/config", t, expect_status=200).json().get("branding", {}).get("branding_color", "")
+
+    def set_brand(value):
+        api("put", "/admin/settings", t, json={"key": "branding_color", "value": value}, expect_status=[200, 204])
+
+    try:
+        yield set_brand
+    finally:
+        set_brand(original)
+
+
+def add_risk_button(page):
+    page.goto(f"{BASE}/{ORG}/risks")
+    btn = page.locator("button.bg-blue-600.text-white:not([disabled])").first
+    expect(btn).to_be_visible(timeout=15000)
+    return btn
+
+
+def test_primary_button_label_is_readable_on_light_brand(page, brand):
+    """A light brand (#fde047) is 1.32:1 against a white label; the fill darkens."""
+    brand("#fde047")
+    btn = add_risk_button(page)
+    bg, fg = resolved_rgb(btn, "backgroundColor"), resolved_rgb(btn)
+    assert contrast(bg, fg) >= 4.5, f"button rgb{bg} with label rgb{fg} is {contrast(bg, fg):.2f}:1"
+
+
+def test_primary_button_fill_unchanged_on_dark_brand(page, brand):
+    """White already passes on #1a365d, so the fill keeps the raw brand color."""
+    brand(DARK_BRAND)
+    btn = add_risk_button(page)
+    assert resolved_rgb(btn, "backgroundColor") == (26, 54, 93)

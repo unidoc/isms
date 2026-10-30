@@ -1,9 +1,10 @@
 // The org brand color is admin-chosen, so it can be any hex, including ones
 // that vanish on the dark theme (#408: #1a365d is 1.2:1 on slate-800). Link and
 // button text therefore uses a derived --brand-text-color: the brand color
-// mixed toward white by the smallest amount that reaches 4.5:1. Fills and
-// accents keep the raw --brand-color. Every writer goes through
-// applyBrandColor so the two variables never drift apart.
+// mixed toward white by the smallest amount that reaches 4.5:1. Fills that
+// carry white labels use --brand-fill-color, the brand color darkened until
+// white reaches 4.5:1. Other fills and accents keep the raw --brand-color.
+// Every writer goes through applyBrandColor so the variables never drift apart.
 
 export const TEXT_BACKGROUND = '#1e293b' // Tailwind slate-800, the card/sidebar surface
 export const MIN_TEXT_CONTRAST = 4.5 // WCAG AA for normal text
@@ -36,23 +37,39 @@ export function contrastRatio(a, b) {
 
 const toHex = (rgb) => '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
 
+// Mixes rgb toward `target` (255 = white, 0 = black) in 1% steps and returns the
+// first mix whose contrast(mix) reaches the threshold; rgb itself when it
+// already passes.
+function mixUntilReadable(rgb, target, contrast) {
+  for (let pct = 0; pct <= 100; pct++) {
+    const mixed = toHex(rgb.map((v) => Math.round(v + (target - v) * pct / 100)))
+    if (contrast(mixed) >= MIN_TEXT_CONTRAST) return mixed
+  }
+  return toHex([target, target, target])
+}
+
 // The brand color as readable text on the dark theme: unchanged when it already
-// passes, otherwise mixed toward white in 1% steps. null for an unparseable hex.
+// passes, otherwise mixed toward white. null for an unparseable hex.
 export function readableTextColor(hex) {
   const rgb = parseHex(hex)
   if (!rgb) return null
-  for (let pct = 0; pct <= 100; pct++) {
-    const mixed = toHex(rgb.map((v) => Math.round(v + (255 - v) * pct / 100)))
-    if (contrastRatio(mixed, TEXT_BACKGROUND) >= MIN_TEXT_CONTRAST) return mixed
-  }
-  return '#ffffff'
+  return mixUntilReadable(rgb, 255, (c) => contrastRatio(c, TEXT_BACKGROUND))
 }
 
-// Sets --brand-color (raw) and --brand-text-color (derived). Does nothing for
+// The brand color as a fill that carries a white label: unchanged when white
+// already reaches 4.5:1, otherwise mixed toward black. null for an unparseable hex.
+export function readableFillColor(hex) {
+  const rgb = parseHex(hex)
+  if (!rgb) return null
+  return mixUntilReadable(rgb, 0, (c) => contrastRatio('#ffffff', c))
+}
+
+// Sets --brand-color (raw), --brand-text-color and --brand-fill-color (derived). Does nothing for
 // an unparseable value so a bad stored color cannot blank the theme.
 export function applyBrandColor(hex) {
   if (!parseHex(hex)) return
   const root = document.documentElement.style
   root.setProperty('--brand-color', hex)
   root.setProperty('--brand-text-color', readableTextColor(hex))
+  root.setProperty('--brand-fill-color', readableFillColor(hex))
 }

@@ -98,7 +98,7 @@
       <p class="text-slate-400 text-center mb-12 max-w-2xl mx-auto">{{ $t('landing.how.subtitle') }}</p>
       <div class="space-y-4">
         <div v-for="(step, i) in steps" :key="i" class="flex gap-4 items-start p-5 bg-slate-900/30 border border-slate-800/30 rounded-xl">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background-color: var(--brand-color)">{{ i + 1 }}</div>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background-color: var(--brand-fill-color)">{{ i + 1 }}</div>
           <div>
             <h4 class="font-semibold mb-1">{{ step.title }}</h4>
             <p class="text-sm text-slate-400">{{ step.desc }}</p>

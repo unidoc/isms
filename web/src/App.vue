@@ -869,10 +869,11 @@ button.bg-blue-600,
 a.bg-blue-600 {
   background-color: var(--brand-fill-color);
 }
+/* Hover darkens: lightening would pull the white label back below 4.5:1 */
 button.bg-blue-600:hover,
 a.bg-blue-600:hover {
   background-color: var(--brand-fill-color);
-  filter: brightness(1.15);
+  filter: brightness(0.9);
 }
 
 /* Link-style actions that use blue-400 text (e.g. "Mark all read"), in the readable text color */

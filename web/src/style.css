@@ -811,8 +811,9 @@
 .brand-btn {
   background-color: var(--brand-fill-color, #3472d8);
 }
+/* Hover darkens: lightening would pull the white label back below 4.5:1 */
 .brand-btn:hover:not(:disabled) {
-  filter: brightness(1.15);
+  filter: brightness(0.9);
 }
 .brand-text {
   color: var(--brand-text-color, var(--color-blue-400));

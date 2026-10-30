@@ -259,3 +259,15 @@ test('brand fills carrying white labels use --brand-fill-color', () => {
   assert.match(btn, /background-color:\s*var\(--brand-fill-color/)
   assert.doesNotMatch(btn, /background-color:\s*var\(--brand-color/)
 })
+
+test('brand fill hover rules darken, so white labels stay readable', () => {
+  const app = readFileSync(fileURLToPath(new URL('../src/App.vue', import.meta.url)), 'utf8')
+  const css = readFileSync(fileURLToPath(new URL('../src/style.css', import.meta.url)), 'utf8')
+  const hover = /a\.bg-blue-600:hover\s*\{([^}]*)\}/.exec(app)?.[1]
+  const btn = /\.brand-btn:hover:not\(:disabled\)\s*\{([^}]*)\}/.exec(css)?.[1]
+  for (const body of [hover, btn]) {
+    assert.ok(body, 'hover rule not found')
+    const v = /filter:\s*brightness\(([\d.]+)\)/.exec(body)?.[1]
+    assert.ok(v !== undefined && Number(v) < 1, `brightness(${v}) does not darken`)
+  }
+})

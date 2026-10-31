@@ -2078,7 +2078,7 @@ func (s *Server) handleAddAsset(c echo.Context) error {
 		Action:     "create",
 		ChangedBy:  actor,
 	})
-	s.searchUpsert(orgID, "asset", a.Identifier, a.Name, a.Identifier+" "+a.Name+" "+a.Description)
+	s.searchIndex.Upsert(orgID, assetSearchEntry(&a))
 	if out, err := s.db.GetAsset(ctx, orgID, a.ID); err == nil {
 		return c.JSON(http.StatusCreated, out)
 	}
@@ -2810,7 +2810,7 @@ func (s *Server) handleUpdateAsset(c echo.Context) error {
 		if len(changes) > 0 {
 			s.logChanges(ctx, orgID, changes)
 		}
-		s.searchUpsert(orgID, "asset", after.Identifier, after.Name, after.Identifier+" "+after.Name+" "+after.Description)
+		s.searchIndex.Upsert(orgID, assetSearchEntry(after))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "asset_updated",

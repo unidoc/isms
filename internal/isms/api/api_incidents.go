@@ -169,7 +169,7 @@ func (s *Server) handleCreateIncident(c echo.Context) error {
 		ChangedBy:  inc.Reporter,
 	})
 
-	s.searchUpsert(orgID, "incident", inc.Identifier, inc.Title, inc.Identifier+" "+inc.Title+" "+inc.Description)
+	s.searchIndex.Upsert(orgID, incidentSearchEntry(&inc))
 
 	// Notify via all channels
 	s.logAndNotify(ctx, orgID, &db.Activity{
@@ -394,7 +394,7 @@ func (s *Server) handleUpdateIncident(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 
-	s.searchUpsert(orgID, "incident", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
+	s.searchIndex.Upsert(orgID, incidentSearchEntry(existing))
 
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  getUserEmail(c),
@@ -649,7 +649,7 @@ func (s *Server) handleUpdateIncidentProgress(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 
-	s.searchUpsert(orgID, "incident", after.Identifier, after.Title, after.Identifier+" "+after.Title+" "+after.Description)
+	s.searchIndex.Upsert(orgID, incidentSearchEntry(after))
 
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,

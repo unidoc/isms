@@ -467,9 +467,10 @@ func (s *Server) handleClaimEntitySuggestion(c echo.Context) error {
 
 // applyPostCommitKey carries a queue of side-effect callbacks that must run only
 // AFTER the apply transaction commits. Apply handlers use registerApplyPostCommit
-// for effects that touch the pool directly or send mail (e.g. auto-created tasks),
-// which must not fire inside WithOrgTx — mirroring how the HTTP handlers run their
-// post-commit work. Keeps the HTTP and suggestion-apply paths behaving identically.
+// for effects that touch the pool directly, send mail (e.g. auto-created tasks),
+// or patch the search index (#500) — none of which may fire inside WithOrgTx —
+// mirroring how the HTTP handlers run their post-commit work. Keeps the HTTP and
+// suggestion-apply paths behaving identically.
 type applyPostCommitKey struct{}
 
 // registerApplyPostCommit queues fn to run after the enclosing apply tx commits.
@@ -489,7 +490,8 @@ func (s *Server) handleApplyEntitySuggestion(c echo.Context) error {
 	actor := getUserEmail(c)
 
 	// Callbacks registered by apply handlers for side effects that must run only
-	// after the tx commits (task auto-creation, mail). Drained below on success.
+	// after the tx commits (task auto-creation, mail, search index #500). Drained
+	// below on success.
 	var postCommit []func()
 	ctx = context.WithValue(ctx, applyPostCommitKey{}, &postCommit)
 
@@ -840,6 +842,10 @@ func applyRiskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	}); err != nil {
 		return "", 0, err
 	}
+	// As handleAddRisk: the record is searchable as soon as the apply returns
+	// (#500). Same per-type builder as the HTTP create, post-commit so a
+	// rolled-back apply never reaches the index.
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, riskSearchEntry(&risk)) })
 	return risk.Identifier, risk.ID, nil
 }
 
@@ -903,6 +909,9 @@ func applyRiskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	// As handleUpdateRisk: a rename via a suggestion is searchable under the new
+	// title, and the old one stops matching (#500).
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, riskSearchEntry(&updated)) })
 	return updated.Identifier, updated.ID, nil
 }
 
@@ -974,6 +983,7 @@ func applyIncidentCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, incidentSearchEntry(&inc)) })
 	return inc.Identifier, inc.ID, nil
 }
 
@@ -1009,6 +1019,7 @@ func applyIncidentUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, incidentSearchEntry(after)) })
 	return after.Identifier, after.ID, nil
 }
 
@@ -1123,6 +1134,7 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, supplierSearchEntry(&sup)) })
 	return sup.Identifier, sup.ID, nil
 }
 
@@ -1151,6 +1163,7 @@ func applySupplierUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, supplierSearchEntry(&updated)) })
 	return updated.Identifier, updated.ID, nil
 }
 
@@ -1215,6 +1228,7 @@ func applyLegalCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, legalSearchEntry(&lr)) })
 	return lr.Identifier, lr.ID, nil
 }
 
@@ -1243,6 +1257,7 @@ func applyLegalUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, legalSearchEntry(&updated)) })
 	return updated.Identifier, updated.ID, nil
 }
 
@@ -1301,6 +1316,7 @@ func applyChangeCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, changeSearchEntry(&cr)) })
 	return cr.Identifier, int64(cr.ID), nil
 }
 
@@ -1364,6 +1380,7 @@ func applyChangeUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, changeSearchEntry(&updated)) })
 	return updated.Identifier, int64(updated.ID), nil
 }
 
@@ -1424,6 +1441,7 @@ func applyCorrActiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, correctiveActionSearchEntry(&ca)) })
 	return ca.Identifier, ca.ID, nil
 }
 
@@ -1457,6 +1475,7 @@ func applyCorrActiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, correctiveActionSearchEntry(after)) })
 	return after.Identifier, after.ID, nil
 }
 
@@ -1512,6 +1531,11 @@ func applyTaskCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 	}); err != nil {
 		return "", 0, err
 	}
+	// As handleCreateTask: a public task is searchable as soon as the apply
+	// returns; a private one never enters the shared index (#178, #500).
+	if !t.Private {
+		registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, taskSearchEntry(&t)) })
+	}
 	return t.Identifier, t.ID, nil
 }
 
@@ -1540,11 +1564,15 @@ func applyTaskUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *d
 		}
 		return "", 0, err
 	}
-	// A task that is (or becomes) private must leave the shared search index, as
-	// in handleUpdateTask. The non-private upsert stays out of apply (R7).
+	// Keep the shared search index in step with handleUpdateTask: a task that is
+	// (or becomes) private leaves it; a public one (including one just made
+	// public) is upserted so a rename or a private→public flip is searchable
+	// right away (#178, #500).
 	if updated.Private {
 		ident := old.Identifier
 		registerApplyPostCommit(ctx, func() { s.searchRemove(orgID, "task", ident) })
+	} else {
+		registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, taskSearchEntry(&updated)) })
 	}
 	diffs := db.DiffFields("task", taskID, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
@@ -1686,6 +1714,7 @@ func applyObjectiveCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, objectiveSearchEntry(&o)) })
 	return o.DisplayID, o.ID, nil
 }
 
@@ -1714,6 +1743,7 @@ func applyObjectiveUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, objectiveSearchEntry(&updated)) })
 	return updated.DisplayID, updated.ID, nil
 }
 
@@ -1755,6 +1785,7 @@ func applyProgramCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, programSearchEntry(&pr)) })
 	return pr.Key, pr.ID, nil
 }
 
@@ -1825,6 +1856,7 @@ func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, systemSearchEntry(&sys)) })
 	return sys.Identifier, sys.ID, nil
 }
 
@@ -1853,6 +1885,7 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, systemSearchEntry(&updated)) })
 	return updated.Identifier, updated.ID, nil
 }
 
@@ -1916,6 +1949,7 @@ func applyAssetCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, assetSearchEntry(&a)) })
 	return a.Identifier, a.ID, nil
 }
 
@@ -1944,6 +1978,7 @@ func applyAssetUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg *
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, assetSearchEntry(&updated)) })
 	return updated.Identifier, updated.ID, nil
 }
 
@@ -1985,6 +2020,7 @@ func applyAuditFindingCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 	}); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, auditFindingSearchEntry(f)) })
 	return fmt.Sprintf("FIND-%d", f.ID), f.ID, nil
 }
 
@@ -2040,6 +2076,7 @@ func applyAuditFindingUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID in
 	if err := db.LogChangesTx(ctx, tx, orgID, diffs); err != nil {
 		return "", 0, err
 	}
+	registerApplyPostCommit(ctx, func() { s.searchIndex.Upsert(orgID, auditFindingSearchEntry(&after)) })
 	return sg.EntityID, id, nil
 }
 

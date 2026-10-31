@@ -2411,7 +2411,7 @@ func (s *Server) handleCreateTask(c echo.Context) error {
 	// A private task must not surface its title through the shared search index or
 	// the org-wide activity feed / chat webhooks (#178 review).
 	if !t.Private {
-		s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
+		s.searchIndex.Upsert(orgID, taskSearchEntry(&t))
 	}
 
 	s.logChange(ctx, orgID, &db.ChangelogEntry{
@@ -2701,7 +2701,7 @@ func (s *Server) handleUpdateTask(c echo.Context) error {
 	if t.Private {
 		s.searchRemove(orgID, "task", old.Identifier)
 	} else {
-		s.searchUpsert(orgID, "task", old.Identifier, t.Title, old.Identifier+" "+t.Title+" "+t.Description)
+		s.searchIndex.Upsert(orgID, taskSearchEntry(&t))
 	}
 
 	updateDetail := fmt.Sprintf("Task #%d: %s", id, t.Title)
@@ -2948,7 +2948,7 @@ func (s *Server) handleCreateChange(c echo.Context) error {
 		ChangedBy:  cr.RequestedBy,
 	})
 
-	s.searchUpsert(orgID, "change", cr.Identifier, cr.Title, cr.Identifier+" "+cr.Title+" "+cr.Description)
+	s.searchIndex.Upsert(orgID, changeSearchEntry(&cr))
 
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  cr.RequestedBy,
@@ -3149,7 +3149,7 @@ func (s *Server) handleUpdateChange(c echo.Context) error {
 		s.logChanges(ctx, orgID, diffs)
 	}
 
-	s.searchUpsert(orgID, "change", updated.Identifier, updated.Title, updated.Identifier+" "+updated.Title+" "+updated.Description)
+	s.searchIndex.Upsert(orgID, changeSearchEntry(updated))
 
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
@@ -3317,7 +3317,7 @@ func (s *Server) syncChangeFollowupTask(ctx context.Context, orgID int, updated 
 		if diffs := db.DiffFields("task", existing.ID, actor, "", before.ToChangeMap(), existing.ToChangeMap()); len(diffs) > 0 {
 			s.logChanges(ctx, orgID, diffs)
 		}
-		s.searchUpsert(orgID, "task", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
+		s.searchIndex.Upsert(orgID, taskSearchEntry(existing))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "task_status_changed",
@@ -3346,7 +3346,7 @@ func (s *Server) syncChangeFollowupTask(ctx context.Context, orgID int, updated 
 			Action:     "create",
 			ChangedBy:  actor,
 		})
-		s.searchUpsert(orgID, "task", t.Identifier, t.Title, t.Identifier+" "+t.Title+" "+t.Description)
+		s.searchIndex.Upsert(orgID, taskSearchEntry(t))
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "task_created",

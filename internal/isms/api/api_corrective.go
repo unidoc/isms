@@ -142,7 +142,7 @@ func (s *Server) handleCreateCorrectiveAction(c echo.Context) error {
 		ChangedBy:  ca.CreatedBy,
 	})
 
-	s.searchUpsert(orgID, "corrective_action", ca.Identifier, ca.Title, ca.Identifier+" "+ca.Title+" "+ca.Description)
+	s.searchIndex.Upsert(orgID, correctiveActionSearchEntry(&ca))
 
 	// Log activity + notify
 	s.logAndNotify(ctx, orgID, &db.Activity{
@@ -308,7 +308,7 @@ func (s *Server) handleUpdateCorrectiveAction(c echo.Context) error {
 		return pgxHTTPError(err)
 	}
 
-	s.searchUpsert(orgID, "corrective_action", existing.Identifier, existing.Title, existing.Identifier+" "+existing.Title+" "+existing.Description)
+	s.searchIndex.Upsert(orgID, correctiveActionSearchEntry(existing))
 
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  getUserEmail(c),

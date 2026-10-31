@@ -152,10 +152,12 @@ func manageOrg(ctx context.Context, d *db.DB, orgID int, quiet bool) (created, b
 	// 2. Backfill missing next_review on systems
 	systems, err := d.ListSystems(ctx, orgID)
 	if err == nil {
+		// Resolved once per org, as for suppliers above.
+		cycles := d.SystemReviewCycles(ctx, orgID)
 		for _, sys := range systems {
 			if sys.NextReview == nil || sys.NextReview.IsZero() {
 				before := sys.ToChangeMap()
-				sys.CalculateNextReview()
+				sys.CalculateNextReview(cycles)
 				if err := d.UpdateSystem(ctx, orgID, &sys, nil); err == nil {
 					backfilled++
 					if changes := db.DiffFields("system", int64(sys.ID), "system", "automated next_review backfill", before, sys.ToChangeMap()); len(changes) > 0 {

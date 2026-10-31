@@ -367,11 +367,12 @@ var RiskTypes = []string{"threat", "opportunity"}
 var RiskOrigins = []string{"internal", "external", "internal and external"}
 
 // reviewCyclesFor fetches per-level review cycle settings for an org under a key
-// prefix (e.g. "risk_review_cycle_" or "supplier_review_cycle_"). Returns a map of
-// level → months, or nil when the org has configured none — nil means "use
-// reviewCycleDefaults", which is what the registry default_value already resolves to.
-// A stored value that is not a positive integer is skipped rather than trusted; the
-// settings PUT rejects such values (api_admin.go), so this is defence in depth.
+// prefix (e.g. "risk_review_cycle_", "supplier_review_cycle_" or
+// "system_review_cycle_"). Returns a map of level → months, or nil when the org
+// has configured none — nil means "use reviewCycleDefaults", which is what the
+// registry default_value already resolves to. A stored value that is not a
+// positive integer is skipped rather than trusted; the settings PUT rejects such
+// values (api_admin.go), so this is defence in depth.
 func (d *DB) reviewCyclesFor(ctx context.Context, orgID int, prefix string) map[string]int {
 	cycles := make(map[string]int, 4)
 	for _, level := range []string{"critical", "high", "medium", "low"} {

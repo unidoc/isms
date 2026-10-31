@@ -1814,7 +1814,7 @@ func applySystemCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 	if err != nil {
 		return "", 0, err
 	}
-	if err := db.CreateSystemTx(ctx, tx, orgID, &sys); err != nil {
+	if err := db.CreateSystemTx(ctx, tx, orgID, &sys, s.db.SystemReviewCycles(ctx, orgID)); err != nil {
 		return "", 0, err
 	}
 	if err := s.createReferencesTx(ctx, tx, orgID, "system", sys.Identifier, actor, refs); err != nil {
@@ -1846,7 +1846,7 @@ func applySystemUpdate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, sg 
 		return "", 0, err
 	}
 	updated.ID = id
-	if err := db.UpdateSystemTx(ctx, tx, orgID, &updated, explicitNextReview); err != nil {
+	if err := db.UpdateSystemTx(ctx, tx, orgID, &updated, s.db.SystemReviewCycles(ctx, orgID), explicitNextReview); err != nil {
 		return "", 0, err
 	}
 	diffs := db.DiffFields("system", id, actor, fmt.Sprintf("suggestion #%d", sg.ID), old.ToChangeMap(), updated.ToChangeMap())

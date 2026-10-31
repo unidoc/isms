@@ -398,7 +398,7 @@ func TestReadingsNextReviewRoundTrip(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Begin: %v", err)
 		}
-		if err := UpdateSystemTx(ctx, tx, orgID, sys, &explicitDate); err != nil {
+		if err := UpdateSystemTx(ctx, tx, orgID, sys, d.SystemReviewCycles(ctx, orgID), &explicitDate); err != nil {
 			tx.Rollback(ctx)
 			t.Fatalf("UpdateSystemTx: %v", err)
 		}

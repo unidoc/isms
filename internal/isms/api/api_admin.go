@@ -17,6 +17,12 @@ import (
 	"isms.sh/internal/isms/i18n"
 )
 
+// brandingColorRe matches the hex forms CSS accepts: #rgb, #rgba, #rrggbb and
+// #rrggbbaa. 5 and 7 digit values are invalid CSS and render as the default.
+var brandingColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$`)
+
+func validBrandingColor(s string) bool { return brandingColorRe.MatchString(s) }
+
 // AdminOnly returns middleware that restricts access to admin role only.
 func (s *Server) AdminOnly() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -401,7 +407,7 @@ func (s *Server) handleAdminUpdateSetting(c echo.Context) error {
 
 	// Validate branding values
 	if req.Key == "branding_color" && req.Value != "" {
-		if matched, _ := regexp.MatchString(`^#[0-9a-fA-F]{3,8}$`, req.Value); !matched {
+		if !validBrandingColor(req.Value) {
 			return echo.NewHTTPError(http.StatusBadRequest, "branding_color must be a valid hex color (e.g. #3b82f6)")
 		}
 	}

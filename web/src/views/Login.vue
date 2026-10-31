@@ -212,11 +212,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { login, getApiToken, setApiToken } from '../api'
 import api from '../api'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, canHostSubdomain } from '../composables/useCurrentOrg'
 import { applyConfigLocales } from '../composables/useLocale'
 import LocalePicker from '../components/LocalePicker.vue'
@@ -499,6 +500,10 @@ async function handleLogin() {
   }
 }
 
+// A late /config must not reset the brand the app applied after this page closed.
+let closed = false
+onBeforeUnmount(() => { closed = true })
+
 onMounted(async () => {
   // Check for OIDC callback token in URL fragment (preferred, secure)
   // or query string (fallback)
@@ -543,7 +548,7 @@ onMounted(async () => {
     if (cfg.organization?.name) orgName.value = cfg.organization.name
     if (cfg.organization_name) orgName.value = cfg.organization_name
     if (cfg.branding?.branding_name) orgName.value = cfg.branding.branding_name
-    if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
+    if (!closed) applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true

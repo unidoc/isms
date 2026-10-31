@@ -841,14 +841,20 @@ watch(() => route.path, (newPath) => {
 
 <style>
 /* Brand color integration — uses --brand-color CSS variable set from admin branding config.
-   Falls back to Tailwind blue-500 (#3b82f6) when no brand color is configured. */
+   Falls back to Tailwind blue-500 (#3b82f6) when no brand color is configured.
+   --brand-text-color is the brand color lightened until text on slate-800 reaches
+   4.5:1 (utils/brandColor.js); it defaults to blue-400 (the mention color).
+   All brand-colored text uses it; fills, borders and accents keep --brand-color. */
 :root {
   --brand-color: #3b82f6;
+  --brand-text-color: var(--color-blue-400);
+  /* readableFillColor('#3b82f6'): the default fill with a white label at >= 4.5:1 */
+  --brand-fill-color: #3472d8;
 }
 
 /* Org name in sidebar header */
 .brand-org-name {
-  color: var(--brand-color);
+  color: var(--brand-text-color);
 }
 
 /* Active sidebar nav items get a left accent bar in the brand color */
@@ -857,21 +863,23 @@ aside nav a.router-link-active {
   padding-left: calc(0.5rem - 3px);
 }
 
-/* Primary action buttons — override Tailwind bg-blue-600 with brand color */
+/* Primary action buttons — override Tailwind bg-blue-600 with the brand fill
+   color (the brand color darkened until the white label reaches 4.5:1) */
 button.bg-blue-600,
 a.bg-blue-600 {
-  background-color: var(--brand-color);
+  background-color: var(--brand-fill-color);
 }
+/* Hover darkens: lightening would pull the white label back below 4.5:1 */
 button.bg-blue-600:hover,
 a.bg-blue-600:hover {
-  background-color: var(--brand-color);
-  filter: brightness(1.15);
+  background-color: var(--brand-fill-color);
+  filter: brightness(0.9);
 }
 
-/* Link-style actions that use blue-400 text (e.g. "Mark all read") */
+/* Link-style actions that use blue-400 text (e.g. "Mark all read"), in the readable text color */
 button.text-blue-400,
 a.text-blue-400 {
-  color: var(--brand-color);
+  color: var(--brand-text-color);
 }
 button.text-blue-400:hover,
 a.text-blue-400:hover {

@@ -37,24 +37,38 @@ def api(method, path, token=None, expect_status=None, **kw):
 
 # ── Browser ──
 
+def open_login(page):
+    """Open /login and get to the email step; returns the email input.
+
+    The step is chosen from the /config response, mirroring Login.vue: when the
+    server has exactly one org, config carries organization_slug and the org
+    step is skipped. Waiting on the response alone is not enough, since it
+    arrives before the page has parsed it and re-rendered, so the slug input
+    can still be visible (and vanish under fill()). Reading the body decides
+    deterministically.
+    """
+    with page.expect_response(lambda r: "/api/v1/config" in r.url) as resp:
+        page.goto(f"{BASE}/login")
+    email_input = page.get_by_placeholder("you@company.com")
+    if not resp.value.json().get("organization_slug"):
+        page.get_by_placeholder("Organization name, e.g. acme").fill(ORG)
+        page.get_by_role("button", name="Continue").click()
+    email_input.wait_for(state="visible", timeout=8000)
+    return email_input
+
+
 def do_login(page, email, pw, then_goto=None):
     """Login and optionally navigate to a path after.
 
     The /login page has a two-step flow on path-based deployments:
       1. Org discovery — enter the org slug to continue.
       2. Email + password.
-    On subdomain deployments the org is implicit and step 1 is skipped.
+    On subdomain deployments, or a server with a single org, the org is
+    implicit and step 1 is skipped (see open_login).
     """
     page.set_default_timeout(8000)
-    page.goto(f"{BASE}/login")
-    # Step 1: org discovery. Fill the org slug and continue if the input is shown.
-    org_input = page.get_by_placeholder("Organization name, e.g. acme")
-    if org_input.is_visible(timeout=3000):
-        org_input.fill(ORG)
-        page.get_by_role("button", name="Continue").click()
-    # Step 2: email + password.
-    page.get_by_placeholder("you@company.com").wait_for(state="visible", timeout=8000)
-    page.get_by_placeholder("you@company.com").fill(email)
+    email_input = open_login(page)
+    email_input.fill(email)
     page.get_by_placeholder("Password", exact=True).fill(pw)
     page.get_by_role("button", name="Sign in").click()
     page.locator("aside").first.wait_for(state="visible", timeout=10000)

@@ -98,7 +98,7 @@
       <p class="text-slate-400 text-center mb-12 max-w-2xl mx-auto">{{ $t('landing.how.subtitle') }}</p>
       <div class="space-y-4">
         <div v-for="(step, i) in steps" :key="i" class="flex gap-4 items-start p-5 bg-slate-900/30 border border-slate-800/30 rounded-xl">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background-color: var(--brand-color)">{{ i + 1 }}</div>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background-color: var(--brand-fill-color)">{{ i + 1 }}</div>
           <div>
             <h4 class="font-semibold mb-1">{{ step.title }}</h4>
             <p class="text-sm text-slate-400">{{ step.desc }}</p>
@@ -134,8 +134,8 @@
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">{{ $t('landing.deploy.cloud_title') }}</h3>
           <p class="text-sm text-slate-400 leading-relaxed mb-4">{{ $t('landing.deploy.cloud_desc') }}</p>
-          <router-link v-if="signupEnabled" to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">{{ $t('landing.deploy.cloud_cta') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
-          <router-link v-else to="/login" class="text-sm font-medium hover:underline" style="color: var(--brand-color)">{{ $t('landing.deploy.cloud_cta_signin') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
+          <router-link v-if="signupEnabled" to="/signup" class="text-sm font-medium hover:underline" style="color: var(--brand-text-color)">{{ $t('landing.deploy.cloud_cta') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
+          <router-link v-else to="/login" class="text-sm font-medium hover:underline" style="color: var(--brand-text-color)">{{ $t('landing.deploy.cloud_cta_signin') }} &rarr;</router-link> <!-- i18n-ignore: typographic arrow -->
         </div>
         <div class="p-6 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
           <h3 class="text-lg font-semibold mb-2">{{ $t('landing.deploy.selfhost_title') }}</h3>
@@ -182,8 +182,9 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import api from '../api'
+import { applyBrandColor } from '../utils/brandColor.js'
 import { applyConfigLocales } from '../composables/useLocale'
 import LocalePicker from '../components/LocalePicker.vue'
 import { useI18n } from 'vue-i18n'
@@ -225,6 +226,10 @@ const frameworks = [
   'NIS2', 'HIPAA', 'PCI DSS', 'NIST CSF', 'NIST 800-53', 'DORA',
 ]
 
+// A late /config must not reset the brand the app applied after this page closed.
+let closed = false
+onBeforeUnmount(() => { closed = true })
+
 onMounted(async () => {
   try {
     const cfg = await api.getConfig()
@@ -237,7 +242,7 @@ onMounted(async () => {
     if (cfg.branding?.branding_footer) {
       brandFooter.value = cfg.branding.branding_footer
     }
-    if (cfg.branding?.branding_color) document.documentElement.style.setProperty('--brand-color', cfg.branding.branding_color)
+    if (!closed) applyBrandColor(cfg.branding?.branding_color)
     logoUrl.value = cfg.branding?.branding_logo || ''
     showPoweredBy.value = cfg.show_powered_by !== false
     signupEnabled.value = cfg.signup_enabled === true
@@ -248,16 +253,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Gradient-clipped text and white-labelled buttons use the derived colors so they
+   stay readable on any brand (#408); shadows keep the raw brand color. */
 .hero-accent-gradient {
-  background-image: linear-gradient(to right, var(--brand-color), color-mix(in srgb, var(--brand-color) 60%, #c084fc));
+  background-image: linear-gradient(to right, var(--brand-text-color), color-mix(in srgb, var(--brand-text-color) 60%, #c084fc));
 }
 
 .brand-cta-btn {
-  background: linear-gradient(to right, var(--brand-color), color-mix(in srgb, var(--brand-color) 85%, white));
+  background: linear-gradient(to right, var(--brand-fill-color), color-mix(in srgb, var(--brand-fill-color) 85%, black));
   box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-color) 25%, transparent);
 }
 .brand-cta-btn:hover {
-  filter: brightness(1.12);
+  filter: brightness(0.9);
   box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-color) 40%, transparent);
 }
 </style>

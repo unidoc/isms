@@ -138,6 +138,31 @@ func (d *DB) UpsertUser(ctx context.Context, u *User) error {
 	`, u.Email, u.Name, u.IsAgent, u.Active).Scan(&u.ID, &u.CreatedAt)
 }
 
+// EnsureUser returns the account for u.Email, creating it from u when the email
+// is new. An existing account is loaded into u and left untouched: name,
+// is_agent and active belong to the person, so callers acting for one org must
+// not overwrite them (unlike UpsertUser). Email is normalized to lowercase.
+func (d *DB) EnsureUser(ctx context.Context, u *User) (created bool, err error) {
+	u.Email = strings.ToLower(u.Email)
+	err = d.pool.QueryRow(ctx, `
+		INSERT INTO users (email, name, is_agent, active)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT ((lower(email))) DO NOTHING
+		RETURNING id, created_at
+	`, u.Email, u.Name, u.IsAgent, u.Active).Scan(&u.ID, &u.CreatedAt)
+	if err == nil {
+		return true, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	err = d.pool.QueryRow(ctx, `
+		SELECT id, email, name, is_agent, active, created_at
+		FROM users WHERE lower(email) = $1
+	`, u.Email).Scan(&u.ID, &u.Email, &u.Name, &u.IsAgent, &u.Active, &u.CreatedAt)
+	return false, err
+}
+
 // SetPassword sets the password hash for a user.
 func (d *DB) SetPassword(ctx context.Context, userID int, hash string) error {
 	tag, err := d.pool.Exec(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, hash)

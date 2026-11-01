@@ -163,9 +163,10 @@ func (s *Server) handleUpsertUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	// Upsert the user record (org-agnostic)
+	// Create the account if the email is new; an existing account is never
+	// modified here (it is global — only this org's membership changes).
 	u := &db.User{Email: req.Email, Name: req.Name, Active: true}
-	if err := s.db.UpsertUser(ctx, u); err != nil {
+	if _, err := s.db.EnsureUser(ctx, u); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

@@ -881,9 +881,10 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	// Create user as INACTIVE until email is verified
+	// New accounts start INACTIVE until email is verified. An existing account
+	// is never modified (it is global — only this org's membership changes).
 	user := &db.User{Email: req.Email, Name: req.Name, Active: false}
-	if err := s.db.UpsertUser(ctx, user); err != nil {
+	if _, err := s.db.EnsureUser(ctx, user); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
 	}
 
@@ -893,6 +894,21 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 		if err := s.db.AddOrgMember(ctx, orgID, user.ID, req.Role); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "adding to organization: "+err.Error())
 		}
+	}
+
+	// An existing active account needs no verification: it was only added to
+	// this org, so there is nothing to email.
+	actor := getUserEmail(c)
+	if user.Active {
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "user_invited",
+			Detail: fmt.Sprintf("Added %s (%s) as %s", user.Name, user.Email, req.Role),
+		})
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "added",
+			"email":  user.Email,
+		})
 	}
 
 	// Generate verification token
@@ -913,7 +929,6 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 
 	// Log activity
-	actor := getUserEmail(c)
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "user_invited",

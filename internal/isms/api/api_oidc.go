@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -243,18 +244,35 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "email address is not verified by the identity provider")
 	}
 
-	// User resolution:
-	// 1. Try by linked identity (provider + sub)
-	// 2. Try by email (and link)
-	// 3. Create new user
+	// User resolution. The only things that prove who someone is are the ID
+	// token's issuer (bound to the keys that signed it, so another organization's
+	// provider cannot claim it) and its subject. The provider name and the email
+	// claim are chosen by whoever runs the provider, so neither identifies an
+	// existing account on its own.
+	//  1. A link by (issuer, subject): that user.
+	//  2. A link made before issuers were recorded (provider name + subject),
+	//     honoured only for a member of this provider's organization; the issuer
+	//     is filled in so the row is keyed properly from now on.
+	//  3. No link: no account for the email creates one; an account that has no
+	//     way to sign in yet and belongs to no other organization (an admin
+	//     pre-added it) is linked; anything else is refused.
 	var user *db.User
+	issuer := idToken.Issuer
 
-	user, err = s.db.GetUserByIdentity(ctx, provider.ProviderName, claims.Sub)
+	user, err = s.db.GetUserByIdentity(ctx, issuer, claims.Sub)
 	if err != nil {
-		// Not found by identity — try email
-		user, err = s.db.GetUserByEmail(ctx, claims.Email)
+		var legacyID int
+		user, legacyID, err = s.db.GetUserByLegacyIdentity(ctx, session.OrganizationID, provider.ProviderName, claims.Sub)
+		if err == nil {
+			if err := s.db.SetIdentityIssuer(ctx, legacyID, issuer); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "updating identity: "+err.Error())
+			}
+		}
+	}
+	if err != nil {
+		user, err = s.db.GetUserByEmailFold(ctx, claims.Email)
 		if err != nil {
-			// Not found by email either — create new user
+			// No account for this email — create one
 			name := claims.Name
 			if name == "" {
 				name = claims.Email
@@ -267,9 +285,23 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 			if _, err := s.db.EnsureUser(ctx, user); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
 			}
+		} else {
+			ok, err := s.canLinkByEmail(ctx, user.ID, session.OrganizationID)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "checking account: "+err.Error())
+			}
+			if !ok {
+				// Nothing is linked, no session is minted, no membership added.
+				org, err := s.db.GetOrganization(ctx, session.OrganizationID)
+				if err != nil {
+					return echo.NewHTTPError(http.StatusInternalServerError, "organization not found")
+				}
+				baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
+				return c.Redirect(http.StatusFound, orgLoginErrorURL(baseURL, org.Slug, org.Domain, "account_exists", s.subdomainRouting))
+			}
 		}
 		// Link identity to user
-		if err := s.db.LinkIdentity(ctx, user.ID, provider.ProviderName, claims.Sub, claims.Email); err != nil {
+		if err := s.db.LinkIdentity(ctx, user.ID, issuer, provider.ProviderName, claims.Sub, claims.Email); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "linking identity: "+err.Error())
 		}
 	}
@@ -332,6 +364,35 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
 	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, org.Domain, token, role, s.subdomainRouting)
 	return c.Redirect(http.StatusFound, redirectURL)
+}
+
+// canLinkByEmail reports whether a sign-in through the provider of orgID may
+// attach to the existing account userID on the strength of the email claim
+// alone: only when the account is bare (no password, passkey or linked
+// identity) and every organization it belongs to is orgID.
+func (s *Server) canLinkByEmail(ctx context.Context, userID, orgID int) (bool, error) {
+	bare, err := s.db.IsBareAccount(ctx, userID)
+	if err != nil || !bare {
+		return false, err
+	}
+	orgIDs, err := s.db.ListUserOrgIDs(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	for _, id := range orgIDs {
+		if id != orgID {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// orgLoginErrorURL is where a refused SSO sign-in lands: the same login page
+// orgTokenRedirectURL targets (custom domain, subdomain or path), with an error
+// code in the query string instead of a token.
+func orgLoginErrorURL(baseURL, slug string, domain *string, code string, subdomainRouting bool) string {
+	u, _, _ := strings.Cut(orgTokenRedirectURL(baseURL, slug, domain, "", "", subdomainRouting), "#")
+	return u + "?sso_error=" + url.QueryEscape(code)
 }
 
 // orgTokenRedirectURL builds the post-OIDC-login redirect for a given org.

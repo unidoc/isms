@@ -505,6 +505,17 @@ let closed = false
 onBeforeUnmount(() => { closed = true })
 
 onMounted(async () => {
+  // A refused single sign-on lands here as ?sso_error=<code> (see
+  // orgLoginErrorURL on the server). Show the message, then drop the param so a
+  // reload doesn't repeat it.
+  const qs = new URLSearchParams(window.location.search)
+  if (qs.get('sso_error') === 'account_exists') {
+    error.value = t('auth.login.error_sso_account_exists')
+    qs.delete('sso_error')
+    const rest = qs.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
+  }
+
   // Check for OIDC callback token in URL fragment (preferred, secure)
   // or query string (fallback)
   let callbackToken = null

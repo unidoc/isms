@@ -295,3 +295,19 @@ INSERT INTO settings (key, description, category, default_value, sensitive) VALU
     ('system_review_cycle_medium',   'Review cycle for medium-criticality systems (months)', 'review_cycles', '6',  false),
     ('system_review_cycle_low',      'Review cycle for low-criticality systems (months)', 'review_cycles', '12', false)
 ON CONFLICT (key) DO NOTHING;
+
+-- Single sign-on identities are keyed by the ID token issuer, not the provider
+-- name. user_identities was unique on (provider, subject), and the provider
+-- name is chosen by whichever organization registers the provider, so a
+-- provider in one organization could match another organization's link just by
+-- reusing the name. The issuer is bound to the keys that sign the token, so it
+-- cannot be claimed that way. Existing rows keep issuer NULL (legacy): the
+-- callback only honours them for a member of the signing-in provider's
+-- organization and fills the issuer in on first use. The partial unique index
+-- keeps legacy rows unique by (provider, subject) as before.
+ALTER TABLE user_identities ADD COLUMN IF NOT EXISTS issuer TEXT;
+ALTER TABLE user_identities DROP CONSTRAINT IF EXISTS user_identities_provider_subject_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_issuer_subject
+    ON user_identities (issuer, subject) WHERE issuer IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_legacy_provider_subject
+    ON user_identities (provider, subject) WHERE issuer IS NULL;

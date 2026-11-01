@@ -500,6 +500,7 @@
   "auth.login.error_failed",
   "auth.login.error_passkey_cancelled",
   "auth.login.error_passkey_failed",
+  "auth.login.error_sso_account_exists",
   "auth.login.forgot_password",
   "auth.login.get_started",
   "auth.login.no_account",

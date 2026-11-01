@@ -375,26 +375,24 @@ func (d *DB) TouchUser(ctx context.Context, email, name string) (*User, error) {
 // ---------------------------------------------------------------------------
 
 // UserIdentity represents a linked external identity (OIDC provider).
+// Issuer is the ID token issuer the subject belongs to; it is empty on links
+// made before issuers were recorded.
 type UserIdentity struct {
 	ID        int    `json:"id"`
 	UserID    int    `json:"user_id"`
 	Provider  string `json:"provider"`
+	Issuer    string `json:"issuer,omitempty"`
 	Subject   string `json:"subject"`
 	Email     string `json:"email,omitempty"`
 	CreatedAt Epoch  `json:"created_at"`
 }
 
-// GetUserByIdentity looks up a user by their external identity (provider + subject).
-// Returns nil if not found.
-func (d *DB) GetUserByIdentity(ctx context.Context, provider, subject string) (*User, error) {
+const identityUserColumns = `u.id, u.email, u.name, u.password_hash, u.otp_secret, u.otp_verified, u.email_verified, u.is_agent, u.active, u.locale, u.created_at, u.last_seen`
+
+func (d *DB) scanIdentityUser(row pgx.Row, extra ...any) (*User, error) {
 	var u User
-	err := d.pool.QueryRow(ctx, `
-		SELECT u.id, u.email, u.name, u.password_hash, u.otp_secret, u.otp_verified, u.email_verified, u.is_agent, u.active, u.locale, u.created_at, u.last_seen
-		FROM users u
-		JOIN user_identities ui ON ui.user_id = u.id
-		WHERE ui.provider = $1 AND ui.subject = $2
-	`, provider, subject).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
-	if err != nil {
+	dest := append([]any{&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen}, extra...)
+	if err := row.Scan(dest...); err != nil {
 		return nil, err
 	}
 	if err := u.decryptOTP(d.encryptionKey); err != nil {
@@ -403,20 +401,100 @@ func (d *DB) GetUserByIdentity(ctx context.Context, provider, subject string) (*
 	return &u, nil
 }
 
-// LinkIdentity links an external identity to a user. If the identity already exists, it's a no-op.
-func (d *DB) LinkIdentity(ctx context.Context, userID int, provider, subject, email string) error {
+// GetUserByIdentity looks up a user by their external identity: the ID token
+// issuer plus the subject. The issuer is bound to the keys that signed the
+// token, so unlike a provider name it cannot be claimed by another
+// organization's provider. Returns an error if not found.
+func (d *DB) GetUserByIdentity(ctx context.Context, issuer, subject string) (*User, error) {
+	return d.scanIdentityUser(d.pool.QueryRow(ctx, `
+		SELECT `+identityUserColumns+`
+		FROM users u
+		JOIN user_identities ui ON ui.user_id = u.id
+		WHERE ui.issuer = $1 AND ui.subject = $2
+	`, issuer, subject))
+}
+
+// GetUserByLegacyIdentity finds a link made before issuers were recorded
+// (issuer IS NULL, matched by provider name and subject). It only matches when
+// the linked user is a member of orgID, the organization whose provider is
+// signing in, so a same-named provider elsewhere cannot claim the row. It also
+// returns the identity row id so the caller can backfill the issuer.
+func (d *DB) GetUserByLegacyIdentity(ctx context.Context, orgID int, provider, subject string) (*User, int, error) {
+	var identityID int
+	u, err := d.scanIdentityUser(d.pool.QueryRow(ctx, `
+		SELECT `+identityUserColumns+`, ui.id
+		FROM users u
+		JOIN user_identities ui ON ui.user_id = u.id
+		JOIN organization_members m ON m.user_id = u.id AND m.organization_id = $1
+		WHERE ui.issuer IS NULL AND ui.provider = $2 AND ui.subject = $3
+	`, orgID, provider, subject), &identityID)
+	if err != nil {
+		return nil, 0, err
+	}
+	return u, identityID, nil
+}
+
+// SetIdentityIssuer records the issuer on a link that was made without one.
+func (d *DB) SetIdentityIssuer(ctx context.Context, identityID int, issuer string) error {
+	_, err := d.pool.Exec(ctx, `UPDATE user_identities SET issuer = $2 WHERE id = $1 AND issuer IS NULL`, identityID, issuer)
+	return err
+}
+
+// GetUserByEmailFold finds a user by email ignoring case, matching the
+// uq_users_email_lower index. Returns an error if not found.
+func (d *DB) GetUserByEmailFold(ctx context.Context, email string) (*User, error) {
+	return d.scanIdentityUser(d.pool.QueryRow(ctx, `
+		SELECT `+identityUserColumns+` FROM users u WHERE lower(u.email) = lower($1)
+	`, email))
+}
+
+// IsBareAccount reports whether a user has no way to sign in yet: no password,
+// no passkey and no linked external identity. Such an account was created by an
+// administrator and is waiting for its owner's first sign-in.
+func (d *DB) IsBareAccount(ctx context.Context, userID int) (bool, error) {
+	var bare bool
+	err := d.pool.QueryRow(ctx, `
+		SELECT COALESCE(u.password_hash, '') = ''
+		   AND NOT EXISTS (SELECT 1 FROM webauthn_credentials w WHERE w.user_id = u.id)
+		   AND NOT EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id)
+		FROM users u WHERE u.id = $1
+	`, userID).Scan(&bare)
+	return bare, err
+}
+
+// ListUserOrgIDs returns the ids of every organization the user belongs to.
+func (d *DB) ListUserOrgIDs(ctx context.Context, userID int) ([]int, error) {
+	rows, err := d.pool.Query(ctx, `SELECT organization_id FROM organization_members WHERE user_id = $1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// LinkIdentity links an external identity to a user, keyed by issuer and
+// subject. If that identity already exists, it's a no-op.
+func (d *DB) LinkIdentity(ctx context.Context, userID int, issuer, provider, subject, email string) error {
 	_, err := d.pool.Exec(ctx, `
-		INSERT INTO user_identities (user_id, provider, subject, email)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (provider, subject) DO NOTHING
-	`, userID, provider, subject, nilIfEmpty(email))
+		INSERT INTO user_identities (user_id, issuer, provider, subject, email)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (issuer, subject) WHERE issuer IS NOT NULL DO NOTHING
+	`, userID, issuer, provider, subject, nilIfEmpty(email))
 	return err
 }
 
 // ListUserIdentities returns all linked identities for a user.
 func (d *DB) ListUserIdentities(ctx context.Context, userID int) ([]UserIdentity, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT id, user_id, provider, subject, COALESCE(email, ''), created_at
+		SELECT id, user_id, provider, COALESCE(issuer, ''), subject, COALESCE(email, ''), created_at
 		FROM user_identities WHERE user_id = $1
 		ORDER BY created_at
 	`, userID)
@@ -428,7 +506,7 @@ func (d *DB) ListUserIdentities(ctx context.Context, userID int) ([]UserIdentity
 	var identities []UserIdentity
 	for rows.Next() {
 		var ui UserIdentity
-		if err := rows.Scan(&ui.ID, &ui.UserID, &ui.Provider, &ui.Subject, &ui.Email, &ui.CreatedAt); err != nil {
+		if err := rows.Scan(&ui.ID, &ui.UserID, &ui.Provider, &ui.Issuer, &ui.Subject, &ui.Email, &ui.CreatedAt); err != nil {
 			return nil, err
 		}
 		identities = append(identities, ui)

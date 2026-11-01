@@ -665,7 +665,10 @@ paths:
                         provider: { type: string }
                         issuer: { type: string }
                         email: { type: string }
-                        created_at: { type: string, format: date-time }
+                        created_at:
+                          type: integer
+                          format: int64
+                          description: Unix epoch seconds.
         '401': { description: Not authenticated }
 
   /auth/identities/{id}:
@@ -679,7 +682,14 @@ paths:
       parameters:
         - $ref: '#/components/parameters/id'
       responses:
-        '200': { description: Identity unlinked }
+        '200':
+          description: Identity unlinked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [unlinked] }
         '401': { description: Not authenticated }
         '403': { description: API key or single sign-on session }
         '404': { description: Identity not found or not the caller's }

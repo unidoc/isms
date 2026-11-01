@@ -608,7 +608,7 @@ paths:
         '400': { description: Missing provider or no current organization }
         '401': { description: Not authenticated }
         '403': { description: API key or single sign-on session }
-        '404': { description: Provider not found, disabled, or in another organization }
+        '404': { description: "Provider not found, disabled, or in another organization" }
 
   /auth/oidc/link/complete:
     post:
@@ -640,9 +640,9 @@ paths:
                 type: object
                 properties:
                   result: { type: string, enum: [linked, in_use] }
-        '400': { description: Code missing, expired or already used }
+        '400': { description: "Code missing, expired or already used" }
         '401': { description: Not authenticated }
-        '403': { description: API key, single sign-on session, or the link was started by another account }
+        '403': { description: "API key, single sign-on session, or the link was started by another account" }
 
   /auth/identities:
     get:

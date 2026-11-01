@@ -333,3 +333,21 @@ CREATE TABLE IF NOT EXISTS oidc_link_pending (
     expires_at      TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_oidc_link_pending_expires ON oidc_link_pending(expires_at);
+
+-- Links made before issuers were recorded (issuer NULL) are keyed by provider
+-- NAME, which any organization can reuse. Bind each to the organization it was
+-- made in: the single organization that has a provider of that name and the
+-- user as a member. A row that fits none or several organizations stays NULL
+-- and never matches on sign-in; its owner links again from Settings. Only
+-- unbound legacy rows are touched, so a second run changes nothing.
+ALTER TABLE user_identities ADD COLUMN IF NOT EXISTS legacy_org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL;
+UPDATE user_identities ui
+   SET legacy_org_id = x.org_id
+  FROM (SELECT i.id, min(p.organization_id) AS org_id
+          FROM user_identities i
+          JOIN oidc_providers p ON p.provider_name = i.provider
+          JOIN organization_members m ON m.organization_id = p.organization_id AND m.user_id = i.user_id
+         WHERE i.issuer IS NULL AND i.legacy_org_id IS NULL
+         GROUP BY i.id
+        HAVING count(DISTINCT p.organization_id) = 1) x
+ WHERE ui.id = x.id AND ui.issuer IS NULL AND ui.legacy_org_id IS NULL;

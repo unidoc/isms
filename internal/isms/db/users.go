@@ -415,10 +415,12 @@ func (d *DB) GetUserByIdentity(ctx context.Context, issuer, subject string) (*Us
 }
 
 // GetUserByLegacyIdentity finds a link made before issuers were recorded
-// (issuer IS NULL, matched by provider name and subject). It only matches when
-// the linked user is a member of orgID, the organization whose provider is
-// signing in, so a same-named provider elsewhere cannot claim the row. It also
-// returns the identity row id so the caller can backfill the issuer.
+// (issuer IS NULL, matched by provider name and subject). The migration bound
+// each such row to the one organization it was made in (legacy_org_id), and it
+// only matches for that organization's provider, and while the linked user is
+// still a member of it, so a same-named provider elsewhere cannot claim the
+// row. Unbound rows never match. It also returns the identity row id so the
+// caller can backfill the issuer.
 func (d *DB) GetUserByLegacyIdentity(ctx context.Context, orgID int, provider, subject string) (*User, int, error) {
 	var identityID int
 	u, err := d.scanIdentityUser(d.pool.QueryRow(ctx, `
@@ -426,7 +428,7 @@ func (d *DB) GetUserByLegacyIdentity(ctx context.Context, orgID int, provider, s
 		FROM users u
 		JOIN user_identities ui ON ui.user_id = u.id
 		JOIN organization_members m ON m.user_id = u.id AND m.organization_id = $1
-		WHERE ui.issuer IS NULL AND ui.provider = $2 AND ui.subject = $3
+		WHERE ui.issuer IS NULL AND ui.legacy_org_id = $1 AND ui.provider = $2 AND ui.subject = $3
 	`, orgID, provider, subject), &identityID)
 	if err != nil {
 		return nil, 0, err

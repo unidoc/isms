@@ -430,7 +430,7 @@ func TestOIDCLink_LegacyRowMemberSignsInAndIsBackfilled(t *testing.T) {
 	u := contractTestUser(t, s, org.id, email, "contributor")
 	sub := "legacy-sub-" + oidcLinkUniq()
 	if _, err := s.db.Pool().Exec(ctx,
-		`INSERT INTO user_identities (user_id, provider, subject) VALUES ($1, 'microsoft', $2)`, u.ID, sub); err != nil {
+		`INSERT INTO user_identities (user_id, provider, subject, legacy_org_id) VALUES ($1, 'microsoft', $2, $3)`, u.ID, sub, org.id); err != nil {
 		t.Fatal(err)
 	}
 
@@ -453,7 +453,7 @@ func TestOIDCLink_LegacyRowNonMemberNotMatched(t *testing.T) {
 	}
 	sub := "legacy-sub-" + oidcLinkUniq()
 	if _, err := s.db.Pool().Exec(ctx,
-		`INSERT INTO user_identities (user_id, provider, subject) VALUES ($1, 'microsoft', $2)`, u.ID, sub); err != nil {
+		`INSERT INTO user_identities (user_id, provider, subject, legacy_org_id) VALUES ($1, 'microsoft', $2, $3)`, u.ID, sub, orgA); err != nil {
 		t.Fatal(err)
 	}
 
@@ -489,5 +489,62 @@ func TestOIDCLink_EmailCaseDoesNotBypass(t *testing.T) {
 	requireSession(t, runSSO(t, s, org, idp2, idpClaims("sub-"+oidcLinkUniq(), strings.ToUpper(bareEmail))), bareEmail)
 	if n := identityCount(t, s, bare.ID); n != 1 {
 		t.Errorf("bare account identities = %d, want 1", n)
+	}
+}
+
+// A legacy row is bound to the organization it was made in. Another
+// organization that reuses the provider name, even one the user was added to,
+// does not match it and does not rewrite it.
+func TestOIDCLink_LegacyRowBoundToItsOrganization(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	idpA, idpB := newFakeIDP(t), newFakeIDP(t)
+	orgA := newOIDCOrg(t, s, idpA, "google")
+	orgB := newOIDCOrg(t, s, idpB, "google")
+	email := oidcLinkEmail("victim")
+	u := contractTestUser(t, s, orgA.id, email, "contributor")
+	if err := s.db.AddOrgMember(ctx, orgB.id, u.ID, "reader"); err != nil {
+		t.Fatal(err)
+	}
+	sub := "legacy-sub-" + oidcLinkUniq()
+	if _, err := s.db.Pool().Exec(ctx,
+		`INSERT INTO user_identities (user_id, provider, subject, legacy_org_id) VALUES ($1, 'google', $2, $3)`, u.ID, sub, orgA.id); err != nil {
+		t.Fatal(err)
+	}
+
+	// Org B's provider, with the victim's legacy subject: refused, row untouched.
+	requireRefused(t, runSSO(t, s, orgB, idpB, idpClaims(sub, email)))
+	// Nor does it sign in as the victim when the email differs.
+	other := runSSO(t, s, orgB, idpB, idpClaims(sub, oidcLinkEmail("attacker")))
+	if got := other.sessionEmail(t); strings.EqualFold(got, email) {
+		t.Fatalf("org B signed in as the victim via the legacy subject")
+	}
+	if got := identityIssuer(t, s, u.ID); len(got) != 1 || got[0] != "<null>" {
+		t.Errorf("identity issuers = %v, want the untouched legacy row", got)
+	}
+	// The organization it belongs to still honours it and backfills.
+	requireSession(t, runSSO(t, s, orgA, idpA, idpClaims(sub, email)), email)
+	if got := identityIssuer(t, s, u.ID); len(got) != 1 || got[0] != idpA.srv.URL {
+		t.Errorf("identity issuers = %v, want [%s]", got, idpA.srv.URL)
+	}
+}
+
+// A legacy row the migration could not bind (NULL legacy_org_id: ambiguous or
+// no matching organization) never matches.
+func TestOIDCLink_UnboundLegacyRowNeverMatches(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	idp := newFakeIDP(t)
+	org := newOIDCOrg(t, s, idp, "google")
+	email := oidcLinkEmail("ambig")
+	u := contractTestUser(t, s, org.id, email, "contributor")
+	sub := "legacy-sub-" + oidcLinkUniq()
+	if _, err := s.db.Pool().Exec(ctx,
+		`INSERT INTO user_identities (user_id, provider, subject) VALUES ($1, 'google', $2)`, u.ID, sub); err != nil {
+		t.Fatal(err)
+	}
+	requireRefused(t, runSSO(t, s, org, idp, idpClaims(sub, email)))
+	if got := identityIssuer(t, s, u.ID); len(got) != 1 || got[0] != "<null>" {
+		t.Errorf("identity issuers = %v, want the untouched legacy row", got)
 	}
 }

@@ -110,3 +110,17 @@ func refuseSSOSession(c echo.Context) error {
 	}
 	return nil
 }
+
+// apiKeyDeniedMsg is the 403 text for what an API key may not do.
+const apiKeyDeniedMsg = "API keys cannot change sign-in settings or create sessions or keys; sign in to do this"
+
+// refuseAPIKey returns a 403 when the request is authenticated by an API key.
+// A key is a data credential: if it could be refreshed into a session, create
+// further keys, or change the password, passkeys or OTP, it would outlive and
+// outrank whatever limits its session had (see refuseSSOSession).
+func refuseAPIKey(c echo.Context) error {
+	if c.Get("api_key_id") != nil {
+		return echo.NewHTTPError(http.StatusForbidden, apiKeyDeniedMsg)
+	}
+	return nil
+}

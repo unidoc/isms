@@ -339,6 +339,9 @@ func (s *Server) handleForgotPassword(c echo.Context) error {
 // handleRefresh issues a new JWT if the current one is valid and the user is still active.
 // POST /api/v1/auth/refresh
 func (s *Server) handleRefresh(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	email := getUserEmail(c)
 	if email == "" {
 		return apiError(http.StatusUnauthorized, CodeNotAuthenticated)
@@ -390,6 +393,9 @@ func (s *Server) handleRefresh(c echo.Context) error {
 
 // handleSwitchOrg issues a new JWT for a different organization.
 func (s *Server) handleSwitchOrg(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	var req struct {
 		Slug string `json:"slug"`
 	}
@@ -448,6 +454,9 @@ func (s *Server) handleChangePassword(c echo.Context) error {
 	if err := refuseSSOSession(c); err != nil {
 		return err
 	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	var req changePasswordRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -500,6 +509,9 @@ type changeEmailRequest struct {
 // PUT /api/v1/auth/email
 func (s *Server) handleRequestEmailChange(c echo.Context) error {
 	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
 		return err
 	}
 	var req changeEmailRequest
@@ -588,6 +600,9 @@ func (s *Server) handleRequestEmailChange(c echo.Context) error {
 // state — e.g. a confirmation that never arrived — without touching the DB.
 // DELETE /api/v1/auth/email
 func (s *Server) handleCancelEmailChange(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
 	if err != nil {
@@ -739,6 +754,9 @@ func (s *Server) handleOTPSetup(c echo.Context) error {
 	if err := refuseSSOSession(c); err != nil {
 		return err
 	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
@@ -801,6 +819,9 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 	if err := refuseSSOSession(c); err != nil {
 		return err
 	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	var req otpVerifyRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -835,6 +856,9 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 
 func (s *Server) handleOTPDisable(c echo.Context) error {
 	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
 		return err
 	}
 	var req otpVerifyRequest
@@ -1150,6 +1174,9 @@ func (s *Server) handleListMyAPIKeys(c echo.Context) error {
 // Tokens are scoped to the current organization by default. Pass "scope": "global" to
 // create an unscoped token (only useful for multi-org users).
 func (s *Server) handleCreateMyAPIKey(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 

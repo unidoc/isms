@@ -100,6 +100,9 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 							c.Set("user_email", tok.UserEmail)
 							c.Set("api_key_id", tok.ID)
 							c.Set("api_key_permissions", tok.Permissions)
+							if tok.OrganizationID != nil {
+								c.Set("api_key_org", *tok.OrganizationID)
+							}
 
 							// Changelog rows read the key from the request context, not the echo context (#335).
 							c.SetRequest(c.Request().WithContext(db.WithAPIKeyID(c.Request().Context(), tok.ID)))
@@ -138,6 +141,16 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 								if err == nil {
 									c.Set("org_id", *tok.OrganizationID)
 									c.Set("user_role", role)
+								}
+							}
+
+							// An org-scoped key never runs org-less: if its org could not be
+							// selected (the user left it, or the request named an unknown
+							// org), refuse instead of falling through to routes that grant
+							// by URL or by membership elsewhere.
+							if tok.OrganizationID != nil {
+								if selected, _ := c.Get("org_id").(int); selected != *tok.OrganizationID {
+									return apiError(http.StatusForbidden, CodeNotOrgMember)
 								}
 							}
 
@@ -182,6 +195,19 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 						c.Set("user_email", claims.Email)
 						if claims.SSOOrgID > 0 {
 							c.Set("sso_org", claims.SSOOrgID)
+						}
+
+						// A single sign-on session is confined to the organization whose
+						// provider issued it. It fails closed: if that org is gone or the
+						// user was removed, the session is dead, never org-less (an org-less
+						// session would pass checks that grant by membership elsewhere).
+						if claims.SSOOrgID > 0 {
+							if claims.OrganizationID != claims.SSOOrgID {
+								return echo.NewHTTPError(http.StatusUnauthorized, "session no longer valid")
+							}
+							if _, err := cfg.DB.GetUserRole(c.Request().Context(), claims.SSOOrgID, jwtUser.ID); err != nil {
+								return echo.NewHTTPError(http.StatusUnauthorized, "session no longer valid")
+							}
 						}
 
 						// Verify org membership from DB (not JWT claims — they can be stale)

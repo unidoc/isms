@@ -9,6 +9,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -166,8 +167,12 @@ func TestOrgUserAdd_NewEmailCreatedAsBefore(t *testing.T) {
 	// server has no mailer, so the handler stops at the email step after
 	// writing the user, as it always has.
 	inv := fmt.Sprintf("ouak-inv-%s@org-user-add.test", uuid.NewString()[:8])
-	_, _, _ = orgUserAddCall(t, s.handleInviteUser, orgID, "/api/v1/auth/invite",
+	_, err, _ = orgUserAddCall(t, s.handleInviteUser, orgID, "/api/v1/auth/invite",
 		map[string]string{"email": inv, "name": "Invitee", "role": "reader"})
+	var he *echo.HTTPError
+	if !errors.As(err, &he) || he.Code != http.StatusInternalServerError || !strings.Contains(fmt.Sprint(he.Message), "email not configured") {
+		t.Fatalf("invite without a mailer: err = %v, want the 500 'email not configured'", err)
+	}
 	iu, err := s.db.GetUserByEmail(ctx, inv)
 	if err != nil {
 		t.Fatalf("loading invited user: %v", err)

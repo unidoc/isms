@@ -227,8 +227,12 @@ func (s *Server) handleSignup(c echo.Context) error {
 
 	// Create user — active immediately if email verification is skipped
 	user := &db.User{Email: req.Email, Name: req.Name, Active: skipVerify}
-	if err := s.db.UpsertUser(ctx, user); err != nil {
+	created, err := s.db.EnsureUser(ctx, user)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating account: "+err.Error())
+	}
+	if !created {
+		return echo.NewHTTPError(http.StatusConflict, "account already exists — try logging in")
 	}
 
 	// Set password

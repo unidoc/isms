@@ -90,3 +90,13 @@ def test_cross_org_add_user_keeps_account():
     _assert_still_themselves(email, name)
     # The new membership works too.
     assert _login(email, slug_b).status_code == 200
+
+
+def test_signup_with_different_case_email_is_refused():
+    email, name, _ = _fresh("ouak-case")
+    r = requests.post(f"{API}/auth/signup", json={
+        "email": email.upper(), "password": "AttackerPass9!", "name": "Attacker"})
+    assert r.status_code == 409, f"signup over an existing account (upper-cased email): {r.status_code} {r.text}"
+    _assert_still_themselves(email, name)
+    r = requests.post(f"{API}/auth/login", json={"email": email, "password": "AttackerPass9!"})
+    assert r.status_code == 401, f"the second signup's password must not work: {r.status_code} {r.text}"

@@ -108,12 +108,13 @@ func (d *DB) EmailExists(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
-// GetUserByEmail looks up a user. Returns nil if not found.
+// GetUserByEmail looks up a user by email, ignoring case (accounts are unique by
+// lower(email)). Returns nil if not found.
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
 		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, locale, created_at, last_seen
-		FROM users WHERE email = $1
+		FROM users WHERE lower(email) = lower($1)
 	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err

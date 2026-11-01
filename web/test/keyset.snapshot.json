@@ -2422,6 +2422,7 @@
   "settings.profile.role",
   "settings.profile.title",
   "settings.sso.description",
+  "settings.sso.error_complete",
   "settings.sso.error_link",
   "settings.sso.in_use_message",
   "settings.sso.link",

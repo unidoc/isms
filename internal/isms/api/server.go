@@ -526,6 +526,7 @@ func (s *Server) routes() {
 	api.POST("/auth/passkey/register/begin", s.handlePasskeyRegisterBegin)
 	api.POST("/auth/passkey/register/complete", s.handlePasskeyRegisterComplete)
 	api.POST("/auth/oidc/link", s.handleOIDCLinkBegin)
+	api.POST("/auth/oidc/link/complete", s.handleOIDCLinkComplete)
 	api.GET("/auth/identities", s.handleListIdentities)
 	api.DELETE("/auth/identities/:id", s.handleUnlinkIdentity)
 	api.GET("/auth/passkeys", s.handleListPasskeys)

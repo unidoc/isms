@@ -574,9 +574,9 @@ paths:
             sign-in refused because the email belongs to an existing account
             that single sign-on may not take over lands on the login page with
             `?sso_error=account_exists`. A flow started by `POST /auth/oidc/link`
-            mints no session and lands on the Settings page with
-            `?sso_link=linked` or `?sso_link=in_use` (the identity already
-            belongs to another account).
+            mints no session and links nothing yet: it lands on the Settings
+            page with a one-time `?sso_link_code=`, which the app completes with
+            `POST /auth/oidc/link/complete` using the signed-in session.
 
   /auth/oidc/link:
     post:
@@ -609,6 +609,40 @@ paths:
         '401': { description: Not authenticated }
         '403': { description: API key or single sign-on session }
         '404': { description: Provider not found, disabled, or in another organization }
+
+  /auth/oidc/link/complete:
+    post:
+      tags: [Auth]
+      summary: Complete linking single sign-on with the one-time code
+      description: >-
+        Finishes a flow started by `POST /auth/oidc/link`. The code (from the
+        callback's redirect to Settings) is single-use, expires after 10
+        minutes, and must be presented by the account that started the flow;
+        any other caller gets 403 and the code is burned. Refused for API keys
+        and single sign-on sessions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: >-
+            `linked` (also when this account already had the identity) or
+            `in_use` (the identity belongs to another account)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: string, enum: [linked, in_use] }
+        '400': { description: Code missing, expired or already used }
+        '401': { description: Not authenticated }
+        '403': { description: API key, single sign-on session, or the link was started by another account }
 
   /auth/identities:
     get:

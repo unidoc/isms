@@ -96,6 +96,7 @@
     "unlinked": "Identidad de inicio de sesión único desvinculada",
     "linked_message": "Inicio de sesión único vinculado a tu cuenta",
     "in_use_message": "Esa identidad de inicio de sesión único ya está vinculada a otra cuenta",
-    "error_link": "No se pudo iniciar la vinculación"
+    "error_link": "No se pudo iniciar la vinculación",
+    "error_complete": "No se pudo completar la vinculación. Vuelve a empezar desde Ajustes."
   }
 }

@@ -29,12 +29,12 @@ func TestOrgSettingsLinkURL(t *testing.T) {
 		sub              bool
 		want             string
 	}{
-		{"path based", "http://localhost:9999", "acme", nil, false, "http://localhost:9999/acme/settings?sso_link=in_use"},
-		{"subdomain", "https://isms.sh", "acme", nil, true, "https://acme.isms.sh/settings?sso_link=in_use"},
-		{"custom domain", "https://isms.sh", "acme", &custom, true, "https://audit.example.com/settings?sso_link=in_use"},
+		{"path based", "http://localhost:9999", "acme", nil, false, "http://localhost:9999/acme/settings?sso_link_code=abc"},
+		{"subdomain", "https://isms.sh", "acme", nil, true, "https://acme.isms.sh/settings?sso_link_code=abc"},
+		{"custom domain", "https://isms.sh", "acme", &custom, true, "https://audit.example.com/settings?sso_link_code=abc"},
 	}
 	for _, c := range cases {
-		if got := orgSettingsLinkURL(c.base, c.slug, c.domain, "in_use", c.sub); got != c.want {
+		if got := orgSettingsLinkURL(c.base, c.slug, c.domain, "sso_link_code", "abc", c.sub); got != c.want {
 			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/oauth2"
 	"isms.sh/internal/isms/db"
@@ -384,36 +386,108 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	return c.Redirect(http.StatusFound, redirectURL)
 }
 
-// finishOIDCLink completes a link flow: the identity (issuer, subject) is
-// attached to session.LinkUserID unless it already belongs to someone else. No
-// session is minted and no membership changes; the browser goes back to
-// Settings with sso_link=linked or sso_link=in_use.
+// finishOIDCLink handles the callback of a link flow. The identity provider's
+// answer reaches the server through a browser that may not belong to the user
+// who started the flow (a link can be forwarded), so nothing is linked here:
+// the verified identity is parked behind a one-time code and the browser goes
+// to Settings, where the app completes the link with the signed-in session
+// (handleOIDCLinkComplete). No session is minted and no membership changes.
 func (s *Server) finishOIDCLink(c echo.Context, session *db.OIDCSession, provider *db.OIDCProvider, issuer, sub, email string) error {
 	ctx := c.Request().Context()
 	org, err := s.db.GetOrganization(ctx, session.OrganizationID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "organization not found")
 	}
-	if _, err := s.db.GetOrgMember(ctx, session.OrganizationID, session.LinkUserID); err != nil {
-		return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "generating code")
 	}
-	result := "linked"
-	if existing, err := s.db.GetUserByIdentity(ctx, issuer, sub); err == nil {
-		if existing.ID != session.LinkUserID {
-			result = "in_use"
-		}
-	} else if legacy, legacyID, err := s.db.GetUserByLegacyIdentity(ctx, session.OrganizationID, provider.ProviderName, sub); err == nil {
-		// A pre-issuer link: the same user adopts it, anyone else owns it.
-		if legacy.ID != session.LinkUserID {
-			result = "in_use"
-		} else if err := s.db.SetIdentityIssuer(ctx, legacyID, issuer); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "updating identity: "+err.Error())
-		}
-	} else if err := s.db.LinkIdentity(ctx, session.LinkUserID, issuer, provider.ProviderName, sub, email); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "linking identity: "+err.Error())
+	code := hex.EncodeToString(raw)
+	pending := &db.OIDCLinkPending{
+		UserID: session.LinkUserID, OrganizationID: session.OrganizationID,
+		Provider: provider.ProviderName, Issuer: issuer, Subject: sub, Email: email,
+	}
+	if err := s.db.CreateOIDCLinkPending(ctx, sha256Hash(code), pending, time.Now().Add(10*time.Minute)); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "storing link: "+err.Error())
 	}
 	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
-	return c.Redirect(http.StatusFound, orgSettingsLinkURL(baseURL, org.Slug, org.Domain, result, s.subdomainRouting))
+	return c.Redirect(http.StatusFound, orgSettingsLinkURL(baseURL, org.Slug, org.Domain, "sso_link_code", code, s.subdomainRouting))
+}
+
+// handleOIDCLinkComplete finishes a link flow from inside the app: the code
+// from the callback redirect must belong to the signed-in caller, who started
+// the flow. A code presented by anyone else is burned and refused.
+// POST /api/v1/auth/oidc/link/complete
+func (s *Server) handleOIDCLinkComplete(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	var req struct {
+		Code string `json:"code"`
+	}
+	if err := c.Bind(&req); err != nil || req.Code == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "code is required")
+	}
+	ctx := c.Request().Context()
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
+	}
+	p, err := s.db.ConsumeOIDCLinkPending(ctx, sha256Hash(req.Code))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return echo.NewHTTPError(http.StatusBadRequest, "this link has expired or was already used; start again from Settings")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "reading link: "+err.Error())
+	}
+	if p.UserID != user.ID || p.OrganizationID != getOrgID(c) {
+		return echo.NewHTTPError(http.StatusForbidden, "this link was started by another account")
+	}
+	if _, err := s.db.GetOrgMember(ctx, p.OrganizationID, user.ID); err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+	}
+	result, err := s.applyOIDCLink(ctx, user.ID, p)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, map[string]string{"result": result})
+}
+
+// applyOIDCLink attaches the identity (issuer, subject) to the user unless it
+// already belongs to someone else. It returns "linked" (also when the same
+// user already had it) or "in_use". Only "no such row" means not found.
+func (s *Server) applyOIDCLink(ctx context.Context, userID int, p *db.OIDCLinkPending) (string, error) {
+	existing, err := s.db.GetUserByIdentity(ctx, p.Issuer, p.Subject)
+	if err == nil {
+		if existing.ID != userID {
+			return "in_use", nil
+		}
+		return "linked", nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", fmt.Errorf("looking up identity: %w", err)
+	}
+	legacy, legacyID, err := s.db.GetUserByLegacyIdentity(ctx, p.OrganizationID, p.Provider, p.Subject)
+	if err == nil {
+		// A pre-issuer link: the same user adopts it, anyone else owns it.
+		if legacy.ID != userID {
+			return "in_use", nil
+		}
+		if err := s.db.SetIdentityIssuer(ctx, legacyID, p.Issuer); err != nil {
+			return "", fmt.Errorf("updating identity: %w", err)
+		}
+		return "linked", nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", fmt.Errorf("looking up legacy identity: %w", err)
+	}
+	if err := s.db.LinkIdentity(ctx, userID, p.Issuer, p.Provider, p.Subject, p.Email); err != nil {
+		return "", fmt.Errorf("linking identity: %w", err)
+	}
+	return "linked", nil
 }
 
 // handleOIDCLinkBegin starts linking the current organization's provider to
@@ -525,13 +599,13 @@ func (s *Server) handleUnlinkIdentity(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "unlinked"})
 }
 
-// orgSettingsLinkURL is where the browser lands after a link flow: the org's
-// Settings page (same host and routing rules as orgTokenRedirectURL) with the
-// outcome in the query string.
-func orgSettingsLinkURL(baseURL, slug string, domain *string, result string, subdomainRouting bool) string {
+// orgSettingsLinkURL is where the browser lands after a link flow's identity
+// provider leg: the org's Settings page (same host and routing rules as
+// orgTokenRedirectURL) with one query parameter.
+func orgSettingsLinkURL(baseURL, slug string, domain *string, key, value string, subdomainRouting bool) string {
 	u, _, _ := strings.Cut(orgTokenRedirectURL(baseURL, slug, domain, "", "", subdomainRouting), "#")
 	u = strings.TrimRight(strings.TrimSuffix(u, "/login"), "/")
-	return u + "/settings?sso_link=" + url.QueryEscape(result)
+	return u + "/settings?" + key + "=" + url.QueryEscape(value)
 }
 
 // canLinkByEmail reports whether a sign-in through the provider of orgID may

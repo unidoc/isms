@@ -96,6 +96,7 @@
     "unlinked": "Identité d'authentification unique dissociée",
     "linked_message": "Authentification unique associée à votre compte",
     "in_use_message": "Cette identité d'authentification unique est déjà associée à un autre compte",
-    "error_link": "Impossible de démarrer l'association"
+    "error_link": "Impossible de démarrer l'association",
+    "error_complete": "Impossible de terminer l'association. Recommencez depuis les Paramètres."
   }
 }

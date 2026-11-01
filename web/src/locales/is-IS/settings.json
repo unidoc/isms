@@ -96,6 +96,7 @@
     "unlinked": "Einskráningarauðkenni aftengt",
     "linked_message": "Einskráning tengd við aðganginn þinn",
     "in_use_message": "Þetta einskráningarauðkenni er þegar tengt öðrum aðgangi",
-    "error_link": "Ekki tókst að hefja tengingu"
+    "error_link": "Ekki tókst að hefja tengingu",
+    "error_complete": "Ekki tókst að ljúka tengingu. Byrjaðu aftur í Stillingum."
   }
 }

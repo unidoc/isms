@@ -317,3 +317,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_legacy_provider_subject
 -- identity to that user (the live session is the proof) instead of resolving
 -- an account by email.
 ALTER TABLE oidc_sessions ADD COLUMN IF NOT EXISTS link_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+
+-- The callback of a link flow cannot know which browser it is talking to (the
+-- link can be forwarded to someone else), so it parks the verified identity
+-- behind a one-time code and the app completes the link with the signed-in
+-- user's session. Only the code's hash is stored.
+CREATE TABLE IF NOT EXISTS oidc_link_pending (
+    code_hash       TEXT PRIMARY KEY,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    provider_name   TEXT NOT NULL,
+    issuer          TEXT NOT NULL,
+    subject         TEXT NOT NULL,
+    email           TEXT,
+    expires_at      TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oidc_link_pending_expires ON oidc_link_pending(expires_at);

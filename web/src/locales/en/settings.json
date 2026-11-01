@@ -102,6 +102,7 @@
     "unlinked": "Single sign-on identity unlinked",
     "linked_message": "Single sign-on linked to your account",
     "in_use_message": "That single sign-on identity is already linked to another account",
-    "error_link": "Failed to start linking"
+    "error_link": "Failed to start linking",
+    "error_complete": "Failed to finish linking. Start again from Settings."
   }
 }

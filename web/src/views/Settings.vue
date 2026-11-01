@@ -437,19 +437,31 @@ onMounted(async () => {
     profileName.value = user.value?.name || ''
     otpEnabled.value = user.value?.otp_enabled || false
   } catch { /* redirect handled by router guard */ }
-  // Back from a link attempt: /settings?sso_link=linked|in_use. Show the
-  // outcome, then drop the param so a reload doesn't repeat it.
+  // Back from the identity provider: /settings?sso_link_code=<one-time code>.
+  // Strip it first so a reload or a copied URL never carries it, then finish the
+  // link with this session: the server only completes it for the account that
+  // started the flow.
   const qs = new URLSearchParams(window.location.search)
-  const linkResult = qs.get('sso_link')
-  if (linkResult === 'linked' || linkResult === 'in_use') {
-    ssoMsg.value = t(linkResult === 'linked' ? 'settings.sso.linked_message' : 'settings.sso.in_use_message')
-    ssoError.value = linkResult === 'in_use'
-    qs.delete('sso_link')
+  const linkCode = qs.get('sso_link_code')
+  if (linkCode) {
+    qs.delete('sso_link_code')
     const rest = qs.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
+    await completeSSOLink(linkCode)
   }
   await Promise.all([loadPasskeys(), loadTokens(), loadSSO()])
 })
+
+async function completeSSOLink(code) {
+  try {
+    const res = await api.oidcLinkComplete(code)
+    ssoMsg.value = t(res?.result === 'in_use' ? 'settings.sso.in_use_message' : 'settings.sso.linked_message')
+    ssoError.value = res?.result === 'in_use'
+  } catch (e) {
+    ssoMsg.value = renderApiError(e) || t('settings.sso.error_complete')
+    ssoError.value = true
+  }
+}
 
 async function loadSSO() {
   try {

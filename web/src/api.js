@@ -581,6 +581,7 @@ export const api = {
 
   // Linking single sign-on to the signed-in account (Settings)
   oidcLinkBegin: (provider) => postJSON(`${API}/auth/oidc/link`, { provider }),
+  oidcLinkComplete: (code) => postJSON(`${API}/auth/oidc/link/complete`, { code }),
   listIdentities: () => fetchJSON(`${API}/auth/identities`),
   unlinkIdentity: (id) => deleteJSON(`${API}/auth/identities/${id}`),
 

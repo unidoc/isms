@@ -96,6 +96,7 @@
     "unlinked": "Identidade de login único desvinculada",
     "linked_message": "Login único vinculado à sua conta",
     "in_use_message": "Essa identidade de login único já está vinculada a outra conta",
-    "error_link": "Falha ao iniciar a vinculação"
+    "error_link": "Falha ao iniciar a vinculação",
+    "error_complete": "Falha ao concluir a vinculação. Comece novamente em Configurações."
   }
 }

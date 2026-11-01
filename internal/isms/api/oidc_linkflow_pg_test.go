@@ -25,6 +25,7 @@ func linkFixture(t *testing.T) *containFixture {
 	t.Setenv("ISMS_BASE_URL", "http://localhost:9999")
 	f := newContainFixture(t)
 	f.e.POST("/api/v1/auth/oidc/link", f.s.handleOIDCLinkBegin)
+	f.e.POST("/api/v1/auth/oidc/link/complete", f.s.handleOIDCLinkComplete)
 	f.e.GET("/api/v1/auth/oidc/callback", f.s.handleOIDCCallback)
 	f.e.GET("/api/v1/auth/identities", f.s.handleListIdentities)
 	f.e.DELETE("/api/v1/auth/identities/:id", f.s.handleUnlinkIdentity)
@@ -64,6 +65,30 @@ func (f *containFixture) finishLink(t *testing.T, authURL string, claims map[str
 	return ssoResult{status: rec.Code, loc: rec.Header().Get("Location")}
 }
 
+// linkCode is the one-time code in the callback's redirect to Settings.
+func linkCode(t *testing.T, res ssoResult) string {
+	t.Helper()
+	if res.status != http.StatusFound || strings.Contains(res.loc, "token=") {
+		t.Fatalf("callback = %d %q, want a 302 with no token", res.status, res.loc)
+	}
+	u, err := url.Parse(res.loc)
+	if err != nil || !strings.HasSuffix(u.Path, "/"+"settings") || u.Query().Get("sso_link_code") == "" {
+		t.Fatalf("callback redirect = %q, want .../settings?sso_link_code=...", res.loc)
+	}
+	return u.Query().Get("sso_link_code")
+}
+
+// complete posts the code with the given session; it returns the status and
+// the "result" field.
+func (f *containFixture) complete(token, code string) (int, string) {
+	status, body := f.do("POST", "/auth/oidc/link/complete", token, `{"code":"`+code+`"}`)
+	var r struct {
+		Result string `json:"result"`
+	}
+	_ = json.Unmarshal([]byte(body), &r)
+	return status, r.Result + " " + body
+}
+
 func (f *containFixture) beginLink(t *testing.T, token string) string {
 	t.Helper()
 	code, body := f.do("POST", "/auth/oidc/link", token, `{"provider":"acme"}`)
@@ -87,9 +112,12 @@ func TestOIDCLinkFlow_LinksToSignedInUserThenSignsIn(t *testing.T) {
 
 	// The IdP's email differs from the account's: the session is the proof.
 	res := f.finishLink(t, f.beginLink(t, tok), idpClaims(sub, oidcLinkEmail("idp-mail")))
-	if res.status != http.StatusFound || strings.Contains(res.loc, "token=") ||
-		!strings.HasSuffix(res.loc, "/"+f.orgA.slug+"/settings?sso_link=linked") {
-		t.Fatalf("callback = %d %q, want 302 to settings?sso_link=linked with no token", res.status, res.loc)
+	code := linkCode(t, res)
+	if n := identityCount(t, f.s, u.ID); n != 0 {
+		t.Fatalf("identity linked by the callback alone: %d", n)
+	}
+	if status, out := f.complete(tok, code); status != 200 || !strings.HasPrefix(out, "linked ") {
+		t.Fatalf("complete = %d %s, want 200 linked", status, out)
 	}
 	if got := identityIssuer(t, f.s, u.ID); len(got) != 1 || got[0] != f.idp.srv.URL {
 		t.Errorf("issuers = %v, want [%s]", got, f.idp.srv.URL)
@@ -97,14 +125,18 @@ func TestOIDCLinkFlow_LinksToSignedInUserThenSignsIn(t *testing.T) {
 	if after := orgIDs(t, f.s, u.ID); len(after) != len(orgsBefore) {
 		t.Errorf("memberships changed: %v -> %v", orgsBefore, after)
 	}
+	// The code is single-use.
+	if status, out := f.complete(tok, code); status != 400 {
+		t.Errorf("reused code = %d %s, want 400", status, out)
+	}
 
 	// Now an ordinary SSO sign-in through the same provider is that user.
 	requireSession(t, runSSO(t, f.s, f.orgA, f.idp, idpClaims(sub, oidcLinkEmail("other"))), u.Email)
 
 	// Linking the same identity again is a no-op success.
 	res = f.finishLink(t, f.beginLink(t, tok), idpClaims(sub, u.Email))
-	if !strings.HasSuffix(res.loc, "sso_link=linked") {
-		t.Errorf("relink = %q, want linked", res.loc)
+	if status, out := f.complete(tok, linkCode(t, res)); status != 200 || !strings.HasPrefix(out, "linked ") {
+		t.Errorf("relink = %d %s, want linked", status, out)
 	}
 	if n := identityCount(t, f.s, u.ID); n != 1 {
 		t.Errorf("identities = %d, want 1", n)
@@ -121,8 +153,8 @@ func TestOIDCLinkFlow_IdentityOfAnotherUserIsInUse(t *testing.T) {
 		t.Fatal(err)
 	}
 	res := f.finishLink(t, f.beginLink(t, tok), idpClaims(sub, u.Email))
-	if res.status != http.StatusFound || strings.Contains(res.loc, "token=") || !strings.HasSuffix(res.loc, "sso_link=in_use") {
-		t.Fatalf("callback = %d %q, want sso_link=in_use", res.status, res.loc)
+	if status, out := f.complete(tok, linkCode(t, res)); status != 200 || !strings.HasPrefix(out, "in_use ") {
+		t.Fatalf("complete = %d %s, want 200 in_use", status, out)
 	}
 	if n := identityCount(t, f.s, u.ID); n != 0 {
 		t.Errorf("caller identities = %d, want 0", n)
@@ -219,5 +251,54 @@ func TestOIDCLinkFlow_ListAndUnlink(t *testing.T) {
 	}
 	if n := identityCount(t, f.s, f.user.ID); n != 0 {
 		t.Errorf("identities after unlink = %d, want 0", n)
+	}
+}
+
+// The forwarded-link attack: the code must be completed by the account that
+// started the flow, not by whoever's browser the identity provider answered.
+func TestOIDCLinkFlow_OnlyTheStartingAccountCompletes(t *testing.T) {
+	f := linkFixture(t)
+	a, tokA := f.passwordUser(t)
+	b, tokB := f.passwordUser(t)
+	sub := "sub-" + uuid.NewString()
+
+	code := linkCode(t, f.finishLink(t, f.beginLink(t, tokA), idpClaims(sub, b.Email)))
+	if status, out := f.complete(tokB, code); status != 403 {
+		t.Fatalf("another account completing the link = %d %s, want 403", status, out)
+	}
+	if identityCount(t, f.s, a.ID)+identityCount(t, f.s, b.ID) != 0 {
+		t.Fatal("an identity was linked")
+	}
+	// The wrong attempt burned the code, so the owner has to start again.
+	if status, out := f.complete(tokA, code); status != 400 {
+		t.Errorf("owner after the burn = %d %s, want 400", status, out)
+	}
+
+	// Expired codes are refused.
+	code = linkCode(t, f.finishLink(t, f.beginLink(t, tokA), idpClaims(sub, a.Email)))
+	if _, err := f.s.db.Pool().Exec(context.Background(),
+		`UPDATE oidc_link_pending SET expires_at = now() - interval '1 minute' WHERE user_id = $1`, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if status, out := f.complete(tokA, code); status != 400 {
+		t.Errorf("expired code = %d %s, want 400", status, out)
+	}
+
+	// A contained session and a key cannot complete, even with a valid code.
+	code = linkCode(t, f.finishLink(t, f.beginLink(t, tokA), idpClaims(sub, a.Email)))
+	key, hash := generateAPIKey()
+	orgA := f.orgA.id
+	if _, err := f.s.db.CreateAPIKey(context.Background(), "t", hash, a.Email, "read-write", &orgA, nil); err != nil {
+		t.Fatal(err)
+	}
+	if status, out := f.complete(f.sso, code); status != 403 {
+		t.Errorf("contained session = %d %s, want 403", status, out)
+	}
+	if status, out := f.complete(key, code); status != 403 {
+		t.Errorf("API key = %d %s, want 403", status, out)
+	}
+	// Neither refusal consumed it: the owner still completes.
+	if status, out := f.complete(tokA, code); status != 200 || !strings.HasPrefix(out, "linked ") {
+		t.Errorf("owner = %d %s, want linked", status, out)
 	}
 }

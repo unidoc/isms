@@ -96,6 +96,7 @@
     "unlinked": "Tożsamość logowania jednokrotnego odłączona",
     "linked_message": "Logowanie jednokrotne powiązane z Twoim kontem",
     "in_use_message": "Ta tożsamość logowania jednokrotnego jest już powiązana z innym kontem",
-    "error_link": "Nie udało się rozpocząć powiązania"
+    "error_link": "Nie udało się rozpocząć powiązania",
+    "error_complete": "Nie udało się dokończyć powiązania. Zacznij ponownie w Ustawieniach."
   }
 }

@@ -96,6 +96,7 @@
     "unlinked": "Single-Sign-on-Identität getrennt",
     "linked_message": "Single Sign-on mit Ihrem Konto verknüpft",
     "in_use_message": "Diese Single-Sign-on-Identität ist bereits mit einem anderen Konto verknüpft",
-    "error_link": "Verknüpfung konnte nicht gestartet werden"
+    "error_link": "Verknüpfung konnte nicht gestartet werden",
+    "error_complete": "Die Verknüpfung konnte nicht abgeschlossen werden. Starten Sie erneut in den Einstellungen."
   }
 }

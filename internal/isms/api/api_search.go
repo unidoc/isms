@@ -147,33 +147,42 @@ func (idx *SearchIndex) Remove(orgID int, entryType, entryID string) {
 	}
 }
 
-// buildSearchIndex loads all entity types for an org and populates the index.
+// objectiveSearchEntry builds the index row for one objective: the identifier
+// form (display_id) as the ID, so resolveEntityTitle and the deep-link routes
+// resolve it. Kept pure (no DB) so it's unit testable (#171 review).
+func objectiveSearchEntry(o *db.Objective) SearchEntry {
+	return SearchEntry{
+		Type:   "objective",
+		ID:     o.DisplayID,
+		Title:  o.Title,
+		Search: strings.ToLower(o.DisplayID + " " + o.Title + " " + o.Description),
+	}
+}
+
 // objectiveSearchEntries / programSearchEntries build the index rows for these
-// two types. Kept pure (no DB) so they're unit testable (#171 review). ID is the
-// identifier form (objective display_id, program key) that resolveEntityTitle and
-// the deep-link routes resolve.
+// two types. ID is the identifier form (objective display_id, program key) that
+// resolveEntityTitle and the deep-link routes resolve.
 func objectiveSearchEntries(items []db.Objective) []SearchEntry {
 	entries := make([]SearchEntry, 0, len(items))
-	for _, o := range items {
-		entries = append(entries, SearchEntry{
-			Type:   "objective",
-			ID:     o.DisplayID,
-			Title:  o.Title,
-			Search: strings.ToLower(o.DisplayID + " " + o.Title + " " + o.Description),
-		})
+	for i := range items {
+		entries = append(entries, objectiveSearchEntry(&items[i]))
 	}
 	return entries
 }
 
+func programSearchEntry(p *db.Program) SearchEntry {
+	return SearchEntry{
+		Type:   "program",
+		ID:     p.Key,
+		Title:  p.Title,
+		Search: strings.ToLower(p.Key + " " + p.Title + " " + p.Description),
+	}
+}
+
 func programSearchEntries(items []db.Program) []SearchEntry {
 	entries := make([]SearchEntry, 0, len(items))
-	for _, p := range items {
-		entries = append(entries, SearchEntry{
-			Type:   "program",
-			ID:     p.Key,
-			Title:  p.Title,
-			Search: strings.ToLower(p.Key + " " + p.Title + " " + p.Description),
-		})
+	for i := range items {
+		entries = append(entries, programSearchEntry(&items[i]))
 	}
 	return entries
 }
@@ -258,6 +267,56 @@ func supplierSearchEntry(sup *db.Supplier) SearchEntry {
 	}
 }
 
+// Incidents, assets, tasks, changes and corrective actions (#500): one builder
+// per type, used by buildSearchIndex and the suggestion-apply upserts, so the
+// two cannot drift. The task builder is public-only by convention — private
+// tasks must never enter the shared index (#178); callers enforce it the way
+// buildSearchIndex does by listing only public tasks.
+func incidentSearchEntry(inc *db.Incident) SearchEntry {
+	return SearchEntry{
+		Type:   "incident",
+		ID:     inc.Identifier,
+		Title:  inc.Title,
+		Search: strings.ToLower(inc.Identifier + " " + inc.Title + " " + inc.Description),
+	}
+}
+
+func assetSearchEntry(a *db.Asset) SearchEntry {
+	return SearchEntry{
+		Type:   "asset",
+		ID:     a.Identifier,
+		Title:  a.Name,
+		Search: strings.ToLower(a.Identifier + " " + a.Name + " " + a.Description),
+	}
+}
+
+func taskSearchEntry(t *db.Task) SearchEntry {
+	return SearchEntry{
+		Type:   "task",
+		ID:     t.Identifier,
+		Title:  t.Title,
+		Search: strings.ToLower(t.Identifier + " " + t.Title + " " + t.Description),
+	}
+}
+
+func changeSearchEntry(cr *db.ChangeRequest) SearchEntry {
+	return SearchEntry{
+		Type:   "change",
+		ID:     cr.Identifier,
+		Title:  cr.Title,
+		Search: strings.ToLower(cr.Identifier + " " + cr.Title + " " + cr.Description),
+	}
+}
+
+func correctiveActionSearchEntry(ca *db.CorrectiveAction) SearchEntry {
+	return SearchEntry{
+		Type:   "corrective_action",
+		ID:     ca.Identifier,
+		Title:  ca.Title,
+		Search: strings.ToLower(ca.Identifier + " " + ca.Title + " " + ca.Description),
+	}
+}
+
 // Legal requirements (#450). The type is `legal`, which GlobalSearch and
 // ReferenceManager route on. One builder, used by both buildSearchIndex and the
 // handler upserts, so the build and the handlers cannot drift.
@@ -294,6 +353,7 @@ func auditFindingSearchEntries(items []db.AuditFinding) []SearchEntry {
 	return entries
 }
 
+// buildSearchIndex loads all entity types for an org and populates the index.
 func (s *Server) buildSearchIndex(orgID int) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -392,13 +452,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, a := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "asset",
-				ID:     a.Identifier,
-				Title:  a.Name,
-				Search: strings.ToLower(a.Identifier + " " + a.Name + " " + a.Description),
-			})
+		for i := range items {
+			entries = append(entries, assetSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -423,13 +478,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, inc := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "incident",
-				ID:     inc.Identifier,
-				Title:  inc.Title,
-				Search: strings.ToLower(inc.Identifier + " " + inc.Title + " " + inc.Description),
-			})
+		for i := range items {
+			entries = append(entries, incidentSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -446,13 +496,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, t := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "task",
-				ID:     t.Identifier,
-				Title:  t.Title,
-				Search: strings.ToLower(t.Identifier + " " + t.Title + " " + t.Description),
-			})
+		for i := range items {
+			entries = append(entries, taskSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -464,13 +509,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, cr := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "change",
-				ID:     cr.Identifier,
-				Title:  cr.Title,
-				Search: strings.ToLower(cr.Identifier + " " + cr.Title + " " + cr.Description),
-			})
+		for i := range items {
+			entries = append(entries, changeSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -482,13 +522,8 @@ func (s *Server) buildSearchIndex(orgID int) {
 			return nil
 		}
 		entries := make([]SearchEntry, 0, len(items))
-		for _, ca := range items {
-			entries = append(entries, SearchEntry{
-				Type:   "corrective_action",
-				ID:     ca.Identifier,
-				Title:  ca.Title,
-				Search: strings.ToLower(ca.Identifier + " " + ca.Title + " " + ca.Description),
-			})
+		for i := range items {
+			entries = append(entries, correctiveActionSearchEntry(&items[i]))
 		}
 		return entries
 	})
@@ -542,16 +577,6 @@ func (s *Server) buildSearchIndex(orgID int) {
 
 	s.searchIndex.Set(orgID, all)
 	log.Printf("search: rebuilt index for org %d (%d entries, %dms)", orgID, len(all), time.Since(start).Milliseconds())
-}
-
-// searchUpsert updates a single entry in the search index after a create or update.
-func (s *Server) searchUpsert(orgID int, entryType, id, title, searchText string) {
-	s.searchIndex.Upsert(orgID, SearchEntry{
-		Type:   entryType,
-		ID:     id,
-		Title:  title,
-		Search: strings.ToLower(searchText),
-	})
 }
 
 // searchRemove removes a single entry from the search index after a delete.

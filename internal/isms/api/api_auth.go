@@ -893,8 +893,12 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 
 	// Add user to the current organization with the specified role
-	// (membership exists but user is inactive — can't authenticate until verified)
+	// (membership exists but user is inactive — can't authenticate until verified).
+	// An existing member keeps their role: changing it is the Members flow.
 	if orgID > 0 {
+		if err := s.rejectExistingMember(ctx, orgID, user.ID); err != nil {
+			return err
+		}
 		if err := s.db.AddOrgMember(ctx, orgID, user.ID, req.Role); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "adding to organization: "+err.Error())
 		}

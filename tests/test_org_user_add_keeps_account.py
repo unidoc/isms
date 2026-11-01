@@ -63,8 +63,7 @@ def test_same_org_reinvite_keeps_active_member_working():
 
     r = requests.post(f"{API}/auth/invite", headers=admin,
                       json={"email": email, "name": "Other Name", "role": "contributor"})
-    assert r.status_code == 200, f"re-invite of an active member: {r.status_code} {r.text}"
-    assert r.json().get("status") == "added", r.text
+    assert r.status_code == 409, f"re-invite of an existing member: {r.status_code} {r.text}"
     _assert_still_themselves(email, name, slug)
 
 
@@ -100,3 +99,18 @@ def test_signup_with_different_case_email_is_refused():
     _assert_still_themselves(email, name)
     r = requests.post(f"{API}/auth/login", json={"email": email, "password": "AttackerPass9!"})
     assert r.status_code == 401, f"the second signup's password must not work: {r.status_code} {r.text}"
+
+
+def test_adding_an_existing_member_is_refused_and_keeps_the_role():
+    _, _, admin = _org_admin("ouak-adminr")
+    email, _, _ = _fresh("ouak-roled")
+    r = requests.post(f"{API}/users", headers=admin, json={"email": email, "name": "n", "role": "contributor"})
+    assert r.status_code == 200, r.text
+    for path, body in (("/users", {"email": email, "name": "n", "role": "reader"}),
+                       ("/auth/invite", {"email": email, "role": "reader"})):
+        r = requests.post(f"{API}{path}", headers=admin, json=body)
+        assert r.status_code == 409, f"{path}: {r.status_code} {r.text}"
+    members = requests.get(f"{API}/users", headers=admin).json()
+    members = members.get("data", members)
+    mine = [m for m in members if m["email"] == email]
+    assert mine and mine[0]["role"] == "contributor", f"role changed: {mine}"

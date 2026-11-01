@@ -279,10 +279,18 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	var user *db.User
 	issuer := idToken.Issuer
 
+	// Only "no such row" means not found; any other lookup failure is an error,
+	// never a reason to fall through to creating or linking an account.
 	user, err = s.db.GetUserByIdentity(ctx, issuer, claims.Sub)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return echo.NewHTTPError(http.StatusInternalServerError, "looking up identity: "+err.Error())
+	}
 	if err != nil {
 		var legacyID int
 		user, legacyID, err = s.db.GetUserByLegacyIdentity(ctx, session.OrganizationID, provider.ProviderName, claims.Sub)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusInternalServerError, "looking up identity: "+err.Error())
+		}
 		if err == nil {
 			if err := s.db.SetIdentityIssuer(ctx, legacyID, issuer); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "updating identity: "+err.Error())
@@ -291,6 +299,9 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	}
 	if err != nil {
 		user, err = s.db.GetUserByEmailFold(ctx, claims.Email)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusInternalServerError, "looking up account: "+err.Error())
+		}
 		if err != nil {
 			// No account for this email — create one
 			name := claims.Name

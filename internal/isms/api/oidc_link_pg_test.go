@@ -13,6 +13,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -546,5 +547,41 @@ func TestOIDCLink_UnboundLegacyRowNeverMatches(t *testing.T) {
 	requireRefused(t, runSSO(t, s, org, idp, idpClaims(sub, email)))
 	if got := identityIssuer(t, s, u.ID); len(got) != 1 || got[0] != "<null>" {
 		t.Errorf("identity issuers = %v, want the untouched legacy row", got)
+	}
+}
+
+// A lookup that fails for any reason other than "no such row" must not be taken
+// for "no account": falling through would create (UpsertUser overwrites an
+// existing row) and link. Here the existing account's row cannot be read (its
+// stored OTP secret does not decrypt under the database key).
+func TestOIDCLink_LookupFailureIsAnErrorNotNoAccount(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	idp := newFakeIDP(t)
+	org := newOIDCOrg(t, s, idp, "acme")
+	email := oidcLinkEmail("unreadable")
+	u := contractTestUser(t, s, org.id, email, "contributor")
+	garbage := base64.StdEncoding.EncodeToString(make([]byte, 48))
+	if _, err := s.db.Pool().Exec(ctx, `UPDATE users SET otp_secret = $2 WHERE id = $1`, u.ID, garbage); err != nil {
+		t.Fatal(err)
+	}
+	s.db.SetEncryptionKey("lookup-failure-test-key-0123456789abcdef")
+	t.Cleanup(func() { s.db.SetEncryptionKey("") })
+
+	// The provider row was stored before the key was set; its secret still reads.
+	r := runSSO(t, s, org, idp, idpClaims("sub-"+oidcLinkUniq(), email))
+	var he *echo.HTTPError
+	if !errors.As(r.err, &he) || he.Code != http.StatusInternalServerError {
+		t.Fatalf("callback = status %d err %v loc %q, want a 500 error", r.status, r.err, r.loc)
+	}
+	if r.token() != "" {
+		t.Fatal("a session was issued")
+	}
+	var name string
+	if err := s.db.Pool().QueryRow(ctx, `SELECT name FROM users WHERE id = $1`, u.ID).Scan(&name); err != nil || name != email {
+		t.Errorf("account row changed: name %q err %v", name, err)
+	}
+	if n := identityCount(t, s, u.ID); n != 0 {
+		t.Errorf("identities = %d, want 0", n)
 	}
 }

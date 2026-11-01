@@ -311,3 +311,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_issuer_subject
     ON user_identities (issuer, subject) WHERE issuer IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_legacy_provider_subject
     ON user_identities (provider, subject) WHERE issuer IS NULL;
+
+-- A signed-in user can link single sign-on to their own account from Settings.
+-- The flow's session row records who started it, so the callback links the
+-- identity to that user (the live session is the proof) instead of resolving
+-- an account by email.
+ALTER TABLE oidc_sessions ADD COLUMN IF NOT EXISTS link_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;

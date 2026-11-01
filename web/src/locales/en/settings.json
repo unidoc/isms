@@ -89,5 +89,19 @@
     "added_message": "Passkey added successfully",
     "cancelled": "Passkey registration was cancelled",
     "error_add": "Failed to add passkey"
+  },
+  "sso": {
+    "title": "Single sign-on",
+    "description": "Link your account to this organization's single sign-on provider so you can sign in with it. You must be signed in with your password or passkey to link or unlink.",
+    "none": "No single sign-on identities linked.",
+    "no_providers": "This organization has no single sign-on provider enabled.",
+    "linked_on": "Linked {date}",
+    "link": "Link {provider}",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink this single sign-on identity?",
+    "unlinked": "Single sign-on identity unlinked",
+    "linked_message": "Single sign-on linked to your account",
+    "in_use_message": "That single sign-on identity is already linked to another account",
+    "error_link": "Failed to start linking"
   }
 }

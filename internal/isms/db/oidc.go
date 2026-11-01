@@ -93,6 +93,9 @@ type OIDCSession struct {
 	OrganizationID int
 	RedirectURI    string
 	ExpiresAt      time.Time
+	// LinkUserID, when > 0, marks a flow started by a signed-in user to link
+	// the identity to their own account (no sign-in happens).
+	LinkUserID int
 }
 
 // CreateOIDCProvider inserts a new OIDC provider for an organization.
@@ -230,10 +233,10 @@ func (d *DB) DeleteOIDCProvider(ctx context.Context, orgID, id int) error {
 // CreateOIDCSession stores an OIDC session for the authorization code flow.
 func (d *DB) CreateOIDCSession(ctx context.Context, s *OIDCSession) error {
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO oidc_sessions (state, nonce, provider_id, organization_id, redirect_uri, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO oidc_sessions (state, nonce, provider_id, organization_id, redirect_uri, expires_at, link_user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, 0))
 		RETURNING id
-	`, s.State, s.Nonce, s.ProviderID, s.OrganizationID, s.RedirectURI, s.ExpiresAt).Scan(&s.ID)
+	`, s.State, s.Nonce, s.ProviderID, s.OrganizationID, s.RedirectURI, s.ExpiresAt, s.LinkUserID).Scan(&s.ID)
 }
 
 // LookupOIDCSession finds and deletes an OIDC session by state (single-use).
@@ -241,8 +244,8 @@ func (d *DB) LookupOIDCSession(ctx context.Context, state string) (*OIDCSession,
 	var s OIDCSession
 	err := d.pool.QueryRow(ctx, `
 		DELETE FROM oidc_sessions WHERE state = $1
-		RETURNING id, state, nonce, provider_id, organization_id, redirect_uri, expires_at
-	`, state).Scan(&s.ID, &s.State, &s.Nonce, &s.ProviderID, &s.OrganizationID, &s.RedirectURI, &s.ExpiresAt)
+		RETURNING id, state, nonce, provider_id, organization_id, redirect_uri, expires_at, COALESCE(link_user_id, 0)
+	`, state).Scan(&s.ID, &s.State, &s.Nonce, &s.ProviderID, &s.OrganizationID, &s.RedirectURI, &s.ExpiresAt, &s.LinkUserID)
 	if err != nil {
 		return nil, err
 	}

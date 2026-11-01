@@ -514,6 +514,13 @@ func (d *DB) ListUserIdentities(ctx context.Context, userID int) ([]UserIdentity
 	return identities, nil
 }
 
+// CountWebAuthnCredentials returns how many passkeys a user has.
+func (d *DB) CountWebAuthnCredentials(ctx context.Context, userID int) (int, error) {
+	var n int
+	err := d.pool.QueryRow(ctx, `SELECT count(*) FROM webauthn_credentials WHERE user_id = $1`, userID).Scan(&n)
+	return n, err
+}
+
 // UnlinkIdentity removes a linked identity.
 func (d *DB) UnlinkIdentity(ctx context.Context, userID, identityID int) error {
 	_, err := d.pool.Exec(ctx, `DELETE FROM user_identities WHERE id = $1 AND user_id = $2`, identityID, userID)

@@ -23,6 +23,7 @@ import (
 
 type containFixture struct {
 	s          *Server
+	idp        *fakeIDP
 	e          *echo.Echo
 	orgA, orgB oidcOrg
 	user       *db.User
@@ -35,7 +36,7 @@ func newContainFixture(t *testing.T) *containFixture {
 	s := testServer(t)
 	s.secret = "oidc-link-test-secret-0123456789abcdef"
 	idp := newFakeIDP(t)
-	f := &containFixture{s: s, orgA: newOIDCOrg(t, s, idp, "acme")}
+	f := &containFixture{s: s, idp: idp, orgA: newOIDCOrg(t, s, idp, "acme")}
 	f.orgB = oidcOrg{id: newTestOrg(t, s, "oidccontainB"+oidcLinkUniq())}
 
 	email := oidcLinkEmail("contain")

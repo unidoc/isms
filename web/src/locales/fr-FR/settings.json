@@ -83,5 +83,19 @@
     "added_message": "Clé d'accès ajoutée avec succès",
     "cancelled": "L'enregistrement de la clé d'accès a été annulé",
     "error_add": "Échec de l'ajout de la clé d'accès"
+  },
+  "sso": {
+    "title": "Authentification unique",
+    "description": "Associez votre compte au fournisseur d'authentification unique de cette organisation pour pouvoir vous connecter avec lui. Vous devez être connecté avec votre mot de passe ou votre clé d'accès pour associer ou dissocier.",
+    "none": "Aucune identité d'authentification unique associée.",
+    "no_providers": "Aucun fournisseur d'authentification unique n'est activé pour cette organisation.",
+    "linked_on": "Associée le {date}",
+    "link": "Associer {provider}",
+    "unlink": "Dissocier",
+    "unlink_confirm": "Dissocier cette identité d'authentification unique ?",
+    "unlinked": "Identité d'authentification unique dissociée",
+    "linked_message": "Authentification unique associée à votre compte",
+    "in_use_message": "Cette identité d'authentification unique est déjà associée à un autre compte",
+    "error_link": "Impossible de démarrer l'association"
   }
 }

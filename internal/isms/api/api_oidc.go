@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,13 +77,25 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "OIDC provider is disabled")
 	}
 
+	authURL, err := s.beginOIDCFlow(ctx, org.ID, provider, 0)
+	if err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusFound, authURL)
+}
+
+// beginOIDCFlow discovers the provider's endpoints, stores the single-use
+// state/nonce session and returns the IdP authorization URL. linkUserID > 0
+// marks a flow that links the identity to that signed-in user instead of
+// signing anyone in.
+func (s *Server) beginOIDCFlow(ctx context.Context, orgID int, provider *db.OIDCProvider, linkUserID int) (string, error) {
 	// Discover OIDC endpoints
 	if provider.DiscoveryURL == "" {
-		return echo.NewHTTPError(http.StatusInternalServerError, "OIDC provider has no discovery URL configured — re-save the provider in Admin")
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "OIDC provider has no discovery URL configured — re-save the provider in Admin")
 	}
 	oidcProvider, err := oidc.NewProvider(ctx, provider.DiscoveryURL)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError,
+		return "", echo.NewHTTPError(http.StatusInternalServerError,
 			fmt.Sprintf("OIDC discovery failed for %q: %v", provider.DiscoveryURL, err))
 	}
 
@@ -109,10 +122,10 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 	stateBytes := make([]byte, 32)
 	nonceBytes := make([]byte, 32)
 	if _, err := rand.Read(stateBytes); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "generating state")
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "generating state")
 	}
 	if _, err := rand.Read(nonceBytes); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "generating nonce")
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "generating nonce")
 	}
 	state := hex.EncodeToString(stateBytes)
 	nonce := hex.EncodeToString(nonceBytes)
@@ -122,12 +135,13 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 		State:          state,
 		Nonce:          nonce,
 		ProviderID:     provider.ID,
-		OrganizationID: org.ID,
+		OrganizationID: orgID,
+		LinkUserID:     linkUserID,
 		RedirectURI:    redirectURI,
 		ExpiresAt:      time.Now().Add(10 * time.Minute),
 	}
 	if err := s.db.CreateOIDCSession(ctx, session); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "creating OIDC session: "+err.Error())
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "creating OIDC session: "+err.Error())
 	}
 
 	// Clean up expired sessions in the background. A detached context so the
@@ -141,8 +155,7 @@ func (s *Server) handleOIDCAuthorize(c echo.Context) error {
 		_ = s.db.DeleteExpiredOIDCSessions(cleanupCtx)
 	}()
 
-	authURL := oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce))
-	return c.Redirect(http.StatusFound, authURL)
+	return oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), nil
 }
 
 // handleOIDCCallback handles the OIDC authorization code callback.
@@ -234,6 +247,11 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 		} else if strings.Contains(claims.UPN, "@") {
 			claims.Email = claims.UPN
 		}
+	}
+	// A flow started from Settings links the identity to the signed-in user who
+	// started it; the live session was the proof, so nothing else is resolved.
+	if session.LinkUserID > 0 {
+		return s.finishOIDCLink(c, session, provider, idToken.Issuer, claims.Sub, claims.Email)
 	}
 	if claims.Email == "" {
 		return echo.NewHTTPError(http.StatusBadRequest,
@@ -364,6 +382,156 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
 	redirectURL := orgTokenRedirectURL(baseURL, org.Slug, org.Domain, token, role, s.subdomainRouting)
 	return c.Redirect(http.StatusFound, redirectURL)
+}
+
+// finishOIDCLink completes a link flow: the identity (issuer, subject) is
+// attached to session.LinkUserID unless it already belongs to someone else. No
+// session is minted and no membership changes; the browser goes back to
+// Settings with sso_link=linked or sso_link=in_use.
+func (s *Server) finishOIDCLink(c echo.Context, session *db.OIDCSession, provider *db.OIDCProvider, issuer, sub, email string) error {
+	ctx := c.Request().Context()
+	org, err := s.db.GetOrganization(ctx, session.OrganizationID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "organization not found")
+	}
+	if _, err := s.db.GetOrgMember(ctx, session.OrganizationID, session.LinkUserID); err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not a member of this organization")
+	}
+	result := "linked"
+	if existing, err := s.db.GetUserByIdentity(ctx, issuer, sub); err == nil {
+		if existing.ID != session.LinkUserID {
+			result = "in_use"
+		}
+	} else if legacy, legacyID, err := s.db.GetUserByLegacyIdentity(ctx, session.OrganizationID, provider.ProviderName, sub); err == nil {
+		// A pre-issuer link: the same user adopts it, anyone else owns it.
+		if legacy.ID != session.LinkUserID {
+			result = "in_use"
+		} else if err := s.db.SetIdentityIssuer(ctx, legacyID, issuer); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "updating identity: "+err.Error())
+		}
+	} else if err := s.db.LinkIdentity(ctx, session.LinkUserID, issuer, provider.ProviderName, sub, email); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "linking identity: "+err.Error())
+	}
+	baseURL := strings.TrimRight(os.Getenv("ISMS_BASE_URL"), "/")
+	return c.Redirect(http.StatusFound, orgSettingsLinkURL(baseURL, org.Slug, org.Domain, result, s.subdomainRouting))
+}
+
+// handleOIDCLinkBegin starts linking the current organization's provider to
+// the signed-in user's account. It is a POST returning the IdP URL (rather
+// than a redirect) because a bearer token cannot ride a browser navigation.
+// POST /api/v1/auth/oidc/link
+func (s *Server) handleOIDCLinkBegin(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	var req struct {
+		Provider string `json:"provider"`
+	}
+	if err := c.Bind(&req); err != nil || req.Provider == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "provider is required")
+	}
+	ctx := c.Request().Context()
+	orgID := getOrgID(c)
+	if orgID == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "no current organization")
+	}
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
+	}
+	provider, err := s.db.GetOIDCProvider(ctx, orgID, req.Provider)
+	if err != nil || !provider.Enabled {
+		return errNotFound("oidc_provider")
+	}
+	authURL, err := s.beginOIDCFlow(ctx, orgID, provider, user.ID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, map[string]string{"url": authURL})
+}
+
+type identityItem struct {
+	ID        int      `json:"id"`
+	Provider  string   `json:"provider"`
+	Issuer    string   `json:"issuer,omitempty"`
+	Email     string   `json:"email,omitempty"`
+	CreatedAt db.Epoch `json:"created_at"`
+}
+
+// handleListIdentities returns the caller's linked single sign-on identities.
+// GET /api/v1/auth/identities
+func (s *Server) handleListIdentities(c echo.Context) error {
+	ctx := c.Request().Context()
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
+	}
+	ids, err := s.db.ListUserIdentities(ctx, user.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "listing identities: "+err.Error())
+	}
+	items := make([]identityItem, 0, len(ids))
+	for _, i := range ids {
+		items = append(items, identityItem{ID: i.ID, Provider: i.Provider, Issuer: i.Issuer, Email: i.Email, CreatedAt: i.CreatedAt})
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{"data": items})
+}
+
+// handleUnlinkIdentity removes one of the caller's linked identities, unless
+// it is the account's last way to sign in.
+// DELETE /api/v1/auth/identities/:id
+func (s *Server) handleUnlinkIdentity(c echo.Context) error {
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid identity ID")
+	}
+	ctx := c.Request().Context()
+	user, err := s.db.GetUserByEmail(ctx, getUserEmail(c))
+	if err != nil {
+		return apiError(http.StatusUnauthorized, CodeNotFound, Entity("user"))
+	}
+	ids, err := s.db.ListUserIdentities(ctx, user.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "listing identities: "+err.Error())
+	}
+	found := false
+	for _, i := range ids {
+		if i.ID == id {
+			found = true
+		}
+	}
+	if !found {
+		return echo.NewHTTPError(http.StatusNotFound, "identity not found")
+	}
+	passkeys, err := s.db.CountWebAuthnCredentials(ctx, user.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "counting passkeys: "+err.Error())
+	}
+	if !user.HasPassword() && passkeys == 0 && len(ids) <= 1 {
+		return echo.NewHTTPError(http.StatusConflict, "this is the only way to sign in to the account; set a password or add a passkey first")
+	}
+	if err := s.db.UnlinkIdentity(ctx, user.ID, id); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "unlinking identity: "+err.Error())
+	}
+	return c.JSON(http.StatusOK, map[string]string{"status": "unlinked"})
+}
+
+// orgSettingsLinkURL is where the browser lands after a link flow: the org's
+// Settings page (same host and routing rules as orgTokenRedirectURL) with the
+// outcome in the query string.
+func orgSettingsLinkURL(baseURL, slug string, domain *string, result string, subdomainRouting bool) string {
+	u, _, _ := strings.Cut(orgTokenRedirectURL(baseURL, slug, domain, "", "", subdomainRouting), "#")
+	u = strings.TrimRight(strings.TrimSuffix(u, "/login"), "/")
+	return u + "/settings?sso_link=" + url.QueryEscape(result)
 }
 
 // canLinkByEmail reports whether a sign-in through the provider of orgID may

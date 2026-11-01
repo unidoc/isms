@@ -579,6 +579,11 @@ export const api = {
   // OIDC
   getOIDCProviders: (orgSlug) => fetchJSON(`${API}/auth/oidc/providers?org=${encodeURIComponent(orgSlug)}`),
 
+  // Linking single sign-on to the signed-in account (Settings)
+  oidcLinkBegin: (provider) => postJSON(`${API}/auth/oidc/link`, { provider }),
+  listIdentities: () => fetchJSON(`${API}/auth/identities`),
+  unlinkIdentity: (id) => deleteJSON(`${API}/auth/identities/${id}`),
+
   // Passkeys
   passkeyLoginBegin: (email) => postJSON(`${API}/auth/passkey/login/begin`, { email }),
   passkeyLoginComplete: (email, data) => {

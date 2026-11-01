@@ -83,5 +83,19 @@
     "added_message": "Clave de acceso añadida correctamente",
     "cancelled": "Se canceló el registro de la clave de acceso",
     "error_add": "No se pudo añadir la clave de acceso"
+  },
+  "sso": {
+    "title": "Inicio de sesión único",
+    "description": "Vincula tu cuenta al proveedor de inicio de sesión único de esta organización para poder iniciar sesión con él. Debes haber iniciado sesión con tu contraseña o clave de acceso para vincular o desvincular.",
+    "none": "No hay identidades de inicio de sesión único vinculadas.",
+    "no_providers": "Esta organización no tiene ningún proveedor de inicio de sesión único activado.",
+    "linked_on": "Vinculada el {date}",
+    "link": "Vincular {provider}",
+    "unlink": "Desvincular",
+    "unlink_confirm": "¿Desvincular esta identidad de inicio de sesión único?",
+    "unlinked": "Identidad de inicio de sesión único desvinculada",
+    "linked_message": "Inicio de sesión único vinculado a tu cuenta",
+    "in_use_message": "Esa identidad de inicio de sesión único ya está vinculada a otra cuenta",
+    "error_link": "No se pudo iniciar la vinculación"
   }
 }

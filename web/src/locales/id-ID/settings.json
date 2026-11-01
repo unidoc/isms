@@ -83,5 +83,19 @@
     "added_message": "Passkey berhasil ditambahkan",
     "cancelled": "Pendaftaran passkey dibatalkan",
     "error_add": "Gagal menambahkan passkey"
+  },
+  "sso": {
+    "title": "Single sign-on",
+    "description": "Tautkan akun Anda ke penyedia single sign-on organisasi ini agar dapat masuk dengannya. Anda harus masuk dengan kata sandi atau passkey untuk menautkan atau melepas tautan.",
+    "none": "Belum ada identitas single sign-on yang tertaut.",
+    "no_providers": "Organisasi ini tidak memiliki penyedia single sign-on yang aktif.",
+    "linked_on": "Ditautkan {date}",
+    "link": "Tautkan {provider}",
+    "unlink": "Lepas tautan",
+    "unlink_confirm": "Lepas tautan identitas single sign-on ini?",
+    "unlinked": "Tautan identitas single sign-on dilepas",
+    "linked_message": "Single sign-on tertaut ke akun Anda",
+    "in_use_message": "Identitas single sign-on tersebut sudah tertaut ke akun lain",
+    "error_link": "Gagal memulai penautan"
   }
 }

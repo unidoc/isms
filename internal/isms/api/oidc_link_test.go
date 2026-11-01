@@ -20,3 +20,22 @@ func TestOrgLoginErrorURL(t *testing.T) {
 		}
 	}
 }
+
+func TestOrgSettingsLinkURL(t *testing.T) {
+	custom := "audit.example.com"
+	cases := []struct {
+		name, base, slug string
+		domain           *string
+		sub              bool
+		want             string
+	}{
+		{"path based", "http://localhost:9999", "acme", nil, false, "http://localhost:9999/acme/settings?sso_link=in_use"},
+		{"subdomain", "https://isms.sh", "acme", nil, true, "https://acme.isms.sh/settings?sso_link=in_use"},
+		{"custom domain", "https://isms.sh", "acme", &custom, true, "https://audit.example.com/settings?sso_link=in_use"},
+	}
+	for _, c := range cases {
+		if got := orgSettingsLinkURL(c.base, c.slug, c.domain, "in_use", c.sub); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}

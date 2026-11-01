@@ -308,6 +308,40 @@
 
       <div v-if="passkeyMsg" class="text-xs mt-2" :class="passkeyError ? 'text-red-400' : 'text-emerald-400'">{{ passkeyMsg }}</div>
     </section>
+
+    <!-- Single sign-on -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">{{ t('settings.sso.title') }}</h2>
+      <p class="text-sm text-slate-400 mb-4">{{ t('settings.sso.description') }}</p>
+
+      <div v-if="identities.length > 0" class="space-y-2 mb-4">
+        <div v-for="idn in identities" :key="idn.id"
+          class="flex items-center gap-3 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg">
+          <div class="flex-1 min-w-0">
+            <span class="text-sm font-medium text-slate-200">{{ idn.provider }}</span>
+            <span v-if="idn.email" class="text-xs text-slate-400 ml-2">{{ idn.email }}</span>
+            <div class="text-xs text-slate-500 mt-0.5">
+              {{ t('settings.sso.linked_on', { date: idn.created_at ? formatDate(idn.created_at) : t('common.state.unknown') }) }}
+            </div>
+          </div>
+          <button @click="unlinkIdentity(idn)"
+            class="text-xs text-red-400 hover:text-red-300 shrink-0">
+            {{ t('settings.sso.unlink') }}
+          </button>
+        </div>
+      </div>
+      <div v-else class="text-sm text-slate-600 mb-4">{{ t('settings.sso.none') }}</div>
+
+      <div v-if="ssoProviders.length > 0" class="flex flex-wrap gap-2">
+        <button v-for="p in ssoProviders" :key="p.id" @click="linkProvider(p)" :disabled="linkingSSO"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+          {{ t('settings.sso.link', { provider: p.display_name || p.provider_name }) }}
+        </button>
+      </div>
+      <div v-else class="text-xs text-slate-500">{{ t('settings.sso.no_providers') }}</div>
+
+      <div v-if="ssoMsg" class="text-xs mt-2" :class="ssoError ? 'text-red-400' : 'text-emerald-400'">{{ ssoMsg }}</div>
+    </section>
   </div>
 </template>
 
@@ -353,6 +387,13 @@ const passkeyMsg = ref('')
 const passkeyError = ref(false)
 const passkeyAvailable = computed(() => typeof window !== 'undefined' && window.PublicKeyCredential !== undefined)
 
+// Single sign-on
+const identities = ref([])
+const ssoProviders = ref([])
+const linkingSSO = ref(false)
+const ssoMsg = ref('')
+const ssoError = ref(false)
+
 // Profile
 const localeMsg = ref('')
 const profileName = ref('')
@@ -396,8 +437,59 @@ onMounted(async () => {
     profileName.value = user.value?.name || ''
     otpEnabled.value = user.value?.otp_enabled || false
   } catch { /* redirect handled by router guard */ }
-  await Promise.all([loadPasskeys(), loadTokens()])
+  // Back from a link attempt: /settings?sso_link=linked|in_use. Show the
+  // outcome, then drop the param so a reload doesn't repeat it.
+  const qs = new URLSearchParams(window.location.search)
+  const linkResult = qs.get('sso_link')
+  if (linkResult === 'linked' || linkResult === 'in_use') {
+    ssoMsg.value = t(linkResult === 'linked' ? 'settings.sso.linked_message' : 'settings.sso.in_use_message')
+    ssoError.value = linkResult === 'in_use'
+    qs.delete('sso_link')
+    const rest = qs.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash)
+  }
+  await Promise.all([loadPasskeys(), loadTokens(), loadSSO()])
 })
+
+async function loadSSO() {
+  try {
+    const data = await api.listIdentities()
+    identities.value = Array.isArray(data) ? data : (data?.data || [])
+  } catch { /* ignore */ }
+  const slug = user.value?.organization_slug
+  if (!slug) return
+  try {
+    const data = await api.getOIDCProviders(slug)
+    ssoProviders.value = Array.isArray(data) ? data : (data?.data || [])
+  } catch { /* no providers */ }
+}
+
+async function linkProvider(p) {
+  linkingSSO.value = true
+  ssoMsg.value = ''
+  try {
+    const res = await api.oidcLinkBegin(p.provider_name)
+    window.location.href = res.url
+  } catch (e) {
+    ssoMsg.value = renderApiError(e) || t('settings.sso.error_link')
+    ssoError.value = true
+    linkingSSO.value = false
+  }
+}
+
+async function unlinkIdentity(idn) {
+  if (!await useConfirm().ask(t('settings.sso.unlink_confirm'))) return
+  ssoMsg.value = ''
+  try {
+    await api.unlinkIdentity(idn.id)
+    identities.value = identities.value.filter(i => i.id !== idn.id)
+    ssoMsg.value = t('settings.sso.unlinked')
+    ssoError.value = false
+  } catch (e) {
+    ssoMsg.value = renderApiError(e)
+    ssoError.value = true
+  }
+}
 
 async function saveName() {
   savingName.value = true

@@ -83,5 +83,19 @@
     "added_message": "Aðgangslykli bætt við",
     "cancelled": "Hætt var við skráningu aðgangslykils",
     "error_add": "Ekki tókst að bæta við aðgangslykli"
+  },
+  "sso": {
+    "title": "Einskráning",
+    "description": "Tengdu aðganginn þinn við einskráningarveitu þessa fyrirtækis til að geta skráð þig inn með henni. Þú verður að vera innskráð(ur) með lykilorði eða aðgangslykli til að tengja eða aftengja.",
+    "none": "Engar einskráningarauðkenni tengd.",
+    "no_providers": "Engin einskráningarveita er virk fyrir þetta fyrirtæki.",
+    "linked_on": "Tengt {date}",
+    "link": "Tengja {provider}",
+    "unlink": "Aftengja",
+    "unlink_confirm": "Aftengja þetta einskráningarauðkenni?",
+    "unlinked": "Einskráningarauðkenni aftengt",
+    "linked_message": "Einskráning tengd við aðganginn þinn",
+    "in_use_message": "Þetta einskráningarauðkenni er þegar tengt öðrum aðgangi",
+    "error_link": "Ekki tókst að hefja tengingu"
   }
 }

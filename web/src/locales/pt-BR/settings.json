@@ -83,5 +83,19 @@
     "added_message": "Chave de acesso adicionada com sucesso",
     "cancelled": "Registro de chave de acesso cancelado",
     "error_add": "Falha ao adicionar chave de acesso"
+  },
+  "sso": {
+    "title": "Login único",
+    "description": "Vincule sua conta ao provedor de login único desta organização para poder entrar com ele. Você precisa estar conectado com sua senha ou chave de acesso para vincular ou desvincular.",
+    "none": "Nenhuma identidade de login único vinculada.",
+    "no_providers": "Esta organização não tem nenhum provedor de login único ativado.",
+    "linked_on": "Vinculada em {date}",
+    "link": "Vincular {provider}",
+    "unlink": "Desvincular",
+    "unlink_confirm": "Desvincular esta identidade de login único?",
+    "unlinked": "Identidade de login único desvinculada",
+    "linked_message": "Login único vinculado à sua conta",
+    "in_use_message": "Essa identidade de login único já está vinculada a outra conta",
+    "error_link": "Falha ao iniciar a vinculação"
   }
 }

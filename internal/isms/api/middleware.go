@@ -180,6 +180,9 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 							return echo.NewHTTPError(http.StatusUnauthorized, "user not found or inactive")
 						}
 						c.Set("user_email", claims.Email)
+						if claims.SSOOrgID > 0 {
+							c.Set("sso_org", claims.SSOOrgID)
+						}
 
 						// Verify org membership from DB (not JWT claims — they can be stale)
 						if claims.OrganizationID > 0 {

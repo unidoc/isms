@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
 
@@ -19,6 +21,10 @@ type SessionClaims struct {
 	Role           string `json:"role,omitempty"`
 	OrgSlug        string `json:"org_slug,omitempty"`
 	OrgName        string `json:"org_name,omitempty"`
+	// SSOOrgID is set on sessions minted by an organization's own single
+	// sign-on provider. Such a session is valid only in that organization and
+	// cannot change the account's sign-in credentials (see refuseSSOSession).
+	SSOOrgID int `json:"sso_org,omitempty"`
 }
 
 // jwtLifetime returns the configured JWT session lifetime.
@@ -34,6 +40,12 @@ func jwtLifetime() time.Duration {
 
 // createSessionJWT creates a signed JWT session token for the given user.
 func (s *Server) createSessionJWT(user *db.User, orgID int, role, orgSlug, orgName string) (string, error) {
+	return s.createContainedSessionJWT(user, orgID, role, orgSlug, orgName, 0)
+}
+
+// createContainedSessionJWT is createSessionJWT with the sso_org claim set
+// when ssoOrgID > 0.
+func (s *Server) createContainedSessionJWT(user *db.User, orgID int, role, orgSlug, orgName string, ssoOrgID int) (string, error) {
 	now := time.Now()
 	claims := SessionClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -50,6 +62,7 @@ func (s *Server) createSessionJWT(user *db.User, orgID int, role, orgSlug, orgNa
 		Role:           role,
 		OrgSlug:        orgSlug,
 		OrgName:        orgName,
+		SSOOrgID:       ssoOrgID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.secret))
@@ -73,4 +86,27 @@ func validateSessionJWT(tokenString, secret string) (*SessionClaims, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 	return claims, nil
+}
+
+// ssoContainedMsg is the 403 text for everything a contained session may not do.
+const ssoContainedMsg = "signed in with single sign-on: sign in with your password or passkey to change sign-in settings or switch organization"
+
+// getSSOOrg returns the organization a contained (single sign-on) session is
+// limited to, or 0 for an ordinary session.
+func getSSOOrg(c echo.Context) int {
+	if id, ok := c.Get("sso_org").(int); ok {
+		return id
+	}
+	return 0
+}
+
+// refuseSSOSession returns a 403 for a contained session and nil otherwise.
+// Handlers that change how the account signs in call it first, so the rule
+// lives in one place: an organization's identity provider vouches for who is
+// signing in to that organization, not for the account everywhere.
+func refuseSSOSession(c echo.Context) error {
+	if getSSOOrg(c) > 0 {
+		return echo.NewHTTPError(http.StatusForbidden, ssoContainedMsg)
+	}
+	return nil
 }

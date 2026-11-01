@@ -367,7 +367,8 @@ func (s *Server) handleRefresh(c echo.Context) error {
 		}
 	}
 
-	token, err := s.createSessionJWT(user, orgID, role, orgSlug, orgName)
+	// A contained session stays contained.
+	token, err := s.createContainedSessionJWT(user, orgID, role, orgSlug, orgName, getSSOOrg(c))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating session")
 	}
@@ -409,13 +410,19 @@ func (s *Server) handleSwitchOrg(c echo.Context) error {
 		return apiError(http.StatusNotFound, CodeNotFound, Entity("organization"))
 	}
 
+	// A single sign-on session is valid only in the organization whose
+	// provider issued it.
+	if sso := getSSOOrg(c); sso > 0 && org.ID != sso {
+		return echo.NewHTTPError(http.StatusForbidden, ssoContainedMsg)
+	}
+
 	// Verify membership
 	role, err := s.db.GetUserRole(ctx, org.ID, user.ID)
 	if err != nil {
 		return apiError(http.StatusForbidden, CodeNotOrgMember)
 	}
 
-	token, err := s.createSessionJWT(user, org.ID, role, org.Slug, org.Name)
+	token, err := s.createContainedSessionJWT(user, org.ID, role, org.Slug, org.Name, getSSOOrg(c))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating session")
 	}
@@ -438,6 +445,9 @@ type changePasswordRequest struct {
 }
 
 func (s *Server) handleChangePassword(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
 	var req changePasswordRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -489,6 +499,9 @@ type changeEmailRequest struct {
 // The swap happens only when that link is verified (handleVerifyEmailChange).
 // PUT /api/v1/auth/email
 func (s *Server) handleRequestEmailChange(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
 	var req changeEmailRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -723,6 +736,9 @@ type otpSetupResponse struct {
 }
 
 func (s *Server) handleOTPSetup(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
 	ctx := c.Request().Context()
 	email := getUserEmail(c)
 	user, err := s.db.GetUserByEmail(ctx, email)
@@ -782,6 +798,9 @@ type otpVerifyRequest struct {
 }
 
 func (s *Server) handleOTPVerify(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
 	var req otpVerifyRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -815,6 +834,9 @@ func (s *Server) handleOTPVerify(c echo.Context) error {
 // --- Self-service: OTP disable ---
 
 func (s *Server) handleOTPDisable(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
 	var req otpVerifyRequest
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -1151,6 +1173,13 @@ func (s *Server) handleCreateMyAPIKey(c echo.Context) error {
 	orgID := getOrgID(c)
 	if req.Scope != "global" && orgID > 0 {
 		orgScope = &orgID
+	}
+	if sso := getSSOOrg(c); sso > 0 {
+		// A single sign-on session may only mint keys bound to its organization.
+		if req.Scope == "global" {
+			return echo.NewHTTPError(http.StatusForbidden, ssoContainedMsg)
+		}
+		orgScope = &sso
 	}
 
 	token, tokenHash := generateAPIKey()

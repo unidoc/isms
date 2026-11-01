@@ -342,7 +342,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 	}
 
 	// Create signed JWT session token (stateless — no DB row)
-	token, err := s.createSessionJWT(user, orgID, role, org.Slug, org.Name)
+	token, err := s.createContainedSessionJWT(user, orgID, role, org.Slug, org.Name, orgID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating session token: "+err.Error())
 	}

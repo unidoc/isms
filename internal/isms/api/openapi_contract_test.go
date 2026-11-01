@@ -1581,6 +1581,7 @@ var inlineResponseChecks = []struct {
 	typ     reflect.Type
 	handler string
 }{
+	{"GET /auth/oidc/providers", "200", true, tReq(publicOIDCProvider{}), "api_oidc.go:52 handleOIDCProviders: {\"data\": out} out is []publicOIDCProvider"},
 	{"GET /auth/passkeys", "200", true, tReq(passkeyListItem{}), "api_passkey.go:387 handleListPasskeys: {\"data\": items} items is []passkeyListItem"},
 	{"GET /inbox", "200", true, tReq(inboxItem{}), "api_collab.go:3952 handleInbox: {\"data\": items} items is []inboxItem"},
 	{"GET /activity", "200", true, tReq(db.Activity{}), "api_collab.go:3845 handleListActivity: {\"data\": activities} activities is []db.Activity (RecentActivity)"},

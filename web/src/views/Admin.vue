@@ -369,10 +369,18 @@
             <div class="flex items-center gap-3">
               <input v-model="branding.branding_color" type="color"
                 class="w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer p-0.5" />
-              <input v-model="branding.branding_color" type="text"
+              <input v-model="branding.branding_color" type="text" aria-describedby="brand-color-hint"
                 class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
                 placeholder="#3b82f6" />
               <div class="w-8 h-8 rounded-lg border border-slate-700" :style="{ backgroundColor: branding.branding_color }" />
+            </div>
+            <div id="brand-color-hint" aria-live="polite">
+            <i18n-t v-if="brandHint" :keypath="brandHint.keypath" tag="p" scope="global"
+              class="text-xs text-slate-400 mt-2" data-testid="brand-adjusted-hint">
+              <template v-for="slot in brandHint.slots" :key="slot.name" #[slot.name]>
+                <span class="inline-block w-3 h-3 rounded-sm border border-slate-700 align-middle mr-1" :style="{ backgroundColor: slot.hex }" /><span class="font-mono text-slate-400">{{ slot.hex }}</span>
+              </template>
+            </i18n-t>
             </div>
           </div>
           <div>
@@ -786,6 +794,7 @@ import { useI18n } from 'vue-i18n'
 import { FALLBACK } from '../i18n.js'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
+import { applyBrandColor, brandAdjustments } from '../utils/brandColor.js'
 import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useLocale } from '../composables/useLocale'
@@ -1605,6 +1614,17 @@ async function saveCustomFields() {
   }
 }
 
+// Live hint under the color field: names only what is adjusted for readability.
+const brandHint = computed(() => {
+  const { text, fill } = brandAdjustments(branding.value.branding_color)
+  if (text && fill) {
+    return { keypath: 'admin.branding.adjusted_both', slots: [{ name: 'text', hex: text }, { name: 'fill', hex: fill }] }
+  }
+  if (text) return { keypath: 'admin.branding.adjusted_links', slots: [{ name: 'color', hex: text }] }
+  if (fill) return { keypath: 'admin.branding.adjusted_buttons', slots: [{ name: 'color', hex: fill }] }
+  return null
+})
+
 function loadBrandingFromSettings() {
   // Extract branding keys from the already-loaded settings list
   for (const s of settings.value) {
@@ -1625,10 +1645,8 @@ async function saveBranding() {
     for (const key of keys) {
       await api.putJSON('/api/v1/admin/settings', { key, value: branding.value[key] })
     }
-    // Apply color immediately
-    if (branding.value.branding_color) {
-      document.documentElement.style.setProperty('--brand-color', branding.value.branding_color)
-    }
+    // Apply color immediately (an empty color resets to the defaults)
+    applyBrandColor(branding.value.branding_color)
     brandingMsg.value = t('admin.branding.saved')
     brandingError.value = false
   } catch (e) {

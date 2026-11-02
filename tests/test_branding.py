@@ -73,6 +73,26 @@ class TestBrandingSettings:
         assert branding.get("branding_color") == "#ff6600"
 
 
+class TestBrandingColorFormat:
+    """Only 3, 4, 6 and 8 digit hex colors are stored (#408)."""
+
+    def test_color_digit_counts(self, api_url, admin_headers):
+        original = (requests.get(f"{api_url}/config", headers=admin_headers).json()
+                    .get("branding") or {}).get("branding_color", "")
+
+        def put(value):
+            return requests.put(f"{api_url}/admin/settings", headers=admin_headers,
+                                json={"key": "branding_color", "value": value})
+        try:
+            for bad in ("#12345", "#1234567"):
+                assert put(bad).status_code == 400, bad
+            for good in ("#1a365dff", "#abc"):
+                r = put(good)
+                assert r.status_code == 200, f"{good}: {r.text}"
+        finally:
+            assert put(original).status_code == 200
+
+
 class TestBrandingUploadPNG:
     """Upload PNG logo via admin endpoint, verify it's served correctly."""
 

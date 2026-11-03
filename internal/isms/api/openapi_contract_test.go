@@ -1571,6 +1571,21 @@ type anonymousMeMirror struct {
 	Authenticated bool   `json:"authenticated"`
 }
 
+// api_oidc.go handleOIDCLinkBegin (map literal).
+type oidcLinkBeginMirror struct {
+	URL string `json:"url"`
+}
+
+// api_oidc.go handleOIDCLinkComplete (map literal).
+type oidcLinkCompleteMirror struct {
+	Result string `json:"result"`
+}
+
+// api_oidc.go handleUnlinkIdentity (map literal).
+type unlinkIdentityMirror struct {
+	Status string `json:"status"`
+}
+
 // inlineResponseChecks lists operations whose response schema (or the items of
 // its data array) is inline, not a component, and must match the Go value the
 // handler serializes.
@@ -1583,6 +1598,10 @@ var inlineResponseChecks = []struct {
 }{
 	{"GET /auth/oidc/providers", "200", true, tReq(publicOIDCProvider{}), "api_oidc.go:52 handleOIDCProviders: {\"data\": out} out is []publicOIDCProvider"},
 	{"GET /auth/passkeys", "200", true, tReq(passkeyListItem{}), "api_passkey.go:387 handleListPasskeys: {\"data\": items} items is []passkeyListItem"},
+	{"GET /auth/identities", "200", true, tReq(identityItem{}), "api_oidc.go handleListIdentities: {\"data\": items} items is []identityItem"},
+	{"POST /auth/oidc/link", "200", false, tReq(oidcLinkBeginMirror{}), "api_oidc.go handleOIDCLinkBegin: map literal mirrored by oidcLinkBeginMirror"},
+	{"POST /auth/oidc/link/complete", "200", false, tReq(oidcLinkCompleteMirror{}), "api_oidc.go handleOIDCLinkComplete: map literal mirrored by oidcLinkCompleteMirror"},
+	{"DELETE /auth/identities/{id}", "200", false, tReq(unlinkIdentityMirror{}), "api_oidc.go handleUnlinkIdentity: map literal mirrored by unlinkIdentityMirror"},
 	{"GET /inbox", "200", true, tReq(inboxItem{}), "api_collab.go:3952 handleInbox: {\"data\": items} items is []inboxItem"},
 	{"GET /activity", "200", true, tReq(db.Activity{}), "api_collab.go:3845 handleListActivity: {\"data\": activities} activities is []db.Activity (RecentActivity)"},
 	{"GET /documents/{docId}/activity", "200", true, tReq(db.Activity{}), "api_collab.go:3859 handleDocumentActivity: {\"data\": activities} activities is []db.Activity (ActivityForDocument)"},

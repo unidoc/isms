@@ -291,6 +291,12 @@ var contractTable = []contractEntry{
 		shapes: []contractShape{shape(tReq(createdAPIKeyMirror{}), "api_auth.go:1145 handleCreateMyAPIKey: map literal mirrored by createdAPIKeyMirror")},
 	},
 	{
+		component: "InviteResponse",
+		//   api_auth.go handleInviteUser / handleResendInvite: c.JSON(200, inviteResponse{...}); the
+		//   delivery, invite_url and expires_at keys are set only for delivery=link (omitempty).
+		shapes: []contractShape{shape(tReq(inviteResponse{}), "api_auth.go handleInviteUser, handleResendInvite: c.JSON(200, inviteResponse)")},
+	},
+	{
 		component: "Approval",
 		//   api_collab.go:2289 handleListApprovals: {"data": approvals} approvals is []db.Approval (ApprovalsForDocument)
 		shapes: []contractShape{shape(tReq(db.Approval{}), "api_collab.go:2289 handleListApprovals: element of the data array, db.Approval")},
@@ -1584,6 +1590,7 @@ var inlineResponseChecks = []struct {
 	{"GET /auth/oidc/providers", "200", true, tReq(publicOIDCProvider{}), "api_oidc.go:52 handleOIDCProviders: {\"data\": out} out is []publicOIDCProvider"},
 	{"GET /auth/passkeys", "200", true, tReq(passkeyListItem{}), "api_passkey.go:387 handleListPasskeys: {\"data\": items} items is []passkeyListItem"},
 	{"GET /inbox", "200", true, tReq(inboxItem{}), "api_collab.go:3952 handleInbox: {\"data\": items} items is []inboxItem"},
+	{"GET /admin/invite-options", "200", false, tReq(inviteOptionsResponse{}), "api_auth.go handleInviteOptions: c.JSON(200, inviteOptionsResponse)"},
 	{"GET /activity", "200", true, tReq(db.Activity{}), "api_collab.go:3845 handleListActivity: {\"data\": activities} activities is []db.Activity (RecentActivity)"},
 	{"GET /documents/{docId}/activity", "200", true, tReq(db.Activity{}), "api_collab.go:3859 handleDocumentActivity: {\"data\": activities} activities is []db.Activity (ActivityForDocument)"},
 }

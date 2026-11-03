@@ -178,14 +178,12 @@ func TestOrgUserAdd_NewEmailCreatedAsBefore(t *testing.T) {
 	assertRole(t, s, orgID, u.ID, "reader")
 
 	// Invite of a new email: created inactive with the membership. The test
-	// server has no mailer, so the handler stops at the email step after
-	// writing the user, as it always has.
+	// server has no mailer, so it asks for a link instead of an email.
 	inv := fmt.Sprintf("ouak-inv-%s@org-user-add.test", uuid.NewString()[:8])
-	_, err, _ = orgUserAddCall(t, s.handleInviteUser, orgID, "/api/v1/auth/invite",
-		map[string]string{"email": inv, "name": "Invitee", "role": "reader"})
-	var he *echo.HTTPError
-	if !errors.As(err, &he) || he.Code != http.StatusInternalServerError || !strings.Contains(fmt.Sprint(he.Message), "email not configured") {
-		t.Fatalf("invite without a mailer: err = %v, want the 500 'email not configured'", err)
+	code, err, body = orgUserAddCall(t, s.handleInviteUser, orgID, "/api/v1/auth/invite",
+		map[string]string{"email": inv, "name": "Invitee", "role": "reader", "delivery": "link"})
+	if err != nil || code != http.StatusOK {
+		t.Fatalf("invite by link: code %d err %v body %s", code, err, body)
 	}
 	iu, err := s.db.GetUserByEmail(ctx, inv)
 	if err != nil {

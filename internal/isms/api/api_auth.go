@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
@@ -8,6 +9,7 @@ import (
 	"encoding/base32"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -19,10 +21,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/i18n"
+	"isms.sh/internal/isms/mail"
 )
 
 // --- Per-account brute-force protection (DB-backed) ---
@@ -849,9 +853,91 @@ func (s *Server) handleOTPDisable(c echo.Context) error {
 // --- Invite user (sends verification email) ---
 
 type inviteRequest struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Role  string `json:"role"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	Delivery string `json:"delivery"` // "email" (default) or "link"
+}
+
+// inviteResponse is what the invite endpoints return. The link fields are set
+// only for delivery=link.
+type inviteResponse struct {
+	Status    string `json:"status"`
+	Delivery  string `json:"delivery,omitempty"`
+	Email     string `json:"email"`
+	InviteURL string `json:"invite_url,omitempty"`
+	ExpiresAt int64  `json:"expires_at,omitempty"`
+}
+
+const (
+	deliveryEmail = "email"
+	deliveryLink  = "link"
+)
+
+var errLinkNotAllowed = echo.NewHTTPError(http.StatusConflict,
+	"this person already has an account; send an email invite instead")
+
+// parseDelivery validates the delivery field; empty means email.
+func parseDelivery(v string) (string, error) {
+	switch v {
+	case "", deliveryEmail:
+		return deliveryEmail, nil
+	case deliveryLink:
+		return deliveryLink, nil
+	}
+	return "", echo.NewHTTPError(http.StatusBadRequest, "delivery must be \"email\" or \"link\"")
+}
+
+func (s *Server) emailEnabled() bool {
+	return s.mailer != nil && s.mailer.Enabled()
+}
+
+var errEmailNotConfigured = echo.NewHTTPError(http.StatusServiceUnavailable,
+	"email is not configured; create an invite link instead")
+
+// checkLinkAllowed refuses an invite link for an account that is anyone's
+// already. The link lets its holder set the password of the account it belongs
+// to, so it is only for an account that has no password and is in no
+// organization besides exceptOrgID.
+func (s *Server) checkLinkAllowed(ctx context.Context, user *db.User, exceptOrgID int) error {
+	if user.Active || user.HasPassword() {
+		return errLinkNotAllowed
+	}
+	n, err := s.db.CountMembershipsExcept(ctx, user.ID, exceptOrgID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "checking memberships: "+err.Error())
+	}
+	if n > 0 {
+		return errLinkNotAllowed
+	}
+	return nil
+}
+
+// inviteLink builds the link response for a freshly stored token.
+func (s *Server) inviteLink(ctx context.Context, orgID int, status, email, token string) inviteResponse {
+	return inviteResponse{
+		Status:    status,
+		Delivery:  deliveryLink,
+		Email:     email,
+		InviteURL: mail.VerifyLink(s.orgMail(ctx, orgID).PublicURL, token),
+		ExpiresAt: time.Now().Add(db.VerifyLinkValidHours * time.Hour).Unix(),
+	}
+}
+
+// handleInviteOptions tells the invite form which deliveries work here.
+func (s *Server) handleInviteOptions(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, inviteOptionsResponse{
+		EmailEnabled:   s.emailEnabled(),
+		LinkValidHours: db.VerifyLinkValidHours,
+	})
+}
+
+type inviteOptionsResponse struct {
+	EmailEnabled   bool `json:"email_enabled"`
+	LinkValidHours int  `json:"link_valid_hours"`
 }
 
 func (s *Server) handleInviteUser(c echo.Context) error {
@@ -865,6 +951,10 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 	if req.Email == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
+	}
+	delivery, err := parseDelivery(req.Delivery)
+	if err != nil {
+		return err
 	}
 	if req.Name == "" {
 		req.Name = req.Email
@@ -885,52 +975,93 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
+	// Everything that can refuse the request runs before the first write, so
+	// a refusal never leaves a half-created member behind.
 	// New accounts start INACTIVE until email is verified. An existing account
 	// is never modified (it is global — only this org's membership changes).
-	user := &db.User{Email: req.Email, Name: req.Name, Active: false}
-	if _, err := s.db.EnsureUser(ctx, user); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
+	user, err := s.db.GetUserByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return echo.NewHTTPError(http.StatusInternalServerError, "looking up user: "+err.Error())
+	}
+	if user == nil {
+		if delivery == deliveryEmail && !s.emailEnabled() {
+			return errEmailNotConfigured
+		}
+		created := &db.User{Email: req.Email, Name: req.Name, Active: false}
+		isNew, err := s.db.EnsureUser(ctx, created)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
+		}
+		user = created
+		if !isNew {
+			// Someone created the account since the lookup: judge the stored one.
+			if user, err = s.db.GetUserByEmail(ctx, req.Email); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "looking up user: "+err.Error())
+			}
+		}
 	}
 
-	// Add user to the current organization with the specified role
-	// (membership exists but user is inactive — can't authenticate until verified).
 	// An existing member keeps their role: changing it is the Members flow.
 	if orgID > 0 {
 		if err := s.rejectExistingMember(ctx, orgID, user.ID); err != nil {
 			return err
 		}
+	}
+
+	actor := getUserEmail(c)
+	if !user.Active {
+		// Account not yet activated: it needs a verification token.
+		if delivery == deliveryEmail && !s.emailEnabled() {
+			return errEmailNotConfigured
+		}
+		if delivery == deliveryLink {
+			if err := s.checkLinkAllowed(ctx, user, 0); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Add user to the current organization with the specified role
+	// (membership exists but user is inactive — can't authenticate until verified).
+	if orgID > 0 {
 		if err := s.db.AddOrgMember(ctx, orgID, user.ID, req.Role); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "adding to organization: "+err.Error())
 		}
 	}
 
 	// An existing active account needs no verification: it was only added to
-	// this org, so there is nothing to email.
-	actor := getUserEmail(c)
+	// this org, so there is nothing to send.
 	if user.Active {
 		s.logAndNotify(ctx, orgID, &db.Activity{
 			Actor:  actor,
 			Action: "user_invited",
 			Detail: fmt.Sprintf("Added %s (%s) as %s", user.Name, user.Email, req.Role),
 		})
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "added",
-			"email":  user.Email,
-		})
+		return c.JSON(http.StatusOK, inviteResponse{Status: "added", Email: user.Email})
 	}
 
-	// Generate verification token
+	// Generate verification token; an earlier unused one (a previous invite of
+	// this never-activated account) must not stay usable next to it.
+	if err := s.db.InvalidateEmailVerifications(ctx, user.ID, "verify"); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification: "+err.Error())
+	}
 	token, tokenHash := newHashedToken()
 
 	if err := s.db.CreateEmailVerification(ctx, user.ID, tokenHash); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification: "+err.Error())
 	}
 
-	// Send email
-	if s.mailer == nil || !s.mailer.Enabled() {
-		return echo.NewHTTPError(http.StatusInternalServerError, "email not configured (SMTP_HOST)")
+	if delivery == deliveryLink {
+		// The link is the credential: it goes only into the response.
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "user_invited",
+			Detail: fmt.Sprintf("Created an invite link for %s (%s) as %s", req.Name, user.Email, req.Role),
+		})
+		return c.JSON(http.StatusOK, s.inviteLink(ctx, orgID, "invited", user.Email, token))
 	}
 
+	// Send email
 	m := s.orgMail(ctx, orgID)
 	if err := s.mailer.SendVerificationBranded(req.Email, req.Name, m.PublicURL, token, m.Branding); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "sending email: "+err.Error())
@@ -943,14 +1074,12 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 		Detail: fmt.Sprintf("Invited %s (%s) as %s", req.Name, req.Email, req.Role),
 	})
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"status": "invited",
-		"email":  req.Email,
-	})
+	return c.JSON(http.StatusOK, inviteResponse{Status: "invited", Email: req.Email})
 }
 
 // handleResendInvite re-sends the verification email to a pending (not yet
-// verified) invited user — for invites that were lost or expired (#42).
+// verified) invited user — for invites that were lost or expired (#42). With
+// delivery=link it returns a fresh link instead of sending one (#322).
 func (s *Server) handleResendInvite(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
@@ -959,13 +1088,18 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	var req struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Delivery string `json:"delivery"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	if req.Email == "" {
 		return apiError(http.StatusBadRequest, CodeRequired, Field("email"))
+	}
+	delivery, err := parseDelivery(req.Delivery)
+	if err != nil {
+		return err
 	}
 
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
@@ -981,8 +1115,13 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusConflict, "user has already accepted the invite")
 	}
 
-	if s.mailer == nil || !s.mailer.Enabled() {
-		return echo.NewHTTPError(http.StatusInternalServerError, "email not configured (SMTP_HOST)")
+	if delivery == deliveryEmail && !s.emailEnabled() {
+		return errEmailNotConfigured
+	}
+	if delivery == deliveryLink {
+		if err := s.checkLinkAllowed(ctx, user, orgID); err != nil {
+			return err
+		}
 	}
 
 	// Invalidate any still-live invite tokens before issuing a new one, so a
@@ -992,11 +1131,20 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
 	}
 
-	// Fresh verification token (72h), same as the original invite.
+	// Fresh verification token (db.VerifyLinkValidHours), same as the original invite.
 	token, tokenHash := newHashedToken()
 	if err := s.db.CreateEmailVerification(ctx, user.ID, tokenHash); err != nil {
 		log.Printf("resend-invite: creating verification for %s failed: %v", user.Email, err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating verification")
+	}
+
+	if delivery == deliveryLink {
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  getUserEmail(c),
+			Action: "user_invite_resent",
+			Detail: fmt.Sprintf("Created a new invite link for %s", user.Email),
+		})
+		return c.JSON(http.StatusOK, s.inviteLink(ctx, orgID, "invite_resent", user.Email, token))
 	}
 
 	m := s.orgMail(ctx, orgID)
@@ -1011,7 +1159,7 @@ func (s *Server) handleResendInvite(c echo.Context) error {
 		Detail: fmt.Sprintf("Resent invite to %s", user.Email),
 	})
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "invite_resent", "email": user.Email})
+	return c.JSON(http.StatusOK, inviteResponse{Status: "invite_resent", Email: user.Email})
 }
 
 // --- Verify email + set password ---

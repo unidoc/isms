@@ -614,6 +614,18 @@ func (d *DB) AddOrgMember(ctx context.Context, orgID, userID int, role string) e
 	return err
 }
 
+// CountMembershipsExcept counts the organizations a user belongs to other than
+// exceptOrgID (pass 0 to count them all). Deleted organizations count too: the
+// row still ties the account to somebody else.
+func (d *DB) CountMembershipsExcept(ctx context.Context, userID, exceptOrgID int) (int, error) {
+	var n int
+	err := d.pool.QueryRow(ctx, `
+		SELECT count(*) FROM organization_members
+		WHERE user_id = $1 AND organization_id <> $2
+	`, userID, exceptOrgID).Scan(&n)
+	return n, err
+}
+
 // GetOrgMember returns a single membership record.
 func (d *DB) GetOrgMember(ctx context.Context, orgID, userID int) (*OrgMember, error) {
 	var m OrgMember

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/i18n"
@@ -163,14 +165,19 @@ func (s *Server) handleUpsertUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	// Upsert the user record (org-agnostic)
+	// Create the account if the email is new; an existing account is never
+	// modified here (it is global — only this org's membership changes).
 	u := &db.User{Email: req.Email, Name: req.Name, Active: true}
-	if err := s.db.UpsertUser(ctx, u); err != nil {
+	if _, err := s.db.EnsureUser(ctx, u); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	// Add/update org membership with the specified role
+	// Add org membership with the specified role. An existing member keeps
+	// their role: changing it is the admin-only Members flow.
 	if orgID > 0 {
+		if err := s.rejectExistingMember(ctx, orgID, u.ID); err != nil {
+			return err
+		}
 		if err := s.db.AddOrgMember(ctx, orgID, u.ID, req.Role); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "adding to organization: "+err.Error())
 		}
@@ -182,6 +189,20 @@ func (s *Server) handleUpsertUser(c echo.Context) error {
 		"name":  u.Name,
 		"role":  req.Role,
 	})
+}
+
+// rejectExistingMember returns a 409 when the user is already a member of the
+// org. The add endpoints must never change a member's role: that goes through
+// PUT /admin/members/:userId/role, which is admin-only and keeps the last admin.
+func (s *Server) rejectExistingMember(ctx context.Context, orgID, userID int) error {
+	_, err := s.db.GetOrgMember(ctx, orgID, userID)
+	if err == nil {
+		return echo.NewHTTPError(http.StatusConflict, "already a member of this organization; change the role under Members")
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return echo.NewHTTPError(http.StatusInternalServerError, "checking membership: "+err.Error())
+	}
+	return nil
 }
 
 // handleMyOrganizations returns all organizations the current user belongs to.

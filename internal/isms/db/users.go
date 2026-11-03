@@ -108,12 +108,13 @@ func (d *DB) EmailExists(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
-// GetUserByEmail looks up a user. Returns nil if not found.
+// GetUserByEmail looks up a user by email, ignoring case (accounts are unique by
+// lower(email)). Returns nil if not found.
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := d.pool.QueryRow(ctx, `
 		SELECT id, email, name, password_hash, otp_secret, otp_verified, email_verified, pending_email, is_agent, active, locale, created_at, last_seen
-		FROM users WHERE email = $1
+		FROM users WHERE lower(email) = lower($1)
 	`, email).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.OTPSecret, &u.OTPVerified, &u.EmailVerified, &u.PendingEmail, &u.IsAgent, &u.Active, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
 		return nil, err
@@ -136,6 +137,31 @@ func (d *DB) UpsertUser(ctx context.Context, u *User) error {
 			active = EXCLUDED.active
 		RETURNING id, created_at
 	`, u.Email, u.Name, u.IsAgent, u.Active).Scan(&u.ID, &u.CreatedAt)
+}
+
+// EnsureUser returns the account for u.Email, creating it from u when the email
+// is new. An existing account is loaded into u and left untouched: name,
+// is_agent and active belong to the person, so callers acting for one org must
+// not overwrite them (unlike UpsertUser). Email is normalized to lowercase.
+func (d *DB) EnsureUser(ctx context.Context, u *User) (created bool, err error) {
+	u.Email = strings.ToLower(u.Email)
+	err = d.pool.QueryRow(ctx, `
+		INSERT INTO users (email, name, is_agent, active)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT ((lower(email))) DO NOTHING
+		RETURNING id, created_at
+	`, u.Email, u.Name, u.IsAgent, u.Active).Scan(&u.ID, &u.CreatedAt)
+	if err == nil {
+		return true, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	err = d.pool.QueryRow(ctx, `
+		SELECT id, email, name, is_agent, active, created_at
+		FROM users WHERE lower(email) = $1
+	`, u.Email).Scan(&u.ID, &u.Email, &u.Name, &u.IsAgent, &u.Active, &u.CreatedAt)
+	return false, err
 }
 
 // SetPassword sets the password hash for a user.

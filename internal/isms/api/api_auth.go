@@ -227,8 +227,12 @@ func (s *Server) handleSignup(c echo.Context) error {
 
 	// Create user — active immediately if email verification is skipped
 	user := &db.User{Email: req.Email, Name: req.Name, Active: skipVerify}
-	if err := s.db.UpsertUser(ctx, user); err != nil {
+	created, err := s.db.EnsureUser(ctx, user)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating account: "+err.Error())
+	}
+	if !created {
+		return echo.NewHTTPError(http.StatusConflict, "account already exists — try logging in")
 	}
 
 	// Set password
@@ -881,18 +885,38 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	// Create user as INACTIVE until email is verified
+	// New accounts start INACTIVE until email is verified. An existing account
+	// is never modified (it is global — only this org's membership changes).
 	user := &db.User{Email: req.Email, Name: req.Name, Active: false}
-	if err := s.db.UpsertUser(ctx, user); err != nil {
+	if _, err := s.db.EnsureUser(ctx, user); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
 	}
 
 	// Add user to the current organization with the specified role
-	// (membership exists but user is inactive — can't authenticate until verified)
+	// (membership exists but user is inactive — can't authenticate until verified).
+	// An existing member keeps their role: changing it is the Members flow.
 	if orgID > 0 {
+		if err := s.rejectExistingMember(ctx, orgID, user.ID); err != nil {
+			return err
+		}
 		if err := s.db.AddOrgMember(ctx, orgID, user.ID, req.Role); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "adding to organization: "+err.Error())
 		}
+	}
+
+	// An existing active account needs no verification: it was only added to
+	// this org, so there is nothing to email.
+	actor := getUserEmail(c)
+	if user.Active {
+		s.logAndNotify(ctx, orgID, &db.Activity{
+			Actor:  actor,
+			Action: "user_invited",
+			Detail: fmt.Sprintf("Added %s (%s) as %s", user.Name, user.Email, req.Role),
+		})
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "added",
+			"email":  user.Email,
+		})
 	}
 
 	// Generate verification token
@@ -913,7 +937,6 @@ func (s *Server) handleInviteUser(c echo.Context) error {
 	}
 
 	// Log activity
-	actor := getUserEmail(c)
 	s.logAndNotify(ctx, orgID, &db.Activity{
 		Actor:  actor,
 		Action: "user_invited",

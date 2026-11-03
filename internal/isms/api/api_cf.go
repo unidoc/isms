@@ -66,11 +66,12 @@ func resolveCFUser(ctx context.Context, d *db.DB, email, name string, pc cfProvi
 	if u.Name == "" {
 		u.Name = deriveNameFromEmail(email)
 	}
-	if err := d.UpsertUser(ctx, u); err != nil {
+	created, err := d.EnsureUser(ctx, u)
+	if err != nil {
 		return nil, false, fmt.Errorf("%w: %v", errProvisionFailed, err)
 	}
 	markCFEmailVerified(ctx, d, u)
-	return u, true, nil
+	return u, created, nil
 }
 
 // markCFEmailVerified sets email_verified for a Cloudflare-authenticated user,

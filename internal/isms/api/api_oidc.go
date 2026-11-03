@@ -264,7 +264,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 				Name:   name,
 				Active: true,
 			}
-			if err := s.db.UpsertUser(ctx, user); err != nil {
+			if _, err := s.db.EnsureUser(ctx, user); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "creating user: "+err.Error())
 			}
 		}

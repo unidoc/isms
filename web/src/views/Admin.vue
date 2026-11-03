@@ -64,11 +64,17 @@
                   </select>
                 </td>
                 <td class="px-5 py-3 text-right">
-                  <button v-if="!member.active" @click="resendInvite(member)"
-                    class="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 transition-colors mr-1">
+                  <button v-if="!member.active" type="button" @click="resendInvite(member)"
+                    :disabled="!inviteOptions.email_enabled"
+                    :title="inviteOptions.email_enabled ? '' : t('admin.members.resend_disabled')"
+                    class="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 transition-colors mr-1 disabled:opacity-40 disabled:cursor-not-allowed">
                     {{ t('admin.members.resend_invite') }}
                   </button>
-                  <button @click="removeMember(member)"
+                  <button v-if="!member.active" type="button" @click="copyNewLink(member)"
+                    class="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 transition-colors mr-1">
+                    {{ t('admin.members.copy_link') }}
+                  </button>
+                  <button type="button" @click="removeMember(member)"
                     class="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">
                     {{ t('admin.members.remove') }}
                   </button>
@@ -81,13 +87,14 @@
           </div>
         </div>
         <div v-if="membersMsg" class="text-xs" :class="membersError ? 'text-red-400' : 'text-emerald-400'">{{ membersMsg }}</div>
+        <InviteLinkBox v-if="memberLink" :link="memberLink" :hours="inviteOptions.link_valid_hours" class="max-w-lg" />
       </template>
 
       <!-- ===================== INVITE TAB ===================== -->
       <template v-if="activeTab === 'invite'">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg">
           <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-5">{{ t('admin.invite.title') }}</h2>
-          <form @submit.prevent="sendInvite" class="space-y-4">
+          <form @submit.prevent="sendInvite(inviteTypes.email === 'submit' ? 'email' : 'link')" class="space-y-4">
             <div>
               <label class="block text-xs text-slate-500 mb-1">{{ t('admin.invite.email') }}</label>
               <input v-model="inviteEmail" type="email" required
@@ -105,12 +112,20 @@
                 <option v-for="r in inviteRoleOptions" :key="r.value" :value="r.value">{{ r.label }}</option>
               </select>
             </div>
-            <button type="submit" :disabled="inviting"
-              class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {{ inviting ? t('admin.invite.sending') : t('admin.invite.submit') }}
-            </button>
+            <div class="flex flex-wrap gap-2">
+              <button :type="inviteTypes.email" :disabled="inviting || !inviteOptions.email_enabled" @click="inviteTypes.email === 'button' && sendInvite('email')"
+                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                {{ inviting ? t('admin.invite.sending') : t('admin.invite.send_email') }}
+              </button>
+              <button :type="inviteTypes.link" :disabled="inviting" @click="inviteTypes.link === 'button' && sendInvite('link')"
+                class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                {{ t('admin.invite.create_link') }}
+              </button>
+            </div>
+            <p v-if="!inviteOptions.email_enabled" class="text-xs text-slate-500">{{ t('admin.invite.email_disabled_note') }}</p>
           </form>
           <div v-if="inviteMsg" class="text-xs mt-3" :class="inviteError ? 'text-red-400' : 'text-emerald-400'">{{ inviteMsg }}</div>
+          <InviteLinkBox v-if="inviteLink" :link="inviteLink" :hours="inviteOptions.link_valid_hours" />
         </div>
       </template>
 
@@ -799,6 +814,8 @@ import { useSession } from '../composables/useSession'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { useLocale } from '../composables/useLocale'
 import { formatDate } from '../composables/useFormat.js'
+import InviteLinkBox from '../components/InviteLinkBox.vue'
+import { inviteButtonTypes } from '../utils/invite.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { renderApiError } from '../composables/useApiError.js'
 
@@ -911,6 +928,13 @@ const inviteRole = ref('reader')
 const inviting = ref(false)
 const inviteMsg = ref('')
 const inviteError = ref(false)
+// What this server can do (GET /admin/invite-options). Email stays off until
+// the answer says otherwise, so Enter can never send mail on a server without it.
+const inviteOptions = ref({ email_enabled: false, link_valid_hours: 72 })
+const inviteTypes = computed(() => inviteButtonTypes(inviteOptions.value.email_enabled))
+// A freshly created invite link is a credential: component state only.
+const inviteLink = ref(null)
+const memberLink = ref(null)
 
 // API Keys (read-only audit view)
 const apiKeys = ref([])
@@ -1096,12 +1120,28 @@ async function removeMember(member) {
   }
 }
 
-async function sendInvite() {
+async function loadInviteOptions() {
+  try {
+    const o = await api.fetchJSON('/api/v1/admin/invite-options')
+    inviteOptions.value = { email_enabled: !!o.email_enabled, link_valid_hours: o.link_valid_hours || 72 }
+  } catch { /* keep email off: the link still works */ }
+}
+
+async function sendInvite(delivery) {
   inviting.value = true
   inviteMsg.value = ''
+  inviteLink.value = null
+  const email = inviteEmail.value
   try {
-    await api.postJSON('/api/v1/auth/invite', { email: inviteEmail.value, name: inviteName.value, role: inviteRole.value })
-    inviteMsg.value = t('admin.invite.sent', { email: inviteEmail.value })
+    const res = await api.postJSON('/api/v1/auth/invite', { email, name: inviteName.value, role: inviteRole.value, delivery })
+    if (res.invite_url) {
+      inviteLink.value = { invite_url: res.invite_url, expires_at: res.expires_at, email: res.email || email }
+      inviteMsg.value = t('admin.invite.link_created', { email: res.email || email })
+    } else if (res.status === 'added') {
+      inviteMsg.value = t('admin.invite.added', { email: res.email || email })
+    } else {
+      inviteMsg.value = t('admin.invite.sent', { email })
+    }
     inviteError.value = false
     inviteEmail.value = ''
     inviteName.value = ''
@@ -1117,10 +1157,25 @@ async function sendInvite() {
 async function resendInvite(member) {
   membersMsg.value = ''
   membersError.value = false
+  memberLink.value = null
   try {
-    await api.postJSON('/api/v1/auth/resend-invite', { email: member.email })
+    await api.postJSON('/api/v1/auth/resend-invite', { email: member.email, delivery: 'email' })
     membersMsg.value = t('admin.members.invite_resent', { email: member.email })
     membersError.value = false
+  } catch (e) {
+    membersMsg.value = renderApiError(e)
+    membersError.value = true
+  }
+}
+
+async function copyNewLink(member) {
+  membersMsg.value = ''
+  membersError.value = false
+  memberLink.value = null
+  try {
+    const res = await api.postJSON('/api/v1/auth/resend-invite', { email: member.email, delivery: 'link' })
+    memberLink.value = { invite_url: res.invite_url, expires_at: res.expires_at, email: res.email || member.email }
+    membersMsg.value = t('admin.members.link_created', { email: member.email })
   } catch (e) {
     membersMsg.value = renderApiError(e)
     membersError.value = true
@@ -1667,7 +1722,7 @@ onMounted(async () => {
   }
 
   try {
-    await Promise.all([loadMembers(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies(), loadRiskCategories(), loadCustomFields()])
+    await Promise.all([loadMembers(), loadInviteOptions(), loadAPIKeys(), loadOIDCProviders(), loadSettings(), loadPolicies(), loadRiskCategories(), loadCustomFields()])
     loadBrandingFromSettings()
   } finally {
     pageLoading.value = false
@@ -1678,5 +1733,12 @@ watch(() => route.params.tab, (tab) => {
   if (tab && TABS.some((entry) => entry.key === tab)) {
     activeTab.value = tab
   }
+})
+
+// Leaving a tab drops any link shown there; opening Invite re-reads the options.
+watch(activeTab, (tab) => {
+  inviteLink.value = null
+  memberLink.value = null
+  if (tab === 'invite') loadInviteOptions()
 })
 </script>

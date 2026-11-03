@@ -26,7 +26,10 @@
     "empty": "メンバーが見つかりません",
     "role_updated": "{email} を {role} に更新しました",
     "removed": "{email} を削除しました",
-    "invite_resent": "{email} に招待を再送しました"
+    "invite_resent": "{email} に招待を再送しました",
+    "copy_link": "新しいリンクをコピー",
+    "resend_disabled": "このサーバーではメールが設定されていません。「新しいリンクをコピー」を使用してください。",
+    "link_created": "{email} の新しい招待リンクを作成しました"
   },
   "invite": {
     "title": "新しいメンバーを招待",
@@ -36,8 +39,17 @@
     "name_placeholder": "氏名",
     "role": "役割",
     "sending": "送信中…",
-    "submit": "招待を送信",
-    "sent": "{email} を招待しました"
+    "sent": "{email} を招待しました",
+    "send_email": "招待メールを送信",
+    "create_link": "招待リンクを作成",
+    "email_disabled_note": "このサーバーではメールが設定されていないため、代わりに招待リンクを作成してください。",
+    "link_label": "招待リンク",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "copy_failed": "自動でコピーできませんでした。リンクを選択済みです。Ctrl+C(Macは Cmd+C)でコピーしてください。",
+    "link_note": "1回限り有効なリンクです。有効期間は{hours}時間(期限: {date})。このリンクを持つ人は誰でも{email}のパスワードを設定できるため、本人以外には共有しないでください。",
+    "link_created": "{email} の招待リンクを作成しました",
+    "added": "{email} はすでにアカウントを持っているため、この組織に追加されました。"
   },
   "api_keys": {
     "note": "組織メンバーのすべての個人アクセストークンの監査ビューです。トークンの作成や失効は {settings} で行います。",

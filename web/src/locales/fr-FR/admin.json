@@ -26,7 +26,10 @@
     "empty": "Aucun membre trouvé",
     "role_updated": "{email} mis à jour vers {role}",
     "removed": "{email} retiré",
-    "invite_resent": "Invitation renvoyée à {email}"
+    "invite_resent": "Invitation renvoyée à {email}",
+    "copy_link": "Copier un nouveau lien",
+    "resend_disabled": "L'e-mail n'est pas configuré sur ce serveur. Utilisez « Copier un nouveau lien ».",
+    "link_created": "Nouveau lien d'invitation créé pour {email}"
   },
   "invite": {
     "title": "Inviter un nouveau membre",
@@ -36,8 +39,17 @@
     "name_placeholder": "Nom complet",
     "role": "Rôle",
     "sending": "Envoi…",
-    "submit": "Envoyer l'invitation",
-    "sent": "{email} invité"
+    "sent": "{email} invité",
+    "send_email": "Envoyer l'invitation par e-mail",
+    "create_link": "Créer un lien d'invitation",
+    "email_disabled_note": "L'e-mail n'est pas configuré sur ce serveur : créez plutôt un lien d'invitation.",
+    "link_label": "Lien d'invitation",
+    "copy": "Copier",
+    "copied": "Copié",
+    "copy_failed": "Copie automatique impossible. Le lien est sélectionné : appuyez sur Ctrl+C (Cmd+C sur Mac).",
+    "link_note": "Lien à usage unique, valable {hours} heures (expire : {date}). Toute personne disposant de ce lien peut définir le mot de passe de {email} ; ne le partagez qu'avec elle.",
+    "link_created": "Lien d'invitation créé pour {email}",
+    "added": "{email} a déjà un compte et a été ajouté à cette organisation."
   },
   "api_keys": {
     "note": "Vue d'audit de tous les jetons d'accès personnels des membres de l'organisation. Pour créer ou révoquer des jetons, allez dans {settings}.",

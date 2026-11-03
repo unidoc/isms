@@ -26,7 +26,10 @@
     "empty": "Nenhum membro encontrado",
     "role_updated": "{email} atualizado para {role}",
     "removed": "{email} removido",
-    "invite_resent": "Convite reenviado para {email}"
+    "invite_resent": "Convite reenviado para {email}",
+    "copy_link": "Copiar novo link",
+    "resend_disabled": "O e-mail não está configurado neste servidor. Use \"Copiar novo link\".",
+    "link_created": "Novo link de convite criado para {email}"
   },
   "invite": {
     "title": "Convidar novo membro",
@@ -36,8 +39,17 @@
     "name_placeholder": "Nome completo",
     "role": "Função",
     "sending": "Enviando…",
-    "submit": "Enviar convite",
-    "sent": "{email} convidado"
+    "sent": "{email} convidado",
+    "send_email": "Enviar convite por e-mail",
+    "create_link": "Criar link de convite",
+    "email_disabled_note": "O e-mail não está configurado neste servidor; crie um link de convite.",
+    "link_label": "Link de convite",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copy_failed": "Não foi possível copiar automaticamente. O link está selecionado: pressione Ctrl+C (Cmd+C no Mac).",
+    "link_note": "Link de uso único, válido por {hours} horas (expira: {date}). Quem tiver este link pode definir a senha de {email}; compartilhe-o somente com essa pessoa.",
+    "link_created": "Link de convite criado para {email}",
+    "added": "{email} já tem uma conta e foi adicionado a esta organização."
   },
   "api_keys": {
     "note": "Visualização de auditoria de todos os tokens de acesso pessoal dos membros da organização. Para criar ou revogar tokens, acesse {settings}.",

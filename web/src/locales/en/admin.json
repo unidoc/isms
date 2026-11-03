@@ -26,7 +26,10 @@
     "empty": "No members found",
     "role_updated": "Updated {email} to {role}",
     "removed": "Removed {email}",
-    "invite_resent": "Invite resent to {email}"
+    "invite_resent": "Invite resent to {email}",
+    "copy_link": "Copy new link",
+    "resend_disabled": "Email is not set up on this server. Use \"Copy new link\" instead.",
+    "link_created": "New invite link created for {email}"
   },
   "invite": {
     "title": "Invite a new member",
@@ -36,8 +39,17 @@
     "name_placeholder": "Full name",
     "role": "Role",
     "sending": "Sending…",
-    "submit": "Send invite",
-    "sent": "Invited {email}"
+    "sent": "Invited {email}",
+    "send_email": "Send email invite",
+    "create_link": "Create invite link",
+    "email_disabled_note": "Email isn't set up on this server, so create an invite link instead.",
+    "link_label": "Invite link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copy_failed": "Could not copy automatically. The link is selected: press Ctrl+C (Cmd+C on Mac).",
+    "link_note": "Single-use link, valid for {hours} hours (expires {date}). Anyone with this link can set the password for {email}, so share it only with them.",
+    "link_created": "Invite link created for {email}",
+    "added": "{email} already has an account and was added to this organization."
   },
   "api_keys": {
     "note": "Audit view of all personal access tokens from organization members. To create or revoke tokens, go to {settings}.",

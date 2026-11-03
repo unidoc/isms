@@ -26,7 +26,10 @@
     "empty": "No se encontraron miembros",
     "role_updated": "{email} actualizado a {role}",
     "removed": "{email} eliminado",
-    "invite_resent": "Invitación reenviada a {email}"
+    "invite_resent": "Invitación reenviada a {email}",
+    "copy_link": "Copiar nuevo enlace",
+    "resend_disabled": "El correo no está configurado en este servidor. Usa «Copiar nuevo enlace».",
+    "link_created": "Nuevo enlace de invitación creado para {email}"
   },
   "invite": {
     "title": "Invitar a un nuevo miembro",
@@ -36,8 +39,17 @@
     "name_placeholder": "Nombre completo",
     "role": "Rol",
     "sending": "Enviando…",
-    "submit": "Enviar invitación",
-    "sent": "{email} invitado"
+    "sent": "{email} invitado",
+    "send_email": "Enviar invitación por correo",
+    "create_link": "Crear enlace de invitación",
+    "email_disabled_note": "El correo no está configurado en este servidor, así que crea un enlace de invitación.",
+    "link_label": "Enlace de invitación",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copy_failed": "No se pudo copiar automáticamente. El enlace está seleccionado: pulsa Ctrl+C (Cmd+C en Mac).",
+    "link_note": "Enlace de un solo uso, válido durante {hours} horas (caduca: {date}). Quien tenga este enlace puede establecer la contraseña de {email}, así que compártelo solo con esa persona.",
+    "link_created": "Enlace de invitación creado para {email}",
+    "added": "{email} ya tiene una cuenta y se ha añadido a esta organización."
   },
   "api_keys": {
     "note": "Vista de auditoría de todos los tokens de acceso personal de los miembros de la organización. Para crear o revocar tokens, vaya a {settings}.",

@@ -255,7 +255,7 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 | `SMTP_PASSWORD` | SMTP password |
 | `SMTP_FROM` | From address for outgoing emails |
 
-Email is used for review notifications, invite links, and verification. Without SMTP configured, email-dependent features silently skip sending.
+Email is used for review notifications, invite links, and verification. Without SMTP configured, email-dependent features silently skip sending, and inviting someone by email is refused; use Admin > Invite > Create invite link instead (see the README, "Adding people without email").
 
 Each org's email is sent under its own name: the sender display name and the brand in the subject and body are the org's **Organization Display Name** (Admin → Branding) when one is set, otherwise the org name. The envelope sender stays the `SMTP_FROM` address, so SPF and DKIM are unaffected. `isms server test-email --org <slug>` previews the From header a given org's mail will carry.
 

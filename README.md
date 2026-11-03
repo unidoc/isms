@@ -145,6 +145,20 @@ isms server org create --name "My Company" --slug myco
 isms server org add-member --org myco --email admin@company.com --role admin
 ```
 
+### Adding people without email
+
+On a server with no outbound email (no `SMTP_HOST`), invitations cannot be mailed, but you can still add people:
+
+- **Admin > Invite > Create invite link** makes a single-use link, valid for 72 hours. Send it to the person privately; they open it and set their own password. Anyone holding the link can set that password, so do not post it anywhere shared.
+- **Admin > Members > Copy new link** makes a fresh link for someone who is still pending (the older link stops working).
+- Links are only offered for new people and for accounts that were never activated and belong to no other organization. Someone who already has an account is added directly, and "Send email invite" is available once SMTP is configured.
+- From the server shell, the operator can create an account with a password and add it to the organization:
+
+```bash
+isms server user create --email auditor@example.com --name "External Auditor" --password '<initial password>'
+isms server org add-member --org myco --email auditor@example.com --role reader
+```
+
 ### Configure CLI
 
 Create an env file (e.g. `company.env`):

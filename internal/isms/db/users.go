@@ -442,14 +442,6 @@ func (d *DB) SetIdentityIssuer(ctx context.Context, identityID int, issuer strin
 	return err
 }
 
-// GetUserByEmailFold finds a user by email ignoring case, matching the
-// uq_users_email_lower index. Returns an error if not found.
-func (d *DB) GetUserByEmailFold(ctx context.Context, email string) (*User, error) {
-	return d.scanIdentityUser(d.pool.QueryRow(ctx, `
-		SELECT `+identityUserColumns+` FROM users u WHERE lower(u.email) = lower($1)
-	`, email))
-}
-
 // IsBareAccount reports whether a user has no way to sign in yet: no password,
 // no passkey and no linked external identity. Such an account was created by an
 // administrator and is waiting for its owner's first sign-in.

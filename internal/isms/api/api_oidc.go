@@ -298,7 +298,7 @@ func (s *Server) handleOIDCCallback(c echo.Context) error {
 		}
 	}
 	if err != nil {
-		user, err = s.db.GetUserByEmailFold(ctx, claims.Email)
+		user, err = s.db.GetUserByEmail(ctx, claims.Email)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return echo.NewHTTPError(http.StatusInternalServerError, "looking up account: "+err.Error())
 		}

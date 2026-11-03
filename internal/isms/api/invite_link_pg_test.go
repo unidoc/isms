@@ -382,7 +382,7 @@ func TestInviteLink_NewLinkSupersedesEarlierTokenOfNeverActivatedAccount(t *test
 	if _, err := s.db.EnsureUser(ctx, u); err != nil {
 		t.Fatal(err)
 	}
-	old := "old-token-from-a-removed-invite"
+	old := "old-token-" + uuid.NewString()
 	h := sha256.Sum256([]byte(old))
 	if err := s.db.CreateEmailVerification(ctx, u.ID, hex.EncodeToString(h[:])); err != nil {
 		t.Fatal(err)

@@ -26,12 +26,15 @@ func (d *DB) InvalidateEmailVerifications(ctx context.Context, userID int, purpo
 	return err
 }
 
-// CreateEmailVerification stores a new verification token (72h expiry).
+// VerifyLinkValidHours is how long an invite/verification token stays valid.
+const VerifyLinkValidHours = 72
+
+// CreateEmailVerification stores a new verification token (VerifyLinkValidHours expiry).
 func (d *DB) CreateEmailVerification(ctx context.Context, userID int, tokenHash string) error {
 	_, err := d.pool.Exec(ctx, `
 		INSERT INTO email_verifications (user_id, token_hash, purpose, expires_at)
-		VALUES ($1, $2, 'verify', now() + interval '72 hours')
-	`, userID, tokenHash)
+		VALUES ($1, $2, 'verify', now() + make_interval(hours => $3))
+	`, userID, tokenHash, VerifyLinkValidHours)
 	return err
 }
 

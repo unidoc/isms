@@ -26,7 +26,10 @@
     "empty": "Nie znaleziono członków",
     "role_updated": "Zaktualizowano {email} do roli {role}",
     "removed": "Usunięto {email}",
-    "invite_resent": "Ponownie wysłano zaproszenie do {email}"
+    "invite_resent": "Ponownie wysłano zaproszenie do {email}",
+    "copy_link": "Kopiuj nowy link",
+    "resend_disabled": "Poczta e-mail nie jest skonfigurowana na tym serwerze. Użyj „Kopiuj nowy link”.",
+    "link_created": "Utworzono nowy link z zaproszeniem dla {email}"
   },
   "invite": {
     "title": "Zaproś nowego członka",
@@ -36,8 +39,17 @@
     "name_placeholder": "Imię i nazwisko",
     "role": "Rola",
     "sending": "Wysyłanie…",
-    "submit": "Wyślij zaproszenie",
-    "sent": "Zaproszono {email}"
+    "sent": "Zaproszono {email}",
+    "send_email": "Wyślij zaproszenie e-mailem",
+    "create_link": "Utwórz link z zaproszeniem",
+    "email_disabled_note": "Poczta e-mail nie jest skonfigurowana na tym serwerze, więc utwórz link z zaproszeniem.",
+    "link_label": "Link z zaproszeniem",
+    "copy": "Kopiuj",
+    "copied": "Skopiowano",
+    "copy_failed": "Nie udało się skopiować automatycznie. Link jest zaznaczony: naciśnij Ctrl+C (Cmd+C na Macu).",
+    "link_note": "Link jednorazowy, ważny {hours} godz. (wygasa: {date}). Każdy, kto ma ten link, może ustawić hasło dla {email}, więc udostępnij go tylko tej osobie.",
+    "link_created": "Utworzono link z zaproszeniem dla {email}",
+    "added": "{email} ma już konto i został dodany do tej organizacji."
   },
   "api_keys": {
     "note": "Widok audytowy wszystkich osobistych tokenów dostępu członków organizacji. Aby utworzyć lub odwołać token, przejdź do {settings}.",

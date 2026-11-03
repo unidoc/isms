@@ -26,7 +26,10 @@
     "empty": "Anggota tidak ditemukan",
     "role_updated": "{email} diperbarui menjadi {role}",
     "removed": "{email} dihapus",
-    "invite_resent": "Undangan dikirim ulang ke {email}"
+    "invite_resent": "Undangan dikirim ulang ke {email}",
+    "copy_link": "Salin tautan baru",
+    "resend_disabled": "Email belum diatur di server ini. Gunakan \"Salin tautan baru\".",
+    "link_created": "Tautan undangan baru dibuat untuk {email}"
   },
   "invite": {
     "title": "Undang anggota baru",
@@ -36,8 +39,17 @@
     "name_placeholder": "Nama lengkap",
     "role": "Peran",
     "sending": "Mengirim…",
-    "submit": "Kirim undangan",
-    "sent": "{email} telah diundang"
+    "sent": "{email} telah diundang",
+    "send_email": "Kirim undangan lewat email",
+    "create_link": "Buat tautan undangan",
+    "email_disabled_note": "Email belum diatur di server ini, jadi buat tautan undangan saja.",
+    "link_label": "Tautan undangan",
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "copy_failed": "Tidak dapat menyalin otomatis. Tautan sudah dipilih: tekan Ctrl+C (Cmd+C di Mac).",
+    "link_note": "Tautan sekali pakai, berlaku {hours} jam (kedaluwarsa: {date}). Siapa pun yang memegang tautan ini dapat mengatur kata sandi untuk {email}, jadi bagikan hanya kepada orang tersebut.",
+    "link_created": "Tautan undangan dibuat untuk {email}",
+    "added": "{email} sudah memiliki akun dan telah ditambahkan ke organisasi ini."
   },
   "api_keys": {
     "note": "Tampilan audit atas seluruh token akses pribadi milik anggota organisasi. Untuk membuat atau mencabut token, buka {settings}.",

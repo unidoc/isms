@@ -26,7 +26,10 @@
     "empty": "Engir meðlimir fundust",
     "role_updated": "{email} uppfært í {role}",
     "removed": "{email} fjarlægt",
-    "invite_resent": "Boð endursent á {email}"
+    "invite_resent": "Boð endursent á {email}",
+    "copy_link": "Afrita nýjan tengil",
+    "resend_disabled": "Tölvupóstur er ekki uppsettur á þessum netþjóni. Notaðu „Afrita nýjan tengil“.",
+    "link_created": "Nýr boðstengill búinn til fyrir {email}"
   },
   "invite": {
     "title": "Bjóða nýjum meðlim",
@@ -36,8 +39,17 @@
     "name_placeholder": "Fullt nafn",
     "role": "Hlutverk",
     "sending": "Sendi…",
-    "submit": "Senda boð",
-    "sent": "{email} boðið"
+    "sent": "{email} boðið",
+    "send_email": "Senda boð í tölvupósti",
+    "create_link": "Búa til boðstengil",
+    "email_disabled_note": "Tölvupóstur er ekki uppsettur á þessum netþjóni, búðu því frekar til boðstengil.",
+    "link_label": "Boðstengill",
+    "copy": "Afrita",
+    "copied": "Afritað",
+    "copy_failed": "Ekki tókst að afrita sjálfkrafa. Tengillinn er valinn: ýttu á Ctrl+C (Cmd+C á Mac).",
+    "link_note": "Tengill til einnar notkunar, gildir í {hours} klukkustundir (rennur út: {date}). Hver sem hefur þennan tengil getur sett lykilorð fyrir {email}, deildu honum því aðeins með viðkomandi.",
+    "link_created": "Boðstengill búinn til fyrir {email}",
+    "added": "{email} er þegar með aðgang og var bætt við þessa stofnun."
   },
   "api_keys": {
     "note": "Yfirlit yfir öll persónuleg aðgangsteikn frá meðlimum fyrirtækisins. Til að stofna eða afturkalla teikn, farðu í {settings}.",

@@ -793,6 +793,9 @@ func (s *Server) routes() {
 	api.GET("/auth/oidc/authorize", s.handleOIDCAuthorize, authLimit)
 	api.GET("/auth/oidc/callback", s.handleOIDCCallback)
 
+	// Invite options: managers invite too, so this sits outside the admin-only group.
+	api.GET("/admin/invite-options", s.handleInviteOptions)
+
 	// Admin (role-gated)
 	admin := api.Group("/admin")
 	admin.Use(s.AdminOnly())

@@ -239,9 +239,14 @@ func (m *Mailer) SendVerification(to, name, baseURL, token string) error {
 	return m.SendVerificationBranded(to, name, baseURL, token, Branding{})
 }
 
+// VerifyLink is the page where an invited person sets a password with token.
+func VerifyLink(baseURL, token string) string {
+	return fmt.Sprintf("%s/verify-email?token=%s", strings.TrimRight(baseURL, "/"), token)
+}
+
 // SendVerificationBranded sends an email verification link with org branding.
 func (m *Mailer) SendVerificationBranded(to, name, baseURL, token string, b Branding) error {
-	link := fmt.Sprintf("%s/verify-email?token=%s", strings.TrimRight(baseURL, "/"), token)
+	link := VerifyLink(baseURL, token)
 
 	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
 <h2>Welcome to %s</h2>

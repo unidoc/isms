@@ -26,7 +26,10 @@
     "empty": "Keine Mitglieder gefunden",
     "role_updated": "{email} auf {role} aktualisiert",
     "removed": "{email} entfernt",
-    "invite_resent": "Einladung erneut an {email} gesendet"
+    "invite_resent": "Einladung erneut an {email} gesendet",
+    "copy_link": "Neuen Link kopieren",
+    "resend_disabled": "Auf diesem Server ist keine E-Mail eingerichtet. Verwenden Sie stattdessen „Neuen Link kopieren“.",
+    "link_created": "Neuer Einladungslink für {email} erstellt"
   },
   "invite": {
     "title": "Neues Mitglied einladen",
@@ -36,8 +39,17 @@
     "name_placeholder": "Vollständiger Name",
     "role": "Rolle",
     "sending": "Wird gesendet…",
-    "submit": "Einladung senden",
-    "sent": "{email} eingeladen"
+    "sent": "{email} eingeladen",
+    "send_email": "Einladung per E-Mail senden",
+    "create_link": "Einladungslink erstellen",
+    "email_disabled_note": "Auf diesem Server ist keine E-Mail eingerichtet. Erstellen Sie stattdessen einen Einladungslink.",
+    "link_label": "Einladungslink",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "copy_failed": "Automatisches Kopieren nicht möglich. Der Link ist markiert: Strg+C (Cmd+C auf dem Mac) drücken.",
+    "link_note": "Einmal verwendbarer Link, {hours} Stunden gültig (läuft ab: {date}). Wer diesen Link hat, kann das Passwort für {email} festlegen. Geben Sie ihn daher nur an diese Person weiter.",
+    "link_created": "Einladungslink für {email} erstellt",
+    "added": "{email} hat bereits ein Konto und wurde dieser Organisation hinzugefügt."
   },
   "api_keys": {
     "note": "Prüfübersicht aller persönlichen Zugriffstoken von Organisationsmitgliedern. Um Token zu erstellen oder zu widerrufen, gehen Sie zu {settings}.",

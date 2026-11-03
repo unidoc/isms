@@ -269,6 +269,15 @@ paths:
     post:
       tags: [Auth]
       summary: Invite a user to the organization
+      description: |
+        Requires admin or manager role (only admins may invite as admin or manager).
+        With `delivery: email` (the default) the person is emailed a link to set a
+        password; with `delivery: link` nothing is sent and the same link comes back
+        in `invite_url` for the caller to hand over. A link is issued only for a
+        brand-new email or for an account that was never activated (no password) and
+        belongs to no other organization; otherwise the call fails with 409 and
+        nothing is written. An existing active account is just added to the
+        organization (`status: added`, no link, whatever `delivery` says).
       requestBody:
         required: true
         content:
@@ -280,11 +289,76 @@ paths:
                 email: { type: string, format: email }
                 name: { type: string }
                 role: { type: string, enum: [admin, manager, contributor, reader] }
+                delivery:
+                  type: string
+                  enum: [email, link]
+                  default: email
       responses:
         '200':
-          description: Invitation sent
+          description: Invitation sent, link created, or existing account added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InviteResponse' }
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Already a member of this organization, or a link was asked for an account that already exists
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: delivery is email but email is not configured on this server; nothing was created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/resend-invite:
+    post:
+      tags: [Auth]
+      summary: Resend or recreate the invite for a pending member
+      description: |
+        Requires admin or manager role. Applies to a member of this organization who
+        has not activated the account yet. Earlier verification links are invalidated
+        before the new one is issued. With `delivery: link` the new link is returned
+        in `invite_url` instead of being emailed, and only when the account has no
+        password and belongs to no other organization (409 otherwise).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                delivery:
+                  type: string
+                  enum: [email, link]
+                  default: email
+      responses:
+        '200':
+          description: Invite resent, or a new link created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InviteResponse' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The user already accepted the invite, or a link was asked for an account that is not only this organization's pending invitee
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: delivery is email but email is not configured on this server; nothing was changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /auth/password:
     put:
@@ -3398,6 +3472,25 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /admin/invite-options:
+    get:
+      tags: [Admin]
+      summary: Which invite deliveries work on this server
+      description: Requires admin or manager role.
+      responses:
+        '200':
+          description: Invite options
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [email_enabled, link_valid_hours]
+                properties:
+                  email_enabled: { type: boolean, description: Whether invitation emails can be sent. }
+                  link_valid_hours: { type: integer, description: How long an invite link stays valid. }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /admin/members/{userId}/role:
     put:
       tags: [Admin]
@@ -3732,6 +3825,15 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    InviteResponse:
+      type: object
+      required: [status, email]
+      properties:
+        status: { type: string, enum: [invited, added, invite_resent] }
+        delivery: { type: string, enum: [link], description: Present only when a link was created. }
+        email: { type: string }
+        invite_url: { type: string, description: Present only when delivery was link. Single use. }
+        expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     Error:
       type: object
       description: "Error body. Errors raised with a stable code carry code (and params); legacy errors carry only message."

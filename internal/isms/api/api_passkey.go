@@ -60,6 +60,12 @@ func dbCredsToWebAuthn(creds []db.WebAuthnCredential) []webauthn.Credential {
 // handlePasskeyRegisterBegin starts the WebAuthn registration ceremony.
 // POST /auth/passkey/register/begin
 func (s *Server) handlePasskeyRegisterBegin(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	if s.webauthn == nil {
 		return echo.NewHTTPError(http.StatusServiceUnavailable, "WebAuthn not configured (set ISMS_BASE_URL)")
 	}
@@ -108,6 +114,12 @@ func (s *Server) handlePasskeyRegisterBegin(c echo.Context) error {
 // handlePasskeyRegisterComplete finishes the WebAuthn registration ceremony.
 // POST /auth/passkey/register/complete
 func (s *Server) handlePasskeyRegisterComplete(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	if s.webauthn == nil {
 		return echo.NewHTTPError(http.StatusServiceUnavailable, "WebAuthn not configured")
 	}
@@ -394,6 +406,12 @@ type renamePasskeyRequest struct {
 // handleRenamePasskey renames a passkey.
 // PUT /auth/passkeys/:id
 func (s *Server) handleRenamePasskey(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidID)
@@ -431,6 +449,12 @@ func (s *Server) handleRenamePasskey(c echo.Context) error {
 // handleDeletePasskey removes a passkey.
 // DELETE /auth/passkeys/:id
 func (s *Server) handleDeletePasskey(c echo.Context) error {
+	if err := refuseSSOSession(c); err != nil {
+		return err
+	}
+	if err := refuseAPIKey(c); err != nil {
+		return err
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidID)

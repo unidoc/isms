@@ -83,5 +83,20 @@
     "added_message": "Passkey erfolgreich hinzugefügt",
     "cancelled": "Passkey-Registrierung wurde abgebrochen",
     "error_add": "Passkey konnte nicht hinzugefügt werden"
+  },
+  "sso": {
+    "title": "Single Sign-on",
+    "description": "Verknüpfen Sie Ihr Konto mit dem Single-Sign-on-Anbieter dieser Organisation, um sich damit anzumelden. Zum Verknüpfen oder Trennen müssen Sie mit Passwort oder Passkey angemeldet sein.",
+    "none": "Keine Single-Sign-on-Identitäten verknüpft.",
+    "no_providers": "Für diese Organisation ist kein Single-Sign-on-Anbieter aktiviert.",
+    "linked_on": "Verknüpft am {date}",
+    "link": "{provider} verknüpfen",
+    "unlink": "Trennen",
+    "unlink_confirm": "Diese Single-Sign-on-Identität trennen?",
+    "unlinked": "Single-Sign-on-Identität getrennt",
+    "linked_message": "Single Sign-on mit Ihrem Konto verknüpft",
+    "in_use_message": "Diese Single-Sign-on-Identität ist bereits mit einem anderen Konto verknüpft",
+    "error_link": "Verknüpfung konnte nicht gestartet werden",
+    "error_complete": "Die Verknüpfung konnte nicht abgeschlossen werden. Starten Sie erneut in den Einstellungen."
   }
 }

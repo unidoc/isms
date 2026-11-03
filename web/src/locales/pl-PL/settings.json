@@ -83,5 +83,20 @@
     "added_message": "Pomyślnie dodano klucz dostępu",
     "cancelled": "Rejestracja klucza dostępu została anulowana",
     "error_add": "Nie udało się dodać klucza dostępu"
+  },
+  "sso": {
+    "title": "Logowanie jednokrotne",
+    "description": "Powiąż swoje konto z dostawcą logowania jednokrotnego tej organizacji, aby móc się nim logować. Aby powiązać lub odłączyć, musisz być zalogowany hasłem lub kluczem dostępu.",
+    "none": "Brak powiązanych tożsamości logowania jednokrotnego.",
+    "no_providers": "Ta organizacja nie ma włączonego dostawcy logowania jednokrotnego.",
+    "linked_on": "Powiązano {date}",
+    "link": "Powiąż {provider}",
+    "unlink": "Odłącz",
+    "unlink_confirm": "Odłączyć tę tożsamość logowania jednokrotnego?",
+    "unlinked": "Tożsamość logowania jednokrotnego odłączona",
+    "linked_message": "Logowanie jednokrotne powiązane z Twoim kontem",
+    "in_use_message": "Ta tożsamość logowania jednokrotnego jest już powiązana z innym kontem",
+    "error_link": "Nie udało się rozpocząć powiązania",
+    "error_complete": "Nie udało się dokończyć powiązania. Zacznij ponownie w Ustawieniach."
   }
 }

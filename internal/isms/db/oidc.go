@@ -93,6 +93,9 @@ type OIDCSession struct {
 	OrganizationID int
 	RedirectURI    string
 	ExpiresAt      time.Time
+	// LinkUserID, when > 0, marks a flow started by a signed-in user to link
+	// the identity to their own account (no sign-in happens).
+	LinkUserID int
 }
 
 // CreateOIDCProvider inserts a new OIDC provider for an organization.
@@ -230,10 +233,10 @@ func (d *DB) DeleteOIDCProvider(ctx context.Context, orgID, id int) error {
 // CreateOIDCSession stores an OIDC session for the authorization code flow.
 func (d *DB) CreateOIDCSession(ctx context.Context, s *OIDCSession) error {
 	return d.pool.QueryRow(ctx, `
-		INSERT INTO oidc_sessions (state, nonce, provider_id, organization_id, redirect_uri, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO oidc_sessions (state, nonce, provider_id, organization_id, redirect_uri, expires_at, link_user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, 0))
 		RETURNING id
-	`, s.State, s.Nonce, s.ProviderID, s.OrganizationID, s.RedirectURI, s.ExpiresAt).Scan(&s.ID)
+	`, s.State, s.Nonce, s.ProviderID, s.OrganizationID, s.RedirectURI, s.ExpiresAt, s.LinkUserID).Scan(&s.ID)
 }
 
 // LookupOIDCSession finds and deletes an OIDC session by state (single-use).
@@ -241,8 +244,8 @@ func (d *DB) LookupOIDCSession(ctx context.Context, state string) (*OIDCSession,
 	var s OIDCSession
 	err := d.pool.QueryRow(ctx, `
 		DELETE FROM oidc_sessions WHERE state = $1
-		RETURNING id, state, nonce, provider_id, organization_id, redirect_uri, expires_at
-	`, state).Scan(&s.ID, &s.State, &s.Nonce, &s.ProviderID, &s.OrganizationID, &s.RedirectURI, &s.ExpiresAt)
+		RETURNING id, state, nonce, provider_id, organization_id, redirect_uri, expires_at, COALESCE(link_user_id, 0)
+	`, state).Scan(&s.ID, &s.State, &s.Nonce, &s.ProviderID, &s.OrganizationID, &s.RedirectURI, &s.ExpiresAt, &s.LinkUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -253,4 +256,40 @@ func (d *DB) LookupOIDCSession(ctx context.Context, state string) (*OIDCSession,
 func (d *DB) DeleteExpiredOIDCSessions(ctx context.Context) error {
 	_, err := d.pool.Exec(ctx, `DELETE FROM oidc_sessions WHERE expires_at < now()`)
 	return err
+}
+
+// OIDCLinkPending is a verified identity waiting for the user who started the
+// link flow to complete it from inside the app.
+type OIDCLinkPending struct {
+	UserID         int
+	OrganizationID int
+	Provider       string
+	Issuer         string
+	Subject        string
+	Email          string
+}
+
+// CreateOIDCLinkPending stores a pending link under the hash of its one-time
+// code and drops expired ones.
+func (d *DB) CreateOIDCLinkPending(ctx context.Context, codeHash string, p *OIDCLinkPending, expires time.Time) error {
+	_, _ = d.pool.Exec(ctx, `DELETE FROM oidc_link_pending WHERE expires_at < now()`)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO oidc_link_pending (code_hash, user_id, organization_id, provider_name, issuer, subject, email, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8)
+	`, codeHash, p.UserID, p.OrganizationID, p.Provider, p.Issuer, p.Subject, p.Email, expires)
+	return err
+}
+
+// ConsumeOIDCLinkPending deletes and returns an unexpired pending link
+// (single-use). It returns pgx.ErrNoRows when there is none.
+func (d *DB) ConsumeOIDCLinkPending(ctx context.Context, codeHash string) (*OIDCLinkPending, error) {
+	var p OIDCLinkPending
+	err := d.pool.QueryRow(ctx, `
+		DELETE FROM oidc_link_pending WHERE code_hash = $1 AND expires_at > now()
+		RETURNING user_id, organization_id, provider_name, issuer, subject, COALESCE(email, '')
+	`, codeHash).Scan(&p.UserID, &p.OrganizationID, &p.Provider, &p.Issuer, &p.Subject, &p.Email)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }

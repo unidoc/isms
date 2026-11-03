@@ -1,0 +1,41 @@
+package api
+
+import "testing"
+
+func TestOrgLoginErrorURL(t *testing.T) {
+	custom := "audit.example.com"
+	cases := []struct {
+		name, base, slug string
+		domain           *string
+		sub              bool
+		want             string
+	}{
+		{"path based", "http://localhost:9999", "acme", nil, false, "http://localhost:9999/acme/login?sso_error=account_exists"},
+		{"subdomain", "https://isms.sh", "acme", nil, true, "https://acme.isms.sh/login?sso_error=account_exists"},
+		{"custom domain", "https://isms.sh", "acme", &custom, true, "https://audit.example.com/login?sso_error=account_exists"},
+	}
+	for _, c := range cases {
+		if got := orgLoginErrorURL(c.base, c.slug, c.domain, "account_exists", c.sub); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestOrgSettingsLinkURL(t *testing.T) {
+	custom := "audit.example.com"
+	cases := []struct {
+		name, base, slug string
+		domain           *string
+		sub              bool
+		want             string
+	}{
+		{"path based", "http://localhost:9999", "acme", nil, false, "http://localhost:9999/acme/settings?sso_link_code=abc"},
+		{"subdomain", "https://isms.sh", "acme", nil, true, "https://acme.isms.sh/settings?sso_link_code=abc"},
+		{"custom domain", "https://isms.sh", "acme", &custom, true, "https://audit.example.com/settings?sso_link_code=abc"},
+	}
+	for _, c := range cases {
+		if got := orgSettingsLinkURL(c.base, c.slug, c.domain, "sso_link_code", "abc", c.sub); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}

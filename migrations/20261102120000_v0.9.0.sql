@@ -295,3 +295,59 @@ INSERT INTO settings (key, description, category, default_value, sensitive) VALU
     ('system_review_cycle_medium',   'Review cycle for medium-criticality systems (months)', 'review_cycles', '6',  false),
     ('system_review_cycle_low',      'Review cycle for low-criticality systems (months)', 'review_cycles', '12', false)
 ON CONFLICT (key) DO NOTHING;
+
+-- Single sign-on identities are keyed by the ID token issuer, not the provider
+-- name. user_identities was unique on (provider, subject), and the provider
+-- name is chosen by whichever organization registers the provider, so a
+-- provider in one organization could match another organization's link just by
+-- reusing the name. The issuer is bound to the keys that sign the token, so it
+-- cannot be claimed that way. Existing rows keep issuer NULL (legacy): the
+-- callback only honours them for a member of the signing-in provider's
+-- organization and fills the issuer in on first use. The partial unique index
+-- keeps legacy rows unique by (provider, subject) as before.
+ALTER TABLE user_identities ADD COLUMN IF NOT EXISTS issuer TEXT;
+ALTER TABLE user_identities DROP CONSTRAINT IF EXISTS user_identities_provider_subject_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_issuer_subject
+    ON user_identities (issuer, subject) WHERE issuer IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_identities_legacy_provider_subject
+    ON user_identities (provider, subject) WHERE issuer IS NULL;
+
+-- A signed-in user can link single sign-on to their own account from Settings.
+-- The flow's session row records who started it, so the callback links the
+-- identity to that user (the live session is the proof) instead of resolving
+-- an account by email.
+ALTER TABLE oidc_sessions ADD COLUMN IF NOT EXISTS link_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+
+-- The callback of a link flow cannot know which browser it is talking to (the
+-- link can be forwarded to someone else), so it parks the verified identity
+-- behind a one-time code and the app completes the link with the signed-in
+-- user's session. Only the code's hash is stored.
+CREATE TABLE IF NOT EXISTS oidc_link_pending (
+    code_hash       TEXT PRIMARY KEY,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    provider_name   TEXT NOT NULL,
+    issuer          TEXT NOT NULL,
+    subject         TEXT NOT NULL,
+    email           TEXT,
+    expires_at      TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oidc_link_pending_expires ON oidc_link_pending(expires_at);
+
+-- Links made before issuers were recorded (issuer NULL) are keyed by provider
+-- NAME, which any organization can reuse. Bind each to the organization it was
+-- made in: the single organization that has a provider of that name and the
+-- user as a member. A row that fits none or several organizations stays NULL
+-- and never matches on sign-in; its owner links again from Settings. Only
+-- unbound legacy rows are touched, so a second run changes nothing.
+ALTER TABLE user_identities ADD COLUMN IF NOT EXISTS legacy_org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL;
+UPDATE user_identities ui
+   SET legacy_org_id = x.org_id
+  FROM (SELECT i.id, min(p.organization_id) AS org_id
+          FROM user_identities i
+          JOIN oidc_providers p ON p.provider_name = i.provider
+          JOIN organization_members m ON m.organization_id = p.organization_id AND m.user_id = i.user_id
+         WHERE i.issuer IS NULL AND i.legacy_org_id IS NULL
+         GROUP BY i.id
+        HAVING count(DISTINCT p.organization_id) = 1) x
+ WHERE ui.id = x.id AND ui.issuer IS NULL AND ui.legacy_org_id IS NULL;

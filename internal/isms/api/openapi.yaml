@@ -568,7 +568,132 @@ paths:
           schema: { type: string }
       responses:
         '302':
-          description: Redirect to app with session token
+          description: >-
+            Redirect to the organization's app. A successful sign-in lands on
+            the login page with the session token in the URL fragment. A
+            sign-in refused because the email belongs to an existing account
+            that single sign-on may not take over lands on the login page with
+            `?sso_error=account_exists`. A flow started by `POST /auth/oidc/link`
+            mints no session and links nothing yet: it lands on the Settings
+            page with a one-time `?sso_link_code=`, which the app completes with
+            `POST /auth/oidc/link/complete` using the signed-in session.
+
+  /auth/oidc/link:
+    post:
+      tags: [Auth]
+      summary: Begin linking single sign-on to the signed-in account
+      description: >-
+        Starts an OIDC flow for an enabled provider of the current organization
+        that attaches the resulting identity to the caller's own account. The
+        signed-in session is the proof of ownership. Refused for API keys and
+        for sessions that were themselves created by single sign-on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider: { type: string, description: Provider name }
+      responses:
+        '200':
+          description: The identity provider's authorization URL to navigate to
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+        '400': { description: Missing provider or no current organization }
+        '401': { description: Not authenticated }
+        '403': { description: API key or single sign-on session }
+        '404': { description: "Provider not found, disabled, or in another organization" }
+
+  /auth/oidc/link/complete:
+    post:
+      tags: [Auth]
+      summary: Complete linking single sign-on with the one-time code
+      description: >-
+        Finishes a flow started by `POST /auth/oidc/link`. The code (from the
+        callback's redirect to Settings) is single-use, expires after 10
+        minutes, and must be presented by the account that started the flow;
+        any other caller gets 403 and the code is burned. Refused for API keys
+        and single sign-on sessions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: >-
+            `linked` (also when this account already had the identity) or
+            `in_use` (the identity belongs to another account)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: string, enum: [linked, in_use] }
+        '400': { description: "Code missing, expired or already used" }
+        '401': { description: Not authenticated }
+        '403': { description: "API key, single sign-on session, or the link was started by another account" }
+
+  /auth/identities:
+    get:
+      tags: [Auth]
+      summary: List the caller's linked single sign-on identities
+      responses:
+        '200':
+          description: Linked identities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        provider: { type: string }
+                        issuer: { type: string }
+                        email: { type: string }
+                        created_at:
+                          type: integer
+                          format: int64
+                          description: Unix epoch seconds.
+        '401': { description: Not authenticated }
+
+  /auth/identities/{id}:
+    delete:
+      tags: [Auth]
+      summary: Unlink a single sign-on identity
+      description: >-
+        Removes one of the caller's own identities. Refused for API keys and
+        single sign-on sessions, and when it is the account's only way to sign
+        in (no password, passkey or other identity).
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Identity unlinked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [unlinked] }
+        '401': { description: Not authenticated }
+        '403': { description: API key or single sign-on session }
+        '404': { description: Identity not found or not the caller's }
+        '409': { description: It is the account's only way to sign in }
 
   # ── Users ───────────────────────────────────────────────────────────────
   /me:

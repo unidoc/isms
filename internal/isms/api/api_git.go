@@ -25,6 +25,15 @@ func (s *Server) resolveGitOrg(c echo.Context) (string, error) {
 		return "", echo.NewHTTPError(http.StatusInternalServerError, "organization has no repo path")
 	}
 
+	// A single sign-on session and an org-scoped key are confined to one
+	// organization, whatever the URL asks for.
+	if sso := getSSOOrg(c); sso > 0 && sso != org.ID {
+		return "", echo.NewHTTPError(http.StatusForbidden, "access denied")
+	}
+	if keyOrg, ok := c.Get("api_key_org").(int); ok && keyOrg != org.ID {
+		return "", echo.NewHTTPError(http.StatusForbidden, "access denied")
+	}
+
 	// If middleware already resolved org, verify it matches
 	if tokenOrgID, ok := c.Get("org_id").(int); ok && tokenOrgID > 0 && tokenOrgID != org.ID {
 		return "", echo.NewHTTPError(http.StatusForbidden, "access denied")

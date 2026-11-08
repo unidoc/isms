@@ -42,6 +42,8 @@ tags:
     description: Current user, user management, organizations
   - name: Config
     description: ISMS configuration from git repo
+  - name: Trust Center
+    description: Public trust center pages, readable without a session
   - name: Documents
     description: List, search, get, edit, validate, needs-review, changed
   - name: Risks
@@ -873,6 +875,71 @@ paths:
 
 
 
+
+  # ── Trust center (public) ───────────────────────────────────────────────
+  /trust/{slug}:
+    get:
+      tags: [Trust Center]
+      summary: Get an organization's public trust center page
+      description: >-
+        Needs no session; any Authorization header is ignored. Returns 404 with
+        one fixed body for every case where the page is not available: unknown or
+        deleted organization, trust center off or never set up, a tenant
+        subdomain or custom domain that belongs to a different organization than
+        the slug, and any path or method not documented here. Responses are never
+        cacheable (`Cache-Control: no-store`).
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: Trust center overview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterOverview' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal error. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust/{slug}/items:
+    get:
+      tags: [Trust Center]
+      summary: List the items published in an organization's trust center
+      description: >-
+        Needs no session; any Authorization header is ignored. Lists items of
+        every access level, so a page can show gated and restricted ones as
+        locked. The list is empty (`[]`) when nothing is published. The 404 and
+        500 responses and caching are as for `/trust/{slug}`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: Published items, ordered by section, sort_order, then publication time
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCenterItem' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal error. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   # ── Documents ───────────────────────────────────────────────────────────
   /documents/all:
@@ -3834,6 +3901,23 @@ components:
         email: { type: string }
         invite_url: { type: string, description: Present only when delivery was link. Single use. }
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
+    TrustCenterOverview:
+      type: object
+      required: [title, security_contact, branding_name, branding_color]
+      properties:
+        title: { type: string, description: The page title the organization chose; empty when unset. }
+        security_contact: { type: string, description: Where to report a security issue; empty when unset. }
+        branding_name: { type: string, description: The organization's brand name. }
+        branding_color: { type: string, description: The organization's brand color; empty when unset. }
+    TrustCenterItem:
+      type: object
+      required: [id, kind, section, sort_order, access_level]
+      properties:
+        id: { type: string, format: uuid, description: Public identifier of the item. }
+        kind: { type: string, enum: [document, certification, subprocessor, card, faq, update] }
+        section: { type: string, description: Section heading the item is shown under; empty for none. }
+        sort_order: { type: integer }
+        access_level: { type: string, enum: [public, gated, restricted], description: Who may open the item. }
     Error:
       type: object
       description: "Error body. Errors raised with a stable code carry code (and params); legacy errors carry only message."

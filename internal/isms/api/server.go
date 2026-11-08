@@ -548,6 +548,12 @@ func (s *Server) routes() {
 	// Config
 	api.GET("/config", s.handleGetConfig)
 
+	// Trust center public read API (#517): no session. AuthMiddleware skips the
+	// prefix; handleTrustPublic answers every method so only the two GET
+	// endpoints return anything but the single 404.
+	api.Any("/trust", s.handleTrustPublic)
+	api.Any("/trust/*", s.handleTrustPublic)
+
 	// Dynamic documents — scans git repo, no hardcoded structure
 	api.GET("/documents/needs-review", s.handleNeedsReview)
 	api.GET("/documents/all", s.handleListAllDocuments)

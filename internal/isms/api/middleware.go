@@ -52,7 +52,8 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 				path == "/api/v1/auth/verify-email-change" ||
 				path == "/api/v1/auth/forgot-password" || path == "/api/v1/auth/cf-session" ||
 				path == "/api/v1/auth/passkey/login/begin" || path == "/api/v1/auth/passkey/login/complete" ||
-				path == "/api/v1/auth/oidc/providers" || path == "/api/v1/auth/oidc/authorize" || path == "/api/v1/auth/oidc/callback" {
+				path == "/api/v1/auth/oidc/providers" || path == "/api/v1/auth/oidc/authorize" || path == "/api/v1/auth/oidc/callback" ||
+				trustPublicPath(path) {
 				return next(c)
 			}
 

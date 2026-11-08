@@ -476,6 +476,7 @@
     "review_wrong_status": "tinjauan berstatus {status}",
     "review_already_status": "tinjauan sudah berstatus {status}",
     "change_invalid_transition": "permintaan perubahan berstatus {status}, tidak bisa pindah ke {value}",
+    "document_not_approved": "hanya dokumen yang disetujui yang dapat dikonfirmasi — dokumen yang berubah sejak disetujui memerlukan tinjauan penuh",
     "trust_no_approved_version": "dokumen ini tidak memiliki versi yang disetujui untuk dipublikasikan",
     "trust_document_retired": "dokumen yang sudah dinonaktifkan tidak dapat dipublikasikan",
     "trust_already_published": "dokumen ini sudah dipublikasikan di pusat kepercayaan",

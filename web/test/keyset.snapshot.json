@@ -961,6 +961,7 @@
   "common.error.current_password_required",
   "common.error.document_file_not_found",
   "common.error.document_modified",
+  "common.error.document_not_approved",
   "common.error.email_and_password_required",
   "common.error.email_in_use",
   "common.error.field_empty",

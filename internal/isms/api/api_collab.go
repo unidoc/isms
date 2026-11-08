@@ -4206,6 +4206,13 @@ func (s *Server) handleConfirmDocumentReview(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "loading document")
 	}
 
+	// A confirmation records an approval, a decision and a version snapshot of
+	// HEAD, so only a document that is approved at HEAD can be confirmed. A
+	// draft, in-review or retired document needs a full review instead.
+	if doc.Frontmatter.Status != "approved" {
+		return apiError(http.StatusConflict, CodeDocumentNotApproved)
+	}
+
 	version := doc.Frontmatter.Version
 	if version == "" {
 		version = "1.0"

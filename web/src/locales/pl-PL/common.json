@@ -476,6 +476,7 @@
     "review_wrong_status": "przegląd ma status: {status}",
     "review_already_status": "przegląd już ma status: {status}",
     "change_invalid_transition": "wniosek o zmianę ma status {status}, nie można przejść do {value}",
+    "document_not_approved": "potwierdzić można tylko zatwierdzone dokumenty — dokument zmieniony od zatwierdzenia wymaga pełnego przeglądu",
     "trust_no_approved_version": "ten dokument nie ma zatwierdzonej wersji do opublikowania",
     "trust_document_retired": "wycofanego dokumentu nie można opublikować",
     "trust_already_published": "ten dokument jest już opublikowany w centrum zaufania",

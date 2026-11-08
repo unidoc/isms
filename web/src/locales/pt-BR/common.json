@@ -476,6 +476,7 @@
     "review_wrong_status": "a revisão está {status}",
     "review_already_status": "a revisão já está {status}",
     "change_invalid_transition": "a solicitação de mudança está {status}, não pode mudar para {value}",
+    "document_not_approved": "somente documentos aprovados podem ser confirmados — um documento que mudou desde a aprovação precisa de uma revisão completa",
     "trust_no_approved_version": "este documento não tem nenhuma versão aprovada para publicar",
     "trust_document_retired": "um documento aposentado não pode ser publicado",
     "trust_already_published": "este documento já está publicado na central de confiança",

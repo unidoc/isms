@@ -102,3 +102,32 @@ class TestDocumentHistoryDecisions:
         # Newest first across both sources.
         stamps = [x["created_at"] for x in rows]
         assert stamps == sorted(stamps, reverse=True), stamps
+
+
+class TestConfirmReviewOnlyConfirmsApproved:
+    def test_confirm_after_edit_is_refused_and_records_nothing(self, api_url, admin_headers, contributor_headers):
+        doc_id = _create_doc(api_url, admin_headers)
+        r = requests.post(f"{api_url}/documents/{doc_id}/reviews", headers=admin_headers,
+                          json={"reviewers": [CONTRIBUTOR_EMAIL], "message": "please review"})
+        assert r.status_code in (200, 201), r.text
+        rid = r.json()["review_id"]
+        r = requests.post(f"{api_url}/reviews/{rid}/approve", headers=contributor_headers,
+                          json={"decision": "approved", "comment": "lgtm"})
+        assert r.status_code == 200, r.text
+        r = requests.post(f"{api_url}/reviews/{rid}/merge", headers=admin_headers, json={})
+        assert r.status_code == 200, r.text
+        # Edit the approved document back into a draft.
+        r = requests.put(f"{api_url}/documents/{doc_id}/content", headers=admin_headers,
+                         json={"content": "# Changed\n\nNot approved.\n"})
+        assert r.status_code == 200, r.text
+
+        before = requests.get(f"{api_url}/documents/{doc_id}/versions", headers=admin_headers)
+        assert before.status_code == 200, before.text
+        r = requests.post(f"{api_url}/documents/{doc_id}/confirm-review", headers=admin_headers,
+                          json={"comment": "annual check"})
+        assert r.status_code == 409, r.text
+        assert r.json()["code"] == "document_not_approved", r.text
+        after = requests.get(f"{api_url}/documents/{doc_id}/versions", headers=admin_headers)
+        assert after.json() == before.json(), "a refused confirm recorded a version"
+        rows = requests.get(f"{api_url}/changelog/document/{doc_id}", headers=admin_headers).json()["data"]
+        assert not any(x["action"] == "confirmed" for x in rows), rows

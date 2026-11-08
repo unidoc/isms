@@ -99,6 +99,7 @@ const (
 	CodeManagerOrAdminRequired = "manager_or_admin_required"
 
 	// Documents and reviews.
+	CodeDocumentNotApproved  = "document_not_approved"
 	CodeDocumentModified     = "document_modified"
 	CodeDocumentFileNotFound = "document_file_not_found"
 	CodeNotesRequired        = "notes_required"
@@ -201,6 +202,7 @@ var errorMessages = map[string]string{
 
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 
+	CodeDocumentNotApproved:    "only approved documents can be confirmed — a document that has changed since its approval needs a full review",
 	CodeTrustNoApprovedVersion: "this document has no approved version to publish",
 	CodeTrustDocumentRetired:   "a retired document cannot be published",
 	CodeTrustAlreadyPublished:  "this document is already published in the trust center",

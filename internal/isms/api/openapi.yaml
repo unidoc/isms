@@ -1259,6 +1259,37 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /documents/{docId}/confirm-review:
+    post:
+      tags: [Documents]
+      summary: Confirm a periodic review of an approved document
+      description: >-
+        Records an approval, a decision and a version snapshot without a full
+        review. Admins and managers, or a contributor who owns the document.
+        Only a document whose status is approved can be confirmed; a draft,
+        in-review or retired document, and one that changed since its approval,
+        needs a full review instead.
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment: { type: string }
+      responses:
+        '200':
+          description: Confirmed
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The document is not approved (code `document_not_approved`); nothing was recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /documents/{docId}/content:
     put:
       tags: [Documents]

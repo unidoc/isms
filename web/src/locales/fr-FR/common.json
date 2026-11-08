@@ -476,6 +476,7 @@
     "review_wrong_status": "la revue est au statut « {status} »",
     "review_already_status": "la revue est déjà au statut « {status} »",
     "change_invalid_transition": "le changement est au statut « {status} », impossible de passer à « {value} »",
+    "document_not_approved": "seuls les documents approuvés peuvent être confirmés — un document modifié depuis son approbation nécessite une revue complète",
     "trust_no_approved_version": "ce document n'a aucune version approuvée à publier",
     "trust_document_retired": "un document retiré ne peut pas être publié",
     "trust_already_published": "ce document est déjà publié dans le centre de confiance",

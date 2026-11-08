@@ -8,6 +8,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -465,8 +467,8 @@ func TestTrustDocManagerEndpointRoles(t *testing.T) {
 	}
 }
 
-// h. Confirming a document that was edited back to a draft records a version
-// row for the draft; visitors still get the approved text.
+// h. A version row pointing at an unapproved draft commit (legacy data) is
+// never served; visitors still get the approved text.
 func TestTrustDocConfirmOnDraftDoesNotServeDraft(t *testing.T) {
 	f := newTDFx(t, "tdh", "pol-h")
 	f.save("approved v1 text\n")
@@ -474,7 +476,21 @@ func TestTrustDocConfirmOnDraftDoesNotServeDraft(t *testing.T) {
 	id := f.publishOK("public")
 	v1 := f.publicDoc(id)
 	f.save("UNAPPROVED DRAFT\n")
-	f.mustOK(f.docCall(f.s.handleConfirmDocumentReview, http.MethodPost, `{"comment":"annual"}`, "admin", f.admin), "confirm")
+	// Rows like this exist in databases written before confirm-review refused
+	// unapproved documents: a "confirm" recorded the draft at HEAD as a version.
+	// The endpoint can no longer produce one, so the row is inserted by hand.
+	headNow, _ := f.st.HeadHash()
+	filePath := resolveDocPathFromStore(f.st, f.docID)
+	raw, err := f.st.ReadFile(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(raw)
+	legacy := &db.DocumentVersion{DocumentID: f.docID, Version: f.state().DocumentVersion, CommitHash: headNow,
+		FilePath: filePath, ContentHash: hex.EncodeToString(sum[:]), CreatedBy: f.admin}
+	if err := f.s.db.RecordVersion(context.Background(), f.o.id, legacy); err != nil {
+		t.Fatal(err)
+	}
 
 	latest, err := f.s.db.LatestVersion(context.Background(), f.o.id, f.docID)
 	if err != nil {

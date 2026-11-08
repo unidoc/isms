@@ -381,6 +381,8 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	// edge (nginx / Cloudflare) where real client IPs are visible. Doing it
 	// in-process would either share one bucket across all users (when behind
 	// a proxy) or duplicate edge limits and make 429s harder to attribute.
+	// The one exception is the anonymous trust center prefix, which carries its
+	// own per-IP limiter (trust_rate_limit.go) mounted on its routes.
 
 	// Org resolution from subdomain / custom domain / path prefix.
 	// Must run BEFORE auth so org_id is available for token verification.
@@ -551,8 +553,11 @@ func (s *Server) routes() {
 	// Trust center public read API (#517): no session. AuthMiddleware skips the
 	// prefix; handleTrustPublic answers every method so only the two GET
 	// endpoints return anything but the single 404.
-	api.Any("/trust", s.handleTrustPublic)
-	api.Any("/trust/*", s.handleTrustPublic)
+	// One limiter instance, so both routes share its per-IP store (see
+	// trust_rate_limit.go).
+	trustLimit := trustRateLimiter()
+	api.Any("/trust", s.handleTrustPublic, trustLimit)
+	api.Any("/trust/*", s.handleTrustPublic, trustLimit)
 
 	// Dynamic documents — scans git repo, no hardcoded structure
 	api.GET("/documents/needs-review", s.handleNeedsReview)

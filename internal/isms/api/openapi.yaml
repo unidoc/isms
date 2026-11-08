@@ -903,6 +903,18 @@ paths:
               schema: { $ref: '#/components/schemas/TrustCenterOverview' }
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          description: >-
+            Too many requests from this IP address (default 120 per minute,
+            `ISMS_TRUST_RATE_LIMIT`). Carries `Retry-After` in seconds. The body
+            is the fixed message `too many requests`.
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500':
           description: Internal error. The body is a fixed message; details are only logged.
           content:
@@ -916,7 +928,7 @@ paths:
       description: >-
         Needs no session; any Authorization header is ignored. Lists items of
         every access level, so a page can show gated and restricted ones as
-        locked. The list is empty (`[]`) when nothing is published. The 404 and
+        locked. The list is empty (`[]`) when nothing is published. The 404, 429 and
         500 responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:
@@ -935,6 +947,18 @@ paths:
                 items: { $ref: '#/components/schemas/TrustCenterItem' }
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          description: >-
+            Too many requests from this IP address (default 120 per minute,
+            `ISMS_TRUST_RATE_LIMIT`). Carries `Retry-After` in seconds. The body
+            is the fixed message `too many requests`.
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500':
           description: Internal error. The body is a fixed message; details are only logged.
           content:

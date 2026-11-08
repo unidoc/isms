@@ -572,3 +572,40 @@ func TestTrustDocPublishDefaultsAndValidation(t *testing.T) {
 }
 
 var _ = httptest.NewRecorder
+
+// One document whose recorded version cannot be read must not take the whole
+// trust page down: the list and the other documents keep working, and the
+// broken one is simply not served (and not hidden: an error is never a hide).
+func TestTrustDocUnreadableDocumentDoesNotBreakOthers(t *testing.T) {
+	f := newTDFx(t, "tdl", "pol-good")
+	f.save("good text\n")
+	f.approve()
+	goodID := f.publishOK("public")
+
+	body := `{"folder":"test","filename":"pol-bad.md","document_id":"pol-bad","title":"Bad"}`
+	f.mustOK(f.call(f.s.handleCreateDocument, http.MethodPost, "/api/v1/documents", body, "manager", f.mgr, "", ""), "create bad")
+	ctx := context.Background()
+	v := &db.DocumentVersion{DocumentID: "pol-bad", Version: "9.9", FilePath: "documents/test/pol-bad.md",
+		CommitHash: "0000000000000000000000000000000000000000", CreatedBy: f.admin}
+	if err := f.s.db.RecordVersion(ctx, f.o.id, v); err != nil {
+		t.Fatal(err)
+	}
+	bad := &db.TrustCenterItem{Kind: db.TrustKindDocument, Reference: "pol-bad", AccessLevel: db.TrustAccessPublic}
+	if err := f.s.db.PublishTrustCenterItem(ctx, f.o.id, bad, f.mgr); err != nil {
+		t.Fatal(err)
+	}
+
+	r := f.items()
+	ids := f.listedIDs()
+	if r.code != http.StatusOK || len(ids) != 1 || ids[0] != goodID {
+		t.Fatalf("items = %d %s, want 200 with only the good document", r.code, r.body)
+	}
+	if d := f.publicDoc(goodID); !strings.Contains(d.HTML, "good text") {
+		t.Errorf("good document = %+v", d)
+	}
+	f.assertNotFound(f.public(bad.PublicID), "unreadable document")
+	got, err := f.s.db.GetTrustCenterItemByReference(ctx, f.o.id, db.TrustKindDocument, "pol-bad")
+	if err != nil || got.HiddenAt != nil {
+		t.Errorf("an error must not hide the item: %+v %v", got, err)
+	}
+}

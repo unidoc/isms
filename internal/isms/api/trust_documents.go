@@ -132,9 +132,12 @@ func (s *Server) trustServableDocuments(ctx context.Context, orgID int, items []
 				return nil, err
 			}
 		}
+		// An error about one document leaves that item out and is logged; it
+		// must not take the rest of the page down, and it is never a hide.
 		head, err := s.trustDocumentHead(ctx, st, orgID, it.Reference)
 		if err != nil {
-			return nil, err
+			log.Printf("trust center: org %d item %d document %s: %v", orgID, it.ID, it.Reference, err)
+			continue
 		}
 		if reason := trustHideReason(head); reason != "" {
 			s.hideTrustItem(ctx, orgID, it.ID, reason, "system")
@@ -142,7 +145,8 @@ func (s *Server) trustServableDocuments(ctx context.Context, orgID int, items []
 		}
 		served, err := s.trustServed(ctx, st, orgID, it.Reference)
 		if err != nil {
-			return nil, err
+			log.Printf("trust center: org %d item %d document %s: %v", orgID, it.ID, it.Reference, err)
+			continue
 		}
 		if served != nil {
 			out[it.Reference] = &trustDocInfo{Item: it, Served: served}

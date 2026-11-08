@@ -484,6 +484,9 @@
             <StatusBadge v-if="activeDoc.status" :status="activeDoc.status" class="flex-shrink-0 mt-1" />
           </div>
 
+          <!-- Trust center state and publish control (managers and admins only; renders nothing otherwise) -->
+          <TrustCenterPublishControl v-if="!editMode && activeId" :key="activeId" :doc-id="activeId" :role="currentUserRole" />
+
           <!-- Tab nav (hidden in edit mode — editor takes the whole pane) -->
           <div v-if="!editMode" class="border-b border-slate-800 no-print">
             <div class="flex gap-1">
@@ -1462,6 +1465,7 @@ import DocTreeNode from '../components/DocTreeNode.vue'
 import ReferenceManager from '../components/ReferenceManager.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
+import TrustCenterPublishControl from '../components/TrustCenterPublishControl.vue'
 const DocumentEditor = defineAsyncComponent(() => import('../components/DocumentEditor.vue'))
 
 const { t } = useI18n()

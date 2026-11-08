@@ -457,5 +457,29 @@
     "error_verify": "Nie udało się oznaczyć linku zewnętrznego jako zweryfikowanego: {message}",
     "error_remove": "Nie udało się usunąć linku zewnętrznego: {message}",
     "confirm_remove": "Usunąć ten link zewnętrzny?"
+  },
+  "trust_publish": {
+    "publish": "Opublikuj w centrum zaufania",
+    "publish_again": "Opublikuj ponownie",
+    "unpublish": "Cofnij publikację",
+    "reason_no_approved_version": "Brak zatwierdzonej wersji. Zatwierdź dokument przed publikacją.",
+    "reason_retired": "Wycofanych dokumentów nie można publikować.",
+    "status_published": "W centrum zaufania · {level} · odwiedzający widzą v{version}",
+    "draft_in_progress": "Wersja robocza v{draft} w toku — odwiedzający nadal widzą v{version}.",
+    "hidden_retired": "Ukryty w centrum zaufania: dokument został wycofany.",
+    "hidden_deleted": "Ukryty w centrum zaufania: dokument został usunięty.",
+    "level_public": "Publiczny",
+    "level_gated": "Dla zweryfikowanych",
+    "level_restricted": "Ograniczony",
+    "level_default": "Domyślne ustawienie organizacji",
+    "help_public": "Publiczny: każdy w internecie.",
+    "help_gated": "Dla zweryfikowanych: zweryfikowani odwiedzający (wkrótce).",
+    "help_restricted": "Ograniczony: tylko zatwierdzone wnioski.",
+    "dialog_title": "Opublikuj w centrum zaufania",
+    "level_label": "Kto może go otworzyć",
+    "publish_confirm": "Opublikuj",
+    "unpublish_title": "Cofnij publikację w centrum zaufania",
+    "unpublish_body": "Odwiedzający nie będą już widzieć tego dokumentu. Możesz opublikować go ponownie później.",
+    "error_load": "Nie udało się wczytać stanu centrum zaufania: {message}"
   }
 }

@@ -457,5 +457,29 @@
     "error_verify": "No se pudo marcar el enlace externo como verificado: {message}",
     "error_remove": "No se pudo eliminar el enlace externo: {message}",
     "confirm_remove": "¿Eliminar este enlace externo?"
+  },
+  "trust_publish": {
+    "publish": "Publicar en el centro de confianza",
+    "publish_again": "Publicar de nuevo",
+    "unpublish": "Dejar de publicar",
+    "reason_no_approved_version": "Aún no hay una versión aprobada. Haz que se apruebe el documento antes de publicarlo.",
+    "reason_retired": "Los documentos retirados no se pueden publicar.",
+    "status_published": "En el centro de confianza · {level} · los visitantes ven v{version}",
+    "draft_in_progress": "Borrador v{draft} en curso — los visitantes siguen viendo v{version}.",
+    "hidden_retired": "Oculto en el centro de confianza: el documento fue retirado.",
+    "hidden_deleted": "Oculto en el centro de confianza: el documento fue eliminado.",
+    "level_public": "Público",
+    "level_gated": "Con acceso verificado",
+    "level_restricted": "Restringido",
+    "level_default": "Valor predeterminado de la organización",
+    "help_public": "Público: cualquier persona en internet.",
+    "help_gated": "Con acceso verificado: visitantes verificados (próximamente).",
+    "help_restricted": "Restringido: solo solicitudes aprobadas.",
+    "dialog_title": "Publicar en el centro de confianza",
+    "level_label": "Quién puede abrirlo",
+    "publish_confirm": "Publicar",
+    "unpublish_title": "Dejar de publicar en el centro de confianza",
+    "unpublish_body": "Los visitantes dejarán de ver este documento. Puedes volver a publicarlo más tarde.",
+    "error_load": "No se pudo cargar el estado del centro de confianza: {message}"
   }
 }

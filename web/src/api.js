@@ -156,6 +156,17 @@ async function deleteJSON(url, data) {
   return res.json()
 }
 
+// DELETE for endpoints that answer 204 with no body.
+async function deleteNoContent(url) {
+  const res = await safeFetch(url, { method: 'DELETE', headers: getHeaders() })
+  checkAuth(res)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw apiErrorFrom(res, body)
+  }
+  return null
+}
+
 async function uploadFile(url, file, extraFields = {}) {
   const form = new FormData()
   form.append('file', file)
@@ -262,6 +273,9 @@ export const api = {
   createFolder: (path, title) => postJSON(`${API}/documents/folders`, { path, title }),
   deleteFolder: (path) => deleteJSON(`${API}/documents/folders?path=${encodeURIComponent(path)}`),
   deleteDocument: (docId) => deleteJSON(`${API}/documents/${encodeURIComponent(docId)}`),
+  getDocumentTrust: (docId) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
+  publishDocumentTrust: (docId, accessLevel) => postJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`, accessLevel ? { access_level: accessLevel } : {}),
+  unpublishDocumentTrust: (docId) => deleteNoContent(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
 
   // Risks
   getRisks: () => fetchJSON(`${API}/risks`),

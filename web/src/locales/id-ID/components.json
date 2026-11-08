@@ -457,5 +457,29 @@
     "error_verify": "Gagal menandai tautan eksternal sebagai terverifikasi: {message}",
     "error_remove": "Gagal menghapus tautan eksternal: {message}",
     "confirm_remove": "Hapus tautan eksternal ini?"
+  },
+  "trust_publish": {
+    "publish": "Publikasikan ke Pusat Kepercayaan",
+    "publish_again": "Publikasikan lagi",
+    "unpublish": "Batalkan publikasi",
+    "reason_no_approved_version": "Belum ada versi yang disetujui. Minta dokumen disetujui sebelum dipublikasikan.",
+    "reason_retired": "Dokumen yang dinonaktifkan tidak dapat dipublikasikan.",
+    "status_published": "Di Pusat Kepercayaan · {level} · pengunjung melihat v{version}",
+    "draft_in_progress": "Draf v{draft} sedang dikerjakan — pengunjung masih melihat v{version}.",
+    "hidden_retired": "Disembunyikan dari Pusat Kepercayaan: dokumen telah dinonaktifkan.",
+    "hidden_deleted": "Disembunyikan dari Pusat Kepercayaan: dokumen telah dihapus.",
+    "level_public": "Publik",
+    "level_gated": "Terverifikasi",
+    "level_restricted": "Terbatas",
+    "level_default": "Default organisasi",
+    "help_public": "Publik: siapa saja di internet.",
+    "help_gated": "Terverifikasi: pengunjung terverifikasi (segera hadir).",
+    "help_restricted": "Terbatas: hanya permintaan yang disetujui.",
+    "dialog_title": "Publikasikan ke Pusat Kepercayaan",
+    "level_label": "Siapa yang dapat membukanya",
+    "publish_confirm": "Publikasikan",
+    "unpublish_title": "Batalkan publikasi dari Pusat Kepercayaan",
+    "unpublish_body": "Pengunjung tidak akan lagi melihat dokumen ini. Anda dapat mempublikasikannya lagi nanti.",
+    "error_load": "Tidak dapat memuat status Pusat Kepercayaan: {message}"
   }
 }

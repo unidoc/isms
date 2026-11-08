@@ -71,3 +71,13 @@ END $$;
 ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
 ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
     CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review','trust_center_item'));
+
+-- #518: a published document stays published across edits, but a document that
+-- is retired or deleted must not come back by itself when it is un-retired or
+-- re-created with the same id. The item is hidden instead of deleted; only
+-- publishing it again clears the flag. hidden_reason says why.
+ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_at TIMESTAMPTZ;
+ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_reason TEXT;
+ALTER TABLE trust_center_items DROP CONSTRAINT IF EXISTS trust_center_items_hidden_reason_check;
+ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_check
+    CHECK (hidden_reason IN ('retired','deleted'));

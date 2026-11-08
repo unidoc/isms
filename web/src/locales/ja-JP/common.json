@@ -463,6 +463,9 @@
     "review_wrong_status": "レビューは{status}です",
     "review_already_status": "レビューは既に{status}です",
     "change_invalid_transition": "変更は{status}のため、{value}には移行できません",
+    "trust_no_approved_version": "この文書には公開できる承認済みバージョンがありません",
+    "trust_document_retired": "廃止された文書は公開できません",
+    "trust_already_published": "この文書はすでにトラストセンターで公開されています",
     "ai_disabled": "この組織ではAI機能が無効です",
     "unsupported_locale": "サポートされていないロケール"
   },

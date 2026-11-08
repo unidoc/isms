@@ -568,6 +568,9 @@ func (s *Server) routes() {
 	api.GET("/documents/file/:folder/:id", s.handleGetDocument)
 	api.GET("/documents/:docId/body", s.handleGetDocumentBody)
 	api.GET("/documents/:docId/blame", s.handleDocumentBlame)
+	api.GET("/documents/:docId/trust-center", s.handleGetDocumentTrust)
+	api.POST("/documents/:docId/trust-center", s.handlePublishDocumentTrust)
+	api.DELETE("/documents/:docId/trust-center", s.handleUnpublishDocumentTrust)
 	api.PUT("/documents/:docId/metadata", s.handleUpdateDocumentMetadata)
 	api.PUT("/documents/:docId/content", s.handleUpdateDocumentContent)
 	api.POST("/documents", s.handleCreateDocument)
@@ -1478,6 +1481,12 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "updating document: "+err.Error())
 	}
 
+	// A retired document leaves the trust center at once; the read paths would
+	// notice anyway. Hiding must not fail the save.
+	if req.Fields["status"] == "retired" {
+		s.hideTrustItemForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenRetired, email)
+	}
+
 	return c.JSON(http.StatusOK, map[string]string{"commit": commitHash, "status": "updated"})
 }
 
@@ -1701,6 +1710,7 @@ func (s *Server) handleDeleteDocument(c echo.Context) error {
 	}
 
 	s.searchIndex.Invalidate(orgID)
+	s.hideTrustItemForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenDeleted, email)
 
 	s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
 		DocumentID: docID,

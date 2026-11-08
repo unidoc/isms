@@ -483,6 +483,9 @@
     "program_key_retired": "the key {ref} belonged to a deleted program that had objectives and can't be reused",
     "program_key_taken": "a program with the key {ref} already exists",
     "comment_has_replies": "this comment still has replies ({count}) — delete them first",
+    "trust_no_approved_version": "this document has no approved version to publish",
+    "trust_document_retired": "a retired document cannot be published",
+    "trust_already_published": "this document is already published in the trust center",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"
   },

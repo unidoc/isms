@@ -124,6 +124,11 @@ const (
 	// Comments.
 	CodeCommentHasReplies = "comment_has_replies"
 
+	// Trust center.
+	CodeTrustNoApprovedVersion = "trust_no_approved_version"
+	CodeTrustDocumentRetired   = "trust_document_retired"
+	CodeTrustAlreadyPublished  = "trust_already_published"
+
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
 	CodeUnsupportedLocale = "unsupported_locale"
@@ -195,6 +200,10 @@ var errorMessages = map[string]string{
 	CodeProgramKeyTaken:   "a program with the key {ref} already exists",
 
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
+
+	CodeTrustNoApprovedVersion: "this document has no approved version to publish",
+	CodeTrustDocumentRetired:   "a retired document cannot be published",
+	CodeTrustAlreadyPublished:  "this document is already published in the trust center",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

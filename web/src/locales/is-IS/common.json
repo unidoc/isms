@@ -476,6 +476,9 @@
     "review_wrong_status": "yfirferð er {status}",
     "review_already_status": "yfirferð er þegar {status}",
     "change_invalid_transition": "breyting er {status}, kemst ekki í {value}",
+    "trust_no_approved_version": "þetta skjal hefur enga samþykkta útgáfu til að birta",
+    "trust_document_retired": "afturkallað skjal er ekki hægt að birta",
+    "trust_already_published": "þetta skjal hefur þegar verið birt í traustmiðstöðinni",
     "ai_disabled": "gervigreindarþættir eru óvirkir fyrir þetta fyrirtæki",
     "unsupported_locale": "óstutt tungumál"
   },

@@ -137,6 +137,10 @@ PUT  /documents/:docId/metadata  — update document metadata
 PUT  /documents/:docId/content   — update document content
 GET  /documents/search           — search documents
 GET  /documents/needs-review     — documents changed since approval
+POST /documents/:docId/confirm-review — annual review confirm (approved documents only, else 409)
+GET  /documents/:docId/trust-center — trust center state: served version, hidden, can publish (manager/admin)
+POST /documents/:docId/trust-center — publish the last approved version to the trust center (manager/admin)
+DELETE /documents/:docId/trust-center — unpublish from the trust center (manager/admin)
 GET  /templates/available        — list available templates
 POST /templates                  — scaffold template into org
 ```

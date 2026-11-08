@@ -24,6 +24,7 @@ import (
 // unauthRoutes is the committed golden list, "METHOD path" with parameters
 // substituted by the sample value used in the test.
 var unauthRoutes = []string{
+	"GET /api/openapi.yaml",
 	"GET /api/v1/auth/cf-session",
 	"GET /api/v1/config",
 	"GET /api/v1/auth/oidc/authorize",
@@ -31,6 +32,7 @@ var unauthRoutes = []string{
 	"GET /api/v1/auth/oidc/providers",
 	"GET /branding/favicon.ico",
 	"GET /branding/logo",
+	"GET /docs",
 	"GET /favicon.ico",
 	"GET /healthz",
 	"GET /privacy",
@@ -84,6 +86,10 @@ func sampleRoutePath(p string) string {
 func TestUnauthenticatedRouteInventory(t *testing.T) {
 	s := &Server{echo: echo.New(), searchIndex: NewSearchIndex()}
 	s.routes()
+	// /docs and /api/openapi.yaml are registered in New() (before the auth
+	// middleware), not in routes(). registerDocs needs only the echo instance,
+	// so the inventory calls it directly rather than booting New().
+	s.registerDocs()
 
 	probe := echo.New()
 	reached := map[string]bool{}

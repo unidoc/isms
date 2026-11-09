@@ -365,6 +365,16 @@ var contractTable = []contractEntry{
 		requests: []reflect.Type{tReq(createReferenceRequestMirror{})},
 	},
 	{
+		component: "TrustCenterOverview",
+		//   api_trust_public.go:157 handleTrustPublic: c.JSON(200, trustPublicOverview{...})
+		shapes: []contractShape{shape(tReq(trustPublicOverview{}), "api_trust_public.go:157 handleTrustPublic: c.JSON(200, trustPublicOverview{...})")},
+	},
+	{
+		component: "TrustCenterItem",
+		//   api_trust_public.go:150 handleTrustPublic: c.JSON(200, out) out is []trustPublicItem (never nil)
+		shapes: []contractShape{shape(tReq(trustPublicItem{}), "api_trust_public.go:150 handleTrustPublic: element of the array, trustPublicItem")},
+	},
+	{
 		component: "Error",
 		//   errors.go:371 apiError: echo.NewHTTPError(status, errorBody{Message, Code, Params}); echo writes
 		//     the errorBody as the response body (see the wire-shape note at the top of errors.go).

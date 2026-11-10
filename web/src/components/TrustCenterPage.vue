@@ -27,7 +27,7 @@
             <div class="font-semibold truncate trust-brand-text" data-trust="brand">{{ ov.branding_name }}</div>
             <div class="text-xs text-slate-500">{{ $t('trust.public.heading') }}</div>
           </div>
-          <a v-if="hasSession" href="/" class="text-sm font-medium trust-brand-text hover:underline shrink-0" data-trust="back-to-app" @click.prevent="emit('navigate', '/')">
+          <a v-if="hasSession" href="/" class="text-sm font-medium trust-brand-text hover:underline shrink-0" data-trust="back-to-app" @click="go($event, '/')">
             {{ $t('trust.public.back_to_app') }}
           </a>
         </div>
@@ -36,7 +36,7 @@
       <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8 space-y-8">
         <!-- Document page -->
         <section v-if="docId" data-trust="document-page">
-          <a :href="basePath" class="text-sm font-medium trust-brand-text hover:underline" data-trust="doc-back" @click.prevent="emit('navigate', basePath)">
+          <a :href="basePath" class="text-sm font-medium trust-brand-text hover:underline" data-trust="doc-back" @click="go($event, basePath)">
             <svg class="inline w-4 h-4 -mt-0.5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
             {{ $t('trust.public.doc_back') }}
           </a>
@@ -125,7 +125,7 @@
                 </div>
                 <div role="cell" class="text-sm min-w-0 break-words">
                   <a v-if="d.access_level === 'public'" :href="basePath + '/documents/' + d.id" class="font-medium trust-brand-text hover:underline" data-trust="view"
-                    @click.prevent="emit('navigate', basePath + '/documents/' + d.id)">{{ $t('trust.public.action_view') }}</a>
+                    @click="go($event, basePath + '/documents/' + d.id)">{{ $t('trust.public.action_view') }}</a>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -230,6 +230,14 @@ function fmtDate(sec) {
   } catch {
     return new Date(sec * 1000).toISOString().slice(0, 10)
   }
+}
+
+// Real links are handled in-app only for a plain left click; a modified or
+// non-primary click (new tab, new window, download) is left to the browser.
+function go(e, path) {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  e.preventDefault()
+  emit('navigate', path)
 }
 
 // A link inside server HTML to another published document has no href (the

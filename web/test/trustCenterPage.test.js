@@ -171,3 +171,30 @@ test('document html is sanitized: scripts and handlers go, data-trust-document s
   assert.ok(!html.includes('<script') && !html.includes('onerror'), html)
   assert.ok(html.includes(`data-trust-document="${GATED}"`), html)
 })
+
+// A real href must stay usable: only a plain primary click is handled in-app.
+async function clickView(init) {
+  stub()
+  const navs = []
+  let defaultPrevented = null
+  await mount(props({ onNavigate: p => navs.push(p) }), async (host) => {
+    const ev = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init })
+    host.querySelector('[data-trust=view]').dispatchEvent(ev)
+    defaultPrevented = ev.defaultPrevented
+  })
+  return { navs, defaultPrevented }
+}
+
+test('a plain click on View navigates in-app and cancels the browser navigation', async () => {
+  const r = await clickView({})
+  assert.deepEqual(r.navs, [`/acme/trust/documents/${PUB}`])
+  assert.equal(r.defaultPrevented, true)
+})
+
+test('modified or non-primary clicks on View are left to the browser', async () => {
+  for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+    const r = await clickView(init)
+    assert.deepEqual(r.navs, [], JSON.stringify(init))
+    assert.equal(r.defaultPrevented, false, JSON.stringify(init))
+  }
+})

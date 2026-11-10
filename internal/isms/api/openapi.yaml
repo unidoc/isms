@@ -4078,12 +4078,27 @@ components:
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     TrustCenterOverview:
       type: object
-      required: [title, security_contact, branding_name, branding_color]
+      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview]
       properties:
         title: { type: string, description: The page title the organization chose; empty when unset. }
         security_contact: { type: string, description: Where to report a security issue; empty when unset. }
         branding_name: { type: string, description: The organization's brand name. }
         branding_color: { type: string, description: The organization's brand color; empty when unset. }
+        default_locale: { type: string, description: "The organization's default locale (a supported tag, `en` when unset). Never derived from Accept-Language." }
+        show_powered_by: { type: boolean, description: "Whether the footer shows the platform credit: the organization's `show_powered_by` setting, else the platform default." }
+        overview:
+          type: [object, 'null']
+          description: >-
+            The served (last approved) version of the overview document, rendered
+            like a published document. Null when none is set, it has no approved
+            version, or it cannot be read. The overview document need not be a
+            published item. Retiring or deleting it clears the setting.
+          required: [version, approved_at, content_hash, html]
+          properties:
+            version: { type: string, description: The served version. }
+            approved_at: { $ref: '#/components/schemas/EpochSeconds', description: When the served version was recorded. }
+            content_hash: { type: string, description: SHA-256 of the served version's file as committed. }
+            html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
     TrustCenterItem:
       type: object
       required: [id, kind, section, sort_order, access_level]
@@ -4094,6 +4109,9 @@ components:
         sort_order: { type: integer }
         access_level: { type: string, enum: [public, gated, restricted], description: Who may open the item. }
         title: { type: string, description: "Documents only: the title of the version visitors are served." }
+        version: { type: string, description: "Documents only: the served version, whatever the access level." }
+        approved_at: { $ref: '#/components/schemas/EpochSeconds', description: "Documents only: when the served version was recorded." }
+        content_hash: { type: string, description: "Documents only: SHA-256 of the served version's file as committed." }
     TrustCenterDocument:
       type: object
       required: [id, title, version, approved_at, content_hash, html]

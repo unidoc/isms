@@ -180,8 +180,14 @@ func TestTrustPublicOverview(t *testing.T) {
 		if got["title"] != "Trust ov" || got["security_contact"] != "ov@sec.test" || got["branding_name"] != "Org ov" {
 			t.Errorf("%s: body = %s", mode, r.body)
 		}
-		if _, ok := got["branding_color"]; !ok || len(got) != 4 {
-			t.Errorf("%s: want exactly title, security_contact, branding_name, branding_color: %s", mode, r.body)
+		if _, ok := got["branding_color"]; !ok || len(got) != 7 {
+			t.Errorf("%s: want exactly title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview: %s", mode, r.body)
+		}
+		if got["default_locale"] != "en" || got["show_powered_by"] != true {
+			t.Errorf("%s: default_locale/show_powered_by = %v/%v", mode, got["default_locale"], got["show_powered_by"])
+		}
+		if v, ok := got["overview"]; !ok || v != nil {
+			t.Errorf("%s: overview must be present and null when unset: %s", mode, r.body)
 		}
 		if !strings.HasPrefix(r.hdr.Get("Content-Type"), "application/json") {
 			t.Errorf("content type = %q", r.hdr.Get("Content-Type"))

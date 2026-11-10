@@ -40,6 +40,17 @@ def test_disabled_org_looks_like_unknown_org(api_url, test_setup):
         assert r.headers.get("Content-Type", "").startswith("application/json")
 
 
+def test_disabled_org_leaks_none_of_the_page_fields(api_url, test_setup):
+    """The overview, locale and footer fields (#519) only exist on an enabled
+    trust center. No trust center can be enabled over HTTP yet, so what this
+    proves is that a disabled organization's answer carries none of them.
+    Their values are covered by internal/isms/api/trust_overview_pg_test.go."""
+    r = requests.get(f"{api_url}/trust/{ORG_SLUG}")
+    assert r.status_code == 404, r.text
+    for field in ("default_locale", "show_powered_by", "overview", "security_contact"):
+        assert field not in r.text, f"{field} leaked: {r.text}"
+
+
 def test_every_other_path_and_method_is_the_same_404(api_url, test_setup):
     want = requests.get(f"{api_url}/trust/{_missing_slug()}").content
     probes = [

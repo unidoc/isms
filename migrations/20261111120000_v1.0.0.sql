@@ -67,10 +67,11 @@ END $$;
 -- center item are recorded in the entity changelog as create / delete / update
 -- (field access_level). Widen the entity_type CHECK to every type it already
 -- allowed plus 'trust_center_item'; it only adds a value, so no existing row
--- can violate it.
+-- can violate it. #519 adds 'trust_center_settings' (clearing the overview
+-- document when it is retired or deleted is recorded under it).
 ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
 ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
-    CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review','trust_center_item'));
+    CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review','trust_center_item','trust_center_settings'));
 
 -- #518: a published document stays published across edits, but a document that
 -- is retired or deleted must not come back by itself when it is un-retired or

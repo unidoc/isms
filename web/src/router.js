@@ -8,6 +8,7 @@ import VerifyEmail from './views/VerifyEmail.vue'
 import VerifyEmailChange from './views/VerifyEmailChange.vue'
 import Landing from './views/Landing.vue'
 import { isSubdomainMode, orgFromSubdomain } from './composables/useCurrentOrg'
+import { buildTrustRoutes } from './trustRoutes'
 
 const Dashboard = () => import('./views/Dashboard.vue')
 const Documents = () => import('./views/Documents.vue')
@@ -91,6 +92,9 @@ const routes = [
   { path: '/forgot-password', component: ForgotPassword, meta: { public: true } },
   { path: '/verify-email', component: VerifyEmail, meta: { public: true } },
   { path: '/verify-email-change', component: VerifyEmailChange, meta: { public: true } },
+
+  // Trust center — public, anonymous; /:org/trust in path mode, /trust on a tenant host
+  ...buildTrustRoutes(subdomainMode),
 
   // Org picker — also always top level
   { path: '/organizations', component: Organizations },

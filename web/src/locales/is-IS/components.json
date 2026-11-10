@@ -457,5 +457,29 @@
     "error_verify": "Mistókst að merkja ytri tengil sem sannreyndan: {message}",
     "error_remove": "Mistókst að fjarlægja ytri tengil: {message}",
     "confirm_remove": "Fjarlægja þennan ytri tengil?"
+  },
+  "trust_publish": {
+    "publish": "Birta í traustmiðstöðinni",
+    "publish_again": "Birta aftur",
+    "unpublish": "Hætta birtingu",
+    "reason_no_approved_version": "Engin samþykkt útgáfa enn. Láttu samþykkja skjalið áður en það er birt.",
+    "reason_retired": "Afturkölluð skjöl er ekki hægt að birta.",
+    "status_published": "Í traustmiðstöðinni · {level} · gestir sjá v{version}",
+    "draft_in_progress": "Drög v{draft} í vinnslu — gestir sjá áfram v{version}.",
+    "hidden_retired": "Falið í traustmiðstöðinni: skjalið var afturkallað.",
+    "hidden_deleted": "Falið í traustmiðstöðinni: skjalinu var eytt.",
+    "level_public": "Opið",
+    "level_gated": "Staðfestir gestir",
+    "level_restricted": "Takmarkað",
+    "level_default": "Sjálfgefið hjá stofnuninni",
+    "help_public": "Opið: hver sem er á netinu.",
+    "help_gated": "Staðfestir gestir: staðfestir gestir (kemur síðar).",
+    "help_restricted": "Takmarkað: aðeins samþykktar beiðnir.",
+    "dialog_title": "Birta í traustmiðstöðinni",
+    "level_label": "Hver má opna það",
+    "publish_confirm": "Birta",
+    "unpublish_title": "Hætta birtingu í traustmiðstöðinni",
+    "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
+    "error_load": "Ekki tókst að hlaða stöðu traustmiðstöðvarinnar: {message}"
   }
 }

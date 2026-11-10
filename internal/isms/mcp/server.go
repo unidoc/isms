@@ -280,7 +280,7 @@ func toolDefinitions() []mcpTool {
 		},
 		{
 			Name:        "confirm_document_review",
-			Description: "Confirm that a document has been reviewed and is still valid — used for periodic/annual reviews where no changes are needed. Creates audit evidence (approval record, decision log, version snapshot) without requiring a full review cycle. The document owner should confirm the AI review summary before this is final.",
+			Description: "Confirm that a document has been reviewed and is still valid — used for periodic/annual reviews where no changes are needed. Creates audit evidence (approval record, decision log, version snapshot) without requiring a full review cycle. The document owner should confirm the AI review summary before this is final. Only for documents whose status is approved; a document that changed since approval needs a full review.",
 			InputSchema: jsonSchema(map[string]prop{
 				"document_id": {Type: "string", Desc: "Document ID to confirm review for"},
 				"comment":     {Type: "string", Desc: "Review summary explaining why the document is still valid, what was checked, and any minor observations"},

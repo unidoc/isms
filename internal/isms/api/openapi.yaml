@@ -965,6 +965,126 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /trust/{slug}/documents/{id}:
+    get:
+      tags: [Trust Center]
+      summary: Read a document published in an organization's trust center
+      description: >-
+        Needs no session; any Authorization header is ignored. Serves the last
+        approved version of the document, never the repository's current draft,
+        as HTML rendered on the server. The document's frontmatter (authors,
+        owners, reviewers, approvers) is never included, raw HTML in the body is
+        dropped, and internal links are reduced to their text, except a link to
+        another published document, which becomes `<a data-trust-document="<id>">`
+        with no `href`. Returns the fixed 404 body for an unknown id, another
+        organization's id, an item that is hidden, a document that is retired or
+        deleted, a document with no approved version, and any access level other
+        than `public` (visitor sign-in is not available yet). The 429 and 500
+        responses and caching are as for `/trust/{slug}`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: Public id of the item, from the items list.
+      responses:
+        '200':
+          description: The served version of the document
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterDocument' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: >-
+            Too many requests from this IP address (default 120 per minute,
+            `ISMS_TRUST_RATE_LIMIT`). Carries `Retry-After` in seconds. The body
+            is the fixed message `too many requests`.
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Internal error. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /documents/{docId}/trust-center:
+    parameters:
+      - name: docId
+        in: path
+        required: true
+        schema: { type: string }
+        description: Document id (case-insensitive).
+    get:
+      tags: [Trust Center]
+      summary: Trust center state of a document
+      description: >-
+        Admin or manager only. Reports whether the document is published, the
+        version visitors are served (the newest version whose committed file is
+        approved) next to the document's current status and version, and whether
+        it can be published. A published item whose document is retired or deleted
+        is hidden before the answer is built.
+      responses:
+        '200':
+          description: State
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentTrustState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Trust Center]
+      summary: Publish a document to the trust center
+      description: >-
+        Admin or manager only. Publishes the document at the requested access
+        level (default: the organization's default access level). 201 for a new
+        item, 200 when a hidden item (document was retired or deleted) is
+        published again. 409 with code `trust_no_approved_version`,
+        `trust_document_retired` or `trust_already_published` when it cannot be.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocumentTrustPublishRequest' }
+      responses:
+        '200':
+          description: Published again
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentTrustState' }
+        '201':
+          description: Published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentTrustState' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Not publishable (see code) or already published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [Trust Center]
+      summary: Remove a document from the trust center
+      description: Admin or manager only. 404 when the document is not published.
+      responses:
+        '204': { description: Removed }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   # ── Documents ───────────────────────────────────────────────────────────
   /documents/all:
     get:
@@ -1138,6 +1258,37 @@ paths:
           description: Metadata updated
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /documents/{docId}/confirm-review:
+    post:
+      tags: [Documents]
+      summary: Confirm a periodic review of an approved document
+      description: >-
+        Records an approval, a decision and a version snapshot without a full
+        review. Admins and managers, or a contributor who owns the document.
+        Only a document whose status is approved can be confirmed; a draft,
+        in-review or retired document, and one that changed since its approval,
+        needs a full review instead.
+      parameters:
+        - $ref: '#/components/parameters/docId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment: { type: string }
+      responses:
+        '200':
+          description: Confirmed
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The document is not approved (code `document_not_approved`); nothing was recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /documents/{docId}/content:
     put:
@@ -3942,6 +4093,41 @@ components:
         section: { type: string, description: Section heading the item is shown under; empty for none. }
         sort_order: { type: integer }
         access_level: { type: string, enum: [public, gated, restricted], description: Who may open the item. }
+        title: { type: string, description: "Documents only: the title of the version visitors are served." }
+    TrustCenterDocument:
+      type: object
+      required: [id, title, version, approved_at, content_hash, html]
+      properties:
+        id: { type: string, format: uuid, description: Public identifier of the item. }
+        title: { type: string, description: Title in the served version. }
+        version: { type: string, description: The served version. }
+        approved_at: { $ref: '#/components/schemas/EpochSeconds', description: When the served version was recorded. }
+        content_hash: { type: string, description: SHA-256 of the served version's file as committed. }
+        html: { type: string, description: The body rendered as HTML, links neutralised. }
+    DocumentTrustState:
+      type: object
+      required: [published, hidden_reason, served_version, document_status, document_version, can_publish, cannot_publish_reason]
+      properties:
+        published: { type: boolean, description: True when an item exists and is not hidden. }
+        id: { type: string, format: uuid, description: Public id of the item; present when an item exists. }
+        access_level: { type: string, enum: [public, gated, restricted], description: Present when an item exists. }
+        hidden_reason: { type: string, enum: ['', retired, deleted], description: Why an existing item is hidden; empty when it is not. }
+        served_version:
+          type: [object, 'null']
+          description: The version visitors are served; null when no approved version exists.
+          required: [version, approved_at, content_hash]
+          properties:
+            version: { type: string }
+            approved_at: { $ref: '#/components/schemas/EpochSeconds' }
+            content_hash: { type: string }
+        document_status: { type: string, description: Status of the document at HEAD. }
+        document_version: { type: string, description: Version of the document at HEAD. }
+        can_publish: { type: boolean }
+        cannot_publish_reason: { type: string, enum: ['', no_approved_version, retired] }
+    DocumentTrustPublishRequest:
+      type: object
+      properties:
+        access_level: { type: string, enum: [public, gated, restricted], description: Defaults to the organization's default access level. }
     Error:
       type: object
       description: "Error body. Errors raised with a stable code carry code (and params); legacy errors carry only message."

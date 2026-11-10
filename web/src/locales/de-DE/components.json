@@ -457,5 +457,29 @@
     "error_verify": "Externer Link konnte nicht als verifiziert markiert werden: {message}",
     "error_remove": "Externer Link konnte nicht entfernt werden: {message}",
     "confirm_remove": "Diesen externen Link entfernen?"
+  },
+  "trust_publish": {
+    "publish": "Im Trust Center veröffentlichen",
+    "publish_again": "Erneut veröffentlichen",
+    "unpublish": "Veröffentlichung aufheben",
+    "reason_no_approved_version": "Noch keine genehmigte Version. Lassen Sie das Dokument genehmigen, bevor Sie es veröffentlichen.",
+    "reason_retired": "Archivierte Dokumente können nicht veröffentlicht werden.",
+    "status_published": "Im Trust Center · {level} · Besucher sehen v{version}",
+    "draft_in_progress": "Entwurf v{draft} in Arbeit — Besucher sehen weiterhin v{version}.",
+    "hidden_retired": "Im Trust Center ausgeblendet: Das Dokument wurde archiviert.",
+    "hidden_deleted": "Im Trust Center ausgeblendet: Das Dokument wurde gelöscht.",
+    "level_public": "Öffentlich",
+    "level_gated": "Mit Freigabe",
+    "level_restricted": "Eingeschränkt",
+    "level_default": "Standard der Organisation",
+    "help_public": "Öffentlich: jeder im Internet.",
+    "help_gated": "Mit Freigabe: verifizierte Besucher (folgt später).",
+    "help_restricted": "Eingeschränkt: nur genehmigte Anfragen.",
+    "dialog_title": "Im Trust Center veröffentlichen",
+    "level_label": "Wer darf es öffnen",
+    "publish_confirm": "Veröffentlichen",
+    "unpublish_title": "Veröffentlichung im Trust Center aufheben",
+    "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
+    "error_load": "Der Trust-Center-Status konnte nicht geladen werden: {message}"
   }
 }

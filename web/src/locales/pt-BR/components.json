@@ -457,5 +457,29 @@
     "error_verify": "Falha ao marcar o link externo como verificado: {message}",
     "error_remove": "Falha ao remover o link externo: {message}",
     "confirm_remove": "Remover este link externo?"
+  },
+  "trust_publish": {
+    "publish": "Publicar na central de confiança",
+    "publish_again": "Publicar novamente",
+    "unpublish": "Cancelar publicação",
+    "reason_no_approved_version": "Ainda não há versão aprovada. Peça a aprovação do documento antes de publicar.",
+    "reason_retired": "Documentos aposentados não podem ser publicados.",
+    "status_published": "Na central de confiança · {level} · visitantes veem v{version}",
+    "draft_in_progress": "Rascunho v{draft} em andamento — visitantes ainda veem v{version}.",
+    "hidden_retired": "Oculto na central de confiança: o documento foi aposentado.",
+    "hidden_deleted": "Oculto na central de confiança: o documento foi excluído.",
+    "level_public": "Público",
+    "level_gated": "Com verificação",
+    "level_restricted": "Restrito",
+    "level_default": "Padrão da organização",
+    "help_public": "Público: qualquer pessoa na internet.",
+    "help_gated": "Com verificação: visitantes verificados (em breve).",
+    "help_restricted": "Restrito: somente solicitações aprovadas.",
+    "dialog_title": "Publicar na central de confiança",
+    "level_label": "Quem pode abrir",
+    "publish_confirm": "Publicar",
+    "unpublish_title": "Cancelar publicação na central de confiança",
+    "unpublish_body": "Os visitantes não verão mais este documento. Você pode publicá-lo novamente depois.",
+    "error_load": "Não foi possível carregar o status da central de confiança: {message}"
   }
 }

@@ -194,3 +194,98 @@ func TestTrustCenterChangelog(t *testing.T) {
 		t.Errorf("changed_by = %q", cl[2].ChangedBy)
 	}
 }
+
+func TestTrustCenterGetItemByPublicIDAndReference(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	a := trustTestOrg(t, d, "ga")
+	b := trustTestOrg(t, d, "gb")
+	ia := trustPublish(t, d, a, TrustKindDocument, "doc-a", TrustAccessPublic)
+	ib := trustPublish(t, d, b, TrustKindDocument, "doc-b", TrustAccessPublic)
+
+	got, err := d.GetTrustCenterItemByPublicID(ctx, a, TrustKindDocument, ia.PublicID)
+	if err != nil || got.ID != ia.ID || got.Reference != "doc-a" || got.HiddenAt != nil {
+		t.Fatalf("by public id = %+v, %v", got, err)
+	}
+	got, err = d.GetTrustCenterItemByReference(ctx, a, TrustKindDocument, "doc-a")
+	if err != nil || got.ID != ia.ID {
+		t.Fatalf("by reference = %+v, %v", got, err)
+	}
+	// Other org's id, wrong kind, unknown reference and a malformed uuid are
+	// all plain not-found, never an error that would become a 500.
+	for name, fn := range map[string]func() error{
+		"cross-org id": func() error { _, e := d.GetTrustCenterItemByPublicID(ctx, a, TrustKindDocument, ib.PublicID); return e },
+		"wrong kind":   func() error { _, e := d.GetTrustCenterItemByPublicID(ctx, a, TrustKindFAQ, ia.PublicID); return e },
+		"malformed uuid": func() error {
+			_, e := d.GetTrustCenterItemByPublicID(ctx, a, TrustKindDocument, "not-a-uuid")
+			return e
+		},
+		"cross-org ref": func() error { _, e := d.GetTrustCenterItemByReference(ctx, a, TrustKindDocument, "doc-b"); return e },
+	} {
+		if err := fn(); !errors.Is(err, ErrTrustItemNotFound) {
+			t.Errorf("%s: err = %v, want ErrTrustItemNotFound", name, err)
+		}
+	}
+}
+
+func TestTrustCenterHideAndRepublish(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "hide")
+	other := trustTestOrg(t, d, "hideb")
+	it := trustPublish(t, d, orgID, TrustKindDocument, "doc-1", TrustAccessPublic)
+	foreign := trustPublish(t, d, other, TrustKindDocument, "doc-x", TrustAccessPublic)
+
+	// Org A cannot hide org B's item.
+	if err := d.HideTrustCenterItem(ctx, orgID, foreign.ID, "retired", "system"); !errors.Is(err, ErrTrustItemNotFound) {
+		t.Errorf("cross-org hide err = %v, want not found", err)
+	}
+	if got, _ := d.GetTrustCenterItemByReference(ctx, other, TrustKindDocument, "doc-x"); got == nil || got.HiddenAt != nil {
+		t.Errorf("org B item was hidden: %+v", got)
+	}
+	if err := d.HideTrustCenterItem(ctx, orgID, it.ID, "bogus", "system"); !errors.Is(err, ErrTrustCenterInvalid) {
+		t.Errorf("bogus reason err = %v, want invalid", err)
+	}
+
+	if err := d.HideTrustCenterItem(ctx, orgID, it.ID, "retired", "system"); err != nil {
+		t.Fatal(err)
+	}
+	// Hiding again is a no-op, even with another reason.
+	if err := d.HideTrustCenterItem(ctx, orgID, it.ID, "deleted", "system"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := d.GetTrustCenterItemByPublicID(ctx, orgID, TrustKindDocument, it.PublicID)
+	if got.HiddenAt == nil || got.HiddenReason != "retired" {
+		t.Fatalf("after hide = %+v", got)
+	}
+	list, _ := d.ListPublishedTrustCenterItems(ctx, orgID)
+	if len(list) != 1 || list[0].HiddenAt == nil || list[0].HiddenReason != "retired" {
+		t.Errorf("list must expose hidden state: %+v", list)
+	}
+	cl, _ := d.ListEntityChangelog(ctx, orgID, "trust_center_item", it.ID)
+	if len(cl) != 2 || cl[0].Action != "update" || cl[0].Field != "hidden" ||
+		cl[0].NewValue == nil || *cl[0].NewValue != "retired" || cl[0].ChangedBy != "system" {
+		t.Fatalf("changelog after double hide = %+v", cl)
+	}
+
+	if err := d.RepublishTrustCenterItem(ctx, orgID, it.ID, TrustAccessGated, "mgr@example.com"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = d.GetTrustCenterItemByPublicID(ctx, orgID, TrustKindDocument, it.PublicID)
+	if got.HiddenAt != nil || got.HiddenReason != "" || got.AccessLevel != TrustAccessGated || got.PublishedBy != "mgr@example.com" {
+		t.Errorf("after republish = %+v", got)
+	}
+	if got.PublicID != it.PublicID {
+		t.Errorf("public id changed on republish: %s -> %s", it.PublicID, got.PublicID)
+	}
+	cl, _ = d.ListEntityChangelog(ctx, orgID, "trust_center_item", it.ID)
+	if len(cl) < 3 || cl[0].Action != "update" {
+		t.Errorf("republish must be logged: %+v", cl)
+	}
+	if err := d.RepublishTrustCenterItem(ctx, other, it.ID, TrustAccessPublic, "x"); !errors.Is(err, ErrTrustItemNotFound) {
+		t.Errorf("cross-org republish err = %v, want not found", err)
+	}
+	if err := d.RepublishTrustCenterItem(ctx, orgID, it.ID, "bogus", "x"); !errors.Is(err, ErrTrustCenterInvalid) {
+		t.Errorf("bogus level err = %v, want invalid", err)
+	}
+}

@@ -61,7 +61,7 @@ All apply handlers run inside `WithOrgTx` — entity mutation + changelog + sugg
 - `approve_review` — approve, request changes, or propose revision
 - `merge_review` — publish the approved document version (final step)
 - `edit_review_content` — write to review branch (address reviewer comments)
-- `confirm_document_review` — lightweight annual review confirmation with audit evidence
+- `confirm_document_review` — lightweight annual review confirmation with audit evidence (approved documents only)
 
 **Apply + workflow (2 tools):**
 - `apply_suggestion` — atomically apply with optional force for stale entities

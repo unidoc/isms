@@ -457,5 +457,29 @@
     "error_verify": "Échec du marquage du lien externe comme vérifié : {message}",
     "error_remove": "Échec de la suppression du lien externe : {message}",
     "confirm_remove": "Supprimer ce lien externe ?"
+  },
+  "trust_publish": {
+    "publish": "Publier dans le centre de confiance",
+    "publish_again": "Publier à nouveau",
+    "unpublish": "Dépublier",
+    "reason_no_approved_version": "Aucune version approuvée pour l'instant. Faites approuver le document avant de le publier.",
+    "reason_retired": "Les documents retirés ne peuvent pas être publiés.",
+    "status_published": "Dans le centre de confiance · {level} · les visiteurs voient v{version}",
+    "draft_in_progress": "Brouillon v{draft} en cours — les visiteurs voient toujours v{version}.",
+    "hidden_retired": "Masqué dans le centre de confiance : le document a été retiré.",
+    "hidden_deleted": "Masqué dans le centre de confiance : le document a été supprimé.",
+    "level_public": "Public",
+    "level_gated": "Avec accès vérifié",
+    "level_restricted": "Restreint",
+    "level_default": "Valeur par défaut de l'organisation",
+    "help_public": "Public : toute personne sur internet.",
+    "help_gated": "Avec accès vérifié : visiteurs vérifiés (bientôt disponible).",
+    "help_restricted": "Restreint : demandes approuvées uniquement.",
+    "dialog_title": "Publier dans le centre de confiance",
+    "level_label": "Qui peut l'ouvrir",
+    "publish_confirm": "Publier",
+    "unpublish_title": "Dépublier du centre de confiance",
+    "unpublish_body": "Les visiteurs ne verront plus ce document. Vous pourrez le publier à nouveau plus tard.",
+    "error_load": "Impossible de charger l'état du centre de confiance : {message}"
   }
 }

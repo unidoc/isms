@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -77,6 +79,34 @@ type TrustCenterItem struct {
 	PublishedBy    string
 	PublishedAt    Epoch
 	UpdatedAt      Epoch
+	// HiddenAt is set when the item's source was retired or deleted; a hidden
+	// item is not served until it is published again.
+	HiddenAt     *Epoch
+	HiddenReason string
+}
+
+// Reasons an item can be hidden.
+const (
+	TrustHiddenRetired = "retired"
+	TrustHiddenDeleted = "deleted"
+)
+
+const trustItemColumns = `id, public_id::text, organization_id, kind, reference, access_level,
+		       section, sort_order, published_by, published_at, updated_at,
+		       hidden_at, COALESCE(hidden_reason, '')`
+
+func scanTrustItem(row pgx.Row) (*TrustCenterItem, error) {
+	var it TrustCenterItem
+	var hidden *time.Time
+	if err := row.Scan(&it.ID, &it.PublicID, &it.OrganizationID, &it.Kind, &it.Reference,
+		&it.AccessLevel, &it.Section, &it.SortOrder, &it.PublishedBy, &it.PublishedAt, &it.UpdatedAt,
+		&hidden, &it.HiddenReason); err != nil {
+		return nil, err
+	}
+	if hidden != nil {
+		it.HiddenAt = &Epoch{Time: *hidden}
+	}
+	return &it, nil
 }
 
 func trustInvalid(format string, args ...any) error {
@@ -235,11 +265,11 @@ func (d *DB) SetTrustCenterItemAccessLevel(ctx context.Context, orgID int, itemI
 }
 
 // ListPublishedTrustCenterItems returns every item the organization has
-// published, whatever its access level, in display order.
+// published, whatever its access level, in display order. Hidden items are
+// included with their hidden state set; callers that serve visitors skip them.
 func (d *DB) ListPublishedTrustCenterItems(ctx context.Context, orgID int) ([]TrustCenterItem, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT id, public_id::text, organization_id, kind, reference, access_level,
-		       section, sort_order, published_by, published_at, updated_at
+		SELECT `+trustItemColumns+`
 		FROM trust_center_items
 		WHERE organization_id = $1
 		ORDER BY section, sort_order, published_at, id
@@ -250,12 +280,129 @@ func (d *DB) ListPublishedTrustCenterItems(ctx context.Context, orgID int) ([]Tr
 	defer rows.Close()
 	items := []TrustCenterItem{}
 	for rows.Next() {
-		var it TrustCenterItem
-		if err := rows.Scan(&it.ID, &it.PublicID, &it.OrganizationID, &it.Kind, &it.Reference,
-			&it.AccessLevel, &it.Section, &it.SortOrder, &it.PublishedBy, &it.PublishedAt, &it.UpdatedAt); err != nil {
+		it, err := scanTrustItem(rows)
+		if err != nil {
 			return nil, err
 		}
-		items = append(items, it)
+		items = append(items, *it)
 	}
 	return items, rows.Err()
+}
+
+var trustUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// GetTrustCenterItemByPublicID returns the item of the given kind with that
+// public id in the organization. An id that is not a UUID, or that belongs to
+// another organization, is ErrTrustItemNotFound.
+func (d *DB) GetTrustCenterItemByPublicID(ctx context.Context, orgID int, kind, publicID string) (*TrustCenterItem, error) {
+	if !trustUUID.MatchString(publicID) {
+		return nil, ErrTrustItemNotFound
+	}
+	it, err := scanTrustItem(d.pool.QueryRow(ctx, `
+		SELECT `+trustItemColumns+`
+		FROM trust_center_items
+		WHERE organization_id = $1 AND kind = $2 AND public_id = $3::uuid
+	`, orgID, kind, publicID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrTrustItemNotFound
+	}
+	return it, err
+}
+
+// GetTrustCenterItemByReference returns the item of the given kind published
+// for reference (for a document, its lowercase document_id).
+func (d *DB) GetTrustCenterItemByReference(ctx context.Context, orgID int, kind, reference string) (*TrustCenterItem, error) {
+	it, err := scanTrustItem(d.pool.QueryRow(ctx, `
+		SELECT `+trustItemColumns+`
+		FROM trust_center_items
+		WHERE organization_id = $1 AND kind = $2 AND reference = $3
+	`, orgID, kind, reference))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrTrustItemNotFound
+	}
+	return it, err
+}
+
+// HideTrustCenterItem marks an item hidden (reason retired or deleted) and
+// records it in the changelog in the same transaction. An item that is already
+// hidden is left alone and writes nothing. actor may be "system" when a read
+// path notices the source is gone.
+func (d *DB) HideTrustCenterItem(ctx context.Context, orgID int, itemID int64, reason, actor string) error {
+	if reason != TrustHiddenRetired && reason != TrustHiddenDeleted {
+		return trustInvalid("hidden reason %q", reason)
+	}
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		var exists bool
+		if err := tx.QueryRow(ctx, `
+			SELECT true FROM trust_center_items WHERE id = $1 AND organization_id = $2 FOR UPDATE
+		`, itemID, orgID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
+			return ErrTrustItemNotFound
+		} else if err != nil {
+			return err
+		}
+		tag, err := tx.Exec(ctx, `
+			UPDATE trust_center_items SET hidden_at = now(), hidden_reason = $3, updated_at = now()
+			WHERE id = $1 AND organization_id = $2 AND hidden_at IS NULL
+		`, itemID, orgID, reason)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return nil
+		}
+		empty := ""
+		return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+			EntityType: "trust_center_item", EntityID: itemID, Action: "update",
+			Field: "hidden", OldValue: &empty, NewValue: &reason, ChangedBy: actor,
+		})
+	})
+}
+
+// RepublishTrustCenterItem clears an item's hidden state and makes it live
+// again at level, as published now by actor. The public id is kept. The
+// changelog records the fields that changed.
+func (d *DB) RepublishTrustCenterItem(ctx context.Context, orgID int, itemID int64, level, actor string) error {
+	if !trustAccessLevels[level] {
+		return trustInvalid("access_level %q", level)
+	}
+	if actor == "" {
+		return trustInvalid("actor is required")
+	}
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		var oldLevel, oldHidden string
+		err := tx.QueryRow(ctx, `
+			SELECT access_level, COALESCE(hidden_reason, '') FROM trust_center_items
+			WHERE id = $1 AND organization_id = $2 FOR UPDATE
+		`, itemID, orgID).Scan(&oldLevel, &oldHidden)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrTrustItemNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE trust_center_items
+			SET hidden_at = NULL, hidden_reason = NULL, access_level = $3,
+			    published_at = now(), published_by = $4, updated_at = now()
+			WHERE id = $1 AND organization_id = $2
+		`, itemID, orgID, level, actor); err != nil {
+			return err
+		}
+		if oldHidden != "" {
+			empty := ""
+			if err := LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+				EntityType: "trust_center_item", EntityID: itemID, Action: "update",
+				Field: "hidden", OldValue: &oldHidden, NewValue: &empty, ChangedBy: actor,
+			}); err != nil {
+				return err
+			}
+		}
+		if oldLevel != level {
+			return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+				EntityType: "trust_center_item", EntityID: itemID, Action: "update",
+				Field: "access_level", OldValue: &oldLevel, NewValue: &level, ChangedBy: actor,
+			})
+		}
+		return nil
+	})
 }

@@ -622,7 +622,7 @@ That is enough to prototype agent workflows while keeping the product model clea
 - `approve_review` — approve, request changes, or propose revision
 - `merge_review` — publish approved document version
 - `edit_review_content` — write to review branch
-- `confirm_document_review` — lightweight annual review with audit evidence
+- `confirm_document_review` — lightweight annual review with audit evidence (approved documents only)
 - `get_pending_actions` — actor-scoped agent work queue
 
 ### MCP Example: Suggest New Incident

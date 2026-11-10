@@ -366,13 +366,30 @@ var contractTable = []contractEntry{
 	},
 	{
 		component: "TrustCenterOverview",
-		//   api_trust_public.go:157 handleTrustPublic: c.JSON(200, trustPublicOverview{...})
-		shapes: []contractShape{shape(tReq(trustPublicOverview{}), "api_trust_public.go:157 handleTrustPublic: c.JSON(200, trustPublicOverview{...})")},
+		//   api_trust_public.go:193 handleTrustPublic: c.JSON(200, trustPublicOverview{...})
+		shapes: []contractShape{shape(tReq(trustPublicOverview{}), "api_trust_public.go:193 handleTrustPublic: c.JSON(200, trustPublicOverview{...})")},
 	},
 	{
 		component: "TrustCenterItem",
-		//   api_trust_public.go:150 handleTrustPublic: c.JSON(200, out) out is []trustPublicItem (never nil)
-		shapes: []contractShape{shape(tReq(trustPublicItem{}), "api_trust_public.go:150 handleTrustPublic: element of the array, trustPublicItem")},
+		//   api_trust_public.go:186 handleTrustPublic: c.JSON(200, out) out is []trustPublicItem (never nil)
+		shapes: []contractShape{shape(tReq(trustPublicItem{}), "api_trust_public.go:186 handleTrustPublic: element of the array, trustPublicItem")},
+	},
+	{
+		component: "TrustCenterDocument",
+		//   api_trust_public.go:226 trustPublicDocument: c.JSON(200, trustPublicDocument{...})
+		shapes: []contractShape{shape(tReq(trustPublicDocument{}), "api_trust_public.go:226 trustPublicDocument: c.JSON(200, trustPublicDocument{...})")},
+	},
+	{
+		component: "DocumentTrustState",
+		//   trust_documents.go:277 handleGetDocumentTrust: c.JSON(200, state)
+		//   trust_documents.go:333 handlePublishDocumentTrust: c.JSON(201 or 200, state), state is *trustDocumentState
+		shapes: []contractShape{shape(tReq(trustDocumentState{}), "trust_documents.go:277 handleGetDocumentTrust: c.JSON(200, state), state is *trustDocumentState")},
+	},
+	{
+		component: "DocumentTrustPublishRequest",
+		// trust_documents.go handlePublishDocumentTrust binds an anonymous struct; trustPublishRequestMirror mirrors it.
+		shapes:      []contractShape{shape(tReq(trustPublishRequestMirror{}), "trust_documents.go handlePublishDocumentTrust: request body, mirrored by trustPublishRequestMirror")},
+		requestOnly: true,
 	},
 	{
 		component: "Error",
@@ -1447,6 +1464,11 @@ func TestOpenAPIEpochSchemas(t *testing.T) {
 // type: a map[string]interface{} literal or a type declared inside the
 // handler. Each mirrors the keys and value types the handler really emits;
 // the comment on the contractTable entry cites the construction.
+
+// trust_documents.go handlePublishDocumentTrust: the anonymous request struct.
+type trustPublishRequestMirror struct {
+	AccessLevel string `json:"access_level"`
+}
 
 // api_auth.go:1145 handleCreateMyAPIKey (map literal).
 type createdAPIKeyMirror struct {

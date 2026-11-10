@@ -476,6 +476,10 @@
     "review_wrong_status": "Prüfung hat den Status {status}",
     "review_already_status": "Prüfung hat bereits den Status {status}",
     "change_invalid_transition": "Änderung hat den Status {status} und kann nicht zu {value} wechseln",
+    "document_not_approved": "Nur genehmigte Dokumente können bestätigt werden — ein Dokument, das sich seit der Genehmigung geändert hat, braucht eine vollständige Prüfung",
+    "trust_no_approved_version": "dieses Dokument hat keine genehmigte Version, die veröffentlicht werden könnte",
+    "trust_document_retired": "ein archiviertes Dokument kann nicht veröffentlicht werden",
+    "trust_already_published": "dieses Dokument ist bereits im Trust Center veröffentlicht",
     "ai_disabled": "KI-Funktionen sind für diese Organisation deaktiviert",
     "unsupported_locale": "nicht unterstützte Sprache"
   },

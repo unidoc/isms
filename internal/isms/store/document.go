@@ -25,7 +25,12 @@ func (s *Store) LoadDocument(path string) (*DocumentFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ParseDocument(path, data)
+}
 
+// ParseDocument parses the raw bytes of a document file, wherever they came
+// from (the working tree or a commit), the same way LoadDocument does.
+func ParseDocument(path string, data []byte) (*DocumentFile, error) {
 	fm, body, err := parseFrontmatter(string(data))
 	if err != nil {
 		return nil, fmt.Errorf("parsing frontmatter: %w", err)

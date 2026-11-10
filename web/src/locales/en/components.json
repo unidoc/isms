@@ -461,5 +461,29 @@
     "error_verify": "Failed to mark external link verified: {message}",
     "error_remove": "Failed to remove external link: {message}",
     "confirm_remove": "Remove this external link?"
+  },
+  "trust_publish": {
+    "publish": "Publish to Trust Center",
+    "publish_again": "Publish again",
+    "unpublish": "Unpublish",
+    "reason_no_approved_version": "No approved version yet. Get the document approved before publishing.",
+    "reason_retired": "Retired documents cannot be published.",
+    "status_published": "On Trust Center · {level} · visitors see v{version}",
+    "draft_in_progress": "Draft v{draft} in progress — visitors still see v{version}.",
+    "hidden_retired": "Hidden from the Trust Center: the document was retired.",
+    "hidden_deleted": "Hidden from the Trust Center: the document was deleted.",
+    "level_public": "Public",
+    "level_gated": "Gated",
+    "level_restricted": "Restricted",
+    "level_default": "Organization default",
+    "help_public": "Public: anyone on the internet.",
+    "help_gated": "Gated: verified visitors (coming later).",
+    "help_restricted": "Restricted: approved requests only.",
+    "dialog_title": "Publish to Trust Center",
+    "level_label": "Who can open it",
+    "publish_confirm": "Publish",
+    "unpublish_title": "Unpublish from Trust Center",
+    "unpublish_body": "Visitors will no longer see this document. You can publish it again later.",
+    "error_load": "Could not load the Trust Center status: {message}"
   }
 }

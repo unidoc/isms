@@ -724,3 +724,47 @@ func TestTrustMgrPatchNotFoundBadRequestRolesAuth(t *testing.T) {
 		t.Errorf("no token = %d, want 401", code)
 	}
 }
+
+func TestTrustMgrItemsFlagSensitiveClassification(t *testing.T) {
+	f := newTDFx(t, "tmc1", "pol-c1")
+	f.classify("internal")
+	f.approve()
+	f.publishOK("public")
+	row := func() trustManagerDocument {
+		items := f.mgrItems()
+		if len(items) != 1 {
+			t.Fatalf("items = %+v", items)
+		}
+		return *items[0].Document
+	}
+	if d := row(); d.ClassificationSensitive {
+		t.Fatalf("internal flagged: %+v", d)
+	}
+	// Reclassified at HEAD after publishing: the warning shows, nothing else changes.
+	f.reclassifyHead("internal", "Confidential")
+	d := row()
+	if !d.ClassificationSensitive || d.Classification != "Confidential" {
+		t.Errorf("HEAD reclassified = %+v", d)
+	}
+	if f.item().AccessLevel != "public" {
+		t.Error("the level must not change by itself")
+	}
+	// Back to internal at HEAD while the served version still says Confidential? No:
+	// the served version is the internal one here, so the flag clears.
+	f.reclassifyHead("Confidential", "internal")
+	if d := row(); d.ClassificationSensitive {
+		t.Errorf("flag stayed after HEAD went back: %+v", d)
+	}
+}
+
+func TestTrustMgrItemsFlagSensitiveServedOnly(t *testing.T) {
+	f := newTDFx(t, "tmc2", "pol-c2")
+	f.classify("restricted")
+	f.approve()
+	f.publishOK("gated")
+	f.reclassifyHead("restricted", "internal") // HEAD is internal, the served version still restricted
+	d := f.mgrItems()[0].Document
+	if !d.ClassificationSensitive || d.Classification != "internal" {
+		t.Errorf("served-only = %+v", d)
+	}
+}

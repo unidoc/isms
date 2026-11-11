@@ -996,6 +996,7 @@
   "common.error.trust_already_published",
   "common.error.trust_document_retired",
   "common.error.trust_no_approved_version",
+  "common.error.trust_order_stale",
   "common.error.unsupported_locale",
   "common.field.body",
   "common.field.code",

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -163,7 +164,9 @@ func (d *DB) UpsertTrustCenterSettings(ctx context.Context, orgID int, s *TrustC
 
 // PublishTrustCenterItem publishes an item and records it in the changelog in
 // the same transaction. Publishing a (kind, reference) pair that is already
-// published returns ErrTrustItemAlreadyPublished.
+// published returns ErrTrustItemAlreadyPublished. A new item goes last among
+// the organization's items of its kind: item.SortOrder is ignored and set to
+// the stored value.
 func (d *DB) PublishTrustCenterItem(ctx context.Context, orgID int, item *TrustCenterItem, actor string) error {
 	if !trustKinds[item.Kind] {
 		return trustInvalid("kind %q", item.Kind)
@@ -184,10 +187,12 @@ func (d *DB) PublishTrustCenterItem(ctx context.Context, orgID int, item *TrustC
 		err := tx.QueryRow(ctx, `
 			INSERT INTO trust_center_items
 				(organization_id, kind, reference, access_level, section, sort_order, published_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			RETURNING id, public_id::text, published_at, updated_at
+			VALUES ($1, $2, $3, $4, $5,
+				(SELECT COALESCE(MAX(sort_order), 0) + 1 FROM trust_center_items
+				 WHERE organization_id = $1 AND kind = $2), $6)
+			RETURNING id, public_id::text, published_at, updated_at, sort_order
 		`, orgID, item.Kind, item.Reference, item.AccessLevel, item.Section,
-			item.SortOrder, actor).Scan(&item.ID, &item.PublicID, &item.PublishedAt, &item.UpdatedAt)
+			actor).Scan(&item.ID, &item.PublicID, &item.PublishedAt, &item.UpdatedAt, &item.SortOrder)
 		if err != nil {
 			return err
 		}
@@ -450,4 +455,203 @@ func (d *DB) ClearTrustCenterOverviewDocument(ctx context.Context, orgID int, do
 		return false, err
 	}
 	return cleared, nil
+}
+
+// ErrTrustOrderStale: the ids given for a reorder are not exactly the
+// organization's items of that kind, so the caller worked from an old list.
+var ErrTrustOrderStale = errors.New("the trust center items changed since the list was read")
+
+// ReorderTrustCenterItems sets sort_order to 1..n following publicIDs for the
+// organization's items of kind, hidden ones included. publicIDs must be exactly
+// that set with no duplicates, else ErrTrustOrderStale and nothing is written.
+// The rows are locked for the check and the write, so a concurrent publish or
+// unpublish cannot slip between them. Reordering is not logged.
+func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string, publicIDs []string) error {
+	if !trustKinds[kind] {
+		return trustInvalid("kind %q", kind)
+	}
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `
+			SELECT id, public_id::text FROM trust_center_items
+			WHERE organization_id = $1 AND kind = $2 ORDER BY id FOR UPDATE
+		`, orgID, kind)
+		if err != nil {
+			return err
+		}
+		byPublic := map[string]int64{}
+		for rows.Next() {
+			var id int64
+			var pub string
+			if err := rows.Scan(&id, &pub); err != nil {
+				rows.Close()
+				return err
+			}
+			byPublic[pub] = id
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		if len(publicIDs) != len(byPublic) {
+			return ErrTrustOrderStale
+		}
+		internal := make([]int64, 0, len(publicIDs))
+		seen := map[string]bool{}
+		for _, pub := range publicIDs {
+			pub = strings.ToLower(pub)
+			id, ok := byPublic[pub]
+			if !ok || seen[pub] {
+				return ErrTrustOrderStale
+			}
+			seen[pub] = true
+			internal = append(internal, id)
+		}
+		if len(internal) == 0 {
+			return nil
+		}
+		_, err = tx.Exec(ctx, `
+			UPDATE trust_center_items AS t SET sort_order = o.pos
+			FROM unnest($3::bigint[]) WITH ORDINALITY AS o(id, pos)
+			WHERE t.id = o.id AND t.organization_id = $1 AND t.kind = $2
+		`, orgID, kind, internal)
+		return err
+	})
+}
+
+// TrustCenterSettingsPatch is a partial update of the settings: a nil field is
+// left alone. OverviewDocumentID is set when SetOverview is true; a nil value
+// then clears it.
+type TrustCenterSettingsPatch struct {
+	Enabled            *bool
+	Title              *string
+	SecurityContact    *string
+	DefaultAccessLevel *string
+	SetOverview        bool
+	OverviewDocumentID *string
+}
+
+// UpdateTrustCenterSettings applies patch to the organization's settings and
+// returns the result. It reads, compares and writes under a row lock in one
+// transaction and writes one changelog row per changed field (field name =
+// column name, values as strings). A patch that changes nothing writes nothing,
+// not even a row for an organization that never configured the trust center.
+func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCenterSettingsPatch, actor string) (*TrustCenterSettings, error) {
+	if p.DefaultAccessLevel != nil && !trustAccessLevels[*p.DefaultAccessLevel] {
+		return nil, trustInvalid("default_access_level %q", *p.DefaultAccessLevel)
+	}
+	if p.Title != nil && len(*p.Title) > 200 {
+		return nil, trustInvalid("title is longer than 200 characters")
+	}
+	if p.SecurityContact != nil && len(*p.SecurityContact) > 320 {
+		return nil, trustInvalid("security_contact is longer than 320 characters")
+	}
+	type change struct{ field, old, new string }
+	boolStr := func(b bool) string {
+		if b {
+			return "true"
+		}
+		return "false"
+	}
+	// diff compares the patch with cur and returns the settings after it.
+	diff := func(cur *TrustCenterSettings) (*TrustCenterSettings, []change) {
+		var changes []change
+		next := *cur
+		if p.Enabled != nil && *p.Enabled != cur.Enabled {
+			changes = append(changes, change{"enabled", boolStr(cur.Enabled), boolStr(*p.Enabled)})
+			next.Enabled = *p.Enabled
+		}
+		if p.Title != nil && *p.Title != cur.Title {
+			changes = append(changes, change{"title", cur.Title, *p.Title})
+			next.Title = *p.Title
+		}
+		if p.SecurityContact != nil && *p.SecurityContact != cur.SecurityContact {
+			changes = append(changes, change{"security_contact", cur.SecurityContact, *p.SecurityContact})
+			next.SecurityContact = *p.SecurityContact
+		}
+		if p.DefaultAccessLevel != nil && *p.DefaultAccessLevel != cur.DefaultAccessLevel {
+			changes = append(changes, change{"default_access_level", cur.DefaultAccessLevel, *p.DefaultAccessLevel})
+			next.DefaultAccessLevel = *p.DefaultAccessLevel
+		}
+		if p.SetOverview {
+			oldOv, newOv := "", ""
+			if cur.OverviewDocumentID != nil {
+				oldOv = *cur.OverviewDocumentID
+			}
+			if p.OverviewDocumentID != nil {
+				newOv = *p.OverviewDocumentID
+			}
+			if oldOv != newOv {
+				changes = append(changes, change{"overview_document_id", oldOv, newOv})
+				next.OverviewDocumentID = nilIfEmpty(newOv)
+			}
+		}
+		return &next, changes
+	}
+
+	var out *TrustCenterSettings
+	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		// lock reads the row under FOR UPDATE; a missing row reads as defaults.
+		lock := func() (cur *TrustCenterSettings, exists bool, err error) {
+			cur = &TrustCenterSettings{OrganizationID: orgID}
+			err = tx.QueryRow(ctx, `
+				SELECT enabled, title, overview_document_id, security_contact,
+				       default_access_level, updated_at, updated_by
+				FROM trust_center_settings WHERE organization_id = $1 FOR UPDATE
+			`, orgID).Scan(&cur.Enabled, &cur.Title, &cur.OverviewDocumentID, &cur.SecurityContact,
+				&cur.DefaultAccessLevel, &cur.UpdatedAt, &cur.UpdatedBy)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &TrustCenterSettings{OrganizationID: orgID, DefaultAccessLevel: TrustAccessGated}, false, nil
+			}
+			return cur, err == nil, err
+		}
+		cur, exists, err := lock()
+		if err != nil {
+			return err
+		}
+		next, changes := diff(cur)
+		if len(changes) == 0 {
+			out = cur
+			return nil
+		}
+		if !exists {
+			// Create the row with the defaults, then lock and compare against
+			// whatever is there: another request may have created it first.
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO trust_center_settings (organization_id) VALUES ($1)
+				ON CONFLICT (organization_id) DO NOTHING
+			`, orgID); err != nil {
+				return err
+			}
+			if cur, _, err = lock(); err != nil {
+				return err
+			}
+			if next, changes = diff(cur); len(changes) == 0 {
+				out = cur
+				return nil
+			}
+		}
+		if err := tx.QueryRow(ctx, `
+			UPDATE trust_center_settings
+			SET enabled = $2, title = $3, overview_document_id = $4, security_contact = $5,
+			    default_access_level = $6, updated_at = now(), updated_by = $7
+			WHERE organization_id = $1
+			RETURNING updated_at
+		`, orgID, next.Enabled, next.Title, next.OverviewDocumentID, next.SecurityContact,
+			next.DefaultAccessLevel, nilIfEmpty(actor)).Scan(&next.UpdatedAt); err != nil {
+			return err
+		}
+		next.UpdatedBy = nilIfEmpty(actor)
+		for _, ch := range changes {
+			old, nw := ch.old, ch.new
+			if err := LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+				EntityType: "trust_center_settings", EntityID: int64(orgID), Action: "update",
+				Field: ch.field, OldValue: &old, NewValue: &nw, ChangedBy: actor,
+			}); err != nil {
+				return err
+			}
+		}
+		out = next
+		return nil
+	})
+	return out, err
 }

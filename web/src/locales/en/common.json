@@ -487,6 +487,7 @@
     "trust_no_approved_version": "this document has no approved version to publish",
     "trust_document_retired": "a retired document cannot be published",
     "trust_already_published": "this document is already published in the trust center",
+    "trust_order_stale": "the trust center changed while you were reordering — reload and try again",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale"
   },

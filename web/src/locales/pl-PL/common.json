@@ -480,6 +480,7 @@
     "trust_no_approved_version": "ten dokument nie ma zatwierdzonej wersji do opublikowania",
     "trust_document_retired": "wycofanego dokumentu nie można opublikować",
     "trust_already_published": "ten dokument jest już opublikowany w centrum zaufania",
+    "trust_order_stale": "centrum zaufania zmieniło się podczas zmiany kolejności — odśwież i spróbuj ponownie",
     "ai_disabled": "funkcje AI są wyłączone dla tej organizacji",
     "unsupported_locale": "nieobsługiwany język"
   },

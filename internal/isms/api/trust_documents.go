@@ -35,9 +35,11 @@ type trustServedVersion struct {
 
 // trustDocHead is a document as it is at HEAD.
 type trustDocHead struct {
-	Deleted bool
-	Status  string
-	Version string
+	Deleted        bool
+	Status         string
+	Version        string
+	Title          string
+	Classification string
 }
 
 // trustDocumentHead reports the document's state at HEAD. Deleted is set only
@@ -71,7 +73,8 @@ func (s *Server) trustDocumentHead(ctx context.Context, st *store.Store, orgID i
 	if err != nil {
 		return nil, fmt.Errorf("loading document %s: %w", docID, err)
 	}
-	return &trustDocHead{Status: doc.Frontmatter.Status, Version: doc.Frontmatter.Version}, nil
+	return &trustDocHead{Status: doc.Frontmatter.Status, Version: doc.Frontmatter.Version,
+		Title: doc.Frontmatter.Title, Classification: doc.Frontmatter.Classification}, nil
 }
 
 // trustServed resolves the served version of a document, or nil when no

@@ -129,6 +129,7 @@ const (
 	CodeTrustNoApprovedVersion = "trust_no_approved_version"
 	CodeTrustDocumentRetired   = "trust_document_retired"
 	CodeTrustAlreadyPublished  = "trust_already_published"
+	CodeTrustOrderStale        = "trust_order_stale"
 
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
@@ -206,6 +207,7 @@ var errorMessages = map[string]string{
 	CodeTrustNoApprovedVersion: "this document has no approved version to publish",
 	CodeTrustDocumentRetired:   "a retired document cannot be published",
 	CodeTrustAlreadyPublished:  "this document is already published in the trust center",
+	CodeTrustOrderStale:        "the trust center changed while you were reordering — reload and try again",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

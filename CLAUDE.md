@@ -141,6 +141,10 @@ POST /documents/:docId/confirm-review — annual review confirm (approved docume
 GET  /documents/:docId/trust-center — trust center state: served version, hidden, can publish (manager/admin)
 POST /documents/:docId/trust-center — publish the last approved version to the trust center (manager/admin)
 DELETE /documents/:docId/trust-center — unpublish from the trust center (manager/admin)
+GET  /trust-center/settings — trust center settings: enabled, title, overview document, security contact, default access level (manager/admin)
+PUT  /trust-center/settings — partial settings update, changelog per changed field (manager/admin)
+GET  /trust-center/items — every published item incl. hidden, with document status per row (manager/admin)
+PUT  /trust-center/items/order — set the display order of one kind of item; 409 trust_order_stale on an old list (manager/admin)
 GET  /templates/available        — list available templates
 POST /templates                  — scaffold template into org
 ```

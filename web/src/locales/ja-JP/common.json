@@ -467,6 +467,7 @@
     "trust_no_approved_version": "この文書には公開できる承認済みバージョンがありません",
     "trust_document_retired": "廃止された文書は公開できません",
     "trust_already_published": "この文書はすでにトラストセンターで公開されています",
+    "trust_order_stale": "並べ替え中にトラストセンターが変更されました。再読み込みしてもう一度お試しください",
     "ai_disabled": "この組織ではAI機能が無効です",
     "unsupported_locale": "サポートされていないロケール"
   },

@@ -480,6 +480,7 @@
     "trust_no_approved_version": "þetta skjal hefur enga samþykkta útgáfu til að birta",
     "trust_document_retired": "afturkallað skjal er ekki hægt að birta",
     "trust_already_published": "þetta skjal hefur þegar verið birt í traustmiðstöðinni",
+    "trust_order_stale": "traustmiðstöðin breyttist meðan þú raðaðir upp á nýtt — endurhlaðið og reyndu aftur",
     "ai_disabled": "gervigreindarþættir eru óvirkir fyrir þetta fyrirtæki",
     "unsupported_locale": "óstutt tungumál"
   },

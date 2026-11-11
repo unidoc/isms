@@ -5,10 +5,11 @@ API tests; this file covers what only a browser shows: the sidebar entry, the
 not-allowed screen, the confirmation dialogs, the order on the public page and
 the status of each row.
 
-The e2e organization is shared with other e2e files. Each test restores the trust
-center state it touched in a finally block: the trust center is switched off and
-the items it published are unpublished. The documents it creates (unique ids per
-run) and the contributor user stay in the organization; they are not removed.
+The e2e organization is shared with other e2e files. Each test restores what it
+touched in a finally block: the trust center is switched off, the items it
+published are unpublished, and the documents it created (unique ids per run) are
+deleted, so the organization does not grow. Only the contributor user (created
+idempotently) stays.
 
 Requires: pip install playwright && playwright install chromium
 Run:      pytest tests/test_e2e_trust_center_manager.py -v
@@ -45,8 +46,22 @@ def reviewer(tokens):
     return {"email": R1[0], "token": t}
 
 
+_CREATED = []
+
+
+@pytest.fixture(autouse=True, scope="module")
+def delete_created_documents(tokens):
+    """Whatever a test failed to clean up, delete once the module is done."""
+    yield
+    for d in _CREATED:
+        api("delete", f"/documents/{d}/trust-center", tokens["admin"])
+        api("delete", f"/documents/{d}", tokens["admin"])
+    _CREATED.clear()
+
+
 def new_doc(admin_token, reviewer, title, classification=None, approve=True):
     doc_id = f"e2e-tc-{uuid.uuid4().hex[:8]}"
+    _CREATED.append(doc_id)
     api("post", "/documents", admin_token, expect_status=201, json={
         "folder": "e2e-trust", "filename": f"{doc_id}.md", "document_id": doc_id, "title": title,
         "content": f"# {title}\n\nText.\n",
@@ -71,6 +86,7 @@ def cleanup(admin_token, doc_ids):
     set_enabled(admin_token, False)
     for d in doc_ids:
         api("delete", f"/documents/{d}/trust-center", admin_token)  # 404 when never published
+        api("delete", f"/documents/{d}", admin_token)
 
 
 def item_for(admin_token, doc_id):
@@ -114,9 +130,10 @@ class TestTrustCenterManager:
         try:
             page.locator('aside a[data-nav="trust-center"]').click()
             expect(page.locator('[data-trust="address"]')).to_have_text(f"{BASE}/{ORG}/trust", timeout=15000)
-            # D2: off means no preview.
-            expect(page.locator('[data-trust="preview"]')).to_be_disabled()
-            expect(page.get_by_text("Turn the trust center on to preview it").first).to_be_visible()
+            # Preview works while the trust center is off: an enabled link to the preview route.
+            preview = page.locator('a[data-trust="preview"]')
+            expect(preview).to_have_attribute("href", f"{BASE}/{ORG}/trust-center/preview")
+            expect(preview).to_have_attribute("target", "_blank")
             page.locator('[data-trust-tab="settings"]').click()
             assert "tab=settings" in page.url
             page.reload()
@@ -142,8 +159,7 @@ class TestTrustCenterManager:
             page.locator('[data-trust="enable-confirm"]').click()
             expect(toggle).to_have_attribute("aria-checked", "true", timeout=8000)
             assert api("get", "/trust-center/settings", t, expect_status=200).json()["enabled"] is True
-            # Preview is now a link to the public address.
-            expect(page.locator('a[data-trust="preview"]')).to_have_attribute("href", f"{BASE}/{ORG}/trust")
+            expect(page.locator('a[data-trust="preview"]')).to_have_attribute("href", f"{BASE}/{ORG}/trust-center/preview")
         finally:
             set_enabled(t, False)
 
@@ -283,3 +299,65 @@ class TestTrustCenterManager:
             assert api("get", "/trust-center/settings", t, expect_status=200).json()["security_contact"] != "unsaved@e2e.example"
         finally:
             api("put", "/trust-center/settings", t, json={"enabled": False, "security_contact": ""})
+
+    def test_preview_opens_while_the_trust_center_is_off_and_stays_inside_the_preview(self, admin_page, tokens, reviewer):
+        t = tokens["admin"]
+        page = admin_page
+        title = f"E2E Preview Doc {uuid.uuid4().hex[:4]}"
+        doc = new_doc(t, reviewer, title)
+        try:
+            set_enabled(t, False)
+            api("post", f"/documents/{doc}/trust-center", t, expect_status=201, json={"access_level": "public"})
+            # Visitors see nothing...
+            assert api("get", f"/trust/{ORG}").status_code == 404
+            open_manager(page)
+            with page.context.expect_page() as opened:
+                page.locator('a[data-trust="preview"]').click()
+            preview = opened.value
+            preview.wait_for_load_state()
+            expect(preview.locator('[data-trust="preview-banner"]')).to_contain_text("Preview: this is what visitors see", timeout=15000)
+            expect(preview.locator('[data-trust="preview-off"]')).to_have_text("The trust center is off; visitors currently see nothing.")
+            # ...the preview lists the document, and bare: no app sidebar.
+            expect(preview.get_by_text(title).first).to_be_visible(timeout=15000)
+            assert preview.locator("aside").count() == 0
+            link = preview.locator('[data-trust="view"]').first
+            expect(link).to_have_attribute("href", f"/{ORG}/trust-center/preview/documents/" + link.get_attribute("href").rsplit("/", 1)[1])
+            link.click()
+            preview.wait_for_url(f"**/{ORG}/trust-center/preview/documents/**")
+            expect(preview.get_by_text("Text.").first).to_be_visible(timeout=15000)
+            expect(preview.locator('[data-trust="preview-banner"]')).to_be_visible()
+        finally:
+            cleanup(t, [doc])
+
+    def test_reordering_past_a_hidden_row_changes_the_public_order(self, admin_page, tokens, reviewer):
+        t = tokens["admin"]
+        page = admin_page
+        tag = uuid.uuid4().hex[:4]
+        a = new_doc(t, reviewer, f"E2E Skip Alpha {tag}")
+        b = new_doc(t, reviewer, f"E2E Skip Bravo {tag}")
+        c = new_doc(t, reviewer, f"E2E Skip Charlie {tag}")
+        try:
+            set_enabled(t, True)
+            for d in (a, b, c):
+                api("post", f"/documents/{d}/trust-center", t, expect_status=201, json={"access_level": "public"})
+            api("put", f"/documents/{b}/metadata", t, expect_status=200, json={"fields": {"status": "retired"}})  # Bravo is hidden
+
+            def public_order():
+                page.goto(f"{BASE}/{ORG}/trust")
+                expect(page.get_by_text(f"E2E Skip Alpha {tag}").first).to_be_visible(timeout=15000)
+                text = page.locator("body").inner_text()
+                return text.index(f"E2E Skip Alpha {tag}") < text.index(f"E2E Skip Charlie {tag}")
+
+            assert public_order() is True
+            open_manager(page)
+            hidden_row = page.locator(f'[data-trust-row="{b}"]')
+            expect(hidden_row).to_be_visible(timeout=10000)
+            assert hidden_row.locator('[data-trust="up"]').count() == 0 and hidden_row.locator('[data-trust="down"]').count() == 0
+            # One click moves Alpha past the hidden row, below Charlie.
+            page.locator(f'[data-trust-row="{a}"] [data-trust="down"]').click()
+            page.wait_for_function(
+                "([a,c]) => { const t=[...document.querySelectorAll('[data-trust-row]')].map(e=>e.dataset.trustRow); return t.indexOf(c) >= 0 && t.indexOf(c) < t.indexOf(a) }",
+                arg=[a, c], timeout=8000)
+            assert public_order() is False, "after one click Charlie must come before Alpha on the public page"
+        finally:
+            cleanup(t, [a, b, c])

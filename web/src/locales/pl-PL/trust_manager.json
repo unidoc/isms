@@ -10,8 +10,7 @@
   "address": {
     "label": "Adres publiczny",
     "copied": "Skopiowano",
-    "preview": "Podgląd jako odwiedzający",
-    "preview_off": "Włącz centrum zaufania, aby zobaczyć podgląd"
+    "preview": "Podgląd jako odwiedzający"
   },
   "documents": {
     "heading": "Dokumenty",
@@ -29,7 +28,8 @@
     "unpublish_title": "Wycofać publikację {title}?",
     "unpublish_body": "Odwiedzający nie będą już widzieć tego dokumentu. Możesz go później opublikować ponownie.",
     "remove_title": "Usunąć {title}?",
-    "remove_body": "Spowoduje to usunięcie go z centrum zaufania."
+    "remove_body": "Spowoduje to usunięcie go z centrum zaufania.",
+    "classified_public": "Sklasyfikowany jako {classification}, widoczny dla każdego"
   },
   "status": {
     "published": "Opublikowany",
@@ -74,5 +74,10 @@
     "default_level_help": "Poziom, z jakim zaczyna nowo opublikowany dokument.",
     "saved": "Zapisano",
     "save_error": "Nie udało się zapisać: {message}"
+  },
+  "preview": {
+    "banner": "Podgląd: tak widzą to odwiedzający",
+    "off": "Centrum zaufania jest wyłączone; odwiedzający na razie nic nie widzą.",
+    "back": "Wróć do zarządzania centrum zaufania"
   }
 }

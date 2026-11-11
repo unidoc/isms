@@ -306,6 +306,10 @@ export const api = {
   getDocumentTrust: (docId) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
   // `confirm` answers a 409 trust_classification_confirm: it is sent only when true.
   publishDocumentTrust: (docId, accessLevel, confirm) => postJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`, { ...(accessLevel && { access_level: accessLevel }), ...(confirm && { confirm_classification: true }) }),
+  // What a visitor would get, for the signed-in manager's org, even while the trust center is off.
+  trustPreviewOverview: () => fetchJSON(`${API}/trust-center/preview`),
+  trustPreviewItems: () => fetchJSON(`${API}/trust-center/preview/items`),
+  trustPreviewDocument: (id) => fetchJSON(`${API}/trust-center/preview/documents/${encodeURIComponent(id)}`),
   getTrustSettings: () => fetchJSON(`${API}/trust-center/settings`),
   updateTrustSettings: (patch) => putJSON(`${API}/trust-center/settings`, patch),
   getTrustItems: () => fetchJSON(`${API}/trust-center/items`),

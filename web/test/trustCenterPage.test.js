@@ -209,3 +209,18 @@ test('rows are ordered by sort_order, then title (the order the manager screen a
   const at = (s) => html.indexOf(s)
   assert.ok(at('Bravo') > 0 && at('Bravo') < at('Mike') && at('Mike') < at('Zulu'), html)
 })
+
+test('with a data source the page loads through it and makes no anonymous trust API call', async () => {
+  const calls = stub()
+  const seen = []
+  const source = {
+    overview: async () => { seen.push('overview'); return overview({ title: 'Preview Title' }) },
+    items: async () => { seen.push('items'); return [item(PUB, 'public', 'Source Policy')] },
+    document: async (id) => { seen.push(`document:${id}`); return doc(id, '<p>Source body</p>') },
+  }
+  const html = norm(await mount(props({ source, docId: PUB })))
+  assert.deepEqual(seen, ['overview', 'items', `document:${PUB}`])
+  assert.ok(html.includes('Source Policy') || html.includes('Policy One'), html)
+  assert.ok(html.includes('Source body'), html)
+  assert.deepEqual(calls.filter(c => c.url.includes('/api/v1/trust/')), [], 'the default anonymous calls must not be made')
+})

@@ -108,3 +108,32 @@ test('confirm flow: no conflict never asks; other errors pass through', async ()
   // a second 409 after the flag was sent is not asked again
   await assert.rejects(withClassificationConfirm(async () => { throw conflict('confidential') }, async () => true), /confirm/)
 })
+
+import { visibleNeighbour, sensitiveBadge, previewAddress } from '../src/utils/trustManager.js'
+
+const vis = (id) => ({ id, hidden_reason: '' })
+const hid = (id) => ({ id, hidden_reason: 'retired' })
+
+test('visibleNeighbour skips hidden rows and answers -1 when there is none', () => {
+  const rows = [vis('a'), hid('b'), hid('c'), vis('d'), hid('e')]
+  assert.equal(visibleNeighbour(rows, 0, 1), 3)
+  assert.equal(visibleNeighbour(rows, 3, -1), 0)
+  assert.equal(visibleNeighbour(rows, 0, -1), -1)
+  assert.equal(visibleNeighbour(rows, 3, 1), -1) // only a hidden row after it
+})
+
+test('sensitiveBadge: only public rows whose classification is sensitive; HEAD wording, else "confidential"', () => {
+  const r = (level, sensitive, cls) => ({ access_level: level, document: { classification_sensitive: sensitive, classification: cls } })
+  assert.equal(sensitiveBadge(r('gated', true, 'Confidential')), null)
+  assert.equal(sensitiveBadge(r('public', false, 'internal')), null)
+  assert.deepEqual(sensitiveBadge(r('public', true, 'Confidential')), { classification: 'Confidential' })
+  assert.deepEqual(sensitiveBadge(r('public', true, ' RESTRICTED ')), { classification: ' RESTRICTED ' })
+  // only the served version is sensitive: HEAD says internal, so say "confidential"
+  assert.deepEqual(sensitiveBadge(r('public', true, 'internal')), { classification: 'confidential' })
+  assert.deepEqual(sensitiveBadge(r('public', true, '')), { classification: 'confidential' })
+})
+
+test('previewAddress sits under the manager route, in both modes', () => {
+  assert.equal(previewAddress('https://isms.example', 'acme', false), 'https://isms.example/acme/trust-center/preview')
+  assert.equal(previewAddress('https://acme.isms.example', 'acme', true), 'https://acme.isms.example/trust-center/preview')
+})

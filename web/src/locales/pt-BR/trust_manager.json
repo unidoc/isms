@@ -10,8 +10,7 @@
   "address": {
     "label": "Endereço público",
     "copied": "Copiado",
-    "preview": "Ver como visitante",
-    "preview_off": "Ative a central de confiança para visualizá-la"
+    "preview": "Ver como visitante"
   },
   "documents": {
     "heading": "Documentos",
@@ -29,7 +28,8 @@
     "unpublish_title": "Despublicar {title}?",
     "unpublish_body": "Os visitantes deixarão de ver este documento. Você pode publicá-lo novamente depois.",
     "remove_title": "Remover {title}?",
-    "remove_body": "Isso o remove da central de confiança."
+    "remove_body": "Isso o remove da central de confiança.",
+    "classified_public": "Classificado como {classification}, visível para qualquer pessoa"
   },
   "status": {
     "published": "Publicado",
@@ -74,5 +74,10 @@
     "default_level_help": "O nível com que um documento recém-publicado começa.",
     "saved": "Salvo",
     "save_error": "Não foi possível salvar: {message}"
+  },
+  "preview": {
+    "banner": "Pré-visualização: é isto que os visitantes veem",
+    "off": "A central de confiança está desligada; os visitantes não veem nada no momento.",
+    "back": "Voltar ao gerenciador da central de confiança"
   }
 }

@@ -28,6 +28,7 @@ const Programs = () => import('./views/Programs.vue')
 const Reviews = () => import('./views/Reviews.vue')
 const Settings = () => import('./views/Settings.vue')
 const TrustCenterManager = () => import('./views/TrustCenterManager.vue')
+const TrustCenterPreview = () => import('./views/TrustCenterPreview.vue')
 const Admin = () => import('./views/Admin.vue')
 const Organizations = () => import('./views/Organizations.vue')
 
@@ -68,6 +69,10 @@ const orgScopedRoutes = [
   { path: '/reviews', component: Reviews },
   { path: '/reviews/:id', component: Reviews },
   { path: '/trust-center', component: TrustCenterManager },
+  // Bare: no app chrome, like the public page, but NOT public: login and the role
+  // check still apply.
+  { path: '/trust-center/preview', component: TrustCenterPreview, bare: true },
+  { path: '/trust-center/preview/documents/:id', component: TrustCenterPreview, bare: true },
   { path: '/settings', component: Settings },
   { path: '/admin', component: Admin },
   { path: '/admin/:tab', component: Admin },
@@ -80,7 +85,7 @@ function buildOrgRoutes(subdomainMode) {
   return orgScopedRoutes.map(r => ({
     path: subdomainMode ? r.path : '/:org' + r.path,
     component: r.component,
-    meta: { orgScoped: true },
+    meta: { orgScoped: true, ...(r.bare && { bare: true }) },
   }))
 }
 

@@ -10,8 +10,7 @@
   "address": {
     "label": "Dirección pública",
     "copied": "Copiado",
-    "preview": "Ver como visitante",
-    "preview_off": "Activa el centro de confianza para previsualizarlo"
+    "preview": "Ver como visitante"
   },
   "documents": {
     "heading": "Documentos",
@@ -29,7 +28,8 @@
     "unpublish_title": "¿Despublicar {title}?",
     "unpublish_body": "Los visitantes dejarán de ver este documento. Puedes publicarlo de nuevo más adelante.",
     "remove_title": "¿Quitar {title}?",
-    "remove_body": "Esto lo quita del centro de confianza."
+    "remove_body": "Esto lo quita del centro de confianza.",
+    "classified_public": "Clasificado como {classification}, visible para cualquiera"
   },
   "status": {
     "published": "Publicado",
@@ -74,5 +74,10 @@
     "default_level_help": "El nivel con el que empieza un documento recién publicado.",
     "saved": "Guardado",
     "save_error": "No se pudo guardar: {message}"
+  },
+  "preview": {
+    "banner": "Vista previa: esto es lo que ven los visitantes",
+    "off": "El centro de confianza está desactivado; los visitantes no ven nada por ahora.",
+    "back": "Volver a la gestión del centro de confianza"
   }
 }

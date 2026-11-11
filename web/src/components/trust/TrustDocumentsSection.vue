@@ -26,6 +26,7 @@
             <span>{{ $t('trust_manager.documents.source') }}</span>
             <span v-if="row.document.classification" data-trust="classification">{{ $t('trust_manager.documents.classification', { value: row.document.classification }) }}</span>
           </div>
+          <div v-if="badge(row)" class="mt-1.5 inline-block text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-300" data-trust="classified-public">{{ $t('trust_manager.documents.classified_public', { classification: badge(row).classification }) }}</div>
         </div>
 
         <span :class="statusClass(row)" class="text-xs px-2 py-1 rounded-full lg:justify-self-start" data-trust="status">{{ statusText(row) }}</span>
@@ -36,15 +37,17 @@
           <option v-for="lvl in levels" :key="lvl" :value="lvl">{{ levelLabel(lvl) }}</option>
         </select>
 
-        <div class="flex items-center gap-1">
-          <button type="button" data-trust="up" :disabled="i === 0 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_up')" :title="$t('trust_manager.documents.move_up')" @click="move(i, -1)"
-            class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
-          </button>
-          <button type="button" data-trust="down" :disabled="i === rows.length - 1 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_down')" :title="$t('trust_manager.documents.move_down')" @click="move(i, 1)"
-            class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-          </button>
+        <div class="flex items-center gap-1 lg:justify-self-start" :class="row.hidden_reason ? 'invisible' : ''">
+          <template v-if="!row.hidden_reason">
+            <button type="button" data-trust="up" :disabled="visibleNeighbour(rows, i, -1) < 0 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_up')" :title="$t('trust_manager.documents.move_up')" @click="move(i, -1)"
+              class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
+            </button>
+            <button type="button" data-trust="down" :disabled="visibleNeighbour(rows, i, 1) < 0 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_down')" :title="$t('trust_manager.documents.move_down')" @click="move(i, 1)"
+              class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+          </template>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -121,7 +124,7 @@ import { renderApiError } from '../../composables/useApiError.js'
 import { useClassificationConfirm } from '../../composables/useClassificationConfirm.js'
 import { useCurrentOrg } from '../../composables/useCurrentOrg.js'
 import { compareTrustItems } from '../../utils/trustOrder.js'
-import { rowStatus, rowActions } from '../../utils/trustManager.js'
+import { rowStatus, rowActions, visibleNeighbour, sensitiveBadge } from '../../utils/trustManager.js'
 import TrustClassificationConfirm from './TrustClassificationConfirm.js'
 import TrustDocumentSearch from './TrustDocumentSearch.vue'
 
@@ -150,6 +153,7 @@ const rows = computed(() =>
 const itemIds = computed(() => rows.value.map((r) => r.document.document_id))
 
 const actions = rowActions
+const badge = sensitiveBadge
 const levelLabel = (lvl) => t('trust_manager.level.' + (lvl || 'default'))
 const askKey = () => 'trust_manager.documents.' + ask.value.kind
 const askTitle = () => t(askKey() + '_title', { title: ask.value.row.document.title })
@@ -208,10 +212,10 @@ async function changeLevel(row, ev) {
 }
 
 async function move(i, delta) {
+  const j = visibleNeighbour(rows.value, i, delta)
+  if (j < 0) return
   const ids = rows.value.map((r) => r.id)
-  const j = i + delta
-  if (j < 0 || j >= ids.length) return
-  ;[ids[i], ids[j]] = [ids[j], ids[i]]
+  ;[ids[i], ids[j]] = [ids[j], ids[i]] // hidden rows in between keep their slots
   actionError.value = ''
   busy.value = true
   try {

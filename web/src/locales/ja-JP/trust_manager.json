@@ -1,0 +1,78 @@
+{
+  "title": "トラストセンター",
+  "tabs": {
+    "label": "トラストセンターのセクション",
+    "content": "コンテンツ",
+    "settings": "設定"
+  },
+  "not_allowed": "トラストセンターを管理できるのは管理者とマネージャーのみです。",
+  "load_error": "トラストセンターを読み込めませんでした: {message}",
+  "address": {
+    "label": "公開アドレス",
+    "copied": "コピーしました",
+    "preview": "訪問者として表示",
+    "preview_off": "プレビューするにはトラストセンターをオンにしてください"
+  },
+  "documents": {
+    "heading": "文書",
+    "publish": "文書を公開",
+    "empty": "公開されている文書はまだありません。",
+    "source": "文書",
+    "classification": "分類: {value}",
+    "access_label": "{title} のアクセスレベル",
+    "move_up": "上へ",
+    "move_down": "下へ",
+    "unpublish": "公開を取り消す",
+    "publish_again": "再公開",
+    "remove": "削除",
+    "retired_hint": "廃止済み。先に文書を復元してください",
+    "unpublish_title": "{title} の公開を取り消しますか?",
+    "unpublish_body": "訪問者はこの文書を見られなくなります。あとで再公開できます。",
+    "remove_title": "{title} を削除しますか?",
+    "remove_body": "この文書は存在しません。トラストセンターから削除します。"
+  },
+  "status": {
+    "published": "公開中",
+    "draft_in_progress": "ドラフト v{draft} を作成中、訪問者には v{version} が表示されます",
+    "cannot_publish": "公開できません: 承認済みバージョンがありません",
+    "hidden_retired": "廃止済み、非表示",
+    "hidden_deleted": "削除済み、非表示",
+    "error": "この文書を読み取れませんでした"
+  },
+  "level": {
+    "public": "公開",
+    "gated": "ログイン必須",
+    "restricted": "制限付き",
+    "default": "組織の既定"
+  },
+  "picker": {
+    "title": "文書を公開",
+    "search": "文書を検索",
+    "search_placeholder": "タイトルまたは ID で検索",
+    "none": "公開できる文書がありません。",
+    "loading": "文書を読み込み中...",
+    "choose_other": "別の文書を選ぶ",
+    "cannot_no_approved_version": "承認済みバージョンがまだありません。公開する前に文書を承認してください。",
+    "cannot_retired": "廃止済みの文書は公開できません。",
+    "level_label": "開ける人",
+    "publish": "公開"
+  },
+  "settings": {
+    "enabled_label": "トラストセンター",
+    "enabled_help": "オンにすると、インターネット上の誰でもトラストセンターのページを開けます。",
+    "enable_title": "トラストセンターをオンにしますか?",
+    "enable_body": "公開したものはすべて、インターネット上の誰にでも表示されます。",
+    "enable_confirm": "オンにする",
+    "overview_label": "概要文書",
+    "overview_none": "なし",
+    "overview_choose": "文書を選ぶ",
+    "overview_clear": "クリア",
+    "overview_no_approved": "この文書には承認済みバージョンがまだありません。承認されるまでページには概要が表示されません。",
+    "contact_label": "セキュリティ連絡先",
+    "contact_help": "訪問者がセキュリティ上の問題を報告する先(メールアドレスまたはリンク)。",
+    "default_level_label": "既定のアクセスレベル",
+    "default_level_help": "新しく公開した文書の初期レベル。",
+    "saved": "保存しました",
+    "save_error": "保存できませんでした: {message}"
+  }
+}

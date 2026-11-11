@@ -27,6 +27,7 @@ const Objectives = () => import('./views/Objectives.vue')
 const Programs = () => import('./views/Programs.vue')
 const Reviews = () => import('./views/Reviews.vue')
 const Settings = () => import('./views/Settings.vue')
+const TrustCenterManager = () => import('./views/TrustCenterManager.vue')
 const Admin = () => import('./views/Admin.vue')
 const Organizations = () => import('./views/Organizations.vue')
 
@@ -66,6 +67,7 @@ const orgScopedRoutes = [
   { path: '/incidents', component: Incidents },
   { path: '/reviews', component: Reviews },
   { path: '/reviews/:id', component: Reviews },
+  { path: '/trust-center', component: TrustCenterManager },
   { path: '/settings', component: Settings },
   { path: '/admin', component: Admin },
   { path: '/admin/:tab', component: Admin },

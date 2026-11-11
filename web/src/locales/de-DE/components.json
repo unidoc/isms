@@ -480,6 +480,9 @@
     "publish_confirm": "Veröffentlichen",
     "unpublish_title": "Veröffentlichung im Trust Center aufheben",
     "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
-    "error_load": "Der Trust-Center-Status konnte nicht geladen werden: {message}"
+    "error_load": "Der Trust-Center-Status konnte nicht geladen werden: {message}",
+    "classification_title": "Für alle veröffentlichen?",
+    "classification_body": "Dieses Dokument ist als {classification} eingestuft. Wenn Sie es als Öffentlich veröffentlichen, kann es jeder im Internet lesen.",
+    "classification_confirm": "Trotzdem veröffentlichen"
   }
 }

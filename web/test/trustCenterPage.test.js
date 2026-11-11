@@ -198,3 +198,14 @@ test('modified or non-primary clicks on View are left to the browser', async () 
     assert.equal(r.defaultPrevented, false, JSON.stringify(init))
   }
 })
+
+test('rows are ordered by sort_order, then title (the order the manager screen arranges)', async () => {
+  stub({ items: [
+    item(PUB, 'public', 'Zulu', { sort_order: 2 }),
+    item(GATED, 'public', 'Mike', { sort_order: 0 }),
+    item(RESTR, 'public', 'Bravo', { sort_order: 0 }),
+  ] })
+  const html = norm(await mount(props()))
+  const at = (s) => html.indexOf(s)
+  assert.ok(at('Bravo') > 0 && at('Bravo') < at('Mike') && at('Mike') < at('Zulu'), html)
+})

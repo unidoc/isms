@@ -18,6 +18,8 @@
           class="px-2.5 py-1 font-medium rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {{ state.hidden_reason ? $t('components.trust_publish.publish_again') : $t('components.trust_publish.publish') }}
         </button>
+        <button v-if="state.hidden_reason" type="button" data-trust="remove" @click="confirmUnpublish = true"
+          class="text-slate-400 hover:text-red-400 transition-colors">{{ $t('components.trust_publish.remove') }}</button>
         <span v-if="state.cannot_publish_reason" class="text-slate-500" data-trust="reason">{{ $t('components.trust_publish.reason_' + state.cannot_publish_reason) }}</span>
       </template>
       <span v-if="actionError" class="basis-full text-red-400" data-trust="error">{{ actionError }}</span>

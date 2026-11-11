@@ -462,6 +462,7 @@
     "publish": "Im Trust Center veröffentlichen",
     "publish_again": "Erneut veröffentlichen",
     "unpublish": "Veröffentlichung aufheben",
+    "remove": "Entfernen",
     "reason_no_approved_version": "Noch keine genehmigte Version. Lassen Sie das Dokument genehmigen, bevor Sie es veröffentlichen.",
     "reason_retired": "Archivierte Dokumente können nicht veröffentlicht werden.",
     "status_published": "Im Trust Center · {level} · Besucher sehen v{version}",

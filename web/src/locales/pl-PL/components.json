@@ -462,6 +462,7 @@
     "publish": "Opublikuj w centrum zaufania",
     "publish_again": "Opublikuj ponownie",
     "unpublish": "Cofnij publikację",
+    "remove": "Usuń",
     "reason_no_approved_version": "Brak zatwierdzonej wersji. Zatwierdź dokument przed publikacją.",
     "reason_retired": "Wycofanych dokumentów nie można publikować.",
     "status_published": "W centrum zaufania · {level} · odwiedzający widzą v{version}",

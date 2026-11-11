@@ -29,7 +29,7 @@
     "unpublish_title": "{title} の公開を取り消しますか?",
     "unpublish_body": "訪問者はこの文書を見られなくなります。あとで再公開できます。",
     "remove_title": "{title} を削除しますか?",
-    "remove_body": "この文書は存在しません。トラストセンターから削除します。"
+    "remove_body": "トラストセンターから削除します。"
   },
   "status": {
     "published": "公開中",

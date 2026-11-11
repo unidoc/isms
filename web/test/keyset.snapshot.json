@@ -1442,6 +1442,7 @@
   "components.trust_publish.publish_confirm",
   "components.trust_publish.reason_no_approved_version",
   "components.trust_publish.reason_retired",
+  "components.trust_publish.remove",
   "components.trust_publish.status_published",
   "components.trust_publish.unpublish",
   "components.trust_publish.unpublish_body",

@@ -29,7 +29,7 @@
     "unpublish_title": "¿Despublicar {title}?",
     "unpublish_body": "Los visitantes dejarán de ver este documento. Puedes publicarlo de nuevo más adelante.",
     "remove_title": "¿Quitar {title}?",
-    "remove_body": "Este documento ya no existe. Se quitará del centro de confianza."
+    "remove_body": "Esto lo quita del centro de confianza."
   },
   "status": {
     "published": "Publicado",

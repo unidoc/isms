@@ -18,7 +18,7 @@
 
     <ul v-if="rows.length" class="divide-y divide-slate-800 border border-slate-800 rounded-xl bg-slate-900/40">
       <li v-for="(row, i) in rows" :key="row.id" :data-trust-row="row.document.document_id"
-        class="p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+        class="p-4 flex flex-wrap items-center gap-x-4 gap-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem_8rem_4.5rem_13rem]">
         <div class="min-w-0 flex-1 basis-56">
           <router-link :to="orgPath('/documents/' + row.document.document_id)" class="text-sm font-medium text-blue-400 hover:text-blue-300 break-words" data-trust="title">{{ row.document.title }}</router-link>
           <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-3">
@@ -28,20 +28,20 @@
           </div>
         </div>
 
-        <span :class="statusClass(row)" class="text-xs px-2 py-1 rounded-full" data-trust="status">{{ statusText(row) }}</span>
+        <span :class="statusClass(row)" class="text-xs px-2 py-1 rounded-full lg:justify-self-start" data-trust="status">{{ statusText(row) }}</span>
 
-        <select :value="row.access_level" data-trust="level" :aria-label="$t('trust_manager.documents.access_label', { title: row.document.title })"
+        <select :value="row.access_level" data-trust="level" :disabled="busy || !!pending" :aria-label="$t('trust_manager.documents.access_label', { title: row.document.title })"
           @change="changeLevel(row, $event)"
           class="text-sm bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
           <option v-for="lvl in levels" :key="lvl" :value="lvl">{{ levelLabel(lvl) }}</option>
         </select>
 
         <div class="flex items-center gap-1">
-          <button type="button" data-trust="up" :disabled="i === 0 || busy" :aria-label="$t('trust_manager.documents.move_up')" :title="$t('trust_manager.documents.move_up')" @click="move(i, -1)"
+          <button type="button" data-trust="up" :disabled="i === 0 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_up')" :title="$t('trust_manager.documents.move_up')" @click="move(i, -1)"
             class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
           </button>
-          <button type="button" data-trust="down" :disabled="i === rows.length - 1 || busy" :aria-label="$t('trust_manager.documents.move_down')" :title="$t('trust_manager.documents.move_down')" @click="move(i, 1)"
+          <button type="button" data-trust="down" :disabled="i === rows.length - 1 || busy || !!pending" :aria-label="$t('trust_manager.documents.move_down')" :title="$t('trust_manager.documents.move_down')" @click="move(i, 1)"
             class="p-1.5 rounded-md text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
@@ -55,7 +55,7 @@
               class="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed">{{ $t('trust_manager.documents.publish_again') }}</button>
             <span v-if="actions(row).publishAgain === 'disabled_retired'" class="text-slate-500" data-trust="retired-hint">{{ $t('trust_manager.documents.retired_hint') }}</span>
           </template>
-          <button v-if="actions(row).remove" type="button" data-trust="remove" @click="ask = { kind: 'remove', row }"
+          <button v-if="actions(row).remove" type="button" data-trust="remove" :disabled="busy" @click="ask = { kind: 'remove', row }"
             class="text-slate-400 hover:text-red-400 transition-colors">{{ $t('trust_manager.documents.remove') }}</button>
         </div>
       </li>
@@ -181,7 +181,12 @@ async function load() {
   }
 }
 
-const fail = (e) => { actionError.value = renderApiError(e) || t('common.state.unknown') }
+// A 404 means the row is gone (another manager removed it): show the error and
+// reload so no dead row stays on screen.
+async function fail(e) {
+  actionError.value = renderApiError(e) || t('common.state.unknown')
+  if (e?.status === 404) await load()
+}
 
 async function changeLevel(row, ev) {
   const level = ev.target.value
@@ -196,7 +201,7 @@ async function changeLevel(row, ev) {
     items.value = items.value.map((r) => (r.id === row.id ? out.result : r))
   } catch (e) {
     ev.target.value = row.access_level
-    fail(e)
+    await fail(e)
   } finally {
     busy.value = false
   }
@@ -212,7 +217,7 @@ async function move(i, delta) {
   try {
     items.value = (await api.reorderTrustItems('document', ids)) || []
   } catch (e) {
-    fail(e)
+    await fail(e)
     if (e?.code === 'trust_order_stale') await load()
   } finally {
     busy.value = false
@@ -228,7 +233,7 @@ async function removeItem(row) {
     await load()
   } catch (e) {
     ask.value = null
-    fail(e)
+    await fail(e)
   } finally {
     busy.value = false
   }
@@ -241,7 +246,7 @@ async function publishAgain(row) {
     const out = await run((confirm) => api.publishDocumentTrust(row.document.document_id, row.access_level, confirm))
     if (!out.cancelled) await load()
   } catch (e) {
-    fail(e)
+    await fail(e)
   } finally {
     busy.value = false
   }
@@ -254,10 +259,12 @@ function openPicker() {
 
 async function pick(doc) {
   picker.value = { doc, state: null, level: '', error: '' }
+  const p = picker.value // the reactive object, so a later close or other pick can be told apart
   try {
-    picker.value.state = await api.getDocumentTrust(doc.document_id)
+    const state = await api.getDocumentTrust(doc.document_id)
+    if (picker.value === p) p.state = state
   } catch (e) {
-    picker.value.error = renderApiError(e) || t('common.state.unknown')
+    if (picker.value === p) p.error = renderApiError(e) || t('common.state.unknown')
   }
 }
 

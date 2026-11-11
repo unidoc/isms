@@ -462,6 +462,7 @@
     "publish": "Publicar en el centro de confianza",
     "publish_again": "Publicar de nuevo",
     "unpublish": "Dejar de publicar",
+    "remove": "Quitar",
     "reason_no_approved_version": "Aún no hay una versión aprobada. Haz que se apruebe el documento antes de publicarlo.",
     "reason_retired": "Los documentos retirados no se pueden publicar.",
     "status_published": "En el centro de confianza · {level} · los visitantes ven v{version}",

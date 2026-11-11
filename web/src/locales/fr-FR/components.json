@@ -462,6 +462,7 @@
     "publish": "Publier dans le centre de confiance",
     "publish_again": "Publier à nouveau",
     "unpublish": "Dépublier",
+    "remove": "Retirer",
     "reason_no_approved_version": "Aucune version approuvée pour l'instant. Faites approuver le document avant de le publier.",
     "reason_retired": "Les documents retirés ne peuvent pas être publiés.",
     "status_published": "Dans le centre de confiance · {level} · les visiteurs voient v{version}",

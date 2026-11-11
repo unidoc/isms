@@ -29,7 +29,7 @@
     "unpublish_title": "Afbirta {title}?",
     "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
     "remove_title": "Fjarlægja {title}?",
-    "remove_body": "Þetta skjal er ekki lengur til. Það verður fjarlægt úr traustmiðstöðinni."
+    "remove_body": "Þetta fjarlægir það úr traustmiðstöðinni."
   },
   "status": {
     "published": "Birt",

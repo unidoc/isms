@@ -462,6 +462,7 @@
     "publish": "Publicar na central de confiança",
     "publish_again": "Publicar novamente",
     "unpublish": "Cancelar publicação",
+    "remove": "Remover",
     "reason_no_approved_version": "Ainda não há versão aprovada. Peça a aprovação do documento antes de publicar.",
     "reason_retired": "Documentos aposentados não podem ser publicados.",
     "status_published": "Na central de confiança · {level} · visitantes veem v{version}",

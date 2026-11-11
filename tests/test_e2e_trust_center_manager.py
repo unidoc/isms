@@ -5,9 +5,10 @@ API tests; this file covers what only a browser shows: the sidebar entry, the
 not-allowed screen, the confirmation dialogs, the order on the public page and
 the status of each row.
 
-The e2e organization is shared with other e2e files, so every test restores what
-it changed (trust center off, its documents unpublished) in a finally block and
-uses document ids unique to the run.
+The e2e organization is shared with other e2e files. Each test restores the trust
+center state it touched in a finally block: the trust center is switched off and
+the items it published are unpublished. The documents it creates (unique ids per
+run) and the contributor user stay in the organization; they are not removed.
 
 Requires: pip install playwright && playwright install chromium
 Run:      pytest tests/test_e2e_trust_center_manager.py -v
@@ -95,8 +96,10 @@ class TestTrustCenterManager:
             try:
                 requested = []
                 page.on("request", lambda r: requested.append(r.url) if "/api/v1/trust-center" in r.url else None)
-                expect(page.locator("aside").first).to_be_visible()
-                assert page.locator('aside a[data-nav="trust-center"]').count() == 0, creds[0]
+                # The org slug under the org name comes from the loaded user record; wait
+                # for it, so "no entry" is not checked before the role is known.
+                expect(page.locator("aside").get_by_text(ORG, exact=True)).to_be_visible(timeout=15000)
+                expect(page.locator('aside a[data-nav="trust-center"]')).to_have_count(0)
                 page.goto(f"{BASE}/{ORG}/trust-center")
                 expect(page.get_by_text(NOT_ALLOWED)).to_be_visible(timeout=15000)
                 page.wait_for_timeout(500)
@@ -251,5 +254,32 @@ class TestTrustCenterManager:
             expect(page.locator('[data-trust="picker-reason"]')).to_have_text(
                 "No approved version yet. Get the document approved before publishing.", timeout=8000)
             expect(page.locator('[data-trust="picker-publish"]')).to_be_disabled()
+            page.locator('[data-trust="picker"] button:text-is("Cancel")').click()
+
+            # A retired, hidden row can still be removed.
+            row.locator('[data-trust="remove"]').click()
+            page.locator('[data-trust="confirm-yes"]').click()
+            expect(row).to_have_count(0, timeout=8000)
+            assert item_for(t, retired) is None
         finally:
             cleanup(t, [pub, draft, retired])
+
+    def test_unsaved_settings_survive_the_switch_and_a_tab_change(self, admin_page, tokens):
+        t = tokens["admin"]
+        page = admin_page
+        set_enabled(t, False)
+        try:
+            open_manager(page, "settings")
+            contact = page.locator('[data-trust="contact"]')
+            contact.fill("unsaved@e2e.example")
+            page.locator('[data-trust="toggle-enabled"]').click()
+            page.locator('[data-trust="enable-confirm"]').click()
+            expect(page.locator('[data-trust="toggle-enabled"]')).to_have_attribute("aria-checked", "true", timeout=8000)
+            expect(contact).to_have_value("unsaved@e2e.example")
+            expect(page.locator('[data-trust="saved"]')).to_have_count(0)
+            page.locator('[data-trust-tab="content"]').click()
+            page.locator('[data-trust-tab="settings"]').click()
+            expect(contact).to_have_value("unsaved@e2e.example")
+            assert api("get", "/trust-center/settings", t, expect_status=200).json()["security_contact"] != "unsaved@e2e.example"
+        finally:
+            api("put", "/trust-center/settings", t, json={"enabled": False, "security_contact": ""})

@@ -141,3 +141,49 @@ test('the overview shows the document title once the document list is loaded', a
   const html = await mount({ settings: base }, async (host, settle) => { await settle(h => h.includes('Overview Doc')) })
   assert.ok(html.includes('Overview Doc (ov-1)'), html)
 })
+
+test('toggling keeps an unsaved contact edit; Save still sends it; no "Saved" appears', async () => {
+  const calls = stub()
+  let shown = {}
+  // The parent hands the new settings back, as the real view does.
+  const props = { settings: { ...base, enabled: true }, onSaved: () => {} }
+  const html = await mount(props, async (host, settle) => {
+    type(host, '[data-trust="contact"]', 'unsaved@acme.test')
+    await flush()
+    click(host, '[data-trust="toggle-enabled"]')
+    await settle(() => puts(calls).length === 1)
+    await flush()
+    shown = { contact: host.querySelector('[data-trust="contact"]').value, saved: !!host.querySelector('[data-trust="saved"]'), saveDisabled: host.querySelector('[data-trust="save"]').disabled }
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 2)
+  })
+  assert.deepEqual(puts(calls)[0].body, { enabled: false })
+  assert.equal(shown.contact, 'unsaved@acme.test')
+  assert.equal(shown.saved, false)
+  assert.equal(shown.saveDisabled, false)
+  assert.deepEqual(puts(calls)[1].body, { security_contact: 'unsaved@acme.test' })
+  assert.ok(html)
+})
+
+test('a settings update from the parent resets only the fields the user has not edited', async () => {
+  stub()
+  const { createApp, h, reactive } = await import('vue')
+  const { i18n } = await import('../src/i18n.js')
+  const state = reactive({ settings: base })
+  const app = createApp({ render: () => h(Form, { settings: state.settings }) })
+  app.use(i18n)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  app.mount(host)
+  await flush()
+  type(host, '[data-trust="contact"]', 'mine@acme.test')
+  await flush()
+  state.settings = { ...base, enabled: true, default_access_level: 'public' } // server changed another field
+  await flush()
+  const contact = host.querySelector('[data-trust="contact"]').value
+  const level = host.querySelector('[data-trust="default-level"]').value
+  app.unmount()
+  host.remove()
+  assert.equal(contact, 'mine@acme.test')
+  assert.equal(level, 'public')
+})

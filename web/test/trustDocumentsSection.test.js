@@ -105,8 +105,8 @@ test('row actions depend on the state of the row', async () => {
     }
   })
   assert.deepEqual(q['pol-a'], { unpublish: true, pa: null, remove: false, hint: false })
-  assert.deepEqual(q['pol-b'], { unpublish: false, pa: 'disabled', remove: false, hint: true })
-  assert.deepEqual(q['pol-c'], { unpublish: false, pa: 'enabled', remove: false, hint: false })
+  assert.deepEqual(q['pol-b'], { unpublish: false, pa: 'disabled', remove: true, hint: true })
+  assert.deepEqual(q['pol-c'], { unpublish: false, pa: 'enabled', remove: true, hint: false })
   assert.deepEqual(q['pol-d'], { unpublish: false, pa: null, remove: true, hint: false })
 })
 
@@ -306,4 +306,69 @@ test('a failing list shows an error with Retry', async () => {
   globalThis.fetch = async () => json(500, { message: 'boom' })
   const html = await mount(null)
   assert.ok(html.includes('Retry'), html)
+})
+
+test('a retired, hidden row can be removed: Remove asks, then DELETEs and reloads', async () => {
+  const calls = stub([row(D, 'pol-d', 'Old', 1, { hidden_reason: 'retired' }, { status: 'hidden', document_status: 'retired' })], (m, p, b, st) => {
+    if (m === 'DELETE') { st.list = []; return new Response(null, { status: 204 }) }
+  })
+  await mount(async (host, settle) => {
+    click(host, '[data-trust="remove"]')
+    await settle(h => h.includes('confirm-dialog'))
+    assert.equal(calls.filter(c => c.method === 'DELETE').length, 0)
+    click(host, '[data-trust="confirm-yes"]')
+    await settle(h => h.includes('data-trust="empty"'))
+  })
+  assert.deepEqual(calls.find(c => c.method === 'DELETE'), { method: 'DELETE', path: '/documents/pol-d/trust-center', body: undefined })
+})
+
+test('while a level change waits for its confirmation the row cannot be changed again', async () => {
+  stub([row(A, 'pol-a', 'Doc', 1), row(B, 'pol-b', 'Other', 2)], (m) => (m === 'PATCH' ? json(409, needsConfirm) : undefined))
+  let state
+  await mount(async (host, settle) => {
+    const sel = host.querySelector('[data-trust="level"]')
+    sel.value = 'public'
+    sel.dispatchEvent(new window.Event('change'))
+    await settle(h => h.includes('classification-dialog'))
+    state = [...host.querySelectorAll('[data-trust="level"]')].map(e => e.disabled).concat([...host.querySelectorAll('[data-trust="up"],[data-trust="down"]')].every(e => e.disabled))
+  })
+  assert.deepEqual(state, [true, true, true])
+})
+
+test('a 404 on a row (removed by someone else) reloads the list and shows the error', async () => {
+  const calls = stub([row(A, 'pol-a', 'Doc', 1), row(B, 'pol-b', 'Other', 2)], (m, p, b, st) => {
+    if (m === 'PATCH') { st.list = [row(B, 'pol-b', 'Other', 1)]; return json(404, { message: 'item not found', code: 'not_found', params: { entity: 'item' } }) }
+  })
+  let shown, err
+  await mount(async (host, settle) => {
+    const sel = host.querySelector('[data-trust-row="pol-a"] [data-trust="level"]')
+    sel.value = 'restricted'
+    sel.dispatchEvent(new window.Event('change'))
+    await settle(h => h.includes('action-error'))
+    await flush()
+    shown = titles(host)
+    err = !!host.querySelector('[data-trust="action-error"]')
+  })
+  assert.equal(calls.filter(c => c.method === 'GET' && c.path === '/trust-center/items').length, 2)
+  assert.deepEqual(shown, ['Other'])
+  assert.ok(err)
+})
+
+test('a lookup that fails after the picker was closed does not throw', async () => {
+  let release
+  const gate = new Promise(r => { release = r })
+  stub([row(A, 'pol-a', 'Doc', 1)], (m, p) => {
+    if (m === 'GET' && p === '/documents/pol-n/trust-center') return gate.then(() => json(500, { message: 'boom' }))
+  })
+  let result
+  await mount(async (host, settle) => {
+    click(host, '[data-trust="open-picker"]')
+    await settle(h => h.includes('data-trust="picker"'))
+    const pending = globalThis.__sfcStubAttrs.at(-1).onPick(picked)
+    click(host, '[data-trust="picker"] button:not([data-trust])') // Cancel
+    await flush()
+    release()
+    result = await pending.then(() => 'ok', e => `threw ${e}`)
+  })
+  assert.equal(result, 'ok')
 })

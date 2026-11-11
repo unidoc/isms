@@ -6,12 +6,15 @@
         <div class="text-sm font-medium text-slate-200">{{ $t('trust_manager.settings.enabled_label') }}</div>
         <p class="text-xs text-slate-500 mt-1">{{ $t('trust_manager.settings.enabled_help') }}</p>
       </div>
-      <button type="button" role="switch" :aria-checked="String(settings.enabled)" data-trust="toggle-enabled" :disabled="busy"
+      <div class="flex flex-col items-end gap-1">
+      <button type="button" role="switch" :aria-checked="String(settings.enabled)" data-trust="toggle-enabled" :disabled="toggleBusy"
         :aria-label="$t('trust_manager.settings.enabled_label')" @click="toggle"
         :class="settings.enabled ? 'bg-emerald-600' : 'bg-slate-700'"
         class="relative flex-shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50">
         <span :class="settings.enabled ? 'translate-x-5' : 'translate-x-0.5'" class="absolute top-0.5 left-0 w-5 h-5 bg-white rounded-full transition-transform" />
       </button>
+      <span v-if="toggleError" class="text-xs text-red-400" data-trust="toggle-error">{{ toggleError }}</span>
+      </div>
     </div>
 
     <form class="space-y-5" @submit.prevent="save">
@@ -57,7 +60,7 @@
         <p class="text-slate-300">{{ $t('trust_manager.settings.enable_body') }}</p>
         <div class="flex justify-end gap-2">
           <button type="button" data-trust="enable-cancel" @click="confirmOn = false" class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200">{{ $t('common.action.cancel') }}</button>
-          <button type="button" data-trust="enable-confirm" :disabled="busy" @click="turnOn"
+          <button type="button" data-trust="enable-confirm" :disabled="toggleBusy" @click="turnOn"
             class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50">{{ $t('trust_manager.settings.enable_confirm') }}</button>
         </div>
       </div>
@@ -98,6 +101,8 @@ const levels = ['public', 'gated', 'restricted']
 const levelLabel = (lvl) => t('trust_manager.level.' + lvl)
 const form = reactive({})
 const busy = ref(false)
+const toggleBusy = ref(false)
+const toggleError = ref('')
 const error = ref('')
 const saved = ref(false)
 const savedSnapshot = ref('')
@@ -115,7 +120,20 @@ function reset() {
   })
 }
 reset()
-watch(() => props.settings, () => { reset(); pickedTitle.value = ''; checkOverview() })
+// When the server's settings change (the switch was flipped, or Save returned),
+// only the fields the user has not edited follow; an unsaved edit stays.
+watch(() => props.settings, (next, prev) => {
+  let overviewChanged = false
+  for (const k of ['security_contact', 'default_access_level', 'overview_document_id']) {
+    const was = prev?.[k] ?? null
+    const now = next[k] ?? null
+    if ((form[k] ?? null) === was && now !== was) {
+      form[k] = now
+      if (k === 'overview_document_id') overviewChanged = true
+    }
+  }
+  if (overviewChanged) { pickedTitle.value = ''; checkOverview() }
+})
 
 const patch = computed(() => changedSettings(props.settings, { ...form, enabled: props.settings.enabled }))
 const showSaved = computed(() => saved.value && savedSnapshot.value === JSON.stringify(form))
@@ -151,6 +169,7 @@ function clearOverview() {
   overviewNoApproved.value = false
 }
 
+// Save: sends only the changed fields and shows what the server stored.
 async function put(body) {
   busy.value = true
   error.value = ''
@@ -158,7 +177,6 @@ async function put(body) {
   try {
     const next = await api.updateTrustSettings(body)
     emit('saved', next)
-    // Show what the server stored, not what was typed.
     Object.assign(form, { security_contact: next.security_contact, default_access_level: next.default_access_level, overview_document_id: next.overview_document_id || null })
     savedSnapshot.value = JSON.stringify(form)
     saved.value = true
@@ -171,12 +189,28 @@ async function put(body) {
   }
 }
 
+// The switch saves only `enabled`. It never touches the form fields (an unsaved
+// edit stays) and has its own status, apart from the Save form's "Saved".
+async function putEnabled(enabled) {
+  toggleBusy.value = true
+  toggleError.value = ''
+  try {
+    emit('saved', await api.updateTrustSettings({ enabled }))
+    return true
+  } catch (e) {
+    toggleError.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })
+    return false
+  } finally {
+    toggleBusy.value = false
+  }
+}
+
 function toggle() {
-  if (props.settings.enabled) put({ enabled: false })
+  if (props.settings.enabled) putEnabled(false)
   else confirmOn.value = true
 }
 async function turnOn() {
-  await put({ enabled: true })
+  await putEnabled(true)
   confirmOn.value = false
 }
 async function save() {

@@ -462,6 +462,7 @@
     "publish": "Birta í traustmiðstöðinni",
     "publish_again": "Birta aftur",
     "unpublish": "Hætta birtingu",
+    "remove": "Fjarlægja",
     "reason_no_approved_version": "Engin samþykkt útgáfa enn. Láttu samþykkja skjalið áður en það er birt.",
     "reason_retired": "Afturkölluð skjöl er ekki hægt að birta.",
     "status_published": "Í traustmiðstöðinni · {level} · gestir sjá v{version}",

@@ -433,6 +433,7 @@
     "publish": "トラストセンターに公開",
     "publish_again": "再度公開",
     "unpublish": "公開を取り消す",
+    "remove": "削除",
     "reason_no_approved_version": "承認済みのバージョンがまだありません。公開する前に文書を承認してもらってください。",
     "reason_retired": "廃止された文書は公開できません。",
     "status_published": "トラストセンターに公開中 · {level} · 訪問者には v{version} が表示されます",

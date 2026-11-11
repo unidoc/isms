@@ -29,7 +29,7 @@
     "unpublish_title": "Unpublish {title}?",
     "unpublish_body": "Visitors will no longer see this document. You can publish it again later.",
     "remove_title": "Remove {title}?",
-    "remove_body": "This document no longer exists. This removes it from the trust center."
+    "remove_body": "This removes it from the trust center."
   },
   "status": {
     "published": "Published",

@@ -23,6 +23,7 @@ export function useClassificationConfirm() {
   const pending = ref(null)
   let resolver = null
   const ask = (classification) => new Promise((resolve) => {
+    if (resolver) resolver(false) // never leave an earlier question unanswered
     resolver = resolve
     pending.value = { classification }
   })

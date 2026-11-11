@@ -29,7 +29,7 @@
     "unpublish_title": "{title} zurückziehen?",
     "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
     "remove_title": "{title} entfernen?",
-    "remove_body": "Dieses Dokument existiert nicht mehr. Es wird aus dem Trust Center entfernt."
+    "remove_body": "Dadurch wird es aus dem Trust Center entfernt."
   },
   "status": {
     "published": "Veröffentlicht",

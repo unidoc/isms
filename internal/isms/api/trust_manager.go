@@ -31,13 +31,16 @@ type trustSettingsRequest struct {
 }
 
 type trustManagerDocument struct {
-	DocumentID      string           `json:"document_id"`
-	Title           string           `json:"title"`
-	Classification  string           `json:"classification"`
-	Status          string           `json:"status"`
-	DocumentStatus  string           `json:"document_status"`
-	DocumentVersion string           `json:"document_version"`
-	ServedVersion   *trustServedJSON `json:"served_version"`
+	DocumentID     string `json:"document_id"`
+	Title          string `json:"title"`
+	Classification string `json:"classification"`
+	// ClassificationSensitive: the classification at HEAD or in the served
+	// version is confidential or restricted (the guard's rule).
+	ClassificationSensitive bool             `json:"classification_sensitive"`
+	Status                  string           `json:"status"`
+	DocumentStatus          string           `json:"document_status"`
+	DocumentVersion         string           `json:"document_version"`
+	ServedVersion           *trustServedJSON `json:"served_version"`
 }
 
 type trustManagerItem struct {
@@ -213,6 +216,11 @@ func (s *Server) trustManagerDocumentFor(c echo.Context, st *store.Store, orgID 
 			doc.Title = served.Title
 		}
 	}
+	servedClass := ""
+	if served != nil {
+		servedClass = served.Classification
+	}
+	doc.ClassificationSensitive = sensitiveTrustClassification(doc.Classification, servedClass) != ""
 	switch {
 	case it.HiddenAt != nil:
 		doc.Status = "hidden"

@@ -4360,11 +4360,12 @@ components:
         document:
           type: [object, 'null']
           description: The document behind the item; null for every kind except `document`.
-          required: [document_id, title, classification, status, document_status, document_version, served_version]
+          required: [document_id, title, classification, classification_sensitive, status, document_status, document_version, served_version]
           properties:
             document_id: { type: string }
             title: { type: string, description: Title at HEAD; the served version's title when HEAD cannot be read or the document is deleted. }
             classification: { type: string, description: Classification in the document's frontmatter; empty when none. }
+            classification_sensitive: { type: boolean, description: "True when the classification at HEAD or in the served version is confidential or restricted (the rule the publish confirmation uses). A public item with this set is readable by anyone; nothing changes by itself." }
             status:
               type: string
               enum: [published, draft_in_progress, cannot_publish, hidden, error]

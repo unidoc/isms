@@ -13,13 +13,8 @@
             <code class="text-slate-200 bg-slate-800 rounded px-2 py-1 break-all" data-trust="address">{{ address }}</code>
             <button type="button" data-trust="copy" @click="copy"
               class="px-2.5 py-1 text-xs rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800">{{ copied ? $t('trust_manager.address.copied') : $t('common.action.copy') }}</button>
-            <a v-if="settings && settings.enabled" :href="address" target="_blank" rel="noopener" data-trust="preview"
+            <a :href="previewHref" target="_blank" rel="noopener" data-trust="preview"
               class="px-2.5 py-1 text-xs rounded-md bg-blue-600 hover:bg-blue-500 text-white">{{ $t('trust_manager.address.preview') }}</a>
-            <template v-else>
-              <button type="button" data-trust="preview" disabled :title="$t('trust_manager.address.preview_off')"
-                class="px-2.5 py-1 text-xs rounded-md bg-slate-800 text-slate-500 cursor-not-allowed">{{ $t('trust_manager.address.preview') }}</button>
-              <span class="text-xs text-slate-500" data-trust="preview-hint">{{ $t('trust_manager.address.preview_off') }}</span>
-            </template>
           </div>
         </div>
 
@@ -53,7 +48,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { renderApiError } from '../composables/useApiError.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { publicAddress } from '../utils/trustManager.js'
+import { publicAddress, previewAddress } from '../utils/trustManager.js'
 import TrustDocumentsSection from '../components/trust/TrustDocumentsSection.vue'
 import TrustSettingsForm from '../components/trust/TrustSettingsForm.vue'
 
@@ -80,6 +75,7 @@ const settings = ref(null)
 const loadError = ref('')
 const copied = ref(false)
 
+const previewHref = computed(() => previewAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
 const address = computed(() => publicAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
 
 async function copy() {

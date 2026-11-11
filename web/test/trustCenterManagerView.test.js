@@ -52,14 +52,17 @@ test('admin and manager get the header, both tabs, and the settings request', as
   }
 })
 
-test('Preview as visitor is a link when the trust center is on, disabled with a hint when off (D2)', async () => {
-  stub('admin', true)
-  const on = await renderSfcSettled(View, {}, ready, async () => { await flush() })
-  assert.ok(/<a [^>]*data-trust="preview"[^>]*target="_blank"/.test(on) || /<a [^>]*target="_blank"[^>]*data-trust="preview"/.test(on), on)
-  stub('admin', false)
-  const off = await renderSfcSettled(View, {}, ready, async () => { await flush() })
-  assert.ok(/<button[^>]*data-trust="preview"[^>]*disabled/.test(off), off)
-  assert.ok(off.includes('Turn the trust center on to preview it'), off)
+test('Preview as visitor is always a link to the preview route that opens in a new tab, on or off', async () => {
+  for (const enabled of [true, false]) {
+    stub('admin', enabled)
+    const html = await renderSfcSettled(View, {}, ready, async () => { await flush() })
+    const m = html.match(/<a [^>]*data-trust="preview"[^>]*>/)
+    assert.ok(m, `enabled=${enabled}: ${html}`)
+    assert.match(m[0], /target="_blank"/)
+    assert.match(m[0], /href="[^"]*\/trust-center\/preview"/)
+    assert.ok(!html.includes('Turn the trust center on to preview it'), html)
+    assert.ok(!/<button[^>]*data-trust="preview"/.test(html), html)
+  }
 })
 
 const src = f => readFileSync(new URL(f, import.meta.url), 'utf8')

@@ -42,3 +42,26 @@ export function changedSettings(orig, form) {
   }
   return patch
 }
+
+// The row to swap with when moving row i by delta (-1 up, +1 down): the nearest
+// visible (not hidden) row in that direction, or -1. Hidden rows keep their slots.
+export function visibleNeighbour(rows, i, delta) {
+  for (let j = i + delta; j >= 0 && j < rows.length; j += delta) {
+    if (!rows[j].hidden_reason) return j
+  }
+  return -1
+}
+
+// The warning for a public row whose document is classified confidential or
+// restricted (HEAD or the served version), else null. When HEAD itself is not
+// the sensitive one only the served version is, and the word is "confidential".
+export function sensitiveBadge(row) {
+  if (row.access_level !== 'public' || !row.document?.classification_sensitive) return null
+  const cls = row.document.classification || ''
+  const headSensitive = ['confidential', 'restricted'].includes(cls.trim().toLowerCase())
+  return { classification: headSensitive ? cls : 'confidential' }
+}
+
+export function previewAddress(origin, slug, subdomainMode) {
+  return subdomainMode ? `${origin}/trust-center/preview` : `${origin}/${slug}/trust-center/preview`
+}

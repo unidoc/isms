@@ -10,8 +10,7 @@
   "address": {
     "label": "Opinbert vistfang",
     "copied": "Afritað",
-    "preview": "Skoða sem gestur",
-    "preview_off": "Kveiktu á traustmiðstöðinni til að forskoða hana"
+    "preview": "Skoða sem gestur"
   },
   "documents": {
     "heading": "Skjöl",
@@ -29,7 +28,8 @@
     "unpublish_title": "Afbirta {title}?",
     "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
     "remove_title": "Fjarlægja {title}?",
-    "remove_body": "Þetta fjarlægir það úr traustmiðstöðinni."
+    "remove_body": "Þetta fjarlægir það úr traustmiðstöðinni.",
+    "classified_public": "Flokkað sem {classification}, sýnilegt öllum"
   },
   "status": {
     "published": "Birt",
@@ -74,5 +74,10 @@
     "default_level_help": "Stigið sem nýbirt skjal byrjar á.",
     "saved": "Vistað",
     "save_error": "Ekki tókst að vista: {message}"
+  },
+  "preview": {
+    "banner": "Forskoðun: þetta sjá gestir",
+    "off": "Slökkt er á traustmiðstöðinni; gestir sjá ekkert eins og er.",
+    "back": "Til baka í stjórnun traustmiðstöðvar"
   }
 }

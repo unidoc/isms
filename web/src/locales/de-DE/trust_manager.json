@@ -10,8 +10,7 @@
   "address": {
     "label": "Öffentliche Adresse",
     "copied": "Kopiert",
-    "preview": "Als Besucher ansehen",
-    "preview_off": "Schalten Sie das Trust Center ein, um die Vorschau zu sehen"
+    "preview": "Als Besucher ansehen"
   },
   "documents": {
     "heading": "Dokumente",
@@ -29,7 +28,8 @@
     "unpublish_title": "{title} zurückziehen?",
     "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
     "remove_title": "{title} entfernen?",
-    "remove_body": "Dadurch wird es aus dem Trust Center entfernt."
+    "remove_body": "Dadurch wird es aus dem Trust Center entfernt.",
+    "classified_public": "Eingestuft als {classification}, für jeden sichtbar"
   },
   "status": {
     "published": "Veröffentlicht",
@@ -74,5 +74,10 @@
     "default_level_help": "Die Stufe, mit der ein neu veröffentlichtes Dokument beginnt.",
     "saved": "Gespeichert",
     "save_error": "Speichern fehlgeschlagen: {message}"
+  },
+  "preview": {
+    "banner": "Vorschau: So sehen Besucher es",
+    "off": "Das Trust Center ist ausgeschaltet; Besucher sehen derzeit nichts.",
+    "back": "Zurück zur Trust-Center-Verwaltung"
   }
 }

@@ -163,6 +163,10 @@ const props = defineProps({
   basePath: { type: String, required: true },
   // The public id of the document page to show, when on one.
   docId: { type: String, default: '' },
+  // Where the data comes from: {overview(), items(), document(id)}. The default
+  // is the anonymous trust API; the manager's preview passes authenticated
+  // loaders for the very same answers.
+  source: { type: Object, default: null },
 })
 // Navigation is the parent's job: the component renders real hrefs and hands a
 // plain click up, so it needs no router to be mounted.
@@ -178,6 +182,12 @@ const hasSession = ref(false)
 const docState = ref('loading') // loading | ready | locked | missing | error
 const doc = ref({})
 const docHtml = ref('')
+
+const loaders = computed(() => props.source || {
+  overview: () => api.trustOverview(props.slug),
+  items: () => api.trustItems(props.slug),
+  document: (id) => api.trustDocument(props.slug, id),
+})
 
 const logoSrc = computed(() => `/branding/logo?org=${encodeURIComponent(props.slug)}`)
 
@@ -267,7 +277,7 @@ async function loadDocument() {
   }
   docState.value = 'loading'
   try {
-    const d = await api.trustDocument(props.slug, id)
+    const d = await loaders.value.document(id)
     doc.value = d
     docHtml.value = sanitize(d.html)
     docState.value = 'ready'
@@ -285,8 +295,8 @@ async function load() {
   hasSession.value = !!getApiToken()
   try {
     const [o, list, cfg] = await Promise.all([
-      api.trustOverview(props.slug),
-      api.trustItems(props.slug),
+      loaders.value.overview(),
+      loaders.value.items(),
       api.publicConfig().catch(() => null),
     ])
     ov.value = o

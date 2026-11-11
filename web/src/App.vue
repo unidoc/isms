@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-200">
     <!-- Public pages (landing, login, organizations) — no sidebar -->
-    <div v-if="isPublicRoute || route.path === '/organizations'">
+    <div v-if="isPublicRoute || isBareRoute || route.path === '/organizations'">
       <router-view />
     </div>
 
@@ -627,6 +627,9 @@ function isRoutePublic(r) {
   return !!r.meta.public || (r.path === '/' && r.matched.length === 0)
 }
 const isPublicRoute = computed(() => isRoutePublic(route))
+// Bare routes (the trust center preview) render without the sidebar and header
+// like a public page, but are not public: login and loadAppData() still apply.
+const isBareRoute = computed(() => !!route.meta.bare)
 
 // Thin wrappers that wire composable calls to local context (router, orgSlug, showUserMenu)
 async function logout() {

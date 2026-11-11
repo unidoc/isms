@@ -10,8 +10,7 @@
   "address": {
     "label": "公開アドレス",
     "copied": "コピーしました",
-    "preview": "訪問者として表示",
-    "preview_off": "プレビューするにはトラストセンターをオンにしてください"
+    "preview": "訪問者として表示"
   },
   "documents": {
     "heading": "文書",
@@ -29,7 +28,8 @@
     "unpublish_title": "{title} の公開を取り消しますか?",
     "unpublish_body": "訪問者はこの文書を見られなくなります。あとで再公開できます。",
     "remove_title": "{title} を削除しますか?",
-    "remove_body": "トラストセンターから削除します。"
+    "remove_body": "トラストセンターから削除します。",
+    "classified_public": "{classification} に分類、誰にでも表示されます"
   },
   "status": {
     "published": "公開中",
@@ -74,5 +74,10 @@
     "default_level_help": "新しく公開した文書の初期レベル。",
     "saved": "保存しました",
     "save_error": "保存できませんでした: {message}"
+  },
+  "preview": {
+    "banner": "プレビュー: 訪問者に表示される内容です",
+    "off": "トラストセンターはオフです。現在、訪問者には何も表示されません。",
+    "back": "トラストセンターの管理に戻る"
   }
 }

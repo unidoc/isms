@@ -372,3 +372,54 @@ test('a lookup that fails after the picker was closed does not throw', async () 
   })
   assert.equal(result, 'ok')
 })
+
+const hiddenRow = (id, docId, title, order) => row(id, docId, title, order, { hidden_reason: 'retired' }, { status: 'hidden', document_status: 'retired' })
+
+test('C2: moving a visible row up past a hidden row swaps with the visible one in a single click; the hidden row keeps its slot', async () => {
+  const calls = stub([row(A, 'pol-a', 'First', 1), hiddenRow(B, 'pol-b', 'Hidden', 2), row(C, 'pol-c', 'Third', 3)], (m, p, body) => {
+    if (m === 'PUT') return json(200, [row(C, 'pol-c', 'Third', 1), hiddenRow(B, 'pol-b', 'Hidden', 2), row(A, 'pol-a', 'First', 3)])
+  })
+  let after
+  await mount(async (host, settle) => {
+    click(rowEl(host, 'pol-c'), '[data-trust="up"]')
+    await settle(() => calls.some(c => c.method === 'PUT'))
+    await flush()
+    after = titles(host)
+  })
+  assert.deepEqual(calls.find(c => c.method === 'PUT').body, { kind: 'document', ids: [C, B, A] })
+  assert.deepEqual(after, ['Third', 'Hidden', 'First'])
+})
+
+test('C2: arrows are enabled when the only visible neighbour is past a hidden row, and hidden rows have none', async () => {
+  stub([row(A, 'pol-a', 'First', 1), hiddenRow(B, 'pol-b', 'Hidden', 2), row(C, 'pol-c', 'Third', 3)])
+  let s
+  await mount(async host => {
+    const q = (id, sel) => rowEl(host, id).querySelector(sel)
+    s = {
+      aDown: q('pol-a', '[data-trust="down"]').disabled, aUp: q('pol-a', '[data-trust="up"]').disabled,
+      cUp: q('pol-c', '[data-trust="up"]').disabled, cDown: q('pol-c', '[data-trust="down"]').disabled,
+      hiddenUp: !!q('pol-b', '[data-trust="up"]'), hiddenDown: !!q('pol-b', '[data-trust="down"]'),
+    }
+  })
+  assert.deepEqual(s, { aDown: false, aUp: true, cUp: false, cDown: true, hiddenUp: false, hiddenDown: false })
+})
+
+test('C3: a public row with a sensitive classification shows the red warning; gated and non-sensitive rows do not', async () => {
+  stub([
+    row(A, 'pol-a', 'Leaky', 1, { access_level: 'public' }, { classification: 'Confidential', classification_sensitive: true }),
+    row(B, 'pol-b', 'Gated', 2, { access_level: 'gated' }, { classification: 'Confidential', classification_sensitive: true }),
+    row(C, 'pol-c', 'Fine', 3, { access_level: 'public' }, { classification: 'internal', classification_sensitive: false }),
+    row(D, 'pol-d', 'ServedOnly', 4, { access_level: 'public' }, { classification: 'internal', classification_sensitive: true }),
+  ])
+  const w = {}
+  await mount(async host => {
+    for (const id of ['pol-a', 'pol-b', 'pol-c', 'pol-d']) {
+      const el = rowEl(host, id).querySelector('[data-trust="classified-public"]')
+      w[id] = el ? el.textContent.trim() : null
+    }
+  })
+  assert.deepEqual(w, {
+    'pol-a': 'Classified Confidential, visible to anyone', 'pol-b': null, 'pol-c': null,
+    'pol-d': 'Classified confidential, visible to anyone',
+  })
+})

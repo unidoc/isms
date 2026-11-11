@@ -10,8 +10,7 @@
   "address": {
     "label": "Public address",
     "copied": "Copied",
-    "preview": "Preview as visitor",
-    "preview_off": "Turn the trust center on to preview it"
+    "preview": "Preview as visitor"
   },
   "documents": {
     "heading": "Documents",
@@ -29,7 +28,8 @@
     "unpublish_title": "Unpublish {title}?",
     "unpublish_body": "Visitors will no longer see this document. You can publish it again later.",
     "remove_title": "Remove {title}?",
-    "remove_body": "This removes it from the trust center."
+    "remove_body": "This removes it from the trust center.",
+    "classified_public": "Classified {classification}, visible to anyone"
   },
   "status": {
     "published": "Published",
@@ -74,5 +74,10 @@
     "default_level_help": "The level a newly published document starts with.",
     "saved": "Saved",
     "save_error": "Could not save: {message}"
+  },
+  "preview": {
+    "banner": "Preview: this is what visitors see",
+    "off": "The trust center is off; visitors currently see nothing.",
+    "back": "Back to the trust center manager"
   }
 }

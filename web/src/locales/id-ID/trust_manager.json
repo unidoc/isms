@@ -10,8 +10,7 @@
   "address": {
     "label": "Alamat publik",
     "copied": "Disalin",
-    "preview": "Pratinjau sebagai pengunjung",
-    "preview_off": "Aktifkan pusat kepercayaan untuk melihat pratinjau"
+    "preview": "Pratinjau sebagai pengunjung"
   },
   "documents": {
     "heading": "Dokumen",
@@ -29,7 +28,8 @@
     "unpublish_title": "Batalkan publikasi {title}?",
     "unpublish_body": "Pengunjung tidak akan lagi melihat dokumen ini. Anda dapat mempublikasikannya lagi nanti.",
     "remove_title": "Hapus {title}?",
-    "remove_body": "Tindakan ini menghapusnya dari pusat kepercayaan."
+    "remove_body": "Tindakan ini menghapusnya dari pusat kepercayaan.",
+    "classified_public": "Diklasifikasikan {classification}, terlihat oleh siapa saja"
   },
   "status": {
     "published": "Dipublikasikan",
@@ -74,5 +74,10 @@
     "default_level_help": "Tingkat awal untuk dokumen yang baru dipublikasikan.",
     "saved": "Tersimpan",
     "save_error": "Tidak dapat menyimpan: {message}"
+  },
+  "preview": {
+    "banner": "Pratinjau: ini yang dilihat pengunjung",
+    "off": "Pusat kepercayaan nonaktif; pengunjung saat ini tidak melihat apa pun.",
+    "back": "Kembali ke pengelola pusat kepercayaan"
   }
 }

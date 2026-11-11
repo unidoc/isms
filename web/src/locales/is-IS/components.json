@@ -480,6 +480,9 @@
     "publish_confirm": "Birta",
     "unpublish_title": "Hætta birtingu í traustmiðstöðinni",
     "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
-    "error_load": "Ekki tókst að hlaða stöðu traustmiðstöðvarinnar: {message}"
+    "error_load": "Ekki tókst að hlaða stöðu traustmiðstöðvarinnar: {message}",
+    "classification_title": "Birta fyrir alla?",
+    "classification_body": "Þetta skjal er flokkað sem {classification}. Ef það er birt sem Opinbert getur hver sem er á netinu lesið það.",
+    "classification_confirm": "Birta samt"
   }
 }

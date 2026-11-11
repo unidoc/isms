@@ -480,6 +480,9 @@
     "publish_confirm": "Publikasikan",
     "unpublish_title": "Batalkan publikasi dari Pusat Kepercayaan",
     "unpublish_body": "Pengunjung tidak akan lagi melihat dokumen ini. Anda dapat mempublikasikannya lagi nanti.",
-    "error_load": "Tidak dapat memuat status Pusat Kepercayaan: {message}"
+    "error_load": "Tidak dapat memuat status Pusat Kepercayaan: {message}",
+    "classification_title": "Publikasikan untuk semua orang?",
+    "classification_body": "Dokumen ini diklasifikasikan {classification}. Mempublikasikannya sebagai Publik membuatnya dapat dibaca oleh siapa saja di internet.",
+    "classification_confirm": "Tetap publikasikan"
   }
 }

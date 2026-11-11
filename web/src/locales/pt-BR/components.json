@@ -480,6 +480,9 @@
     "publish_confirm": "Publicar",
     "unpublish_title": "Cancelar publicação na central de confiança",
     "unpublish_body": "Os visitantes não verão mais este documento. Você pode publicá-lo novamente depois.",
-    "error_load": "Não foi possível carregar o status da central de confiança: {message}"
+    "error_load": "Não foi possível carregar o status da central de confiança: {message}",
+    "classification_title": "Publicar para todos?",
+    "classification_body": "Este documento está classificado como {classification}. Publicá-lo como Público o torna legível por qualquer pessoa na internet.",
+    "classification_confirm": "Publicar mesmo assim"
   }
 }

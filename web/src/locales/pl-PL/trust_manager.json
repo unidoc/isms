@@ -1,0 +1,78 @@
+{
+  "title": "Centrum zaufania",
+  "tabs": {
+    "label": "Sekcje centrum zaufania",
+    "content": "Zawartość",
+    "settings": "Ustawienia"
+  },
+  "not_allowed": "Tylko administratorzy i menedżerowie mogą zarządzać centrum zaufania.",
+  "load_error": "Nie udało się wczytać centrum zaufania: {message}",
+  "address": {
+    "label": "Adres publiczny",
+    "copied": "Skopiowano",
+    "preview": "Podgląd jako odwiedzający",
+    "preview_off": "Włącz centrum zaufania, aby zobaczyć podgląd"
+  },
+  "documents": {
+    "heading": "Dokumenty",
+    "publish": "Opublikuj dokument",
+    "empty": "Nie opublikowano jeszcze żadnych dokumentów.",
+    "source": "Dokument",
+    "classification": "Klasyfikacja: {value}",
+    "access_label": "Poziom dostępu dla {title}",
+    "move_up": "W górę",
+    "move_down": "W dół",
+    "unpublish": "Wycofaj publikację",
+    "publish_again": "Opublikuj ponownie",
+    "remove": "Usuń",
+    "retired_hint": "Wycofany; najpierw przywróć dokument",
+    "unpublish_title": "Wycofać publikację {title}?",
+    "unpublish_body": "Odwiedzający nie będą już widzieć tego dokumentu. Możesz go później opublikować ponownie.",
+    "remove_title": "Usunąć {title}?",
+    "remove_body": "Ten dokument już nie istnieje. Zostanie usunięty z centrum zaufania."
+  },
+  "status": {
+    "published": "Opublikowany",
+    "draft_in_progress": "Wersja robocza v{draft} w toku, odwiedzający widzą v{version}",
+    "cannot_publish": "Nie można opublikować: brak zatwierdzonej wersji",
+    "hidden_retired": "Wycofany, ukryty",
+    "hidden_deleted": "Usunięty, ukryty",
+    "error": "Nie udało się odczytać tego dokumentu"
+  },
+  "level": {
+    "public": "Publiczny",
+    "gated": "Po zalogowaniu",
+    "restricted": "Ograniczony",
+    "default": "Domyślny organizacji"
+  },
+  "picker": {
+    "title": "Opublikuj dokument",
+    "search": "Szukaj dokumentów",
+    "search_placeholder": "Szukaj po tytule lub ID",
+    "none": "Brak dokumentów do opublikowania.",
+    "loading": "Wczytywanie dokumentów...",
+    "choose_other": "Wybierz inny dokument",
+    "cannot_no_approved_version": "Brak zatwierdzonej wersji. Zatwierdź dokument przed publikacją.",
+    "cannot_retired": "Wycofanych dokumentów nie można publikować.",
+    "level_label": "Kto może go otworzyć",
+    "publish": "Opublikuj"
+  },
+  "settings": {
+    "enabled_label": "Centrum zaufania",
+    "enabled_help": "Gdy włączone, stronę centrum zaufania może otworzyć każdy w internecie.",
+    "enable_title": "Włączyć centrum zaufania?",
+    "enable_body": "Wszystko, co opublikujesz, będzie widoczne dla każdego w internecie.",
+    "enable_confirm": "Włącz",
+    "overview_label": "Dokument przeglądowy",
+    "overview_none": "Brak",
+    "overview_choose": "Wybierz dokument",
+    "overview_clear": "Wyczyść",
+    "overview_no_approved": "Ten dokument nie ma jeszcze zatwierdzonej wersji. Strona pomija przegląd, dopóki nie zostanie zatwierdzony.",
+    "contact_label": "Kontakt ds. bezpieczeństwa",
+    "contact_help": "Gdzie odwiedzający zgłaszają problemy z bezpieczeństwem (adres e-mail lub link).",
+    "default_level_label": "Domyślny poziom dostępu",
+    "default_level_help": "Poziom, z jakim zaczyna nowo opublikowany dokument.",
+    "saved": "Zapisano",
+    "save_error": "Nie udało się zapisać: {message}"
+  }
+}

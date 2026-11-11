@@ -1,5 +1,6 @@
 <template>
   <div v-if="isManager" class="no-print text-xs">
+    <TrustClassificationConfirm :pending="pending" @answer="answer" />
     <div v-if="loadError" class="text-red-400">
       {{ loadError }}
       <button type="button" @click="load" class="ml-2 text-blue-400 hover:text-blue-300 transition-colors">{{ $t('common.action.retry') }}</button>
@@ -65,6 +66,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { renderApiError } from '../composables/useApiError.js'
+import { useClassificationConfirm } from '../composables/useClassificationConfirm.js'
+import TrustClassificationConfirm from './trust/TrustClassificationConfirm.js'
 
 const props = defineProps({
   docId: { type: String, required: true },
@@ -72,6 +75,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const { pending, answer, run } = useClassificationConfirm()
 
 // Only admins and managers may use the trust center endpoints; everyone else
 // gets no control at all, and no request.
@@ -125,7 +129,9 @@ async function publish() {
   dialogError.value = ''
   try {
     // No access_level when the organization default is kept: the server picks it.
-    state.value = await api.publishDocumentTrust(props.docId, chosenLevel.value)
+    const out = await run((confirm) => api.publishDocumentTrust(props.docId, chosenLevel.value, confirm))
+    if (out.cancelled) return
+    state.value = out.result
     showPublish.value = false
   } catch (e) {
     dialogError.value = renderApiError(e) || t('common.state.unknown')

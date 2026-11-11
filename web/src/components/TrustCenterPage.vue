@@ -154,6 +154,7 @@ import api, { getApiToken } from '../api.js'
 import { i18n, t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
 import { applyBrandColor } from '../utils/brandColor.js'
+import { compareTrustItems } from '../utils/trustOrder.js'
 import LocalePicker from './LocalePicker.vue'
 
 const props = defineProps({
@@ -203,7 +204,7 @@ const hasOverview = computed(() => !!ov.value.overview && overviewHtml.value.tri
 const documents = computed(() =>
   items.value
     .filter((i) => i.kind === 'document')
-    .sort((a, b) => (a.sort_order - b.sort_order) || String(a.title).localeCompare(String(b.title))),
+    .sort(compareTrustItems),
 )
 const filterLevel = { public: 'public', gated: 'gated', restricted: 'restricted' }
 const visibleDocuments = computed(() =>

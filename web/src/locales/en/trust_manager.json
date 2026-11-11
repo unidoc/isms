@@ -1,0 +1,78 @@
+{
+  "title": "Trust Center",
+  "tabs": {
+    "label": "Trust center sections",
+    "content": "Content",
+    "settings": "Settings"
+  },
+  "not_allowed": "Only admins and managers can manage the trust center.",
+  "load_error": "Could not load the trust center: {message}",
+  "address": {
+    "label": "Public address",
+    "copied": "Copied",
+    "preview": "Preview as visitor",
+    "preview_off": "Turn the trust center on to preview it"
+  },
+  "documents": {
+    "heading": "Documents",
+    "publish": "Publish document",
+    "empty": "No documents are published yet.",
+    "source": "Document",
+    "classification": "Classification: {value}",
+    "access_label": "Access level for {title}",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "unpublish": "Unpublish",
+    "publish_again": "Publish again",
+    "remove": "Remove",
+    "retired_hint": "Retired; restore the document first",
+    "unpublish_title": "Unpublish {title}?",
+    "unpublish_body": "Visitors will no longer see this document. You can publish it again later.",
+    "remove_title": "Remove {title}?",
+    "remove_body": "This document no longer exists. This removes it from the trust center."
+  },
+  "status": {
+    "published": "Published",
+    "draft_in_progress": "Draft v{draft} in progress, visitors see v{version}",
+    "cannot_publish": "Cannot publish: no approved version",
+    "hidden_retired": "Retired, hidden",
+    "hidden_deleted": "Deleted, hidden",
+    "error": "Could not read this document"
+  },
+  "level": {
+    "public": "Public",
+    "gated": "Gated",
+    "restricted": "Restricted",
+    "default": "Organization default"
+  },
+  "picker": {
+    "title": "Publish document",
+    "search": "Search documents",
+    "search_placeholder": "Search by title or ID",
+    "none": "No documents available to publish.",
+    "loading": "Loading documents...",
+    "choose_other": "Choose another document",
+    "cannot_no_approved_version": "No approved version yet. Get the document approved before publishing.",
+    "cannot_retired": "Retired documents cannot be published.",
+    "level_label": "Who can open it",
+    "publish": "Publish"
+  },
+  "settings": {
+    "enabled_label": "Trust center",
+    "enabled_help": "When on, the trust center page can be opened by anyone on the internet.",
+    "enable_title": "Turn on the trust center?",
+    "enable_body": "Anything published will be visible to anyone on the internet.",
+    "enable_confirm": "Turn on",
+    "overview_label": "Overview document",
+    "overview_none": "None",
+    "overview_choose": "Choose document",
+    "overview_clear": "Clear",
+    "overview_no_approved": "This document has no approved version yet. The page leaves the overview out until it is approved.",
+    "contact_label": "Security contact",
+    "contact_help": "Where visitors report security issues (an email address or a link).",
+    "default_level_label": "Default access level",
+    "default_level_help": "The level a newly published document starts with.",
+    "saved": "Saved",
+    "save_error": "Could not save: {message}"
+  }
+}

@@ -480,6 +480,9 @@
     "publish_confirm": "Opublikuj",
     "unpublish_title": "Cofnij publikację w centrum zaufania",
     "unpublish_body": "Odwiedzający nie będą już widzieć tego dokumentu. Możesz opublikować go ponownie później.",
-    "error_load": "Nie udało się wczytać stanu centrum zaufania: {message}"
+    "error_load": "Nie udało się wczytać stanu centrum zaufania: {message}",
+    "classification_title": "Opublikować dla wszystkich?",
+    "classification_body": "Ten dokument jest sklasyfikowany jako {classification}. Opublikowanie go jako Publiczny sprawi, że każdy w internecie będzie mógł go przeczytać.",
+    "classification_confirm": "Opublikuj mimo to"
   }
 }

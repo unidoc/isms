@@ -1052,6 +1052,11 @@ paths:
         item, 200 when a hidden item (document was retired or deleted) is
         published again. 409 with code `trust_no_approved_version`,
         `trust_document_retired` or `trust_already_published` when it cannot be.
+        Publishing at `public` (explicitly or through the default level) a
+        document whose classification, at HEAD or in the served version, is
+        confidential or restricted is refused with 409
+        `trust_classification_confirm` unless `confirm_classification` is true;
+        this applies to a new publish and to a republish, and is checked last.
       requestBody:
         required: false
         content:
@@ -1177,6 +1182,45 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
           description: The ids are not the current set (code `trust_order_stale`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/items/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Public id of the item.
+    patch:
+      tags: [Trust Center]
+      summary: Change the access level of a trust center item
+      description: >-
+        Admin or manager only. 404 for an id that is not a UUID, is unknown, or
+        belongs to another organization. A hidden item may be changed and stays
+        hidden. Setting the level it already has writes nothing. Making a
+        document public (from another level) whose classification, at HEAD or in
+        the served version, is confidential or restricted needs
+        `confirm_classification: true`; otherwise 409 with code
+        `trust_classification_confirm` and nothing is written. Answers with the
+        item as `GET /trust-center/items` lists it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCenterItemUpdateRequest' }
+      responses:
+        '200':
+          description: The item after the change
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterManagerItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Confirmation needed (code `trust_classification_confirm`)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -4285,6 +4329,12 @@ components:
                 version: { type: string }
                 approved_at: { $ref: '#/components/schemas/EpochSeconds' }
                 content_hash: { type: string }
+    TrustCenterItemUpdateRequest:
+      type: object
+      required: [access_level]
+      properties:
+        access_level: { type: string, enum: [public, gated, restricted] }
+        confirm_classification: { type: boolean, description: "Confirms making a confidential or restricted document public. Default false." }
     TrustCenterItemOrderRequest:
       type: object
       required: [kind, ids]
@@ -4295,6 +4345,7 @@ components:
       type: object
       properties:
         access_level: { type: string, enum: [public, gated, restricted], description: Defaults to the organization's default access level. }
+        confirm_classification: { type: boolean, description: "Confirms publishing a confidential or restricted document at `public`. Default false." }
     Error:
       type: object
       description: "Error body. Errors raised with a stable code carry code (and params); legacy errors carry only message."

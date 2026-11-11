@@ -403,6 +403,12 @@ var contractTable = []contractEntry{
 		shapes: []contractShape{shape(tReq(trustManagerItem{}), "trust_manager.go handleListTrustItems: element of the array, trustManagerItem")},
 	},
 	{
+		component: "TrustCenterItemUpdateRequest",
+		// trust_manager.go handlePatchTrustItem binds trustItemPatchRequest.
+		shapes:      []contractShape{shape(tReq(trustItemPatchRequest{}), "trust_manager.go handlePatchTrustItem: request body, trustItemPatchRequest")},
+		requestOnly: true,
+	},
+	{
 		component: "TrustCenterItemOrderRequest",
 		// trust_manager.go handleReorderTrustItems binds trustOrderRequest.
 		shapes:      []contractShape{shape(tReq(trustOrderRequest{}), "trust_manager.go handleReorderTrustItems: request body, trustOrderRequest")},
@@ -1484,7 +1490,8 @@ func TestOpenAPIEpochSchemas(t *testing.T) {
 
 // trust_documents.go handlePublishDocumentTrust: the anonymous request struct.
 type trustPublishRequestMirror struct {
-	AccessLevel string `json:"access_level"`
+	AccessLevel           string `json:"access_level"`
+	ConfirmClassification bool   `json:"confirm_classification"`
 }
 
 // api_auth.go:1145 handleCreateMyAPIKey (map literal).

@@ -31,6 +31,8 @@ type trustServedVersion struct {
 	FilePath    string
 	Title       string
 	Body        string // markdown, frontmatter stripped
+	// Classification is the classification in the file at the served commit.
+	Classification string
 }
 
 // trustDocHead is a document as it is at HEAD.
@@ -106,6 +108,7 @@ func (s *Server) trustServed(ctx context.Context, st *store.Store, orgID int, do
 			Version: v.Version, ApprovedAt: v.CreatedAt, ContentHash: v.ContentHash,
 			CommitHash: v.CommitHash, FilePath: v.FilePath,
 			Title: doc.Frontmatter.Title, Body: doc.Body,
+			Classification: doc.Frontmatter.Classification,
 		}, nil
 	}
 	return nil, nil
@@ -156,6 +159,18 @@ func (s *Server) trustServableDocuments(ctx context.Context, orgID int, items []
 		}
 	}
 	return out, nil
+}
+
+// sensitiveTrustClassification returns the normalised classification when the
+// document at HEAD or its served version is confidential or restricted, else "".
+func sensitiveTrustClassification(classes ...string) string {
+	for _, c := range classes {
+		switch c = strings.ToLower(strings.TrimSpace(c)); c {
+		case "confidential", "restricted":
+			return c
+		}
+	}
+	return ""
 }
 
 func trustHideReason(h *trustDocHead) string {
@@ -320,7 +335,8 @@ func (s *Server) handlePublishDocumentTrust(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	var req struct {
-		AccessLevel string `json:"access_level"`
+		AccessLevel           string `json:"access_level"`
+		ConfirmClassification bool   `json:"confirm_classification"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
@@ -356,13 +372,20 @@ func (s *Server) handlePublishDocumentTrust(c echo.Context) error {
 	actor := getUserEmail(c)
 	status := http.StatusCreated
 	item, err := s.db.GetTrustCenterItemByReference(ctx, d.orgID, db.TrustKindDocument, d.docID)
+	if err == nil && item.HiddenAt == nil {
+		return apiError(http.StatusConflict, CodeTrustAlreadyPublished)
+	}
+	// Last check before writing, after every other refusal.
+	if level == db.TrustAccessPublic && !req.ConfirmClassification {
+		if cls := sensitiveTrustClassification(d.head.Classification, served.Classification); cls != "" {
+			return apiError(http.StatusConflict, CodeTrustClassificationConfirm, Value(cls))
+		}
+	}
 	switch {
 	case errors.Is(err, db.ErrTrustItemNotFound):
 		item = &db.TrustCenterItem{Kind: db.TrustKindDocument, Reference: d.docID, AccessLevel: level}
 		err = s.db.PublishTrustCenterItem(ctx, d.orgID, item, actor)
 	case err != nil:
-	case item.HiddenAt == nil:
-		return apiError(http.StatusConflict, CodeTrustAlreadyPublished)
 	default:
 		status = http.StatusOK
 		err = s.db.RepublishTrustCenterItem(ctx, d.orgID, item.ID, level, actor)

@@ -481,6 +481,7 @@
     "trust_document_retired": "dokumen yang sudah dinonaktifkan tidak dapat dipublikasikan",
     "trust_already_published": "dokumen ini sudah dipublikasikan di pusat kepercayaan",
     "trust_order_stale": "pusat kepercayaan berubah saat Anda mengurutkan ulang — muat ulang dan coba lagi",
+    "trust_classification_confirm": "dokumen ini diklasifikasikan {value}; konfirmasi untuk memublikasikannya kepada siapa saja di internet",
     "ai_disabled": "fitur AI dinonaktifkan untuk organisasi ini",
     "unsupported_locale": "locale tidak didukung"
   },

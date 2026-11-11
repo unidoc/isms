@@ -153,22 +153,34 @@ func (s *Server) trustManagerItems(c echo.Context) ([]trustManagerItem, error) {
 	})
 	out := make([]trustManagerItem, 0, len(rows))
 	var st *store.Store
-	for _, it := range rows {
-		row := trustManagerItem{
-			ID: it.PublicID, Kind: it.Kind, Section: it.Section, AccessLevel: it.AccessLevel,
-			SortOrder: it.SortOrder, HiddenReason: it.HiddenReason, PublishedAt: it.PublishedAt.Unix(),
+	for i := range rows {
+		row, err := s.trustManagerRow(c, orgID, &st, &rows[i])
+		if err != nil {
+			return nil, err
 		}
-		if it.Kind == db.TrustKindDocument {
-			if st == nil {
-				if st, err = s.storeForOrg(ctx, orgID); err != nil {
-					return nil, trustInternalError(c, "opening repository", err)
-				}
-			}
-			row.Document = s.trustManagerDocumentFor(c, st, orgID, &it, &row)
-		}
-		out = append(out, row)
+		out = append(out, *row)
 	}
 	return out, nil
+}
+
+// trustManagerRow builds one manager row. st is opened on first use and shared
+// across rows of one request.
+func (s *Server) trustManagerRow(c echo.Context, orgID int, st **store.Store, it *db.TrustCenterItem) (*trustManagerItem, error) {
+	row := &trustManagerItem{
+		ID: it.PublicID, Kind: it.Kind, Section: it.Section, AccessLevel: it.AccessLevel,
+		SortOrder: it.SortOrder, HiddenReason: it.HiddenReason, PublishedAt: it.PublishedAt.Unix(),
+	}
+	if it.Kind == db.TrustKindDocument {
+		if *st == nil {
+			opened, err := s.storeForOrg(c.Request().Context(), orgID)
+			if err != nil {
+				return nil, trustInternalError(c, "opening repository", err)
+			}
+			*st = opened
+		}
+		row.Document = s.trustManagerDocumentFor(c, *st, orgID, it, row)
+	}
+	return row, nil
 }
 
 func (s *Server) trustManagerDocumentFor(c echo.Context, st *store.Store, orgID int, it *db.TrustCenterItem, row *trustManagerItem) *trustManagerDocument {
@@ -248,4 +260,72 @@ func (s *Server) handleReorderTrustItems(c echo.Context) error {
 		return trustInternalError(c, "reordering items", err)
 	}
 	return s.handleListTrustItems(c)
+}
+
+type trustItemPatchRequest struct {
+	AccessLevel           string `json:"access_level"`
+	ConfirmClassification bool   `json:"confirm_classification"`
+}
+
+// PATCH /api/v1/trust-center/items/:id changes an item's access level and
+// answers with its manager row. A hidden item keeps its hidden state. Making a
+// confidential or restricted document public needs confirm_classification.
+func (s *Server) handlePatchTrustItem(c echo.Context) error {
+	if err := requireRole(c, "admin", "manager"); err != nil {
+		return err
+	}
+	orgID := getOrgID(c)
+	ctx := c.Request().Context()
+	var req trustItemPatchRequest
+	if err := c.Bind(&req); err != nil {
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
+	}
+	it, err := s.db.GetTrustCenterItem(ctx, orgID, c.Param("id"))
+	if errors.Is(err, db.ErrTrustItemNotFound) {
+		return errNotFound("item")
+	}
+	if err != nil {
+		return trustInternalError(c, "reading trust center item", err)
+	}
+	switch req.AccessLevel {
+	case db.TrustAccessPublic, db.TrustAccessGated, db.TrustAccessRestricted:
+	default:
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
+	}
+	var st *store.Store
+	if it.Kind == db.TrustKindDocument && req.AccessLevel == db.TrustAccessPublic &&
+		it.AccessLevel != db.TrustAccessPublic && !req.ConfirmClassification {
+		if st, err = s.storeForOrg(ctx, orgID); err != nil {
+			return trustInternalError(c, "opening repository", err)
+		}
+		head, err := s.trustDocumentHead(ctx, st, orgID, it.Reference)
+		if err != nil {
+			return trustInternalError(c, "reading document", err)
+		}
+		served, err := s.trustServed(ctx, st, orgID, it.Reference)
+		if err != nil {
+			return trustInternalError(c, "resolving served version", err)
+		}
+		classes := []string{head.Classification}
+		if served != nil {
+			classes = append(classes, served.Classification)
+		}
+		if cls := sensitiveTrustClassification(classes...); cls != "" {
+			return apiError(http.StatusConflict, CodeTrustClassificationConfirm, Value(cls))
+		}
+	}
+	if err := s.db.SetTrustCenterItemAccessLevel(ctx, orgID, it.ID, req.AccessLevel, getUserEmail(c)); err != nil {
+		if errors.Is(err, db.ErrTrustItemNotFound) {
+			return errNotFound("item")
+		}
+		return trustInternalError(c, "changing access level", err)
+	}
+	if it, err = s.db.GetTrustCenterItem(ctx, orgID, it.PublicID); err != nil {
+		return trustInternalError(c, "reading trust center item", err)
+	}
+	row, err := s.trustManagerRow(c, orgID, &st, it)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, row)
 }

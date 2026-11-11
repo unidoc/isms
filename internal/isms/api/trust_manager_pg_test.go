@@ -496,3 +496,231 @@ func serveTM(s *Server, req *http.Request) int {
 	s.echo.ServeHTTP(rec, req)
 	return rec.Code
 }
+
+// ---- classification guard --------------------------------------------------
+
+// classify rewrites the fixture document's frontmatter with the classification
+// as typed (so odd spellings reach the guard), then approves it.
+func (f *tdFx) classify(raw string) {
+	f.t.Helper()
+	abs := f.st.FindDocumentByID(f.docID)
+	body := "---\ndocument_id: " + f.docID + "\ntitle: Classified\nversion: \"1.0\"\nstatus: draft\nclassification: " + raw + "\n---\nbody\n"
+	if _, err := f.st.CommitFile(abs, []byte(body), "Seed", "seed@example.com", "seed"); err != nil {
+		f.t.Fatal(err)
+	}
+}
+
+// reclassifyHead changes the classification at HEAD without a new version, so
+// the served version keeps the old one.
+func (f *tdFx) reclassifyHead(from, to string) {
+	f.t.Helper()
+	abs := f.st.FindDocumentByID(f.docID)
+	raw, err := f.st.ReadFile(abs)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	next := strings.Replace(string(raw), "classification: "+from, "classification: "+to, 1)
+	if next == string(raw) {
+		f.t.Fatalf("classification %q not found in %s", from, raw)
+	}
+	if _, err := f.st.CommitFile(abs, []byte(next), "Seed", "seed@example.com", "reclassify"); err != nil {
+		f.t.Fatal(err)
+	}
+}
+
+func (f *tdFx) published() bool {
+	_, err := f.s.db.GetTrustCenterItemByReference(context.Background(), f.o.id, db.TrustKindDocument, f.docID)
+	return err == nil
+}
+
+func (f *tdFx) publishConfirmed(level string) tdResp {
+	body := `{"confirm_classification":true}`
+	if level != "" {
+		body = `{"access_level":"` + level + `","confirm_classification":true}`
+	}
+	return f.docCall(f.s.handlePublishDocumentTrust, http.MethodPost, body, "manager", f.mgr)
+}
+
+func wantConfirm(t *testing.T, r tdResp, what string) {
+	t.Helper()
+	if r.code != http.StatusConflict || codeOf(r) != CodeTrustClassificationConfirm {
+		t.Fatalf("%s = %d %s, want 409 trust_classification_confirm", what, r.code, r.body)
+	}
+}
+
+func TestTrustMgrGuardPublishPublicNeedsConfirm(t *testing.T) {
+	f := newTDFx(t, "tmg1", "pol-g1")
+	f.classify("Confidential")
+	f.approve()
+	r := f.publish("public", "manager", f.mgr)
+	wantConfirm(t, r, "public on confidential")
+	if !strings.Contains(r.body, "confidential") && !strings.Contains(strings.ToLower(r.body), "confidential") {
+		t.Errorf("message does not name the classification: %s", r.body)
+	}
+	if f.published() {
+		t.Fatal("a refused publish created an item")
+	}
+	if r := f.publishConfirmed("public"); r.code != http.StatusCreated {
+		t.Fatalf("with the flag = %d %s", r.code, r.body)
+	}
+}
+
+func TestTrustMgrGuardGatedNeedsNoConfirm(t *testing.T) {
+	f := newTDFx(t, "tmg2", "pol-g2")
+	f.classify("confidential")
+	f.approve()
+	if r := f.publish("gated", "manager", f.mgr); r.code != http.StatusCreated {
+		t.Fatalf("gated = %d %s", r.code, r.body)
+	}
+}
+
+func TestTrustMgrGuardOrgDefaultPublic(t *testing.T) {
+	f := newTDFx(t, "tmg3", "pol-g3")
+	f.mustOK(f.putSettings(`{"default_access_level":"public"}`), "default public")
+	f.classify("confidential")
+	f.approve()
+	wantConfirm(t, f.publish("", "manager", f.mgr), "empty level, default public")
+	if f.published() {
+		t.Fatal("item created")
+	}
+	if r := f.publishConfirmed(""); r.code != http.StatusCreated {
+		t.Fatalf("confirmed = %d %s", r.code, r.body)
+	}
+}
+
+func TestTrustMgrGuardNormalisesClassification(t *testing.T) {
+	f := newTDFx(t, "tmg4", "pol-g4")
+	f.classify(`"  RESTRICTED "`)
+	f.approve()
+	wantConfirm(t, f.publish("public", "manager", f.mgr), "spaces and case")
+}
+
+func TestTrustMgrGuardInternalDoesNotTrigger(t *testing.T) {
+	f := newTDFx(t, "tmg5", "pol-g5")
+	f.classify("internal")
+	f.approve()
+	if r := f.publish("public", "manager", f.mgr); r.code != http.StatusCreated {
+		t.Fatalf("internal public = %d %s", r.code, r.body)
+	}
+}
+
+func TestTrustMgrGuardServedVersionClassification(t *testing.T) {
+	f := newTDFx(t, "tmg6", "pol-g6")
+	f.classify("confidential")
+	f.approve()
+	f.reclassifyHead("confidential", "internal") // HEAD says internal, the served version still says confidential
+	wantConfirm(t, f.publish("public", "manager", f.mgr), "served-only classification")
+	if f.published() {
+		t.Fatal("item created")
+	}
+}
+
+func TestTrustMgrGuardRepublishHidden(t *testing.T) {
+	f := newTDFx(t, "tmg7", "pol-g7")
+	f.classify("confidential")
+	f.approve()
+	f.publishOK("gated")
+	f.mustOK(f.docCall(f.s.handleUpdateDocumentMetadata, http.MethodPut, `{"fields":{"status":"retired"}}`, "manager", f.mgr), "retire")
+	f.mustOK(f.docCall(f.s.handleUpdateDocumentMetadata, http.MethodPut, `{"fields":{"status":"approved"}}`, "manager", f.mgr), "un-retire")
+	wantConfirm(t, f.publish("public", "manager", f.mgr), "republish public")
+	if it := f.item(); it.HiddenAt == nil || it.AccessLevel != "gated" {
+		t.Errorf("a refused republish changed the item: %+v", it)
+	}
+	if r := f.publishConfirmed("public"); r.code != http.StatusOK {
+		t.Fatalf("confirmed republish = %d %s", r.code, r.body)
+	}
+}
+
+func (f *tdFx) patch(id, body, role, email string) tdResp {
+	return f.call(f.s.handlePatchTrustItem, http.MethodPatch, "/api/v1/trust-center/items/"+id, body, role, email, "id", id)
+}
+
+func TestTrustMgrPatchLevelAndGuard(t *testing.T) {
+	f := newTDFx(t, "tmp1", "pol-p1")
+	f.classify("confidential")
+	f.approve()
+	id := f.publishOK("gated")
+
+	wantConfirm(t, f.patch(id, `{"access_level":"public"}`, "manager", f.mgr), "gated -> public")
+	if f.item().AccessLevel != "gated" {
+		t.Fatal("level changed by a refused PATCH")
+	}
+	r := f.patch(id, `{"access_level":"public","confirm_classification":true}`, "manager", f.mgr)
+	if r.code != http.StatusOK {
+		t.Fatalf("confirmed = %d %s", r.code, r.body)
+	}
+	var row trustManagerItem
+	if err := json.Unmarshal([]byte(r.body), &row); err != nil || row.ID != id || row.AccessLevel != "public" ||
+		row.Document == nil || row.Document.Status != "published" || row.Document.Classification != "confidential" {
+		t.Errorf("row = %s (%v)", r.body, err)
+	}
+	cl, _ := f.s.db.ListEntityChangelog(context.Background(), f.o.id, "trust_center_item", f.item().ID)
+	if len(cl) == 0 || cl[0].Field != "access_level" || *cl[0].NewValue != "public" {
+		t.Errorf("changelog = %+v", cl)
+	}
+	// Public to public: no confirm, no new changelog row.
+	n := len(cl)
+	if r := f.patch(id, `{"access_level":"public"}`, "manager", f.mgr); r.code != http.StatusOK {
+		t.Errorf("public -> public = %d %s", r.code, r.body)
+	}
+	if cl2, _ := f.s.db.ListEntityChangelog(context.Background(), f.o.id, "trust_center_item", f.item().ID); len(cl2) != n {
+		t.Error("a no-op PATCH wrote a changelog row")
+	}
+	// Narrowing needs no confirm.
+	if r := f.patch(id, `{"access_level":"gated"}`, "manager", f.mgr); r.code != http.StatusOK || f.item().AccessLevel != "gated" {
+		t.Errorf("public -> gated = %d %s", r.code, r.body)
+	}
+}
+
+func TestTrustMgrPatchHiddenStaysHidden(t *testing.T) {
+	f := newTDFx(t, "tmp2", "pol-p2")
+	f.save("x\n")
+	f.approve()
+	id := f.publishOK("gated")
+	f.mustOK(f.docCall(f.s.handleUpdateDocumentMetadata, http.MethodPut, `{"fields":{"status":"retired"}}`, "manager", f.mgr), "retire")
+	r := f.patch(id, `{"access_level":"restricted"}`, "manager", f.mgr)
+	if r.code != http.StatusOK {
+		t.Fatalf("patch hidden = %d %s", r.code, r.body)
+	}
+	var row trustManagerItem
+	_ = json.Unmarshal([]byte(r.body), &row)
+	if row.AccessLevel != "restricted" || row.HiddenReason != "retired" || row.Document.Status != "hidden" {
+		t.Errorf("row = %s", r.body)
+	}
+}
+
+func TestTrustMgrPatchNotFoundBadRequestRolesAuth(t *testing.T) {
+	f := newTDFx(t, "tmp3", "pol-p3")
+	f.save("x\n")
+	f.approve()
+	id := f.publishOK("gated")
+	other := newTDFx(t, "tmp3b", "pol-p3")
+	other.save("x\n")
+	other.approve()
+	otherID := other.publishOK("gated")
+
+	for name, bad := range map[string]string{"not a uuid": "nope", "unknown": "00000000-0000-0000-0000-000000000000", "other org": otherID} {
+		if r := f.patch(bad, `{"access_level":"gated"}`, "manager", f.mgr); r.code != http.StatusNotFound {
+			t.Errorf("%s = %d %s, want 404", name, r.code, r.body)
+		}
+	}
+	if other.item().AccessLevel != "gated" {
+		t.Error("other org's item touched")
+	}
+	for name, body := range map[string]string{"missing": `{}`, "invalid": `{"access_level":"secret"}`, "bad json": `{"access_level":1}`} {
+		if r := f.patch(id, body, "manager", f.mgr); r.code != http.StatusBadRequest {
+			t.Errorf("%s = %d %s, want 400", name, r.code, r.body)
+		}
+	}
+	for _, who := range []struct{ role, email string }{{"reader", f.read}, {"contributor", f.contr}} {
+		if r := f.patch(id, `{"access_level":"public"}`, who.role, who.email); r.code != http.StatusForbidden {
+			t.Errorf("%s = %d, want 403", who.role, r.code)
+		}
+	}
+	if f.item().AccessLevel != "gated" {
+		t.Error("forbidden/invalid requests changed the level")
+	}
+	if code := serveTM(f.s, newTMReq(http.MethodPatch, "/api/v1/trust-center/items/"+id, `{"access_level":"public"}`)); code != http.StatusUnauthorized {
+		t.Errorf("no token = %d, want 401", code)
+	}
+}

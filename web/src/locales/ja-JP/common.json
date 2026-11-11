@@ -468,6 +468,7 @@
     "trust_document_retired": "廃止された文書は公開できません",
     "trust_already_published": "この文書はすでにトラストセンターで公開されています",
     "trust_order_stale": "並べ替え中にトラストセンターが変更されました。再読み込みしてもう一度お試しください",
+    "trust_classification_confirm": "この文書は{value}に分類されています。インターネット上の誰にでも公開するには確認してください",
     "ai_disabled": "この組織ではAI機能が無効です",
     "unsupported_locale": "サポートされていないロケール"
   },

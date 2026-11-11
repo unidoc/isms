@@ -314,6 +314,24 @@ func (d *DB) GetTrustCenterItemByPublicID(ctx context.Context, orgID int, kind, 
 	return it, err
 }
 
+// GetTrustCenterItem returns the organization's item with that public id, of
+// any kind. An id that is not a UUID, or belongs to another organization, is
+// ErrTrustItemNotFound.
+func (d *DB) GetTrustCenterItem(ctx context.Context, orgID int, publicID string) (*TrustCenterItem, error) {
+	if !trustUUID.MatchString(publicID) {
+		return nil, ErrTrustItemNotFound
+	}
+	it, err := scanTrustItem(d.pool.QueryRow(ctx, `
+		SELECT `+trustItemColumns+`
+		FROM trust_center_items
+		WHERE organization_id = $1 AND public_id = $2::uuid
+	`, orgID, publicID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrTrustItemNotFound
+	}
+	return it, err
+}
+
 // GetTrustCenterItemByReference returns the item of the given kind published
 // for reference (for a document, its lowercase document_id).
 func (d *DB) GetTrustCenterItemByReference(ctx context.Context, orgID int, kind, reference string) (*TrustCenterItem, error) {

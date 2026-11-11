@@ -575,6 +575,7 @@ func (s *Server) routes() {
 	api.PUT("/trust-center/settings", s.handlePutTrustSettings)
 	api.GET("/trust-center/items", s.handleListTrustItems)
 	api.PUT("/trust-center/items/order", s.handleReorderTrustItems)
+	api.PATCH("/trust-center/items/:id", s.handlePatchTrustItem)
 	api.PUT("/documents/:docId/metadata", s.handleUpdateDocumentMetadata)
 	api.PUT("/documents/:docId/content", s.handleUpdateDocumentContent)
 	api.POST("/documents", s.handleCreateDocument)

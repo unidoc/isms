@@ -481,6 +481,7 @@
     "trust_document_retired": "un documento retirado no se puede publicar",
     "trust_already_published": "este documento ya está publicado en el centro de confianza",
     "trust_order_stale": "el centro de confianza cambió mientras reordenabas — recarga e inténtalo de nuevo",
+    "trust_classification_confirm": "este documento está clasificado como {value}; confirma para publicarlo a cualquiera en internet",
     "ai_disabled": "las funciones de IA están desactivadas para esta organización",
     "unsupported_locale": "idioma no admitido"
   },

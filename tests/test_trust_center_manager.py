@@ -159,3 +159,55 @@ def test_roles_and_anonymous(api_url, tc):
             assert r.status_code == 403, f"{role} {method} {path}: {r.status_code} {r.text}"
         r = requests.request(method, f"{api_url}{path}", json=body)
         assert r.status_code == 401, f"anonymous {method} {path}: {r.status_code} {r.text}"
+
+
+def _classified_doc(api_url, tc, title, classification="Confidential"):
+    admin = tc["heads"]["admin"]
+    doc_id = f"tcm-doc-{_tag()}"
+    r = requests.post(f"{api_url}/documents", headers=admin, json={
+        "folder": "tcm", "filename": f"{doc_id}.md", "document_id": doc_id, "title": title,
+        "content": f"# {title}\n\nApproved text.\n",
+    })
+    assert r.status_code == 201, r.text
+    r = requests.put(f"{api_url}/documents/{doc_id}/metadata", headers=admin,
+                     json={"fields": {"classification": classification}})
+    assert r.status_code == 200, r.text
+    r = requests.post(f"{api_url}/documents/{doc_id}/reviews", headers=admin, json={
+        "reviewers": [tc["emails"]["contributor"]], "message": "classified e2e",
+    })
+    assert r.status_code == 201, r.text
+    rid = r.json()["review_id"]
+    assert requests.post(f"{api_url}/reviews/{rid}/approve", headers=tc["heads"]["contributor"],
+                         json={"decision": "approved"}).status_code == 200
+    assert requests.post(f"{api_url}/reviews/{rid}/merge", headers=admin, json={}).status_code == 200
+    return doc_id
+
+
+def test_confidential_document_needs_confirmation_to_go_public(api_url, tc):
+    mgr = tc["heads"]["manager"]
+    doc_id = _classified_doc(api_url, tc, "Secret Policy")
+    url = f"{api_url}/documents/{doc_id}/trust-center"
+    r = requests.post(url, headers=mgr, json={"access_level": "public"})
+    assert r.status_code == 409 and r.json()["code"] == "trust_classification_confirm", r.text
+    assert requests.get(url, headers=mgr).json()["published"] is False
+
+    r = requests.post(url, headers=mgr, json={"access_level": "gated"})
+    assert r.status_code == 201, r.text
+    item_id = r.json()["id"]
+
+    patch = f"{api_url}/trust-center/items/{item_id}"
+    r = requests.patch(patch, headers=mgr, json={"access_level": "public"})
+    assert r.status_code == 409 and r.json()["code"] == "trust_classification_confirm", r.text
+    assert requests.get(url, headers=mgr).json()["access_level"] == "gated"
+    r = requests.patch(patch, headers=mgr, json={"access_level": "public", "confirm_classification": True})
+    assert r.status_code == 200, r.text
+    row = r.json()
+    assert row["id"] == item_id and row["access_level"] == "public"
+    assert row["document"]["classification"] == "Confidential" and row["document"]["status"] == "published"
+
+    assert requests.patch(f"{api_url}/trust-center/items/{uuid.uuid4()}", headers=mgr,
+                          json={"access_level": "gated"}).status_code == 404
+    assert requests.patch(patch, headers=mgr, json={"access_level": "bogus"}).status_code == 400
+    for role in ("reader", "contributor"):
+        assert requests.patch(patch, headers=tc["heads"][role], json={"access_level": "gated"}).status_code == 403
+    assert requests.patch(patch, json={"access_level": "gated"}).status_code == 401

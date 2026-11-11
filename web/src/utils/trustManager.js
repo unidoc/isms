@@ -16,12 +16,13 @@ export function rowStatus(row) {
 }
 
 // What a row offers. publishAgain is null (not offered), 'enabled', or
-// 'disabled_retired' (offered but the document is still retired).
+// 'disabled_retired' (offered but the document is still retired). A hidden row
+// can always be removed.
 export function rowActions(row) {
   if (!row.hidden_reason) return { unpublish: true, publishAgain: null, remove: false }
   if (row.hidden_reason === 'deleted') return { unpublish: false, publishAgain: null, remove: true }
   const stillRetired = row.document?.document_status === 'retired'
-  return { unpublish: false, publishAgain: stillRetired ? 'disabled_retired' : 'enabled', remove: false }
+  return { unpublish: false, publishAgain: stillRetired ? 'disabled_retired' : 'enabled', remove: true }
 }
 
 export function publicAddress(origin, slug, subdomainMode) {

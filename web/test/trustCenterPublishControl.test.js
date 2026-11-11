@@ -199,3 +199,24 @@ test('D1: Cancel on the classification dialog sends nothing more and leaves the 
   assert.equal(calls.filter(c => c.method === 'POST').length, 1)
   assert.ok(!html.includes('data-trust="published"'), html)
 })
+
+test('hidden after retire: Remove is offered next to Publish again and DELETEs after the confirmation', async () => {
+  const calls = stub({ ...base, hidden_reason: 'retired', served_version: served('0.1'), document_status: 'retired', cannot_publish_reason: 'retired' })
+  let before
+  const html = await mount('manager', async (host, settle) => {
+    click(host, '[data-trust="remove"]')
+    await settle(h => h.includes('unpublish-dialog'))
+    before = calls.filter(c => c.method === 'DELETE').length
+    click(host, '[data-trust="unpublish-confirm"]')
+    await settle(() => calls.some(c => c.method === 'DELETE'))
+  })
+  assert.equal(before, 0)
+  assert.equal(calls.filter(c => c.method === 'DELETE').length, 1)
+  assert.ok(html.includes('Publish again'), html)
+})
+
+test('not hidden and not published: no Remove', async () => {
+  stub({ ...base, served_version: served('0.1'), document_status: 'approved', can_publish: true })
+  const html = await mount('manager')
+  assert.ok(!html.includes('data-trust="remove"'), html)
+})

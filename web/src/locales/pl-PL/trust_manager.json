@@ -29,7 +29,7 @@
     "unpublish_title": "Wycofać publikację {title}?",
     "unpublish_body": "Odwiedzający nie będą już widzieć tego dokumentu. Możesz go później opublikować ponownie.",
     "remove_title": "Usunąć {title}?",
-    "remove_body": "Ten dokument już nie istnieje. Zostanie usunięty z centrum zaufania."
+    "remove_body": "Spowoduje to usunięcie go z centrum zaufania."
   },
   "status": {
     "published": "Opublikowany",

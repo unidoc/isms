@@ -29,7 +29,7 @@
     "unpublish_title": "Dépublier {title} ?",
     "unpublish_body": "Les visiteurs ne verront plus ce document. Vous pourrez le publier à nouveau plus tard.",
     "remove_title": "Retirer {title} ?",
-    "remove_body": "Ce document n'existe plus. Il sera retiré du centre de confiance."
+    "remove_body": "Cela le retire du centre de confiance."
   },
   "status": {
     "published": "Publié",

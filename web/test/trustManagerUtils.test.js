@@ -48,10 +48,10 @@ test('rowActions: visible rows unpublish; hidden ones depend on why they are hid
   assert.deepEqual(rowActions(row()), { unpublish: true, publishAgain: null, remove: false })
   // retired and still retired at HEAD: Publish again is shown but disabled with a reason.
   assert.deepEqual(rowActions(row({ hidden_reason: 'retired' }, { status: 'hidden', document_status: 'retired' })),
-    { unpublish: false, publishAgain: 'disabled_retired', remove: false })
+    { unpublish: false, publishAgain: 'disabled_retired', remove: true })
   // retired earlier, restored since: enabled.
   assert.deepEqual(rowActions(row({ hidden_reason: 'retired' }, { status: 'hidden', document_status: 'approved' })),
-    { unpublish: false, publishAgain: 'enabled', remove: false })
+    { unpublish: false, publishAgain: 'enabled', remove: true })
   // deleted: only Remove.
   assert.deepEqual(rowActions(row({ hidden_reason: 'deleted' }, { status: 'hidden', document_status: '' })),
     { unpublish: false, publishAgain: null, remove: true })

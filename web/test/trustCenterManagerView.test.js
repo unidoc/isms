@@ -78,3 +78,18 @@ test('the sidebar entry is shown to admins and managers only, after Tasks', () =
   const tag = app.slice(app.lastIndexOf('<router-link', i), i)
   assert.match(tag, /currentUserData\?\.role === 'admin' \|\| currentUserData\?\.role === 'manager'/)
 })
+
+test('both tab panels stay mounted so switching tabs cannot drop unsaved edits', async () => {
+  stub('admin')
+  let before, after
+  await renderSfcSettled(View, {}, ready, async (host, settle) => {
+    await flush()
+    const state = () => [...host.querySelectorAll('[role="tabpanel"]')].map(p => p.style.display === 'none')
+    before = state()
+    host.querySelector('[data-trust-tab="settings"]').click()
+    await flush()
+    after = state()
+  })
+  assert.deepEqual(before, [false, true])
+  assert.deepEqual(after, [true, false])
+})

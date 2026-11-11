@@ -29,7 +29,7 @@
     "unpublish_title": "Batalkan publikasi {title}?",
     "unpublish_body": "Pengunjung tidak akan lagi melihat dokumen ini. Anda dapat mempublikasikannya lagi nanti.",
     "remove_title": "Hapus {title}?",
-    "remove_body": "Dokumen ini tidak ada lagi. Tindakan ini menghapusnya dari pusat kepercayaan."
+    "remove_body": "Tindakan ini menghapusnya dari pusat kepercayaan."
   },
   "status": {
     "published": "Dipublikasikan",

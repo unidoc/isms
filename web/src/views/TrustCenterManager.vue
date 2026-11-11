@@ -34,10 +34,11 @@
             class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors">{{ tabLabel(tb) }}</button>
         </div>
 
-        <div v-if="tab === 'content'" role="tabpanel">
+        <!-- Both panels stay mounted: switching tabs must not drop unsaved edits. -->
+        <div v-show="tab === 'content'" role="tabpanel">
           <TrustDocumentsSection />
         </div>
-        <div v-else role="tabpanel">
+        <div v-show="tab === 'settings'" role="tabpanel">
           <TrustSettingsForm v-if="settings" :settings="settings" @saved="onSaved" />
         </div>
       </template>

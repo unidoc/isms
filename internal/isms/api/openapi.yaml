@@ -1225,6 +1225,59 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /trust-center/preview:
+    get:
+      tags: [Trust Center]
+      summary: Preview the trust center overview as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterOverview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/preview/items:
+    get:
+      tags: [Trust Center]
+      summary: Preview the published items as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}/items` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TrustCenterItem' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/preview/documents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Public id of the item.
+    get:
+      tags: [Trust Center]
+      summary: Preview a published document as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}/documents/{id}` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterDocument' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ── Documents ───────────────────────────────────────────────────────────
   /documents/all:
     get:

@@ -145,6 +145,7 @@ GET  /trust-center/settings — trust center settings: enabled, title, overview 
 PUT  /trust-center/settings — partial settings update, changelog per changed field (manager/admin)
 GET  /trust-center/items — every published item incl. hidden, with document status per row (manager/admin)
 PATCH /trust-center/items/:id — change an item's access level; `confirm_classification` needed to make a confidential/restricted document public (manager/admin)
+GET  /trust-center/preview, /trust-center/preview/items, /trust-center/preview/documents/:id — what an anonymous visitor would get, for the session's org, even while the trust center is off (manager/admin)
 PUT  /trust-center/items/order — set the display order of one kind of item; 409 trust_order_stale on an old list (manager/admin)
 GET  /templates/available        — list available templates
 POST /templates                  — scaffold template into org

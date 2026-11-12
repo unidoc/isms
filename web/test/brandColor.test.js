@@ -156,7 +156,7 @@ test('no applyBrandColor call is guarded by an if', () => {
       if (/\bif\b/.test(before) || opensIf(prev)) bad.push(`${where} guarded`)
     })
   }
-  assert.equal(calls.length, 8, `expected 8 call sites, got ${calls.join(', ')}`)
+  assert.equal(calls.length, 9, `expected 9 call sites, got ${calls.join(', ')}`)
   assert.deepEqual(bad, [])
 })
 

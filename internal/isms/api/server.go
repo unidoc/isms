@@ -1485,6 +1485,7 @@ func (s *Server) handleUpdateDocumentMetadata(c echo.Context) error {
 	// notice anyway. Hiding must not fail the save.
 	if req.Fields["status"] == "retired" {
 		s.hideTrustItemForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenRetired, email)
+		s.clearTrustOverviewForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenRetired, email)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"commit": commitHash, "status": "updated"})
@@ -1711,6 +1712,7 @@ func (s *Server) handleDeleteDocument(c echo.Context) error {
 
 	s.searchIndex.Invalidate(orgID)
 	s.hideTrustItemForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenDeleted, email)
+	s.clearTrustOverviewForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenDeleted, email)
 
 	s.logAndNotify(c.Request().Context(), orgID, &db.Activity{
 		DocumentID: docID,

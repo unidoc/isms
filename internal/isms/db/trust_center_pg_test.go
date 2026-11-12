@@ -289,3 +289,87 @@ func TestTrustCenterHideAndRepublish(t *testing.T) {
 		t.Errorf("bogus level err = %v, want invalid", err)
 	}
 }
+
+func TestTrustCenterClearOverviewDocument(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "clr")
+	doc := "Policy-1"
+	set := func(id *string) {
+		t.Helper()
+		s := &TrustCenterSettings{Enabled: true, OverviewDocumentID: id, DefaultAccessLevel: TrustAccessGated}
+		if err := d.UpsertTrustCenterSettings(ctx, orgID, s, "mgr@example.com"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	current := func() *string {
+		t.Helper()
+		s, err := d.GetTrustCenterSettings(ctx, orgID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s.OverviewDocumentID
+	}
+	rows := func() []ChangelogEntry {
+		t.Helper()
+		cl, err := d.ListEntityChangelog(ctx, orgID, "trust_center_settings", int64(orgID))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return cl
+	}
+
+	// Unset, then a different document: nothing happens, nothing is written.
+	if ok, err := d.ClearTrustCenterOverviewDocument(ctx, orgID, doc, TrustHiddenRetired, "mgr@example.com"); err != nil || ok {
+		t.Fatalf("clear with no setting = %v, %v", ok, err)
+	}
+	set(&doc)
+	if ok, err := d.ClearTrustCenterOverviewDocument(ctx, orgID, "other-doc", TrustHiddenRetired, "mgr@example.com"); err != nil || ok {
+		t.Fatalf("clear of another document = %v, %v", ok, err)
+	}
+	if got := current(); got == nil || *got != doc {
+		t.Fatalf("setting = %v, want it untouched", got)
+	}
+	if n := len(rows()); n != 0 {
+		t.Fatalf("changelog rows = %d, want 0 for a no-match", n)
+	}
+	if _, err := d.ClearTrustCenterOverviewDocument(ctx, orgID, doc, "bogus", "mgr@example.com"); !errors.Is(err, ErrTrustCenterInvalid) {
+		t.Errorf("bogus reason err = %v", err)
+	}
+
+	// A match clears it (case-insensitively) and writes exactly one row.
+	if ok, err := d.ClearTrustCenterOverviewDocument(ctx, orgID, "policy-1", TrustHiddenDeleted, "mgr@example.com"); err != nil || !ok {
+		t.Fatalf("clear = %v, %v", ok, err)
+	}
+	if got := current(); got != nil {
+		t.Errorf("setting = %q, want cleared", *got)
+	}
+	cl := rows()
+	if len(cl) != 1 {
+		t.Fatalf("changelog rows = %d, want 1: %+v", len(cl), cl)
+	}
+	r := cl[0]
+	if r.Field != "overview_document_id" || r.OldValue == nil || *r.OldValue != doc || r.NewValue == nil || *r.NewValue != "" ||
+		r.Reason != TrustHiddenDeleted || r.ChangedBy != "mgr@example.com" || r.Action != "update" {
+		t.Errorf("row = %+v", r)
+	}
+
+	// Idempotent.
+	if ok, err := d.ClearTrustCenterOverviewDocument(ctx, orgID, doc, TrustHiddenDeleted, "mgr@example.com"); err != nil || ok {
+		t.Fatalf("second clear = %v, %v", ok, err)
+	}
+	if n := len(rows()); n != 1 {
+		t.Errorf("changelog rows after a repeat = %d, want 1", n)
+	}
+}
+
+func TestTrustCenterChangelogAcceptsSettingsEntityType(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "chk")
+	if _, err := d.pool.Exec(ctx, `
+		INSERT INTO entity_changelog (organization_id, entity_type, entity_id, action, changed_by)
+		VALUES ($1, 'trust_center_settings', $2, 'update', 'mgr@example.com')`, orgID, int64(orgID)); err != nil {
+		t.Fatalf("entity_changelog rejects trust_center_settings: %v", err)
+	}
+}

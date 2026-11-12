@@ -224,6 +224,20 @@ function withQuery(url, params) {
   return qs ? `${url}?${qs}` : url
 }
 
+// The anonymous trust center reads (#519). Plain fetch with no Authorization
+// header and no isms:unauthorized event: a stored session must never change
+// what a visitor's page shows, and a 401 here must not bounce to login. A
+// non-2xx answer throws an Error carrying its HTTP status.
+async function publicGetJSON(url) {
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    const err = new Error(`${res.status}`)
+    err.status = res.status
+    throw err
+  }
+  return res.json()
+}
+
 export const api = {
   // Raw helpers for custom calls
   postJSON,
@@ -234,6 +248,12 @@ export const api = {
 
   // Config
   getConfig: () => fetchJSON(`${API}/config`),
+
+  // Trust center, anonymous (#519)
+  publicConfig: () => publicGetJSON(`${API}/config`),
+  trustOverview: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}`),
+  trustItems: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/items`),
+  trustDocument: (slug, id) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/documents/${encodeURIComponent(id)}`),
 
   // Cloudflare Access SSO: when behind CF Access, the proxy adds identity
   // headers and the server mints a session. Returns the login payload, or null

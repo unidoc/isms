@@ -406,3 +406,48 @@ func (d *DB) RepublishTrustCenterItem(ctx context.Context, orgID int, itemID int
 		return nil
 	})
 }
+
+// ClearTrustCenterOverviewDocument clears the overview document setting when it
+// names docID (compared case-insensitively) and records the change in the
+// changelog in the same transaction. It reports whether it cleared anything: a
+// setting that names another document, or none, is left alone and writes
+// nothing, so a repeat call is a no-op. reason is retired or deleted; actor
+// may be "system" when a read path notices the document is gone.
+func (d *DB) ClearTrustCenterOverviewDocument(ctx context.Context, orgID int, docID, reason, actor string) (bool, error) {
+	if reason != TrustHiddenRetired && reason != TrustHiddenDeleted {
+		return false, trustInvalid("clear reason %q", reason)
+	}
+	cleared := false
+	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		var old string
+		err := tx.QueryRow(ctx, `
+			SELECT overview_document_id FROM trust_center_settings
+			WHERE organization_id = $1 AND overview_document_id IS NOT NULL
+			  AND lower(overview_document_id) = lower($2) FOR UPDATE
+		`, orgID, docID).Scan(&old)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE trust_center_settings
+			SET overview_document_id = NULL, updated_at = now(), updated_by = $2
+			WHERE organization_id = $1
+		`, orgID, nilIfEmpty(actor)); err != nil {
+			return err
+		}
+		cleared = true
+		empty := ""
+		return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+			EntityType: "trust_center_settings", EntityID: int64(orgID), Action: "update",
+			Field: "overview_document_id", OldValue: &old, NewValue: &empty,
+			ChangedBy: actor, Reason: reason,
+		})
+	})
+	if err != nil {
+		return false, err
+	}
+	return cleared, nil
+}

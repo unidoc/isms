@@ -188,6 +188,15 @@ func (s *Server) hideTrustItemForDocument(ctx context.Context, orgID int, docID,
 	s.hideTrustItem(ctx, orgID, it.ID, reason, actor)
 }
 
+// clearTrustOverviewForDocument clears the trust center's overview document
+// setting when it is docID, because that document was retired or deleted. A
+// failure is logged, never returned, for the same reasons as hideTrustItem.
+func (s *Server) clearTrustOverviewForDocument(ctx context.Context, orgID int, docID, reason, actor string) {
+	if _, err := s.db.ClearTrustCenterOverviewDocument(ctx, orgID, docID, reason, actor); err != nil {
+		log.Printf("trust center: clearing overview document %s (%s): %v", docID, reason, err)
+	}
+}
+
 // ---- manager endpoints -----------------------------------------------------
 
 type trustServedJSON struct {

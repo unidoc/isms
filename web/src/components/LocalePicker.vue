@@ -16,7 +16,9 @@
     <select :id="selectId" :value="selected" @change="onChange"
       :disabled="saving"
       :aria-label="label ? undefined : $t('common.locale.label')"
-      :class="compact
+      :class="light
+        ? 'bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 hover:text-slate-900 focus:outline-none focus:border-slate-500 transition-colors disabled:opacity-50'
+        : compact
         ? 'bg-transparent border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 hover:text-slate-200 focus:outline-none transition-colors disabled:opacity-50'
         : 'w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50'">
       <!-- Only offered when signed in: with no account to store it against,
@@ -37,6 +39,8 @@ const props = defineProps({
   // false on login / landing, where there is no session to save against.
   persist: { type: Boolean, default: true },
   compact: { type: Boolean, default: false },
+  // For a light page (the public trust center); the dark look is unchanged.
+  light: { type: Boolean, default: false },
   // The visible label. Absent on the compact pickers, which stand alone and
   // fall back to the aria-label. Passed in rather than decided here so a call
   // site can name the setting in its own terms.

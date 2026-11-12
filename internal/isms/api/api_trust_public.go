@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/i18n"
 )
 
 // The trust center read API is the one part of the server that answers people
@@ -61,6 +63,20 @@ type trustPublicOverview struct {
 	SecurityContact string `json:"security_contact"`
 	BrandingName    string `json:"branding_name"`
 	BrandingColor   string `json:"branding_color"`
+	// DefaultLocale is the organization's default, never a guess from the
+	// request: the page negotiates the visitor's language itself.
+	DefaultLocale string `json:"default_locale"`
+	ShowPoweredBy bool   `json:"show_powered_by"`
+	// Overview is the served version of the overview document, or null.
+	Overview *trustPublicOverviewDocument `json:"overview"`
+}
+
+// trustPublicOverviewDocument is the overview text of the trust center page.
+type trustPublicOverviewDocument struct {
+	Version     string `json:"version"`
+	ApprovedAt  int64  `json:"approved_at"` // epoch seconds
+	ContentHash string `json:"content_hash"`
+	HTML        string `json:"html"`
 }
 
 // trustPublicItem is one element of the GET /api/v1/trust/:slug/items array.
@@ -74,6 +90,11 @@ type trustPublicItem struct {
 	AccessLevel string `json:"access_level"`
 	// Title is the served version's title; set for documents only.
 	Title string `json:"title,omitempty"`
+	// Documents only, for every access level: which version visitors are
+	// served. Never the body.
+	Version     string `json:"version,omitempty"`
+	ApprovedAt  int64  `json:"approved_at,omitempty"` // epoch seconds
+	ContentHash string `json:"content_hash,omitempty"`
 }
 
 // trustPublicDocument is the response of GET /api/v1/trust/:slug/documents/:id.
@@ -180,6 +201,9 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 					continue
 				}
 				pi.Title = info.Served.Title
+				pi.Version = info.Served.Version
+				pi.ApprovedAt = info.Served.ApprovedAt.Unix()
+				pi.ContentHash = info.Served.ContentHash
 			}
 			out = append(out, pi)
 		}
@@ -190,12 +214,83 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return trustPublicError(c, err)
 	}
+	// Same rules as /config: the platform switch, then the org setting.
+	showPoweredBy := !s.hidePoweredBy
+	if val, err := s.db.GetOrgSetting(ctx, org.ID, "show_powered_by"); err == nil && val != "" {
+		showPoweredBy = val == "true" || val == "1"
+	}
+	orgLocale, _ := s.db.GetOrgSetting(ctx, org.ID, "default_locale")
 	return c.JSON(http.StatusOK, trustPublicOverview{
 		Title:           settings.Title,
 		SecurityContact: settings.SecurityContact,
 		BrandingName:    s.db.OrgBrandName(ctx, org),
 		BrandingColor:   color,
+		DefaultLocale:   i18n.Resolve("", orgLocale),
+		ShowPoweredBy:   showPoweredBy,
+		Overview:        s.trustOverviewDocument(ctx, org, settings),
 	})
+}
+
+// trustOverviewDocument serves the overview document like a published one: the
+// served version, never HEAD, through the same renderer and link policy. It is
+// nil when nothing can be served, and then the rest of the page still works: an
+// error is logged and never fails the request or clears the setting. A document
+// that is retired at HEAD, or cleanly not found, clears the setting.
+func (s *Server) trustOverviewDocument(ctx context.Context, org *db.Organization, settings *db.TrustCenterSettings) *trustPublicOverviewDocument {
+	if settings.OverviewDocumentID == nil || *settings.OverviewDocumentID == "" {
+		return nil
+	}
+	docID := strings.ToLower(*settings.OverviewDocumentID)
+	st, err := s.storeForOrg(ctx, org.ID)
+	if err != nil {
+		log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
+		return nil
+	}
+	head, err := s.trustDocumentHead(ctx, st, org.ID, docID)
+	if err != nil {
+		log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
+		return nil
+	}
+	if reason := trustHideReason(head); reason != "" {
+		s.clearTrustOverviewForDocument(ctx, org.ID, docID, reason, "system")
+		return nil
+	}
+	served, err := s.trustServed(ctx, st, org.ID, docID)
+	if err != nil {
+		log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
+		return nil
+	}
+	if served == nil {
+		return nil
+	}
+	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
+	if err == nil {
+		var docs map[string]*trustDocInfo
+		if docs, err = s.trustServableDocuments(ctx, org.ID, rows); err == nil {
+			var html string
+			if html, err = renderTrustMarkdown([]byte(served.Body), s.trustLinkPolicyFor(org, docs)); err == nil {
+				return &trustPublicOverviewDocument{
+					Version: served.Version, ApprovedAt: served.ApprovedAt.Unix(),
+					ContentHash: served.ContentHash, HTML: html,
+				}
+			}
+		}
+	}
+	log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
+	return nil
+}
+
+// trustLinkPolicyFor is the link policy for text served to visitors of org:
+// a link to a published document of the same trust center is allowed.
+func (s *Server) trustLinkPolicyFor(org *db.Organization, docs map[string]*trustDocInfo) trustLinkPolicy {
+	policy := trustLinkPolicy{ApexHost: s.apexHost, Slug: org.Slug, Docs: map[string]string{}}
+	if org.Domain != nil {
+		policy.OrgHost = *org.Domain
+	}
+	for ref, d := range docs {
+		policy.Docs[ref] = d.Item.PublicID
+	}
+	return policy
 }
 
 // trustPublicDocument answers GET /api/v1/trust/:slug/documents/:id. Every case
@@ -212,14 +307,7 @@ func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, rows 
 	if info == nil || info.Item.AccessLevel != db.TrustAccessPublic {
 		return trustPublicNotFound(c)
 	}
-	policy := trustLinkPolicy{ApexHost: s.apexHost, Slug: org.Slug, Docs: map[string]string{}}
-	if org.Domain != nil {
-		policy.OrgHost = *org.Domain
-	}
-	for ref, d := range docs {
-		policy.Docs[ref] = d.Item.PublicID
-	}
-	html, err := renderTrustMarkdown([]byte(info.Served.Body), policy)
+	html, err := renderTrustMarkdown([]byte(info.Served.Body), s.trustLinkPolicyFor(org, docs))
 	if err != nil {
 		return trustPublicError(c, err)
 	}

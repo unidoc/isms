@@ -1052,6 +1052,11 @@ paths:
         item, 200 when a hidden item (document was retired or deleted) is
         published again. 409 with code `trust_no_approved_version`,
         `trust_document_retired` or `trust_already_published` when it cannot be.
+        Publishing at `public` (explicitly or through the default level) a
+        document whose classification, at HEAD or in the served version, is
+        confidential or restricted is refused with 409
+        `trust_classification_confirm` unless `confirm_classification` is true;
+        this applies to a new publish and to a republish, and is checked last.
       requestBody:
         required: false
         content:
@@ -1084,6 +1089,194 @@ paths:
         '204': { description: Removed }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/settings:
+    get:
+      tags: [Trust Center]
+      summary: Trust center settings
+      description: >-
+        Admin or manager only. An organization that never configured its trust
+        center reads as the defaults (disabled, default access level `gated`)
+        with `updated_at` and `updated_by` null; reading creates nothing.
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterSettings' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Trust Center]
+      summary: Update trust center settings
+      description: >-
+        Admin or manager only. A partial update: a key that is absent is left
+        alone. Every changed field is recorded in the changelog; a request that
+        changes nothing writes nothing. `overview_document_id` must name an
+        existing document that is not retired (404 when unknown, 409
+        `trust_document_retired` when retired); a document with no approved
+        version is accepted, and the public page leaves it out until there is one.
+        Returns the settings as they are after the update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCenterSettings' }
+      responses:
+        '200':
+          description: Settings after the update
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterSettings' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The overview document is retired (code `trust_document_retired`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/items:
+    get:
+      tags: [Trust Center]
+      summary: List every item published in the trust center
+      description: >-
+        Admin or manager only. Every item of the organization, hidden ones
+        included, ordered by `sort_order` then id. An item whose document is
+        retired or deleted is hidden before the answer is built. A document that
+        cannot be read makes that row `status: error`; the list still succeeds.
+      responses:
+        '200':
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCenterManagerItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/items/order:
+    put:
+      tags: [Trust Center]
+      summary: Set the display order of one kind of trust center item
+      description: >-
+        Admin or manager only. `ids` must be exactly the public ids of the
+        organization's items of `kind`, hidden ones included, each once; otherwise
+        409 with code `trust_order_stale` and nothing is written. The items get
+        `sort_order` 1..n in the order given. Reordering is not logged. Answers
+        with the list `GET /trust-center/items` returns.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCenterItemOrderRequest' }
+      responses:
+        '200':
+          description: Items in the new order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCenterManagerItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The ids are not the current set (code `trust_order_stale`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/items/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Public id of the item.
+    patch:
+      tags: [Trust Center]
+      summary: Change the access level of a trust center item
+      description: >-
+        Admin or manager only. 404 for an id that is not a UUID, is unknown, or
+        belongs to another organization. A hidden item may be changed and stays
+        hidden. Setting the level it already has writes nothing. Making a
+        document public (from another level) whose classification, at HEAD or in
+        the served version, is confidential or restricted needs
+        `confirm_classification: true`; otherwise 409 with code
+        `trust_classification_confirm` and nothing is written. Answers with the
+        item as `GET /trust-center/items` lists it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCenterItemUpdateRequest' }
+      responses:
+        '200':
+          description: The item after the change
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterManagerItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Confirmation needed (code `trust_classification_confirm`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/preview:
+    get:
+      tags: [Trust Center]
+      summary: Preview the trust center overview as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterOverview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/preview/items:
+    get:
+      tags: [Trust Center]
+      summary: Preview the published items as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}/items` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TrustCenterItem' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/preview/documents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Public id of the item.
+    get:
+      tags: [Trust Center]
+      summary: Preview a published document as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's, never a slug. Answers exactly what an anonymous visitor would get from `GET /trust/{slug}/documents/{id}` if the trust center were on (same hidden-item skipping, the same locked-item handling, the same 404 where the public one is 404) and ignores the on/off setting, so a manager can preview while it is off. Responses are never cacheable.
+      responses:
+        '200':
+          description: As the anonymous endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterDocument' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ── Documents ───────────────────────────────────────────────────────────
   /documents/all:
@@ -4142,10 +4335,71 @@ components:
         document_version: { type: string, description: Version of the document at HEAD. }
         can_publish: { type: boolean }
         cannot_publish_reason: { type: string, enum: ['', no_approved_version, retired] }
+    TrustCenterSettings:
+      type: object
+      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by]
+      properties:
+        enabled: { type: boolean, description: "False until the organization switches the trust center on; a disabled trust center answers 404 to visitors." }
+        title: { type: string, maxLength: 200, description: The page title; empty when unset. }
+        overview_document_id: { type: [string, 'null'], description: "Document whose approved text is the page's overview; null when none. Send null (or an empty string) on update to clear. Cleared by itself when the document is retired or deleted." }
+        security_contact: { type: string, maxLength: 320, description: Where to report a security issue; empty when unset. }
+        default_access_level: { type: string, enum: [public, gated, restricted], description: The level a newly published item starts with. }
+        updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Null when the trust center was never configured." }
+        updated_by: { type: [string, 'null'], readOnly: true, description: Email of whoever last changed the settings; null when never configured. }
+    TrustCenterManagerItem:
+      type: object
+      required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document]
+      properties:
+        id: { type: string, format: uuid, description: Public identifier of the item. }
+        kind: { type: string, enum: [document, certification, subprocessor, card, faq, update] }
+        section: { type: string, description: Section heading the item is shown under; empty for none. }
+        access_level: { type: string, enum: [public, gated, restricted] }
+        sort_order: { type: integer, description: Display position among the items of the same kind. }
+        hidden_reason: { type: string, enum: ['', retired, deleted], description: Why the item is hidden from visitors; empty when it is visible. }
+        published_at: { type: integer, format: int64, description: Unix seconds when the item was published or last published again. }
+        document:
+          type: [object, 'null']
+          description: The document behind the item; null for every kind except `document`.
+          required: [document_id, title, classification, classification_sensitive, status, document_status, document_version, served_version]
+          properties:
+            document_id: { type: string }
+            title: { type: string, description: Title at HEAD; the served version's title when HEAD cannot be read or the document is deleted. }
+            classification: { type: string, description: Classification in the document's frontmatter; empty when none. }
+            classification_sensitive: { type: boolean, description: "True when the classification at HEAD or in the served version is confidential or restricted (the rule the publish confirmation uses). A public item with this set is readable by anyone; nothing changes by itself." }
+            status:
+              type: string
+              enum: [published, draft_in_progress, cannot_publish, hidden, error]
+              description: >-
+                hidden: not served until published again. error: the document could
+                not be read. cannot_publish: no approved version exists.
+                draft_in_progress: HEAD is not the approved version visitors are served.
+            document_status: { type: string, description: Status of the document at HEAD; empty when unreadable or deleted. }
+            document_version: { type: string, description: Version of the document at HEAD; empty when unreadable or deleted. }
+            served_version:
+              type: [object, 'null']
+              description: The version visitors are served; null when no approved version exists.
+              required: [version, approved_at, content_hash]
+              properties:
+                version: { type: string }
+                approved_at: { $ref: '#/components/schemas/EpochSeconds' }
+                content_hash: { type: string }
+    TrustCenterItemUpdateRequest:
+      type: object
+      required: [access_level]
+      properties:
+        access_level: { type: string, enum: [public, gated, restricted] }
+        confirm_classification: { type: boolean, description: "Confirms making a confidential or restricted document public. Default false." }
+    TrustCenterItemOrderRequest:
+      type: object
+      required: [kind, ids]
+      properties:
+        kind: { type: string, enum: [document, certification, subprocessor, card, faq, update] }
+        ids: { type: array, items: { type: string, format: uuid }, description: Public ids of every item of that kind, in the new order. }
     DocumentTrustPublishRequest:
       type: object
       properties:
         access_level: { type: string, enum: [public, gated, restricted], description: Defaults to the organization's default access level. }
+        confirm_classification: { type: boolean, description: "Confirms publishing a confidential or restricted document at `public`. Default false." }
     Error:
       type: object
       description: "Error body. Errors raised with a stable code carry code (and params); legacy errors carry only message."

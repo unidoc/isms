@@ -38,6 +38,7 @@ import suppliers from './suppliers.json' with { type: 'json' }
 import systems from './systems.json' with { type: 'json' }
 import tasks from './tasks.json' with { type: 'json' }
 import trust from './trust.json' with { type: 'json' }
+import trustManager from './trust_manager.json' with { type: 'json' }
 
 export default {
   admin,
@@ -66,4 +67,5 @@ export default {
   systems,
   tasks,
   trust,
+  trust_manager: trustManager,
 }

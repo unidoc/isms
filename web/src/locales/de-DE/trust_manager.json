@@ -1,0 +1,83 @@
+{
+  "title": "Trust Center",
+  "tabs": {
+    "label": "Bereiche des Trust Centers",
+    "content": "Inhalt",
+    "settings": "Einstellungen"
+  },
+  "not_allowed": "Nur Administratoren und Manager können das Trust Center verwalten.",
+  "load_error": "Das Trust Center konnte nicht geladen werden: {message}",
+  "address": {
+    "label": "Öffentliche Adresse",
+    "copied": "Kopiert",
+    "preview": "Als Besucher ansehen"
+  },
+  "documents": {
+    "heading": "Dokumente",
+    "publish": "Dokument veröffentlichen",
+    "empty": "Noch keine Dokumente veröffentlicht.",
+    "source": "Dokument",
+    "classification": "Einstufung: {value}",
+    "access_label": "Zugriffsstufe für {title}",
+    "move_up": "Nach oben",
+    "move_down": "Nach unten",
+    "unpublish": "Zurückziehen",
+    "publish_again": "Erneut veröffentlichen",
+    "remove": "Entfernen",
+    "retired_hint": "Archiviert; stellen Sie zuerst das Dokument wieder her",
+    "unpublish_title": "{title} zurückziehen?",
+    "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
+    "remove_title": "{title} entfernen?",
+    "remove_body": "Dadurch wird es aus dem Trust Center entfernt.",
+    "classified_public": "Eingestuft als {classification}, für jeden sichtbar"
+  },
+  "status": {
+    "published": "Veröffentlicht",
+    "draft_in_progress": "Entwurf v{draft} in Arbeit, Besucher sehen v{version}",
+    "cannot_publish": "Kann nicht veröffentlicht werden: keine freigegebene Version",
+    "hidden_retired": "Archiviert, ausgeblendet",
+    "hidden_deleted": "Gelöscht, ausgeblendet",
+    "error": "Dieses Dokument konnte nicht gelesen werden"
+  },
+  "level": {
+    "public": "Öffentlich",
+    "gated": "Mit Anmeldung",
+    "restricted": "Eingeschränkt",
+    "default": "Standard der Organisation"
+  },
+  "picker": {
+    "title": "Dokument veröffentlichen",
+    "search": "Dokumente durchsuchen",
+    "search_placeholder": "Nach Titel oder ID suchen",
+    "none": "Keine Dokumente zum Veröffentlichen verfügbar.",
+    "loading": "Dokumente werden geladen...",
+    "choose_other": "Anderes Dokument wählen",
+    "cannot_no_approved_version": "Noch keine freigegebene Version. Lassen Sie das Dokument vor der Veröffentlichung freigeben.",
+    "cannot_retired": "Archivierte Dokumente können nicht veröffentlicht werden.",
+    "level_label": "Wer es öffnen darf",
+    "publish": "Veröffentlichen"
+  },
+  "settings": {
+    "enabled_label": "Trust Center",
+    "enabled_help": "Wenn aktiv, kann die Trust-Center-Seite von jedem im Internet geöffnet werden.",
+    "enable_title": "Trust Center einschalten?",
+    "enable_body": "Alles Veröffentlichte ist für jeden im Internet sichtbar.",
+    "enable_confirm": "Einschalten",
+    "overview_label": "Übersichtsdokument",
+    "overview_none": "Keines",
+    "overview_choose": "Dokument wählen",
+    "overview_clear": "Entfernen",
+    "overview_no_approved": "Dieses Dokument hat noch keine freigegebene Version. Die Seite lässt die Übersicht weg, bis es freigegeben ist.",
+    "contact_label": "Sicherheitskontakt",
+    "contact_help": "Wohin Besucher Sicherheitsprobleme melden (E-Mail-Adresse oder Link).",
+    "default_level_label": "Standard-Zugriffsstufe",
+    "default_level_help": "Die Stufe, mit der ein neu veröffentlichtes Dokument beginnt.",
+    "saved": "Gespeichert",
+    "save_error": "Speichern fehlgeschlagen: {message}"
+  },
+  "preview": {
+    "banner": "Vorschau: So sehen Besucher es",
+    "off": "Das Trust Center ist ausgeschaltet; Besucher sehen derzeit nichts.",
+    "back": "Zurück zur Trust-Center-Verwaltung"
+  }
+}

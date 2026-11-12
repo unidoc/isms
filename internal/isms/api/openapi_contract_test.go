@@ -392,6 +392,29 @@ var contractTable = []contractEntry{
 		requestOnly: true,
 	},
 	{
+		component: "TrustCenterSettings",
+		//   trust_manager.go handleGetTrustSettings / handlePutTrustSettings: c.JSON(200, trustSettingsResponse(st))
+		shapes:   []contractShape{shape(tReq(trustSettingsJSON{}), "trust_manager.go handleGetTrustSettings: c.JSON(200, trustSettingsJSON)")},
+		requests: []reflect.Type{tReq(trustSettingsRequest{})},
+	},
+	{
+		component: "TrustCenterManagerItem",
+		//   trust_manager.go handleListTrustItems / handleReorderTrustItems: c.JSON(200, items) items is []trustManagerItem (never nil)
+		shapes: []contractShape{shape(tReq(trustManagerItem{}), "trust_manager.go handleListTrustItems: element of the array, trustManagerItem")},
+	},
+	{
+		component: "TrustCenterItemUpdateRequest",
+		// trust_manager.go handlePatchTrustItem binds trustItemPatchRequest.
+		shapes:      []contractShape{shape(tReq(trustItemPatchRequest{}), "trust_manager.go handlePatchTrustItem: request body, trustItemPatchRequest")},
+		requestOnly: true,
+	},
+	{
+		component: "TrustCenterItemOrderRequest",
+		// trust_manager.go handleReorderTrustItems binds trustOrderRequest.
+		shapes:      []contractShape{shape(tReq(trustOrderRequest{}), "trust_manager.go handleReorderTrustItems: request body, trustOrderRequest")},
+		requestOnly: true,
+	},
+	{
 		component: "Error",
 		//   errors.go:371 apiError: echo.NewHTTPError(status, errorBody{Message, Code, Params}); echo writes
 		//     the errorBody as the response body (see the wire-shape note at the top of errors.go).
@@ -1467,7 +1490,8 @@ func TestOpenAPIEpochSchemas(t *testing.T) {
 
 // trust_documents.go handlePublishDocumentTrust: the anonymous request struct.
 type trustPublishRequestMirror struct {
-	AccessLevel string `json:"access_level"`
+	AccessLevel           string `json:"access_level"`
+	ConfirmClassification bool   `json:"confirm_classification"`
 }
 
 // api_auth.go:1145 handleCreateMyAPIKey (map literal).

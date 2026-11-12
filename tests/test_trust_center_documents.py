@@ -1,10 +1,11 @@
 """Publishing documents to the trust center (#518), over HTTP.
 
-A trust center cannot be switched on over HTTP yet (no settings endpoint), so
-the conftest organization has none and the public document endpoint can only be
-shown to answer the one 404. What the HTTP API does allow is covered end to end
-here: the approval flow, the manager endpoints, who may call them, what they
-report while a draft is in progress, and retire. What visitors actually receive
+The conftest organization never switches its trust center on (that would break
+tests/test_trust_center_public.py), so the public document endpoint can only be
+shown to answer the one 404 here; tests/test_trust_center_manager.py enables a
+trust center in its own organization. What is covered end to end here: the
+approval flow, the manager endpoints, who may call them, what they report while
+a draft is in progress, and retire. What visitors actually receive
 (approved text only, no frontmatter identities, link handling, gated items) is
 covered by internal/isms/api/trust_documents_pg_test.go.
 """

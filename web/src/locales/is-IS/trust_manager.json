@@ -1,0 +1,83 @@
+{
+  "title": "Traustmiðstöð",
+  "tabs": {
+    "label": "Hlutar traustmiðstöðvar",
+    "content": "Efni",
+    "settings": "Stillingar"
+  },
+  "not_allowed": "Aðeins stjórnendur og umsjónarmenn geta stýrt traustmiðstöðinni.",
+  "load_error": "Ekki tókst að hlaða traustmiðstöðinni: {message}",
+  "address": {
+    "label": "Opinbert vistfang",
+    "copied": "Afritað",
+    "preview": "Skoða sem gestur"
+  },
+  "documents": {
+    "heading": "Skjöl",
+    "publish": "Birta skjal",
+    "empty": "Engin skjöl hafa verið birt enn.",
+    "source": "Skjal",
+    "classification": "Flokkun: {value}",
+    "access_label": "Aðgangsstig fyrir {title}",
+    "move_up": "Færa upp",
+    "move_down": "Færa niður",
+    "unpublish": "Afbirta",
+    "publish_again": "Birta aftur",
+    "remove": "Fjarlægja",
+    "retired_hint": "Afskráð; endurheimtu skjalið fyrst",
+    "unpublish_title": "Afbirta {title}?",
+    "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
+    "remove_title": "Fjarlægja {title}?",
+    "remove_body": "Þetta fjarlægir það úr traustmiðstöðinni.",
+    "classified_public": "Flokkað sem {classification}, sýnilegt öllum"
+  },
+  "status": {
+    "published": "Birt",
+    "draft_in_progress": "Uppkast v{draft} í vinnslu, gestir sjá v{version}",
+    "cannot_publish": "Ekki hægt að birta: engin samþykkt útgáfa",
+    "hidden_retired": "Afskráð, falið",
+    "hidden_deleted": "Eytt, falið",
+    "error": "Ekki tókst að lesa þetta skjal"
+  },
+  "level": {
+    "public": "Opinbert",
+    "gated": "Með innskráningu",
+    "restricted": "Takmarkað",
+    "default": "Sjálfgefið hjá stofnun"
+  },
+  "picker": {
+    "title": "Birta skjal",
+    "search": "Leita í skjölum",
+    "search_placeholder": "Leita eftir titli eða auðkenni",
+    "none": "Engin skjöl tiltæk til birtingar.",
+    "loading": "Hleð skjölum...",
+    "choose_other": "Velja annað skjal",
+    "cannot_no_approved_version": "Engin samþykkt útgáfa enn. Láttu samþykkja skjalið áður en það er birt.",
+    "cannot_retired": "Ekki er hægt að birta afskráð skjöl.",
+    "level_label": "Hver getur opnað það",
+    "publish": "Birta"
+  },
+  "settings": {
+    "enabled_label": "Traustmiðstöð",
+    "enabled_help": "Þegar kveikt er á opnast traustmiðstöðin fyrir hverjum sem er á netinu.",
+    "enable_title": "Kveikja á traustmiðstöðinni?",
+    "enable_body": "Allt sem er birt verður sýnilegt öllum á netinu.",
+    "enable_confirm": "Kveikja",
+    "overview_label": "Yfirlitsskjal",
+    "overview_none": "Ekkert",
+    "overview_choose": "Velja skjal",
+    "overview_clear": "Hreinsa",
+    "overview_no_approved": "Þetta skjal hefur enga samþykkta útgáfu enn. Síðan sleppir yfirlitinu þar til það er samþykkt.",
+    "contact_label": "Öryggistengiliður",
+    "contact_help": "Hvert gestir tilkynna öryggisvandamál (netfang eða tengill).",
+    "default_level_label": "Sjálfgefið aðgangsstig",
+    "default_level_help": "Stigið sem nýbirt skjal byrjar á.",
+    "saved": "Vistað",
+    "save_error": "Ekki tókst að vista: {message}"
+  },
+  "preview": {
+    "banner": "Forskoðun: þetta sjá gestir",
+    "off": "Slökkt er á traustmiðstöðinni; gestir sjá ekkert eins og er.",
+    "back": "Til baka í stjórnun traustmiðstöðvar"
+  }
+}

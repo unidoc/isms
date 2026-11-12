@@ -160,3 +160,63 @@ test('a failing state request shows an error with Retry', async () => {
   const html = await mount('manager')
   assert.ok(html.includes('Retry'), html)
 })
+
+const needsConfirm = { message: 'confirm', code: 'trust_classification_confirm', params: { value: 'confidential' } }
+
+test('D1: a 409 trust_classification_confirm asks, and Publish anyway resends the same request with the flag', async () => {
+  const published = { ...base, published: true, access_level: 'public', served_version: served('0.1'), document_status: 'approved' }
+  let n = 0
+  const calls = stub({ ...base, served_version: served('0.1'), document_status: 'approved', can_publish: true },
+    { post: () => (++n === 1 ? json(409, needsConfirm) : json(201, published)) })
+  const html = await mount('manager', async (host, settle) => {
+    click(host, '[data-trust="publish"]')
+    await settle(h => h.includes('publish-dialog'))
+    host.querySelector('input[value="public"]').click()
+    click(host, '[data-trust="publish-confirm"]')
+    await settle(h => h.includes('classification-dialog'))
+    const text = host.querySelector('[data-trust="classification-dialog"]').textContent
+    assert.ok(text.includes('This document is classified confidential. Publishing it as Public makes it readable by anyone on the internet.'), text)
+    click(host, '[data-trust="classification-confirm"]')
+    await settle(h => h.includes('data-trust="published"'))
+  })
+  const posts = calls.filter(c => c.method === 'POST')
+  assert.deepEqual(posts.map(p => p.body), [{ access_level: 'public' }, { access_level: 'public', confirm_classification: true }])
+  assert.ok(html.includes('On Trust Center'), html)
+})
+
+test('D1: Cancel on the classification dialog sends nothing more and leaves the document unpublished', async () => {
+  const calls = stub({ ...base, served_version: served('0.1'), document_status: 'approved', can_publish: true },
+    { post: () => json(409, needsConfirm) })
+  const html = await mount('manager', async (host, settle) => {
+    click(host, '[data-trust="publish"]')
+    await settle(h => h.includes('publish-dialog'))
+    host.querySelector('input[value="public"]').click()
+    click(host, '[data-trust="publish-confirm"]')
+    await settle(h => h.includes('classification-dialog'))
+    click(host, '[data-trust="classification-cancel"]')
+    await settle(h => !h.includes('classification-dialog'))
+  })
+  assert.equal(calls.filter(c => c.method === 'POST').length, 1)
+  assert.ok(!html.includes('data-trust="published"'), html)
+})
+
+test('hidden after retire: Remove is offered next to Publish again and DELETEs after the confirmation', async () => {
+  const calls = stub({ ...base, hidden_reason: 'retired', served_version: served('0.1'), document_status: 'retired', cannot_publish_reason: 'retired' })
+  let before
+  const html = await mount('manager', async (host, settle) => {
+    click(host, '[data-trust="remove"]')
+    await settle(h => h.includes('unpublish-dialog'))
+    before = calls.filter(c => c.method === 'DELETE').length
+    click(host, '[data-trust="unpublish-confirm"]')
+    await settle(() => calls.some(c => c.method === 'DELETE'))
+  })
+  assert.equal(before, 0)
+  assert.equal(calls.filter(c => c.method === 'DELETE').length, 1)
+  assert.ok(html.includes('Publish again'), html)
+})
+
+test('not hidden and not published: no Remove', async () => {
+  stub({ ...base, served_version: served('0.1'), document_status: 'approved', can_publish: true })
+  const html = await mount('manager')
+  assert.ok(!html.includes('data-trust="remove"'), html)
+})

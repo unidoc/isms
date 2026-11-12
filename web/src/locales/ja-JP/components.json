@@ -433,6 +433,7 @@
     "publish": "トラストセンターに公開",
     "publish_again": "再度公開",
     "unpublish": "公開を取り消す",
+    "remove": "削除",
     "reason_no_approved_version": "承認済みのバージョンがまだありません。公開する前に文書を承認してもらってください。",
     "reason_retired": "廃止された文書は公開できません。",
     "status_published": "トラストセンターに公開中 · {level} · 訪問者には v{version} が表示されます",
@@ -451,6 +452,9 @@
     "publish_confirm": "公開",
     "unpublish_title": "トラストセンターでの公開を取り消す",
     "unpublish_body": "訪問者にはこの文書が表示されなくなります。後でもう一度公開できます。",
-    "error_load": "トラストセンターの状態を読み込めませんでした：{message}"
+    "error_load": "トラストセンターの状態を読み込めませんでした：{message}",
+    "classification_title": "全員に公開しますか?",
+    "classification_body": "この文書は {classification} に分類されています。「公開」で公開すると、インターネット上の誰でも読めるようになります。",
+    "classification_confirm": "それでも公開する"
   }
 }

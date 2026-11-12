@@ -480,6 +480,8 @@
     "trust_no_approved_version": "este documento não tem nenhuma versão aprovada para publicar",
     "trust_document_retired": "um documento aposentado não pode ser publicado",
     "trust_already_published": "este documento já está publicado na central de confiança",
+    "trust_order_stale": "a central de confiança mudou durante a reordenação — recarregue e tente novamente",
+    "trust_classification_confirm": "este documento está classificado como {value}; confirme para publicá-lo para qualquer pessoa na internet",
     "ai_disabled": "os recursos de IA estão desativados para esta organização",
     "unsupported_locale": "idioma não suportado"
   },

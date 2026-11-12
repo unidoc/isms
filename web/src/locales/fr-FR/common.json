@@ -480,6 +480,8 @@
     "trust_no_approved_version": "ce document n'a aucune version approuvée à publier",
     "trust_document_retired": "un document retiré ne peut pas être publié",
     "trust_already_published": "ce document est déjà publié dans le centre de confiance",
+    "trust_order_stale": "le centre de confiance a changé pendant le réordonnancement — rechargez et réessayez",
+    "trust_classification_confirm": "ce document est classé {value} ; confirmez pour le publier à tout le monde sur internet",
     "ai_disabled": "les fonctionnalités d'IA sont désactivées pour cette organisation",
     "unsupported_locale": "langue non prise en charge"
   },

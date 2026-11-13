@@ -392,7 +392,8 @@
     "created_failed": ", {count} en échec",
     "error_create": "Impossible de créer les tâches : {message}",
     "error_load": "Échec du chargement des éléments en retard : {message}",
-    "external_link": "lien"
+    "external_link": "lien",
+    "trust_certification": "Certification du trust center"
   },
   "suggest_new": {
     "button": "Suggérer",

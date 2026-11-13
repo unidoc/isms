@@ -66,6 +66,17 @@ test('the page gets the preview loaders and a base path inside the preview', asy
   await attrs.source.document('abc')
   assert.deepEqual(calls.filter(p => p.startsWith('/trust-center/preview')),
     ['/trust-center/preview', '/trust-center/preview/items', '/trust-center/preview/documents/abc'])
+  // A certification file is fetched through the preview route with the session (#521).
+  globalThis.fetch = async (url, opts = {}) => {
+    calls.push(String(url).replace(/^.*\/api\/v1/, ''))
+    assert.match(opts.headers?.Authorization || '', /^Bearer /, 'the preview download carries the session')
+    return new Response('%PDF', { status: 200, headers: { 'Content-Disposition': 'attachment; filename=r.pdf' } })
+  }
+  store.set('isms_api_token', 'tok')
+  const f = await attrs.source.certificationFile('item-1')
+  assert.equal(f.filename, 'r.pdf')
+  assert.equal(await f.blob.text(), '%PDF')
+  assert.equal(calls.at(-1), '/trust-center/preview/certifications/item-1/file')
   assert.ok(!calls.some(p => p.startsWith('/trust/')), 'no anonymous trust call')
 })
 

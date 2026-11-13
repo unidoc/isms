@@ -41,6 +41,7 @@ const source = {
   overview: () => api.trustPreviewOverview(),
   items: () => api.trustPreviewItems(),
   document: (id) => api.trustPreviewDocument(id),
+  certificationFile: (id) => api.trustPreviewCertificationFile(id),
 }
 
 function go(path) {

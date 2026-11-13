@@ -33,6 +33,19 @@
     "doc_approved": "Aprovado em {date}",
     "doc_hash": "Hash",
     "doc_locked": "Este documento não pode ser lido online. Acesso: {access}.",
-    "powered_by": "Powered by isms.sh"
+    "powered_by": "Powered by isms.sh",
+    "certifications": {
+      "heading": "Certificações e relatórios",
+      "col_name": "Nome",
+      "col_type": "Tipo",
+      "col_issuer": "Emissor",
+      "col_status": "Status",
+      "col_action": "Ação",
+      "valid_until": "Válido até {date}",
+      "state_current": "Vigente",
+      "state_expiring": "Expira em breve",
+      "action_download": "Baixar",
+      "action_view_at": "Ver em {host}"
+    }
   }
 }

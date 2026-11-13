@@ -31,7 +31,10 @@
 
         <!-- Both panels stay mounted: switching tabs must not drop unsaved edits. -->
         <div v-show="tab === 'content'" role="tabpanel">
-          <TrustDocumentsSection />
+          <div class="space-y-10">
+            <TrustDocumentsSection />
+            <TrustCertificationsSection />
+          </div>
         </div>
         <div v-show="tab === 'settings'" role="tabpanel">
           <TrustSettingsForm v-if="settings" :settings="settings" @saved="onSaved" />
@@ -50,6 +53,7 @@ import { renderApiError } from '../composables/useApiError.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { publicAddress, previewAddress } from '../utils/trustManager.js'
 import TrustDocumentsSection from '../components/trust/TrustDocumentsSection.vue'
+import TrustCertificationsSection from '../components/trust/TrustCertificationsSection.vue'
 import TrustSettingsForm from '../components/trust/TrustSettingsForm.vue'
 
 // The trust center manager screen: a thin shell (header, tabs) around section

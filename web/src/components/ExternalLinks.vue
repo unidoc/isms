@@ -87,6 +87,7 @@ import { useMembers } from '../composables/useMembers.js'
 import { enumLabel } from '../composables/useEnumLabel.js'
 import { formatDay } from '../composables/useFormat.js'
 import { renderApiError } from '../composables/useApiError.js'
+import { stateClass } from '../utils/expiryBadge.js'
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -130,12 +131,6 @@ function safeHref(url) {
 
 function hostOf(url) {
   try { return new URL(url).host } catch { return '' }
-}
-
-function stateClass(state) {
-  if (state === 'expired') return 'bg-red-900/40 text-red-300'
-  if (state === 'expiring') return 'bg-amber-900/40 text-amber-300'
-  return 'bg-emerald-900/40 text-emerald-300'
 }
 
 function toggleAdd() {

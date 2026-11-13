@@ -77,7 +77,7 @@
 
         <!-- Landing page -->
         <template v-else>
-          <p v-if="!hasOverview && !documents.length" class="text-slate-600" data-trust="empty">
+          <p v-if="!hasOverview && !documents.length && !certifications.length" class="text-slate-600" data-trust="empty">
             {{ $t('trust.public.empty') }}
           </p>
 
@@ -88,6 +88,41 @@
               <a v-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline">{{ ov.security_contact }}</a>
               <span v-else class="font-medium text-slate-900">{{ ov.security_contact }}</span>
             </p>
+          </section>
+
+          <section v-if="certifications.length" data-trust="certifications">
+            <h2 class="text-lg font-semibold">{{ $t('trust.public.certifications.heading') }}</h2>
+            <div class="mt-4 bg-white border border-slate-200 rounded-xl overflow-hidden" role="table">
+              <div class="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_minmax(0,1.4fr)] gap-4 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-500 border-b border-slate-200 bg-slate-50" role="row">
+                <div role="columnheader">{{ $t('trust.public.certifications.col_name') }}</div>
+                <div role="columnheader">{{ $t('trust.public.certifications.col_type') }}</div>
+                <div role="columnheader">{{ $t('trust.public.certifications.col_issuer') }}</div>
+                <div role="columnheader">{{ $t('trust.public.certifications.col_status') }}</div>
+                <div role="columnheader">{{ $t('trust.public.certifications.col_action') }}</div>
+              </div>
+              <div v-for="c in certifications" :key="c.id" role="row" data-trust="cert-row"
+                class="grid gap-1 md:gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_minmax(0,1.1fr)_minmax(0,1.4fr)] px-4 py-3 border-b border-slate-100 last:border-b-0 md:items-center">
+                <div role="cell" class="font-medium break-words" data-trust="cert-title">{{ c.title }}</div>
+                <div role="cell" class="text-sm text-slate-600" data-trust="cert-type">{{ certTypeLabel(c.link_type) }}</div>
+                <div role="cell" class="text-sm text-slate-600 min-w-0 break-words">
+                  <div v-if="c.issuer" data-trust="cert-issuer">{{ c.issuer }}</div>
+                  <div v-if="c.valid_until" class="text-xs text-slate-500" data-trust="cert-valid-until">{{ $t('trust.public.certifications.valid_until', { date: fmtDay(c.valid_until) }) }}</div>
+                </div>
+                <div role="cell">
+                  <span v-if="c.state" class="inline-block text-xs font-medium px-2 py-0.5 rounded-full" :class="certStateClass(c.state)" data-trust="cert-state">{{ certStateLabel(c.state) }}</span>
+                </div>
+                <div role="cell" class="text-sm min-w-0 break-words">
+                  <template v-if="c.access_level === 'public' && c.source === 'file'">
+                    <button v-if="source && source.certificationFile" type="button" class="font-medium trust-brand-text hover:underline" data-trust="cert-download" @click="downloadCert(c)">{{ $t('trust.public.certifications.action_download') }}</button>
+                    <a v-else :href="certFileHref(c)" download class="font-medium trust-brand-text hover:underline" data-trust="cert-download">{{ $t('trust.public.certifications.action_download') }}</a>
+                  </template>
+                  <a v-else-if="c.access_level === 'public' && c.source === 'link' && safeHref(c.url)" :href="safeHref(c.url)" target="_blank" rel="noopener noreferrer" class="font-medium trust-brand-text hover:underline" data-trust="cert-view">{{ $t('trust.public.certifications.action_view_at', { host: hostOf(c.url) }) }}</a>
+                  <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
+                  <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
+                  <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section v-if="documents.length" data-trust="documents">
@@ -155,6 +190,9 @@ import { i18n, t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
 import { applyBrandColor } from '../utils/brandColor.js'
 import { compareTrustItems } from '../utils/trustOrder.js'
+import { enumLabel } from '../composables/useEnumLabel.js'
+import { saveBlob } from '../utils/saveBlob.js'
+import { formatDayUTC, hostOf, safeHref } from '../utils/trustCertifications.js'
 import LocalePicker from './LocalePicker.vue'
 
 const props = defineProps({
@@ -165,7 +203,8 @@ const props = defineProps({
   docId: { type: String, default: '' },
   // Where the data comes from: {overview(), items(), document(id)}. The default
   // is the anonymous trust API; the manager's preview passes authenticated
-  // loaders for the very same answers.
+  // loaders for the very same answers, plus certificationFile(itemId), which
+  // returns { blob, filename } through the session.
   source: { type: Object, default: null },
 })
 // Navigation is the parent's job: the component renders real hrefs and hands a
@@ -216,6 +255,26 @@ const documents = computed(() =>
     .filter((i) => i.kind === 'document')
     .sort(compareTrustItems),
 )
+const certifications = computed(() =>
+  items.value
+    .filter((i) => i.kind === 'certification')
+    .sort(compareTrustItems),
+)
+const certStateLabel = (s) => t(s === 'expiring' ? 'trust.public.certifications.state_expiring' : 'trust.public.certifications.state_current')
+const certStateClass = (s) => (s === 'expiring' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')
+const certTypeLabel = (v) => enumLabel('external_link_type', v)
+const fmtDay = (d) => formatDayUTC(d, i18n.global.locale.value)
+// The anonymous file route; a preview passes source.certificationFile instead
+// and downloads with the session.
+const certFileHref = (c) => `/api/v1/trust/${encodeURIComponent(props.slug)}/certifications/${encodeURIComponent(c.id)}/file`
+async function downloadCert(c) {
+  try {
+    const { blob, filename } = await props.source.certificationFile(c.id)
+    saveBlob(blob, filename || c.file_name)
+  } catch {
+    // The preview shows what a visitor gets; a failure here is the visitor's 404.
+  }
+}
 const filterLevel = { public: 'public', gated: 'gated', restricted: 'restricted' }
 const visibleDocuments = computed(() =>
   filter.value === 'all' ? documents.value : documents.value.filter((d) => d.access_level === filterLevel[filter.value]),

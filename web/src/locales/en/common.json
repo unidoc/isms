@@ -74,7 +74,8 @@
     "policy": "Policy",
     "passkey": "Passkey",
     "evidence": "Evidence",
-    "item": "Item"
+    "item": "Item",
+    "certification": "Certification"
   },
   "entity_inline": {
     "risk": "risk",
@@ -104,7 +105,8 @@
     "passkey": "passkey",
     "evidence": "evidence",
     "item": "item",
-    "external_link": "external link"
+    "external_link": "external link",
+    "certification": "certification"
   },
   "field": {
     "title": "title",
@@ -127,7 +129,10 @@
     "entity_id": "entity id",
     "suggestion_type": "suggestion type",
     "url": "URL",
-    "label": "label"
+    "label": "label",
+    "valid_from": "valid from",
+    "valid_until": "valid until",
+    "verified_at": "verified at"
   },
   "enum": {
     "status": {
@@ -487,8 +492,15 @@
     "trust_no_approved_version": "this document has no approved version to publish",
     "trust_document_retired": "a retired document cannot be published",
     "trust_already_published": "this document is already published in the trust center",
+    "trust_order_stale": "the trust center changed while you were reordering — reload and try again",
+    "trust_classification_confirm": "this document is classified {value}; confirm to publish it to anyone on the internet",
     "ai_disabled": "AI features are disabled for this organization",
-    "unsupported_locale": "unsupported locale"
+    "unsupported_locale": "unsupported locale",
+    "trust_file_type": "only PDF, PNG or JPEG files are accepted",
+    "trust_file_required": "choose a file to upload",
+    "trust_certification_source": "provide either a link or a file, not both",
+    "trust_date_invalid": "{field} must be a date written as YYYY-MM-DD",
+    "trust_certification_already_published": "this certification is already published in the trust center"
   },
   "region": {
     "global": "Global",

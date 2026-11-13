@@ -392,7 +392,8 @@
     "created_failed": ", {count} fehlgeschlagen",
     "error_create": "Aufgaben konnten nicht erstellt werden: {message}",
     "error_load": "Überfällige Einträge konnten nicht geladen werden: {message}",
-    "external_link": "Link"
+    "external_link": "Link",
+    "trust_certification": "Trust-Center-Zertifizierung"
   },
   "suggest_new": {
     "button": "Vorschlagen",
@@ -462,6 +463,7 @@
     "publish": "Im Trust Center veröffentlichen",
     "publish_again": "Erneut veröffentlichen",
     "unpublish": "Veröffentlichung aufheben",
+    "remove": "Entfernen",
     "reason_no_approved_version": "Noch keine genehmigte Version. Lassen Sie das Dokument genehmigen, bevor Sie es veröffentlichen.",
     "reason_retired": "Archivierte Dokumente können nicht veröffentlicht werden.",
     "status_published": "Im Trust Center · {level} · Besucher sehen v{version}",
@@ -480,6 +482,9 @@
     "publish_confirm": "Veröffentlichen",
     "unpublish_title": "Veröffentlichung im Trust Center aufheben",
     "unpublish_body": "Besucher sehen dieses Dokument nicht mehr. Sie können es später erneut veröffentlichen.",
-    "error_load": "Der Trust-Center-Status konnte nicht geladen werden: {message}"
+    "error_load": "Der Trust-Center-Status konnte nicht geladen werden: {message}",
+    "classification_title": "Für alle veröffentlichen?",
+    "classification_body": "Dieses Dokument ist als {classification} eingestuft. Wenn Sie es als Öffentlich veröffentlichen, kann es jeder im Internet lesen.",
+    "classification_confirm": "Trotzdem veröffentlichen"
   }
 }

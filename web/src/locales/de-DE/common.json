@@ -74,7 +74,8 @@
     "policy": "Richtlinie",
     "passkey": "Passkey",
     "evidence": "Nachweis",
-    "item": "Element"
+    "item": "Element",
+    "certification": "Zertifizierung"
   },
   "entity_inline": {
     "risk": "Risiko",
@@ -104,7 +105,8 @@
     "passkey": "Passkey",
     "evidence": "Nachweis",
     "item": "Element",
-    "external_link": "externer Link"
+    "external_link": "externer Link",
+    "certification": "Zertifizierung"
   },
   "field": {
     "title": "Titel",
@@ -127,7 +129,10 @@
     "entity_id": "Objekt-ID",
     "suggestion_type": "Vorschlagstyp",
     "url": "URL",
-    "label": "Bezeichnung"
+    "label": "Bezeichnung",
+    "valid_from": "gültig ab",
+    "valid_until": "gültig bis",
+    "verified_at": "Verifizierungsdatum"
   },
   "enum": {
     "status": {
@@ -480,8 +485,15 @@
     "trust_no_approved_version": "dieses Dokument hat keine genehmigte Version, die veröffentlicht werden könnte",
     "trust_document_retired": "ein archiviertes Dokument kann nicht veröffentlicht werden",
     "trust_already_published": "dieses Dokument ist bereits im Trust Center veröffentlicht",
+    "trust_order_stale": "das Trust Center hat sich während der Sortierung geändert — neu laden und erneut versuchen",
+    "trust_classification_confirm": "dieses Dokument ist als {value} eingestuft; bestätigen Sie, um es für jeden im Internet zu veröffentlichen",
     "ai_disabled": "KI-Funktionen sind für diese Organisation deaktiviert",
-    "unsupported_locale": "nicht unterstützte Sprache"
+    "unsupported_locale": "nicht unterstützte Sprache",
+    "trust_file_type": "Es werden nur PDF-, PNG- oder JPEG-Dateien akzeptiert",
+    "trust_file_required": "Wählen Sie eine Datei zum Hochladen aus",
+    "trust_certification_source": "Geben Sie entweder einen Link oder eine Datei an, nicht beides",
+    "trust_date_invalid": "{field} muss ein Datum im Format JJJJ-MM-TT sein",
+    "trust_certification_already_published": "Diese Zertifizierung ist bereits im Trust Center veröffentlicht"
   },
   "region": {
     "global": "Global",

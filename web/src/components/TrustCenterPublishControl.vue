@@ -1,5 +1,6 @@
 <template>
   <div v-if="isManager" class="no-print text-xs">
+    <TrustClassificationConfirm :pending="pending" @answer="answer" />
     <div v-if="loadError" class="text-red-400">
       {{ loadError }}
       <button type="button" @click="load" class="ml-2 text-blue-400 hover:text-blue-300 transition-colors">{{ $t('common.action.retry') }}</button>
@@ -17,6 +18,8 @@
           class="px-2.5 py-1 font-medium rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {{ state.hidden_reason ? $t('components.trust_publish.publish_again') : $t('components.trust_publish.publish') }}
         </button>
+        <button v-if="state.hidden_reason" type="button" data-trust="remove" @click="confirmUnpublish = true"
+          class="text-slate-400 hover:text-red-400 transition-colors">{{ $t('components.trust_publish.remove') }}</button>
         <span v-if="state.cannot_publish_reason" class="text-slate-500" data-trust="reason">{{ $t('components.trust_publish.reason_' + state.cannot_publish_reason) }}</span>
       </template>
       <span v-if="actionError" class="basis-full text-red-400" data-trust="error">{{ actionError }}</span>
@@ -65,6 +68,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { renderApiError } from '../composables/useApiError.js'
+import { useClassificationConfirm } from '../composables/useClassificationConfirm.js'
+import TrustClassificationConfirm from './trust/TrustClassificationConfirm.js'
 
 const props = defineProps({
   docId: { type: String, required: true },
@@ -72,6 +77,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const { pending, answer, run } = useClassificationConfirm()
 
 // Only admins and managers may use the trust center endpoints; everyone else
 // gets no control at all, and no request.
@@ -125,7 +131,9 @@ async function publish() {
   dialogError.value = ''
   try {
     // No access_level when the organization default is kept: the server picks it.
-    state.value = await api.publishDocumentTrust(props.docId, chosenLevel.value)
+    const out = await run((confirm) => api.publishDocumentTrust(props.docId, chosenLevel.value, confirm))
+    if (out.cancelled) return
+    state.value = out.result
     showPublish.value = false
   } catch (e) {
     dialogError.value = renderApiError(e) || t('common.state.unknown')

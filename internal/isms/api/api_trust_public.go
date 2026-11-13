@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -95,6 +96,18 @@ type trustPublicItem struct {
 	Version     string `json:"version,omitempty"`
 	ApprovedAt  int64  `json:"approved_at,omitempty"` // epoch seconds
 	ContentHash string `json:"content_hash,omitempty"`
+	// Certifications only. Title is the label. url (a link certification) and
+	// file_name / file_size (a file certification) are set only at access level
+	// public: a gated or restricted row shows what it is, never where it is.
+	LinkType   string `json:"link_type,omitempty"`
+	Issuer     string `json:"issuer,omitempty"`
+	ValidFrom  string `json:"valid_from,omitempty"`
+	ValidUntil string `json:"valid_until,omitempty"`
+	State      string `json:"state,omitempty"` // current | expiring
+	Source     string `json:"source,omitempty"`
+	URL        string `json:"url,omitempty"`
+	FileName   string `json:"file_name,omitempty"`
+	FileSize   int64  `json:"file_size,omitempty"`
 }
 
 // trustPublicDocument is the response of GET /api/v1/trust/:slug/documents/:id.
@@ -138,7 +151,7 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	parts := strings.Split(strings.TrimPrefix(req.URL.Path, trustPublicPrefix+"/"), "/")
 	slug := parts[0]
 	var items bool
-	var docID string
+	var docID, certID string
 	switch {
 	case slug == "":
 		return trustPublicNotFound(c)
@@ -147,6 +160,8 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		items = true
 	case len(parts) == 3 && parts[1] == "documents" && parts[2] != "":
 		docID = parts[2]
+	case len(parts) == 4 && parts[1] == "certifications" && parts[2] != "" && parts[3] == "file":
+		certID = parts[2]
 	default:
 		return trustPublicNotFound(c)
 	}
@@ -174,42 +189,25 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		return trustPublicNotFound(c)
 	}
 
-	if items || docID != "" {
-		rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
-		if err != nil {
-			return trustPublicError(c, err)
-		}
-		docs, err := s.trustServableDocuments(ctx, org.ID, rows)
-		if err != nil {
-			return trustPublicError(c, err)
-		}
-		if docID != "" {
-			return s.trustPublicDocument(c, org, rows, docs, docID)
-		}
-		out := make([]trustPublicItem, 0, len(rows))
-		for _, it := range rows {
-			if it.HiddenAt != nil {
-				continue
-			}
-			pi := trustPublicItem{
-				ID: it.PublicID, Kind: it.Kind, Section: it.Section,
-				SortOrder: it.SortOrder, AccessLevel: it.AccessLevel,
-			}
-			if it.Kind == db.TrustKindDocument {
-				info := docs[it.Reference]
-				if info == nil {
-					continue
-				}
-				pi.Title = info.Served.Title
-				pi.Version = info.Served.Version
-				pi.ApprovedAt = info.Served.ApprovedAt.Unix()
-				pi.ContentHash = info.Served.ContentHash
-			}
-			out = append(out, pi)
-		}
-		return c.JSON(http.StatusOK, out)
+	switch {
+	case certID != "":
+		return s.trustPublicCertificationFile(c, org, certID)
+	case docID != "":
+		return s.trustPublicDocument(c, org, docID)
+	case items:
+		return s.trustPublicItems(c, org)
 	}
+	return s.trustPublicOverview(c, org, settings)
+}
 
+// The three answers below are shared with the authenticated preview
+// (trust_preview.go): they take the organization and its settings from the
+// caller and never look at whether the trust center is on, so a visitor and a
+// previewing manager are served by the same code.
+
+// trustPublicOverview answers GET /api/v1/trust/:slug.
+func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings) error {
+	ctx := c.Request().Context()
 	color, err := s.db.GetOrgSetting(ctx, org.ID, "branding_color")
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return trustPublicError(c, err)
@@ -229,6 +227,68 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		ShowPoweredBy:   showPoweredBy,
 		Overview:        s.trustOverviewDocument(ctx, org, settings),
 	})
+}
+
+// trustPublicItems answers GET /api/v1/trust/:slug/items.
+func (s *Server) trustPublicItems(c echo.Context, org *db.Organization) error {
+	ctx := c.Request().Context()
+	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	docs, err := s.trustServableDocuments(ctx, org.ID, rows)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	servable, err := s.db.ListServableTrustCertifications(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	certs := make(map[string]*db.TrustCertification, len(servable))
+	for i := range servable {
+		certs[strconv.FormatInt(servable[i].ID, 10)] = &servable[i]
+	}
+	out := make([]trustPublicItem, 0, len(rows))
+	for _, it := range rows {
+		if it.HiddenAt != nil {
+			continue
+		}
+		pi := trustPublicItem{
+			ID: it.PublicID, Kind: it.Kind, Section: it.Section,
+			SortOrder: it.SortOrder, AccessLevel: it.AccessLevel,
+		}
+		if it.Kind == db.TrustKindDocument {
+			info := docs[it.Reference]
+			if info == nil {
+				continue
+			}
+			pi.Title = info.Served.Title
+			pi.Version = info.Served.Version
+			pi.ApprovedAt = info.Served.ApprovedAt.Unix()
+			pi.ContentHash = info.Served.ContentHash
+		}
+		if it.Kind == db.TrustKindCertification {
+			// Only a certification the servable query returned goes out: an
+			// expired, hidden or missing one is skipped, never emitted bare.
+			cert := certs[it.Reference]
+			if cert == nil || cert.Item == nil || cert.Item.ID != it.ID {
+				continue
+			}
+			pi.AccessLevel = cert.Item.AccessLevel
+			pi.Title, pi.LinkType, pi.Issuer, pi.State, pi.Source = cert.Label, cert.LinkType, cert.Issuer, cert.State, trustCertSource(cert)
+			if cert.ValidFrom != nil {
+				pi.ValidFrom = *cert.ValidFrom
+			}
+			if cert.ValidUntil != nil {
+				pi.ValidUntil = *cert.ValidUntil
+			}
+			if cert.Item.AccessLevel == db.TrustAccessPublic {
+				pi.URL, pi.FileName, pi.FileSize = cert.URL, cert.FileName, cert.FileSize
+			}
+		}
+		out = append(out, pi)
+	}
+	return c.JSON(http.StatusOK, out)
 }
 
 // trustOverviewDocument serves the overview document like a published one: the
@@ -297,7 +357,16 @@ func (s *Server) trustLinkPolicyFor(org *db.Organization, docs map[string]*trust
 // that cannot be served is the same 404: unknown id, another organization's
 // id, a hidden item, a retired or deleted document, no approved version, and
 // (until visitor sign-in exists) any access level but public.
-func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, rows []db.TrustCenterItem, docs map[string]*trustDocInfo, publicID string) error {
+func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publicID string) error {
+	ctx := c.Request().Context()
+	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	docs, err := s.trustServableDocuments(ctx, org.ID, rows)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
 	var info *trustDocInfo
 	for _, it := range rows {
 		if it.Kind == db.TrustKindDocument && it.PublicID == strings.ToLower(publicID) {

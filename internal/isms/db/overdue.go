@@ -26,6 +26,8 @@ type OverdueItem struct {
 	// tells two links on one record apart (EntityID is the record's identifier).
 	ParentTitle string `json:"parent_title,omitempty"`
 	LinkID      int64  `json:"link_id,omitempty"`
+	// For trust_certification items (#521) Title is the certification's label,
+	// ParentTitle its issuer, LinkID its id and EntityID "CERT-<id>".
 }
 
 // OverdueSummary is the aggregate overdue status across all entity types.
@@ -36,8 +38,11 @@ type OverdueSummary struct {
 	Legal             []OverdueItem `json:"legal"`
 	SupplierContracts []OverdueItem `json:"supplier_contracts"`
 	ExternalLinks     []OverdueItem `json:"external_links"`
-	Tasks             []OverdueItem `json:"tasks"`
-	TotalCount        int           `json:"total_count"`
+	// TrustCertifications lists every trust center certification that expires
+	// within 30 days or has expired, published or not (#521).
+	TrustCertifications []OverdueItem `json:"trust_certifications"`
+	Tasks               []OverdueItem `json:"tasks"`
+	TotalCount          int           `json:"total_count"`
 }
 
 // GetOverdueSummary returns all overdue review items across entity types.
@@ -198,6 +203,45 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 		return nil, fmt.Errorf("overdue external links: %w", err)
 	}
 
+	// Trust center certifications that expire within 30 days or have expired
+	// (#521), same SQL-side date arithmetic as the external links above. Every
+	// certification counts, published or not, and a certification has no owner.
+	rowsT, err := d.pool.Query(ctx, `
+		SELECT c.id, c.label, c.issuer, c.valid_until,
+			(c.valid_until - CURRENT_DATE)::int AS days_until
+		FROM trust_center_certifications c
+		WHERE c.organization_id = $1
+			AND c.valid_until IS NOT NULL
+			AND (c.valid_until - CURRENT_DATE)::int <= 30
+		ORDER BY c.valid_until ASC, c.id ASC
+	`, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("overdue trust certifications: %w", err)
+	}
+	defer rowsT.Close()
+	for rowsT.Next() {
+		var item OverdueItem
+		var validUntil Epoch
+		var daysUntil int
+		if err := rowsT.Scan(&item.LinkID, &item.Title, &item.ParentTitle, &validUntil, &daysUntil); err != nil {
+			return nil, fmt.Errorf("overdue trust certifications: %w", err)
+		}
+		item.EntityType = "trust_certification"
+		item.EntityID = fmt.Sprintf("CERT-%d", item.LinkID)
+		item.NextReview = &validUntil
+		item.DaysLate = -daysUntil
+		if daysUntil < 0 {
+			item.State = "expired"
+		} else {
+			item.State = "expiring"
+		}
+		summary.TrustCertifications = append(summary.TrustCertifications, item)
+	}
+	rowsT.Close()
+	if err := rowsT.Err(); err != nil {
+		return nil, fmt.Errorf("overdue trust certifications: %w", err)
+	}
+
 	// Overdue systems (access reviews)
 	rows3, err := d.pool.Query(ctx, `
 		SELECT identifier, name, criticality, next_review,
@@ -298,7 +342,8 @@ func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer
 
 	summary.TotalCount = len(summary.Risks) + len(summary.Suppliers) +
 		len(summary.Systems) + len(summary.Legal) + len(summary.Tasks) +
-		len(summary.SupplierContracts) + len(summary.ExternalLinks)
+		len(summary.SupplierContracts) + len(summary.ExternalLinks) +
+		len(summary.TrustCertifications)
 
 	return summary, nil
 }
@@ -499,6 +544,16 @@ func (d *DB) CreateOverdueReviewTasks(ctx context.Context, orgID int, createdBy,
 			priority: criticalityToPriority(l.Criticality),
 			dueDate:  l.NextReview,
 			owner:    l.Owner,
+		})
+	}
+	// A certification has no owner: the task goes to the fallback assignee, or
+	// is counted Unassigned (which is how the manager cron skips it).
+	for _, c := range summary.TrustCertifications {
+		pending = append(pending, pendingTask{
+			title:    "Renewal: " + c.Title + " (trust center)",
+			taskType: "review",
+			priority: "medium",
+			dueDate:  c.NextReview,
 		})
 	}
 	for _, s := range summary.Systems {

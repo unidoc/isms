@@ -129,6 +129,20 @@ const (
 	CodeTrustNoApprovedVersion = "trust_no_approved_version"
 	CodeTrustDocumentRetired   = "trust_document_retired"
 	CodeTrustAlreadyPublished  = "trust_already_published"
+	CodeTrustOrderStale        = "trust_order_stale"
+	// CodeTrustClassificationConfirm: a confidential or restricted document
+	// would become readable by anyone; the caller must confirm it.
+	CodeTrustClassificationConfirm = "trust_classification_confirm"
+	// Certifications (#521): the uploaded file is not a PDF, PNG or JPEG; no file
+	// was sent where one is needed; a certification has both or neither of a url
+	// and a file; a date is not YYYY-MM-DD.
+	CodeTrustFileType            = "trust_file_type"
+	CodeTrustFileRequired        = "trust_file_required"
+	CodeTrustCertificationSource = "trust_certification_source"
+	CodeTrustDateInvalid         = "trust_date_invalid"
+	// CodeTrustCertificationAlreadyPublished is CodeTrustAlreadyPublished for a
+	// certification, whose message names the right noun.
+	CodeTrustCertificationAlreadyPublished = "trust_certification_already_published"
 
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
@@ -202,10 +216,17 @@ var errorMessages = map[string]string{
 
 	CodeCommentHasReplies: "this comment still has replies ({count}) — delete them first",
 
-	CodeDocumentNotApproved:    "only approved documents can be confirmed — a document that has changed since its approval needs a full review",
-	CodeTrustNoApprovedVersion: "this document has no approved version to publish",
-	CodeTrustDocumentRetired:   "a retired document cannot be published",
-	CodeTrustAlreadyPublished:  "this document is already published in the trust center",
+	CodeDocumentNotApproved:                "only approved documents can be confirmed — a document that has changed since its approval needs a full review",
+	CodeTrustNoApprovedVersion:             "this document has no approved version to publish",
+	CodeTrustDocumentRetired:               "a retired document cannot be published",
+	CodeTrustAlreadyPublished:              "this document is already published in the trust center",
+	CodeTrustOrderStale:                    "the trust center changed while you were reordering — reload and try again",
+	CodeTrustClassificationConfirm:         "this document is classified {value}; confirm to publish it to anyone on the internet",
+	CodeTrustFileType:                      "only PDF, PNG or JPEG files are accepted",
+	CodeTrustFileRequired:                  "choose a file to upload",
+	CodeTrustCertificationSource:           "provide either a link or a file, not both",
+	CodeTrustDateInvalid:                   "{field} must be a date written as YYYY-MM-DD",
+	CodeTrustCertificationAlreadyPublished: "this certification is already published in the trust center",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

@@ -33,6 +33,19 @@
     "doc_approved": "Disetujui {date}",
     "doc_hash": "Hash",
     "doc_locked": "Dokumen ini tidak dapat dibaca secara daring. Akses: {access}.",
-    "powered_by": "Powered by isms.sh"
+    "powered_by": "Powered by isms.sh",
+    "certifications": {
+      "heading": "Sertifikasi dan laporan",
+      "col_name": "Nama",
+      "col_type": "Jenis",
+      "col_issuer": "Penerbit",
+      "col_status": "Status",
+      "col_action": "Tindakan",
+      "valid_until": "Berlaku hingga {date}",
+      "state_current": "Berlaku",
+      "state_expiring": "Segera kedaluwarsa",
+      "action_download": "Unduh",
+      "action_view_at": "Lihat di {host}"
+    }
   }
 }

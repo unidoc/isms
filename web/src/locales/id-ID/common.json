@@ -74,7 +74,8 @@
     "policy": "Kebijakan",
     "passkey": "Passkey",
     "evidence": "Bukti",
-    "item": "Item"
+    "item": "Item",
+    "certification": "Sertifikasi"
   },
   "entity_inline": {
     "risk": "risiko",
@@ -104,7 +105,8 @@
     "passkey": "passkey",
     "evidence": "bukti",
     "item": "item",
-    "external_link": "tautan eksternal"
+    "external_link": "tautan eksternal",
+    "certification": "sertifikasi"
   },
   "field": {
     "title": "judul",
@@ -127,7 +129,10 @@
     "entity_id": "ID entitas",
     "suggestion_type": "jenis saran",
     "url": "URL",
-    "label": "label"
+    "label": "label",
+    "valid_from": "berlaku dari",
+    "valid_until": "berlaku hingga",
+    "verified_at": "tanggal verifikasi"
   },
   "enum": {
     "status": {
@@ -480,8 +485,15 @@
     "trust_no_approved_version": "dokumen ini tidak memiliki versi yang disetujui untuk dipublikasikan",
     "trust_document_retired": "dokumen yang sudah dinonaktifkan tidak dapat dipublikasikan",
     "trust_already_published": "dokumen ini sudah dipublikasikan di pusat kepercayaan",
+    "trust_order_stale": "pusat kepercayaan berubah saat Anda mengurutkan ulang — muat ulang dan coba lagi",
+    "trust_classification_confirm": "dokumen ini diklasifikasikan {value}; konfirmasi untuk memublikasikannya kepada siapa saja di internet",
     "ai_disabled": "fitur AI dinonaktifkan untuk organisasi ini",
-    "unsupported_locale": "locale tidak didukung"
+    "unsupported_locale": "locale tidak didukung",
+    "trust_file_type": "hanya file PDF, PNG, atau JPEG yang diterima",
+    "trust_file_required": "pilih file untuk diunggah",
+    "trust_certification_source": "berikan tautan atau file, bukan keduanya",
+    "trust_date_invalid": "{field} harus berupa tanggal dengan format YYYY-MM-DD",
+    "trust_certification_already_published": "sertifikasi ini sudah dipublikasikan di trust center"
   },
   "region": {
     "global": "Global",

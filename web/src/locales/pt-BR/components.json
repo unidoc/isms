@@ -392,7 +392,8 @@
     "created_failed": ", {count} com falha",
     "error_create": "Não foi possível criar as tarefas: {message}",
     "error_load": "Falha ao carregar os itens vencidos: {message}",
-    "external_link": "link"
+    "external_link": "link",
+    "trust_certification": "Certificação da central de confiança"
   },
   "suggest_new": {
     "button": "Sugerir",
@@ -462,6 +463,7 @@
     "publish": "Publicar na central de confiança",
     "publish_again": "Publicar novamente",
     "unpublish": "Cancelar publicação",
+    "remove": "Remover",
     "reason_no_approved_version": "Ainda não há versão aprovada. Peça a aprovação do documento antes de publicar.",
     "reason_retired": "Documentos aposentados não podem ser publicados.",
     "status_published": "Na central de confiança · {level} · visitantes veem v{version}",
@@ -480,6 +482,9 @@
     "publish_confirm": "Publicar",
     "unpublish_title": "Cancelar publicação na central de confiança",
     "unpublish_body": "Os visitantes não verão mais este documento. Você pode publicá-lo novamente depois.",
-    "error_load": "Não foi possível carregar o status da central de confiança: {message}"
+    "error_load": "Não foi possível carregar o status da central de confiança: {message}",
+    "classification_title": "Publicar para todos?",
+    "classification_body": "Este documento está classificado como {classification}. Publicá-lo como Público o torna legível por qualquer pessoa na internet.",
+    "classification_confirm": "Publicar mesmo assim"
   }
 }

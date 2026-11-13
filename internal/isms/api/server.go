@@ -356,8 +356,9 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	srv.echo.Use(requestLogger())
 	srv.echo.Use(middleware.Recover())
 	// Global request body cap (defends against memory exhaustion).
-	// Per-route overrides apply for endpoints that need higher limits (e.g. evidence uploads).
-	srv.echo.Use(middleware.BodyLimit("10M"))
+	// The routes in bodyLimitSkips (file uploads) are skipped here and carry their
+	// own, higher limit.
+	srv.echo.Use(globalBodyLimit())
 	corsOrigins := []string{}
 	if origin := os.Getenv("ISMS_CORS_ORIGIN"); origin != "" {
 		corsOrigins = strings.Split(origin, ",")
@@ -571,6 +572,24 @@ func (s *Server) routes() {
 	api.GET("/documents/:docId/trust-center", s.handleGetDocumentTrust)
 	api.POST("/documents/:docId/trust-center", s.handlePublishDocumentTrust)
 	api.DELETE("/documents/:docId/trust-center", s.handleUnpublishDocumentTrust)
+	api.GET("/trust-center/settings", s.handleGetTrustSettings)
+	api.PUT("/trust-center/settings", s.handlePutTrustSettings)
+	api.GET("/trust-center/items", s.handleListTrustItems)
+	api.PUT("/trust-center/items/order", s.handleReorderTrustItems)
+	api.PATCH("/trust-center/items/:id", s.handlePatchTrustItem)
+	api.GET("/trust-center/preview", s.handleTrustPreviewOverview)
+	api.GET("/trust-center/preview/items", s.handleTrustPreviewItems)
+	api.GET("/trust-center/preview/documents/:id", s.handleTrustPreviewDocument)
+	api.GET("/trust-center/preview/certifications/:id/file", s.handleTrustPreviewCertificationFile)
+	api.GET("/trust-center/certifications", s.handleListTrustCertifications)
+	api.POST("/trust-center/certifications", s.handleCreateTrustCertification, uploadBodyLimit())
+	api.PUT("/trust-center/certifications/:id", s.handleUpdateTrustCertification)
+	api.POST("/trust-center/certifications/:id/file", s.handleReplaceTrustCertificationFile, uploadBodyLimit())
+	api.POST("/trust-center/certifications/:id/verify", s.handleVerifyTrustCertification)
+	api.DELETE("/trust-center/certifications/:id", s.handleDeleteTrustCertification)
+	api.POST("/trust-center/certifications/:id/publish", s.handlePublishTrustCertification)
+	api.DELETE("/trust-center/certifications/:id/publish", s.handleUnpublishTrustCertification)
+	api.GET("/trust-center/certifications/:id/file", s.handleDownloadTrustCertificationFile)
 	api.PUT("/documents/:docId/metadata", s.handleUpdateDocumentMetadata)
 	api.PUT("/documents/:docId/content", s.handleUpdateDocumentContent)
 	api.POST("/documents", s.handleCreateDocument)
@@ -795,7 +814,7 @@ func (s *Server) routes() {
 	api.DELETE("/checkins/:id", s.handleDeleteCheckin)
 
 	// Evidence (S3-backed) — allow larger uploads than the global 10M cap.
-	api.POST("/checkins/:id/evidence", s.handleUploadEvidence, middleware.BodyLimit("50M"))
+	api.POST("/checkins/:id/evidence", s.handleUploadEvidence, uploadBodyLimit())
 	api.GET("/checkins/:id/evidence", s.handleListEvidence)
 	api.GET("/evidence/:id/download", s.handleDownloadEvidence)
 	api.DELETE("/evidence/:id", s.handleDeleteEvidence)

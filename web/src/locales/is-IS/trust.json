@@ -33,6 +33,19 @@
     "doc_approved": "Samþykkt {date}",
     "doc_hash": "Tætigildi",
     "doc_locked": "Ekki er hægt að lesa þetta skjal á netinu. Aðgangur: {access}.",
-    "powered_by": "Powered by isms.sh"
+    "powered_by": "Powered by isms.sh",
+    "certifications": {
+      "heading": "Vottanir og skýrslur",
+      "col_name": "Heiti",
+      "col_type": "Tegund",
+      "col_issuer": "Útgefandi",
+      "col_status": "Staða",
+      "col_action": "Aðgerð",
+      "valid_until": "Gildir til {date}",
+      "state_current": "Í gildi",
+      "state_expiring": "Rennur bráðum út",
+      "action_download": "Sækja",
+      "action_view_at": "Skoða á {host}"
+    }
   }
 }

@@ -392,7 +392,8 @@
     "created_failed": ", {count} mistókst",
     "error_create": "Ekki tókst að búa til verkefni: {message}",
     "error_load": "Ekki tókst að hlaða inn seinkuðum atriðum: {message}",
-    "external_link": "tengill"
+    "external_link": "tengill",
+    "trust_certification": "Vottun í traustmiðstöð"
   },
   "suggest_new": {
     "button": "Leggja til",
@@ -462,6 +463,7 @@
     "publish": "Birta í traustmiðstöðinni",
     "publish_again": "Birta aftur",
     "unpublish": "Hætta birtingu",
+    "remove": "Fjarlægja",
     "reason_no_approved_version": "Engin samþykkt útgáfa enn. Láttu samþykkja skjalið áður en það er birt.",
     "reason_retired": "Afturkölluð skjöl er ekki hægt að birta.",
     "status_published": "Í traustmiðstöðinni · {level} · gestir sjá v{version}",
@@ -480,6 +482,9 @@
     "publish_confirm": "Birta",
     "unpublish_title": "Hætta birtingu í traustmiðstöðinni",
     "unpublish_body": "Gestir sjá ekki lengur þetta skjal. Þú getur birt það aftur síðar.",
-    "error_load": "Ekki tókst að hlaða stöðu traustmiðstöðvarinnar: {message}"
+    "error_load": "Ekki tókst að hlaða stöðu traustmiðstöðvarinnar: {message}",
+    "classification_title": "Birta fyrir alla?",
+    "classification_body": "Þetta skjal er flokkað sem {classification}. Ef það er birt sem Opinbert getur hver sem er á netinu lesið það.",
+    "classification_confirm": "Birta samt"
   }
 }

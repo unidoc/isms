@@ -74,7 +74,8 @@
     "policy": "Política",
     "passkey": "Chave de acesso (passkey)",
     "evidence": "Evidência",
-    "item": "Item"
+    "item": "Item",
+    "certification": "Certificação"
   },
   "entity_inline": {
     "risk": "risco",
@@ -104,7 +105,8 @@
     "passkey": "passkey",
     "evidence": "evidência",
     "item": "item",
-    "external_link": "link externo"
+    "external_link": "link externo",
+    "certification": "certificação"
   },
   "field": {
     "title": "título",
@@ -127,7 +129,10 @@
     "entity_id": "ID da entidade",
     "suggestion_type": "tipo de sugestão",
     "url": "URL",
-    "label": "rótulo"
+    "label": "rótulo",
+    "valid_from": "válido desde",
+    "valid_until": "válido até",
+    "verified_at": "data de verificação"
   },
   "enum": {
     "status": {
@@ -480,8 +485,15 @@
     "trust_no_approved_version": "este documento não tem nenhuma versão aprovada para publicar",
     "trust_document_retired": "um documento aposentado não pode ser publicado",
     "trust_already_published": "este documento já está publicado na central de confiança",
+    "trust_order_stale": "a central de confiança mudou durante a reordenação — recarregue e tente novamente",
+    "trust_classification_confirm": "este documento está classificado como {value}; confirme para publicá-lo para qualquer pessoa na internet",
     "ai_disabled": "os recursos de IA estão desativados para esta organização",
-    "unsupported_locale": "idioma não suportado"
+    "unsupported_locale": "idioma não suportado",
+    "trust_file_type": "somente arquivos PDF, PNG ou JPEG são aceitos",
+    "trust_file_required": "escolha um arquivo para enviar",
+    "trust_certification_source": "informe um link ou um arquivo, não os dois",
+    "trust_date_invalid": "{field} deve ser uma data no formato AAAA-MM-DD",
+    "trust_certification_already_published": "esta certificação já está publicada na central de confiança"
   },
   "region": {
     "global": "Global",

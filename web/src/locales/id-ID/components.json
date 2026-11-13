@@ -392,7 +392,8 @@
     "created_failed": ", {count} gagal",
     "error_create": "Tugas tidak dapat dibuat: {message}",
     "error_load": "Gagal memuat item yang terlambat: {message}",
-    "external_link": "tautan"
+    "external_link": "tautan",
+    "trust_certification": "Sertifikasi trust center"
   },
   "suggest_new": {
     "button": "Usulkan",

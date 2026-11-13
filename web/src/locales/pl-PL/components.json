@@ -392,7 +392,8 @@
     "created_failed": ", nie udało się utworzyć: {count}",
     "error_create": "Nie udało się utworzyć zadań: {message}",
     "error_load": "Nie udało się wczytać zaległych pozycji: {message}",
-    "external_link": "link"
+    "external_link": "link",
+    "trust_certification": "Certyfikat centrum zaufania"
   },
   "suggest_new": {
     "button": "Zaproponuj",

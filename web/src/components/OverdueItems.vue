@@ -50,6 +50,9 @@
           <svg v-else-if="item.entity_type === 'supplier_contract'" class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
+          <svg v-else-if="item.entity_type === 'trust_certification'" class="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
           <svg v-else-if="item.entity_type === 'external_link'" class="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
@@ -67,11 +70,12 @@
 
         <!-- Days overdue / contract or link state -->
         <div class="text-right flex-shrink-0">
-          <template v-if="item.entity_type === 'supplier_contract' || item.entity_type === 'external_link'">
+          <template v-if="item.entity_type === 'supplier_contract' || item.entity_type === 'external_link' || item.entity_type === 'trust_certification'">
             <div class="text-sm font-bold tabular-nums" :class="isExpired(item) ? 'text-red-400' : 'text-amber-400'">
               {{ isExpired(item) ? $t('components.overdue.contract_expired', { count: item.days_late }) : $t('components.overdue.contract_expires_in', { count: -item.days_late }) }}
             </div>
             <div v-if="item.entity_type === 'external_link'" class="text-[10px] text-slate-600">{{ $t('components.overdue.external_link') }}</div>
+            <div v-else-if="item.entity_type === 'trust_certification'" class="text-[10px] text-slate-600">{{ $t('components.overdue.trust_certification') }}</div>
             <div v-else class="text-[10px] text-slate-600">{{ $t('components.overdue.contract') }}</div>
           </template>
           <template v-else>
@@ -119,6 +123,7 @@ const allItems = computed(() => {
     ...(overdue.value.legal || []),
     ...(overdue.value.supplier_contracts || []),
     ...(overdue.value.external_links || []),
+    ...(overdue.value.trust_certifications || []),
     ...(overdue.value.tasks || []),
   ]
   items.sort((a, b) => b.days_late - a.days_late)
@@ -167,6 +172,7 @@ function typeIconBg(type) {
     case 'task': return 'bg-emerald-950/60'
     case 'supplier_contract': return 'bg-amber-950/60'
     case 'external_link': return 'bg-sky-950/60'
+    case 'trust_certification': return 'bg-teal-950/60'
     default: return 'bg-slate-800'
   }
 }
@@ -180,6 +186,7 @@ function typeBadgeClass(type) {
     case 'task': return 'bg-emerald-900/40 text-emerald-400'
     case 'supplier_contract': return 'bg-amber-900/40 text-amber-400'
     case 'external_link': return 'bg-sky-900/40 text-sky-400'
+    case 'trust_certification': return 'bg-teal-900/40 text-teal-400'
     default: return 'bg-slate-800 text-slate-400'
   }
 }

@@ -1,3 +1,5 @@
+import { dispositionFilename } from './utils/trustCertifications.js'
+
 const API = '/api/v1'
 
 // Get the API token from localStorage
@@ -177,6 +179,17 @@ async function deleteNoContent(url) {
   return null
 }
 
+// GET a streamed file with the session; { blob, filename } for the caller to save.
+async function downloadTrustFile(url) {
+  const res = await safeFetch(url, { headers: getHeaders() })
+  checkAuth(res)
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw apiErrorFrom(res, body)
+  }
+  return { blob: await res.blob(), filename: dispositionFilename(res.headers.get('content-disposition')) }
+}
+
 async function uploadFile(url, file, extraFields = {}) {
   const form = new FormData()
   form.append('file', file)
@@ -315,6 +328,20 @@ export const api = {
   getTrustItems: () => fetchJSON(`${API}/trust-center/items`),
   setTrustItemLevel: (id, accessLevel, confirm) => patchJSON(`${API}/trust-center/items/${encodeURIComponent(id)}`, { access_level: accessLevel, ...(confirm && { confirm_classification: true }) }),
   reorderTrustItems: (kind, ids) => putJSON(`${API}/trust-center/items/order`, { kind, ids }),
+  // Certifications and reports (#521). Dates are YYYY-MM-DD text.
+  getTrustCertifications: () => fetchJSON(`${API}/trust-center/certifications`),
+  // Multipart for a file certification (uploadFile adds the file field), JSON for a link.
+  createTrustCertificationFile: (file, fields) => uploadFile(`${API}/trust-center/certifications`, file, fields),
+  createTrustCertificationLink: (body) => postJSON(`${API}/trust-center/certifications`, body),
+  updateTrustCertification: (id, patch) => putJSON(`${API}/trust-center/certifications/${id}`, patch),
+  replaceTrustCertificationFile: (id, file) => uploadFile(`${API}/trust-center/certifications/${id}/file`, file),
+  verifyTrustCertification: (id) => postJSON(`${API}/trust-center/certifications/${id}/verify`, {}),
+  deleteTrustCertification: (id) => deleteNoContent(`${API}/trust-center/certifications/${id}`),
+  publishTrustCertification: (id, accessLevel) => postJSON(`${API}/trust-center/certifications/${id}/publish`, { access_level: accessLevel }),
+  unpublishTrustCertification: (id) => deleteNoContent(`${API}/trust-center/certifications/${id}/publish`),
+  // The file as { blob, filename }, through the session; the manager route works at any level and validity.
+  downloadTrustCertificationFile: (id) => downloadTrustFile(`${API}/trust-center/certifications/${id}/file`),
+  trustPreviewCertificationFile: (itemId) => downloadTrustFile(`${API}/trust-center/preview/certifications/${encodeURIComponent(itemId)}/file`),
   unpublishDocumentTrust: (docId) => deleteNoContent(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
 
   // Risks

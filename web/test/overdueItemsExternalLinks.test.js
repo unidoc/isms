@@ -79,3 +79,30 @@ test('control: the supplier contract row still renders', async () => {
   assert.ok(row.textContent.includes('in 4d'), row.textContent)
   assert.ok(row.textContent.includes('contract'), row.textContent)
 })
+
+test('trust center certifications render like links: label, issuer, state wording, own badge and subtitle (#521)', async () => {
+  const cert = (over) => ({
+    entity_type: 'trust_certification', entity_id: 'CERT-4', parent_title: 'BSI', link_id: 4, ...over,
+  })
+  const { html, host } = await mount({
+    ...SUMMARY,
+    trust_certifications: [
+      cert({ title: 'ISO 27001', days_late: 3, state: 'expired' }),
+      cert({ title: 'Pen test summary', entity_id: 'CERT-5', link_id: 5, parent_title: '', days_late: -12, state: 'expiring' }),
+    ],
+    total_count: 5,
+  })
+  const row = text => [...host.querySelectorAll('.divide-y > div')].find(r => r.textContent.includes(text))
+  assert.equal(host.querySelectorAll('.divide-y > div').length, 5, 'two certifications join the three existing rows')
+  const expired = row('ISO 27001')
+  assert.ok(expired.textContent.includes('BSI') && expired.textContent.includes('CERT-4'), expired.textContent)
+  assert.ok(expired.textContent.includes('3d ago') && expired.innerHTML.includes('text-red-400'), expired.textContent)
+  assert.ok(expired.textContent.includes('Trust center certification'), expired.textContent)
+  assert.ok(expired.innerHTML.includes('bg-teal-900/40 text-teal-400') && expired.innerHTML.includes('text-teal-400'), 'its own colours')
+  const expiring = row('Pen test summary')
+  assert.ok(expiring.textContent.includes('in 12d') && expiring.innerHTML.includes('text-amber-400'), expiring.textContent)
+  assert.ok(!html.includes('days overdue'), 'not worded as a review that is late')
+  // an older server without the key renders as before
+  const old = await mount(SUMMARY)
+  assert.equal(old.host.querySelectorAll('.divide-y > div').length, 3)
+})

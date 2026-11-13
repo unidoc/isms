@@ -158,6 +158,22 @@ func statusCmd() *cobra.Command {
 							el.EntityID, truncate(el.Title+" - "+el.ParentTitle, 35), state, el.Criticality)
 					}
 				}
+				if len(summary.TrustCertifications) > 0 {
+					fmt.Printf("  Trust center certifications (%d)\n", len(summary.TrustCertifications))
+					for _, tc := range summary.TrustCertifications {
+						var state string
+						if tc.State == "expired" {
+							state = fmt.Sprintf("expired %dd ago", tc.DaysLate)
+						} else {
+							state = fmt.Sprintf("expires in %dd", -tc.DaysLate)
+						}
+						title := tc.Title
+						if tc.ParentTitle != "" {
+							title += " - " + tc.ParentTitle
+						}
+						fmt.Printf("    %-12s %-35s %-20s\n", tc.EntityID, truncate(title, 35), state)
+					}
+				}
 				if len(summary.Tasks) > 0 {
 					fmt.Printf("  Tasks (%d)\n", len(summary.Tasks))
 					for _, t := range summary.Tasks {

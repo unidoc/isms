@@ -103,6 +103,24 @@ Examples:
 				}
 			}
 
+			if len(summary.TrustCertifications) > 0 {
+				fmt.Printf("\n  Trust center certifications (%d)\n", len(summary.TrustCertifications))
+				fmt.Println("  " + repeat("─", 66))
+				for _, tc := range summary.TrustCertifications {
+					var state string
+					if tc.State == "expired" {
+						state = fmt.Sprintf("expired %dd ago", tc.DaysLate)
+					} else {
+						state = fmt.Sprintf("expires in %dd", -tc.DaysLate)
+					}
+					title := tc.Title
+					if tc.ParentTitle != "" {
+						title += " - " + tc.ParentTitle
+					}
+					fmt.Printf("  %-14s %-32s %-20s\n", tc.EntityID, truncate(title, 32), state)
+				}
+			}
+
 			if len(summary.Tasks) > 0 {
 				fmt.Printf("\n  Overdue tasks (%d)\n", len(summary.Tasks))
 				fmt.Println("  " + repeat("─", 66))
@@ -114,7 +132,8 @@ Examples:
 
 			if !createTasks {
 				overdueReviews := len(summary.Risks) + len(summary.Suppliers) +
-					len(summary.Systems) + len(summary.Legal) + len(summary.SupplierContracts)
+					len(summary.Systems) + len(summary.Legal) + len(summary.SupplierContracts) +
+					len(summary.ExternalLinks) + len(summary.TrustCertifications)
 				if overdueReviews > 0 {
 					fmt.Printf("\nRun `isms overdue --create-tasks` to create tasks for %d overdue items.\n", overdueReviews)
 				}

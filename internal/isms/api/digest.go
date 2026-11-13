@@ -183,6 +183,8 @@ func BuildDigest(ctx context.Context, d *db.DB, orgID int, email, role string) (
 		{Label: "Risks", Count: len(overdue.Risks)},
 		{Label: "Suppliers", Count: len(overdue.Suppliers)},
 		{Label: "Supplier contracts", Count: len(overdue.SupplierContracts)},
+		{Label: "External links", Count: len(overdue.ExternalLinks)},
+		{Label: "Trust center certifications", Count: len(overdue.TrustCertifications)},
 		{Label: "Systems", Count: len(overdue.Systems)},
 		{Label: "Legal requirements", Count: len(overdue.Legal)},
 		{Label: "Tasks", Count: len(overdue.Tasks)},

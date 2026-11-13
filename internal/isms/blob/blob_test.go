@@ -1,9 +1,13 @@
 package blob
 
 import (
+	"fmt"
+
 	"bytes"
 	"context"
 	"errors"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"io"
 	"os"
 	"testing"
@@ -29,5 +33,26 @@ func TestLocalStoreOpenStreamsAndReportsSize(t *testing.T) {
 	// organizations' keys do not collide.
 	if _, _, err := l.Open(ctx, "org-2", "trust/certifications/a.pdf"); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("other org Open err = %v, want not exist", err)
+	}
+}
+
+func TestMapS3GetErrorTreatsAMissingKeyAsNotExist(t *testing.T) {
+	for name, err := range map[string]error{
+		"typed NoSuchKey": &types.NoSuchKey{},
+		"wrapped":         fmt.Errorf("operation error S3: GetObject: %w", &types.NoSuchKey{}),
+		"api error code":  &smithy.GenericAPIError{Code: "NoSuchKey"},
+		"head-style 404":  &smithy.GenericAPIError{Code: "NotFound"},
+	} {
+		if got := mapS3GetError(err); !errors.Is(got, os.ErrNotExist) {
+			t.Errorf("%s: %v does not wrap os.ErrNotExist", name, got)
+		}
+	}
+	for name, err := range map[string]error{
+		"access denied": &smithy.GenericAPIError{Code: "AccessDenied"},
+		"plain":         errors.New("connection refused"),
+	} {
+		if got := mapS3GetError(err); errors.Is(got, os.ErrNotExist) || !errors.Is(got, err) {
+			t.Errorf("%s: %v must stay an error of its own", name, got)
+		}
 	}
 }

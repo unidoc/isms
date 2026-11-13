@@ -492,7 +492,8 @@
     "trust_file_type": "Es werden nur PDF-, PNG- oder JPEG-Dateien akzeptiert",
     "trust_file_required": "Wählen Sie eine Datei zum Hochladen aus",
     "trust_certification_source": "Geben Sie entweder einen Link oder eine Datei an, nicht beides",
-    "trust_date_invalid": "{field} muss ein Datum im Format JJJJ-MM-TT sein"
+    "trust_date_invalid": "{field} muss ein Datum im Format JJJJ-MM-TT sein",
+    "trust_certification_already_published": "Diese Zertifizierung ist bereits im Trust Center veröffentlicht"
   },
   "region": {
     "global": "Global",

@@ -1395,17 +1395,19 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [label, link_type, file]
+              required: [label, link_type]
+              description: Send exactly one of `file` and `url`.
               properties:
-                file: { type: string, format: binary }
+                file: { type: string, format: binary, description: "The file; omit for a link certification." }
+                url: { type: string, description: "http or https URL; omit when sending a file." }
                 label: { type: string }
                 link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
                 issuer: { type: string }
                 valid_from: { type: string, description: "YYYY-MM-DD; empty for none." }
                 valid_until: { type: string, description: "YYYY-MM-DD; empty for none." }
                 verified_at: { type: string, description: "YYYY-MM-DD; empty for none." }
-                publish: { type: string, enum: ['true', 'false'] }
-                access_level: { type: string, enum: [public, gated, restricted] }
+                publish: { type: string, enum: ['true', 'false'], description: "A boolean as text; any other value is a 400. Default false." }
+                access_level: { type: string, enum: [public, gated, restricted], description: "Checked even when publish is false." }
       responses:
         '201':
           description: The certification
@@ -1554,7 +1556,7 @@ paths:
       summary: Publish a certification
       description: >-
         Admin or manager only. `access_level` is optional and defaults to the
-        trust center's default level. 409 with code `trust_already_published`
+        trust center's default level. 409 with code `trust_certification_already_published`
         when it already is. Change the level later with `PATCH
         /trust-center/items/{id}`; there is no classification confirmation for
         certifications.
@@ -1574,7 +1576,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: Already published (code `trust_already_published`)
+          description: Already published (code `trust_certification_already_published`)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

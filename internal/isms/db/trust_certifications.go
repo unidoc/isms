@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -106,7 +107,8 @@ type TrustCertificationInput struct {
 // ParseOptionalTrustDate).
 func ParseTrustDate(s string) (string, error) {
 	t, err := time.Parse("2006-01-02", s)
-	if err != nil || t.Format("2006-01-02") != s {
+	// Postgres has no year 0; four digits keep every other year in its range.
+	if err != nil || t.Format("2006-01-02") != s || t.Year() < 1 {
 		return "", trustInvalid("date %q must be YYYY-MM-DD", s)
 	}
 	return s, nil
@@ -376,19 +378,83 @@ func nilIfZero(n int64) *int64 {
 	return &n
 }
 
+// ErrTrustCertificationSource: the change does not fit the certification's
+// source (a url for a file certification). It wraps ErrTrustCenterInvalid.
+var ErrTrustCertificationSource = fmt.Errorf("%w: the url applies to link certifications only", ErrTrustCenterInvalid)
+
+// OptionalTrustDate is a date in a patch: Set false leaves the field alone,
+// Set with a nil Value clears it, otherwise Value is the new YYYY-MM-DD day.
+type OptionalTrustDate struct {
+	Set   bool
+	Value *string
+}
+
+// UpdateTrustCertificationPatch is a partial update. A nil pointer or an unset
+// date leaves the field as it is; it is merged into the row under its lock, so
+// two concurrent patches of different fields cannot undo each other.
+type UpdateTrustCertificationPatch struct {
+	Label, LinkType, Issuer, URL      *string
+	ValidFrom, ValidUntil, VerifiedAt OptionalTrustDate
+}
+
+// PatchTrustCertification applies a partial update: the merge into the current
+// values happens on the row locked FOR UPDATE, inside the transaction that
+// writes. Otherwise it behaves like UpdateTrustCertification (validation, one
+// changelog row per changed field, nothing written when nothing changes). A url
+// for a file certification is ErrTrustCertificationSource.
+func (d *DB) PatchTrustCertification(ctx context.Context, orgID int, id int64, p UpdateTrustCertificationPatch, actor string) (*TrustCertification, error) {
+	return d.updateTrustCertification(ctx, orgID, id, actor, func(cur *TrustCertification) (TrustCertificationInput, error) {
+		in := TrustCertificationInput{
+			Label: cur.Label, LinkType: cur.LinkType, Issuer: cur.Issuer, URL: cur.URL,
+			ValidFrom: cur.ValidFrom, ValidUntil: cur.ValidUntil, VerifiedAt: cur.VerifiedAt,
+		}
+		if p.Label != nil {
+			in.Label = *p.Label
+		}
+		if p.LinkType != nil {
+			in.LinkType = *p.LinkType
+		}
+		if p.Issuer != nil {
+			in.Issuer = *p.Issuer
+		}
+		if p.URL != nil {
+			if cur.FileKey != "" {
+				return in, ErrTrustCertificationSource
+			}
+			in.URL = *p.URL
+		}
+		if p.ValidFrom.Set {
+			in.ValidFrom = p.ValidFrom.Value
+		}
+		if p.ValidUntil.Set {
+			in.ValidUntil = p.ValidUntil.Value
+		}
+		if p.VerifiedAt.Set {
+			in.VerifiedAt = p.VerifiedAt.Value
+		}
+		return in, nil
+	})
+}
+
 // UpdateTrustCertification replaces every editable field and records one
 // changelog row per field that changed, in the same transaction. An update that
 // changes nothing writes nothing. A changed verified_at is stamped with actor as
 // the verifier (a cleared one clears it); an unchanged one keeps its verifier.
+// Use PatchTrustCertification to change some fields without reading the rest.
 func (d *DB) UpdateTrustCertification(ctx context.Context, orgID int, id int64, in TrustCertificationInput, actor string) (*TrustCertification, error) {
-	if actor == "" {
-		return nil, trustInvalid("actor is required")
-	}
 	if in.File != nil {
 		return nil, trustInvalid("the file is replaced with ReplaceTrustCertificationFile")
 	}
-	if err := validateTrustCertification(in); err != nil {
-		return nil, err
+	return d.updateTrustCertification(ctx, orgID, id, actor, func(*TrustCertification) (TrustCertificationInput, error) {
+		return in, nil
+	})
+}
+
+// updateTrustCertification locks the row, lets merge produce the new values from
+// it, validates them and writes the difference.
+func (d *DB) updateTrustCertification(ctx context.Context, orgID int, id int64, actor string, merge func(cur *TrustCertification) (TrustCertificationInput, error)) (*TrustCertification, error) {
+	if actor == "" {
+		return nil, trustInvalid("actor is required")
 	}
 	var out *TrustCertification
 	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -396,9 +462,16 @@ func (d *DB) UpdateTrustCertification(ctx context.Context, orgID int, id int64, 
 		if err != nil {
 			return err
 		}
+		in, err := merge(cur)
+		if err != nil {
+			return err
+		}
+		if err := validateTrustCertification(in); err != nil {
+			return err
+		}
 		isFile := cur.FileKey != ""
 		if isFile && in.URL != "" {
-			return trustInvalid("a file certification has no url")
+			return ErrTrustCertificationSource
 		}
 		if !isFile && in.URL == "" {
 			return trustInvalid("a link certification needs a url")
@@ -593,6 +666,17 @@ func (d *DB) DeleteTrustCertification(ctx context.Context, orgID int, id int64, 
 		return "", err
 	}
 	return fileKey, nil
+}
+
+// TrustCertificationFileReferenced reports whether any certification of the
+// organization points at the blob key. A caller that cannot tell whether its
+// write committed (an ambiguous commit error) uses it to decide whether the
+// blob it just stored is in use.
+func (d *DB) TrustCertificationFileReferenced(ctx context.Context, orgID int, key string) (bool, error) {
+	var n int
+	err := d.pool.QueryRow(ctx, `SELECT count(*) FROM trust_center_certifications
+		WHERE organization_id = $1 AND file_key = $2`, orgID, key).Scan(&n)
+	return n > 0, err
 }
 
 // PublishTrustCertification publishes an existing certification of the

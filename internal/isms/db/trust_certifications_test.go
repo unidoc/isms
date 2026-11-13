@@ -87,7 +87,7 @@ func TestParseTrustDate(t *testing.T) {
 	}
 	bad := []string{
 		"", " ", "2026-13-01", "2026-02-30", "2023-02-29", "2026-1-5", "2026-11-3",
-		"2026-11-13T00:00:00Z", "2026-11-13T10:00:00+02:00", "2026-11-13 ", " 2026-11-13",
+		"2026-11-13T00:00:00Z", "2026-11-13T10:00:00+02:00", "0000-01-01", "0000-12-31", "2026-11-13 ", " 2026-11-13",
 		"20261113", "13/11/2026", "1794000000", "null", "2026-11-13Z",
 	}
 	for _, s := range bad {
@@ -727,5 +727,80 @@ func TestTrustCertificationDeleteAfterRacingPublish(t *testing.T) {
 	_ = d.pool.QueryRow(ctx, `SELECT count(*) FROM trust_center_items WHERE organization_id = $1 AND kind = 'certification'`, orgID).Scan(&n)
 	if n != 0 {
 		t.Errorf("orphan certification items = %d, want 0", n)
+	}
+}
+
+// A partial update merges into the row as it is when the lock is taken: a patch
+// that read nothing earlier cannot put back what another update just changed.
+func TestTrustCertificationPatchMergesFromTheLockedRow(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "certpatch")
+	until := pgDay(t, d, 100)
+	c := mustCreateCert(t, d, orgID, TrustCertificationInput{
+		Label: "P", LinkType: "certificate", Issuer: "BSI", URL: "https://e.com/a", ValidUntil: &until})
+	if _, err := d.PublishTrustCertification(ctx, orgID, c.ID, TrustAccessPublic, certActor); err != nil {
+		t.Fatal(err)
+	}
+
+	// Another transaction holds the row and expires the certification.
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM trust_center_certifications WHERE id = $1 FOR UPDATE`, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	type res struct {
+		c   *TrustCertification
+		err error
+	}
+	done := make(chan res, 1)
+	issuer := "New issuer"
+	go func() {
+		got, err := d.PatchTrustCertification(ctx, orgID, c.ID, UpdateTrustCertificationPatch{Issuer: &issuer}, certActor)
+		done <- res{got, err}
+	}()
+	select {
+	case r := <-done:
+		t.Fatalf("patch returned (%v) while the row was locked: it did not wait for the lock", r.err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	yesterday := pgDay(t, d, -1)
+	if _, err := tx.Exec(ctx, `UPDATE trust_center_certifications SET valid_until = $2::date WHERE id = $1`, c.ID, yesterday); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r := <-done
+	if r.err != nil {
+		t.Fatal(r.err)
+	}
+	if r.c.Issuer != issuer || r.c.ValidUntil == nil || *r.c.ValidUntil != yesterday || r.c.State != "expired" {
+		t.Errorf("patch undid the concurrent change: %+v", r.c)
+	}
+	cl := certChangelog(t, d, orgID, c.ID)
+	if last := cl[len(cl)-1]; last != "update|issuer|BSI|New issuer" {
+		t.Errorf("changelog = %v: want only the issuer change recorded", cl)
+	}
+	// Absent keeps, set replaces, set-nil clears; a url for a file certification is refused.
+	nd := pgDay(t, d, 5)
+	got, err := d.PatchTrustCertification(ctx, orgID, c.ID, UpdateTrustCertificationPatch{ValidUntil: OptionalTrustDate{Set: true, Value: &nd}}, certActor)
+	if err != nil || *got.ValidUntil != nd || got.Issuer != issuer {
+		t.Errorf("set date: %+v %v", got, err)
+	}
+	got, err = d.PatchTrustCertification(ctx, orgID, c.ID, UpdateTrustCertificationPatch{ValidUntil: OptionalTrustDate{Set: true}}, certActor)
+	if err != nil || got.ValidUntil != nil {
+		t.Errorf("clear date: %+v %v", got, err)
+	}
+	fc := mustCreateCert(t, d, orgID, TrustCertificationInput{Label: "F", LinkType: "other", File: certFile("pf")})
+	u := "https://e.com"
+	if _, err := d.PatchTrustCertification(ctx, orgID, fc.ID, UpdateTrustCertificationPatch{URL: &u}, certActor); !errors.Is(err, ErrTrustCertificationSource) || !errors.Is(err, ErrTrustCenterInvalid) {
+		t.Errorf("url on file cert err = %v", err)
+	}
+	if _, err := d.PatchTrustCertification(ctx, orgID+9999, c.ID, UpdateTrustCertificationPatch{Issuer: &issuer}, certActor); !errors.Is(err, ErrTrustCertificationNotFound) {
+		t.Errorf("other org err = %v", err)
 	}
 }

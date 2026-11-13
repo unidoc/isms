@@ -492,7 +492,8 @@
     "trust_file_type": "hanya file PDF, PNG, atau JPEG yang diterima",
     "trust_file_required": "pilih file untuk diunggah",
     "trust_certification_source": "berikan tautan atau file, bukan keduanya",
-    "trust_date_invalid": "{field} harus berupa tanggal dengan format YYYY-MM-DD"
+    "trust_date_invalid": "{field} harus berupa tanggal dengan format YYYY-MM-DD",
+    "trust_certification_already_published": "sertifikasi ini sudah dipublikasikan di trust center"
   },
   "region": {
     "global": "Global",

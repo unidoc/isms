@@ -996,6 +996,7 @@
   "common.error.token_email_mismatch",
   "common.error.too_many_attempts",
   "common.error.trust_already_published",
+  "common.error.trust_certification_already_published",
   "common.error.trust_certification_source",
   "common.error.trust_classification_confirm",
   "common.error.trust_date_invalid",

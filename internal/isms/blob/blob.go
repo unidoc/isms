@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 )
 
 // Store is the interface for reading and writing organization files.
@@ -277,13 +278,27 @@ func (s *S3Store) Open(ctx context.Context, orgUUID, path string) (io.ReadCloser
 		Key:    aws.String(s.key(orgUUID, path)),
 	})
 	if err != nil {
-		return nil, 0, fmt.Errorf("S3 get: %w", err)
+		return nil, 0, mapS3GetError(err)
 	}
 	var size int64
 	if out.ContentLength != nil {
 		size = *out.ContentLength
 	}
 	return out.Body, size, nil
+}
+
+// mapS3GetError wraps a GetObject failure; a missing key also wraps
+// os.ErrNotExist, so callers treat a missing blob the same on S3 and on disk.
+func mapS3GetError(err error) error {
+	var noKey *types.NoSuchKey
+	if errors.As(err, &noKey) {
+		return fmt.Errorf("S3 get: %w: %w", os.ErrNotExist, err)
+	}
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) && (apiErr.ErrorCode() == "NoSuchKey" || apiErr.ErrorCode() == "NotFound") {
+		return fmt.Errorf("S3 get: %w: %w", os.ErrNotExist, err)
+	}
+	return fmt.Errorf("S3 get: %w", err)
 }
 
 func (s *S3Store) Delete(ctx context.Context, orgUUID, path string) error {

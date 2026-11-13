@@ -492,7 +492,8 @@
     "trust_file_type": "seuls les fichiers PDF, PNG ou JPEG sont acceptés",
     "trust_file_required": "choisissez un fichier à téléverser",
     "trust_certification_source": "indiquez un lien ou un fichier, pas les deux",
-    "trust_date_invalid": "{field} doit être une date au format AAAA-MM-JJ"
+    "trust_date_invalid": "{field} doit être une date au format AAAA-MM-JJ",
+    "trust_certification_already_published": "cette certification est déjà publiée dans le trust center"
   },
   "region": {
     "global": "Mondial",

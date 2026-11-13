@@ -223,7 +223,9 @@ func trustCertError(c echo.Context, what string, err error) error {
 	case errors.Is(err, db.ErrTrustItemNotFound):
 		return errNotFound("item")
 	case errors.Is(err, db.ErrTrustItemAlreadyPublished):
-		return apiError(http.StatusConflict, CodeTrustAlreadyPublished)
+		return apiError(http.StatusConflict, CodeTrustCertificationAlreadyPublished)
+	case errors.Is(err, db.ErrTrustCertificationSource):
+		return apiError(http.StatusBadRequest, CodeTrustCertificationSource)
 	case errors.Is(err, db.ErrTrustCenterInvalid):
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
@@ -256,7 +258,7 @@ func sanitizeUploadName(name string) string {
 		name = name[i+1:]
 	}
 	name = strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) || r == utf8.RuneError {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || r == utf8.RuneError {
 			return -1
 		}
 		return r
@@ -306,6 +308,8 @@ func (s *Server) storeTrustCertFile(ctx context.Context, org *db.Organization, f
 	}
 	key := "trust/certifications/" + uuid.NewString() + ext
 	if err := s.blobs.PutStream(ctx, org.UUID, key, ctype, src); err != nil {
+		// A write that failed part-way may have left bytes under the key.
+		s.deleteTrustBlob(ctx, org, key)
 		return nil, fmt.Errorf("storing certification file: %w", err)
 	}
 	return &db.TrustCertificationFile{
@@ -324,17 +328,35 @@ func trustUploadReadError(err error) error {
 	return fmt.Errorf("reading upload: %w", err)
 }
 
+// isBodyTooLarge reports whether err is the body limit cutting a read short.
+func isBodyTooLarge(err error) bool {
+	var he *echo.HTTPError
+	if errors.As(err, &he) && he.Code == http.StatusRequestEntityTooLarge {
+		return true
+	}
+	var mbe *http.MaxBytesError
+	return errors.As(err, &mbe)
+}
+
+// parseUploadForm parses the multipart body with a small in-memory budget, so
+// file parts spill to temporary files instead of living in memory (Go's default
+// is 32 MB, which FormValue or FormFile would use). It must run before any
+// FormValue / FormFile. Only the body limit being hit is an error here (the 413,
+// also for a chunked body with no Content-Length); a body that is simply not
+// multipart is left for the caller's own "no file" answer.
+func parseUploadForm(c echo.Context) error {
+	if err := c.Request().ParseMultipartForm(1 << 20); err != nil && isBodyTooLarge(err) {
+		return echo.ErrStatusRequestEntityTooLarge
+	}
+	return nil
+}
+
 // uploadedFile returns the multipart "file" field. A body the limit cut short
 // is the 413, not a missing file.
 func uploadedFile(c echo.Context) (*multipart.FileHeader, error) {
 	fh, err := c.FormFile("file")
 	if err != nil {
-		var he *echo.HTTPError
-		if errors.As(err, &he) && he.Code == http.StatusRequestEntityTooLarge {
-			return nil, he
-		}
-		var mbe *http.MaxBytesError
-		if errors.As(err, &mbe) {
+		if isBodyTooLarge(err) {
 			return nil, echo.ErrStatusRequestEntityTooLarge
 		}
 		return nil, apiError(http.StatusBadRequest, CodeTrustFileRequired)
@@ -354,12 +376,32 @@ func optionalUploadedFile(c echo.Context) (*multipart.FileHeader, error) {
 // deleteTrustBlob removes a blob after the database no longer points at it. A
 // failure is logged: the certification is already gone and the caller has
 // nothing to retry.
+//
+// It runs on a context that is not cancelled with the request: a client that
+// disconnects must not leave the blob behind.
 func (s *Server) deleteTrustBlob(ctx context.Context, org *db.Organization, key string) {
 	if key == "" {
 		return
 	}
-	if err := s.blobs.Delete(ctx, org.UUID, key); err != nil {
+	if err := s.blobs.Delete(context.WithoutCancel(ctx), org.UUID, key); err != nil {
 		log.Printf("trust center: org %d: deleting blob %s: %v", org.ID, key, err)
+	}
+}
+
+// releaseTrustBlob deletes a blob stored for a write that returned err, unless
+// the database now references it. An error from a commit can mean the write
+// happened, so the row is read back (on a context that is not cancelled) and the
+// blob is kept when it is in use; if that cannot be read either, the blob is
+// kept and logged rather than risk deleting a file a row points at.
+func (s *Server) releaseTrustBlob(ctx context.Context, org *db.Organization, key string) {
+	bg := context.WithoutCancel(ctx)
+	used, err := s.db.TrustCertificationFileReferenced(bg, org.ID, key)
+	if err != nil {
+		log.Printf("trust center: org %d: keeping blob %s, cannot tell whether it is referenced: %v", org.ID, key, err)
+		return
+	}
+	if !used {
+		s.deleteTrustBlob(bg, org, key)
 	}
 }
 
@@ -376,7 +418,7 @@ func (s *Server) createTrustCertification(ctx context.Context, org *db.Organizat
 	cert, err := s.db.CreateTrustCertification(ctx, org.ID, in, actor)
 	if err != nil {
 		if in.File != nil {
-			s.deleteTrustBlob(ctx, org, in.File.Key)
+			s.releaseTrustBlob(ctx, org, in.File.Key)
 		}
 		return nil, err
 	}
@@ -495,6 +537,9 @@ func (s *Server) handleCreateTrustCertification(c echo.Context) error {
 	var publish bool
 	var level string
 	if isMultipart(c) {
+		if err := parseUploadForm(c); err != nil {
+			return err
+		}
 		var err error
 		if in.ValidFrom, err = formDate(c, "valid_from"); err != nil {
 			return err
@@ -508,9 +553,12 @@ func (s *Server) handleCreateTrustCertification(c echo.Context) error {
 		in.Label, in.LinkType, in.Issuer = c.FormValue("label"), c.FormValue("link_type"), c.FormValue("issuer")
 		in.URL = strings.TrimSpace(c.FormValue("url"))
 		level = c.FormValue("access_level")
-		switch strings.ToLower(c.FormValue("publish")) {
-		case "true", "1", "on", "yes":
+		switch c.FormValue("publish") {
+		case "true":
 			publish = true
+		case "", "false":
+		default:
+			return apiError(http.StatusBadRequest, CodeInvalidRequest)
 		}
 		if fh, err = optionalUploadedFile(c); err != nil {
 			return err
@@ -550,9 +598,15 @@ func (s *Server) handleCreateTrustCertification(c echo.Context) error {
 	if err := db.ValidateTrustCertificationInput(in); err != nil {
 		return trustCertError(c, "validating certification", err)
 	}
+	// The level is checked even when nothing is published, so a bad value is
+	// not silently ignored.
 	if publish {
 		var err error
 		if level, err = s.trustCertLevel(c, level); err != nil {
+			return err
+		}
+	} else if level != "" {
+		if _, err := s.trustCertLevel(c, level); err != nil {
 			return err
 		}
 	}
@@ -613,50 +667,42 @@ func (s *Server) handleUpdateTrustCertification(c echo.Context) error {
 	if err := bindTrustJSON(c, &req); err != nil {
 		return err
 	}
-	cur, err := s.db.GetTrustCertification(ctx, orgID, id)
-	if err != nil {
-		return trustCertError(c, "reading certification", err)
-	}
-	in := db.TrustCertificationInput{
-		Label: cur.Label, LinkType: cur.LinkType, Issuer: cur.Issuer, URL: cur.URL,
-		ValidFrom: cur.ValidFrom, ValidUntil: cur.ValidUntil, VerifiedAt: cur.VerifiedAt,
-	}
+	// The request is turned into a patch and merged into the row by the database
+	// under its lock, so a concurrent update of other fields is never undone.
+	patch := db.UpdateTrustCertificationPatch{LinkType: req.LinkType, Issuer: req.Issuer}
 	if req.Label != nil {
-		if in.Label = strings.TrimSpace(*req.Label); in.Label == "" {
+		label := strings.TrimSpace(*req.Label)
+		if label == "" {
 			return errRequired("label")
 		}
-	}
-	if req.LinkType != nil {
-		in.LinkType = *req.LinkType
-	}
-	if req.Issuer != nil {
-		in.Issuer = *req.Issuer
+		patch.Label = &label
 	}
 	for _, f := range []struct {
 		name string
 		src  trustDate
-		dst  **string
+		dst  *db.OptionalTrustDate
 	}{
-		{"valid_from", req.ValidFrom, &in.ValidFrom},
-		{"valid_until", req.ValidUntil, &in.ValidUntil},
-		{"verified_at", req.VerifiedAt, &in.VerifiedAt},
+		{"valid_from", req.ValidFrom, &patch.ValidFrom},
+		{"valid_until", req.ValidUntil, &patch.ValidUntil},
+		{"verified_at", req.VerifiedAt, &patch.VerifiedAt},
 	} {
 		if !f.src.Set {
 			continue
 		}
-		if *f.dst, err = resolveTrustDate(f.src, f.name); err != nil {
+		v, err := resolveTrustDate(f.src, f.name)
+		if err != nil {
 			return err
 		}
+		*f.dst = db.OptionalTrustDate{Set: true, Value: v}
 	}
 	if req.URL != nil {
-		if cur.FileKey != "" {
-			return apiError(http.StatusBadRequest, CodeTrustCertificationSource)
-		}
-		if in.URL, err = trustCertURL(*req.URL); err != nil {
+		u, err := trustCertURL(strings.TrimSpace(*req.URL))
+		if err != nil {
 			return err
 		}
+		patch.URL = &u
 	}
-	cert, err := s.db.UpdateTrustCertification(ctx, orgID, id, in, getUserEmail(c))
+	cert, err := s.db.PatchTrustCertification(ctx, orgID, id, patch, getUserEmail(c))
 	if err != nil {
 		return trustCertError(c, "updating certification", err)
 	}
@@ -682,6 +728,9 @@ func (s *Server) handleReplaceTrustCertificationFile(c echo.Context) error {
 	if cur.FileKey == "" {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
+	if err := parseUploadForm(c); err != nil {
+		return err
+	}
 	fh, err := uploadedFile(c)
 	if err != nil {
 		return err
@@ -700,7 +749,7 @@ func (s *Server) handleReplaceTrustCertificationFile(c echo.Context) error {
 	}
 	cert, oldKey, err := s.db.ReplaceTrustCertificationFile(ctx, orgID, id, *f, getUserEmail(c))
 	if err != nil {
-		s.deleteTrustBlob(ctx, org, f.Key)
+		s.releaseTrustBlob(ctx, org, f.Key)
 		return trustCertError(c, "replacing certification file", err)
 	}
 	s.deleteTrustBlob(ctx, org, oldKey)
@@ -735,17 +784,16 @@ func (s *Server) handleDeleteTrustCertification(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	// Read before the delete, so the blob can always be cleaned after the commit.
+	org, err := s.db.GetOrganization(ctx, orgID)
+	if err != nil {
+		return trustInternalError(c, "reading organization", err)
+	}
 	key, err := s.db.DeleteTrustCertification(ctx, orgID, id, getUserEmail(c))
 	if err != nil {
 		return trustCertError(c, "deleting certification", err)
 	}
-	if key != "" {
-		if org, err := s.db.GetOrganization(ctx, orgID); err != nil {
-			log.Printf("trust center: org %d: deleting blob %s: %v", orgID, key, err)
-		} else {
-			s.deleteTrustBlob(ctx, org, key)
-		}
-	}
+	s.deleteTrustBlob(ctx, org, key)
 	return c.NoContent(http.StatusNoContent)
 }
 

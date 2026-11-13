@@ -492,7 +492,8 @@
     "trust_file_type": "aðeins PDF-, PNG- eða JPEG-skrár eru leyfðar",
     "trust_file_required": "veldu skrá til að hlaða upp",
     "trust_certification_source": "gefðu upp annaðhvort tengil eða skrá, ekki bæði",
-    "trust_date_invalid": "{field} verður að vera dagsetning á sniðinu ÁÁÁÁ-MM-DD"
+    "trust_date_invalid": "{field} verður að vera dagsetning á sniðinu ÁÁÁÁ-MM-DD",
+    "trust_certification_already_published": "þessi vottun er þegar birt í traustmiðstöðinni"
   },
   "region": {
     "global": "Á heimsvísu",

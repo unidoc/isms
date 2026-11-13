@@ -9,6 +9,8 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -441,7 +443,7 @@ func TestTrustCertCreateAndPublish(t *testing.T) {
 	if r := f.publish(u.ID, "public"); r.code != 201 || decodeCert(t, r).Item == nil {
 		t.Errorf("publish = %d %s", r.code, r.text())
 	}
-	if r := f.publish(u.ID, "public"); r.code != 409 || codeOf(tdResp{r.code, r.text()}) != "trust_already_published" {
+	if r := f.publish(u.ID, "public"); r.code != 409 || codeOf(tdResp{r.code, r.text()}) != "trust_certification_already_published" {
 		t.Errorf("republish = %d %s", r.code, r.text())
 	}
 	if r := f.publish(u.ID+99999, ""); r.code != 404 {
@@ -629,6 +631,8 @@ func TestTrustDownloadNameAndDisposition(t *testing.T) {
 		{"../../etc/passwd", "application/pdf", "passwd.pdf"},
 		{`C:\dir\x.pdf`, "application/pdf", "x.pdf"},
 		{"", "application/pdf", "certificate.pdf"},
+		{"a\u202Eexe.pdf", "application/pdf", "aexe.pdf"}, // U+202E, a bidi override, is a format character
+		{"a\u200Bb\ufeff.pdf", "application/pdf", "ab.pdf"},
 	}
 	for _, c := range cases {
 		if got := trustDownloadName(c.name, c.ctype); got != c.want {
@@ -1083,6 +1087,17 @@ func TestTrustCertBodyLimits(t *testing.T) {
 	evPath := fmt.Sprintf("/api/v1/checkins/%d/evidence", ck.ID)
 	if rec := upload(evPath, 40*MB); rec.Code != http.StatusCreated {
 		t.Errorf("40 MB evidence upload = %d %.200s", rec.Code, rec.Body.String())
+	} else {
+		// Streamed, not read into memory: the recorded size and hash are still right.
+		var ev struct {
+			Size   int64  `json:"size_bytes"`
+			SHA256 string `json:"sha256"`
+		}
+		_ = json.Unmarshal(rec.Body.Bytes(), &ev)
+		sum := sha256.Sum256(bigPDF(40 * MB))
+		if ev.Size != 40*MB || ev.SHA256 != hex.EncodeToString(sum[:]) {
+			t.Errorf("evidence size %d sha %.12s do not match the upload", ev.Size, ev.SHA256)
+		}
 	}
 	if rec := upload(evPath, 60*MB); rec.Code != http.StatusRequestEntityTooLarge {
 		t.Errorf("60 MB evidence upload = %d, want 413", rec.Code)
@@ -1129,5 +1144,150 @@ func TestBodyLimitSkipsOnlyTheRoutePattern(t *testing.T) {
 		if got := bodyLimitSkipper(c); got != tc.want {
 			t.Errorf("%s %q skip = %v, want %v", tc.method, tc.path, got, tc.want)
 		}
+	}
+}
+
+// ---- review round: cleanup, memory, limits, validation -----------------------
+
+// ctxStore fails Delete when its context is cancelled, like S3 does, and can
+// fail PutStream after writing part of the file.
+type ctxStore struct {
+	blob.Store
+	failPut bool
+}
+
+func (c ctxStore) Delete(ctx context.Context, org, path string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return c.Store.Delete(ctx, org, path)
+}
+
+func (c ctxStore) PutStream(ctx context.Context, org, path, ct string, r io.Reader) error {
+	if c.failPut {
+		_ = c.Store.PutStream(ctx, org, path, ct, io.LimitReader(r, 10))
+		return errors.New("connection reset")
+	}
+	return c.Store.PutStream(ctx, org, path, ct, r)
+}
+
+func TestTrustCertBlobCleanupSurvivesACancelledRequest(t *testing.T) {
+	f := newCertFx(t, "tcctx")
+	f.s.blobs = ctxStore{Store: f.s.blobs}
+	c := f.mkFile("Cancel", certPDF, nil)
+	org, _ := f.s.db.GetOrganization(context.Background(), f.o.id)
+	row, _ := f.s.db.GetTrustCertification(context.Background(), f.o.id, c.ID)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	f.s.deleteTrustBlob(ctx, org, row.FileKey)
+	if n := len(f.blobFiles()); n != 0 {
+		t.Errorf("blob left behind after the request context was cancelled: %d", n)
+	}
+}
+
+func TestTrustCertReleaseKeepsABlobTheRowUses(t *testing.T) {
+	f := newCertFx(t, "tcrel")
+	c := f.mkFile("Rel", certPDF, nil)
+	org, _ := f.s.db.GetOrganization(context.Background(), f.o.id)
+	row, _ := f.s.db.GetTrustCertification(context.Background(), f.o.id, c.ID)
+	// A commit error that was really a commit: the row points at the new blob.
+	f.s.releaseTrustBlob(context.Background(), org, row.FileKey)
+	if n := len(f.blobFiles()); n != 1 {
+		t.Fatalf("blob in use was deleted (%d left)", n)
+	}
+	// A blob no row references is removed.
+	if err := f.s.blobs.Put(context.Background(), org.UUID, "trust/certifications/stray.pdf", certPDF); err != nil {
+		t.Fatal(err)
+	}
+	f.s.releaseTrustBlob(context.Background(), org, "trust/certifications/stray.pdf")
+	if n := len(f.blobFiles()); n != 1 {
+		t.Errorf("unreferenced blob kept (%d files)", n)
+	}
+}
+
+func TestTrustCertFailedPartialWriteRemovesTheKey(t *testing.T) {
+	f := newCertFx(t, "tcpart")
+	f.s.blobs = ctxStore{Store: f.s.blobs, failPut: true}
+	r := f.upload(map[string]string{"label": "P", "link_type": "other"}, &certPart{"file", "a.pdf", "", certPDF})
+	if r.code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", r.code)
+	}
+	if n := len(f.blobFiles()); n != 0 {
+		t.Errorf("partial write left %d blob(s)", n)
+	}
+}
+
+func TestTrustCertUploadsSpillToDisk(t *testing.T) {
+	body, ctype := multipartBody(t, map[string]string{"label": "x"}, &certPart{"file", "big.pdf", "", bigPDF(3 << 20)})
+	r := httptest.NewRequest(http.MethodPost, certBase, body)
+	r.Header.Set(echo.HeaderContentType, ctype)
+	c := echo.New().NewContext(r, httptest.NewRecorder())
+	if err := parseUploadForm(c); err != nil {
+		t.Fatal(err)
+	}
+	fh, err := c.FormFile("file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, _ := fh.Open()
+	defer src.Close()
+	if _, onDisk := src.(*os.File); !onDisk {
+		t.Errorf("a 3 MB file part is held in memory (%T), want a temporary file", src)
+	}
+	if c.FormValue("label") != "x" {
+		t.Error("form values lost")
+	}
+}
+
+func TestTrustCertChunkedOversizeBodyIs413(t *testing.T) {
+	f := newCertFx(t, "tcchunk")
+	e := limitServer(t, f)
+	body, ctype := multipartBody(t, map[string]string{"label": "Big", "link_type": "other"}, &certPart{"file", "big.pdf", "application/pdf", bigPDF(60 << 20)})
+	// Hide the length: the body is chunked, so the limit is hit while reading.
+	rec := serve(e, http.MethodPost, certBase, struct{ io.Reader }{body}, ctype)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("chunked 60 MB create = %d %.120s, want 413", rec.Code, rec.Body.String())
+	}
+	if len(f.blobFiles()) != 0 {
+		t.Error("blob written for an oversize body")
+	}
+	c := f.mkFile("C", certPDF, nil)
+	body, ctype = multipartBody(t, nil, &certPart{"file", "big.pdf", "application/pdf", bigPDF(60 << 20)})
+	rec = serve(e, http.MethodPost, fmt.Sprintf("%s/%d/file", certBase, c.ID), struct{ io.Reader }{body}, ctype)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("chunked 60 MB replace = %d, want 413", rec.Code)
+	}
+}
+
+func TestTrustCertRoundTwoValidation(t *testing.T) {
+	f := newCertFx(t, "tcr2")
+	post := func(body string) certResp {
+		return f.mgrJSON(f.s.handleCreateTrustCertification, http.MethodPost, certBase, body)
+	}
+	// Year 0 passes a naive parser and used to reach Postgres, which refuses it.
+	for _, d := range []string{"0000-01-01", "0000-12-31"} {
+		r := post(`{"label":"L","link_type":"other","url":"https://e.com","valid_until":"` + d + `"}`)
+		r.code400(t, "trust_date_invalid")
+	}
+	// Multipart: access_level is checked without publish; publish takes true/false only.
+	f.upload(map[string]string{"label": "L", "link_type": "other", "url": "https://e.com", "access_level": "secret"}, nil).code400(t, "invalid_request")
+	for _, v := range []string{"on", "yes", "1", "TRUE"} {
+		f.upload(map[string]string{"label": "L", "link_type": "other", "url": "https://e.com", "publish": v}, nil).code400(t, "invalid_request")
+	}
+	if r := post(`{"label":"L","link_type":"other","url":"https://e.com","access_level":"secret"}`); r.code != 400 {
+		t.Errorf("json bad level without publish = %d", r.code)
+	}
+	ok := f.upload(map[string]string{"label": "L", "link_type": "other", "url": "https://e.com", "publish": "false", "access_level": "public"}, nil)
+	if c := decodeCert(t, ok); c.Item != nil {
+		t.Errorf("publish=false published: %+v", c.Item)
+	}
+	if list, _ := f.s.db.ListTrustCertifications(context.Background(), f.o.id); len(list) != 1 {
+		t.Errorf("rejected requests created %d certifications", len(list)-1)
+	}
+	// PUT trims the url like create does.
+	c := f.mkLink("Trim", ``)
+	put := f.mgrJSON(f.s.handleUpdateTrustCertification, http.MethodPut, fmt.Sprintf("%s/%d", certBase, c.ID), `{"url":"  https://example.com/trimmed  "}`, "id", fmt.Sprint(c.ID))
+	if got := decodeCert(t, put); got.URL != "https://example.com/trimmed" {
+		t.Errorf("url = %q", got.URL)
 	}
 }

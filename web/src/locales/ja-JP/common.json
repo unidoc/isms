@@ -479,7 +479,8 @@
     "trust_file_type": "PDF、PNG、JPEG ファイルのみ受け付けます",
     "trust_file_required": "アップロードするファイルを選択してください",
     "trust_certification_source": "リンクまたはファイルのどちらか一方を指定してください",
-    "trust_date_invalid": "{field}は YYYY-MM-DD 形式の日付で指定してください"
+    "trust_date_invalid": "{field}は YYYY-MM-DD 形式の日付で指定してください",
+    "trust_certification_already_published": "この認証はすでにトラストセンターで公開されています"
   },
   "region": {
     "global": "グローバル",

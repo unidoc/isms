@@ -492,7 +492,8 @@
     "trust_file_type": "somente arquivos PDF, PNG ou JPEG são aceitos",
     "trust_file_required": "escolha um arquivo para enviar",
     "trust_certification_source": "informe um link ou um arquivo, não os dois",
-    "trust_date_invalid": "{field} deve ser uma data no formato AAAA-MM-DD"
+    "trust_date_invalid": "{field} deve ser uma data no formato AAAA-MM-DD",
+    "trust_certification_already_published": "esta certificação já está publicada na central de confiança"
   },
   "region": {
     "global": "Global",

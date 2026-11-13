@@ -74,7 +74,8 @@
     "policy": "Politique",
     "passkey": "Clé d'accès",
     "evidence": "Preuve",
-    "item": "Élément"
+    "item": "Élément",
+    "certification": "Certification"
   },
   "entity_inline": {
     "risk": "risque",
@@ -104,7 +105,8 @@
     "passkey": "clé d'accès",
     "evidence": "preuve",
     "item": "élément",
-    "external_link": "lien externe"
+    "external_link": "lien externe",
+    "certification": "certification"
   },
   "field": {
     "title": "titre",
@@ -127,7 +129,10 @@
     "entity_id": "identifiant d'entité",
     "suggestion_type": "type de suggestion",
     "url": "URL",
-    "label": "libellé"
+    "label": "libellé",
+    "valid_from": "valide à partir du",
+    "valid_until": "valide jusqu’au",
+    "verified_at": "date de vérification"
   },
   "enum": {
     "status": {
@@ -483,7 +488,11 @@
     "trust_order_stale": "le centre de confiance a changé pendant le réordonnancement — rechargez et réessayez",
     "trust_classification_confirm": "ce document est classé {value} ; confirmez pour le publier à tout le monde sur internet",
     "ai_disabled": "les fonctionnalités d'IA sont désactivées pour cette organisation",
-    "unsupported_locale": "langue non prise en charge"
+    "unsupported_locale": "langue non prise en charge",
+    "trust_file_type": "seuls les fichiers PDF, PNG ou JPEG sont acceptés",
+    "trust_file_required": "choisissez un fichier à téléverser",
+    "trust_certification_source": "indiquez un lien ou un fichier, pas les deux",
+    "trust_date_invalid": "{field} doit être une date au format AAAA-MM-JJ"
   },
   "region": {
     "global": "Mondial",

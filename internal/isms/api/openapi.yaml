@@ -965,6 +965,52 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /trust/{slug}/certifications/{id}/file:
+    get:
+      tags: [Trust Center]
+      summary: Download the file of a certification published in an organization's trust center
+      description: >-
+        Needs no session; any Authorization header is ignored. Serves the file
+        of a certification that is published, not hidden, not past its
+        `valid_until` day and at access level `public`; gated and restricted files
+        are not served here (managers read them through
+        `/trust-center/certifications/{id}/file`). Every other case, including a
+        link certification (which has no file), is the same 404 as for
+        `/trust/{slug}`. The bytes are streamed through the application on every
+        storage backend, never as a redirect: `Content-Disposition: attachment`,
+        `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: Public id of the item, as listed by `/trust/{slug}/items`.
+      responses:
+        '200':
+          description: The file (the type is the one detected from its bytes at upload)
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: Too many requests from this IP address (see `/trust/{slug}`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: Internal error. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /trust/{slug}/documents/{id}:
     get:
       tags: [Trust Center]
@@ -1277,6 +1323,270 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /trust-center/preview/certifications/{id}/file:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+        description: Public id of the item.
+    get:
+      tags: [Trust Center]
+      summary: Preview a certification file as a visitor
+      description: >-
+        Admin or manager only; the organization is the session's. Answers exactly
+        what `GET /trust/{slug}/certifications/{id}/file` would (the same checks:
+        published, not hidden, not expired, access level `public`, otherwise 404)
+        and ignores the on/off setting.
+      responses:
+        '200':
+          description: The file
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/certifications:
+    get:
+      tags: [Trust Center]
+      summary: List every certification, published or not
+      description: >-
+        Admin or manager only. Published ones first in display order, then the
+        unpublished ones by label. `item` is the publication (null when
+        unpublished); its `id` is the item's public id, the one `PATCH
+        /trust-center/items/{id}` and `PUT /trust-center/items/order` take. A
+        certification past its `valid_until` day is listed with `state: expired`;
+        visitors no longer see it.
+      responses:
+        '200':
+          description: Certifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCertification' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Trust Center]
+      summary: Add a certification
+      description: >-
+        Admin or manager only. Send multipart (fields plus a `file`) or JSON
+        (fields plus a `url`); exactly one of file and url (code
+        `trust_certification_source` otherwise). The file's type is detected from
+        its first bytes: only PDF, PNG and JPEG are accepted (code
+        `trust_file_type`), whatever the client says; it is stored under a
+        server-chosen name and the request may be up to 50 MB. Dates are
+        `YYYY-MM-DD` text only (code `trust_date_invalid` for a number, a
+        timestamp or any other shape; in multipart an empty field means no date).
+        A date in the past is accepted: a certificate can be recorded as already
+        expired. With `publish` true the certification is also published at
+        `access_level` (default: the trust center's default level); if that step
+        fails the certification still exists, unpublished.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCertificationCreateRequest' }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [label, link_type, file]
+              properties:
+                file: { type: string, format: binary }
+                label: { type: string }
+                link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
+                issuer: { type: string }
+                valid_from: { type: string, description: "YYYY-MM-DD; empty for none." }
+                valid_until: { type: string, description: "YYYY-MM-DD; empty for none." }
+                verified_at: { type: string, description: "YYYY-MM-DD; empty for none." }
+                publish: { type: string, enum: ['true', 'false'] }
+                access_level: { type: string, enum: [public, gated, restricted] }
+      responses:
+        '201':
+          description: The certification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCertification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413':
+          description: The body is over 50 MB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/certifications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+        description: Certification id.
+    put:
+      tags: [Trust Center]
+      summary: Update a certification's details
+      description: >-
+        Admin or manager only. A partial update: an absent key stays as it is, a
+        date sent as null is cleared. `url` applies to a link certification only
+        (code `trust_certification_source` for a file one). 404 for an unknown id
+        or another organization's.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCertificationUpdateRequest' }
+      responses:
+        '200':
+          description: The certification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCertification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Trust Center]
+      summary: Delete a certification
+      description: >-
+        Admin or manager only. Removes the certification, its published item and
+        its file, and records it in the changelog.
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/certifications/{id}/file:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+        description: Certification id.
+    get:
+      tags: [Trust Center]
+      summary: Download a certification's file
+      description: >-
+        Admin or manager only. Any access level and any validity, expired
+        included. Streamed through the application as an attachment
+        (`Content-Disposition`, `X-Content-Type-Options: nosniff`,
+        `Cache-Control: no-store`), never as a redirect. 404 for a link
+        certification.
+      responses:
+        '200':
+          description: The file
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Trust Center]
+      summary: Replace a certification's file
+      description: >-
+        Admin or manager only. Multipart with a `file`, checked like an upload
+        (PDF, PNG or JPEG by content; up to 50 MB). The old file is deleted once
+        the new one is recorded. 400 for a link certification.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: The certification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCertification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413':
+          description: The body is over 50 MB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/certifications/{id}/verify:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+        description: Certification id.
+    post:
+      tags: [Trust Center]
+      summary: Mark a certification as verified today
+      description: Admin or manager only. Sets `verified_at` to today (the database's date) and the verifier to the caller.
+      responses:
+        '200':
+          description: The certification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCertification' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/certifications/{id}/publish:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+        description: Certification id.
+    post:
+      tags: [Trust Center]
+      summary: Publish a certification
+      description: >-
+        Admin or manager only. `access_level` is optional and defaults to the
+        trust center's default level. 409 with code `trust_already_published`
+        when it already is. Change the level later with `PATCH
+        /trust-center/items/{id}`; there is no classification confirmation for
+        certifications.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustCertificationPublishRequest' }
+      responses:
+        '201':
+          description: The certification, now with its `item`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCertification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Already published (code `trust_already_published`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [Trust Center]
+      summary: Unpublish a certification
+      description: Admin or manager only. Keeps the certification and its file. 404 when it is not published.
+      responses:
+        '204': { description: Unpublished }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ── Documents ───────────────────────────────────────────────────────────
   /documents/all:
@@ -4305,6 +4615,15 @@ components:
         version: { type: string, description: "Documents only: the served version, whatever the access level." }
         approved_at: { $ref: '#/components/schemas/EpochSeconds', description: "Documents only: when the served version was recorded." }
         content_hash: { type: string, description: "Documents only: SHA-256 of the served version's file as committed." }
+        link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other], description: "Certifications only." }
+        issuer: { type: string, description: "Certifications only; omitted when empty." }
+        valid_from: { type: string, description: "Certifications only: YYYY-MM-DD; omitted when not set." }
+        valid_until: { type: string, description: "Certifications only: YYYY-MM-DD; omitted when not set. A certification is listed through this day and not after." }
+        state: { type: string, enum: [current, expiring], description: "Certifications only: expiring within 30 days; omitted when there is no valid_until. Expired ones are not listed." }
+        source: { type: string, enum: [file, link], description: "Certifications only." }
+        url: { type: string, description: "Certifications only, link source, and only at access level public. Gated and restricted rows never carry it." }
+        file_name: { type: string, description: "Certifications only, file source, and only at access level public. The file is at /trust/{slug}/certifications/{id}/file." }
+        file_size: { type: integer, format: int64, description: "Certifications only, file source, and only at access level public." }
     TrustCenterDocument:
       type: object
       required: [id, title, version, approved_at, content_hash, html]
@@ -4348,12 +4667,25 @@ components:
         updated_by: { type: [string, 'null'], readOnly: true, description: Email of whoever last changed the settings; null when never configured. }
     TrustCenterManagerItem:
       type: object
-      required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document]
+      required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document, certification]
       properties:
         id: { type: string, format: uuid, description: Public identifier of the item. }
         kind: { type: string, enum: [document, certification, subprocessor, card, faq, update] }
         section: { type: string, description: Section heading the item is shown under; empty for none. }
         access_level: { type: string, enum: [public, gated, restricted] }
+        certification:
+          type: [object, 'null']
+          description: The certification behind the item; null for every kind except `certification`, and when the certification row is missing.
+          required: [id, label, link_type, issuer, valid_from, valid_until, state, source]
+          properties:
+            id: { type: integer, format: int64, description: "Certification id, as used by /trust-center/certifications/{id}." }
+            label: { type: string }
+            link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
+            issuer: { type: string }
+            valid_from: { type: [string, 'null'], description: YYYY-MM-DD }
+            valid_until: { type: [string, 'null'], description: YYYY-MM-DD }
+            state: { type: string, enum: ['', current, expiring, expired], description: Empty when there is no valid_until. }
+            source: { type: string, enum: [file, link] }
         sort_order: { type: integer, description: Display position among the items of the same kind. }
         hidden_reason: { type: string, enum: ['', retired, deleted], description: Why the item is hidden from visitors; empty when it is visible. }
         published_at: { type: integer, format: int64, description: Unix seconds when the item was published or last published again. }
@@ -4383,6 +4715,63 @@ components:
                 version: { type: string }
                 approved_at: { $ref: '#/components/schemas/EpochSeconds' }
                 content_hash: { type: string }
+    TrustCertification:
+      type: object
+      required: [id, label, link_type, issuer, valid_from, valid_until, state, source, url, file_name, file_content_type, file_size, file_sha256, verified_at, verified_by, created_by, created_at, updated_at, item]
+      properties:
+        id: { type: integer, format: int64 }
+        label: { type: string, minLength: 1, maxLength: 200 }
+        link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
+        issuer: { type: string, maxLength: 200 }
+        valid_from: { type: [string, 'null'], description: "YYYY-MM-DD text, never a timestamp." }
+        valid_until: { type: [string, 'null'], description: "YYYY-MM-DD text. The certification is valid through this day; visitors stop seeing it the day after." }
+        state: { type: string, enum: ['', current, expiring, expired], description: "Computed by the database from valid_until: expired, expiring (within 30 days) or current; empty when there is none." }
+        source: { type: string, enum: [file, link] }
+        url: { type: string, description: Set for a link certification; empty for a file one. }
+        file_name: { type: string, description: "Display name of the uploaded file; empty for a link." }
+        file_content_type: { type: string, enum: ['', application/pdf, image/png, image/jpeg], description: The type detected from the file's bytes at upload. }
+        file_size: { type: integer, format: int64 }
+        file_sha256: { type: string }
+        verified_at: { type: [string, 'null'], description: YYYY-MM-DD }
+        verified_by: { type: string, description: Email of the verifier; empty when never verified. }
+        created_by: { type: string }
+        created_at: { type: integer, format: int64, description: Unix seconds. }
+        updated_at: { type: integer, format: int64, description: Unix seconds. }
+        item:
+          type: [object, 'null']
+          description: The publication; null while the certification is not published.
+          required: [id, access_level, sort_order]
+          properties:
+            id: { type: string, format: uuid, description: "The item's public id." }
+            access_level: { type: string, enum: [public, gated, restricted] }
+            sort_order: { type: integer }
+    TrustCertificationCreateRequest:
+      type: object
+      required: [label, link_type, url]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 200 }
+        link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
+        issuer: { type: string, maxLength: 200 }
+        url: { type: string, description: "http or https URL. A certification with a file is created with multipart instead." }
+        valid_from: { type: [string, 'null'], description: "YYYY-MM-DD" }
+        valid_until: { type: [string, 'null'], description: "YYYY-MM-DD" }
+        verified_at: { type: [string, 'null'], description: "YYYY-MM-DD" }
+        publish: { type: boolean, description: Also publish it. Default false. }
+        access_level: { type: string, enum: [public, gated, restricted], description: "Level when publishing; default the trust center's default level." }
+    TrustCertificationUpdateRequest:
+      type: object
+      properties:
+        label: { type: string, minLength: 1, maxLength: 200 }
+        link_type: { type: string, enum: [certificate, audit_report, penetration_test, attestation, other] }
+        issuer: { type: string, maxLength: 200 }
+        url: { type: string, description: Link certifications only. }
+        valid_from: { type: [string, 'null'], description: "YYYY-MM-DD. Send null on update to clear." }
+        valid_until: { type: [string, 'null'], description: "YYYY-MM-DD. Send null on update to clear." }
+        verified_at: { type: [string, 'null'], description: "YYYY-MM-DD. Send null on update to clear." }
+    TrustCertificationPublishRequest:
+      type: object
+      properties:
+        access_level: { type: string, enum: [public, gated, restricted], description: "Default: the trust center's default level." }
     TrustCenterItemUpdateRequest:
       type: object
       required: [access_level]

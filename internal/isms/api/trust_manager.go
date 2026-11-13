@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -52,6 +53,9 @@ type trustManagerItem struct {
 	HiddenReason string                `json:"hidden_reason"`
 	PublishedAt  int64                 `json:"published_at"`
 	Document     *trustManagerDocument `json:"document"`
+	// Certification is set for kind certification; null when the certification
+	// row is missing, which the list tolerates.
+	Certification *trustManagerCertification `json:"certification"`
 }
 
 type trustOrderRequest struct {
@@ -172,6 +176,18 @@ func (s *Server) trustManagerRow(c echo.Context, orgID int, st **store.Store, it
 	row := &trustManagerItem{
 		ID: it.PublicID, Kind: it.Kind, Section: it.Section, AccessLevel: it.AccessLevel,
 		SortOrder: it.SortOrder, HiddenReason: it.HiddenReason, PublishedAt: it.PublishedAt.Unix(),
+	}
+	if it.Kind == db.TrustKindCertification {
+		if id, err := strconv.ParseInt(it.Reference, 10, 64); err == nil {
+			cert, err := s.db.GetTrustCertification(c.Request().Context(), orgID, id)
+			switch {
+			case err == nil:
+				row.Certification = trustManagerCertificationFor(cert)
+			case errors.Is(err, db.ErrTrustCertificationNotFound):
+			default:
+				return nil, trustInternalError(c, "reading certification", err)
+			}
+		}
 	}
 	if it.Kind == db.TrustKindDocument {
 		if *st == nil {

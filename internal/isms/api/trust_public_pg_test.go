@@ -125,9 +125,9 @@ func TestTrustPublicItemsPerOrgInEveryMode(t *testing.T) {
 	s := trustServer(t)
 	a := trustNewOrg(t, s, "a", true)
 	b := trustNewOrg(t, s, "b", true)
-	ia := trustPublishItem(t, s, a, db.TrustKindCertification, "doc-a", db.TrustAccessPublic)
+	ia := trustPublishItem(t, s, a, db.TrustKindCard, "doc-a", db.TrustAccessPublic)
 	trustPublishItem(t, s, a, db.TrustKindFAQ, "faq-a", db.TrustAccessGated)
-	trustPublishItem(t, s, b, db.TrustKindCertification, "doc-b", db.TrustAccessPublic)
+	trustPublishItem(t, s, b, db.TrustKindCard, "doc-b", db.TrustAccessPublic)
 
 	for mode, host := range trustModes(a) {
 		t.Run(mode, func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestTrustPublicHostMustMatchSlug(t *testing.T) {
 	s := trustServer(t)
 	a := trustNewOrg(t, s, "ha", true)
 	b := trustNewOrg(t, s, "hb", true)
-	trustPublishItem(t, s, b, db.TrustKindCertification, "doc-b", db.TrustAccessPublic)
+	trustPublishItem(t, s, b, db.TrustKindCard, "doc-b", db.TrustAccessPublic)
 
 	want := trustDo(s, trustTestBase, http.MethodGet, "/api/v1/trust/no-such-org-xyz", "")
 	for _, host := range []string{a.slug + "." + trustTestBase, a.domain} {
@@ -234,7 +234,7 @@ func TestTrustPublicOneNotFoundBody(t *testing.T) {
 	disabled := trustNewOrg(t, s, "dis", true)
 	noRow := trustNewOrg(t, s, "norow", false)
 	gone := trustNewOrg(t, s, "gone", true)
-	trustPublishItem(t, s, a, db.TrustKindCertification, "doc-a", db.TrustAccessPublic)
+	trustPublishItem(t, s, a, db.TrustKindCard, "doc-a", db.TrustAccessPublic)
 	if err := s.db.UpsertTrustCenterSettings(context.Background(), disabled.id,
 		&db.TrustCenterSettings{Enabled: false, DefaultAccessLevel: db.TrustAccessGated}, "m"); err != nil {
 		t.Fatal(err)
@@ -297,8 +297,8 @@ func TestTrustPublicOneNotFoundBody(t *testing.T) {
 func TestTrustPublicUnpublishTakesEffect(t *testing.T) {
 	s := trustServer(t)
 	a := trustNewOrg(t, s, "unp", true)
-	keep := trustPublishItem(t, s, a, db.TrustKindCertification, "keep", db.TrustAccessPublic)
-	drop := trustPublishItem(t, s, a, db.TrustKindCertification, "drop", db.TrustAccessPublic)
+	keep := trustPublishItem(t, s, a, db.TrustKindCard, "keep", db.TrustAccessPublic)
+	drop := trustPublishItem(t, s, a, db.TrustKindCard, "drop", db.TrustAccessPublic)
 
 	path := "/api/v1/trust/" + a.slug + "/items"
 	if got := trustItems(t, trustDo(s, trustTestBase, "GET", path, "")); len(got) != 2 {
@@ -325,8 +325,8 @@ func TestTrustPublicIgnoresBearerOfAnotherOrg(t *testing.T) {
 	s := trustServer(t)
 	a := trustNewOrg(t, s, "bea", true)
 	b := trustNewOrg(t, s, "beb", true)
-	trustPublishItem(t, s, a, db.TrustKindCertification, "doc-a", db.TrustAccessPublic)
-	trustPublishItem(t, s, b, db.TrustKindCertification, "doc-b", db.TrustAccessPublic)
+	trustPublishItem(t, s, a, db.TrustKindCard, "doc-a", db.TrustAccessPublic)
+	trustPublishItem(t, s, b, db.TrustKindCard, "doc-b", db.TrustAccessPublic)
 	trustPublishItem(t, s, b, db.TrustKindFAQ, "faq-b", db.TrustAccessPublic)
 
 	u := contractTestUser(t, s, b.id, fmt.Sprintf("tcp-bearer-%d@example.com", time.Now().UnixNano()), "manager")

@@ -184,31 +184,43 @@ func (d *DB) PublishTrustCenterItem(ctx context.Context, orgID int, item *TrustC
 		return trustInvalid("actor is required")
 	}
 	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		err := tx.QueryRow(ctx, `
-			INSERT INTO trust_center_items
-				(organization_id, kind, reference, access_level, section, sort_order, published_by)
-			VALUES ($1, $2, $3, $4, $5,
-				(SELECT COALESCE(MAX(sort_order), 0) + 1 FROM trust_center_items
-				 WHERE organization_id = $1 AND kind = $2), $6)
-			RETURNING id, public_id::text, published_at, updated_at, sort_order
-		`, orgID, item.Kind, item.Reference, item.AccessLevel, item.Section,
-			actor).Scan(&item.ID, &item.PublicID, &item.PublishedAt, &item.UpdatedAt, &item.SortOrder)
-		if err != nil {
-			return err
-		}
-		item.OrganizationID = orgID
-		item.PublishedBy = actor
-		ref := item.Kind + ":" + item.Reference
-		return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
-			EntityType: "trust_center_item", EntityID: item.ID, Action: "create",
-			NewValue: &ref, ChangedBy: actor,
-		})
+		return publishTrustCenterItemTx(ctx, tx, orgID, item, actor)
 	})
+	return mapTrustAlreadyPublished(err)
+}
+
+// mapTrustAlreadyPublished turns the unique-violation of (org, kind, reference)
+// into ErrTrustItemAlreadyPublished.
+func mapTrustAlreadyPublished(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "trust_center_items_organization_id_kind_reference_key" {
 		return ErrTrustItemAlreadyPublished
 	}
 	return err
+}
+
+// publishTrustCenterItemTx inserts the item and its changelog row inside tx,
+// for callers that must lock the thing being published in the same transaction.
+func publishTrustCenterItemTx(ctx context.Context, tx pgx.Tx, orgID int, item *TrustCenterItem, actor string) error {
+	err := tx.QueryRow(ctx, `
+		INSERT INTO trust_center_items
+			(organization_id, kind, reference, access_level, section, sort_order, published_by)
+		VALUES ($1, $2, $3, $4, $5,
+			(SELECT COALESCE(MAX(sort_order), 0) + 1 FROM trust_center_items
+			 WHERE organization_id = $1 AND kind = $2), $6)
+		RETURNING id, public_id::text, published_at, updated_at, sort_order
+	`, orgID, item.Kind, item.Reference, item.AccessLevel, item.Section,
+		actor).Scan(&item.ID, &item.PublicID, &item.PublishedAt, &item.UpdatedAt, &item.SortOrder)
+	if err != nil {
+		return err
+	}
+	item.OrganizationID = orgID
+	item.PublishedBy = actor
+	ref := item.Kind + ":" + item.Reference
+	return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+		EntityType: "trust_center_item", EntityID: item.ID, Action: "create",
+		NewValue: &ref, ChangedBy: actor,
+	})
 }
 
 // UnpublishTrustCenterItem removes an item and records it in the changelog in

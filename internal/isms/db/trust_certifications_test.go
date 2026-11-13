@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 const certActor = "mgr@example.com"
@@ -642,4 +643,89 @@ func TestCreateOverdueReviewTasksTrustCertifications(t *testing.T) {
 		t.Errorf("second run: %+v", res)
 	}
 	_ = c
+}
+
+// A delete that commits while a publish is in flight must not leave an item
+// row pointing at a certification that no longer exists.
+func TestTrustCertificationPublishRacingDelete(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "certrace")
+	c := mustCreateCert(t, d, orgID, linkCertInput("Race"))
+
+	// An open transaction deletes the certification and holds the row lock.
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM trust_center_certifications WHERE id = $1`, c.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := d.PublishTrustCertification(ctx, orgID, c.ID, TrustAccessPublic, certActor)
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		t.Fatalf("publish returned %v before the delete committed: it did not wait for the row lock", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; !errors.Is(err, ErrTrustCertificationNotFound) {
+		t.Errorf("publish after the delete committed = %v, want ErrTrustCertificationNotFound", err)
+	}
+	var n int
+	_ = d.pool.QueryRow(ctx, `SELECT count(*) FROM trust_center_items WHERE organization_id = $1 AND kind = 'certification'`, orgID).Scan(&n)
+	if n != 0 {
+		t.Errorf("orphan certification items = %d, want 0", n)
+	}
+}
+
+// The mirror order: a publish that commits while a delete waits for the lock is
+// removed by that delete.
+func TestTrustCertificationDeleteAfterRacingPublish(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "certrace2")
+	c := mustCreateCert(t, d, orgID, linkCertInput("Race2"))
+
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM trust_center_certifications WHERE id = $1 FOR SHARE`, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	// Deleting needs FOR UPDATE, which waits for our share lock.
+	done := make(chan error, 1)
+	go func() {
+		_, err := d.DeleteTrustCertification(ctx, orgID, c.ID, certActor)
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		t.Fatalf("delete returned %v while a publish held the certification", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO trust_center_items (organization_id, kind, reference, access_level, published_by)
+		VALUES ($1, 'certification', $2, 'public', 'x')`, orgID, fmt.Sprint(c.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	var n int
+	_ = d.pool.QueryRow(ctx, `SELECT count(*) FROM trust_center_items WHERE organization_id = $1 AND kind = 'certification'`, orgID).Scan(&n)
+	if n != 0 {
+		t.Errorf("orphan certification items = %d, want 0", n)
+	}
 }

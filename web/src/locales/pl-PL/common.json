@@ -74,7 +74,8 @@
     "policy": "Polityka",
     "passkey": "Klucz dostępu",
     "evidence": "Dowód",
-    "item": "Element"
+    "item": "Element",
+    "certification": "Certyfikacja"
   },
   "entity_inline": {
     "risk": "ryzyko",
@@ -104,7 +105,8 @@
     "passkey": "klucz dostępu",
     "evidence": "dowód",
     "item": "element",
-    "external_link": "link zewnętrzny"
+    "external_link": "link zewnętrzny",
+    "certification": "certyfikacja"
   },
   "field": {
     "title": "tytuł",
@@ -127,7 +129,10 @@
     "entity_id": "identyfikator encji",
     "suggestion_type": "typ sugestii",
     "url": "URL",
-    "label": "etykieta"
+    "label": "etykieta",
+    "valid_from": "ważne od",
+    "valid_until": "ważne do",
+    "verified_at": "data weryfikacji"
   },
   "enum": {
     "status": {
@@ -483,7 +488,11 @@
     "trust_order_stale": "centrum zaufania zmieniło się podczas zmiany kolejności — odśwież i spróbuj ponownie",
     "trust_classification_confirm": "ten dokument jest sklasyfikowany jako {value}; potwierdź, aby opublikować go dla każdego w internecie",
     "ai_disabled": "funkcje AI są wyłączone dla tej organizacji",
-    "unsupported_locale": "nieobsługiwany język"
+    "unsupported_locale": "nieobsługiwany język",
+    "trust_file_type": "akceptowane są tylko pliki PDF, PNG lub JPEG",
+    "trust_file_required": "wybierz plik do przesłania",
+    "trust_certification_source": "podaj łącze albo plik, nie jedno i drugie",
+    "trust_date_invalid": "{field} musi być datą w formacie RRRR-MM-DD"
   },
   "region": {
     "global": "Globalny",

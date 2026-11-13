@@ -74,7 +74,8 @@
     "policy": "ポリシー",
     "passkey": "パスキー",
     "evidence": "証跡",
-    "item": "項目"
+    "item": "項目",
+    "certification": "認証"
   },
   "entity_inline": {
     "risk": "リスク",
@@ -104,7 +105,8 @@
     "passkey": "パスキー",
     "evidence": "証跡",
     "item": "項目",
-    "external_link": "外部リンク"
+    "external_link": "外部リンク",
+    "certification": "認証"
   },
   "field": {
     "title": "タイトル",
@@ -127,7 +129,10 @@
     "entity_id": "エンティティID",
     "suggestion_type": "提案種別",
     "url": "URL",
-    "label": "ラベル"
+    "label": "ラベル",
+    "valid_from": "有効開始日",
+    "valid_until": "有効期限",
+    "verified_at": "確認日"
   },
   "enum": {
     "status": {
@@ -470,7 +475,11 @@
     "trust_order_stale": "並べ替え中にトラストセンターが変更されました。再読み込みしてもう一度お試しください",
     "trust_classification_confirm": "この文書は{value}に分類されています。インターネット上の誰にでも公開するには確認してください",
     "ai_disabled": "この組織ではAI機能が無効です",
-    "unsupported_locale": "サポートされていないロケール"
+    "unsupported_locale": "サポートされていないロケール",
+    "trust_file_type": "PDF、PNG、JPEG ファイルのみ受け付けます",
+    "trust_file_required": "アップロードするファイルを選択してください",
+    "trust_certification_source": "リンクまたはファイルのどちらか一方を指定してください",
+    "trust_date_invalid": "{field}は YYYY-MM-DD 形式の日付で指定してください"
   },
   "region": {
     "global": "グローバル",

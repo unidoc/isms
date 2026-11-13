@@ -133,6 +133,13 @@ const (
 	// CodeTrustClassificationConfirm: a confidential or restricted document
 	// would become readable by anyone; the caller must confirm it.
 	CodeTrustClassificationConfirm = "trust_classification_confirm"
+	// Certifications (#521): the uploaded file is not a PDF, PNG or JPEG; no file
+	// was sent where one is needed; a certification has both or neither of a url
+	// and a file; a date is not YYYY-MM-DD.
+	CodeTrustFileType            = "trust_file_type"
+	CodeTrustFileRequired        = "trust_file_required"
+	CodeTrustCertificationSource = "trust_certification_source"
+	CodeTrustDateInvalid         = "trust_date_invalid"
 
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
@@ -212,6 +219,10 @@ var errorMessages = map[string]string{
 	CodeTrustAlreadyPublished:      "this document is already published in the trust center",
 	CodeTrustOrderStale:            "the trust center changed while you were reordering — reload and try again",
 	CodeTrustClassificationConfirm: "this document is classified {value}; confirm to publish it to anyone on the internet",
+	CodeTrustFileType:              "only PDF, PNG or JPEG files are accepted",
+	CodeTrustFileRequired:          "choose a file to upload",
+	CodeTrustCertificationSource:   "provide either a link or a file, not both",
+	CodeTrustDateInvalid:           "{field} must be a date written as YYYY-MM-DD",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

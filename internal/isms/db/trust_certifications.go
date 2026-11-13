@@ -135,6 +135,13 @@ func containsStr(set []string, v string) bool {
 	return false
 }
 
+// ValidateTrustCertificationInput runs the checks CreateTrustCertification and
+// UpdateTrustCertification run on the editable fields, so a caller can refuse a
+// request before it stores a file. Errors wrap ErrTrustCenterInvalid.
+func ValidateTrustCertificationInput(in TrustCertificationInput) error {
+	return validateTrustCertification(in)
+}
+
 func validateTrustCertificationFile(f *TrustCertificationFile) error {
 	if f.Key == "" || f.SHA256 == "" || f.Size <= 0 {
 		return trustInvalid("file key, size and sha256 are required")
@@ -554,14 +561,20 @@ func (d *DB) DeleteTrustCertification(ctx context.Context, orgID int, id int64, 
 			return err
 		}
 		fileKey = cur.FileKey
-		if cur.Item != nil {
+		// The item is deleted by its own statement, not taken from cur: a publish
+		// that committed while this transaction waited for the row lock is not in
+		// the snapshot cur was read with.
+		var itemID int64
+		err = tx.QueryRow(ctx, `DELETE FROM trust_center_items
+			WHERE organization_id = $1 AND kind = 'certification' AND reference = $2
+			RETURNING id`, orgID, strconv.FormatInt(id, 10)).Scan(&itemID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err == nil {
 			ref := TrustKindCertification + ":" + strconv.FormatInt(id, 10)
-			if _, err := tx.Exec(ctx, `DELETE FROM trust_center_items WHERE id = $1 AND organization_id = $2`,
-				cur.Item.ID, orgID); err != nil {
-				return err
-			}
 			if err := LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
-				EntityType: "trust_center_item", EntityID: cur.Item.ID, Action: "delete",
+				EntityType: "trust_center_item", EntityID: itemID, Action: "delete",
 				OldValue: &ref, ChangedBy: actor,
 			}); err != nil {
 				return err
@@ -588,17 +601,29 @@ func (d *DB) DeleteTrustCertification(ctx context.Context, orgID int, id int64, 
 // or none, is ErrTrustCertificationNotFound; one already published is
 // ErrTrustItemAlreadyPublished.
 func (d *DB) PublishTrustCertification(ctx context.Context, orgID int, id int64, level, actor string) (*TrustCenterItem, error) {
-	var one int
-	err := d.pool.QueryRow(ctx, `SELECT 1 FROM trust_center_certifications WHERE id = $1 AND organization_id = $2`,
-		id, orgID).Scan(&one)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrTrustCertificationNotFound
-	}
-	if err != nil {
-		return nil, err
-	}
 	it := &TrustCenterItem{Kind: TrustKindCertification, Reference: strconv.FormatInt(id, 10), AccessLevel: level}
-	if err := d.PublishTrustCenterItem(ctx, orgID, it, actor); err != nil {
+	if !trustAccessLevels[level] {
+		return nil, trustInvalid("access_level %q", level)
+	}
+	if actor == "" {
+		return nil, trustInvalid("actor is required")
+	}
+	// The certification row is locked FOR SHARE in the same transaction as the
+	// item insert, so a delete that races this publish either committed first
+	// (not found here) or waits for it and then removes the item row too.
+	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		var one int
+		err := tx.QueryRow(ctx, `SELECT 1 FROM trust_center_certifications
+			WHERE id = $1 AND organization_id = $2 FOR SHARE`, id, orgID).Scan(&one)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrTrustCertificationNotFound
+		}
+		if err != nil {
+			return err
+		}
+		return publishTrustCenterItemTx(ctx, tx, orgID, it, actor)
+	})
+	if err := mapTrustAlreadyPublished(err); err != nil {
 		return nil, err
 	}
 	return it, nil

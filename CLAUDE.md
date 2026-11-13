@@ -153,7 +153,7 @@ PUT  /trust-center/certifications/:id — partial update; null clears a date (ma
 POST /trust-center/certifications/:id/file — replace the file; the old blob goes after commit (manager/admin)
 POST /trust-center/certifications/:id/verify — verified today, by the caller (manager/admin)
 DELETE /trust-center/certifications/:id — removes the certification, its item and its file (manager/admin)
-POST/DELETE /trust-center/certifications/:id/publish — publish (409 trust_already_published) / unpublish (manager/admin)
+POST/DELETE /trust-center/certifications/:id/publish — publish (409 trust_certification_already_published) / unpublish (manager/admin)
 GET  /trust-center/certifications/:id/file — download at any level or validity, streamed as an attachment (manager/admin)
 GET  /trust-center/preview/certifications/:id/file — exactly what the public file route answers, ignoring the on/off setting (manager/admin)
 GET  /api/v1/trust/:slug/certifications/:id/file — public, session-blind: only a published, not hidden, not expired certification at level public; otherwise the standard 404

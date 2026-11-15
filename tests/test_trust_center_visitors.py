@@ -33,8 +33,8 @@ def _login(api_url, email, org=None):
 
 
 @pytest.fixture(scope="module")
-def tv(api_url):
-    """A fresh organization whose trust center is on. Returns its slug."""
+def tv_org(api_url):
+    """A fresh organization whose trust center is on: its slug and admin headers."""
     t = _tag()
     slug = f"tcv-{t}"
     email = f"tcv-admin-{t}@isms-test.local"
@@ -46,7 +46,12 @@ def tv(api_url):
     admin = _login(api_url, email, slug)
     r = requests.put(f"{api_url}/trust-center/settings", headers=admin, json={"enabled": True, "title": "Visitors"})
     assert r.status_code == 200, r.text
-    return slug
+    return {"slug": slug, "admin": admin}
+
+
+@pytest.fixture(scope="module")
+def tv(tv_org):
+    return tv_org["slug"]
 
 
 def _sign_in_enabled(api_url, slug):
@@ -124,3 +129,62 @@ def test_disabled_org_visitor_routes_are_the_single_404(api_url, test_setup):
         r = requests.request(method, f"{api_url}/trust/{ORG_SLUG}{rest}", json={"email": "a@b.test", "token": "x"})
         assert r.status_code == 404, f"{method} {rest}: {r.status_code}"
         assert r.content == want
+
+
+# ---- manager API (admin or manager): sign-in settings and the visitor list ----
+
+def test_settings_carry_the_sign_in_fields(api_url, tv_org):
+    h = tv_org["admin"]
+    s = requests.get(f"{api_url}/trust-center/settings", headers=h).json()
+    assert s["blocked_email_domains_default"] is True
+    assert "gmail.com" in s["blocked_email_domains"]
+    assert s["blocked_email_domains"] == s["default_blocked_email_domains"]
+    assert s["privacy_notice_url"] == ""
+    assert s["email_configured"] is False  # CI has no SMTP
+
+    r = requests.put(f"{api_url}/trust-center/settings", headers=h, json={
+        "blocked_email_domains": ["Rival.TEST", "@example.com", "example.com"],
+        "privacy_notice_url": "https://acme.test/privacy",
+    })
+    assert r.status_code == 200, r.text
+    s = r.json()
+    assert s["blocked_email_domains"] == ["example.com", "rival.test"]
+    assert s["blocked_email_domains_default"] is False
+    assert s["privacy_notice_url"] == "https://acme.test/privacy"
+    assert s["default_blocked_email_domains"] != s["blocked_email_domains"]
+    assert requests.get(f"{api_url}/trust/{tv_org['slug']}").json()["privacy_notice_url"] == "https://acme.test/privacy"
+
+    r = requests.put(f"{api_url}/trust-center/settings", headers=h, json={"blocked_email_domains": []})
+    assert r.json()["blocked_email_domains"] == [] and r.json()["blocked_email_domains_default"] is False
+    r = requests.put(f"{api_url}/trust-center/settings", headers=h, json={"blocked_email_domains": None, "privacy_notice_url": ""})
+    assert r.json()["blocked_email_domains_default"] is True and r.json()["privacy_notice_url"] == ""
+
+
+@pytest.mark.parametrize("body", [
+    {"blocked_email_domains": ["a@b.com"]}, {"blocked_email_domains": ["nodot"]},
+    {"blocked_email_domains": [" "]}, {"blocked_email_domains": ["x/y.com"]},
+    {"blocked_email_domains": ["d%d.test" % i for i in range(501)]},
+    {"privacy_notice_url": "javascript:alert(1)"}, {"privacy_notice_url": "ftp://x.test"},
+    {"privacy_notice_url": "/relative"}, {"privacy_notice_url": "https://" + "a" * 2000},
+])
+def test_settings_validation(api_url, tv_org, body):
+    r = requests.put(f"{api_url}/trust-center/settings", headers=tv_org["admin"], json=body)
+    assert r.status_code == 400, r.text
+
+
+def test_visitor_list_is_empty_for_a_fresh_org(api_url, tv_org):
+    r = requests.get(f"{api_url}/trust-center/visitors", headers=tv_org["admin"])
+    assert r.status_code == 200, r.text
+    assert r.json() == []
+    for path, method, body in [("/visitors/1/revoke-sessions", "POST", None), ("/visitors/abc/blocked", "PUT", {"blocked": True})]:
+        r = requests.request(method, f"{api_url}/trust-center{path}", headers=tv_org["admin"], json=body)
+        assert r.status_code == 404, r.text
+
+
+def test_visitor_routes_need_manager_or_admin(api_url, test_setup, reader_headers, contributor_headers):
+    for headers in (reader_headers, contributor_headers):
+        for method, path, body in [("GET", "/visitors", None), ("POST", "/visitors/1/revoke-sessions", None),
+                                   ("PUT", "/visitors/1/blocked", {"blocked": True})]:
+            r = requests.request(method, f"{api_url}/trust-center{path}", headers=headers, json=body)
+            assert r.status_code == 403, f"{method} {path}: {r.status_code} {r.text}"
+    assert requests.get(f"{api_url}/trust-center/visitors").status_code == 401

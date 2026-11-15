@@ -80,6 +80,7 @@
   "entity_inline": {
     "risk": "riesgo",
     "supplier": "proveedor",
+    "visitor": "visitante",
     "incident": "incidente",
     "legal_requirement": "requisito legal",
     "change_request": "solicitud de cambio",

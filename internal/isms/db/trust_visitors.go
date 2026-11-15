@@ -139,6 +139,19 @@ func (d *DB) PeekTrustVisitorLink(ctx context.Context, orgID int, tokenHash stri
 	return email, v, nil
 }
 
+// GetTrustVisitor returns the organization's visitor by id, or
+// ErrTrustVisitorNotFound (also for another organization's visitor).
+func (d *DB) GetTrustVisitor(ctx context.Context, orgID int, id int64) (*TrustVisitor, error) {
+	v, err := scanTrustVisitor(d.pool.QueryRow(ctx, `
+		SELECT `+trustVisitorColumns+`
+		FROM trust_visitors v WHERE v.organization_id = $1 AND v.id = $2
+	`, orgID, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrTrustVisitorNotFound
+	}
+	return v, err
+}
+
 // GetTrustVisitorByEmail returns the organization's visitor for an email, or
 // ErrTrustVisitorNotFound.
 func (d *DB) GetTrustVisitorByEmail(ctx context.Context, orgID int, email string) (*TrustVisitor, error) {

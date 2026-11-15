@@ -1406,6 +1406,74 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /trust-center/visitors:
+    get:
+      tags: [Trust Center]
+      summary: List the people who signed in to the trust center
+      description: >-
+        Admin or manager only. Visitors of the session's organization, most
+        recently seen first. A visitor is not a user and never appears in the user
+        list.
+      responses:
+        '200':
+          description: Visitors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCenterVisitor' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/visitors/{id}/revoke-sessions:
+    post:
+      tags: [Trust Center]
+      summary: End every session of a visitor at once
+      description: >-
+        Admin or manager only. The visitor can sign in again with a new link. 404
+        for an unknown id, another organization's visitor or a non-numeric id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: How many sessions were ended
+          content:
+            application/json:
+              schema: { type: object, required: [revoked], properties: { revoked: { type: integer } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/visitors/{id}/blocked:
+    put:
+      tags: [Trust Center]
+      summary: Block or unblock a visitor
+      description: >-
+        Admin or manager only. Blocking ends every session at once and silently
+        stops further sign-in links for the address; unblocking does not bring the
+        old sessions back. 404 for an unknown id, another organization's visitor or
+        a non-numeric id; 400 when `blocked` is missing or not a boolean.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [blocked], properties: { blocked: { type: boolean } } }
+      responses:
+        '200':
+          description: The visitor after the change
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterVisitor' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /trust-center/items:
     get:
       tags: [Trust Center]
@@ -4884,7 +4952,7 @@ components:
         cannot_publish_reason: { type: string, enum: ['', no_approved_version, retired] }
     TrustCenterSettings:
       type: object
-      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by]
+      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by, blocked_email_domains, blocked_email_domains_default, default_blocked_email_domains, privacy_notice_url, email_configured]
       properties:
         enabled: { type: boolean, description: "False until the organization switches the trust center on; a disabled trust center answers 404 to visitors." }
         title: { type: string, maxLength: 200, description: The page title; empty when unset. }
@@ -4893,6 +4961,38 @@ components:
         default_access_level: { type: string, enum: [public, gated, restricted], description: The level a newly published item starts with. }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Null when the trust center was never configured." }
         updated_by: { type: [string, 'null'], readOnly: true, description: Email of whoever last changed the settings; null when never configured. }
+        blocked_email_domains:
+          type: [array, 'null']
+          items: { type: string }
+          maxItems: 500
+          description: >-
+            Email domains that cannot sign in to the trust center. In a response it is
+            the list in effect and never null: the built-in list while
+            `blocked_email_domains_default` is true, otherwise the organization's own
+            list (empty allows every domain). On update, absent leaves it alone, null
+            restores the built-in list and a list replaces it; entries are trimmed,
+            lower-cased, stripped of a leading `@`, de-duplicated and sorted. An entry
+            that is empty, has `@`, whitespace or `/`, has no dot or is longer than 253
+            characters is a 400, as is a list of more than 500.
+        blocked_email_domains_default: { type: boolean, readOnly: true, description: "True while the organization has not set its own list, so the built-in list applies." }
+        default_blocked_email_domains: { type: array, items: { type: string }, readOnly: true, description: "The built-in list of personal mail providers, for a Restore defaults action." }
+        privacy_notice_url: { type: string, maxLength: 2000, description: "Link to the privacy notice shown to visitors who sign in. An absolute http or https URL with a host, or an empty string to clear it; anything else is a 400." }
+        email_configured: { type: boolean, readOnly: true, description: "False when the server cannot send mail; visitors cannot sign in then." }
+    TrustCenterVisitor:
+      type: object
+      required: [id, email, name, company, verified_at, first_seen, last_seen, blocked, blocked_at, blocked_by, active_sessions]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, description: The verified address, lower-case. }
+        name: { type: string, description: Asked once, at the first sign-in. }
+        company: { type: string, description: Asked once, at the first sign-in. }
+        verified_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: When the address was first verified by a sign-in link. }
+        first_seen: { $ref: '#/components/schemas/EpochSeconds' }
+        last_seen: { $ref: '#/components/schemas/EpochSeconds' }
+        blocked: { type: boolean }
+        blocked_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: Null unless blocked. }
+        blocked_by: { type: [string, 'null'], description: Email of the manager who blocked the visitor; null unless blocked. }
+        active_sessions: { type: integer, description: Sessions that are neither revoked nor expired. }
     TrustCenterManagerItem:
       type: object
       required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document, certification]

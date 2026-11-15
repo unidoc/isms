@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
+	"slices"
+	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -565,6 +569,66 @@ type TrustCenterSettingsPatch struct {
 	DefaultAccessLevel *string
 	SetOverview        bool
 	OverviewDocumentID *string
+	// SetBlockedEmailDomains applies BlockedEmailDomains: nil then means "back
+	// to the built-in list" (column NULL), an empty list allows every domain.
+	// The list must already be normalised (NormalizeBlockedEmailDomains).
+	SetBlockedEmailDomains bool
+	BlockedEmailDomains    []string
+	// PrivacyNoticeURL is validated here; "" clears it.
+	PrivacyNoticeURL *string
+}
+
+// maxBlockedEmailDomains caps an organization's own domain list.
+const maxBlockedEmailDomains = 500
+
+// NormalizeBlockedEmailDomains trims, lower-cases, strips a leading "@",
+// de-duplicates and sorts the entries. It refuses an empty entry, one with an
+// "@", whitespace or "/" in it, one without a dot or longer than 253
+// characters, and a list of more than 500. The result is never nil, so an
+// empty input stays "allow every domain" rather than "built-in list".
+func NormalizeBlockedEmailDomains(in []string) ([]string, error) {
+	if len(in) > maxBlockedEmailDomains {
+		return nil, trustInvalid("more than %d blocked email domains", maxBlockedEmailDomains)
+	}
+	seen := map[string]bool{}
+	out := []string{}
+	for _, raw := range in {
+		d := strings.ToLower(strings.TrimSpace(raw))
+		d = strings.TrimPrefix(d, "@")
+		if d == "" || len(d) > 253 || !strings.Contains(d, ".") || strings.ContainsAny(d, "@/") ||
+			strings.IndexFunc(d, unicode.IsSpace) >= 0 {
+			return nil, trustInvalid("blocked email domain %q", raw)
+		}
+		if !seen[d] {
+			seen[d] = true
+			out = append(out, d)
+		}
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// validatePrivacyNoticeURL accepts "" or an absolute http(s) URL with a host.
+func validatePrivacyNoticeURL(u string) error {
+	if u == "" {
+		return nil
+	}
+	if len(u) > 2000 {
+		return trustInvalid("privacy_notice_url is longer than 2000 characters")
+	}
+	p, err := url.Parse(u)
+	if err != nil || (p.Scheme != "http" && p.Scheme != "https") || p.Hostname() == "" || strings.IndexFunc(u, unicode.IsSpace) >= 0 {
+		return trustInvalid("privacy_notice_url must be an absolute http or https URL")
+	}
+	return nil
+}
+
+// domainsLog renders a domain list for the changelog; nil is the built-in list.
+func domainsLog(l []string) string {
+	if l == nil {
+		return "(default)"
+	}
+	return strings.Join(l, ",")
 }
 
 // UpdateTrustCenterSettings applies patch to the organization's settings and
@@ -581,6 +645,18 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 	}
 	if p.SecurityContact != nil && len(*p.SecurityContact) > 320 {
 		return nil, trustInvalid("security_contact is longer than 320 characters")
+	}
+	if p.PrivacyNoticeURL != nil {
+		if err := validatePrivacyNoticeURL(*p.PrivacyNoticeURL); err != nil {
+			return nil, err
+		}
+	}
+	if p.SetBlockedEmailDomains && p.BlockedEmailDomains != nil {
+		norm, err := NormalizeBlockedEmailDomains(p.BlockedEmailDomains)
+		if err != nil {
+			return nil, err
+		}
+		p.BlockedEmailDomains = norm
 	}
 	type change struct{ field, old, new string }
 	boolStr := func(b bool) string {
@@ -622,6 +698,15 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 				next.OverviewDocumentID = nilIfEmpty(newOv)
 			}
 		}
+		if p.SetBlockedEmailDomains && ((p.BlockedEmailDomains == nil) != (cur.BlockedEmailDomains == nil) ||
+			!slices.Equal(p.BlockedEmailDomains, cur.BlockedEmailDomains)) {
+			changes = append(changes, change{"blocked_email_domains", domainsLog(cur.BlockedEmailDomains), domainsLog(p.BlockedEmailDomains)})
+			next.BlockedEmailDomains = p.BlockedEmailDomains
+		}
+		if p.PrivacyNoticeURL != nil && *p.PrivacyNoticeURL != cur.PrivacyNoticeURL {
+			changes = append(changes, change{"privacy_notice_url", cur.PrivacyNoticeURL, *p.PrivacyNoticeURL})
+			next.PrivacyNoticeURL = *p.PrivacyNoticeURL
+		}
 		return &next, changes
 	}
 
@@ -632,10 +717,12 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 			cur = &TrustCenterSettings{OrganizationID: orgID}
 			err = tx.QueryRow(ctx, `
 				SELECT enabled, title, overview_document_id, security_contact,
-				       default_access_level, updated_at, updated_by
+				       default_access_level, updated_at, updated_by,
+				       blocked_email_domains, privacy_notice_url
 				FROM trust_center_settings WHERE organization_id = $1 FOR UPDATE
 			`, orgID).Scan(&cur.Enabled, &cur.Title, &cur.OverviewDocumentID, &cur.SecurityContact,
-				&cur.DefaultAccessLevel, &cur.UpdatedAt, &cur.UpdatedBy)
+				&cur.DefaultAccessLevel, &cur.UpdatedAt, &cur.UpdatedBy,
+				&cur.BlockedEmailDomains, &cur.PrivacyNoticeURL)
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &TrustCenterSettings{OrganizationID: orgID, DefaultAccessLevel: TrustAccessGated}, false, nil
 			}
@@ -670,11 +757,12 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 		if err := tx.QueryRow(ctx, `
 			UPDATE trust_center_settings
 			SET enabled = $2, title = $3, overview_document_id = $4, security_contact = $5,
-			    default_access_level = $6, updated_at = now(), updated_by = $7
+			    default_access_level = $6, updated_at = now(), updated_by = $7,
+			    blocked_email_domains = $8, privacy_notice_url = $9
 			WHERE organization_id = $1
 			RETURNING updated_at
 		`, orgID, next.Enabled, next.Title, next.OverviewDocumentID, next.SecurityContact,
-			next.DefaultAccessLevel, nilIfEmpty(actor)).Scan(&next.UpdatedAt); err != nil {
+			next.DefaultAccessLevel, nilIfEmpty(actor), next.BlockedEmailDomains, next.PrivacyNoticeURL).Scan(&next.UpdatedAt); err != nil {
 			return err
 		}
 		next.UpdatedBy = nilIfEmpty(actor)

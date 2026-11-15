@@ -398,6 +398,12 @@ var contractTable = []contractEntry{
 		requests: []reflect.Type{tReq(trustSettingsRequest{})},
 	},
 	{
+		component: "TrustCenterVisitor",
+		//   trust_visitor_manager.go handleListTrustVisitors: c.JSON(200, out) out is []trustManagerVisitor (never nil)
+		//   handleBlockTrustVisitor: c.JSON(200, trustVisitorRow(out))
+		shapes: []contractShape{shape(tReq(trustManagerVisitor{}), "trust_visitor_manager.go handleListTrustVisitors: element of the array, trustManagerVisitor")},
+	},
+	{
 		component: "TrustCenterManagerItem",
 		//   trust_manager.go handleListTrustItems / handleReorderTrustItems: c.JSON(200, items) items is []trustManagerItem (never nil)
 		shapes: []contractShape{shape(tReq(trustManagerItem{}), "trust_manager.go handleListTrustItems: element of the array, trustManagerItem")},
@@ -556,6 +562,13 @@ var neverNullKeys = map[string]bool{"created_at": true, "updated_at": true}
 var neverNullByComponent = map[string]map[string]string{
 	"DocumentNeedingReview": {
 		"change_summary": "both branches of handleNeedsReview set a non-empty slice: server.go:1909 (never reviewed) and server.go:1944-1950 (changeSummary falls back to a one-item slice)",
+	},
+	"TrustCenterSettings": {
+		"default_blocked_email_domains": "trustSettingsResponse always sets it from db.TrustBuiltinBlockedEmailDomains(), a non-empty list",
+	},
+	"TrustCenterVisitor": {
+		"first_seen": "trust_visitors.first_seen is NOT NULL DEFAULT now(); the row always has it",
+		"last_seen":  "trust_visitors.last_seen is NOT NULL DEFAULT now(); the row always has it",
 	},
 	"AccessReview": {
 		"reviewed_at": "access_reviews.reviewed_at is NOT NULL DEFAULT now(); handleCreateAccessReview (server.go:3244) fills a zero value before insert",

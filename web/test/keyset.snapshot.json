@@ -706,6 +706,7 @@
   "common.entity_inline.system",
   "common.entity_inline.task",
   "common.entity_inline.user",
+  "common.entity_inline.visitor",
   "common.enum.action.applied",
   "common.enum.action.rejected",
   "common.enum.asset_type.financial_info",

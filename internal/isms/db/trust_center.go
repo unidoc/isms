@@ -63,6 +63,11 @@ type TrustCenterSettings struct {
 	DefaultAccessLevel string
 	UpdatedAt          Epoch
 	UpdatedBy          *string
+	// BlockedEmailDomains: nil = the built-in list of personal providers, a
+	// list = the organization's own, empty = every domain may sign in.
+	BlockedEmailDomains []string
+	// PrivacyNoticeURL is shown to visitors who sign in; empty = none.
+	PrivacyNoticeURL string
 }
 
 // TrustCenterItem is one published item. Reference is internal (a document_id,
@@ -120,10 +125,12 @@ func (d *DB) GetTrustCenterSettings(ctx context.Context, orgID int) (*TrustCente
 	s := &TrustCenterSettings{OrganizationID: orgID}
 	err := d.pool.QueryRow(ctx, `
 		SELECT enabled, title, overview_document_id, security_contact,
-		       default_access_level, updated_at, updated_by
+		       default_access_level, updated_at, updated_by,
+		       blocked_email_domains, privacy_notice_url
 		FROM trust_center_settings WHERE organization_id = $1
 	`, orgID).Scan(&s.Enabled, &s.Title, &s.OverviewDocumentID, &s.SecurityContact,
-		&s.DefaultAccessLevel, &s.UpdatedAt, &s.UpdatedBy)
+		&s.DefaultAccessLevel, &s.UpdatedAt, &s.UpdatedBy,
+		&s.BlockedEmailDomains, &s.PrivacyNoticeURL)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return &TrustCenterSettings{OrganizationID: orgID, DefaultAccessLevel: TrustAccessGated}, nil
 	}

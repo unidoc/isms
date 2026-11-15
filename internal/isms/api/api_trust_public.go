@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -95,6 +96,18 @@ type trustPublicItem struct {
 	Version     string `json:"version,omitempty"`
 	ApprovedAt  int64  `json:"approved_at,omitempty"` // epoch seconds
 	ContentHash string `json:"content_hash,omitempty"`
+	// Certifications only. Title is the label. url (a link certification) and
+	// file_name / file_size (a file certification) are set only at access level
+	// public: a gated or restricted row shows what it is, never where it is.
+	LinkType   string `json:"link_type,omitempty"`
+	Issuer     string `json:"issuer,omitempty"`
+	ValidFrom  string `json:"valid_from,omitempty"`
+	ValidUntil string `json:"valid_until,omitempty"`
+	State      string `json:"state,omitempty"` // current | expiring
+	Source     string `json:"source,omitempty"`
+	URL        string `json:"url,omitempty"`
+	FileName   string `json:"file_name,omitempty"`
+	FileSize   int64  `json:"file_size,omitempty"`
 }
 
 // trustPublicDocument is the response of GET /api/v1/trust/:slug/documents/:id.
@@ -138,7 +151,7 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	parts := strings.Split(strings.TrimPrefix(req.URL.Path, trustPublicPrefix+"/"), "/")
 	slug := parts[0]
 	var items bool
-	var docID string
+	var docID, certID string
 	switch {
 	case slug == "":
 		return trustPublicNotFound(c)
@@ -147,6 +160,8 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		items = true
 	case len(parts) == 3 && parts[1] == "documents" && parts[2] != "":
 		docID = parts[2]
+	case len(parts) == 4 && parts[1] == "certifications" && parts[2] != "" && parts[3] == "file":
+		certID = parts[2]
 	default:
 		return trustPublicNotFound(c)
 	}
@@ -175,6 +190,8 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	}
 
 	switch {
+	case certID != "":
+		return s.trustPublicCertificationFile(c, org, certID)
 	case docID != "":
 		return s.trustPublicDocument(c, org, docID)
 	case items:
@@ -223,6 +240,14 @@ func (s *Server) trustPublicItems(c echo.Context, org *db.Organization) error {
 	if err != nil {
 		return trustPublicError(c, err)
 	}
+	servable, err := s.db.ListServableTrustCertifications(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	certs := make(map[string]*db.TrustCertification, len(servable))
+	for i := range servable {
+		certs[strconv.FormatInt(servable[i].ID, 10)] = &servable[i]
+	}
 	out := make([]trustPublicItem, 0, len(rows))
 	for _, it := range rows {
 		if it.HiddenAt != nil {
@@ -241,6 +266,25 @@ func (s *Server) trustPublicItems(c echo.Context, org *db.Organization) error {
 			pi.Version = info.Served.Version
 			pi.ApprovedAt = info.Served.ApprovedAt.Unix()
 			pi.ContentHash = info.Served.ContentHash
+		}
+		if it.Kind == db.TrustKindCertification {
+			// Only a certification the servable query returned goes out: an
+			// expired, hidden or missing one is skipped, never emitted bare.
+			cert := certs[it.Reference]
+			if cert == nil || cert.Item == nil || cert.Item.ID != it.ID {
+				continue
+			}
+			pi.AccessLevel = cert.Item.AccessLevel
+			pi.Title, pi.LinkType, pi.Issuer, pi.State, pi.Source = cert.Label, cert.LinkType, cert.Issuer, cert.State, trustCertSource(cert)
+			if cert.ValidFrom != nil {
+				pi.ValidFrom = *cert.ValidFrom
+			}
+			if cert.ValidUntil != nil {
+				pi.ValidUntil = *cert.ValidUntil
+			}
+			if cert.Item.AccessLevel == db.TrustAccessPublic {
+				pi.URL, pi.FileName, pi.FileSize = cert.URL, cert.FileName, cert.FileSize
+			}
 		}
 		out = append(out, pi)
 	}

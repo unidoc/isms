@@ -403,6 +403,26 @@ var contractTable = []contractEntry{
 		shapes: []contractShape{shape(tReq(trustManagerItem{}), "trust_manager.go handleListTrustItems: element of the array, trustManagerItem")},
 	},
 	{
+		component: "TrustCertification",
+		//   trust_certifications.go: every manager certification endpoint answers c.JSON(.., trustCertificationResponse(cert))
+		shapes: []contractShape{shape(tReq(trustCertificationJSON{}), "trust_certifications.go handleListTrustCertifications: element of the array, trustCertificationJSON")},
+	},
+	{
+		component:   "TrustCertificationCreateRequest",
+		shapes:      []contractShape{shape(tReq(trustCertificationCreateRequest{}), "trust_certifications.go handleCreateTrustCertification: JSON request body")},
+		requestOnly: true,
+	},
+	{
+		component:   "TrustCertificationUpdateRequest",
+		shapes:      []contractShape{shape(tReq(trustCertificationUpdateRequest{}), "trust_certifications.go handleUpdateTrustCertification: request body")},
+		requestOnly: true,
+	},
+	{
+		component:   "TrustCertificationPublishRequest",
+		shapes:      []contractShape{shape(tReq(trustCertificationPublishRequest{}), "trust_certifications.go handlePublishTrustCertification: request body")},
+		requestOnly: true,
+	},
+	{
 		component: "TrustCenterItemUpdateRequest",
 		// trust_manager.go handlePatchTrustItem binds trustItemPatchRequest.
 		shapes:      []contractShape{shape(tReq(trustItemPatchRequest{}), "trust_manager.go handlePatchTrustItem: request body, trustItemPatchRequest")},

@@ -396,7 +396,8 @@
     "created_failed": ", {count} failed",
     "error_create": "Could not create tasks: {message}",
     "error_load": "Failed to load overdue items: {message}",
-    "external_link": "link"
+    "external_link": "link",
+    "trust_certification": "Trust center certification"
   },
   "suggest_new": {
     "button": "Suggest",

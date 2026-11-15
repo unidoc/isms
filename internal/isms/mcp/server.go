@@ -210,7 +210,7 @@ func toolDefinitions() []mcpTool {
 		},
 		{
 			Name:        "get_overdue_items",
-			Description: "Get all overdue items across the ISMS: risks, suppliers, systems, legal requirements, tasks, documents past their review cycle, objectives with overdue check-ins, and supplier contracts and external evidence links that are expiring or expired.",
+			Description: "Get all overdue items across the ISMS: risks, suppliers, systems, legal requirements, tasks, documents past their review cycle, objectives with overdue check-ins, and supplier contracts, external evidence links and trust center certifications that are expiring or expired.",
 			InputSchema: jsonSchema(map[string]prop{}, nil),
 		},
 		// ── Document review participation ──

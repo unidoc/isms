@@ -33,6 +33,19 @@
     "doc_approved": "{date} に承認",
     "doc_hash": "ハッシュ",
     "doc_locked": "このドキュメントはオンラインでは閲覧できません。アクセス: {access}。",
-    "powered_by": "Powered by isms.sh"
+    "powered_by": "Powered by isms.sh",
+    "certifications": {
+      "heading": "認証とレポート",
+      "col_name": "名称",
+      "col_type": "種類",
+      "col_issuer": "発行元",
+      "col_status": "ステータス",
+      "col_action": "操作",
+      "valid_until": "有効期限 {date}",
+      "state_current": "有効",
+      "state_expiring": "まもなく期限切れ",
+      "action_download": "ダウンロード",
+      "action_view_at": "{host} で表示"
+    }
   }
 }

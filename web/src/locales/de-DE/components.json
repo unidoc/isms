@@ -392,7 +392,8 @@
     "created_failed": ", {count} fehlgeschlagen",
     "error_create": "Aufgaben konnten nicht erstellt werden: {message}",
     "error_load": "Überfällige Einträge konnten nicht geladen werden: {message}",
-    "external_link": "Link"
+    "external_link": "Link",
+    "trust_certification": "Trust-Center-Zertifizierung"
   },
   "suggest_new": {
     "button": "Vorschlagen",

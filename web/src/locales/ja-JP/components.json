@@ -388,7 +388,8 @@
     "all_on_schedule": "すべてのレビューが予定どおり",
     "contract": "契約",
     "contract_expired": "{count}日前",
-    "contract_expires_in": "{count}日後"
+    "contract_expires_in": "{count}日後",
+    "trust_certification": "トラストセンターの認証"
   },
   "suggest_new": {
     "button": "提案",

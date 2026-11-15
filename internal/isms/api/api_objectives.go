@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -921,8 +920,16 @@ func (s *Server) handleUploadEvidence(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "organization not found")
 	}
 
+	// Small in-memory budget: file parts spill to temporary files rather than
+	// being held in memory (the upload limit is 50 MB).
+	if err := parseUploadForm(c); err != nil {
+		return err
+	}
 	file, err := c.FormFile("file")
 	if err != nil {
+		if isBodyTooLarge(err) {
+			return echo.ErrStatusRequestEntityTooLarge
+		}
 		return errRequired("file")
 	}
 
@@ -937,15 +944,17 @@ func (s *Server) handleUploadEvidence(c echo.Context) error {
 	}
 	defer src.Close()
 
-	// Read file content to compute hash and get size
-	content, err := io.ReadAll(src)
+	// Hash and size in one pass, then rewind and stream to the store; the file
+	// is never held in memory.
+	h := sha256.New()
+	size, err := io.Copy(h, src)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to read file content")
 	}
-
-	hash := sha256.Sum256(content)
-	hashStr := fmt.Sprintf("%x", hash)
-	size := int64(len(content))
+	hashStr := fmt.Sprintf("%x", h.Sum(nil))
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to read file content")
+	}
 
 	ext := filepath.Ext(file.Filename)
 	objectKey := fmt.Sprintf("evidence/%d/%s%s", checkinID, uuid.New().String(), ext)
@@ -954,7 +963,7 @@ func (s *Server) handleUploadEvidence(c echo.Context) error {
 		contentType = "application/octet-stream"
 	}
 
-	if err := s.blobs.PutStream(ctx, org.UUID, objectKey, contentType, bytes.NewReader(content)); err != nil {
+	if err := s.blobs.PutStream(ctx, org.UUID, objectKey, contentType, src); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to upload: "+err.Error())
 	}
 

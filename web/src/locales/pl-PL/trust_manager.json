@@ -76,7 +76,7 @@
     "saved": "Zapisano",
     "save_error": "Nie udało się zapisać: {message}",
     "domains_label": "Zablokowane domeny e-mail",
-    "domains_help": "Osoby z adresem e-mail w tych domenach nie mogą się zalogować. Jedna domena w wierszu.",
+    "domains_help": "Osoby z adresem e-mail w tych domenach nie mogą się zalogować. Jedna domena w wierszu. Odwiedzający już zalogowani zachowują dostęp do końca sesji; zakończ ją na karcie Odwiedzający.",
     "domains_default_note": "Używana jest wbudowana lista prywatnych dostawców poczty.",
     "domains_restore": "Przywróć domyślne",
     "domains_allow_all": "Zezwól na wszystkie domeny",

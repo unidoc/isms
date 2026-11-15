@@ -76,7 +76,7 @@
     "saved": "Saved",
     "save_error": "Could not save: {message}",
     "domains_label": "Blocked email domains",
-    "domains_help": "People with an email address at these domains cannot sign in. One domain per line.",
+    "domains_help": "People with an email address at these domains cannot sign in. One domain per line. Visitors already signed in keep access until their session ends; end it from the Visitors tab.",
     "domains_default_note": "Using the built-in list of personal email providers.",
     "domains_restore": "Restore defaults",
     "domains_allow_all": "Allow every domain",

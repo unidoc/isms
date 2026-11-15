@@ -72,7 +72,6 @@
     "name_label": "Name",
     "company_label": "Company",
     "profile_hint": "We ask this once, the first time you sign in.",
-    "profile_required": "Enter your name and company to continue.",
     "submit": "Sign in",
     "submitting": "Signing in...",
     "invalid": "This sign-in link is invalid or has expired.",

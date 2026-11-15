@@ -76,7 +76,7 @@
     "saved": "Tersimpan",
     "save_error": "Tidak dapat menyimpan: {message}",
     "domains_label": "Domain email yang diblokir",
-    "domains_help": "Orang dengan alamat email di domain ini tidak dapat masuk. Satu domain per baris.",
+    "domains_help": "Orang dengan alamat email di domain ini tidak dapat masuk. Satu domain per baris. Pengunjung yang sudah masuk tetap memiliki akses sampai sesinya berakhir; akhiri dari tab Pengunjung.",
     "domains_default_note": "Menggunakan daftar bawaan penyedia email pribadi.",
     "domains_restore": "Pulihkan bawaan",
     "domains_allow_all": "Izinkan semua domain",

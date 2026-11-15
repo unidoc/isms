@@ -9,6 +9,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,6 +41,12 @@ func purgeTestLinks(t *testing.T) {
 	rawExec(t, `DELETE FROM trust_visitor_links WHERE email LIKE '%@auditco.test'`)
 }
 
+// newGmail returns a fresh address at a domain the default list blocks. Tests
+// that let it through (an empty list) must not reuse one address: the per-address
+// cap counts links across every organization for an hour, so a fixed address
+// stops getting mail after about ten runs on one database.
+func newGmail() string { return fmt.Sprintf("someone-%d@gmail.com", time.Now().UnixNano()) }
+
 // visitorSetup returns a server with a mailer on a fake SMTP sink and an
 // enabled trust center. The base URL is http, in path mode.
 func visitorSetup(t *testing.T) visitorEnv {
@@ -64,6 +71,19 @@ func rawExec(t *testing.T, sql string, args ...any) {
 	}
 	defer conn.Close(context.Background())
 	if _, err := conn.Exec(context.Background(), sql, args...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// rawQuery scans one row into dest on a separate connection.
+func rawQuery(t *testing.T, sql string, args []any, dest ...any) {
+	t.Helper()
+	conn, err := pgx.Connect(context.Background(), os.Getenv("ISMS_TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(context.Background())
+	if err := conn.QueryRow(context.Background(), sql, args...).Scan(dest...); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -370,7 +390,7 @@ func TestTrustVisitorLinkAnswerIsUniform(t *testing.T) {
 
 func TestTrustVisitorBlockedDomain(t *testing.T) {
 	e := visitorSetup(t)
-	r := vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"someone@gmail.com"}`)
+	r := vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"`+newGmail()+`"}`)
 	if r.code != http.StatusBadRequest || codeOfBody(r) != CodeTrustEmailDomainBlocked || !strings.Contains(r.body, "gmail.com") {
 		t.Fatalf("gmail with the default list = %d %s", r.code, r.body)
 	}
@@ -378,7 +398,7 @@ func TestTrustVisitorBlockedDomain(t *testing.T) {
 
 	// An explicit empty list allows every domain.
 	rawExec(t, `UPDATE trust_center_settings SET blocked_email_domains = '{}' WHERE organization_id = $1`, e.org.id)
-	r = vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"someone@gmail.com"}`)
+	r = vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"`+newGmail()+`"}`)
 	if r.code != http.StatusAccepted {
 		t.Fatalf("gmail with an empty list = %d %s", r.code, r.body)
 	}
@@ -608,7 +628,7 @@ func TestTrustVisitorMethodAndPathHygiene(t *testing.T) {
 func TestTrustVisitorLinkRequestsArePerIPLimited(t *testing.T) {
 	e := visitorSetup(t)
 	post := func() trustResp {
-		return vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"someone@gmail.com"}`) // refused fast, no mail
+		return vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"`+newGmail()+`"}`) // refused fast, no mail
 	}
 	for i := 1; i <= 10; i++ {
 		if r := post(); r.code != http.StatusBadRequest {
@@ -665,4 +685,39 @@ func TestTrustVisitorLinkRequestCapsHoldInParallel(t *testing.T) {
 	}
 	waitSinkMail(t, e.sink, 3)
 	assertNoMail(t, e.sink, 3)
+}
+
+// A domain blocked after a link was sent cannot sign in: inspect and redeem both
+// refuse it and neither consumes the link, so unblocking the domain makes the
+// same link work again within its 15 minutes.
+func TestTrustVisitorBlockedDomainStopsRedeem(t *testing.T) {
+	e := visitorSetup(t)
+	addr := newGmail()
+	rawExec(t, `UPDATE trust_center_settings SET blocked_email_domains = '{}' WHERE organization_id = $1`, e.org.id)
+	tok := e.requestLink(t, addr)
+
+	rawExec(t, `UPDATE trust_center_settings SET blocked_email_domains = NULL WHERE organization_id = $1`, e.org.id) // the built-in list blocks gmail.com
+	for _, route := range []string{"/visitor/link/inspect", "/visitor/session"} {
+		r := vdo(e.s, http.MethodPost, e.path(route), `{"token":"`+tok+`","name":"A","company":"B"}`)
+		if r.code != http.StatusBadRequest || codeOfBody(r) != CodeTrustEmailDomainBlocked || !strings.Contains(r.body, "gmail.com") {
+			t.Errorf("%s with a blocked domain = %d %s", route, r.code, r.body)
+		}
+		if visitorCookieOf(t, r) != nil {
+			t.Errorf("%s set a cookie for a blocked domain", route)
+		}
+	}
+	var used *time.Time
+	rawQuery(t, `SELECT used_at FROM trust_visitor_links WHERE email = $1`, []any{addr}, &used)
+	if used != nil {
+		t.Error("the refused redeem consumed the link")
+	}
+
+	rawExec(t, `UPDATE trust_center_settings SET blocked_email_domains = '{}' WHERE organization_id = $1`, e.org.id)
+	if r := vdo(e.s, http.MethodPost, e.path("/visitor/link/inspect"), `{"token":"`+tok+`"}`); r.code != http.StatusOK {
+		t.Errorf("inspect after unblocking = %d %s", r.code, r.body)
+	}
+	r := vdo(e.s, http.MethodPost, e.path("/visitor/session"), `{"token":"`+tok+`","name":"A","company":"B"}`)
+	if r.code != http.StatusOK || visitorCookieOf(t, r) == nil {
+		t.Errorf("redeem after unblocking = %d %s", r.code, r.body)
+	}
 }

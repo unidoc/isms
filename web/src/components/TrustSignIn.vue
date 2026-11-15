@@ -55,7 +55,8 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
 import { t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
@@ -67,6 +68,8 @@ const props = defineProps({
   basePath: { type: String, required: true },
 })
 const emit = defineEmits(['navigate'])
+const router = useRouter()
+const route = useRoute()
 
 const state = ref('checking') // checking | unavailable | invalid | blocked | error | confirm
 const brandName = ref('')
@@ -85,18 +88,25 @@ const TOKEN_RE = /^[0-9a-f]{64}$/
 // history entry before anything else happens (and before any request).
 // The key is `visitor_token`, never `token`: that name belongs to the SSO
 // handoff that stores a member session token, and the two must not share one.
-function takeToken() {
-  const hash = typeof location !== 'undefined' ? location.hash : ''
+function takeToken(hash = typeof location !== 'undefined' ? location.hash : '') {
   const value = new URLSearchParams(hash.replace(/^#/, '')).get('visitor_token')
   if (value === null) return ''
-  history.replaceState(history.state, '', location.pathname + location.search)
+  stripFragment()
   return value
+}
+
+// The fragment is removed THROUGH the router. A bare history.replaceState would
+// leave the router's own state.current (the tokenised path) in the history entry,
+// and its next navigation would write that back, so Back would return to the
+// token URL. Without a router (a bare mount) it falls back to replaceState.
+function stripFragment() {
+  if (router && route) router.replace({ path: route.path, query: route.query, hash: '' })
+  else history.replaceState(history.state, '', location.pathname + location.search)
 }
 
 // Opening a second link in the same tab only changes the fragment: the page
 // stays mounted, so it takes the new token and starts again.
-function onHashChange() {
-  const next = takeToken()
+function restartWith(next) {
   if (!next) return
   token = next
   formError.value = ''
@@ -104,6 +114,12 @@ function onHashChange() {
   company.value = ''
   start()
 }
+// With a router the trigger is the router's own route (its fragment changed),
+// so the strip below lands after the router has recorded the navigation; a
+// window listener could fire first and the strip would be a no-op. Without a
+// router (a bare mount) the window event is all there is.
+function onHashChange() { restartWith(takeToken()) }
+const stopWatch = route ? watch(() => route.hash, (h) => { if (h) restartWith(takeToken(h)) }) : null
 
 const BRAND_VARS = ['--brand-color', '--brand-text-color', '--brand-fill-color']
 let saved = null
@@ -182,12 +198,13 @@ onMounted(() => {
   document.body.style.background = '#f8fafc'
   root.background = '#f8fafc'
   token = takeToken()
-  window.addEventListener('hashchange', onHashChange)
+  if (!route) window.addEventListener('hashchange', onHashChange)
   start()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('hashchange', onHashChange)
+  if (stopWatch) stopWatch()
   if (!saved) return
   const root = document.documentElement.style
   document.body.style.background = saved.bodyBg

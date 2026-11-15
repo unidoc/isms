@@ -76,7 +76,7 @@
     "saved": "Salvo",
     "save_error": "Não foi possível salvar: {message}",
     "domains_label": "Domínios de e-mail bloqueados",
-    "domains_help": "Pessoas com e-mail nesses domínios não podem entrar. Um domínio por linha.",
+    "domains_help": "Pessoas com e-mail nesses domínios não podem entrar. Um domínio por linha. Visitantes que já entraram mantêm o acesso até a sessão terminar; encerre-a na aba Visitantes.",
     "domains_default_note": "Usando a lista integrada de provedores de e-mail pessoais.",
     "domains_restore": "Restaurar padrões",
     "domains_allow_all": "Permitir todos os domínios",

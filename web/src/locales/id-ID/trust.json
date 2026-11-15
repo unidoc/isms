@@ -72,7 +72,6 @@
     "name_label": "Nama",
     "company_label": "Perusahaan",
     "profile_hint": "Kami menanyakan ini sekali, saat pertama kali masuk.",
-    "profile_required": "Masukkan nama dan perusahaan Anda untuk melanjutkan.",
     "submit": "Masuk",
     "submitting": "Sedang masuk...",
     "invalid": "Tautan masuk ini tidak valid atau sudah kedaluwarsa.",

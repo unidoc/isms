@@ -76,7 +76,7 @@
     "saved": "Enregistré",
     "save_error": "Échec de l'enregistrement : {message}",
     "domains_label": "Domaines d'e-mail bloqués",
-    "domains_help": "Les personnes dont l'adresse e-mail appartient à ces domaines ne peuvent pas se connecter. Un domaine par ligne.",
+    "domains_help": "Les personnes dont l'adresse e-mail appartient à ces domaines ne peuvent pas se connecter. Un domaine par ligne. Les visiteurs déjà connectés gardent l'accès jusqu'à la fin de leur session ; mettez-y fin depuis l'onglet Visiteurs.",
     "domains_default_note": "La liste intégrée des fournisseurs d'e-mail personnels est utilisée.",
     "domains_restore": "Rétablir les valeurs par défaut",
     "domains_allow_all": "Autoriser tous les domaines",

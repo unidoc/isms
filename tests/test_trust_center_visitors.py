@@ -54,6 +54,13 @@ def tv(tv_org):
     return tv_org["slug"]
 
 
+def _no_smtp_only(api_url, tv_org):
+    """These tests describe a server without mail; skip, with the reason, on one that has it."""
+    s = requests.get(f"{api_url}/trust-center/settings", headers=tv_org["admin"]).json()
+    if s["email_configured"]:
+        pytest.skip("this server can send mail; the assertions describe a server without it")
+
+
 def _sign_in_enabled(api_url, slug):
     r = requests.get(f"{api_url}/trust/{slug}")
     assert r.status_code == 200, r.text
@@ -140,7 +147,7 @@ def test_settings_carry_the_sign_in_fields(api_url, tv_org):
     assert "gmail.com" in s["blocked_email_domains"]
     assert s["blocked_email_domains"] == s["default_blocked_email_domains"]
     assert s["privacy_notice_url"] == ""
-    assert s["email_configured"] is False  # CI has no SMTP
+    assert isinstance(s["email_configured"], bool)
 
     r = requests.put(f"{api_url}/trust-center/settings", headers=h, json={
         "blocked_email_domains": ["Rival.TEST", "@example.com", "example.com"],
@@ -158,6 +165,12 @@ def test_settings_carry_the_sign_in_fields(api_url, tv_org):
     assert r.json()["blocked_email_domains"] == [] and r.json()["blocked_email_domains_default"] is False
     r = requests.put(f"{api_url}/trust-center/settings", headers=h, json={"blocked_email_domains": None, "privacy_notice_url": ""})
     assert r.json()["blocked_email_domains_default"] is True and r.json()["privacy_notice_url"] == ""
+
+
+def test_settings_report_that_email_is_not_configured(api_url, tv_org):
+    _no_smtp_only(api_url, tv_org)
+    s = requests.get(f"{api_url}/trust-center/settings", headers=tv_org["admin"]).json()
+    assert s["email_configured"] is False
 
 
 @pytest.mark.parametrize("body", [

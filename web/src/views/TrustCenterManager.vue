@@ -38,7 +38,7 @@
         <!-- Both panels stay mounted: switching tabs must not drop unsaved edits. -->
         <div v-show="tab === 'content'" role="tabpanel">
           <div class="space-y-10">
-            <TrustDocumentsSection />
+            <TrustDocumentsSection @changed="loadSettings" />
             <TrustCertificationsSection />
           </div>
         </div>
@@ -82,6 +82,9 @@ const tab = ref(tabFromQuery(route?.query?.tab))
 watch(() => route?.query?.tab, (v) => { tab.value = tabFromQuery(v) })
 function setTab(tb) {
   tab.value = tb
+  // The warnings and the form read the settings; they may have moved on (a
+  // document's level, the hourly sign-in cap), so read them again on every switch.
+  if (isManager.value) loadSettings()
   router?.replace({ query: { ...route?.query, tab: tb === 'content' ? undefined : tb } })
 }
 

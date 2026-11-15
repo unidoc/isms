@@ -126,6 +126,37 @@ const (
 	trustLinkLockAddress = 524002
 )
 
+// The send caps look back at most trustLinkLongestWindow (the per-organization
+// and per-address windows are one hour). A link older than that no longer
+// counts for any cap or for TrustVisitorLinkPausedUntil, so PruneTrustVisitorData
+// may delete it once it is used or expired. Keep this at least as long as the
+// longest window the handler passes in TrustLinkCaps.
+const trustLinkLongestWindow = time.Hour
+
+// trustSessionKeep is how long a dead (expired or revoked) session row stays.
+const trustSessionKeep = 30 * 24 * time.Hour
+
+// PruneTrustVisitorData deletes what nothing reads any more: links older than
+// the longest cap window that are used or expired, and sessions that expired or
+// were revoked more than 30 days ago. Visitors themselves are kept (retention
+// of visitor records is a separate decision). The manager cron runs it through
+// CleanupExpired. Errors are returned for the caller to log or ignore.
+func (d *DB) PruneTrustVisitorData(ctx context.Context) error {
+	if _, err := d.pool.Exec(ctx, `
+		DELETE FROM trust_visitor_links
+		WHERE created_at < now() - make_interval(secs => $1)
+		  AND (used_at IS NOT NULL OR expires_at < now())
+	`, trustLinkLongestWindow.Seconds()); err != nil {
+		return err
+	}
+	_, err := d.pool.Exec(ctx, `
+		DELETE FROM trust_visitor_sessions
+		WHERE (expires_at < now() - make_interval(secs => $1))
+		   OR (revoked_at IS NOT NULL AND revoked_at < now() - make_interval(secs => $1))
+	`, trustSessionKeep.Seconds())
+	return err
+}
+
 // CreateTrustVisitorLinkCapped counts and inserts in ONE transaction, so
 // parallel requests cannot all pass the counts before any of them inserts. It
 // takes an advisory lock for the organization (so the per-address and

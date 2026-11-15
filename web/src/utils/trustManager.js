@@ -62,8 +62,9 @@ export function changedSettings(orig, form) {
       if (orig.blocked_email_domains_default === false) patch.blocked_email_domains = null
     } else {
       const list = parseDomains(form.domainsText)
-      const same = orig.blocked_email_domains_default === false &&
-        JSON.stringify(normalizeDomains(list)) === JSON.stringify(normalizeDomains(orig.blocked_email_domains))
+      // The same list as the one in effect is no change, even when the original
+      // is the built-in default: touching the textarea must not freeze the list.
+      const same = JSON.stringify(normalizeDomains(list)) === JSON.stringify(normalizeDomains(orig.blocked_email_domains))
       if (!same) patch.blocked_email_domains = list
     }
   }

@@ -76,7 +76,7 @@
     "saved": "Vistað",
     "save_error": "Ekki tókst að vista: {message}",
     "domains_label": "Netfangalén sem lokað er á",
-    "domains_help": "Fólk með netfang á þessum lénum getur ekki skráð sig inn. Eitt lén í hverri línu.",
+    "domains_help": "Fólk með netfang á þessum lénum getur ekki skráð sig inn. Eitt lén í hverri línu. Gestir sem þegar eru innskráðir halda aðgangi þar til lotan þeirra rennur út; ljúktu henni á flipanum Gestir.",
     "domains_default_note": "Innbyggður listi yfir einkanetfangaþjónustur er í notkun.",
     "domains_restore": "Endurheimta sjálfgefið",
     "domains_allow_all": "Leyfa öll lén",

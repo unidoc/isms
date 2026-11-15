@@ -72,7 +72,6 @@
     "name_label": "Nombre",
     "company_label": "Empresa",
     "profile_hint": "Lo preguntamos una sola vez, la primera vez que inicias sesión.",
-    "profile_required": "Introduce tu nombre y tu empresa para continuar.",
     "submit": "Iniciar sesión",
     "submitting": "Iniciando sesión...",
     "invalid": "Este enlace de inicio de sesión no es válido o ha caducado.",

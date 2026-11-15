@@ -449,6 +449,17 @@ async function loadDocument() {
     docHtml.value = sanitize(d.html)
     docState.value = 'ready'
   } catch (err) {
+    // A 404 while we think a visitor is signed in may mean the session ended
+    // (revoked, blocked, expired): ask again, and if they are signed out show the
+    // locked state with its sign-in prompt, not "missing".
+    if (err && err.status === 404 && visitor.value && visitorFeatures.value) {
+      await loadVisitor()
+      if (!visitor.value && !mayRead(it)) {
+        lockedItem.value = it
+        docState.value = 'locked'
+        return
+      }
+    }
     docState.value = err && err.status === 404 ? 'missing' : 'error'
   }
 }

@@ -117,6 +117,30 @@ test('anonymous on a gated document page: locked, with a sign-in button, never f
   assert.ok(!off.includes('doc-sign-in') && off.includes('mailto:security@acme.example'), off)
 })
 
+test('a gated document that 404s while a visitor is shown re-asks, and a ended session shows the locked state with the sign-in prompt', async () => {
+  const st = stub({ signedIn: true })
+  const html = norm(await mount(props({ docId: GATED }), async (host, settle) => {
+    await settle(h => h.includes('BODY'))
+  }, h => h.includes('BODY')))
+  assert.ok(html.includes('BODY 22'), 'control: readable while signed in')
+
+  // The session ended on the server after the page loaded its visitor: the doc
+  // fetch 404s, the visitor is re-read (now null), and the page shows "locked".
+  const calls = stub({ signedIn: true })
+  const real = globalThis.fetch
+  let visitorReads = 0
+  globalThis.fetch = async (url, opts) => {
+    if (String(url).endsWith('/visitor') && ++visitorReads === 2) calls.signedIn = false
+    if (String(url).includes(`/documents/${GATED}`)) calls.signedIn = false // revoked just before the read
+    return real(url, opts)
+  }
+  const out = norm(await mount(props({ docId: GATED }), null, h => h.includes('data-trust="locked"') || h.includes('data-trust="doc-unavailable"')))
+  assert.ok(out.includes('data-trust="locked"') && out.includes('data-trust="doc-sign-in"'), out)
+  assert.ok(!out.includes('data-trust="doc-unavailable"'), 'not "missing"')
+  assert.ok(visitorReads >= 2, 'the visitor was asked again')
+  void st
+})
+
 test('sign out calls the endpoint and the page returns to anonymous', async () => {
   const st = stub({ signedIn: true })
   const html = norm(await mount(props(), async (host, settle) => {

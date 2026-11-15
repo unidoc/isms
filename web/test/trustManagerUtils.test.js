@@ -148,7 +148,10 @@ test('changedSettings: domains by mode, privacy URL, and spelling/order are not 
   assert.deepEqual(changedSettings(orig, form({ domainsText: '' })), { blocked_email_domains: [] })
   assert.deepEqual(changedSettings(orig, form({ domainsMode: 'default' })), { blocked_email_domains: null })
   assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsMode: 'default' })), {})
-  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsText: 'a.test\nb.test' })), { blocked_email_domains: ['a.test', 'b.test'] })
+  // touching the textarea without changing the list must not freeze the built-in list
+  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsText: 'a.test\nb.test' })), {})
+  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsText: 'B.test\n@a.test' })), {})
+  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsText: 'a.test\nb.test\nc.test' })), { blocked_email_domains: ['a.test', 'b.test', 'c.test'] })
   assert.deepEqual(changedSettings(orig, form({ privacy_notice_url: ' https://x.test/p ' })), { privacy_notice_url: 'https://x.test/p' })
   assert.deepEqual(parseDomains(' a.test,\n b.test  c.test '), ['a.test', 'b.test', 'c.test'])
   assert.deepEqual(normalizeDomains(['B.test', '@a.test', 'a.test']), ['a.test', 'b.test'])

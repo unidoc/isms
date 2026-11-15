@@ -72,7 +72,6 @@
     "name_label": "名前",
     "company_label": "会社名",
     "profile_hint": "初回のサインイン時に一度だけお聞きします。",
-    "profile_required": "続行するには名前と会社名を入力してください。",
     "submit": "サインイン",
     "submitting": "サインイン中...",
     "invalid": "このサインインリンクは無効か、有効期限が切れています。",

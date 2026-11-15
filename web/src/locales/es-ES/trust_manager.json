@@ -76,7 +76,7 @@
     "saved": "Guardado",
     "save_error": "No se pudo guardar: {message}",
     "domains_label": "Dominios de correo bloqueados",
-    "domains_help": "Las personas con una dirección de correo en estos dominios no pueden iniciar sesión. Un dominio por línea.",
+    "domains_help": "Las personas con una dirección de correo en estos dominios no pueden iniciar sesión. Un dominio por línea. Los visitantes que ya iniciaron sesión conservan el acceso hasta que termine su sesión; finalízala desde la pestaña Visitantes.",
     "domains_default_note": "Se usa la lista integrada de proveedores de correo personales.",
     "domains_restore": "Restaurar valores predeterminados",
     "domains_allow_all": "Permitir todos los dominios",

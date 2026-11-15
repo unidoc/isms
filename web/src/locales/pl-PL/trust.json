@@ -72,7 +72,6 @@
     "name_label": "Imię i nazwisko",
     "company_label": "Firma",
     "profile_hint": "Pytamy o to raz, przy pierwszym logowaniu.",
-    "profile_required": "Podaj imię i nazwisko oraz firmę, aby kontynuować.",
     "submit": "Zaloguj się",
     "submitting": "Logowanie...",
     "invalid": "Ten link do logowania jest nieprawidłowy lub wygasł.",

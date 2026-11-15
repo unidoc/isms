@@ -190,6 +190,9 @@ CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_org_email
     ON trust_visitor_links(organization_id, email, created_at);
 CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_org_created
     ON trust_visitor_links(organization_id, created_at);
+-- The per-address cap across all organizations counts by email alone.
+CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_email_created
+    ON trust_visitor_links(email, created_at);
 
 -- Visitor sessions: opaque token stored hashed, revocable at once.
 CREATE TABLE IF NOT EXISTS trust_visitor_sessions (

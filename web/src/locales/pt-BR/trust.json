@@ -72,7 +72,6 @@
     "name_label": "Nome",
     "company_label": "Empresa",
     "profile_hint": "Perguntamos isso uma só vez, no primeiro login.",
-    "profile_required": "Informe seu nome e sua empresa para continuar.",
     "submit": "Entrar",
     "submitting": "Entrando...",
     "invalid": "Este link de login é inválido ou expirou.",

@@ -72,7 +72,6 @@
     "name_label": "Name",
     "company_label": "Unternehmen",
     "profile_hint": "Wir fragen das nur einmal, bei der ersten Anmeldung.",
-    "profile_required": "Geben Sie Ihren Namen und Ihr Unternehmen ein, um fortzufahren.",
     "submit": "Anmelden",
     "submitting": "Anmeldung läuft ...",
     "invalid": "Dieser Anmeldelink ist ungültig oder abgelaufen.",

@@ -130,6 +130,9 @@ import TrustDocumentSearch from './TrustDocumentSearch.vue'
 
 // The Documents section of the trust center manager screen. Rows come from
 // GET /trust-center/items and are ordered like the public page.
+// `changed` tells the screen that something it shows warnings about may have
+// changed (an overview document's level, for one), so it can read the settings again.
+const emit = defineEmits(['changed'])
 const { t } = useI18n()
 const { orgPath } = useCurrentOrg()
 const { pending, answer, run } = useClassificationConfirm()
@@ -203,6 +206,7 @@ async function changeLevel(row, ev) {
       return
     }
     items.value = items.value.map((r) => (r.id === row.id ? out.result : r))
+    emit('changed')
   } catch (e) {
     ev.target.value = row.access_level
     await fail(e)
@@ -220,6 +224,7 @@ async function move(i, delta) {
   busy.value = true
   try {
     items.value = (await api.reorderTrustItems('document', ids)) || []
+    emit('changed')
   } catch (e) {
     await fail(e)
     if (e?.code === 'trust_order_stale') await load()
@@ -235,6 +240,7 @@ async function removeItem(row) {
     await api.unpublishDocumentTrust(row.document.document_id)
     ask.value = null
     await load()
+    emit('changed')
   } catch (e) {
     ask.value = null
     await fail(e)
@@ -248,7 +254,10 @@ async function publishAgain(row) {
   actionError.value = ''
   try {
     const out = await run((confirm) => api.publishDocumentTrust(row.document.document_id, row.access_level, confirm))
-    if (!out.cancelled) await load()
+    if (!out.cancelled) {
+      await load()
+      emit('changed')
+    }
   } catch (e) {
     await fail(e)
   } finally {
@@ -281,6 +290,7 @@ async function publishPicked() {
     if (out.cancelled) return
     picker.value = null
     await load()
+    emit('changed')
   } catch (e) {
     p.error = renderApiError(e) || t('common.state.unknown')
   } finally {

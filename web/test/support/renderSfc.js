@@ -39,6 +39,9 @@ import { JSDOM } from 'jsdom'
 // here: a null-document TypeError from inside the renderer means an import got
 // reordered.
 const dom = new JSDOM('<!doctype html><html><body></body></html>')
+// Exported so a test that needs a real URL and history (a router under jsdom)
+// can `reconfigure` it.
+export const jsdomInstance = dom
 for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGElement', 'Text', 'Comment', 'DocumentFragment', 'Document', 'CustomEvent']) {
   globalThis[key] = key === 'window' ? dom.window : dom.window[key]
 }

@@ -88,7 +88,7 @@ func TestTrustVisitorMgrDomainSettings(t *testing.T) {
 	if st.DomainsDefault || len(st.Domains) != 0 {
 		t.Fatalf("empty list = %+v", st)
 	}
-	r := vdo(m.s, http.MethodPost, m.path("/visitor/link"), `{"email":"someone@gmail.com"}`)
+	r := vdo(m.s, http.MethodPost, m.path("/visitor/link"), `{"email":"`+newGmail()+`"}`)
 	if r.code != http.StatusAccepted {
 		t.Errorf("gmail with an empty list = %d %s", r.code, r.body)
 	}
@@ -99,7 +99,7 @@ func TestTrustVisitorMgrDomainSettings(t *testing.T) {
 	if !st.DomainsDefault || !contains(st.Domains, "gmail.com") {
 		t.Errorf("null = %+v", st)
 	}
-	if r := vdo(m.s, http.MethodPost, m.path("/visitor/link"), `{"email":"someone@gmail.com"}`); r.code != http.StatusBadRequest {
+	if r := vdo(m.s, http.MethodPost, m.path("/visitor/link"), `{"email":"`+newGmail()+`"}`); r.code != http.StatusBadRequest {
 		t.Errorf("gmail with the default list again = %d", r.code)
 	}
 

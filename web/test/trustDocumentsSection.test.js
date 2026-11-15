@@ -423,3 +423,31 @@ test('C3: a public row with a sensitive classification shows the red warning; ga
     'pol-d': 'Classified confidential, visible to anyone',
   })
 })
+
+// ---- the screen is told when something changed (#524) ----
+test('a successful level change, reorder, unpublish and publish each emit `changed`; a failed one does not', async () => {
+  let n = 0
+  const props = { onChanged: () => { n++ } }
+  const run = async (list, handler, act) => {
+    n = 0
+    stub(list, handler)
+    await renderSfcSettled(Section, props, ready, async (host, settle) => { await act(host, settle); await flush() })
+    return n
+  }
+  // level
+  assert.equal(await run([row(A, 'pol-a', 'Doc', 1)], (m, p, b) => (m === 'PATCH' ? json(200, row(A, 'pol-a', 'Doc', 1, { access_level: b.access_level })) : undefined), async (host, settle) => {
+    const sel = host.querySelector('[data-trust="level"]'); sel.value = 'public'; sel.dispatchEvent(new window.Event('change')); await settle(() => n > 0)
+  }), 1)
+  // reorder
+  assert.equal(await run([row(A, 'pol-a', 'First', 1), row(B, 'pol-b', 'Second', 2)], (m, p) => (m === 'PUT' ? json(200, [row(B, 'pol-b', 'Second', 1), row(A, 'pol-a', 'First', 2)]) : undefined), async (host, settle) => {
+    click(rowEl(host, 'pol-a'), '[data-trust="down"]'); await settle(() => n > 0)
+  }), 1)
+  // unpublish
+  assert.equal(await run([row(A, 'pol-a', 'Doc', 1)], (m, p, b, st) => { if (m === 'DELETE') { st.list = []; return new Response(null, { status: 204 }) } }, async (host, settle) => {
+    click(host, '[data-trust="unpublish"]'); await settle(h => h.includes('confirm-dialog')); click(host, '[data-trust="confirm-yes"]'); await settle(() => n > 0)
+  }), 1)
+  // a failed level change emits nothing
+  assert.equal(await run([row(A, 'pol-a', 'Doc', 1)], (m) => (m === 'PATCH' ? json(500, { message: 'x' }) : undefined), async (host, settle) => {
+    const sel = host.querySelector('[data-trust="level"]'); sel.value = 'public'; sel.dispatchEvent(new window.Event('change')); await settle(h => h.includes('action-error'))
+  }), 0)
+})

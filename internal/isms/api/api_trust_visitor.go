@@ -40,9 +40,12 @@ import (
 //     first without consuming anything.
 //   - A link request gets the same answer body whether or not the address is
 //     known, blocked or throttled, and the mail is sent off the request path.
-//     A sub-millisecond difference remains for a blocked or throttled address
-//     (no insert), which is not treated as a signal. Only a blocked email
-//     domain is refused openly: that discloses policy, not an account.
+//     The timing is not identical: a known blocked visitor is answered before
+//     the capped transaction, while any other address also pays for that
+//     transaction (two advisory locks, three counts and an insert). It is a
+//     few database round trips, kept small by the indexes on the links table,
+//     and is not treated as a signal. Only a blocked email domain is refused
+//     openly: that discloses policy, not an account.
 
 const (
 	trustVisitorCookie = "isms_trust_visitor"
@@ -263,9 +266,9 @@ func (s *Server) trustVisitorPost(c echo.Context, org *db.Organization, settings
 	case "visitor/link":
 		return s.trustVisitorLink(c, org, settings, body)
 	case "visitor/link/inspect":
-		return s.trustVisitorInspect(c, org, body)
+		return s.trustVisitorInspect(c, org, settings, body)
 	case "visitor/session":
-		return s.trustVisitorSession(c, org, body)
+		return s.trustVisitorSession(c, org, settings, body)
 	}
 	return s.trustVisitorSignOut(c, org)
 }
@@ -358,7 +361,7 @@ func parseVisitorEmail(raw string) (string, bool) {
 }
 
 // trustVisitorInspect answers POST /visitor/link/inspect. It consumes nothing.
-func (s *Server) trustVisitorInspect(c echo.Context, org *db.Organization, body trustVisitorBody) error {
+func (s *Server) trustVisitorInspect(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings, body trustVisitorBody) error {
 	email, v, err := s.db.PeekTrustVisitorLink(c.Request().Context(), org.ID, hashToken(body.Token))
 	if errors.Is(err, db.ErrTrustLinkInvalid) {
 		return trustVisitorReply(c, apiError(http.StatusBadRequest, CodeTrustLinkInvalid))
@@ -369,6 +372,10 @@ func (s *Server) trustVisitorInspect(c echo.Context, org *db.Organization, body 
 	if v != nil && v.Blocked {
 		return trustVisitorReply(c, apiError(http.StatusForbidden, CodeTrustVisitorBlocked))
 	}
+	// The organization may have blocked this domain since the link was sent.
+	if settings.DomainBlocked(email) {
+		return trustVisitorReply(c, apiError(http.StatusBadRequest, CodeTrustEmailDomainBlocked, Value(email[strings.LastIndex(email, "@")+1:])))
+	}
 	return c.JSON(http.StatusOK, map[string]any{
 		"email":         email,
 		"needs_profile": v == nil || v.Name == "",
@@ -376,7 +383,14 @@ func (s *Server) trustVisitorInspect(c echo.Context, org *db.Organization, body 
 }
 
 // trustVisitorSession answers POST /visitor/session: redeem the link, set the cookie.
-func (s *Server) trustVisitorSession(c echo.Context, org *db.Organization, body trustVisitorBody) error {
+func (s *Server) trustVisitorSession(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings, body trustVisitorBody) error {
+	// A domain blocked since the link was sent cannot sign in. Checked before the
+	// link is consumed, so unblocking the domain makes the same link work again
+	// within its 15 minutes. (An unknown link falls through to the redeem, which
+	// answers it the usual way.)
+	if email, _, err := s.db.PeekTrustVisitorLink(c.Request().Context(), org.ID, hashToken(body.Token)); err == nil && settings.DomainBlocked(email) {
+		return trustVisitorReply(c, apiError(http.StatusBadRequest, CodeTrustEmailDomainBlocked, Value(email[strings.LastIndex(email, "@")+1:])))
+	}
 	raw, hash := newHashedToken()
 	v, err := s.db.RedeemTrustVisitorLink(c.Request().Context(), org.ID, hashToken(body.Token),
 		body.Name, body.Company, hash, trustSessionTTL)

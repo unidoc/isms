@@ -76,7 +76,7 @@
     "saved": "Gespeichert",
     "save_error": "Speichern fehlgeschlagen: {message}",
     "domains_label": "Gesperrte E-Mail-Domains",
-    "domains_help": "Personen mit einer E-Mail-Adresse bei diesen Domains können sich nicht anmelden. Eine Domain pro Zeile.",
+    "domains_help": "Personen mit einer E-Mail-Adresse bei diesen Domains können sich nicht anmelden. Eine Domain pro Zeile. Bereits angemeldete Besucher behalten den Zugriff, bis ihre Sitzung endet; beenden Sie sie im Tab „Besucher“.",
     "domains_default_note": "Es gilt die integrierte Liste privater E-Mail-Anbieter.",
     "domains_restore": "Standard wiederherstellen",
     "domains_allow_all": "Alle Domains zulassen",
@@ -113,7 +113,7 @@
     "action_error": "Der Besucher konnte nicht aktualisiert werden: {message}"
   },
   "warnings": {
-    "email_not_configured": "E-Mail ist nicht eingerichtet: Besucher können sich nicht anmelden. Geschützte Dokumente zeigen stattdessen den Sicherheitskontakt.",
+    "email_not_configured": "E-Mail ist nicht eingerichtet: Besucher können sich nicht anmelden. Als „Mit Anmeldung“ veröffentlichte Dokumente zeigen stattdessen den Sicherheitskontakt.",
     "sign_in_paused": "Anmelde-E-Mails sind pausiert: Das Stundenlimit wurde erreicht. Sie werden ab {time} wieder gesendet.",
     "overview_withheld": "Das Übersichtsdokument ist als „Mit Anmeldung“ oder „Eingeschränkt“ veröffentlicht, daher sehen Besucher keine Übersicht."
   },

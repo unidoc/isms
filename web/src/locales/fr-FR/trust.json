@@ -72,7 +72,6 @@
     "name_label": "Nom",
     "company_label": "Entreprise",
     "profile_hint": "Nous ne le demandons qu'une fois, à la première connexion.",
-    "profile_required": "Saisissez votre nom et votre entreprise pour continuer.",
     "submit": "Se connecter",
     "submitting": "Connexion...",
     "invalid": "Ce lien de connexion est invalide ou a expiré.",

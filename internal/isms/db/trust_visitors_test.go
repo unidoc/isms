@@ -637,29 +637,36 @@ func TestTrustVisitorLinkCapPerAddressAcrossOrgs(t *testing.T) {
 	if created != 10 || refused != 2 {
 		t.Errorf("created %d, refused %d; want 10 and 2 over 4 organizations", created, refused)
 	}
-	// concurrently as well
-	email2 := "flood2" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	n := 0
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			ok, _, err := d.CreateTrustVisitorLinkCapped(ctx, orgs[i%4], email2, visitorHash(t), linkTTL, capsFor(1000, 1000, 10))
-			if err != nil {
-				t.Errorf("%v", err)
-			}
-			if ok {
-				mu.Lock()
-				n++
-				mu.Unlock()
-			}
-		}(i)
-	}
-	wg.Wait()
-	if n != 10 {
-		t.Errorf("concurrent across orgs created %d, want 10", n)
+	// Concurrently as well, over several rounds with many goroutines: without
+	// the address lock the count races, and one round is not always enough to
+	// show it.
+	for round := 0; round < 4; round++ {
+		email2 := "flood" + strconv.Itoa(round) + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		n := 0
+		start := make(chan struct{})
+		for i := 0; i < 48; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				<-start
+				ok, _, err := d.CreateTrustVisitorLinkCapped(ctx, orgs[i%4], email2, visitorHash(t), linkTTL, capsFor(1000, 1000, 10))
+				if err != nil {
+					t.Errorf("%v", err)
+				}
+				if ok {
+					mu.Lock()
+					n++
+					mu.Unlock()
+				}
+			}(i)
+		}
+		close(start)
+		wg.Wait()
+		if n != 10 {
+			t.Errorf("round %d: concurrent across orgs created %d, want 10", round, n)
+		}
 	}
 }
 
@@ -727,5 +734,88 @@ func TestTrustVisitorLinkPausedUntil(t *testing.T) {
 	}
 	if got, _ := d.TrustVisitorLinkPausedUntil(ctx, orgID, 0, time.Hour); got != nil {
 		t.Error("a zero cap pauses")
+	}
+}
+
+// Pruning deletes only what no cap or session lookup reads any more.
+func TestTrustVisitorPrune(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "prune")
+	v, _ := signIn(t, d, orgID, "prune@example.com")
+
+	link := func(created, expires string, used bool) string {
+		h := visitorHash(t)
+		usedAt := "NULL"
+		if used {
+			usedAt = "now()"
+		}
+		if _, err := d.pool.Exec(ctx, `INSERT INTO trust_visitor_links (organization_id, email, token_hash, created_at, expires_at, used_at)
+			VALUES ($1, 'p@example.com', $2, now() - $3::interval, now() - $4::interval, `+usedAt+`)`, orgID, h, created, expires); err != nil {
+			t.Fatal(err)
+		}
+		return h
+	}
+	session := func(expires, revoked string) string {
+		h := visitorHash(t)
+		rev := "NULL"
+		if revoked != "" {
+			rev = "now() - '" + revoked + "'::interval"
+		}
+		if _, err := d.pool.Exec(ctx, `INSERT INTO trust_visitor_sessions (organization_id, visitor_id, token_hash, expires_at, revoked_at)
+			VALUES ($1, $2, $3, now() - $4::interval, `+rev+`)`, orgID, v.ID, h, expires); err != nil {
+			t.Fatal(err)
+		}
+		return h
+	}
+	exists := func(table, hash string) bool {
+		var n int
+		_ = d.pool.QueryRow(ctx, `SELECT count(*) FROM `+table+` WHERE token_hash = $1`, hash).Scan(&n)
+		return n == 1
+	}
+
+	oldUsed := link("2 hours", "-1 hour", true)              // old, used: go
+	oldExpired := link("3 hours", "2 hours", false)          // old, expired: go
+	oldLive := link("2 hours", "-1 hour", false)             // old but still valid and unused: stays
+	recentUsed := link("10 minutes", "-5 minutes", true)     // inside the cap window: stays
+	recentExpired := link("30 minutes", "15 minutes", false) // inside the cap window: stays
+
+	deadOld := session("40 days", "")            // expired 40 days ago: go
+	revokedOld := session("-6 days", "35 days")  // revoked 35 days ago: go
+	deadRecent := session("1 day", "")           // expired 1 day ago: stays
+	revokedRecent := session("-6 days", "1 day") // revoked yesterday: stays
+	live := session("-6 days", "")               // live: stays
+
+	if err := d.PruneTrustVisitorData(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]struct {
+		table, hash string
+		keep        bool
+	}{
+		"old used link": {"trust_visitor_links", oldUsed, false}, "old expired link": {"trust_visitor_links", oldExpired, false},
+		"old valid link": {"trust_visitor_links", oldLive, true}, "recent used link": {"trust_visitor_links", recentUsed, true},
+		"recent expired link": {"trust_visitor_links", recentExpired, true},
+		"session expired 40d": {"trust_visitor_sessions", deadOld, false}, "session revoked 35d": {"trust_visitor_sessions", revokedOld, false},
+		"session expired 1d": {"trust_visitor_sessions", deadRecent, true}, "session revoked 1d": {"trust_visitor_sessions", revokedRecent, true},
+		"live session": {"trust_visitor_sessions", live, true},
+	} {
+		if got := exists(want.table, want.hash); got != want.keep {
+			t.Errorf("%s: exists=%v, want %v", name, got, want.keep)
+		}
+	}
+	if _, err := d.GetTrustVisitor(ctx, orgID, v.ID); err != nil {
+		t.Errorf("the visitor was pruned: %v", err)
+	}
+	// The cap counts are what they were: only links inside the window count.
+	if n, _ := d.CountTrustVisitorLinks(ctx, orgID, "p@example.com", time.Now().Add(-time.Hour)); n != 2 {
+		t.Errorf("links in the last hour = %d, want 2 (the recent ones)", n)
+	}
+
+	// CleanupExpired (the manager cron) runs the pruning.
+	again := link("5 hours", "4 hours", true)
+	d.CleanupExpired(ctx)
+	if exists("trust_visitor_links", again) {
+		t.Error("CleanupExpired did not prune old links")
 	}
 }

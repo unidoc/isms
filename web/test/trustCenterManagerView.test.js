@@ -144,3 +144,54 @@ test('the Visitors tab exists, with the section mounted beside the other two', a
   const html = await view()
   assert.ok(html.includes('data-trust-tab="visitors"'), html)
 })
+
+// ---- warnings stay current (#524) ----
+test('a change in the Content section re-reads the settings: the withheld warning appears and goes without a reload', async () => {
+  let withheld = false
+  const calls = []
+  globalThis.fetch = async (url) => {
+    const path = String(url).replace(/^.*\/api\/v1/, '')
+    calls.push(path)
+    if (path === '/me') return json(200, { role: 'manager', email: 'x@y.test' })
+    if (path === '/trust-center/settings') return json(200, { enabled: true, title: '', overview_document_id: 'ov', security_contact: '', default_access_level: 'gated', updated_at: 1, updated_by: 'a', email_configured: true, sign_in_paused_until: null, overview_withheld: withheld })
+    return json(404, {})
+  }
+  globalThis.__sfcStubAttrs = []
+  const seen = []
+  await renderSfcSettled(View, {}, ready, async (host, settle) => {
+    await flush()
+    seen.push(host.innerHTML.includes('data-trust="warn-withheld"'))
+    // the Documents section stub got our `changed` listener
+    const changed = globalThis.__sfcStubAttrs.map(a => a.onChanged).find(Boolean)
+    assert.ok(changed, 'the manager listens for `changed` from the documents section')
+    withheld = true // the overview document was set to gated in the Content section
+    await changed()
+    await flush()
+    seen.push(host.innerHTML.includes('data-trust="warn-withheld"'))
+    withheld = false // ...and back to public
+    await changed()
+    await flush()
+    seen.push(host.innerHTML.includes('data-trust="warn-withheld"'))
+  })
+  assert.deepEqual(seen, [false, true, false])
+})
+
+test('switching tabs reads the settings again', async () => {
+  const calls = []
+  globalThis.fetch = async (url) => {
+    const path = String(url).replace(/^.*\/api\/v1/, '')
+    calls.push(path)
+    if (path === '/me') return json(200, { role: 'admin', email: 'x@y.test' })
+    if (path === '/trust-center/settings') return json(200, { enabled: true, title: '', overview_document_id: null, security_contact: '', default_access_level: 'gated', updated_at: 1, updated_by: 'a', email_configured: true })
+    return json(404, {})
+  }
+  let before, after
+  await renderSfcSettled(View, {}, ready, async (host) => {
+    await flush()
+    before = calls.filter(p => p === '/trust-center/settings').length
+    host.querySelector('[data-trust-tab="settings"]').click()
+    await flush()
+    after = calls.filter(p => p === '/trust-center/settings').length
+  })
+  assert.equal(after, before + 1)
+})

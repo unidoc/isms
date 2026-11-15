@@ -83,11 +83,26 @@ const TOKEN_RE = /^[0-9a-f]{64}$/
 
 // Read the token from the fragment and strip it from the address bar and the
 // history entry before anything else happens (and before any request).
+// The key is `visitor_token`, never `token`: that name belongs to the SSO
+// handoff that stores a member session token, and the two must not share one.
 function takeToken() {
-  const m = /^#token=([^&]*)/.exec(typeof location !== 'undefined' ? location.hash : '')
-  if (!m) return ''
+  const hash = typeof location !== 'undefined' ? location.hash : ''
+  const value = new URLSearchParams(hash.replace(/^#/, '')).get('visitor_token')
+  if (value === null) return ''
   history.replaceState(history.state, '', location.pathname + location.search)
-  return m[1]
+  return value
+}
+
+// Opening a second link in the same tab only changes the fragment: the page
+// stays mounted, so it takes the new token and starts again.
+function onHashChange() {
+  const next = takeToken()
+  if (!next) return
+  token = next
+  formError.value = ''
+  name.value = ''
+  company.value = ''
+  start()
 }
 
 const BRAND_VARS = ['--brand-color', '--brand-text-color', '--brand-fill-color']
@@ -167,10 +182,12 @@ onMounted(() => {
   document.body.style.background = '#f8fafc'
   root.background = '#f8fafc'
   token = takeToken()
+  window.addEventListener('hashchange', onHashChange)
   start()
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', onHashChange)
   if (!saved) return
   const root = document.documentElement.style
   document.body.style.background = saved.bodyBg

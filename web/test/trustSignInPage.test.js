@@ -48,7 +48,7 @@ const settled = h => ['confirm', 'invalid', 'blocked', 'error', 'unavailable'].s
 const mount = (p, interact, isReady = settled) => renderSfcSettled(SignIn, p, isReady, interact)
 
 test('the fragment token is read and removed from the address bar before any request', async () => {
-  const replaced = setLocation(`#token=${TOKEN}`)
+  const replaced = setLocation(`#visitor_token=${TOKEN}`)
   let firstFetchSawHash = null
   const calls = stub()
   const inner = globalThis.fetch
@@ -65,7 +65,7 @@ test('the fragment token is read and removed from the address bar before any req
 })
 
 test('inspect leads to the confirm screen with the email, and nothing is redeemed yet', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   const calls = stub()
   const html = norm(await mount(props()))
   assert.ok(html.includes('data-trust="confirm"') && html.includes('Sign in as ada@auditco.test?'), html)
@@ -75,7 +75,7 @@ test('inspect leads to the confirm screen with the email, and nothing is redeeme
 })
 
 test('needs_profile shows required name and company inputs, capped at 200, with labels', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub({ inspect: () => json(200, { email: 'new@auditco.test', needs_profile: true }) })
   const html = norm(await mount(props()))
   assert.ok(/<input[^>]*data-trust="name"[^>]*/.test(html) && html.includes('maxlength="200"'), html)
@@ -84,7 +84,7 @@ test('needs_profile shows required name and company inputs, capped at 200, with 
 })
 
 test('confirming signs in and navigates to the trust page', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   const calls = stub()
   const navs = []
   await mount(props({ onNavigate: p => navs.push(p) }), async (host, settle) => {
@@ -98,7 +98,7 @@ test('confirming signs in and navigates to the trust page', async () => {
 })
 
 test('a first sign-in sends the trimmed name and company, and refuses empty ones', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   const calls = stub({ inspect: () => json(200, { email: 'new@auditco.test', needs_profile: true }) })
   const navs = []
   let html = ''
@@ -117,7 +117,7 @@ test('a first sign-in sends the trimmed name and company, and refuses empty ones
 })
 
 test('a 409 on confirm shows the profile fields', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub({ session: () => json(409, { message: 'x', code: 'trust_visitor_profile_required' }) })
   const html = norm(await mount(props(), async (host, settle) => {
     host.querySelector('[data-trust=confirm-submit]').click()
@@ -127,7 +127,7 @@ test('a 409 on confirm shows the profile fields', async () => {
 })
 
 test('an invalid or expired link says so, with a way back to the sign-in form', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub({ inspect: () => json(400, { message: 'x', code: 'trust_link_invalid' }) })
   const navs = []
   const html = norm(await mount(props({ onNavigate: p => navs.push(p) }), async (host) => {
@@ -138,7 +138,7 @@ test('an invalid or expired link says so, with a way back to the sign-in form', 
 })
 
 test('redeeming an already-used link shows the invalid state', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub({ session: () => json(400, { message: 'x', code: 'trust_link_invalid' }) })
   const html = norm(await mount(props(), async (host, settle) => {
     host.querySelector('[data-trust=confirm-submit]').click()
@@ -148,14 +148,14 @@ test('redeeming an already-used link shows the invalid state', async () => {
 })
 
 test('a blocked visitor sees the blocked message', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub({ inspect: () => json(403, { message: 'x', code: 'trust_visitor_blocked' }) })
   const html = norm(await mount(props()))
   assert.ok(html.includes('data-trust="blocked"') && html.includes('this email address cannot sign in to this trust center'), html)
 })
 
 test('no token, or a malformed one, is the invalid state and calls nothing', async () => {
-  for (const hash of ['', '#', '#token=', '#token=zzz', '#other=1', `#token=${TOKEN.slice(1)}`]) {
+  for (const hash of ['', '#', '#visitor_token=', '#visitor_token=zzz', '#other=1', `#token=${TOKEN}`, `#visitor_token=${TOKEN.slice(1)}`]) {
     setLocation(hash)
     const calls = stub()
     const html = norm(await mount(props()))
@@ -165,7 +165,7 @@ test('no token, or a malformed one, is the invalid state and calls nothing', asy
 })
 
 test('an unknown organization or a trust center that is off is the unavailable state', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   const calls = stub({ ovStatus: 404 })
   const html = norm(await mount(props()))
   assert.ok(html.includes('data-trust="unavailable"') && html.includes('This trust center is not available.'), html)
@@ -173,7 +173,7 @@ test('an unknown organization or a trust center that is off is the unavailable s
 })
 
 test('any other failure is a generic error with a retry that tries again', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   let n = 0
   const calls = stub({ inspect: () => (++n === 1 ? json(500, { message: 'x' }) : json(200, { email: 'ada@auditco.test', needs_profile: false })) })
   const html = norm(await mount(props(), async (host, settle) => {
@@ -185,9 +185,48 @@ test('any other failure is a generic error with a retry that tries again', async
 })
 
 test('nothing is written to localStorage', async () => {
-  setLocation(`#token=${TOKEN}`)
+  setLocation(`#visitor_token=${TOKEN}`)
   stub()
   const before = JSON.stringify([...store])
   await mount(props())
   assert.equal(JSON.stringify([...store]), before)
+})
+
+test('the key is visitor_token: a plain #token= is left alone and is the invalid state', async () => {
+  const replaced = setLocation(`#token=${TOKEN}`)
+  const calls = stub()
+  const html = norm(await mount(props()))
+  assert.ok(html.includes('data-trust="invalid"'), html)
+  assert.equal(replaced.length, 0, 'a fragment this page does not own is not touched')
+  assert.ok(!calls.some(c => c.url.includes('/visitor/')))
+})
+
+test('a second link opened in the same tab (hashchange) restarts the flow with the new token', async () => {
+  const OTHER = 'cd'.repeat(32)
+  const replaced = setLocation(`#visitor_token=${TOKEN}`)
+  const calls = stub({ inspect: (opts) => {
+    const t = JSON.parse(opts.body).token
+    return t === TOKEN ? json(400, { message: 'x', code: 'trust_link_invalid' }) : json(200, { email: 'second@auditco.test', needs_profile: false })
+  } })
+  const html = norm(await mount(props(), async (host, settle) => {
+    await settle(h => h.includes('data-trust="invalid"'))
+    globalThis.location.hash = `#visitor_token=${OTHER}`
+    window.dispatchEvent(new window.Event('hashchange'))
+    await settle(h => h.includes('data-trust="confirm"'))
+  }))
+  assert.ok(html.includes('Sign in as second@auditco.test?'), html)
+  assert.equal(replaced.length, 2, 'the second fragment is stripped too')
+  const tokens = calls.filter(c => c.url.endsWith('/visitor/link/inspect')).map(c => JSON.parse(c.body).token)
+  assert.deepEqual(tokens, [TOKEN, OTHER])
+})
+
+test('the hashchange listener is removed on unmount', async () => {
+  setLocation(`#visitor_token=${TOKEN}`)
+  const calls = stub()
+  await mount(props())
+  const before = calls.length
+  globalThis.location.hash = `#visitor_token=${'ef'.repeat(32)}`
+  window.dispatchEvent(new window.Event('hashchange'))
+  await new Promise(r => setTimeout(r, 60))
+  assert.equal(calls.length, before, 'an unmounted page must not react')
 })

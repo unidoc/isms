@@ -9,6 +9,7 @@ import VerifyEmailChange from './views/VerifyEmailChange.vue'
 import Landing from './views/Landing.vue'
 import { isSubdomainMode, orgFromSubdomain } from './composables/useCurrentOrg'
 import { buildTrustRoutes } from './trustRoutes'
+import { ssoHashToken } from './utils/ssoHashToken'
 
 const Dashboard = () => import('./views/Dashboard.vue')
 const Documents = () => import('./views/Documents.vue')
@@ -149,14 +150,14 @@ router.beforeEach(async (to, from) => {
   // stale identity sticks. Reset sessionValidated so the new token is revalidated
   // via getMe on the redirect rather than riding a prior validation this page load.
   // Then land on the org's overview with the hash stripped from the URL.
-  if (to.hash && to.hash.includes('token=')) {
-    const token = new URLSearchParams(to.hash.replace(/^#/, '')).get('token')
-    if (token) {
-      setApiToken(token)
-      sessionValidated = false
-      // "/login" → "/overview"; "/<org>/login" → "/<org>/overview".
-      return { path: to.path.replace(/\/login$/, '/overview') }
-    }
+  // The decision is ssoHashToken(): exact `token` key, and never on a trust
+  // center route (its visitor sign-in link has its own fragment credential).
+  const hashToken = ssoHashToken(to)
+  if (hashToken) {
+    setApiToken(hashToken)
+    sessionValidated = false
+    // "/login" → "/overview"; "/<org>/login" → "/<org>/overview".
+    return { path: to.path.replace(/\/login$/, '/overview') }
   }
 
   // Cloudflare Access probe — try once per page load, BEFORE any route-type

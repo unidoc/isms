@@ -28,10 +28,20 @@ type visitorEnv struct {
 	org  trustOrg
 }
 
+// purgeTestLinks removes the sign-in links earlier tests left for the reserved
+// test domain. The per-address cap counts links across every organization for an
+// hour, and the tests reuse a few addresses, so without this a second run on the
+// same database (or a long run) would trip the cap and lose a mail.
+func purgeTestLinks(t *testing.T) {
+	t.Helper()
+	rawExec(t, `DELETE FROM trust_visitor_links WHERE email LIKE '%@auditco.test'`)
+}
+
 // visitorSetup returns a server with a mailer on a fake SMTP sink and an
 // enabled trust center. The base URL is http, in path mode.
 func visitorSetup(t *testing.T) visitorEnv {
 	t.Helper()
+	purgeTestLinks(t)
 	t.Setenv("ISMS_BASE_URL", "http://"+trustTestBase)
 	t.Setenv("ISMS_RATE_LIMIT", "")
 	t.Setenv("ISMS_TRUST_RATE_LIMIT", "100000") // the general limiter is not under test here
@@ -90,7 +100,7 @@ func withContentType(v string) func(*http.Request) {
 	return func(r *http.Request) { r.Header.Set("Content-Type", v) }
 }
 
-var linkTokenRE = regexp.MustCompile(`#token=([0-9a-f]{64})`)
+var linkTokenRE = regexp.MustCompile(`#visitor_token=([0-9a-f]{64})`)
 
 // waitSinkMail waits until the sink holds n messages and returns them.
 func waitSinkMail(t *testing.T, k *smtpSink, n int) []sinkMsg {
@@ -198,7 +208,7 @@ func TestTrustVisitorRoundTrip(t *testing.T) {
 	if msgs[0].To != email {
 		t.Errorf("mail to %q, want %q", msgs[0].To, email)
 	}
-	wantLink := "http://" + trustTestBase + "/" + e.org.slug + "/trust/sign-in#token="
+	wantLink := "http://" + trustTestBase + "/" + e.org.slug + "/trust/sign-in#visitor_token="
 	if !strings.Contains(msgs[0].Body, wantLink) || !strings.Contains(msgs[0].Body, "15 minutes") {
 		t.Errorf("mail lacks the link prefix %q or the expiry note:\n%s", wantLink, msgs[0].Body)
 	}

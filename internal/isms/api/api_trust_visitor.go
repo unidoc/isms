@@ -148,7 +148,9 @@ func trustVisitorDecode(c echo.Context) (trustVisitorBody, error) {
 }
 
 // The token travels in the URL fragment, which browsers never send to a server,
-// so it stays out of request logs and proxies; the page reads location.hash.
+// so it stays out of request logs and proxies; the page reads location.hash. The
+// key is visitor_token, not token: the web app's SSO handoff takes #token= as a
+// member session token on any route, and the two credentials must not share a name.
 //
 // trustSignInLink builds the link emailed to a visitor, from server-known values
 // only: ISMS_BASE_URL and the organization's own domain and slug. The request's
@@ -157,7 +159,7 @@ func trustVisitorDecode(c echo.Context) (trustVisitorBody, error) {
 // cannot send the token to another site.
 func trustSignInLink(baseURL string, org *db.Organization, subdomainRouting bool, requestHost, token string) string {
 	base := strings.TrimRight(baseURL, "/")
-	pathForm := base + "/" + org.Slug + "/trust/sign-in#token=" + token
+	pathForm := base + "/" + org.Slug + "/trust/sign-in#visitor_token=" + token
 
 	scheme, host, port, canSubdomain := resolveSubdomainHost(base, subdomainRouting)
 	if scheme == "" {
@@ -176,13 +178,13 @@ func trustSignInLink(baseURL string, org *db.Organization, subdomainRouting bool
 			domScheme, d = d[:i], d[i+3:]
 		}
 		if d != "" && reqHost == d {
-			return domScheme + "://" + d + "/trust/sign-in#token=" + token
+			return domScheme + "://" + d + "/trust/sign-in#visitor_token=" + token
 		}
 	}
 	if canSubdomain {
 		sub := strings.ToLower(org.Slug) + "." + strings.TrimPrefix(host, "www.")
 		if reqHost == sub {
-			return scheme + "://" + sub + port + "/trust/sign-in#token=" + token
+			return scheme + "://" + sub + port + "/trust/sign-in#visitor_token=" + token
 		}
 	}
 	return pathForm

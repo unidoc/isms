@@ -45,6 +45,7 @@ type gatedFx struct {
 
 func newGatedFx(t *testing.T, tag string) *gatedFx {
 	t.Helper()
+	purgeTestLinks(t)
 	t.Setenv("ISMS_BASE_URL", "http://"+trustTestBase)
 	t.Setenv("ISMS_RATE_LIMIT", "")
 	t.Setenv("ISMS_TRUST_RATE_LIMIT", "100000")

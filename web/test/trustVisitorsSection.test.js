@@ -53,17 +53,22 @@ const row = (host, email) => host.querySelector(`[data-trust-visitor="${email}"]
 test('rows show email, name, company, sessions and an Active badge', async () => {
   stub()
   const html = norm(await mount())
-  for (const want of ['v1@auditco.test', 'Name 1', 'Co 1', 'data-trust="v-active"', 'Visitors', 'Active sessions', 'First seen']) {
+  for (const want of ['v1@auditco.test', 'Name 1', 'Co 1', 'data-trust="v-active"', 'Visitors', 'Active sessions', 'Last seen']) {
     assert.ok(html.includes(want), `${want}: ${html}`)
   }
   assert.ok(!html.includes('data-trust="v-blocked"'))
 })
 
-test('timestamps go through formatDate (an instant in the viewer zone, not a UTC day)', async () => {
+test('timestamps go through formatDate (an instant in the viewer zone, not a UTC day); first seen is the last-seen tooltip', async () => {
   stub()
   const html = norm(await mount())
-  const expected = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(1760003600 * 1000))
-  assert.ok(html.includes(expected), `${expected} not in ${html}`)
+  const fmt = sec => new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(sec * 1000))
+  const doc = new window.DOMParser().parseFromString(html, 'text/html')
+  const cell = doc.querySelector('[data-trust-visitor="v1@auditco.test"] [data-trust=v-last-seen]')
+  assert.equal(cell.textContent.trim(), fmt(1760003600))
+  assert.equal(cell.getAttribute('title'), `First seen: ${fmt(1760000000)}`)
+  assert.ok(!doc.querySelector('thead').textContent.includes('First seen'), 'no separate first-seen column')
+  assert.equal(doc.querySelectorAll('thead th').length, 7)
 })
 
 test('revoke is disabled with no active sessions and enabled otherwise', async () => {

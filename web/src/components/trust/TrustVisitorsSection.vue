@@ -11,8 +11,9 @@
     <div v-else-if="loading && !rows.length" class="text-sm text-slate-500" data-trust="visitors-loading">{{ $t('trust_manager.visitors.loading') }}</div>
     <div v-else-if="!rows.length" class="text-sm text-slate-500 border border-dashed border-slate-700 rounded-xl p-6" data-trust="visitors-empty">{{ $t('trust_manager.visitors.empty') }}</div>
 
+    <!-- The table scrolls inside its box instead of squeezing its columns. -->
     <div v-if="rows.length" class="overflow-x-auto border border-slate-800 rounded-xl bg-slate-900/40">
-      <table class="w-full text-sm text-left">
+      <table class="w-full min-w-[56rem] text-sm text-left">
         <thead class="text-xs uppercase tracking-wide text-slate-500 border-b border-slate-800">
           <tr>
             <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_email') }}</th>
@@ -28,20 +29,18 @@
         <tbody class="divide-y divide-slate-800">
           <!-- Name and company are typed by the visitor: text only, never HTML. -->
           <tr v-for="v in rows" :key="v.id" :data-trust-visitor="v.email">
-            <td class="px-3 py-2 text-slate-200 break-all" data-trust="v-email">{{ v.email }}</td>
+            <td class="px-3 py-2 text-slate-200 whitespace-nowrap" data-trust="v-email">{{ v.email }}</td>
             <td class="px-3 py-2 text-slate-300 break-words" data-trust="v-name">{{ v.name }}</td>
             <td class="px-3 py-2 text-slate-300 break-words" data-trust="v-company">{{ v.company }}</td>
             <td class="px-3 py-2 text-slate-400 whitespace-nowrap">{{ when(v.first_seen) }}</td>
             <td class="px-3 py-2 text-slate-400 whitespace-nowrap">{{ when(v.last_seen) }}</td>
             <td class="px-3 py-2 text-slate-300" data-trust="v-sessions">{{ v.active_sessions }}</td>
             <td class="px-3 py-2">
-              <span v-if="v.blocked" class="text-xs px-2 py-1 rounded-full bg-red-500/15 text-red-300" data-trust="v-blocked">
-                {{ $t('trust_manager.visitors.blocked') }}<template v-if="v.blocked_by"> · {{ $t('trust_manager.visitors.blocked_by', { by: v.blocked_by }) }}</template>
-              </span>
-              <span v-else class="text-xs px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300" data-trust="v-active">{{ $t('trust_manager.visitors.status_active') }}</span>
+              <span v-if="v.blocked" class="text-xs px-2 py-1 rounded-full bg-red-500/15 text-red-300 whitespace-nowrap" data-trust="v-blocked" :title="blockedTitle(v)">{{ $t('trust_manager.visitors.blocked') }}</span>
+              <span v-else class="text-xs px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 whitespace-nowrap" data-trust="v-active">{{ $t('trust_manager.visitors.status_active') }}</span>
             </td>
             <td class="px-3 py-2">
-              <div class="flex flex-wrap items-center gap-3 text-xs">
+              <div class="flex items-center gap-4 text-xs whitespace-nowrap">
                 <button type="button" data-trust="revoke" :disabled="v.active_sessions === 0 || busyId === v.id"
                   :title="$t('trust_manager.visitors.revoke_title')" @click="revoke(v)"
                   class="text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed">{{ $t('trust_manager.visitors.revoke') }}</button>
@@ -77,6 +76,8 @@ const actionError = ref('')
 const busyId = ref(0)
 // An instant (first/last seen): formatDate, never formatDay, which pins UTC.
 const when = (sec) => formatDate(sec, 'datetime')
+// Who blocked and when: a tooltip, so the badge itself stays one short word.
+const blockedTitle = (v) => [v.blocked_by ? t('trust_manager.visitors.blocked_by', { by: v.blocked_by }) : '', v.blocked_at ? when(v.blocked_at) : ''].filter(Boolean).join(' · ')
 
 async function load() {
   loading.value = true

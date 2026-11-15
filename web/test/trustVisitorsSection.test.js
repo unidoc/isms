@@ -103,7 +103,12 @@ test('block says it ends sessions, calls the endpoint, and shows the badge with 
   const c = st.calls.find(x => x.method === 'PUT')
   assert.equal(c.path, '/trust-center/visitors/1/blocked')
   assert.deepEqual(c.body, { blocked: true })
-  assert.ok(html.includes('Blocked') && html.includes('Blocked by mgr@acme.test'), html)
+  const doc = new window.DOMParser().parseFromString(html, 'text/html')
+  const badge = doc.querySelector('[data-trust-visitor="v1@auditco.test"] [data-trust=v-blocked]')
+  assert.equal(badge.textContent.trim(), 'Blocked', 'the badge is one short word')
+  assert.ok(badge.getAttribute('title').startsWith('Blocked by mgr@acme.test'), badge.getAttribute('title'))
+  assert.ok(badge.getAttribute('title').includes(new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(1760009999 * 1000))), 'the tooltip carries the time')
+  assert.ok(badge.className.includes('whitespace-nowrap'))
   assert.ok(html.includes('data-trust="unblock"'), html)
 })
 

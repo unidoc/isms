@@ -38,10 +38,11 @@ import (
 //   - A link is redeemed by POST, never by GET, so a mail scanner that fetches
 //     the URL cannot consume it. inspect lets the page show "Sign in as <email>"
 //     first without consuming anything.
-//   - A link request gets the same answer whether or not the address is known,
-//     blocked or throttled, and the mail is sent off the request path, so
-//     neither the body nor the timing tells an account exists. Only a blocked
-//     email domain is refused openly: that discloses policy, not an account.
+//   - A link request gets the same answer body whether or not the address is
+//     known, blocked or throttled, and the mail is sent off the request path.
+//     A sub-millisecond difference remains for a blocked or throttled address
+//     (no insert), which is not treated as a signal. Only a blocked email
+//     domain is refused openly: that discloses policy, not an account.
 
 const (
 	trustVisitorCookie = "isms_trust_visitor"
@@ -49,6 +50,9 @@ const (
 	trustSessionTTL    = 7 * 24 * time.Hour
 	// Per-address cap on link mails: three in one link lifetime.
 	trustLinkPerEmail = 3
+	// Per-address cap across all organizations, per hour: one inbox cannot be
+	// flooded through many trust centers.
+	trustLinkPerAddress = 10
 	// Per-IP cap on link requests (this route only).
 	trustLinkIPBudget = 10
 	trustLinkIPWindow = 15 * time.Minute
@@ -141,6 +145,9 @@ func trustVisitorDecode(c echo.Context) (trustVisitorBody, error) {
 	return b, json.Unmarshal(raw, &b)
 }
 
+// The token travels in the URL fragment, which browsers never send to a server,
+// so it stays out of request logs and proxies; the page reads location.hash.
+//
 // trustSignInLink builds the link emailed to a visitor, from server-known values
 // only: ISMS_BASE_URL and the organization's own domain and slug. The request's
 // Host is only compared against them to pick the form the visitor is already
@@ -148,7 +155,7 @@ func trustVisitorDecode(c echo.Context) (trustVisitorBody, error) {
 // cannot send the token to another site.
 func trustSignInLink(baseURL string, org *db.Organization, subdomainRouting bool, requestHost, token string) string {
 	base := strings.TrimRight(baseURL, "/")
-	pathForm := base + "/" + org.Slug + "/trust/sign-in?token=" + token
+	pathForm := base + "/" + org.Slug + "/trust/sign-in#token=" + token
 
 	scheme, host, port, canSubdomain := resolveSubdomainHost(base, subdomainRouting)
 	if scheme == "" {
@@ -159,18 +166,21 @@ func trustSignInLink(baseURL string, org *db.Organization, subdomainRouting bool
 		reqHost = h
 	}
 	if org.Domain != nil && *org.Domain != "" {
+		// Like orgURLs: a scheme stored with the domain is kept, else the base
+		// URL's; the base URL's port is not appended to a custom domain.
 		d := strings.ToLower(strings.TrimRight(*org.Domain, "/"))
+		domScheme := scheme
 		if i := strings.Index(d, "://"); i >= 0 {
-			d = d[i+3:]
+			domScheme, d = d[:i], d[i+3:]
 		}
 		if d != "" && reqHost == d {
-			return scheme + "://" + d + port + "/trust/sign-in?token=" + token
+			return domScheme + "://" + d + "/trust/sign-in#token=" + token
 		}
 	}
 	if canSubdomain {
 		sub := strings.ToLower(org.Slug) + "." + strings.TrimPrefix(host, "www.")
 		if reqHost == sub {
-			return scheme + "://" + sub + port + "/trust/sign-in?token=" + token
+			return scheme + "://" + sub + port + "/trust/sign-in#token=" + token
 		}
 	}
 	return pathForm
@@ -280,25 +290,22 @@ func (s *Server) trustVisitorLink(c echo.Context, org *db.Organization, settings
 	if known != nil && known.Blocked {
 		return accepted()
 	}
-	n, err := s.db.CountTrustVisitorLinks(ctx, org.ID, email, time.Now().Add(-trustLinkTTL))
-	if err != nil {
-		return trustPublicError(c, err)
-	}
-	if n >= trustLinkPerEmail {
-		return accepted()
-	}
-	orgN, err := s.db.CountTrustVisitorLinks(ctx, org.ID, "", time.Now().Add(-time.Hour))
-	if err != nil {
-		return trustPublicError(c, err)
-	}
-	if orgN >= trustSignInOrgHourly() {
-		log.Printf("trust center sign-in: hourly send cap reached for organization %q (id %d); no mail sent", org.Slug, org.ID)
-		return accepted()
-	}
-
+	// Count and insert in one database transaction, so parallel requests cannot
+	// all pass the caps before any of them inserts.
 	raw, hash := newHashedToken()
-	if err := s.db.CreateTrustVisitorLink(ctx, org.ID, email, hash, trustLinkTTL); err != nil {
+	created, reason, err := s.db.CreateTrustVisitorLinkCapped(ctx, org.ID, email, hash, trustLinkTTL, db.TrustLinkCaps{
+		PerEmail: trustLinkPerEmail, EmailWindow: trustLinkTTL,
+		PerOrg: trustSignInOrgHourly(), OrgWindow: time.Hour,
+		PerAddress: trustLinkPerAddress, AddressWindow: time.Hour,
+	})
+	if err != nil {
 		return trustPublicError(c, err)
+	}
+	if !created {
+		if reason == db.TrustLinkCapOrg {
+			log.Printf("trust center sign-in: hourly send cap reached for organization %q (id %d); no mail sent", org.Slug, org.ID)
+		}
+		return accepted()
 	}
 	link := trustSignInLink(os.Getenv("ISMS_BASE_URL"), org, s.subdomainRouting, c.Request().Host, raw)
 	s.sendTrustSignInMail(org.ID, email, link)
@@ -336,6 +343,11 @@ func parseVisitorEmail(raw string) (string, bool) {
 	}
 	a, err := netmail.ParseAddress(raw)
 	if err != nil || a.Name != "" || a.Address != raw || strings.Count(raw, "@") != 1 {
+		return "", false
+	}
+	// An IP literal ("a@[127.0.0.1]") or a bare host is not an address we mail.
+	domain := raw[strings.LastIndex(raw, "@")+1:]
+	if strings.ContainsAny(domain, "[]") || !strings.Contains(domain, ".") {
 		return "", false
 	}
 	return strings.ToLower(raw), true

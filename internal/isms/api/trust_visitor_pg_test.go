@@ -14,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -89,7 +90,7 @@ func withContentType(v string) func(*http.Request) {
 	return func(r *http.Request) { r.Header.Set("Content-Type", v) }
 }
 
-var linkTokenRE = regexp.MustCompile(`token=([0-9a-f]{64})`)
+var linkTokenRE = regexp.MustCompile(`#token=([0-9a-f]{64})`)
 
 // waitSinkMail waits until the sink holds n messages and returns them.
 func waitSinkMail(t *testing.T, k *smtpSink, n int) []sinkMsg {
@@ -197,7 +198,7 @@ func TestTrustVisitorRoundTrip(t *testing.T) {
 	if msgs[0].To != email {
 		t.Errorf("mail to %q, want %q", msgs[0].To, email)
 	}
-	wantLink := "http://" + trustTestBase + "/" + e.org.slug + "/trust/sign-in?token="
+	wantLink := "http://" + trustTestBase + "/" + e.org.slug + "/trust/sign-in#token="
 	if !strings.Contains(msgs[0].Body, wantLink) || !strings.Contains(msgs[0].Body, "15 minutes") {
 		t.Errorf("mail lacks the link prefix %q or the expiry note:\n%s", wantLink, msgs[0].Body)
 	}
@@ -374,7 +375,7 @@ func TestTrustVisitorBlockedDomain(t *testing.T) {
 func TestTrustVisitorEmailValidation(t *testing.T) {
 	e := visitorSetup(t)
 	long := strings.Repeat("a", 320) + "@auditco.test"
-	for _, em := range []string{"", "not-an-email", "Ada <ada@auditco.test>", "a@b@c.test", long} {
+	for _, em := range []string{"", "not-an-email", "Ada <ada@auditco.test>", "a@b@c.test", "a@[127.0.0.1]", "a@[IPv6:::1]", "a@localhost", long} {
 		r := vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":`+jsonString(em)+`}`)
 		if r.code != http.StatusBadRequest {
 			t.Errorf("email %q = %d %s, want 400", em, r.code, r.body)
@@ -625,3 +626,30 @@ func TestTrustVisitorPreviewHasNewFieldsAndIgnoresTheCookie(t *testing.T) {
 }
 
 var _ = db.TrustAccessGated
+
+// R1: the caps hold under parallel requests, not just sequential ones.
+func TestTrustVisitorLinkRequestCapsHoldInParallel(t *testing.T) {
+	e := visitorSetup(t)
+	e.s.trustLinkLimit = &trustLinkLimiter{} // the per-IP limiter is not under test; a spoofed IP bypasses it anyway
+	const n = 20
+	codes := make([]int, n)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			codes[i] = vdo(e.s, http.MethodPost, e.path("/visitor/link"), `{"email":"burst@auditco.test"}`).code
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	for i, c := range codes {
+		if c != http.StatusAccepted {
+			t.Errorf("request %d = %d, want 202", i, c)
+		}
+	}
+	waitSinkMail(t, e.sink, 3)
+	assertNoMail(t, e.sink, 3)
+}

@@ -12,6 +12,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -538,5 +539,146 @@ func TestTrustCenterSettingsVisitorFields(t *testing.T) {
 	s, _ = d.GetTrustCenterSettings(ctx, orgID)
 	if s.BlockedEmailDomains == nil || s.PrivacyNoticeURL != "https://acme.test/privacy" {
 		t.Errorf("upsert wiped visitor settings: %+v", s)
+	}
+}
+
+// capsFor builds caps where only the named one is tight.
+func capsFor(perEmail, perOrg, perAddress int) TrustLinkCaps {
+	return TrustLinkCaps{
+		PerEmail: perEmail, EmailWindow: 15 * time.Minute,
+		PerOrg: perOrg, OrgWindow: time.Hour,
+		PerAddress: perAddress, AddressWindow: time.Hour,
+	}
+}
+
+// runCapped creates one link per address in parallel and tallies the outcomes.
+func runCapped(t *testing.T, d *DB, orgID int, emails []string, caps TrustLinkCaps) (created int, reasons map[string]int) {
+	t.Helper()
+	var mu sync.Mutex
+	reasons = map[string]int{}
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, em := range emails {
+		wg.Add(1)
+		go func(em string) {
+			defer wg.Done()
+			<-start
+			ok, reason, err := d.CreateTrustVisitorLinkCapped(context.Background(), orgID, em, visitorHash(t), linkTTL, caps)
+			if err != nil {
+				t.Errorf("capped create: %v", err)
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if ok {
+				created++
+			} else {
+				reasons[reason]++
+			}
+		}(em)
+	}
+	close(start)
+	wg.Wait()
+	return created, reasons
+}
+
+// The caps are decided inside one transaction under an advisory lock, so
+// parallel requests cannot all pass the count before any of them inserts.
+func TestTrustVisitorLinkCapPerEmailIsAtomic(t *testing.T) {
+	d := testDB(t)
+	orgID := trustTestOrg(t, d, "capemail")
+	emails := make([]string, 20)
+	for i := range emails {
+		emails[i] = "same@example.com"
+	}
+	created, reasons := runCapped(t, d, orgID, emails, capsFor(3, 1000, 1000))
+	if created != 3 || reasons[TrustLinkCapEmail] != 17 {
+		t.Errorf("created %d, reasons %v; want 3 and 17 per-email refusals", created, reasons)
+	}
+	if n, _ := d.CountTrustVisitorLinks(context.Background(), orgID, "same@example.com", time.Now().Add(-time.Hour)); n != 3 {
+		t.Errorf("rows = %d, want 3", n)
+	}
+}
+
+func TestTrustVisitorLinkCapPerOrgIsAtomic(t *testing.T) {
+	d := testDB(t)
+	orgID := trustTestOrg(t, d, "caporg")
+	emails := make([]string, 20)
+	for i := range emails {
+		emails[i] = "u" + strconv.Itoa(i) + "@example.com"
+	}
+	created, reasons := runCapped(t, d, orgID, emails, capsFor(1000, 5, 1000))
+	if created != 5 || reasons[TrustLinkCapOrg] != 15 {
+		t.Errorf("created %d, reasons %v; want 5 and 15 per-org refusals", created, reasons)
+	}
+}
+
+// One inbox cannot be flooded through many organizations.
+func TestTrustVisitorLinkCapPerAddressAcrossOrgs(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	var orgs []int
+	for i := 0; i < 4; i++ {
+		orgs = append(orgs, trustTestOrg(t, d, "capaddr"+strconv.Itoa(i)))
+	}
+	email := "flood" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
+	created, refused := 0, 0
+	for i := 0; i < 12; i++ {
+		ok, reason, err := d.CreateTrustVisitorLinkCapped(ctx, orgs[i%4], email, visitorHash(t), linkTTL, capsFor(1000, 1000, 10))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			created++
+		} else if reason == TrustLinkCapAddress {
+			refused++
+		}
+	}
+	if created != 10 || refused != 2 {
+		t.Errorf("created %d, refused %d; want 10 and 2 over 4 organizations", created, refused)
+	}
+	// concurrently as well
+	email2 := "flood2" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	n := 0
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			ok, _, err := d.CreateTrustVisitorLinkCapped(ctx, orgs[i%4], email2, visitorHash(t), linkTTL, capsFor(1000, 1000, 10))
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+			if ok {
+				mu.Lock()
+				n++
+				mu.Unlock()
+			}
+		}(i)
+	}
+	wg.Wait()
+	if n != 10 {
+		t.Errorf("concurrent across orgs created %d, want 10", n)
+	}
+}
+
+// A session can never belong to another organization's visitor.
+func TestTrustVisitorSessionOrgMustMatchVisitorOrg(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgA := trustTestOrg(t, d, "fkA")
+	orgB := trustTestOrg(t, d, "fkB")
+	v, _ := signIn(t, d, orgA, "fk@example.com")
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO trust_visitor_sessions (organization_id, visitor_id, token_hash, expires_at)
+		VALUES ($1, $2, $3, now() + interval '1 hour')`, orgB, v.ID, visitorHash(t))
+	if err == nil {
+		t.Error("a session of org B for org A's visitor was accepted")
+	}
+	if _, err := d.pool.Exec(ctx, `
+		INSERT INTO trust_visitor_links (organization_id, email, token_hash, expires_at)
+		VALUES ($1, 'Upper@Example.com', $2, now() + interval '1 hour')`, orgA, visitorHash(t)); err == nil {
+		t.Error("a link with an upper-case email was accepted")
 	}
 }

@@ -100,6 +100,115 @@ func (d *DB) CreateTrustVisitorLink(ctx context.Context, orgID int, email, token
 	})
 }
 
+// Why a capped link was not created.
+const (
+	TrustLinkCapEmail   = "email"   // too many links for this address in this organization
+	TrustLinkCapOrg     = "org"     // the organization sent too many links
+	TrustLinkCapAddress = "address" // this address got too many links across all organizations
+)
+
+// TrustLinkCaps are the send limits CreateTrustVisitorLinkCapped enforces. A
+// zero count disables that cap.
+type TrustLinkCaps struct {
+	PerEmail      int
+	EmailWindow   time.Duration
+	PerOrg        int
+	OrgWindow     time.Duration
+	PerAddress    int // across every organization
+	AddressWindow time.Duration
+}
+
+// Advisory-lock classes for CreateTrustVisitorLinkCapped (the first key of the
+// two-int pg_advisory_xact_lock form). Locks are always taken organization
+// first, then address, so two requests can never wait on each other in a cycle.
+const (
+	trustLinkLockOrg     = 524001
+	trustLinkLockAddress = 524002
+)
+
+// CreateTrustVisitorLinkCapped counts and inserts in ONE transaction, so
+// parallel requests cannot all pass the counts before any of them inserts. It
+// takes an advisory lock for the organization (so the per-address and
+// per-organization counts are serialized) and then one for the address (so the
+// all-organizations count is). The link is created only when every cap has
+// room; otherwise created is false and reason says which cap (TrustLinkCap*)
+// tripped, checked in the order address-in-org, organization, address overall.
+//
+// The per-address count across organizations deliberately has no
+// organization_id filter: its point is to bound one inbox over every
+// organization. It reads the owner role's full view; a role restricted by RLS
+// would only see its own organization's rows.
+func (d *DB) CreateTrustVisitorLinkCapped(ctx context.Context, orgID int, email, tokenHash string, ttl time.Duration, caps TrustLinkCaps) (created bool, reason string, err error) {
+	email = normalizeVisitorEmail(email)
+	if email == "" || len(email) > 320 {
+		return false, "", trustInvalid("email is empty or longer than 320 characters")
+	}
+	if tokenHash == "" {
+		return false, "", trustInvalid("token hash is empty")
+	}
+	err = d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1, $2)`, trustLinkLockOrg, orgID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1, hashtext($2))`, trustLinkLockAddress, email); err != nil {
+			return err
+		}
+		count := func(query string, args ...any) (int, error) {
+			var n int
+			err := tx.QueryRow(ctx, query, args...).Scan(&n)
+			return n, err
+		}
+		if caps.PerEmail > 0 {
+			n, err := count(`SELECT count(*) FROM trust_visitor_links
+				WHERE organization_id = $1 AND email = $2 AND created_at >= now() - make_interval(secs => $3)`,
+				orgID, email, caps.EmailWindow.Seconds())
+			if err != nil {
+				return err
+			}
+			if n >= caps.PerEmail {
+				reason = TrustLinkCapEmail
+				return nil
+			}
+		}
+		if caps.PerOrg > 0 {
+			n, err := count(`SELECT count(*) FROM trust_visitor_links
+				WHERE organization_id = $1 AND created_at >= now() - make_interval(secs => $2)`,
+				orgID, caps.OrgWindow.Seconds())
+			if err != nil {
+				return err
+			}
+			if n >= caps.PerOrg {
+				reason = TrustLinkCapOrg
+				return nil
+			}
+		}
+		if caps.PerAddress > 0 {
+			n, err := count(`SELECT count(*) FROM trust_visitor_links
+				WHERE email = $1 AND created_at >= now() - make_interval(secs => $2)`,
+				email, caps.AddressWindow.Seconds())
+			if err != nil {
+				return err
+			}
+			if n >= caps.PerAddress {
+				reason = TrustLinkCapAddress
+				return nil
+			}
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO trust_visitor_links (organization_id, email, token_hash, expires_at)
+			VALUES ($1, $2, $3, now() + make_interval(secs => $4))
+		`, orgID, email, tokenHash, ttl.Seconds()); err != nil {
+			return err
+		}
+		created = true
+		return nil
+	})
+	if err != nil {
+		return false, "", err
+	}
+	return created, reason, nil
+}
+
 // CountTrustVisitorLinks counts the links created since the given time, for
 // one email or, with an empty email, for the whole organization. Used and
 // expired links count: the caps limit mail sent, not links still valid.

@@ -1,11 +1,12 @@
 """Trust center public read API (#517): no session, one 404 for everything.
 
-There are no manager endpoints yet, so no trust center can be enabled over
-HTTP. The conftest organization therefore has none, which is exactly what lets
-this file prove the uniformity: an organization that exists but has the trust
-center off must look the same as one that does not exist. Enabled-trust-center
-behaviour (items, host/slug mismatch, unpublish) is covered by the database
-tests in internal/isms/api/trust_public_pg_test.go.
+The conftest organization never enables its trust center (the manager endpoints
+are exercised in tests/test_trust_center_manager.py, in an organization of
+their own), which is exactly what lets this file prove the uniformity: an
+organization that exists but has the trust center off must look the same as one
+that does not exist. Enabled-trust-center behaviour (items, host/slug mismatch,
+unpublish) is covered by the database tests in
+internal/isms/api/trust_public_pg_test.go.
 
 Everything here is unauthenticated on purpose.
 """

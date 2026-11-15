@@ -462,6 +462,7 @@
     "publish": "Publier dans le centre de confiance",
     "publish_again": "Publier à nouveau",
     "unpublish": "Dépublier",
+    "remove": "Retirer",
     "reason_no_approved_version": "Aucune version approuvée pour l'instant. Faites approuver le document avant de le publier.",
     "reason_retired": "Les documents retirés ne peuvent pas être publiés.",
     "status_published": "Dans le centre de confiance · {level} · les visiteurs voient v{version}",
@@ -480,6 +481,9 @@
     "publish_confirm": "Publier",
     "unpublish_title": "Dépublier du centre de confiance",
     "unpublish_body": "Les visiteurs ne verront plus ce document. Vous pourrez le publier à nouveau plus tard.",
-    "error_load": "Impossible de charger l'état du centre de confiance : {message}"
+    "error_load": "Impossible de charger l'état du centre de confiance : {message}",
+    "classification_title": "Publier pour tout le monde ?",
+    "classification_body": "Ce document est classé {classification}. Le publier en Public le rend lisible par tout le monde sur internet.",
+    "classification_confirm": "Publier quand même"
   }
 }

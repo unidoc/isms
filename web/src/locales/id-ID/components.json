@@ -462,6 +462,7 @@
     "publish": "Publikasikan ke Pusat Kepercayaan",
     "publish_again": "Publikasikan lagi",
     "unpublish": "Batalkan publikasi",
+    "remove": "Hapus",
     "reason_no_approved_version": "Belum ada versi yang disetujui. Minta dokumen disetujui sebelum dipublikasikan.",
     "reason_retired": "Dokumen yang dinonaktifkan tidak dapat dipublikasikan.",
     "status_published": "Di Pusat Kepercayaan · {level} · pengunjung melihat v{version}",
@@ -480,6 +481,9 @@
     "publish_confirm": "Publikasikan",
     "unpublish_title": "Batalkan publikasi dari Pusat Kepercayaan",
     "unpublish_body": "Pengunjung tidak akan lagi melihat dokumen ini. Anda dapat mempublikasikannya lagi nanti.",
-    "error_load": "Tidak dapat memuat status Pusat Kepercayaan: {message}"
+    "error_load": "Tidak dapat memuat status Pusat Kepercayaan: {message}",
+    "classification_title": "Publikasikan untuk semua orang?",
+    "classification_body": "Dokumen ini diklasifikasikan {classification}. Mempublikasikannya sebagai Publik membuatnya dapat dibaca oleh siapa saja di internet.",
+    "classification_confirm": "Tetap publikasikan"
   }
 }

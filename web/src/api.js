@@ -144,6 +144,16 @@ async function putJSON(url, data) {
   return res.json()
 }
 
+async function patchJSON(url, data) {
+  const res = await safeFetch(url, { method: 'PATCH', headers: getHeaders(), body: JSON.stringify(data) })
+  checkAuth(res)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw apiErrorFrom(res, body)
+  }
+  return res.json()
+}
+
 async function deleteJSON(url, data) {
   const opts = { method: 'DELETE', headers: getHeaders() }
   if (data !== undefined) opts.body = JSON.stringify(data)
@@ -294,7 +304,17 @@ export const api = {
   deleteFolder: (path) => deleteJSON(`${API}/documents/folders?path=${encodeURIComponent(path)}`),
   deleteDocument: (docId) => deleteJSON(`${API}/documents/${encodeURIComponent(docId)}`),
   getDocumentTrust: (docId) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
-  publishDocumentTrust: (docId, accessLevel) => postJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`, accessLevel ? { access_level: accessLevel } : {}),
+  // `confirm` answers a 409 trust_classification_confirm: it is sent only when true.
+  publishDocumentTrust: (docId, accessLevel, confirm) => postJSON(`${API}/documents/${encodeURIComponent(docId)}/trust-center`, { ...(accessLevel && { access_level: accessLevel }), ...(confirm && { confirm_classification: true }) }),
+  // What a visitor would get, for the signed-in manager's org, even while the trust center is off.
+  trustPreviewOverview: () => fetchJSON(`${API}/trust-center/preview`),
+  trustPreviewItems: () => fetchJSON(`${API}/trust-center/preview/items`),
+  trustPreviewDocument: (id) => fetchJSON(`${API}/trust-center/preview/documents/${encodeURIComponent(id)}`),
+  getTrustSettings: () => fetchJSON(`${API}/trust-center/settings`),
+  updateTrustSettings: (patch) => putJSON(`${API}/trust-center/settings`, patch),
+  getTrustItems: () => fetchJSON(`${API}/trust-center/items`),
+  setTrustItemLevel: (id, accessLevel, confirm) => patchJSON(`${API}/trust-center/items/${encodeURIComponent(id)}`, { access_level: accessLevel, ...(confirm && { confirm_classification: true }) }),
+  reorderTrustItems: (kind, ids) => putJSON(`${API}/trust-center/items/order`, { kind, ids }),
   unpublishDocumentTrust: (docId) => deleteNoContent(`${API}/documents/${encodeURIComponent(docId)}/trust-center`),
 
   // Risks

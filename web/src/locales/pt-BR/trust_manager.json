@@ -1,0 +1,83 @@
+{
+  "title": "Central de confiança",
+  "tabs": {
+    "label": "Seções da central de confiança",
+    "content": "Conteúdo",
+    "settings": "Configurações"
+  },
+  "not_allowed": "Somente administradores e gerentes podem gerenciar a central de confiança.",
+  "load_error": "Não foi possível carregar a central de confiança: {message}",
+  "address": {
+    "label": "Endereço público",
+    "copied": "Copiado",
+    "preview": "Ver como visitante"
+  },
+  "documents": {
+    "heading": "Documentos",
+    "publish": "Publicar documento",
+    "empty": "Nenhum documento publicado ainda.",
+    "source": "Documento",
+    "classification": "Classificação: {value}",
+    "access_label": "Nível de acesso de {title}",
+    "move_up": "Mover para cima",
+    "move_down": "Mover para baixo",
+    "unpublish": "Despublicar",
+    "publish_again": "Publicar novamente",
+    "remove": "Remover",
+    "retired_hint": "Aposentado; restaure o documento primeiro",
+    "unpublish_title": "Despublicar {title}?",
+    "unpublish_body": "Os visitantes deixarão de ver este documento. Você pode publicá-lo novamente depois.",
+    "remove_title": "Remover {title}?",
+    "remove_body": "Isso o remove da central de confiança.",
+    "classified_public": "Classificado como {classification}, visível para qualquer pessoa"
+  },
+  "status": {
+    "published": "Publicado",
+    "draft_in_progress": "Rascunho v{draft} em andamento, os visitantes veem v{version}",
+    "cannot_publish": "Não é possível publicar: nenhuma versão aprovada",
+    "hidden_retired": "Aposentado, oculto",
+    "hidden_deleted": "Excluído, oculto",
+    "error": "Não foi possível ler este documento"
+  },
+  "level": {
+    "public": "Público",
+    "gated": "Com login",
+    "restricted": "Restrito",
+    "default": "Padrão da organização"
+  },
+  "picker": {
+    "title": "Publicar documento",
+    "search": "Pesquisar documentos",
+    "search_placeholder": "Pesquisar por título ou ID",
+    "none": "Nenhum documento disponível para publicar.",
+    "loading": "Carregando documentos...",
+    "choose_other": "Escolher outro documento",
+    "cannot_no_approved_version": "Ainda não há versão aprovada. Aprove o documento antes de publicá-lo.",
+    "cannot_retired": "Documentos aposentados não podem ser publicados.",
+    "level_label": "Quem pode abrir",
+    "publish": "Publicar"
+  },
+  "settings": {
+    "enabled_label": "Central de confiança",
+    "enabled_help": "Quando ativada, a página da central de confiança pode ser aberta por qualquer pessoa na internet.",
+    "enable_title": "Ativar a central de confiança?",
+    "enable_body": "Tudo o que for publicado ficará visível para qualquer pessoa na internet.",
+    "enable_confirm": "Ativar",
+    "overview_label": "Documento de visão geral",
+    "overview_none": "Nenhum",
+    "overview_choose": "Escolher documento",
+    "overview_clear": "Limpar",
+    "overview_no_approved": "Este documento ainda não tem versão aprovada. A página omite a visão geral até ele ser aprovado.",
+    "contact_label": "Contato de segurança",
+    "contact_help": "Para onde os visitantes reportam problemas de segurança (um e-mail ou um link).",
+    "default_level_label": "Nível de acesso padrão",
+    "default_level_help": "O nível com que um documento recém-publicado começa.",
+    "saved": "Salvo",
+    "save_error": "Não foi possível salvar: {message}"
+  },
+  "preview": {
+    "banner": "Pré-visualização: é isto que os visitantes veem",
+    "off": "A central de confiança está desligada; os visitantes não veem nada no momento.",
+    "back": "Voltar ao gerenciador da central de confiança"
+  }
+}

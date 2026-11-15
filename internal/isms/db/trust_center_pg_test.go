@@ -139,6 +139,11 @@ func TestTrustCenterListOrder(t *testing.T) {
 		if err := d.PublishTrustCenterItem(context.Background(), orgID, it, "m@example.com"); err != nil {
 			t.Fatal(err)
 		}
+		// A new item always goes last; set the order the test wants directly.
+		if _, err := d.pool.Exec(context.Background(),
+			`UPDATE trust_center_items SET sort_order = $3 WHERE organization_id = $1 AND reference = $2`, orgID, ref, order); err != nil {
+			t.Fatal(err)
+		}
 	}
 	mk("c", "b", 1)
 	mk("b", "a", 2)
@@ -371,5 +376,48 @@ func TestTrustCenterChangelogAcceptsSettingsEntityType(t *testing.T) {
 		INSERT INTO entity_changelog (organization_id, entity_type, entity_id, action, changed_by)
 		VALUES ($1, 'trust_center_settings', $2, 'update', 'mgr@example.com')`, orgID, int64(orgID)); err != nil {
 		t.Fatalf("entity_changelog rejects trust_center_settings: %v", err)
+	}
+}
+
+func TestTrustCenterPublishAppendsPerKindAndRepublishKeepsPlace(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "append")
+	other := trustTestOrg(t, d, "append2")
+	pub := func(org int, kind, ref string) int {
+		it := &TrustCenterItem{Kind: kind, Reference: ref, AccessLevel: TrustAccessGated, SortOrder: 99}
+		if err := d.PublishTrustCenterItem(ctx, org, it, "m@example.com"); err != nil {
+			t.Fatal(err)
+		}
+		return it.SortOrder
+	}
+	if a, b, c := pub(orgID, TrustKindDocument, "a"), pub(orgID, TrustKindDocument, "b"), pub(orgID, TrustKindDocument, "c"); a != 1 || b != 2 || c != 3 {
+		t.Errorf("document orders = %d %d %d, want 1 2 3 (a caller-given SortOrder is ignored)", a, b, c)
+	}
+	// Another kind and another organization count on their own.
+	if n := pub(orgID, TrustKindFAQ, "q"); n != 1 {
+		t.Errorf("first faq = %d, want 1", n)
+	}
+	if n := pub(other, TrustKindDocument, "a"); n != 1 {
+		t.Errorf("other org first = %d, want 1", n)
+	}
+	// A gap left by an unpublish is not reused below the maximum.
+	b, _ := d.GetTrustCenterItemByReference(ctx, orgID, TrustKindDocument, "b")
+	if err := d.UnpublishTrustCenterItem(ctx, orgID, b.ID, "m@example.com"); err != nil {
+		t.Fatal(err)
+	}
+	if n := pub(orgID, TrustKindDocument, "d"); n != 4 {
+		t.Errorf("after unpublish = %d, want 4", n)
+	}
+	// Hide and republish keep the place.
+	a, _ := d.GetTrustCenterItemByReference(ctx, orgID, TrustKindDocument, "a")
+	if err := d.HideTrustCenterItem(ctx, orgID, a.ID, TrustHiddenRetired, "system"); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.RepublishTrustCenterItem(ctx, orgID, a.ID, TrustAccessPublic, "m@example.com"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := d.GetTrustCenterItemByReference(ctx, orgID, TrustKindDocument, "a"); got.SortOrder != 1 {
+		t.Errorf("republished sort_order = %d, want 1", got.SortOrder)
 	}
 }

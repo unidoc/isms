@@ -39,7 +39,7 @@ import { JSDOM } from 'jsdom'
 // here: a null-document TypeError from inside the renderer means an import got
 // reordered.
 const dom = new JSDOM('<!doctype html><html><body></body></html>')
-for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGElement', 'Text', 'Comment', 'DocumentFragment', 'CustomEvent']) {
+for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGElement', 'Text', 'Comment', 'DocumentFragment', 'Document', 'CustomEvent']) {
   globalThis[key] = key === 'window' ? dom.window : dom.window[key]
 }
 

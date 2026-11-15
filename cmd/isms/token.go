@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 // connectDB connects to Postgres using DATABASE_URL.
@@ -137,7 +138,7 @@ func apiKeyListCmd() *cobra.Command {
 				}
 				lastUsed := "-"
 				if t.LastUsedAt != nil {
-					lastUsed = t.LastUsedAt.Format("2006-01-02 15:04")
+					lastUsed = timefmt.LocalTime(t.LastUsedAt)
 				}
 				orgScope := "global"
 				if t.OrganizationID != nil {
@@ -145,7 +146,7 @@ func apiKeyListCmd() *cobra.Command {
 				}
 				fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 					t.ID, t.Name, t.UserEmail, t.Permissions, orgScope,
-					t.CreatedAt.Format("2006-01-02 15:04"),
+					timefmt.LocalTime(t.CreatedAt),
 					lastUsed, status)
 			}
 			w.Flush()

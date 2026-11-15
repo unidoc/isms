@@ -9,6 +9,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func orgCmd() *cobra.Command {
@@ -91,7 +92,7 @@ func orgCreateCmd() *cobra.Command {
 			if org.Domain != nil {
 				fmt.Printf("  Domain:    %s\n", *org.Domain)
 			}
-			fmt.Printf("  Created:   %s\n\n", org.CreatedAt.Format("2006-01-02 15:04"))
+			fmt.Printf("  Created:   %s\n\n", timefmt.LocalTime(org.CreatedAt))
 			fmt.Printf("Set in your env file:\n")
 			fmt.Printf("  ISMS_ORGANIZATION=%s\n\n", org.UUID)
 			fmt.Printf("Add members with: isms org add-member --org %s --email user@example.com --role manager\n", org.Slug)
@@ -190,7 +191,7 @@ func orgListCmd() *cobra.Command {
 			for _, o := range orgs {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
 					o.UUID[:8]+"...", o.Name, o.Slug, o.RepoPath,
-					o.CreatedAt.Format("2006-01-02 15:04"))
+					timefmt.LocalTime(o.CreatedAt))
 			}
 			w.Flush()
 			return nil

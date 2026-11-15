@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func userCmd() *cobra.Command {
@@ -179,7 +180,7 @@ func userListCmd() *cobra.Command {
 			for _, u := range users {
 				lastSeen := "-"
 				if u.LastSeen != nil {
-					lastSeen = u.LastSeen.Format("2006-01-02 15:04")
+					lastSeen = timefmt.LocalTime(u.LastSeen)
 				}
 				fmt.Fprintf(w, "%d\t%s\t%s\t%v\t%s\n",
 					u.ID, u.Email, u.Name, u.Active, lastSeen)

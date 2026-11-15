@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func auditCmd() *cobra.Command {
@@ -98,7 +99,7 @@ func auditProgrammeListCmd() *cobra.Command {
 					p.Status,
 					truncate(p.Title, 40),
 					truncate(p.CreatedBy, 20),
-					p.CreatedAt.Format("2006-01-02"),
+					timefmt.LocalDay(p.CreatedAt),
 				)
 			}
 			fmt.Printf("\n%d programme(s)\n", len(programmes))
@@ -155,10 +156,10 @@ func auditCreateCmd() *cobra.Command {
 			fmt.Printf("  Scope:   %s\n", result.Scope)
 			fmt.Printf("  Auditor: %s\n", result.Auditor)
 			if result.PlannedDate != nil {
-				fmt.Printf("  Date:    %s\n", result.PlannedDate.Format("2006-01-02"))
+				fmt.Printf("  Date:    %s\n", timefmt.Day(result.PlannedDate))
 			}
 			if result.EndDate != nil {
-				fmt.Printf("  End:     %s\n", *result.EndDate)
+				fmt.Printf("  End:     %s\n", timefmt.Day(result.EndDate))
 			}
 			return nil
 		},
@@ -199,7 +200,7 @@ func auditListCmd() *cobra.Command {
 			for _, a := range audits {
 				date := ""
 				if a.PlannedDate != nil {
-					date = a.PlannedDate.Format("2006-01-02")
+					date = timefmt.Day(a.PlannedDate)
 				}
 				fmt.Printf("  %-6d %-14s %-36s %-24s %-6d %-6d %s\n",
 					a.ID,
@@ -243,13 +244,13 @@ func auditShowCmd() *cobra.Command {
 			fmt.Printf("  Auditor:     %s\n", audit.Auditor)
 			fmt.Printf("  Status:      %s\n", audit.Status)
 			if audit.PlannedDate != nil {
-				fmt.Printf("  Planned:     %s\n", audit.PlannedDate.Format("2006-01-02"))
+				fmt.Printf("  Planned:     %s\n", timefmt.Day(audit.PlannedDate))
 			}
 			if audit.StartedAt != nil {
-				fmt.Printf("  Started:     %s\n", audit.StartedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("  Started:     %s\n", timefmt.LocalTime(audit.StartedAt))
 			}
 			if audit.CompletedAt != nil {
-				fmt.Printf("  Completed:   %s\n", audit.CompletedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("  Completed:   %s\n", timefmt.LocalTime(audit.CompletedAt))
 			}
 			if audit.Summary != "" {
 				fmt.Printf("  Summary:     %s\n", audit.Summary)
@@ -374,7 +375,7 @@ func auditFindingCmd() *cobra.Command {
 			fmt.Printf("Finding #%d created: %s\n", result.ID, result.Title)
 			fmt.Printf("  Type:   %s\n", findingType)
 			if result.DueDate != nil {
-				fmt.Printf("  Due:    %s\n", result.DueDate.Format("2006-01-02"))
+				fmt.Printf("  Due:    %s\n", timefmt.Day(result.DueDate))
 			}
 			return nil
 		},

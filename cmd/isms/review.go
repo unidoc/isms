@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/client"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func reviewCmd() *cobra.Command {
@@ -96,7 +97,7 @@ func reviewListCmd() *cobra.Command {
 					r.DocumentID,
 					truncate(r.Title, 36),
 					truncate(r.RequestedBy, 20),
-					r.CreatedAt.Format("2006-01-02"),
+					timefmt.LocalDay(r.CreatedAt),
 				)
 			}
 			fmt.Printf("\n%d review(s)\n", len(reviews))
@@ -131,8 +132,8 @@ func reviewShowCmd() *cobra.Command {
 			fmt.Printf("  Version:      %s\n", review.Version)
 			fmt.Printf("  Status:       %s\n", review.Status)
 			fmt.Printf("  Requested by: %s\n", review.RequestedBy)
-			fmt.Printf("  Created:      %s\n", review.CreatedAt.Format("2006-01-02 15:04"))
-			fmt.Printf("  Updated:      %s\n", review.UpdatedAt.Format("2006-01-02 15:04"))
+			fmt.Printf("  Created:      %s\n", timefmt.LocalTime(review.CreatedAt))
+			fmt.Printf("  Updated:      %s\n", timefmt.LocalTime(review.UpdatedAt))
 			fmt.Printf("  Comments:     %d (%d open)\n", review.CommentCount, review.OpenComments)
 			return nil
 		},

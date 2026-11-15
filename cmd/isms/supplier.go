@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func supplierCmd() *cobra.Command {
@@ -420,7 +421,7 @@ func supplierOverdueCmd() *cobra.Command {
 				}
 				if sup.NextReview.Before(now) {
 					fmt.Printf("  %s  %s  (due: %s, criticality: %s)\n",
-						sup.Identifier, sup.Name, sup.NextReview.Format("2006-01-02"), sup.Criticality)
+						sup.Identifier, sup.Name, timefmt.Day(sup.NextReview), sup.Criticality)
 					count++
 				}
 			}

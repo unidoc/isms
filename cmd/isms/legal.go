@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func legalCmd() *cobra.Command {
@@ -163,10 +164,10 @@ func legalShowCmd() *cobra.Command {
 				fmt.Printf("  Owner:        %s\n", lr.Owner)
 			}
 			if lr.LastReview != nil && !lr.LastReview.IsZero() {
-				fmt.Printf("  Last Review:  %s\n", lr.LastReview.Format("2006-01-02"))
+				fmt.Printf("  Last Review:  %s\n", timefmt.Day(lr.LastReview))
 			}
 			if lr.NextReview != nil && !lr.NextReview.IsZero() {
-				fmt.Printf("  Next Review:  %s\n", lr.NextReview.Format("2006-01-02"))
+				fmt.Printf("  Next Review:  %s\n", timefmt.Day(lr.NextReview))
 			}
 			// Risk assessment
 			if intVal(lr.CurrentLikelihood) > 0 || intVal(lr.CurrentImpact) > 0 {
@@ -187,8 +188,8 @@ func legalShowCmd() *cobra.Command {
 			if lr.Notes != "" {
 				fmt.Printf("  Notes:        %s\n", lr.Notes)
 			}
-			fmt.Printf("  Created:      %s\n", lr.CreatedAt.Format("2006-01-02 15:04"))
-			fmt.Printf("  Updated:      %s\n", lr.UpdatedAt.Format("2006-01-02 15:04"))
+			fmt.Printf("  Created:      %s\n", timefmt.LocalTime(lr.CreatedAt))
+			fmt.Printf("  Updated:      %s\n", timefmt.LocalTime(lr.UpdatedAt))
 			return nil
 		},
 	}

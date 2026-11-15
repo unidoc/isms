@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 var (
@@ -292,12 +293,12 @@ func parseEpochPtr(s string) (*db.Epoch, error) {
 	return &e, nil
 }
 
-// epochPtrStr formats an *Epoch as YYYY-MM-DD or returns empty string for nil/zero.
+// epochPtrStr formats a DATE *Epoch as the UTC day, YYYY-MM-DD or returns empty string for nil/zero.
 func epochPtrStr(e *db.Epoch) string {
 	if e == nil || e.IsZero() {
 		return ""
 	}
-	return e.Format("2006-01-02")
+	return timefmt.Day(e)
 }
 
 // createReviewTask creates a review task via the API. Sets created_by from ISMS_USER env.

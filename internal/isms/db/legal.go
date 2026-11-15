@@ -85,7 +85,7 @@ func (lr *LegalRequirement) CalculateReviewDate(cycles map[string]int) {
 			months = m
 		}
 	}
-	base := time.Now()
+	base := time.Now().UTC()
 	if lr.LastReview != nil && !lr.LastReview.IsZero() {
 		base = lr.LastReview.Time
 	}

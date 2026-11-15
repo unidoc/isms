@@ -182,7 +182,7 @@ func (r *Risk) CalculateReviewDate(cycles map[string]int) {
 	if !ok {
 		months = 12
 	}
-	base := time.Now()
+	base := time.Now().UTC()
 	if r.LastReview != nil && !r.LastReview.IsZero() {
 		base = r.LastReview.Time
 	}

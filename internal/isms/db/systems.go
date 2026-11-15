@@ -125,7 +125,7 @@ func (sys *System) CalculateNextReview(cycles map[string]int) {
 	if !ok {
 		months = 12
 	}
-	base := time.Now()
+	base := time.Now().UTC()
 	if sys.LastReview != nil && !sys.LastReview.IsZero() {
 		base = sys.LastReview.Time
 	}

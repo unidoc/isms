@@ -3302,7 +3302,7 @@ func (s *Server) syncChangeFollowupTask(ctx context.Context, orgID int, updated 
 	if assignee == "" {
 		assignee = updated.RequestedBy
 	}
-	due := db.NewEpoch(time.Now().AddDate(0, 0, 14))
+	due := db.NewEpoch(time.Now().UTC().AddDate(0, 0, 14))
 	title := fmt.Sprintf("Implement %s: %s", updated.Identifier, updated.Title)
 	desc := fmt.Sprintf("Auto-created from approved change %s. Verify implementation and mark this task done.", updated.Identifier)
 

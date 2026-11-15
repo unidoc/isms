@@ -30,7 +30,16 @@ func (d *DB) SetEncryptionKey(key string) {
 
 // New creates a new DB from a connection string.
 func New(ctx context.Context, connStr string) (*DB, error) {
-	pool, err := pgxpool.New(ctx, connStr)
+	cfg, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to postgres: %w", err)
+	}
+	// Every session works in UTC, whatever the connection string or the server's
+	// TimeZone says: CURRENT_DATE and timestamptz-to-date casts follow the
+	// session zone, so overdue and expiry boundaries must not move with host
+	// configuration (#503).
+	cfg.ConnConfig.RuntimeParams["timezone"] = "UTC"
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to postgres: %w", err)
 	}

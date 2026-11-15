@@ -221,7 +221,12 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	case certID != "":
 		return s.trustPublicCertificationFile(c, org, certID)
 	case docID != "":
-		return s.trustPublicDocument(c, org, docID)
+		// The only route that looks at the visitor cookie besides GET /visitor.
+		v, err := s.trustVisitorFromRequest(c, org.ID)
+		if err != nil {
+			return trustPublicError(c, err)
+		}
+		return s.trustPublicDocument(c, org, docID, v)
 	case items:
 		return s.trustPublicItems(c, org)
 	}
@@ -384,11 +389,28 @@ func (s *Server) trustLinkPolicyFor(org *db.Organization, docs map[string]*trust
 	return policy
 }
 
+// trustViewerMayRead is the single access rule for trust center content: may a
+// viewer, signed in as visitor v or anonymous (nil), read an item at this
+// level? Public is for everyone, gated needs a signed-in visitor (until an NDA
+// step exists, signing in is all gated asks), restricted is for no visitor (an
+// explicit grant comes later) and an unknown level is refused. Every read path
+// goes through here, so the rule lives in one place.
+func trustViewerMayRead(level string, v *db.TrustVisitor) bool {
+	switch level {
+	case db.TrustAccessPublic:
+		return true
+	case db.TrustAccessGated:
+		return v != nil
+	}
+	return false
+}
+
 // trustPublicDocument answers GET /api/v1/trust/:slug/documents/:id. Every case
 // that cannot be served is the same 404: unknown id, another organization's
-// id, a hidden item, a retired or deleted document, no approved version, and
-// (until visitor sign-in exists) any access level but public.
-func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publicID string) error {
+// id, a hidden item, a retired or deleted document, no approved version, and an
+// access level the viewer may not read (trustViewerMayRead). v is the signed-in
+// visitor, or nil; the preview always passes nil, so it stays the anonymous view.
+func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publicID string, v *db.TrustVisitor) error {
 	ctx := c.Request().Context()
 	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
 	if err != nil {
@@ -404,7 +426,7 @@ func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publi
 			info = docs[it.Reference]
 		}
 	}
-	if info == nil || info.Item.AccessLevel != db.TrustAccessPublic {
+	if info == nil || !trustViewerMayRead(info.Item.AccessLevel, v) {
 		return trustPublicNotFound(c)
 	}
 	html, err := renderTrustMarkdown([]byte(info.Served.Body), s.trustLinkPolicyFor(org, docs))

@@ -1016,7 +1016,10 @@ paths:
       tags: [Trust Center]
       summary: Read a document published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Serves the last
+        Needs no member session; any Authorization header is ignored. A `public`
+        document is served to anyone. A `gated` document is served only when the
+        request carries a valid visitor session cookie (`isms_trust_visitor`) for
+        this organization; see `/trust/{slug}/visitor/session`. Serves the last
         approved version of the document, never the repository's current draft,
         as HTML rendered on the server. The document's frontmatter (authors,
         owners, reviewers, approvers) is never included, raw HTML in the body is
@@ -1024,8 +1027,11 @@ paths:
         another published document, which becomes `<a data-trust-document="<id>">`
         with no `href`. Returns the fixed 404 body for an unknown id, another
         organization's id, an item that is hidden, a document that is retired or
-        deleted, a document with no approved version, and any access level other
-        than `public` (visitor sign-in is not available yet). The 429 and 500
+        deleted, a document with no approved version, a `gated` document without a
+        valid visitor session (none, expired, revoked, blocked or another
+        organization's), and every `restricted` document, which stays locked for
+        everyone. Never cacheable, so a gated body cannot reach the next anonymous
+        visitor. The manager preview is always the anonymous view. The 429 and 500
         responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:

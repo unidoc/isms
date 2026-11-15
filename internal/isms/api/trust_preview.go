@@ -56,5 +56,6 @@ func (s *Server) handleTrustPreviewDocument(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return s.trustPublicDocument(c, org, c.Param("id"))
+	// nil visitor: the preview is the anonymous view and never reads the cookie.
+	return s.trustPublicDocument(c, org, c.Param("id"), nil)
 }

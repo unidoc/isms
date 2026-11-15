@@ -152,6 +152,9 @@ const (
 	CodeTrustLinkInvalid            = "trust_link_invalid"
 	CodeTrustVisitorBlocked         = "trust_visitor_blocked"
 	CodeTrustVisitorProfileRequired = "trust_visitor_profile_required"
+	// CodeTrustOverviewNotPublic: the document chosen as the public overview is
+	// published at a level that is not public.
+	CodeTrustOverviewNotPublic = "trust_overview_not_public"
 
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
@@ -242,6 +245,7 @@ var errorMessages = map[string]string{
 	CodeTrustLinkInvalid:            "this sign-in link is invalid or has expired — request a new one",
 	CodeTrustVisitorBlocked:         "this email address cannot sign in to this trust center",
 	CodeTrustVisitorProfileRequired: "enter your name and company to continue",
+	CodeTrustOverviewNotPublic:      "this document is published as gated or restricted, so it cannot be the public overview",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

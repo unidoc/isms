@@ -56,8 +56,10 @@ const (
 	// Per-IP cap on link requests (this route only).
 	trustLinkIPBudget = 10
 	trustLinkIPWindow = 15 * time.Minute
-	// Per-organization hourly cap, overridable with ISMS_TRUST_SIGNIN_ORG_HOURLY.
-	trustSignInOrgHourlyDefault = 100
+	// Per-organization hourly cap, a backstop against abuse that is far above
+	// real use; overridable with ISMS_TRUST_SIGNIN_ORG_HOURLY. Reaching it shows
+	// to managers as sign_in_paused_until in the settings.
+	trustSignInOrgHourlyDefault = 500
 	trustVisitorBodyLimit       = 8 << 10
 	trustMailTimeout            = 30 * time.Second
 )
@@ -303,7 +305,7 @@ func (s *Server) trustVisitorLink(c echo.Context, org *db.Organization, settings
 	}
 	if !created {
 		if reason == db.TrustLinkCapOrg {
-			log.Printf("trust center sign-in: hourly send cap reached for organization %q (id %d); no mail sent", org.Slug, org.ID)
+			log.Printf("trust center sign-in: hourly backstop cap reached for organization %q (id %d); no mail sent", org.Slug, org.ID)
 		}
 		return accepted()
 	}

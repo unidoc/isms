@@ -493,6 +493,7 @@
     "trust_link_invalid": "tautan masuk ini tidak valid atau sudah kedaluwarsa — minta yang baru",
     "trust_visitor_blocked": "alamat email ini tidak dapat masuk ke pusat kepercayaan ini",
     "trust_visitor_profile_required": "masukkan nama dan perusahaan Anda untuk melanjutkan",
+    "trust_overview_not_public": "dokumen ini dipublikasikan sebagai «Dengan masuk» atau «Terbatas», sehingga tidak dapat menjadi dokumen ikhtisar publik",
     "ai_disabled": "fitur AI dinonaktifkan untuk organisasi ini",
     "unsupported_locale": "locale tidak didukung",
     "trust_file_type": "hanya file PDF, PNG, atau JPEG yang diterima",

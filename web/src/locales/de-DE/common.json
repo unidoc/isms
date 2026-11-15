@@ -493,6 +493,7 @@
     "trust_link_invalid": "dieser Anmeldelink ist ungültig oder abgelaufen — fordern Sie einen neuen an",
     "trust_visitor_blocked": "diese E-Mail-Adresse kann sich bei diesem Trust Center nicht anmelden",
     "trust_visitor_profile_required": "geben Sie Ihren Namen und Ihr Unternehmen ein, um fortzufahren",
+    "trust_overview_not_public": "dieses Dokument ist als „Mit Anmeldung“ oder „Eingeschränkt“ veröffentlicht und kann daher nicht das öffentliche Übersichtsdokument sein",
     "ai_disabled": "KI-Funktionen sind für diese Organisation deaktiviert",
     "unsupported_locale": "nicht unterstützte Sprache",
     "trust_file_type": "Es werden nur PDF-, PNG- oder JPEG-Dateien akzeptiert",

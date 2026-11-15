@@ -351,6 +351,16 @@ func (s *Server) trustOverviewDocument(ctx context.Context, org *db.Organization
 		s.clearTrustOverviewForDocument(ctx, org.ID, docID, reason, "system")
 		return nil
 	}
+	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
+	if err != nil {
+		log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
+		return nil
+	}
+	// A document also published as gated or restricted must not leak through
+	// the overview. Checked after the retire rule, which clears the setting.
+	if trustOverviewWithheld(rows, docID) {
+		return nil
+	}
 	served, err := s.trustServed(ctx, st, org.ID, docID)
 	if err != nil {
 		log.Printf("trust center: org %d overview document %s: %v", org.ID, docID, err)
@@ -359,7 +369,6 @@ func (s *Server) trustOverviewDocument(ctx context.Context, org *db.Organization
 	if served == nil {
 		return nil
 	}
-	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
 	if err == nil {
 		var docs map[string]*trustDocInfo
 		if docs, err = s.trustServableDocuments(ctx, org.ID, rows); err == nil {
@@ -389,12 +398,27 @@ func (s *Server) trustLinkPolicyFor(org *db.Organization, docs map[string]*trust
 	return policy
 }
 
+// trustOverviewWithheld reports whether the overview document docID must not be
+// served: it is also published as a visible trust item at a level that a
+// viewer who is not signed in may not read. The overview is a public element, so
+// the answer does not depend on who asks.
+func trustOverviewWithheld(items []db.TrustCenterItem, docID string) bool {
+	for _, it := range items {
+		if it.Kind == db.TrustKindDocument && it.HiddenAt == nil && strings.EqualFold(it.Reference, docID) &&
+			!trustViewerMayRead(it.AccessLevel, nil) {
+			return true
+		}
+	}
+	return false
+}
+
 // trustViewerMayRead is the single access rule for trust center content: may a
 // viewer, signed in as visitor v or anonymous (nil), read an item at this
 // level? Public is for everyone, gated needs a signed-in visitor (until an NDA
 // step exists, signing in is all gated asks), restricted is for no visitor (an
 // explicit grant comes later) and an unknown level is refused. Every read path
-// goes through here, so the rule lives in one place.
+// (documents, and the overview through trustOverviewWithheld) goes through
+// here, so the rule lives in one place.
 func trustViewerMayRead(level string, v *db.TrustVisitor) bool {
 	switch level {
 	case db.TrustAccessPublic:

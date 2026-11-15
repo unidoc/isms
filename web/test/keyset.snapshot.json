@@ -1008,6 +1008,7 @@
   "common.error.trust_link_invalid",
   "common.error.trust_no_approved_version",
   "common.error.trust_order_stale",
+  "common.error.trust_overview_not_public",
   "common.error.trust_sign_in_unavailable",
   "common.error.trust_visitor_blocked",
   "common.error.trust_visitor_profile_required",

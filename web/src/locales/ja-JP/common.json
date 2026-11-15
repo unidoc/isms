@@ -480,6 +480,7 @@
     "trust_link_invalid": "このサインインリンクは無効か、有効期限が切れています。新しいリンクをリクエストしてください",
     "trust_visitor_blocked": "このメールアドレスはこのトラストセンターにサインインできません",
     "trust_visitor_profile_required": "続行するには名前と会社名を入力してください",
+    "trust_overview_not_public": "この文書は「ログイン必須」または「制限付き」で公開されているため、公開の概要文書にはできません",
     "ai_disabled": "この組織ではAI機能が無効です",
     "unsupported_locale": "サポートされていないロケール",
     "trust_file_type": "PDF、PNG、JPEG ファイルのみ受け付けます",

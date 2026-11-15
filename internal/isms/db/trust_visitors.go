@@ -209,6 +209,37 @@ func (d *DB) CreateTrustVisitorLinkCapped(ctx context.Context, orgID int, email,
 	return created, reason, nil
 }
 
+// TrustVisitorLinkPausedUntil reports when sign-in links are paused for the
+// organization because it reached cap links within window, or nil when it has
+// not. It keeps no state: it reads the links. The time is when the link that
+// brings the count back under the cap turns window old (the oldest link, when
+// the count is exactly cap). A cap of 0 never pauses.
+func (d *DB) TrustVisitorLinkPausedUntil(ctx context.Context, orgID, cap int, window time.Duration) (*time.Time, error) {
+	if cap <= 0 {
+		return nil, nil
+	}
+	var n int
+	if err := d.pool.QueryRow(ctx, `
+		SELECT count(*) FROM trust_visitor_links
+		WHERE organization_id = $1 AND created_at >= now() - make_interval(secs => $2)
+	`, orgID, window.Seconds()).Scan(&n); err != nil || n < cap {
+		return nil, err
+	}
+	var until time.Time
+	err := d.pool.QueryRow(ctx, `
+		SELECT created_at + make_interval(secs => $2) FROM trust_visitor_links
+		WHERE organization_id = $1 AND created_at >= now() - make_interval(secs => $2)
+		ORDER BY created_at, id OFFSET $3 LIMIT 1
+	`, orgID, window.Seconds(), n-cap).Scan(&until)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // the window moved between the two reads
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &until, nil
+}
+
 // CountTrustVisitorLinks counts the links created since the given time, for
 // one email or, with an empty email, for the whole organization. Used and
 // expired links count: the caps limit mail sent, not links still valid.

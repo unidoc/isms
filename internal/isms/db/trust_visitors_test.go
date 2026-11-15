@@ -682,3 +682,50 @@ func TestTrustVisitorSessionOrgMustMatchVisitorOrg(t *testing.T) {
 		t.Error("a link with an upper-case email was accepted")
 	}
 }
+
+// The pause time is derived from the links themselves: when the cap is
+// reached, the moment the slot that frees up first turns one window old.
+func TestTrustVisitorLinkPausedUntil(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	orgID := trustTestOrg(t, d, "paused")
+	mk := func(n int) {
+		for i := 0; i < n; i++ {
+			if err := d.CreateTrustVisitorLink(ctx, orgID, "p"+strconv.Itoa(i)+"@example.com", visitorHash(t), linkTTL); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	mk(4)
+	if got, err := d.TrustVisitorLinkPausedUntil(ctx, orgID, 5, time.Hour); err != nil || got != nil {
+		t.Fatalf("4 of 5 = %v, %v; want nil", got, err)
+	}
+	mk(1)
+	got, err := d.TrustVisitorLinkPausedUntil(ctx, orgID, 5, time.Hour)
+	if err != nil || got == nil || !got.After(time.Now()) || got.After(time.Now().Add(time.Hour+time.Minute)) {
+		t.Fatalf("5 of 5 = %v, %v; want a time in (now, now+1h]", got, err)
+	}
+	// Two links older than the window no longer count.
+	if _, err := d.pool.Exec(ctx, `UPDATE trust_visitor_links SET created_at = now() - interval '2 hours'
+		WHERE id IN (SELECT id FROM trust_visitor_links WHERE organization_id = $1 ORDER BY id LIMIT 2)`, orgID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := d.TrustVisitorLinkPausedUntil(ctx, orgID, 5, time.Hour); got != nil {
+		t.Errorf("3 in the window of 5 = %v, want nil", got)
+	}
+	// Past the cap, the first slot to free is the one that brings the count back under it.
+	mk(4) // 7 in the window
+	got, _ = d.TrustVisitorLinkPausedUntil(ctx, orgID, 5, time.Hour)
+	if got == nil {
+		t.Fatal("7 of 5 = nil")
+	}
+	var third time.Time
+	_ = d.pool.QueryRow(ctx, `SELECT created_at FROM trust_visitor_links WHERE organization_id = $1 AND created_at > now() - interval '1 hour'
+		ORDER BY created_at, id OFFSET 2 LIMIT 1`, orgID).Scan(&third)
+	if diff := got.Sub(third.Add(time.Hour)); diff < -time.Second || diff > time.Second {
+		t.Errorf("paused until %v, want the 3rd oldest link + 1h (%v)", got, third.Add(time.Hour))
+	}
+	if got, _ := d.TrustVisitorLinkPausedUntil(ctx, orgID, 0, time.Hour); got != nil {
+		t.Error("a zero cap pauses")
+	}
+}

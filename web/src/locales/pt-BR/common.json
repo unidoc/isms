@@ -493,6 +493,7 @@
     "trust_link_invalid": "este link de acesso é inválido ou expirou — solicite um novo",
     "trust_visitor_blocked": "este endereço de e-mail não pode entrar nesta central de confiança",
     "trust_visitor_profile_required": "informe seu nome e sua empresa para continuar",
+    "trust_overview_not_public": "este documento está publicado como «Com login» ou «Restrito», portanto não pode ser o documento de visão geral público",
     "ai_disabled": "os recursos de IA estão desativados para esta organização",
     "unsupported_locale": "idioma não suportado",
     "trust_file_type": "somente arquivos PDF, PNG ou JPEG são aceitos",

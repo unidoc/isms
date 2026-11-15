@@ -79,15 +79,15 @@ func TestTrustLinkLimiterOffWhenRateLimitDisabled(t *testing.T) {
 
 func TestTrustSignInOrgHourlyCapDefault(t *testing.T) {
 	t.Setenv("ISMS_TRUST_SIGNIN_ORG_HOURLY", "")
-	if got := trustSignInOrgHourly(); got != 100 {
-		t.Errorf("default = %d, want 100", got)
+	if got := trustSignInOrgHourly(); got != 500 {
+		t.Errorf("default = %d, want 500", got)
 	}
 	t.Setenv("ISMS_TRUST_SIGNIN_ORG_HOURLY", "7")
 	if got := trustSignInOrgHourly(); got != 7 {
 		t.Errorf("override = %d, want 7", got)
 	}
 	t.Setenv("ISMS_TRUST_SIGNIN_ORG_HOURLY", "junk")
-	if got := trustSignInOrgHourly(); got != 100 {
+	if got := trustSignInOrgHourly(); got != 500 {
 		t.Errorf("invalid = %d, want the default", got)
 	}
 }

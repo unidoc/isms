@@ -493,6 +493,7 @@
     "trust_link_invalid": "ten link logowania jest nieprawidłowy lub wygasł — poproś o nowy",
     "trust_visitor_blocked": "ten adres e-mail nie może zalogować się do tego centrum zaufania",
     "trust_visitor_profile_required": "wpisz swoje imię i nazwisko oraz firmę, aby kontynuować",
+    "trust_overview_not_public": "ten dokument jest opublikowany jako „Po zalogowaniu” lub „Ograniczony”, więc nie może być publicznym dokumentem przeglądowym",
     "ai_disabled": "funkcje AI są wyłączone dla tej organizacji",
     "unsupported_locale": "nieobsługiwany język",
     "trust_file_type": "akceptowane są tylko pliki PDF, PNG lub JPEG",

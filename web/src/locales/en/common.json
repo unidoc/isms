@@ -500,6 +500,7 @@
     "trust_link_invalid": "this sign-in link is invalid or has expired — request a new one",
     "trust_visitor_blocked": "this email address cannot sign in to this trust center",
     "trust_visitor_profile_required": "enter your name and company to continue",
+    "trust_overview_not_public": "this document is published as gated or restricted, so it cannot be the public overview",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale",
     "trust_file_type": "only PDF, PNG or JPEG files are accepted",

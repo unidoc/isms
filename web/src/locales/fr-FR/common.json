@@ -493,6 +493,7 @@
     "trust_link_invalid": "ce lien de connexion est invalide ou a expiré — demandez-en un nouveau",
     "trust_visitor_blocked": "cette adresse e-mail ne peut pas se connecter à ce centre de confiance",
     "trust_visitor_profile_required": "saisissez votre nom et votre entreprise pour continuer",
+    "trust_overview_not_public": "ce document est publié avec le niveau « Avec connexion » ou « Restreint » ; il ne peut donc pas être le document de présentation public",
     "ai_disabled": "les fonctionnalités d'IA sont désactivées pour cette organisation",
     "unsupported_locale": "langue non prise en charge",
     "trust_file_type": "seuls les fichiers PDF, PNG ou JPEG sont acceptés",

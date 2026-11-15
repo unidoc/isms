@@ -42,6 +42,13 @@ func serveCmd() *cobra.Command {
 			}
 			defer database.Close()
 
+			// The root pre-run pinned time.Local to UTC; say so once at startup.
+			hostTZ := os.Getenv("TZ")
+			if hostTZ == "" {
+				hostTZ = "local"
+			}
+			log.Printf("time zone: UTC (host TZ=%s)", hostTZ)
+
 			// Auto-run migrations using embedded SQL files.
 			log.Println("Running database migrations...")
 			if err := database.MigrateFS(ctx, embeddedMigrations, "migrations"); err != nil {

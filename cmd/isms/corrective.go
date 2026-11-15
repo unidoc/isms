@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func correctiveCmd() *cobra.Command {
@@ -63,7 +64,7 @@ func correctiveAddCmd() *cobra.Command {
 				fmt.Printf("  Assignee: %s\n", result.Assignee)
 			}
 			if result.DueDate != nil {
-				fmt.Printf("  Due:      %s\n", *result.DueDate)
+				fmt.Printf("  Due:      %s\n", timefmt.Day(result.DueDate))
 			}
 			return nil
 		},
@@ -150,7 +151,7 @@ func correctiveShowCmd() *cobra.Command {
 				fmt.Printf("  Assignee:    %s\n", ca.Assignee)
 			}
 			if ca.DueDate != nil {
-				fmt.Printf("  Due Date:    %s\n", *ca.DueDate)
+				fmt.Printf("  Due Date:    %s\n", timefmt.Day(ca.DueDate))
 			}
 			if ca.RootCause != "" {
 				fmt.Printf("  Root Cause:  %s\n", ca.RootCause)
@@ -159,10 +160,10 @@ func correctiveShowCmd() *cobra.Command {
 				fmt.Printf("  Notes:       %s\n", ca.Notes)
 			}
 			if ca.ResolvedAt != nil {
-				fmt.Printf("  Resolved:    %s by %s\n", ca.ResolvedAt.Format("2006-01-02 15:04"), ca.ResolvedBy)
+				fmt.Printf("  Resolved:    %s by %s\n", timefmt.LocalTime(ca.ResolvedAt), ca.ResolvedBy)
 			}
-			fmt.Printf("  Created:     %s\n", ca.CreatedAt.Format("2006-01-02 15:04"))
-			fmt.Printf("  Updated:     %s\n", ca.UpdatedAt.Format("2006-01-02 15:04"))
+			fmt.Printf("  Created:     %s\n", timefmt.LocalTime(ca.CreatedAt))
+			fmt.Printf("  Updated:     %s\n", timefmt.LocalTime(ca.UpdatedAt))
 			return nil
 		},
 	}

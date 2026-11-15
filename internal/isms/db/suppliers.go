@@ -101,7 +101,7 @@ func (s *Supplier) CalculateNextReview(cycles map[string]int) {
 	if !ok {
 		months = 12
 	}
-	base := time.Now()
+	base := time.Now().UTC()
 	if s.LastReview != nil && !s.LastReview.IsZero() {
 		base = s.LastReview.Time
 	}

@@ -406,6 +406,7 @@
 </template>
 
 <script setup>
+import { isPastDue } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -577,8 +578,7 @@ function ciaColorText(v) {
 
 function isOverdue(dateStr) {
   if (!dateStr) return false
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d < new Date()
+  return isPastDue(dateStr)
 }
 
 function resolveUserName(email) {

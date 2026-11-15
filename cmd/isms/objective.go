@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func programCmd() *cobra.Command {
@@ -283,10 +284,10 @@ func objectiveShowCmd() *cobra.Command {
 				fmt.Printf("  Target:      %s %g %s\n", operatorSymbol(found.TargetOperator), *found.TargetValue, found.Unit)
 			}
 			if found.StartedAt != nil {
-				fmt.Printf("  Started:     %s\n", found.StartedAt.Format("2006-01-02"))
+				fmt.Printf("  Started:     %s\n", timefmt.LocalDay(found.StartedAt))
 			}
 			if found.ArchivedAt != nil {
-				fmt.Printf("  Archived:    %s\n", found.ArchivedAt.Format("2006-01-02"))
+				fmt.Printf("  Archived:    %s\n", timefmt.LocalDay(found.ArchivedAt))
 			}
 
 			// Show recent checkins
@@ -311,7 +312,7 @@ func objectiveShowCmd() *cobra.Command {
 						msg = " — " + ci.Message
 					}
 					fmt.Printf("    [%s] %s %-4s%s%s\n",
-						ci.OccurredAt.Format("2006-01-02 15:04"),
+						timefmt.LocalTime(ci.OccurredAt),
 						ci.CreatedBy,
 						status,
 						val,
@@ -472,7 +473,7 @@ func checkinListCmd() *cobra.Command {
 				}
 				fmt.Printf("%-6s %-20s %-6s %-10s %s\n",
 					strconv.FormatInt(ci.ID, 10),
-					ci.OccurredAt.Format("2006-01-02 15:04"),
+					timefmt.LocalTime(ci.OccurredAt),
 					result,
 					val,
 					truncate(ci.Message, 30),

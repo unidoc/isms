@@ -735,6 +735,7 @@
 </template>
 
 <script setup>
+import { isPastDue } from '../utils/dates.js'
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -1036,8 +1037,7 @@ function formatDay(dateStr) {
 
 function isOverdue(task) {
   if ((!task.due_date && task.due_date !== 0) || task.status === 'done') return false
-  const d = typeof task.due_date === 'number' ? new Date(task.due_date * 1000) : new Date(task.due_date)
-  return d < new Date()
+  return isPastDue(task.due_date)
 }
 
 // ---------- Comments ----------

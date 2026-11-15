@@ -12,6 +12,7 @@ import (
 	"golang.org/x/text/language"
 	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 // titleCase upper-cases the first letter of each word in a folder name for an
@@ -252,7 +253,7 @@ func exportRisksCmd() *cobra.Command {
 				if r.TreatmentPlan != "" {
 					b.WriteString(fmt.Sprintf("**Treatment Plan:** %s\n\n", r.TreatmentPlan))
 				}
-				b.WriteString(fmt.Sprintf("**Owner:** %s | **Status:** %s | **Next Review:** %s\n\n", r.Owner, r.Status, r.NextReview))
+				b.WriteString(fmt.Sprintf("**Owner:** %s | **Status:** %s | **Next Review:** %s\n\n", r.Owner, r.Status, timefmt.Day(r.NextReview)))
 			}
 
 			return writeOutput(output, b.String())
@@ -422,10 +423,10 @@ func exportSuppliersCmd() *cobra.Command {
 					b.WriteString(fmt.Sprintf("- **Contract Ref:** %s\n", s.ContractRef))
 				}
 				if s.LastReview != nil && !s.LastReview.IsZero() {
-					b.WriteString(fmt.Sprintf("- **Last Review:** %s\n", s.LastReview.Format("2006-01-02")))
+					b.WriteString(fmt.Sprintf("- **Last Review:** %s\n", timefmt.Day(s.LastReview)))
 				}
 				if s.NextReview != nil && !s.NextReview.IsZero() {
-					b.WriteString(fmt.Sprintf("- **Next Review:** %s\n", s.NextReview.Format("2006-01-02")))
+					b.WriteString(fmt.Sprintf("- **Next Review:** %s\n", timefmt.Day(s.NextReview)))
 				}
 				if s.Notes != "" {
 					b.WriteString(fmt.Sprintf("- **Notes:** %s\n", s.Notes))
@@ -492,13 +493,13 @@ func exportAuditPackCmd() *cobra.Command {
 			b.WriteString(fmt.Sprintf("| Auditor | %s |\n", audit.Auditor))
 			b.WriteString(fmt.Sprintf("| Status | %s |\n", audit.Status))
 			if audit.PlannedDate != nil {
-				b.WriteString(fmt.Sprintf("| Planned Date | %s |\n", audit.PlannedDate.Format("2006-01-02")))
+				b.WriteString(fmt.Sprintf("| Planned Date | %s |\n", timefmt.Day(audit.PlannedDate)))
 			}
 			if audit.StartedAt != nil {
-				b.WriteString(fmt.Sprintf("| Started | %s |\n", audit.StartedAt.Format("2006-01-02")))
+				b.WriteString(fmt.Sprintf("| Started | %s |\n", timefmt.LocalDay(audit.StartedAt)))
 			}
 			if audit.CompletedAt != nil {
-				b.WriteString(fmt.Sprintf("| Completed | %s |\n", audit.CompletedAt.Format("2006-01-02")))
+				b.WriteString(fmt.Sprintf("| Completed | %s |\n", timefmt.LocalDay(audit.CompletedAt)))
 			}
 			b.WriteString("\n")
 
@@ -558,7 +559,7 @@ func exportAuditPackCmd() *cobra.Command {
 						b.WriteString(fmt.Sprintf("- **Related Audit Item:** #%d\n", *f.AuditItemID))
 					}
 					if f.DueDate != nil {
-						b.WriteString(fmt.Sprintf("- **Due Date:** %s\n", f.DueDate.Format("2006-01-02")))
+						b.WriteString(fmt.Sprintf("- **Due Date:** %s\n", timefmt.Day(f.DueDate)))
 					}
 					// Description includes ## Corrective Action heading.
 					b.WriteString(fmt.Sprintf("\n%s\n", f.Description))

@@ -18,7 +18,7 @@ func (c *Checkin) ToChangeMap() map[string]string {
 		m["value_numeric"] = fmt.Sprintf("%g", *c.ValueNumeric)
 	}
 	if !c.OccurredAt.IsZero() {
-		m["occurred_at"] = c.OccurredAt.Format("2006-01-02T15:04:05Z07:00")
+		m["occurred_at"] = c.OccurredAt.UTC().Format("2006-01-02T15:04:05Z07:00")
 	}
 	return m
 }

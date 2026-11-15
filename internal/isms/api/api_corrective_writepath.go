@@ -38,7 +38,7 @@ func applyCorrectiveActionDefaults(ca *db.CorrectiveAction) {
 		ca.Source = "other"
 	}
 	if ca.DueDate == nil {
-		d := db.NewEpoch(time.Now().AddDate(0, 0, 30))
+		d := db.NewEpoch(time.Now().UTC().AddDate(0, 0, 30))
 		ca.DueDate = &d
 	}
 	if ca.Notes == "" {

@@ -31,7 +31,8 @@ func (e *Epoch) UnmarshalJSON(data []byte) error {
 	}
 	switch t := v.(type) {
 	case float64:
-		e.Time = time.Unix(int64(t), 0)
+		// UTC, not the host zone: a calendar date is a UTC date (#503).
+		e.Time = time.Unix(int64(t), 0).UTC()
 	case string:
 		if t == "" {
 			e.Time = time.Time{}
@@ -86,7 +87,10 @@ func (e Epoch) Value() (driver.Value, error) {
 	if e.IsZero() {
 		return nil, nil
 	}
-	return e.Time, nil
+	// UTC: pgx takes a DATE parameter's calendar day from the time's own fields,
+	// so a host-zone time would shift the day on servers outside UTC (#503). A
+	// TIMESTAMPTZ stores the same instant either way.
+	return e.Time.UTC(), nil
 }
 
 // NewEpoch wraps a time.Time as an Epoch.
@@ -96,5 +100,5 @@ func NewEpoch(t time.Time) Epoch {
 
 // EpochNow returns an Epoch set to the current time.
 func EpochNow() Epoch {
-	return Epoch{Time: time.Now()}
+	return Epoch{Time: time.Now().UTC()}
 }

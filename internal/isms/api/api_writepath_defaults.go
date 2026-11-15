@@ -232,7 +232,7 @@ func (s *Server) applyIncidentDefaults(ctx context.Context, orgID int, inc *db.I
 		if u, err := s.db.GetUserByEmail(ctx, inc.Reporter); err == nil && u != nil && u.Name != "" {
 			displayName = u.Name
 		}
-		ts := inc.DetectedAt.Format("2006-01-02 15:04")
+		ts := inc.DetectedAt.UTC().Format("2006-01-02 15:04") + " UTC"
 		inc.Notes = fmt.Sprintf("## Timeline\n\n- %s — Incident raised by %s\n", ts, displayName)
 	}
 }

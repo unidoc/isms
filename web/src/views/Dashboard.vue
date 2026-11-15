@@ -474,7 +474,7 @@
           <div class="grid grid-cols-12 border-b border-slate-800">
             <div v-for="(m, i) in monthNames" :key="i"
               class="px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider"
-              :class="i === currentMonth ? 'bg-blue-950/40 text-blue-400' : 'text-slate-600'">
+              :class="isCurrentMonth(i) ? 'bg-blue-950/40 text-blue-400' : 'text-slate-600'">
               {{ m }}
             </div>
           </div>
@@ -482,7 +482,7 @@
           <div v-for="cat in calendarCategories" :key="cat.key" class="grid grid-cols-12 border-b border-slate-800/50 last:border-0">
             <div v-for="(m, i) in 12" :key="i"
               class="px-1.5 py-2 text-center border-r border-slate-800/30 last:border-0 min-h-[2.5rem]"
-              :class="i === currentMonth ? 'bg-blue-950/20' : ''">
+              :class="isCurrentMonth(i) ? 'bg-blue-950/20' : ''">
               <div v-for="item in calendarItems(cat.key, i)" :key="item.id"
                 class="text-[9px] px-1 py-0.5 rounded mb-0.5 truncate cursor-default"
                 :class="item.overdue ? 'bg-red-900/40 text-red-300' : cat.color"
@@ -530,6 +530,8 @@
 </template>
 
 <script setup>
+import { utcToday } from '../utils/dates.js'
+import { buildCalendarItems, isCurrentMonth as isCurrentMonthIn } from '../utils/calendarItems.js'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -662,7 +664,6 @@ const hasActionItems = computed(() =>
 // and not from translation keys — every locale already carries them. A computed
 // so switching locale re-labels the twelve columns.
 const monthNames = computed(() => Array.from({ length: 12 }, (_, i) => formatMonthShort(i)))
-const currentMonth = new Date().getMonth()
 
 // Keys and colours are static; the label is resolved in a computed so it is
 // reactive. A module-level array holding literal labels would freeze them in
@@ -684,46 +685,15 @@ const calendarCategories = computed(() =>
   CALENDAR_CATEGORIES.map((c) => ({ ...c, label: t(c.label) })),
 )
 
-const calendarYear = ref(new Date().getFullYear())
+const calendarYear = ref(Number(utcToday().slice(0, 4)))
 
-function parseMonth(dateVal) {
-  if (!dateVal && dateVal !== 0) return -1
-  const d = typeof dateVal === 'number' ? new Date(dateVal * 1000) : new Date(dateVal)
-  if (isNaN(d.getTime())) return -1
-  if (d.getFullYear() !== calendarYear.value) return -1
-  return d.getMonth()
-}
+const isCurrentMonth = (i) => isCurrentMonthIn(i, calendarYear.value)
 
-const calendarData = computed(() => {
-  const items = []
-  const now = new Date()
-  // Audits
-  for (const a of asArray(audits.value)) {
-    const m = parseMonth(a.planned_date)
-    if (m >= 0) items.push({ key: 'audit', month: m, id: 'a-' + a.id, label: a.title, short: a.title?.substring(0, 12) || t('dashboard.calendar.untitled_audit'), overdue: m < currentMonth && a.status !== 'completed' })
-  }
-  // Risk reviews
-  for (const r of asArray(risks.value)) {
-    const m = parseMonth(r.review_date || r.next_review)
-    if (m >= 0) items.push({ key: 'risk', month: m, id: 'r-' + r.id, label: r.title || r.identifier, short: (r.identifier || r.title || '').substring(0, 12), overdue: m < currentMonth && r.status !== 'closed' })
-  }
-  // Supplier reviews
-  for (const s of asArray(suppliers.value)) {
-    const m = parseMonth(s.next_review)
-    if (m >= 0) items.push({ key: 'supplier', month: m, id: 's-' + s.id, label: s.name, short: (s.name || '').substring(0, 12), overdue: m < currentMonth })
-  }
-  // Legal reviews
-  for (const l of asArray(legal.value)) {
-    const m = parseMonth(l.next_review)
-    if (m >= 0) items.push({ key: 'legal', month: m, id: 'l-' + l.id, label: l.title, short: (l.title || '').substring(0, 12), overdue: m < currentMonth })
-  }
-  // Tasks
-  for (const t of asArray(tasks.value)) {
-    const m = parseMonth(t.due_date)
-    if (m >= 0) items.push({ key: 'task', month: m, id: 't-' + t.id, label: t.title, short: (t.title || '').substring(0, 12), overdue: m < currentMonth && t.status !== 'done' })
-  }
-  return items
-})
+const calendarData = computed(() => buildCalendarItems(
+  { audits: audits.value, risks: risks.value, suppliers: suppliers.value, legal: legal.value, tasks: tasks.value },
+  calendarYear.value,
+  t('dashboard.calendar.untitled_audit'),
+))
 
 function calendarItems(catKey, monthIdx) {
   return calendarData.value.filter(i => i.key === catKey && i.month === monthIdx)

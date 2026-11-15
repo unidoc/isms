@@ -67,6 +67,8 @@ Use `isms diff` to preview what a document change looks like before syncing, and
 
 Run `isms <command> --help` for full flags on any command.
 
+The CLI prints calendar dates (due, review, planned and end dates, expiry) as UTC days, the same as the web app, and timestamps (created, updated, started, resolved) in your local time zone.
+
 ### Documents & git
 | Command | Purpose |
 |---|---|

@@ -173,7 +173,9 @@ func epochToString(e *Epoch) string {
 	if e == nil || e.IsZero() {
 		return ""
 	}
-	return e.Format("2006-01-02")
+	// UTC: a JSON-decoded epoch is UTC but pgx scans in time.Local, and the same
+	// instant must not format to two different days.
+	return e.UTC().Format("2006-01-02")
 }
 
 // DiffFields compares two maps of field values and returns changelog entries for changed fields.

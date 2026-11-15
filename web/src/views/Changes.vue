@@ -260,7 +260,7 @@
                         </div>
                         <div v-if="selectedChange.planned_at">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.planned_for') }}</div>
-                          <div class="text-sm text-slate-300">{{ formatDate(selectedChange.planned_at) }}</div>
+                          <div class="text-sm text-slate-300">{{ formatDay(selectedChange.planned_at) }}</div>
                         </div>
                         <div v-if="selectedChange.approved_by">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.approved_by') }}</div>
@@ -383,6 +383,7 @@
 </template>
 
 <script setup>
+import { toDay, dayToEpoch } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -406,7 +407,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 import { sameMarkdown } from '../composables/useMarkdownConvert.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'
@@ -730,16 +731,8 @@ function startEdit(cr) {
   captureEditSnapshot()
 }
 
-function epochToDateStr(d) {
-  if (!d) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toISOString().split('T')[0]
-}
-
-function dateStrToEpoch(str) {
-  if (!str) return null
-  return Math.floor(new Date(str + 'T00:00:00Z').getTime() / 1000)
-}
+const epochToDateStr = toDay
+const dateStrToEpoch = dayToEpoch
 
 function editSection(section) {
   startEdit(selectedChange.value)

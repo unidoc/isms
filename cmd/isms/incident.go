@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/client"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/timefmt"
 )
 
 func incidentCmd() *cobra.Command {
@@ -128,7 +129,7 @@ func incidentListCmd() *cobra.Command {
 					inc.Status,
 					truncate(inc.Title, 40),
 					truncate(inc.Reporter, 24),
-					inc.CreatedAt.Format("2006-01-02 15:04"),
+					timefmt.LocalTime(inc.CreatedAt),
 				)
 			}
 			fmt.Printf("\n%d incident(s)\n", len(incidents))
@@ -197,15 +198,15 @@ func incidentShowCmd() *cobra.Command {
 			if inc.Assignee != "" {
 				fmt.Printf("  Assignee:    %s\n", inc.Assignee)
 			}
-			fmt.Printf("  Detected:    %s\n", inc.DetectedAt.Format("2006-01-02 15:04"))
+			fmt.Printf("  Detected:    %s\n", timefmt.LocalTime(inc.DetectedAt))
 			if inc.ContainedAt != nil {
-				fmt.Printf("  Contained:   %s\n", inc.ContainedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("  Contained:   %s\n", timefmt.LocalTime(inc.ContainedAt))
 			}
 			if inc.ResolvedAt != nil {
-				fmt.Printf("  Resolved:    %s\n", inc.ResolvedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("  Resolved:    %s\n", timefmt.LocalTime(inc.ResolvedAt))
 			}
 			if inc.ClosedAt != nil {
-				fmt.Printf("  Closed:      %s\n", inc.ClosedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("  Closed:      %s\n", timefmt.LocalTime(inc.ClosedAt))
 			}
 			if inc.RootCause != "" {
 				fmt.Printf("  Root Cause:  %s\n", inc.RootCause)

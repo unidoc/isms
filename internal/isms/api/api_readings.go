@@ -138,7 +138,7 @@ func writeRiskFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int, 
 	}
 
 	// Set last_review to now (canonical assessment log lives in entity_readings)
-	now := db.NewEpoch(time.Now())
+	now := db.NewEpoch(time.Now().UTC())
 	risk.LastReview = &now
 
 	// A user-supplied date wins; nil lets UpdateRiskTx derive one from the org's
@@ -267,7 +267,7 @@ func writeAssetFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		a.Availability = r.Availability
 	}
 	// Stamp last_review to now (canonical log lives in entity_readings)
-	nowEpoch := db.NewEpoch(time.Now())
+	nowEpoch := db.NewEpoch(time.Now().UTC())
 	a.LastReview = &nowEpoch
 	// Next review: explicit user input wins, otherwise derive from current CIA severity.
 	if nextReview != "" {
@@ -277,7 +277,7 @@ func writeAssetFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 		}
 	} else {
 		months := assetReviewMonths(a.Confidentiality, a.Integrity, a.Availability)
-		next := time.Now().AddDate(0, months, 0)
+		next := time.Now().UTC().AddDate(0, months, 0)
 		e := db.NewEpoch(next)
 		a.NextReview = &e
 	}
@@ -374,7 +374,7 @@ func writeLegalFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int,
 	}
 
 	// Stamp last_review to now (canonical log lives in entity_readings)
-	now := db.NewEpoch(time.Now())
+	now := db.NewEpoch(time.Now().UTC())
 	lr.LastReview = &now
 
 	// A user-supplied date wins; nil lets UpdateLegalRequirementTx derive one from
@@ -479,7 +479,7 @@ func writeSupplierFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID i
 		sup.Availability = r.Availability
 	}
 
-	now := db.NewEpoch(time.Now())
+	now := db.NewEpoch(time.Now().UTC())
 	sup.LastReview = &now
 
 	cycles := s.db.SupplierReviewCycles(ctx, orgID)
@@ -584,7 +584,7 @@ func writeSystemFromReading(ctx context.Context, tx pgx.Tx, s *Server, orgID int
 		sys.Availability = r.Availability
 	}
 
-	now := db.NewEpoch(time.Now())
+	now := db.NewEpoch(time.Now().UTC())
 	sys.LastReview = &now
 
 	cycles := s.db.SystemReviewCycles(ctx, orgID)

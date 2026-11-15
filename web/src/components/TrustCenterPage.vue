@@ -27,14 +27,14 @@
             <div class="font-semibold truncate trust-brand-text" data-trust="brand">{{ ov.branding_name }}</div>
             <div class="text-xs text-slate-500">{{ $t('trust.public.heading') }}</div>
           </div>
-          <template v-if="signInAvailable">
+          <template v-if="signInShown">
             <div v-if="visitor" class="flex items-center gap-2 text-sm shrink-0" data-trust="visitor">
               <span class="text-slate-600 max-w-[14rem] truncate" data-trust="visitor-email">{{ $t('trust.public.signed_in_as', { email: visitor.email }) }}</span>
               <button type="button" class="font-medium trust-brand-text hover:underline" data-trust="sign-out" :disabled="signingOut" @click="signOut">
                 {{ $t('trust.public.sign_out') }}
               </button>
             </div>
-            <button v-else type="button" class="text-sm font-medium trust-brand-text hover:underline shrink-0 text-right" data-trust="sign-in-link" @click="openSignIn">
+            <button v-else type="button" class="text-sm font-medium trust-brand-text hover:underline shrink-0 text-right disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="sign-in-link" :disabled="!visitorFeatures" @click="openSignIn">
               {{ $t('trust.public.sign_in_link') }}
             </button>
           </template>
@@ -96,7 +96,7 @@
             <h1 class="text-2xl font-semibold">{{ lockedItem.title }}</h1>
             <p class="mt-2 text-sm text-slate-600">{{ $t('trust.public.doc_locked', { access: accessLabel(lockedItem.access_level) }) }}</p>
             <p v-if="needsSignIn(lockedItem)" class="mt-4 text-sm">
-              <button type="button" class="font-medium trust-brand-text hover:underline" data-trust="doc-sign-in" @click="openSignIn">{{ $t('trust.public.doc_sign_in') }}</button>
+              <button type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="doc-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.doc_sign_in') }}</button>
             </p>
             <p v-else class="mt-4 text-sm">
               <a v-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
@@ -202,7 +202,7 @@
                 <div role="cell" class="text-sm min-w-0 break-words">
                   <a v-if="mayRead(d)" :href="basePath + '/documents/' + d.id" class="font-medium trust-brand-text hover:underline" data-trust="view"
                     @click="go($event, basePath + '/documents/' + d.id)">{{ $t('trust.public.action_view') }}</a>
-                  <button v-else-if="needsSignIn(d)" type="button" class="font-medium trust-brand-text hover:underline" data-trust="sign-in-to-view" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
+                  <button v-else-if="needsSignIn(d)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="sign-in-to-view" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -264,7 +264,11 @@ const hasSession = ref(false)
 // (a data source is given) is the anonymous view and never asks who is signed in.
 const visitorFeatures = computed(() => !props.source)
 const visitor = ref(null)
-const signInAvailable = computed(() => visitorFeatures.value && !!ov.value.visitor_sign_in)
+// Whether the anonymous sign-in affordances are shown. In the manager's preview
+// they are shown too, because that is what visitors see, but inert: disabled, no
+// form, and no visitor request (signInAvailable below is what makes requests).
+const signInShown = computed(() => !!ov.value.visitor_sign_in)
+const signInAvailable = computed(() => visitorFeatures.value && signInShown.value)
 const formOpen = ref(false)
 const email = ref('')
 const sendState = ref('idle') // idle | sending | sent | error
@@ -276,9 +280,10 @@ const privacyUrl = computed(() => (/^https?:\/\//i.test(ov.value.privacy_notice_
 
 // The same rule as the server's: public for everyone, gated for a signed-in visitor.
 const mayRead = (d) => d.access_level === 'public' || (d.access_level === 'gated' && !!visitor.value)
-const needsSignIn = (d) => d.access_level === 'gated' && !visitor.value && signInAvailable.value
+const needsSignIn = (d) => d.access_level === 'gated' && !visitor.value && signInShown.value
 
 function openSignIn() {
+  if (!visitorFeatures.value) return
   formOpen.value = true
   sendState.value = 'idle'
   sendError.value = ''

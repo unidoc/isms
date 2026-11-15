@@ -93,6 +93,54 @@ test('both tab panels stay mounted so switching tabs cannot drop unsaved edits',
     await flush()
     after = state()
   })
-  assert.deepEqual(before, [false, true])
-  assert.deepEqual(after, [true, false])
+  // content, visitors, settings
+  assert.deepEqual(before, [false, true, true])
+  assert.deepEqual(after, [true, true, false])
+})
+
+// ---- warnings (#524) ----
+function stubSettings(extra) {
+  globalThis.fetch = async (url) => {
+    const path = String(url).replace(/^.*\/api\/v1/, '')
+    if (path === '/me') return json(200, { role: 'manager', email: 'x@y.test' })
+    if (path === '/trust-center/settings') return json(200, { enabled: true, title: '', overview_document_id: null, security_contact: '', default_access_level: 'gated', updated_at: 1, updated_by: 'a', email_configured: true, sign_in_paused_until: null, overview_withheld: false, ...extra })
+    return json(404, {})
+  }
+}
+const warn = (html, key) => html.includes(`data-trust="${key}"`)
+const view = () => renderSfcSettled(View, {}, ready, async () => { await flush() })
+
+test('no warning shows when nothing is wrong', async () => {
+  stubSettings({})
+  const html = await view()
+  assert.ok(!html.includes('data-trust="warnings"'), html)
+})
+
+test('email not configured warns that visitors cannot sign in', async () => {
+  stubSettings({ email_configured: false })
+  const html = await view()
+  assert.ok(warn(html, 'warn-email') && !warn(html, 'warn-paused') && !warn(html, 'warn-withheld'), html)
+  assert.ok(html.includes('Email is not configured: visitors cannot sign in. Gated documents show the security contact instead.'), html)
+})
+
+test('a paused sign-in shows the resume time, formatted as an instant (formatDate)', async () => {
+  const at = Math.floor(Date.now() / 1000) + 1800
+  stubSettings({ sign_in_paused_until: at })
+  const html = await view()
+  const expected = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(at * 1000))
+  assert.ok(warn(html, 'warn-paused') && html.includes(`They resume at ${expected}.`), `${expected}: ${html}`)
+  assert.ok(!warn(html, 'warn-email'))
+})
+
+test('a withheld overview warns that visitors see none', async () => {
+  stubSettings({ overview_withheld: true })
+  const html = await view()
+  assert.ok(warn(html, 'warn-withheld') && html.includes('The overview document is published as gated or restricted, so visitors see no overview.'), html)
+  assert.ok(!warn(html, 'warn-email') && !warn(html, 'warn-paused'))
+})
+
+test('the Visitors tab exists, with the section mounted beside the other two', async () => {
+  stubSettings({})
+  const html = await view()
+  assert.ok(html.includes('data-trust-tab="visitors"'), html)
 })

@@ -23,6 +23,12 @@
           <button type="button" @click="loadSettings" class="ml-2 text-blue-400 hover:text-blue-300">{{ $t('common.action.retry') }}</button>
         </div>
 
+        <!-- Things the manager should know before relying on sign-in. -->
+        <div v-if="settings && warnings.length" class="mb-4 space-y-2" data-trust="warnings">
+          <p v-for="w in warnings" :key="w.key" :data-trust="w.key" role="status"
+            class="text-sm text-amber-300 border border-amber-500/30 bg-amber-500/10 rounded-lg px-3 py-2">{{ w.text }}</p>
+        </div>
+
         <div role="tablist" :aria-label="$t('trust_manager.tabs.label')" class="flex gap-1 border-b border-slate-800 mb-6">
           <button v-for="tb in tabs" :key="tb" type="button" role="tab" :data-trust-tab="tb" :aria-selected="String(tab === tb)" @click="setTab(tb)"
             :class="tab === tb ? 'text-white border-blue-500' : 'text-slate-400 border-transparent hover:text-slate-200'"
@@ -35,6 +41,9 @@
             <TrustDocumentsSection />
             <TrustCertificationsSection />
           </div>
+        </div>
+        <div v-show="tab === 'visitors'" role="tabpanel">
+          <TrustVisitorsSection />
         </div>
         <div v-show="tab === 'settings'" role="tabpanel">
           <TrustSettingsForm v-if="settings" :settings="settings" @saved="onSaved" />
@@ -55,6 +64,8 @@ import { publicAddress, previewAddress } from '../utils/trustManager.js'
 import TrustDocumentsSection from '../components/trust/TrustDocumentsSection.vue'
 import TrustCertificationsSection from '../components/trust/TrustCertificationsSection.vue'
 import TrustSettingsForm from '../components/trust/TrustSettingsForm.vue'
+import TrustVisitorsSection from '../components/trust/TrustVisitorsSection.vue'
+import { formatDate } from '../composables/useFormat.js'
 
 // The trust center manager screen: a thin shell (header, tabs) around section
 // components. Only admins and managers may use it; for anyone else no trust
@@ -64,10 +75,11 @@ const router = useRouter()
 const { orgSlug, subdomainMode } = useCurrentOrg()
 
 const { t } = useI18n()
-const tabs = ['content', 'settings']
+const tabs = ['content', 'visitors', 'settings']
 const tabLabel = (tb) => t('trust_manager.tabs.' + tb)
-const tab = ref(route?.query?.tab === 'settings' ? 'settings' : 'content')
-watch(() => route?.query?.tab, (v) => { tab.value = v === 'settings' ? 'settings' : 'content' })
+const tabFromQuery = (v) => (tabs.includes(v) ? v : 'content')
+const tab = ref(tabFromQuery(route?.query?.tab))
+watch(() => route?.query?.tab, (v) => { tab.value = tabFromQuery(v) })
 function setTab(tb) {
   tab.value = tb
   router?.replace({ query: { ...route?.query, tab: tb === 'content' ? undefined : tb } })
@@ -81,6 +93,16 @@ const copied = ref(false)
 
 const previewHref = computed(() => previewAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
 const address = computed(() => publicAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
+
+// Warnings from the settings the server sent; each shows only while it holds.
+const warnings = computed(() => {
+  const st = settings.value || {}
+  const out = []
+  if (st.email_configured === false) out.push({ key: 'warn-email', text: t('trust_manager.warnings.email_not_configured') })
+  if (st.sign_in_paused_until) out.push({ key: 'warn-paused', text: t('trust_manager.warnings.sign_in_paused', { time: formatDate(st.sign_in_paused_until, 'datetime') }) })
+  if (st.overview_withheld) out.push({ key: 'warn-withheld', text: t('trust_manager.warnings.overview_withheld') })
+  return out
+})
 
 async function copy() {
   try {

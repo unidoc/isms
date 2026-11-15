@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Bereiche des Trust Centers",
     "content": "Inhalt",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "visitors": "Besucher"
   },
   "not_allowed": "Nur Administratoren und Manager können das Trust Center verwalten.",
   "load_error": "Das Trust Center konnte nicht geladen werden: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Standard-Zugriffsstufe",
     "default_level_help": "Die Stufe, mit der ein neu veröffentlichtes Dokument beginnt.",
     "saved": "Gespeichert",
-    "save_error": "Speichern fehlgeschlagen: {message}"
+    "save_error": "Speichern fehlgeschlagen: {message}",
+    "domains_label": "Gesperrte E-Mail-Domains",
+    "domains_help": "Personen mit einer E-Mail-Adresse bei diesen Domains können sich nicht anmelden. Eine Domain pro Zeile.",
+    "domains_default_note": "Es gilt die integrierte Liste privater E-Mail-Anbieter.",
+    "domains_restore": "Standard wiederherstellen",
+    "domains_allow_all": "Alle Domains zulassen",
+    "domains_error": "Prüfen Sie die Domain-Liste: Jeder Eintrag muss eine Domain wie example.com sein, höchstens 500.",
+    "privacy_label": "URL des Datenschutzhinweises",
+    "privacy_help": "Wird Personen angezeigt, die einen Anmeldelink anfordern. Leer lassen für keinen.",
+    "privacy_error": "Geben Sie eine vollständige Webadresse mit http:// oder https:// ein."
   },
   "preview": {
     "banner": "Vorschau: So sehen Besucher es",
     "off": "Das Trust Center ist ausgeschaltet; Besucher sehen derzeit nichts.",
     "back": "Zurück zur Trust-Center-Verwaltung"
+  },
+  "visitors": {
+    "heading": "Besucher",
+    "empty": "Bisher hat sich noch kein Besucher angemeldet.",
+    "loading": "Besucher werden geladen ...",
+    "col_email": "E-Mail",
+    "col_name": "Name",
+    "col_company": "Unternehmen",
+    "col_first_seen": "Erstmals gesehen",
+    "col_last_seen": "Zuletzt gesehen",
+    "col_sessions": "Aktive Sitzungen",
+    "col_status": "Status",
+    "status_active": "Aktiv",
+    "blocked": "Gesperrt",
+    "blocked_by": "Gesperrt von {by}",
+    "revoke": "Sitzungen beenden",
+    "revoke_title": "Beendet alle Sitzungen dieser Person. Sie kann sich mit einem neuen Link wieder anmelden.",
+    "block": "Sperren",
+    "block_title": "Sperrt die Anmeldung dieser Person und beendet alle ihre Sitzungen.",
+    "unblock": "Entsperren",
+    "unblock_title": "Erlaubt dieser Person wieder die Anmeldung. Ihre alten Sitzungen bleiben beendet.",
+    "action_error": "Der Besucher konnte nicht aktualisiert werden: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "E-Mail ist nicht eingerichtet: Besucher können sich nicht anmelden. Geschützte Dokumente zeigen stattdessen den Sicherheitskontakt.",
+    "sign_in_paused": "Anmelde-E-Mails sind pausiert: Das Stundenlimit wurde erreicht. Sie werden ab {time} wieder gesendet.",
+    "overview_withheld": "Das Übersichtsdokument ist als „Mit Anmeldung“ oder „Eingeschränkt“ veröffentlicht, daher sehen Besucher keine Übersicht."
   },
   "certifications": {
     "heading": "Zertifizierungen und Berichte",

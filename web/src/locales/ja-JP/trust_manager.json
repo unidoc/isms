@@ -3,7 +3,8 @@
   "tabs": {
     "label": "トラストセンターのセクション",
     "content": "コンテンツ",
-    "settings": "設定"
+    "settings": "設定",
+    "visitors": "訪問者"
   },
   "not_allowed": "トラストセンターを管理できるのは管理者とマネージャーのみです。",
   "load_error": "トラストセンターを読み込めませんでした: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "既定のアクセスレベル",
     "default_level_help": "新しく公開した文書の初期レベル。",
     "saved": "保存しました",
-    "save_error": "保存できませんでした: {message}"
+    "save_error": "保存できませんでした: {message}",
+    "domains_label": "ブロックするメールドメイン",
+    "domains_help": "これらのドメインのメールアドレスではサインインできません。1行に1ドメイン。",
+    "domains_default_note": "個人向けメールプロバイダーの組み込みリストを使用中です。",
+    "domains_restore": "既定に戻す",
+    "domains_allow_all": "すべてのドメインを許可",
+    "domains_error": "一覧を確認してください。各項目は example.com のようなドメインで、最大500件です。",
+    "privacy_label": "プライバシー通知のURL",
+    "privacy_help": "サインインリンクを依頼した人に表示されます。表示しない場合は空にします。",
+    "privacy_error": "http:// または https:// で始まる完全なWebアドレスを入力してください。"
   },
   "preview": {
     "banner": "プレビュー: 訪問者に表示される内容です",
     "off": "トラストセンターはオフです。現在、訪問者には何も表示されません。",
     "back": "トラストセンターの管理に戻る"
+  },
+  "visitors": {
+    "heading": "訪問者",
+    "empty": "まだサインインした訪問者はいません。",
+    "loading": "訪問者を読み込み中...",
+    "col_email": "メール",
+    "col_name": "名前",
+    "col_company": "会社名",
+    "col_first_seen": "初回",
+    "col_last_seen": "最終",
+    "col_sessions": "有効なセッション",
+    "col_status": "状態",
+    "status_active": "有効",
+    "blocked": "ブロック中",
+    "blocked_by": "{by} がブロック",
+    "revoke": "セッションを取り消す",
+    "revoke_title": "この人のすべてのセッションを終了します。新しいリンクで再度サインインできます。",
+    "block": "ブロック",
+    "block_title": "この人のサインインを禁止し、すべてのセッションを終了します。",
+    "unblock": "ブロック解除",
+    "unblock_title": "この人が再びサインインできるようにします。以前のセッションは終了したままです。",
+    "action_error": "訪問者を更新できませんでした: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "メールが設定されていません。訪問者はサインインできません。ログイン必須の文書には代わりにセキュリティ連絡先が表示されます。",
+    "sign_in_paused": "サインインメールは一時停止中です。1時間あたりの上限に達しました。{time} に再開します。",
+    "overview_withheld": "概要文書が「ログイン必須」または「制限付き」で公開されているため、訪問者には概要が表示されません。"
   },
   "certifications": {
     "heading": "認証とレポート",

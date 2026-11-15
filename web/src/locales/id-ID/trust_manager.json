@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Bagian pusat kepercayaan",
     "content": "Konten",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "visitors": "Pengunjung"
   },
   "not_allowed": "Hanya admin dan manajer yang dapat mengelola pusat kepercayaan.",
   "load_error": "Tidak dapat memuat pusat kepercayaan: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Tingkat akses bawaan",
     "default_level_help": "Tingkat awal untuk dokumen yang baru dipublikasikan.",
     "saved": "Tersimpan",
-    "save_error": "Tidak dapat menyimpan: {message}"
+    "save_error": "Tidak dapat menyimpan: {message}",
+    "domains_label": "Domain email yang diblokir",
+    "domains_help": "Orang dengan alamat email di domain ini tidak dapat masuk. Satu domain per baris.",
+    "domains_default_note": "Menggunakan daftar bawaan penyedia email pribadi.",
+    "domains_restore": "Pulihkan bawaan",
+    "domains_allow_all": "Izinkan semua domain",
+    "domains_error": "Periksa daftar: setiap entri harus berupa domain seperti example.com, maksimal 500.",
+    "privacy_label": "URL pemberitahuan privasi",
+    "privacy_help": "Ditampilkan kepada orang yang meminta tautan masuk. Kosongkan jika tidak ada.",
+    "privacy_error": "Masukkan alamat web lengkap yang diawali http:// atau https://."
   },
   "preview": {
     "banner": "Pratinjau: ini yang dilihat pengunjung",
     "off": "Pusat kepercayaan nonaktif; pengunjung saat ini tidak melihat apa pun.",
     "back": "Kembali ke pengelola pusat kepercayaan"
+  },
+  "visitors": {
+    "heading": "Pengunjung",
+    "empty": "Belum ada pengunjung yang masuk.",
+    "loading": "Memuat pengunjung...",
+    "col_email": "Email",
+    "col_name": "Nama",
+    "col_company": "Perusahaan",
+    "col_first_seen": "Pertama terlihat",
+    "col_last_seen": "Terakhir terlihat",
+    "col_sessions": "Sesi aktif",
+    "col_status": "Status",
+    "status_active": "Aktif",
+    "blocked": "Diblokir",
+    "blocked_by": "Diblokir oleh {by}",
+    "revoke": "Cabut sesi",
+    "revoke_title": "Mengakhiri semua sesi orang ini. Mereka dapat masuk lagi dengan tautan baru.",
+    "block": "Blokir",
+    "block_title": "Memblokir orang ini agar tidak dapat masuk dan mengakhiri semua sesinya.",
+    "unblock": "Buka blokir",
+    "unblock_title": "Mengizinkan orang ini masuk lagi. Sesi lamanya tetap berakhir.",
+    "action_error": "Tidak dapat memperbarui pengunjung: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "Email belum dikonfigurasi: pengunjung tidak dapat masuk. Dokumen dengan masuk menampilkan kontak keamanan.",
+    "sign_in_paused": "Email masuk dijeda: batas per jam tercapai. Akan dilanjutkan pada {time}.",
+    "overview_withheld": "Dokumen ikhtisar dipublikasikan sebagai «Dengan masuk» atau «Terbatas», sehingga pengunjung tidak melihat ikhtisar."
   },
   "certifications": {
     "heading": "Sertifikasi dan laporan",

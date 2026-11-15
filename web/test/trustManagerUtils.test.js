@@ -137,3 +137,21 @@ test('previewAddress sits under the manager route, in both modes', () => {
   assert.equal(previewAddress('https://isms.example', 'acme', false), 'https://isms.example/acme/trust-center/preview')
   assert.equal(previewAddress('https://acme.isms.example', 'acme', true), 'https://acme.isms.example/trust-center/preview')
 })
+
+test('changedSettings: domains by mode, privacy URL, and spelling/order are not changes', async () => {
+  const { changedSettings, parseDomains, normalizeDomains } = await import('../src/utils/trustManager.js')
+  const orig = { enabled: false, security_contact: '', default_access_level: 'gated', overview_document_id: null, privacy_notice_url: '', blocked_email_domains: ['a.test', 'b.test'], blocked_email_domains_default: false }
+  const form = (x) => ({ enabled: false, security_contact: '', default_access_level: 'gated', overview_document_id: null, privacy_notice_url: '', domainsMode: 'custom', domainsText: 'a.test\nb.test', ...x })
+  assert.deepEqual(changedSettings(orig, form({})), {})
+  assert.deepEqual(changedSettings(orig, form({ domainsText: 'B.test, @a.test' })), {})
+  assert.deepEqual(changedSettings(orig, form({ domainsText: 'a.test' })), { blocked_email_domains: ['a.test'] })
+  assert.deepEqual(changedSettings(orig, form({ domainsText: '' })), { blocked_email_domains: [] })
+  assert.deepEqual(changedSettings(orig, form({ domainsMode: 'default' })), { blocked_email_domains: null })
+  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsMode: 'default' })), {})
+  assert.deepEqual(changedSettings({ ...orig, blocked_email_domains_default: true }, form({ domainsText: 'a.test\nb.test' })), { blocked_email_domains: ['a.test', 'b.test'] })
+  assert.deepEqual(changedSettings(orig, form({ privacy_notice_url: ' https://x.test/p ' })), { privacy_notice_url: 'https://x.test/p' })
+  assert.deepEqual(parseDomains(' a.test,\n b.test  c.test '), ['a.test', 'b.test', 'c.test'])
+  assert.deepEqual(normalizeDomains(['B.test', '@a.test', 'a.test']), ['a.test', 'b.test'])
+  // a form without the new fields (older callers) changes nothing about them
+  assert.deepEqual(changedSettings({ enabled: false, security_contact: 'x', default_access_level: 'gated' }, { enabled: false, security_contact: 'y', default_access_level: 'gated' }), { security_contact: 'y' })
+})

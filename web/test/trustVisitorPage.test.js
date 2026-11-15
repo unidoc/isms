@@ -207,18 +207,51 @@ test('the form buttons that are not the submit are type=button', async () => {
   }
 })
 
-test('the preview (a data source) has no visitor features and keeps gated locked', async () => {
+const previewSource = (ov = overview()) => ({
+  overview: async () => ov,
+  items: async () => ITEMS,
+  document: async (id) => ({ id, title: 'D', version: '1', approved_at: 1, content_hash: hash('a'), html: '<p>x</p>' }),
+})
+
+test('the preview shows what visitors see when sign-in is on, but inert, and makes no visitor call', async () => {
   const st = stub({ signedIn: true })
-  const source = {
-    overview: async () => overview(),
-    items: async () => ITEMS,
-    document: async (id) => ({ id, title: 'D', version: '1', approved_at: 1, content_hash: hash('a'), html: '<p>x</p>' }),
+  const html = norm(await mount(props({ source: previewSource() })))
+  // the same words visitors see
+  assert.ok(html.includes('Already have access? Get a sign-in link') && html.includes('Sign in to view'), html)
+  // ...as disabled buttons
+  const doc = new window.DOMParser().parseFromString(html, 'text/html')
+  for (const sel of ['[data-trust=sign-in-link]', '[data-trust=sign-in-to-view]']) {
+    const b = doc.querySelector(sel)
+    assert.ok(b && b.hasAttribute('disabled') && b.getAttribute('type') === 'button', `${sel}: ${html}`)
   }
-  const html = norm(await mount(props({ source })))
-  assert.ok(!html.includes('sign-in-link') && !html.includes('Signed in as') && !html.includes('sign-in-to-view') && !html.includes('Sign in to view'), html)
-  assert.ok(html.includes('Contact security@acme.example'), html)
+  assert.ok(!html.includes('data-trust="visitor"') && !html.includes('Signed in as'), html)
   assert.ok(!html.includes(`documents/${GATED}`), html)
-  assert.ok(!st.calls.some(c => c.url.endsWith('/visitor')), 'the preview must not ask who is signed in')
-  const locked = norm(await mount(props({ source, docId: GATED }), null, h => h.includes('data-trust="locked"')))
-  assert.ok(locked.includes('data-trust="locked"') && !locked.includes('doc-sign-in'), locked)
+  assert.ok(!st.calls.some(c => c.url.endsWith('/visitor') || c.url.includes('/visitor/')), 'the preview must make no visitor call')
+})
+
+test('clicking an inert preview affordance opens nothing and sends nothing', async () => {
+  const st = stub()
+  const html = norm(await mount(props({ source: previewSource() }), async (host) => {
+    host.querySelector('[data-trust=sign-in-link]').click()
+    host.querySelector('[data-trust=sign-in-to-view]').click()
+    await new Promise(r => setTimeout(r, 40))
+  }))
+  assert.ok(!html.includes('data-trust="sign-in-form"'), html)
+  assert.ok(!st.calls.some(c => c.url.includes('/visitor')))
+})
+
+test('the preview with sign-in off shows no sign-in affordance and keeps the contact fallback', async () => {
+  const st = stub()
+  const html = norm(await mount(props({ source: previewSource(overview({ visitor_sign_in: false })) })))
+  assert.ok(!html.includes('sign-in-link') && !html.includes('sign-in-to-view') && !html.includes('Sign in to view'), html)
+  assert.ok(html.includes('Contact security@acme.example'), html)
+  assert.ok(!st.calls.some(c => c.url.includes('/visitor')))
+})
+
+test('the preview of a locked gated document: an inert sign-in hint when sign-in is on, the contact when off', async () => {
+  stub()
+  const on = norm(await mount(props({ source: previewSource(), docId: GATED }), null, h => h.includes('data-trust="locked"')))
+  assert.ok(on.includes('data-trust="locked"') && on.includes('data-trust="doc-sign-in"') && /data-trust="doc-sign-in"[^>]*disabled|disabled[^>]*data-trust="doc-sign-in"/.test(on), on)
+  const off = norm(await mount(props({ source: previewSource(overview({ visitor_sign_in: false })), docId: GATED }), null, h => h.includes('data-trust="locked"')))
+  assert.ok(!off.includes('doc-sign-in') && off.includes('mailto:security@acme.example'), off)
 })

@@ -34,6 +34,9 @@ type visitorEnv struct {
 // same database (or a long run) would trip the cap and lose a mail.
 func purgeTestLinks(t *testing.T) {
 	t.Helper()
+	if os.Getenv("ISMS_TEST_DATABASE_URL") == "" {
+		t.Skip("ISMS_TEST_DATABASE_URL not set — skipping database test")
+	}
 	rawExec(t, `DELETE FROM trust_visitor_links WHERE email LIKE '%@auditco.test'`)
 }
 

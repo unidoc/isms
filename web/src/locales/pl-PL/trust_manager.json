@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Sekcje centrum zaufania",
     "content": "Zawartość",
-    "settings": "Ustawienia"
+    "settings": "Ustawienia",
+    "visitors": "Odwiedzający"
   },
   "not_allowed": "Tylko administratorzy i menedżerowie mogą zarządzać centrum zaufania.",
   "load_error": "Nie udało się wczytać centrum zaufania: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Domyślny poziom dostępu",
     "default_level_help": "Poziom, z jakim zaczyna nowo opublikowany dokument.",
     "saved": "Zapisano",
-    "save_error": "Nie udało się zapisać: {message}"
+    "save_error": "Nie udało się zapisać: {message}",
+    "domains_label": "Zablokowane domeny e-mail",
+    "domains_help": "Osoby z adresem e-mail w tych domenach nie mogą się zalogować. Jedna domena w wierszu.",
+    "domains_default_note": "Używana jest wbudowana lista prywatnych dostawców poczty.",
+    "domains_restore": "Przywróć domyślne",
+    "domains_allow_all": "Zezwól na wszystkie domeny",
+    "domains_error": "Sprawdź listę: każdy wpis musi być domeną, np. example.com, maksymalnie 500.",
+    "privacy_label": "Adres polityki prywatności",
+    "privacy_help": "Wyświetlany osobom, które proszą o link do logowania. Pozostaw puste, aby nie pokazywać.",
+    "privacy_error": "Podaj pełny adres internetowy zaczynający się od http:// lub https://."
   },
   "preview": {
     "banner": "Podgląd: tak widzą to odwiedzający",
     "off": "Centrum zaufania jest wyłączone; odwiedzający na razie nic nie widzą.",
     "back": "Wróć do zarządzania centrum zaufania"
+  },
+  "visitors": {
+    "heading": "Odwiedzający",
+    "empty": "Nikt jeszcze się nie zalogował.",
+    "loading": "Ładowanie odwiedzających...",
+    "col_email": "E-mail",
+    "col_name": "Imię i nazwisko",
+    "col_company": "Firma",
+    "col_first_seen": "Pierwsza wizyta",
+    "col_last_seen": "Ostatnia wizyta",
+    "col_sessions": "Aktywne sesje",
+    "col_status": "Status",
+    "status_active": "Aktywny",
+    "blocked": "Zablokowany",
+    "blocked_by": "Zablokowany przez {by}",
+    "revoke": "Unieważnij sesje",
+    "revoke_title": "Kończy wszystkie sesje tej osoby. Może się ona zalogować ponownie za pomocą nowego linku.",
+    "block": "Zablokuj",
+    "block_title": "Blokuje logowanie tej osoby i kończy wszystkie jej sesje.",
+    "unblock": "Odblokuj",
+    "unblock_title": "Pozwala tej osobie znów się logować. Jej dawne sesje pozostają zakończone.",
+    "action_error": "Nie udało się zaktualizować odwiedzającego: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "Poczta e-mail nie jest skonfigurowana: odwiedzający nie mogą się zalogować. Dokumenty „Po zalogowaniu” pokazują zamiast tego kontakt do spraw bezpieczeństwa.",
+    "sign_in_paused": "E-maile z logowaniem są wstrzymane: osiągnięto limit godzinowy. Wznowienie o {time}.",
+    "overview_withheld": "Dokument przeglądowy jest opublikowany jako „Po zalogowaniu” lub „Ograniczony”, więc odwiedzający nie widzą przeglądu."
   },
   "certifications": {
     "heading": "Certyfikaty i raporty",

@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Seções da central de confiança",
     "content": "Conteúdo",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "visitors": "Visitantes"
   },
   "not_allowed": "Somente administradores e gerentes podem gerenciar a central de confiança.",
   "load_error": "Não foi possível carregar a central de confiança: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Nível de acesso padrão",
     "default_level_help": "O nível com que um documento recém-publicado começa.",
     "saved": "Salvo",
-    "save_error": "Não foi possível salvar: {message}"
+    "save_error": "Não foi possível salvar: {message}",
+    "domains_label": "Domínios de e-mail bloqueados",
+    "domains_help": "Pessoas com e-mail nesses domínios não podem entrar. Um domínio por linha.",
+    "domains_default_note": "Usando a lista integrada de provedores de e-mail pessoais.",
+    "domains_restore": "Restaurar padrões",
+    "domains_allow_all": "Permitir todos os domínios",
+    "domains_error": "Verifique a lista: cada entrada deve ser um domínio como example.com, no máximo 500.",
+    "privacy_label": "URL do aviso de privacidade",
+    "privacy_help": "Mostrado a quem pede um link de login. Deixe vazio para não mostrar.",
+    "privacy_error": "Informe um endereço web completo começando com http:// ou https://."
   },
   "preview": {
     "banner": "Pré-visualização: é isto que os visitantes veem",
     "off": "A central de confiança está desligada; os visitantes não veem nada no momento.",
     "back": "Voltar ao gerenciador da central de confiança"
+  },
+  "visitors": {
+    "heading": "Visitantes",
+    "empty": "Nenhum visitante entrou ainda.",
+    "loading": "Carregando visitantes...",
+    "col_email": "E-mail",
+    "col_name": "Nome",
+    "col_company": "Empresa",
+    "col_first_seen": "Primeira visita",
+    "col_last_seen": "Última visita",
+    "col_sessions": "Sessões ativas",
+    "col_status": "Status",
+    "status_active": "Ativo",
+    "blocked": "Bloqueado",
+    "blocked_by": "Bloqueado por {by}",
+    "revoke": "Revogar sessões",
+    "revoke_title": "Encerra todas as sessões desta pessoa. Ela poderá entrar de novo com um novo link.",
+    "block": "Bloquear",
+    "block_title": "Impede esta pessoa de entrar e encerra todas as suas sessões.",
+    "unblock": "Desbloquear",
+    "unblock_title": "Permite que esta pessoa entre de novo. As sessões antigas continuam encerradas.",
+    "action_error": "Não foi possível atualizar o visitante: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "O e-mail não está configurado: os visitantes não podem entrar. Os documentos com login mostram o contato de segurança.",
+    "sign_in_paused": "Os e-mails de login estão pausados: o limite por hora foi atingido. Eles voltam às {time}.",
+    "overview_withheld": "O documento de visão geral está publicado como «Com login» ou «Restrito», então os visitantes não veem nenhuma visão geral."
   },
   "certifications": {
     "heading": "Certificações e relatórios",

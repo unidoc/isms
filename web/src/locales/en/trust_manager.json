@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Trust center sections",
     "content": "Content",
-    "settings": "Settings"
+    "settings": "Settings",
+    "visitors": "Visitors"
   },
   "not_allowed": "Only admins and managers can manage the trust center.",
   "load_error": "Could not load the trust center: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Default access level",
     "default_level_help": "The level a newly published document starts with.",
     "saved": "Saved",
-    "save_error": "Could not save: {message}"
+    "save_error": "Could not save: {message}",
+    "domains_label": "Blocked email domains",
+    "domains_help": "People with an email address at these domains cannot sign in. One domain per line.",
+    "domains_default_note": "Using the built-in list of personal email providers.",
+    "domains_restore": "Restore defaults",
+    "domains_allow_all": "Allow every domain",
+    "domains_error": "Check the domain list: each entry must be a domain such as example.com, and there can be at most 500.",
+    "privacy_label": "Privacy notice URL",
+    "privacy_help": "Shown to people who ask for a sign-in link. Leave empty for none.",
+    "privacy_error": "Enter a full web address starting with http:// or https://."
   },
   "preview": {
     "banner": "Preview: this is what visitors see",
     "off": "The trust center is off; visitors currently see nothing.",
     "back": "Back to the trust center manager"
+  },
+  "visitors": {
+    "heading": "Visitors",
+    "empty": "No visitors have signed in yet.",
+    "loading": "Loading visitors...",
+    "col_email": "Email",
+    "col_name": "Name",
+    "col_company": "Company",
+    "col_first_seen": "First seen",
+    "col_last_seen": "Last seen",
+    "col_sessions": "Active sessions",
+    "col_status": "Status",
+    "status_active": "Active",
+    "blocked": "Blocked",
+    "blocked_by": "Blocked by {by}",
+    "revoke": "Revoke sessions",
+    "revoke_title": "Ends all of this person's sessions. They can sign in again with a new link.",
+    "block": "Block",
+    "block_title": "Blocks this person from signing in and ends all their sessions.",
+    "unblock": "Unblock",
+    "unblock_title": "Lets this person sign in again. Their old sessions stay ended.",
+    "action_error": "Could not update the visitor: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "Email is not configured: visitors cannot sign in. Gated documents show the security contact instead.",
+    "sign_in_paused": "Sign-in emails are paused: the hourly limit was reached. They resume at {time}.",
+    "overview_withheld": "The overview document is published as gated or restricted, so visitors see no overview."
   },
   "certifications": {
     "heading": "Certifications and reports",

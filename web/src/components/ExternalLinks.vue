@@ -78,6 +78,7 @@
 </template>
 
 <script setup>
+import { toDay } from '../utils/dates.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../api.js'
@@ -118,9 +119,7 @@ function blankForm() {
 
 // DATE columns arrive as epoch seconds at UTC midnight; <input type=date> wants
 // YYYY-MM-DD, read in UTC so the day is the one stored.
-function toInputDay(epoch) {
-  return epoch ? new Date(epoch * 1000).toISOString().slice(0, 10) : ''
-}
+const toInputDay = toDay
 
 // Defence in depth: the server refuses other schemes, but a stored value is
 // still never put in an href unless it is http(s).

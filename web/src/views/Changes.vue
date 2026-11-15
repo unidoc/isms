@@ -383,6 +383,7 @@
 </template>
 
 <script setup>
+import { toDay, dayToEpoch } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -730,16 +731,8 @@ function startEdit(cr) {
   captureEditSnapshot()
 }
 
-function epochToDateStr(d) {
-  if (!d) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toISOString().split('T')[0]
-}
-
-function dateStrToEpoch(str) {
-  if (!str) return null
-  return Math.floor(new Date(str + 'T00:00:00Z').getTime() / 1000)
-}
+const epochToDateStr = toDay
+const dateStrToEpoch = dayToEpoch
 
 function editSection(section) {
   startEdit(selectedChange.value)

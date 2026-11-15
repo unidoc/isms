@@ -1127,6 +1127,7 @@
 </template>
 
 <script setup>
+import { isPastDue, toDay } from '../utils/dates.js'
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -1396,8 +1397,7 @@ function formatDateRange(planned, end) {
 
 function isOverdue(dateStr) {
   if (!dateStr && dateStr !== 0) return false
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d < new Date()
+  return isPastDue(dateStr)
 }
 
 function programmeAudits(progId) {
@@ -1834,8 +1834,8 @@ function startAuditEdit() {
     status: a.status || 'planned',
     notes: a.notes || '',
     programme_id: a.programme_id || 0,
-    planned_date: a.planned_date ? (typeof a.planned_date === 'number' ? new Date(a.planned_date * 1000).toISOString().slice(0, 10) : String(a.planned_date).slice(0, 10)) : '',
-    end_date: a.end_date ? (typeof a.end_date === 'number' ? new Date(a.end_date * 1000).toISOString().slice(0, 10) : String(a.end_date).slice(0, 10)) : '',
+    planned_date: toDay(a.planned_date),
+    end_date: toDay(a.end_date),
   }
   captureAuditEdit()
   auditEditing.value = true
@@ -2071,7 +2071,7 @@ function startFindingEdit() {
     finding_type: f.finding_type || 'minor_nc',
     status: f.status || 'open',
     owner: f.owner || '',
-    due_date: f.due_date ? (typeof f.due_date === 'number' ? new Date(f.due_date * 1000).toISOString().slice(0, 10) : String(f.due_date).slice(0, 10)) : '',
+    due_date: toDay(f.due_date),
   }
   captureFindingEdit()
   findingEditing.value = true

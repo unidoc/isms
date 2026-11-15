@@ -466,6 +466,7 @@
 </template>
 
 <script setup>
+import { isPastDue, toDay } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -677,8 +678,7 @@ function criticalityChipColor(c) {
 
 function isOverdue(dateStr) {
   if (!dateStr) return false
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d < new Date()
+  return isPastDue(dateStr)
 }
 
 function resolveUserName(email) {
@@ -728,9 +728,7 @@ function startEdit(item) {
     owner: item.owner || '',
     contact: item.contact || '',
     contract_ref: item.contract_ref || '',
-    contract_expiry: item.contract_expiry
-      ? (typeof item.contract_expiry === 'number' ? new Date(item.contract_expiry * 1000).toISOString().substring(0, 10) : String(item.contract_expiry).substring(0, 10))
-      : '',
+    contract_expiry: toDay(item.contract_expiry),
     data_access: !!item.data_access,
     confidentiality: item.confidentiality || 0,
     integrity: item.integrity || 0,

@@ -409,6 +409,7 @@
 </template>
 
 <script setup>
+import { isPastDue, toDay } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -802,7 +803,7 @@ function startEdit(ca) {
     severity: ca.severity || 'observation',
     status: ca.status || 'todo',
     assignee: ca.assignee || '',
-    due_date: ca.due_date ? (typeof ca.due_date === 'number' ? new Date(ca.due_date * 1000).toISOString().slice(0, 10) : String(ca.due_date).slice(0, 10)) : '',
+    due_date: toDay(ca.due_date),
     root_cause: ca.root_cause || '',
     notes: ca.notes || '',
     external_id: ca.external_id || '',
@@ -890,8 +891,7 @@ async function saveSection() {
 
 function isOverdue(dateStr) {
   if (!dateStr && dateStr !== 0) return false
-  const d = typeof dateStr === 'number' ? new Date(dateStr * 1000) : new Date(dateStr)
-  return d < new Date()
+  return isPastDue(dateStr)
 }
 
 // Lookups and option lists live here rather than in the template: a group name

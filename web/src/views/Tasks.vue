@@ -364,6 +364,7 @@
 </template>
 
 <script setup>
+import { isPastDue, toDay, dayToEpoch } from '../utils/dates.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -519,20 +520,11 @@ const statusStats = computed(() => [
 
 function isOverdue(task) {
   if (!task.due_date || task.status === 'done' || task.status === 'cancelled') return false
-  const d = typeof task.due_date === 'number' ? new Date(task.due_date * 1000) : new Date(task.due_date)
-  return d < new Date()
+  return isPastDue(task.due_date)
 }
 
-function epochToDateStr(d) {
-  if (!d) return ''
-  const dt = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
-  return dt.toISOString().split('T')[0]
-}
-
-function dateStrToEpoch(str) {
-  if (!str) return null
-  return Math.floor(new Date(str + 'T00:00:00Z').getTime() / 1000)
-}
+const epochToDateStr = toDay
+const dateStrToEpoch = dayToEpoch
 
 function priorityClass(p) {
   switch (p) {

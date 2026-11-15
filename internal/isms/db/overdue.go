@@ -40,9 +40,20 @@ type OverdueSummary struct {
 	TotalCount        int           `json:"total_count"`
 }
 
+// utcToday returns today's UTC calendar date as midnight UTC. Pass it as a DATE
+// parameter: pgx takes the calendar day from the time's own fields.
+func utcToday() time.Time {
+	n := time.Now().UTC()
+	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
+}
+
 // GetOverdueSummary returns all overdue review items across entity types.
 func (d *DB) GetOverdueSummary(ctx context.Context, orgID int, viewer TaskViewer) (*OverdueSummary, error) {
-	now := time.Now()
+	// One rule: an item is overdue once its due day has ended, counted on the
+	// UTC day (due 1 Jan is overdue from 2 Jan 00:00 UTC). The cutoff is the UTC
+	// calendar date, never the host-local one, and DaysLate counts whole UTC
+	// days from it (#503).
+	now := utcToday()
 	summary := &OverdueSummary{}
 
 	// Overdue risks

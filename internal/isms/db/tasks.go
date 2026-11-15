@@ -342,8 +342,9 @@ func (d *DB) GetTaskByIdentifier(ctx context.Context, orgID int, identifier stri
 }
 
 // OverdueTasks returns tasks past their due date that aren't done/cancelled.
+// Overdue once the due day has ended, on the UTC day (the session runs in UTC).
 func (d *DB) OverdueTasks(ctx context.Context, orgID int, viewer TaskViewer) ([]Task, error) {
-	return d.ListTasksWhere(ctx, orgID, viewer, `status NOT IN ('done','cancelled') AND due_date < now()`, 100)
+	return d.ListTasksWhere(ctx, orgID, viewer, `status NOT IN ('done','cancelled') AND due_date < CURRENT_DATE`, 100)
 }
 
 // ListTasksWhere runs a task read with a caller-supplied WHERE fragment.

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,12 +49,7 @@ func main() {
 			// dates are UTC dates. A safety net only; the date handling itself
 			// does not depend on it. CLI and TUI commands keep the user's zone.
 			if isServerCommand(cmd) {
-				hostTZ := os.Getenv("TZ")
-				if hostTZ == "" {
-					hostTZ = "local"
-				}
 				time.Local = time.UTC
-				log.Printf("time zone: UTC (host TZ=%s)", hostTZ)
 			}
 		},
 	}

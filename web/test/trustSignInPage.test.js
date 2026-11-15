@@ -44,7 +44,7 @@ function stub({ ovStatus = 200, inspect = () => json(200, { email: 'ada@auditco.
 }
 
 const props = (extra = {}) => ({ slug: 'acme', basePath: '/acme/trust', ...extra })
-const settled = h => ['confirm', 'invalid', 'blocked', 'error', 'unavailable'].some(s => h.includes(`data-trust="${s}"`))
+const settled = h => ['confirm', 'invalid', 'blocked', 'domain-blocked', 'error', 'unavailable'].some(s => h.includes(`data-trust="${s}"`))
 const mount = (p, interact, isReady = settled) => renderSfcSettled(SignIn, p, isReady, interact)
 
 test('the fragment token is read and removed from the address bar before any request', async () => {
@@ -229,4 +229,29 @@ test('the hashchange listener is removed on unmount', async () => {
   window.dispatchEvent(new window.Event('hashchange'))
   await new Promise(r => setTimeout(r, 60))
   assert.equal(calls.length, before, 'an unmounted page must not react')
+})
+
+const domainBlocked = () => json(400, { message: 'x', code: 'trust_email_domain_blocked', params: { value: 'gmail.com' } })
+
+test('a domain blocked after the link was sent (inspect) shows the domain message and a way back, not the generic error', async () => {
+  setLocation(`#visitor_token=${TOKEN}`)
+  stub({ inspect: domainBlocked })
+  const navs = []
+  const html = norm(await mount(props({ onNavigate: p => navs.push(p) }), async (host) => {
+    host.querySelector('[data-trust=request-new]').click()
+  }))
+  assert.ok(html.includes('data-trust="domain-blocked"') && html.includes('gmail.com') && html.includes('work email'), html)
+  assert.ok(!html.includes('data-trust="error"') && !html.includes('data-trust="retry"'), html)
+  assert.deepEqual(navs, ['/acme/trust#sign-in'])
+})
+
+test('the same when redeeming returns it', async () => {
+  setLocation(`#visitor_token=${TOKEN}`)
+  stub({ session: domainBlocked })
+  const html = norm(await mount(props(), async (host, settle) => {
+    host.querySelector('[data-trust=confirm-submit]').click()
+    await settle(h => h.includes('data-trust="domain-blocked"'))
+  }))
+  assert.ok(html.includes('data-trust="domain-blocked"') && html.includes('gmail.com'), html)
+  assert.ok(html.includes('data-trust="request-new"') && !html.includes('data-trust="form-error"'), html)
 })

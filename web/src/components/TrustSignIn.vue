@@ -18,6 +18,13 @@
         </button>
       </template>
 
+      <template v-else-if="state === 'domain_blocked'">
+        <p class="text-slate-700" data-trust="domain-blocked">{{ $t('common.error.trust_email_domain_blocked', { value: blockedDomain }) }}</p>
+        <button type="button" class="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 trust-fill" data-trust="request-new" @click="requestNew">
+          {{ $t('trust.signin.request_new') }}
+        </button>
+      </template>
+
       <template v-else-if="state === 'blocked'">
         <p class="text-slate-700" data-trust="blocked">{{ $t('common.error.trust_visitor_blocked') }}</p>
       </template>
@@ -71,7 +78,9 @@ const emit = defineEmits(['navigate'])
 const router = useRouter()
 const route = useRoute()
 
-const state = ref('checking') // checking | unavailable | invalid | blocked | error | confirm
+const state = ref('checking') // checking | unavailable | invalid | blocked | domain_blocked | error | confirm
+// The domain of an address the organization blocked after the link was sent.
+const blockedDomain = ref('')
 const brandName = ref('')
 const visitorEmail = ref('')
 const needsProfile = ref(false)
@@ -157,6 +166,10 @@ async function start() {
 
 function classify(err) {
   if (err && err.code === 'trust_link_invalid') return 'invalid'
+  if (err && err.code === 'trust_email_domain_blocked') {
+    blockedDomain.value = (err.params && err.params.value) || ''
+    return 'domain_blocked'
+  }
   if (err && err.code === 'trust_visitor_blocked') return 'blocked'
   return 'error'
 }
@@ -178,7 +191,7 @@ async function submit() {
     if (err && err.code === 'trust_visitor_profile_required') {
       needsProfile.value = true
       formError.value = t('common.error.trust_visitor_profile_required')
-    } else if (err && (err.code === 'trust_link_invalid' || err.code === 'trust_visitor_blocked')) {
+    } else if (err && (err.code === 'trust_link_invalid' || err.code === 'trust_visitor_blocked' || err.code === 'trust_email_domain_blocked')) {
       state.value = classify(err)
     } else {
       formError.value = t('trust.signin.error')

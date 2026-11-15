@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 	"isms.sh/internal/isms/db"
@@ -121,7 +120,6 @@ func supplierListCmd() *cobra.Command {
 			fmt.Printf("%-10s %-30s %-10s %-10s %-8s %-12s %-12s\n",
 				"ID", "NAME", "TYPE", "CRIT", "DATA", "LAST REV", "NEXT REV")
 			fmt.Println(repeat("─", 96))
-			now := time.Now()
 			count := 0
 			for _, sup := range suppliers {
 				if filterCriticality != "" && sup.Criticality != filterCriticality {
@@ -131,7 +129,7 @@ func supplierListCmd() *cobra.Command {
 					if sup.NextReview == nil || sup.NextReview.IsZero() {
 						continue
 					}
-					if !sup.NextReview.Before(now) {
+					if !timefmt.IsPastDue(sup.NextReview) {
 						continue
 					}
 				}
@@ -141,7 +139,7 @@ func supplierListCmd() *cobra.Command {
 				}
 				fmt.Printf("%-10s %-30s %-10s %-10s %-8s %-12s %-12s\n",
 					sup.Identifier, truncate(sup.Name, 30), sup.SupplierType, sup.Criticality,
-					da, sup.LastReview, sup.NextReview)
+					da, timefmt.Day(sup.LastReview), timefmt.Day(sup.NextReview))
 				count++
 			}
 			fmt.Printf("\n%d suppliers\n", count)
@@ -277,10 +275,9 @@ func supplierReviewCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				now := time.Now()
 				count := 0
 				for _, sup := range suppliers {
-					if sup.NextReview == nil || sup.NextReview.IsZero() || !sup.NextReview.Before(now) {
+					if !timefmt.IsPastDue(sup.NextReview) {
 						continue
 					}
 					task := &db.Task{
@@ -413,13 +410,9 @@ func supplierOverdueCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			now := time.Now()
 			count := 0
 			for _, sup := range suppliers {
-				if sup.NextReview == nil || sup.NextReview.IsZero() {
-					continue
-				}
-				if sup.NextReview.Before(now) {
+				if timefmt.IsPastDue(sup.NextReview) {
 					fmt.Printf("  %s  %s  (due: %s, criticality: %s)\n",
 						sup.Identifier, sup.Name, timefmt.Day(sup.NextReview), sup.Criticality)
 					count++

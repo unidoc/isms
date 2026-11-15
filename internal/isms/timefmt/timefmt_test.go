@@ -77,3 +77,38 @@ func TestNilAndZeroAreEmpty(t *testing.T) {
 		}
 	}
 }
+
+func TestIsPastDueCountsOnTheUTCDay(t *testing.T) {
+	due := func(day string) db.Epoch {
+		d, err := time.Parse("2006-01-02", day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return db.NewEpoch(d)
+	}
+	lateToday := time.Date(2026, 11, 15, 23, 30, 0, 0, time.UTC)
+	justAfter := time.Date(2026, 11, 16, 0, 10, 0, 0, time.UTC)
+	for _, z := range zones {
+		t.Run(z.name, func(t *testing.T) {
+			withZone(t, z.offset)
+			// The host's own clock reads differently from UTC; the answer must not.
+			if isPastDueAt(due("2026-11-15"), lateToday.In(time.Local)) {
+				t.Error("due today (UTC) reported past due")
+			}
+			if !isPastDueAt(due("2026-11-14"), lateToday.In(time.Local)) {
+				t.Error("due yesterday (UTC) not reported past due")
+			}
+			if !isPastDueAt(due("2026-11-15"), justAfter.In(time.Local)) {
+				t.Error("due day ended 10 minutes ago, not reported past due")
+			}
+			d := due("2026-11-15")
+			if isPastDueAt(&d, lateToday.In(time.Local)) {
+				t.Error("pointer: due today reported past due")
+			}
+		})
+	}
+	var nilEpoch *db.Epoch
+	if IsPastDue(nilEpoch) || IsPastDue(db.Epoch{}) {
+		t.Error("nil or zero reported past due")
+	}
+}

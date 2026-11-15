@@ -1253,7 +1253,7 @@ const findingsHasFilter = computed(() =>
   findingAuditFilter.value > 0 || !!findingOwnerFilter.value || findingOverdueOnly.value)
 
 // Calendar
-const calendarYear = ref(new Date().getFullYear())
+const calendarYear = ref(new Date().getUTCFullYear())
 const calendarMonths = ref([])
 const calendarUnscheduled = ref([])
 const calendarLoading = ref(false)
@@ -1262,7 +1262,7 @@ const calendarLoading = ref(false)
 const showCreateProgramme = ref(false)
 const showCreateAudit = ref(false)
 const showCreateFinding = ref(false)
-const newProg = ref({ title: '', year: new Date().getFullYear() })
+const newProg = ref({ title: '', year: new Date().getUTCFullYear() })
 const newAudit = ref({ title: '', programme_id: 0, audit_type: 'internal' })
 const newFinding = ref({ title: '', audit_id: 0, finding_type: 'minor_nc' })
 const newFindingAuditLocked = ref(false)
@@ -1620,7 +1620,7 @@ async function refreshFindingCounts() {
 
 // ═════════════════════ Programme create ═════════════════════
 function openCreateProgramme() {
-  newProg.value = { title: '', year: new Date().getFullYear() }
+  newProg.value = { title: '', year: new Date().getUTCFullYear() }
   showCreateProgramme.value = true
 }
 
@@ -1629,7 +1629,7 @@ async function createProgramme() {
   try {
     const created = await api.createAuditProgramme({ ...newProg.value })
     showCreateProgramme.value = false
-    newProg.value = { title: '', year: new Date().getFullYear() }
+    newProg.value = { title: '', year: new Date().getUTCFullYear() }
     await loadProgrammes()
     showSaved(t('audit.toast.programme_added'))
     if (created?.id) {
@@ -1660,7 +1660,7 @@ function startProgEdit() {
   const p = selectedProgramme.value
   progEditForm.value = {
     title: p.title || '',
-    year: p.year || new Date().getFullYear(),
+    year: p.year || new Date().getUTCFullYear(),
     description: p.description || '',
     notes: p.notes || '',
     status: p.status || 'active',

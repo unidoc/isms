@@ -39,3 +39,11 @@ export function isPastDue(value, now = new Date()) {
   const day = toDay(value)
   return day !== '' && day < utcToday(now)
 }
+
+// utcMonthIn returns the 0-based month of a DATE value when it falls in `year`,
+// read on the UTC day, else -1. For the dashboard's annual calendar.
+export function utcMonthIn(value, year) {
+  const day = toDay(value)
+  if (!day || Number(day.slice(0, 4)) !== year) return -1
+  return Number(day.slice(5, 7)) - 1
+}

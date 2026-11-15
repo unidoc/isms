@@ -530,7 +530,7 @@
 </template>
 
 <script setup>
-import { toDay, utcToday } from '../utils/dates.js'
+import { utcMonthIn, utcToday } from '../utils/dates.js'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -689,11 +689,7 @@ const calendarYear = ref(Number(utcToday().slice(0, 4)))
 
 function parseMonth(dateVal) {
   if (!dateVal && dateVal !== 0) return -1
-  // A DATE is a UTC calendar day: read its year and month in UTC, not the browser's zone.
-  const day = toDay(dateVal)
-  if (!day) return -1
-  if (Number(day.slice(0, 4)) !== calendarYear.value) return -1
-  return Number(day.slice(5, 7)) - 1
+  return utcMonthIn(dateVal, calendarYear.value)
 }
 
 const calendarData = computed(() => {

@@ -6,7 +6,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 // FIRST, before any import that reaches vue: see support/renderSfc.js.
 import { compileSfc } from './support/renderSfc.js'
-import { toDay, dayToEpoch, utcToday, isPastDue } from '../src/utils/dates.js'
+import { toDay, dayToEpoch, utcToday, isPastDue, utcMonthIn } from '../src/utils/dates.js'
 
 const ZONES = ['America/Los_Angeles', 'Asia/Jakarta']
 const startTZ = process.env.TZ
@@ -110,5 +110,18 @@ for (const tz of ZONES) {
     } finally {
       if (startTZ === undefined) delete process.env.TZ; else process.env.TZ = startTZ
     }
+  })
+}
+
+for (const tz of ZONES) {
+  test(`utcMonthIn reads a DATE on its UTC day (${tz})`, () => {
+    inZone(tz, () => {
+      // 2026-01-01 00:00 UTC is still 31 Dec 2025 in Los Angeles.
+      assert.equal(utcMonthIn(1767225600, 2026), 0)
+      assert.equal(utcMonthIn(1767225600, 2025), -1)
+      assert.equal(utcMonthIn('2026-12-31', 2026), 11)
+      assert.equal(utcMonthIn('', 2026), -1)
+      assert.equal(utcMonthIn(null, 2026), -1)
+    })
   })
 }

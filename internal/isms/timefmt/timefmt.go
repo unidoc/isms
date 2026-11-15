@@ -57,3 +57,18 @@ func LocalTime[E Epoch](e E) string {
 	}
 	return t.Local().Format("2006-01-02 15:04")
 }
+
+// IsPastDue reports whether a DATE column's due day has ended: its UTC day is
+// before today's UTC day. Due 1 Jan is past due from 2 Jan 00:00 UTC, never on
+// the 1st, matching the server's overdue rule. False for nil or zero.
+func IsPastDue[E Epoch](e E) bool {
+	return isPastDueAt(e, time.Now())
+}
+
+func isPastDueAt[E Epoch](e E, now time.Time) bool {
+	t, ok := toTime(e)
+	if !ok {
+		return false
+	}
+	return t.UTC().Format("2006-01-02") < now.UTC().Format("2006-01-02")
+}

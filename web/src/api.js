@@ -462,7 +462,7 @@ export const api = {
   createAuditProgramme: (prog) => postJSON(`${API}/audit/programmes`, prog),
   updateAuditProgramme: (id, data) => putJSON(`${API}/audit/programmes/${id}`, data),
   deleteAuditProgramme: (id) => deleteJSON(`${API}/audit/programmes/${id}`),
-  getAuditCalendar: (year) => fetchJSON(`${API}/audit/calendar?year=${year || new Date().getFullYear()}`),
+  getAuditCalendar: (year) => fetchJSON(`${API}/audit/calendar?year=${year || new Date().getUTCFullYear()}`),
   // fetchRaw, not fetchJSON: the caller reads `.data` and `.total` off the
   // envelope, and fetchJSON unwraps `{data: [...]}` to a bare array — which
   // left the audit Findings tab and its four counters permanently at zero.

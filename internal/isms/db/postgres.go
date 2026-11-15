@@ -38,6 +38,14 @@ func New(ctx context.Context, connStr string) (*DB, error) {
 	// TimeZone says: CURRENT_DATE and timestamptz-to-date casts follow the
 	// session zone, so overdue and expiry boundaries must not move with host
 	// configuration (#503).
+	// Postgres matches the setting name case-insensitively and pgconn keeps the
+	// key as spelled in the URL, so drop every spelling (TimeZone, TIMEZONE, ...)
+	// first; two keys in the startup message would leave the winner to chance.
+	for k := range cfg.ConnConfig.RuntimeParams {
+		if strings.EqualFold(k, "timezone") {
+			delete(cfg.ConnConfig.RuntimeParams, k)
+		}
+	}
 	cfg.ConnConfig.RuntimeParams["timezone"] = "UTC"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {

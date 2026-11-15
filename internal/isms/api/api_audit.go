@@ -451,7 +451,7 @@ func (s *Server) handleAuditCalendar(c echo.Context) error {
 	orgID := getOrgID(c)
 	yearStr := c.QueryParam("year")
 	if yearStr == "" {
-		yearStr = strconv.Itoa(time.Now().Year())
+		yearStr = strconv.Itoa(time.Now().UTC().Year())
 	}
 	yearInt, err := strconv.Atoi(yearStr)
 	if err != nil || yearInt < 1900 || yearInt > 2200 {

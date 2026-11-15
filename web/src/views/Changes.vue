@@ -260,7 +260,7 @@
                         </div>
                         <div v-if="selectedChange.planned_at">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.planned_for') }}</div>
-                          <div class="text-sm text-slate-300">{{ formatDate(selectedChange.planned_at) }}</div>
+                          <div class="text-sm text-slate-300">{{ formatDay(selectedChange.planned_at) }}</div>
                         </div>
                         <div v-if="selectedChange.approved_by">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('changes.field.approved_by') }}</div>
@@ -407,7 +407,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { useDirtyEdit } from '../composables/useDirtyEdit.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { formatDate } from '../composables/useFormat.js'
+import { formatDate, formatDay } from '../composables/useFormat.js'
 import { sameMarkdown } from '../composables/useMarkdownConvert.js'
 import { renderApiError } from '../composables/useApiError.js'
 import { enumLabel, entityLabel } from '../composables/useEnumLabel.js'

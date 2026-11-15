@@ -287,7 +287,7 @@ func (t *Task) ToChangeMap() map[string]string {
 		"private":     fmt.Sprintf("%t", t.Private),
 	}
 	if t.DueDate != nil {
-		m["due_date"] = t.DueDate.Format("2006-01-02")
+		m["due_date"] = t.DueDate.UTC().Format("2006-01-02")
 	}
 	return m
 }

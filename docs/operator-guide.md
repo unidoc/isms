@@ -312,7 +312,7 @@ These are used by the CLI client, not the server:
 
 The server always works in UTC, whatever the host's `TZ` or the PostgreSQL server's `TimeZone` setting. There is nothing to configure.
 
-- Every `isms server ...` command pins the process to UTC, and `isms server serve` logs `time zone: UTC (host TZ=...)` at startup. Server log timestamps are therefore UTC.
+- Every `isms server ...` command pins the process to UTC, and `isms server serve` logs `time zone: UTC (host TZ=...)` at startup. Server log timestamps are therefore UTC, and so are the times printed by admin commands run as `isms server ...` (`user list`, `org list`, `api-key list`, the `manager` output), because those commands are pinned to UTC too.
 - Every database connection is set to UTC when it opens, overriding the connection string and the server default, so `CURRENT_DATE` and date comparisons in queries are on the UTC day.
 - Calendar dates (due dates, review and next-review dates, planned and end dates, contract expiry, valid-until) are UTC calendar days. Every team member sees the same date, in the web app and the CLI.
 - Timestamps (created, updated, started, completed, last seen) are shown in each viewer's own time zone, in both the web app and the CLI.
@@ -479,7 +479,7 @@ There is no downgrade mechanism. Take a backup before upgrading.
 
 ### Upgrading from a release before UTC dates
 
-On a server that ran west of UTC (a host `TZ` such as `America/New_York`), due dates entered in the web app could have been saved one day early, and each later save of the same record could move the date back another day. Stored dates are not changed automatically: after upgrading, check the due dates of tasks and changes created on such a server, and correct any that are a day or more early.
+On a server that ran west of UTC (a host `TZ` such as `America/New_York`), a date sent as an epoch number to a date-only field could be saved one day early, and each later save of the same record could move the date back another day. This covers the web app and any API, MCP or CLI client. The affected fields are due dates on tasks, corrective actions and audit findings, review and next-review dates, audit planned and end dates, and supplier contract expiry. Stored dates are not changed automatically: after upgrading, check those dates on records created or saved on such a server, and correct any that are a day or more early.
 
 Organizations whose PostgreSQL `TimeZone` was not UTC will also see overdue boundaries move: items now become overdue at 00:00 UTC after the due day instead of at midnight in the database's zone.
 

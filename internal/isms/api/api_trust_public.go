@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -27,7 +28,8 @@ import (
 //     another tenant's page.
 //   - Every "no" answer is the same 404 body: unknown or deleted organization,
 //     trust center off or never set up, host/slug mismatch, unknown path and
-//     any method other than GET. A visitor cannot tell the cases apart.
+//     any method or path that is not a documented one (GET, or POST for the
+//     visitor sign-in routes only). A visitor cannot tell the cases apart.
 //   - A 500 carries a fixed message. The real error goes to the log.
 //   - Responses are never cacheable, so unpublishing takes effect immediately.
 
@@ -70,6 +72,11 @@ type trustPublicOverview struct {
 	ShowPoweredBy bool   `json:"show_powered_by"`
 	// Overview is the served version of the overview document, or null.
 	Overview *trustPublicOverviewDocument `json:"overview"`
+	// VisitorSignIn is true when visitors can sign in by email, which needs
+	// the server to be able to send mail.
+	VisitorSignIn bool `json:"visitor_sign_in"`
+	// PrivacyNoticeURL is the organization's privacy notice link, or "".
+	PrivacyNoticeURL string `json:"privacy_notice_url"`
 }
 
 // trustPublicOverviewDocument is the overview text of the trust center page.
@@ -139,25 +146,42 @@ func trustPublicError(c echo.Context, err error) error {
 }
 
 // handleTrustPublic serves everything under /api/v1/trust. It is registered
-// for every method so that the only two answers are the two GET endpoints and
-// the one 404.
+// for every method so that the only answers are the GET endpoints, the visitor
+// sign-in POST endpoints (#524) and the one 404.
 func (s *Server) handleTrustPublic(c echo.Context) error {
 	c.Response().Header().Set("Cache-Control", "no-store")
 
 	req := c.Request()
-	if req.Method != http.MethodGet || !strings.HasPrefix(req.URL.Path, trustPublicPrefix+"/") {
+	isPost := req.Method == http.MethodPost
+	if (req.Method != http.MethodGet && !isPost) || !strings.HasPrefix(req.URL.Path, trustPublicPrefix+"/") {
 		return trustPublicNotFound(c)
 	}
 	parts := strings.Split(strings.TrimPrefix(req.URL.Path, trustPublicPrefix+"/"), "/")
 	slug := parts[0]
-	var items bool
-	var docID, certID string
+	var items, visitorGet bool
+	var docID, certID, postRoute string
 	switch {
 	case slug == "":
 		return trustPublicNotFound(c)
+	case isPost:
+		// POST is answered for the four visitor routes only.
+		switch r := strings.Join(parts[1:], "/"); r {
+		case "visitor/link", "visitor/link/inspect", "visitor/session", "visitor/sign-out":
+			postRoute = r
+		default:
+			return trustPublicNotFound(c)
+		}
+		// Per-IP limit on link requests only; before any database access.
+		if postRoute == "visitor/link" && !s.trustLinkLimit.allow(c.RealIP()) {
+			h := c.Response().Header()
+			h.Set("Retry-After", strconv.Itoa(int((trustLinkIPWindow/trustLinkIPBudget)/time.Second)))
+			return c.JSON(http.StatusTooManyRequests, map[string]string{"message": "too many requests"})
+		}
 	case len(parts) == 1:
 	case len(parts) == 2 && parts[1] == "items":
 		items = true
+	case len(parts) == 2 && parts[1] == "visitor":
+		visitorGet = true
 	case len(parts) == 3 && parts[1] == "documents" && parts[2] != "":
 		docID = parts[2]
 	case len(parts) == 4 && parts[1] == "certifications" && parts[2] != "" && parts[3] == "file":
@@ -190,6 +214,10 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	}
 
 	switch {
+	case postRoute != "":
+		return s.trustVisitorPost(c, org, settings, postRoute)
+	case visitorGet:
+		return s.trustPublicVisitor(c, org)
 	case certID != "":
 		return s.trustPublicCertificationFile(c, org, certID)
 	case docID != "":
@@ -226,6 +254,9 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 		DefaultLocale:   i18n.Resolve("", orgLocale),
 		ShowPoweredBy:   showPoweredBy,
 		Overview:        s.trustOverviewDocument(ctx, org, settings),
+
+		VisitorSignIn:    s.mailer != nil,
+		PrivacyNoticeURL: settings.PrivacyNoticeURL,
 	})
 }
 

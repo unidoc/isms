@@ -1065,6 +1065,224 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /trust/{slug}/visitor:
+    get:
+      tags: [Trust Center]
+      summary: Read the signed-in trust center visitor
+      description: >-
+        Needs no member session. Reads only the `isms_trust_visitor` cookie, never
+        the Authorization header. `visitor` is null when nobody is signed in
+        (no cookie, or an unknown, expired, revoked, blocked or other-organization
+        session). Not found and caching are as for `/trust/{slug}`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: The visitor, or null
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/link:
+    post:
+      tags: [Trust Center]
+      summary: Email a one-time sign-in link to a visitor
+      description: >-
+        The body must be `application/json` (400 otherwise), which with the
+        SameSite=Strict cookie is the CSRF defence. A bare address only. Every
+        accepted request answers the same 202 whether or not the address is
+        known, blocked or throttled; no mail is sent for a blocked visitor, a
+        per-address cap (3 per 15 minutes) or the per-organization hourly cap
+        (`ISMS_TRUST_SIGNIN_ORG_HOURLY`, default 100). Only a blocked email domain
+        is refused (400 `trust_email_domain_blocked`; its `value` param is the
+        domain). 503 `trust_sign_in_unavailable` when the server has no mail
+        configured. The link is valid 15 minutes and works once; the mail is sent
+        in the background. At most 10 requests per 15 minutes per IP address
+        (429), off when `ISMS_RATE_LIMIT=0`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, description: The visitor's email address. }
+      responses:
+        '202':
+          description: Accepted (the link is sent if the address may sign in)
+          content:
+            application/json:
+              schema: { type: object, required: [status], properties: { status: { type: string, enum: [sent] } } }
+        '400':
+          description: Not JSON, not a bare email address, or a blocked email domain (code `trust_email_domain_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: No mail configured (code `trust_sign_in_unavailable`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: Too many link requests from this IP address
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust/{slug}/visitor/link/inspect:
+    post:
+      tags: [Trust Center]
+      summary: Check a sign-in link without using it
+      description: >-
+        Consumes nothing, so a page can show "Sign in as <email>" before the
+        visitor confirms. The body must be `application/json`. 400
+        `trust_link_invalid` for an unknown, used, expired or other-organization
+        token; 403 `trust_visitor_blocked` for a blocked visitor.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, description: The token from the emailed link. }
+      responses:
+        '200':
+          description: The link's address and whether name and company are still needed
+          content:
+            application/json:
+              schema: { type: object, required: [email, needs_profile], properties: { email: { type: string }, needs_profile: { type: boolean } } }
+        '400':
+          description: Not JSON, or the link is not valid (code `trust_link_invalid`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: The visitor is blocked (code `trust_visitor_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/session:
+    post:
+      tags: [Trust Center]
+      summary: Redeem a sign-in link and sign the visitor in
+      description: >-
+        Redeems the link by POST, never GET, so a mail scanner cannot consume it.
+        The body must be `application/json`. Sets the `isms_trust_visitor` cookie
+        (HttpOnly, SameSite=Strict, `Secure` on an https base URL,
+        `Path=/api/v1/trust/<slug>`, 7 days); the token is never in the body. A
+        first sign-in needs `name` and `company` (409
+        `trust_visitor_profile_required`, and the link is not consumed); they are
+        stored once and a later sign-in never overwrites them. 400
+        `trust_link_invalid` for an unknown, used, expired or other-organization
+        token; 403 `trust_visitor_blocked`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, description: The token from the emailed link. }
+                name: { type: string, description: "Required at a first sign-in; at most 200 characters." }
+                company: { type: string, description: "Required at a first sign-in; at most 200 characters." }
+      responses:
+        '200':
+          description: Signed in; the session cookie is set
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: The `isms_trust_visitor` session cookie.
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '400':
+          description: Not JSON, a field too long, or the link is not valid (code `trust_link_invalid`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: The visitor is blocked (code `trust_visitor_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: A first sign-in without name and company (code `trust_visitor_profile_required`); the link is still usable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/sign-out:
+    post:
+      tags: [Trust Center]
+      summary: Sign the visitor out
+      description: >-
+        Revokes the cookie's session and clears the cookie. Always 200 with
+        `visitor: null`, whether or not there was a session. The body must be
+        `application/json` (it may be empty).
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: Signed out
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '400':
+          description: Not JSON
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /documents/{docId}/trust-center:
     parameters:
       - name: docId
@@ -4583,7 +4801,7 @@ components:
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     TrustCenterOverview:
       type: object
-      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview]
+      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url]
       properties:
         title: { type: string, description: The page title the organization chose; empty when unset. }
         security_contact: { type: string, description: Where to report a security issue; empty when unset. }
@@ -4604,6 +4822,8 @@ components:
             approved_at: { $ref: '#/components/schemas/EpochSeconds', description: When the served version was recorded. }
             content_hash: { type: string, description: SHA-256 of the served version's file as committed. }
             html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
+        visitor_sign_in: { type: boolean, description: "Whether visitors can sign in by emailed link: false when the server has no mail configured. The preview shows the same value." }
+        privacy_notice_url: { type: string, description: The organization's privacy notice link shown to visitors who sign in; empty when unset. }
     TrustCenterItem:
       type: object
       required: [id, kind, section, sort_order, access_level]

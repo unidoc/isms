@@ -260,6 +260,22 @@ func (m *Mailer) SendVerificationBranded(to, name, baseURL, token string, b Bran
 	return m.sendAs(to, fmt.Sprintf("%s — Verify your email", b.name()), body, b.name())
 }
 
+// SendTrustSignInLinkBranded sends a trust center visitor their one-time
+// sign-in link. The visitor is not a user: the mail names no account, only the
+// organization's trust center. link is built by the caller from server-known
+// values; every inserted value is escaped here.
+func (m *Mailer) SendTrustSignInLinkBranded(to, link string, b Branding) error {
+	body := fmt.Sprintf(`<div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+<h2>Sign in to the %s trust center</h2>
+<p>Use the button below to sign in with this email address.</p>
+<p><a href="%s" style="display: inline-block; padding: 12px 24px; background: %s; color: white; text-decoration: none; border-radius: 6px;">Sign in</a></p>
+<p>Or copy this link: %s</p>
+<p style="color: #666; font-size: 12px;">This link expires in 15 minutes and can be used once. If you did not ask for it, you can ignore this email.</p>
+</div>`, esc(b.name()), esc(link), esc(b.color()), esc(link))
+
+	return m.sendAs(to, fmt.Sprintf("%s — Your trust center sign-in link", b.name()), body, b.name())
+}
+
 // SendEmailChangeVerification sends a confirmation link to the *new* address a
 // user wants to switch to. Clicking it swaps the account's email over.
 func (m *Mailer) SendEmailChangeVerification(to, name, baseURL, token string) error {

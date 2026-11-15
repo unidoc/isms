@@ -39,11 +39,13 @@ type Server struct {
 	db       *db.DB
 	notifier *notify.Notifier
 	mailer   *mail.Mailer
-	echo     *echo.Echo
-	addr     string
-	webDir   string
-	webFS    fs.FS    // embedded web assets (optional, used if webDir is empty)
-	stores   sync.Map // orgID -> *store.Store cache
+	// trustLinkLimit is the per-IP limit on trust center sign-in link requests.
+	trustLinkLimit *trustLinkLimiter
+	echo           *echo.Echo
+	addr           string
+	webDir         string
+	webFS          fs.FS    // embedded web assets (optional, used if webDir is empty)
+	stores         sync.Map // orgID -> *store.Store cache
 
 	// Unified storage for org files (branding, evidence, etc.).
 	// Local filesystem by default, S3 with ISMS_STORAGE_BACKEND=s3.
@@ -557,6 +559,7 @@ func (s *Server) routes() {
 	// One limiter instance, so both routes share its per-IP store (see
 	// trust_rate_limit.go).
 	trustLimit := trustRateLimiter()
+	s.trustLinkLimit = newTrustLinkLimiter()
 	api.Any("/trust", s.handleTrustPublic, trustLimit)
 	api.Any("/trust/*", s.handleTrustPublic, trustLimit)
 

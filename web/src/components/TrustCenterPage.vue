@@ -27,9 +27,47 @@
             <div class="font-semibold truncate trust-brand-text" data-trust="brand">{{ ov.branding_name }}</div>
             <div class="text-xs text-slate-500">{{ $t('trust.public.heading') }}</div>
           </div>
+          <template v-if="signInAvailable">
+            <div v-if="visitor" class="flex items-center gap-2 text-sm shrink-0" data-trust="visitor">
+              <span class="text-slate-600 max-w-[14rem] truncate" data-trust="visitor-email">{{ $t('trust.public.signed_in_as', { email: visitor.email }) }}</span>
+              <button type="button" class="font-medium trust-brand-text hover:underline" data-trust="sign-out" :disabled="signingOut" @click="signOut">
+                {{ $t('trust.public.sign_out') }}
+              </button>
+            </div>
+            <button v-else type="button" class="text-sm font-medium trust-brand-text hover:underline shrink-0 text-right" data-trust="sign-in-link" @click="openSignIn">
+              {{ $t('trust.public.sign_in_link') }}
+            </button>
+          </template>
           <a v-if="hasSession" href="/" class="text-sm font-medium trust-brand-text hover:underline shrink-0" data-trust="back-to-app" @click="go($event, '/')">
             {{ $t('trust.public.back_to_app') }}
           </a>
+        </div>
+
+        <!-- Sign-in form: a one-time link by email. The answer to a send is the
+             same text whatever the server knows about the address. -->
+        <div v-if="signInAvailable && !visitor && formOpen" class="border-t border-slate-100 bg-slate-50" data-trust="sign-in-form">
+          <form class="max-w-4xl mx-auto px-4 py-4 space-y-3" novalidate @submit.prevent="sendLink">
+            <h2 class="text-sm font-semibold">{{ $t('trust.public.sign_in_heading') }}</h2>
+            <p class="text-sm text-slate-600">{{ $t('trust.public.sign_in_intro') }}</p>
+            <div>
+              <label for="trust-sign-in-email" class="block text-sm font-medium text-slate-700">{{ $t('trust.public.sign_in_email') }}</label>
+              <input id="trust-sign-in-email" v-model="email" type="email" autocomplete="email" required maxlength="320"
+                class="mt-1 w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" data-trust="sign-in-email" />
+            </div>
+            <p v-if="privacyUrl" class="text-xs text-slate-500">
+              <a :href="privacyUrl" target="_blank" rel="noopener noreferrer" class="underline hover:text-slate-700" data-trust="privacy">{{ $t('trust.public.sign_in_privacy') }}</a>
+            </p>
+            <p v-if="sendState === 'sent'" class="text-sm text-slate-700" role="status" data-trust="sign-in-sent">{{ $t('trust.public.sign_in_sent') }}</p>
+            <p v-else-if="sendError" class="text-sm text-red-700" role="alert" data-trust="sign-in-error">{{ sendError }}</p>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 trust-fill disabled:opacity-60" data-trust="sign-in-submit" :disabled="sendState === 'sending'">
+                {{ sendLabel }}
+              </button>
+              <button type="button" class="px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100" data-trust="sign-in-cancel" @click="formOpen = false">
+                {{ $t('trust.public.sign_in_cancel') }}
+              </button>
+            </div>
+          </form>
         </div>
       </header>
 
@@ -57,7 +95,10 @@
           <div v-else-if="docState === 'locked'" class="mt-6 bg-white border border-slate-200 rounded-xl p-6" data-trust="locked">
             <h1 class="text-2xl font-semibold">{{ lockedItem.title }}</h1>
             <p class="mt-2 text-sm text-slate-600">{{ $t('trust.public.doc_locked', { access: accessLabel(lockedItem.access_level) }) }}</p>
-            <p class="mt-4 text-sm">
+            <p v-if="needsSignIn(lockedItem)" class="mt-4 text-sm">
+              <button type="button" class="font-medium trust-brand-text hover:underline" data-trust="doc-sign-in" @click="openSignIn">{{ $t('trust.public.doc_sign_in') }}</button>
+            </p>
+            <p v-else class="mt-4 text-sm">
               <a v-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
               <span v-else-if="ov.security_contact" class="font-medium">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
               <span v-else class="text-slate-600">{{ $t('trust.public.action_on_request') }}</span>
@@ -159,8 +200,9 @@
                   <span>{{ accessLabel(d.access_level) }}</span>
                 </div>
                 <div role="cell" class="text-sm min-w-0 break-words">
-                  <a v-if="d.access_level === 'public'" :href="basePath + '/documents/' + d.id" class="font-medium trust-brand-text hover:underline" data-trust="view"
+                  <a v-if="mayRead(d)" :href="basePath + '/documents/' + d.id" class="font-medium trust-brand-text hover:underline" data-trust="view"
                     @click="go($event, basePath + '/documents/' + d.id)">{{ $t('trust.public.action_view') }}</a>
+                  <button v-else-if="needsSignIn(d)" type="button" class="font-medium trust-brand-text hover:underline" data-trust="sign-in-to-view" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -217,6 +259,67 @@ const items = ref([])
 const logoFailed = ref(false)
 const filter = ref('all')
 const hasSession = ref(false)
+
+// Visitor sign-in (#524). Only the anonymous page has it: the manager's preview
+// (a data source is given) is the anonymous view and never asks who is signed in.
+const visitorFeatures = computed(() => !props.source)
+const visitor = ref(null)
+const signInAvailable = computed(() => visitorFeatures.value && !!ov.value.visitor_sign_in)
+const formOpen = ref(false)
+const email = ref('')
+const sendState = ref('idle') // idle | sending | sent | error
+const sendError = ref('')
+const signingOut = ref(false)
+const sendLabel = computed(() => t(sendState.value === 'sending' ? 'trust.public.sign_in_sending' : 'trust.public.sign_in_submit'))
+// Only an http(s) link is rendered from the organization's setting.
+const privacyUrl = computed(() => (/^https?:\/\//i.test(ov.value.privacy_notice_url || '') ? ov.value.privacy_notice_url : ''))
+
+// The same rule as the server's: public for everyone, gated for a signed-in visitor.
+const mayRead = (d) => d.access_level === 'public' || (d.access_level === 'gated' && !!visitor.value)
+const needsSignIn = (d) => d.access_level === 'gated' && !visitor.value && signInAvailable.value
+
+function openSignIn() {
+  formOpen.value = true
+  sendState.value = 'idle'
+  sendError.value = ''
+}
+
+async function sendLink() {
+  if (sendState.value === 'sending') return
+  sendState.value = 'sending'
+  sendError.value = ''
+  try {
+    await api.trustRequestLink(props.slug, email.value.trim())
+    sendState.value = 'sent'
+  } catch (err) {
+    sendState.value = 'error'
+    if (err && err.code === 'trust_email_domain_blocked') sendError.value = t('common.error.trust_email_domain_blocked', { value: (err.params && err.params.value) || '' })
+    else if (err && err.status === 429) sendError.value = t('trust.public.sign_in_rate_limited')
+    else if (err && (err.status === 503 || err.code === 'trust_sign_in_unavailable')) sendError.value = t('trust.public.sign_in_unavailable')
+    else if (err && err.status === 400) sendError.value = t('trust.public.sign_in_invalid_email')
+    else sendError.value = t('trust.public.sign_in_error')
+  }
+}
+
+async function loadVisitor() {
+  visitor.value = null
+  if (!signInAvailable.value) return
+  try {
+    visitor.value = (await api.trustVisitor(props.slug)).visitor || null
+  } catch {
+    visitor.value = null
+  }
+}
+
+async function signOut() {
+  signingOut.value = true
+  try {
+    await api.trustSignOut(props.slug)
+  } catch { /* the state is read again below either way */ }
+  await loadVisitor()
+  signingOut.value = false
+  if (state.value === 'ready') await loadDocument()
+}
 
 const docState = ref('loading') // loading | ready | locked | missing | error
 const doc = ref({})
@@ -329,7 +432,7 @@ async function loadDocument() {
     docState.value = 'missing'
     return
   }
-  if (it.access_level !== 'public') {
+  if (!mayRead(it)) {
     lockedItem.value = it
     docState.value = 'locked'
     return
@@ -363,7 +466,9 @@ async function load() {
     // Brand first, so nothing flashes unbranded; then the language.
     applyBrandColor(o.branding_color)
     if (cfg && cfg.locales) await applyConfigLocales({ locales: cfg.locales, default_locale: o.default_locale })
+    await loadVisitor()
     state.value = 'ready'
+    if (typeof location !== 'undefined' && location.hash === '#sign-in' && signInAvailable.value && !visitor.value) openSignIn()
     await loadDocument()
   } catch (err) {
     state.value = err && err.status === 404 ? 'unavailable' : 'error'

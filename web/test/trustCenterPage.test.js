@@ -61,7 +61,7 @@ test('a public row links to its document page; a gated row shows the contact and
   assert.ok(html.includes(`href="/acme/trust/documents/${PUB}"`), html)
   assert.ok(html.includes('href="mailto:security@acme.example"'), html)
   assert.ok(html.includes('Contact security@acme.example'), html)
-  assert.ok(html.includes('Sign in + NDA') && html.includes('On request'), html)
+  assert.ok(html.includes('Sign in') && !html.includes('NDA') && html.includes('On request'), html)
   assert.ok(!calls.some(c => c.url.includes(`/documents/${GATED}`) || c.url.includes(`/documents/${RESTR}`)), JSON.stringify(calls.map(c => c.url)))
   assert.ok(!html.includes(`documents/${GATED}`), 'locked row must not link to its document')
   assert.ok(html.includes('1.0') && html.includes(hash('a').slice(0, 10)), html)

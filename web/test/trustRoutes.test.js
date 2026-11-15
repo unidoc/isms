@@ -46,3 +46,17 @@ test('path mode does not register the bare /trust, tenant mode does not register
   assert.equal((await resolveIn(false, '/trust')).matched.length, 0)
   assert.equal((await resolveIn(true, '/acme/trust')).matched.length, 0)
 })
+
+test('the sign-in route the emailed link lands on is public and flagged, in both modes', async () => {
+  const a = await resolveIn(false, '/acme/trust/sign-in')
+  assert.equal(a.meta.public, true)
+  assert.equal(a.meta.signIn, true)
+  assert.equal(a.params.org, 'acme')
+  const b = await resolveIn(true, '/trust/sign-in')
+  assert.deepEqual({ p: b.meta.public, s: b.meta.signIn }, { p: true, s: true })
+  // the plain page and a document page are not the sign-in route
+  assert.ok(!(await resolveIn(false, '/acme/trust')).meta.signIn)
+  assert.ok(!(await resolveIn(false, '/acme/trust/documents/x')).meta.signIn)
+  // a fragment never reaches the router, so #token= does not change the match
+  assert.equal((await resolveIn(false, '/acme/trust/sign-in#token=abc')).meta.signIn, true)
+})

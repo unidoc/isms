@@ -10,6 +10,8 @@ export function buildTrustRoutes(subdomainMode) {
   const prefix = subdomainMode ? '' : '/:org'
   return [
     { path: `${prefix}/trust`, component: TrustCenter, meta: { public: true } },
+    // Where the emailed sign-in link lands (#524); the token is in the fragment.
+    { path: `${prefix}/trust/sign-in`, component: TrustCenter, meta: { public: true, signIn: true } },
     { path: `${prefix}/trust/documents/:id`, component: TrustCenter, meta: { public: true } },
   ]
 }

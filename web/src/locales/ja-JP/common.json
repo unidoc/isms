@@ -488,6 +488,8 @@
     "trust_certification_source": "リンクまたはファイルのどちらか一方を指定してください",
     "trust_date_invalid": "{field}は YYYY-MM-DD 形式の日付で指定してください",
     "trust_certification_already_published": "この認証はすでにトラストセンターで公開されています",
+    "trust_subprocessor_ineligible": "このサプライヤーは再委託先として公開できません（{value}）",
+    "trust_subprocessor_already_published": "このサプライヤーはすでに再委託先として公開されています",
     "export_format_invalid": "形式は pdf または docx にしてください",
     "export_not_licensed": "このサーバーでは {value} へのエクスポートは利用できません",
     "export_version_not_found": "文書にそのバージョンは存在しません",

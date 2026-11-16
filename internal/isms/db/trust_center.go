@@ -99,6 +99,9 @@ type TrustCenterItem struct {
 const (
 	TrustHiddenRetired = "retired"
 	TrustHiddenDeleted = "deleted"
+	// A subprocessor's supplier was terminated, or no longer has data access (#522).
+	TrustHiddenTerminated   = "terminated"
+	TrustHiddenNoDataAccess = "no_data_access"
 )
 
 const trustItemColumns = `id, public_id::text, organization_id, kind, reference, access_level,
@@ -369,12 +372,14 @@ func (d *DB) GetTrustCenterItemByReference(ctx context.Context, orgID int, kind,
 	return it, err
 }
 
-// HideTrustCenterItem marks an item hidden (reason retired or deleted) and
+// HideTrustCenterItem marks an item hidden (a Trust center hidden reason) and
 // records it in the changelog in the same transaction. An item that is already
 // hidden is left alone and writes nothing. actor may be "system" when a read
 // path notices the source is gone.
 func (d *DB) HideTrustCenterItem(ctx context.Context, orgID int, itemID int64, reason, actor string) error {
-	if reason != TrustHiddenRetired && reason != TrustHiddenDeleted {
+	switch reason {
+	case TrustHiddenRetired, TrustHiddenDeleted, TrustHiddenTerminated, TrustHiddenNoDataAccess:
+	default:
 		return trustInvalid("hidden reason %q", reason)
 	}
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -415,42 +420,48 @@ func (d *DB) RepublishTrustCenterItem(ctx context.Context, orgID int, itemID int
 		return trustInvalid("actor is required")
 	}
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
-		var oldLevel, oldHidden string
-		err := tx.QueryRow(ctx, `
-			SELECT access_level, COALESCE(hidden_reason, '') FROM trust_center_items
-			WHERE id = $1 AND organization_id = $2 FOR UPDATE
-		`, itemID, orgID).Scan(&oldLevel, &oldHidden)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrTrustItemNotFound
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `
-			UPDATE trust_center_items
-			SET hidden_at = NULL, hidden_reason = NULL, access_level = $3,
-			    published_at = now(), published_by = $4, updated_at = now()
-			WHERE id = $1 AND organization_id = $2
-		`, itemID, orgID, level, actor); err != nil {
-			return err
-		}
-		if oldHidden != "" {
-			empty := ""
-			if err := LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
-				EntityType: "trust_center_item", EntityID: itemID, Action: "update",
-				Field: "hidden", OldValue: &oldHidden, NewValue: &empty, ChangedBy: actor,
-			}); err != nil {
-				return err
-			}
-		}
-		if oldLevel != level {
-			return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
-				EntityType: "trust_center_item", EntityID: itemID, Action: "update",
-				Field: "access_level", OldValue: &oldLevel, NewValue: &level, ChangedBy: actor,
-			})
-		}
-		return nil
+		return republishTrustCenterItemTx(ctx, tx, orgID, itemID, level, actor)
 	})
+}
+
+// republishTrustCenterItemTx is RepublishTrustCenterItem inside a caller's
+// transaction, for callers that must lock the thing being published first.
+func republishTrustCenterItemTx(ctx context.Context, tx pgx.Tx, orgID int, itemID int64, level, actor string) error {
+	var oldLevel, oldHidden string
+	err := tx.QueryRow(ctx, `
+		SELECT access_level, COALESCE(hidden_reason, '') FROM trust_center_items
+		WHERE id = $1 AND organization_id = $2 FOR UPDATE
+	`, itemID, orgID).Scan(&oldLevel, &oldHidden)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrTrustItemNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE trust_center_items
+		SET hidden_at = NULL, hidden_reason = NULL, access_level = $3,
+		    published_at = now(), published_by = $4, updated_at = now()
+		WHERE id = $1 AND organization_id = $2
+	`, itemID, orgID, level, actor); err != nil {
+		return err
+	}
+	if oldHidden != "" {
+		empty := ""
+		if err := LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+			EntityType: "trust_center_item", EntityID: itemID, Action: "update",
+			Field: "hidden", OldValue: &oldHidden, NewValue: &empty, ChangedBy: actor,
+		}); err != nil {
+			return err
+		}
+	}
+	if oldLevel != level {
+		return LogChangeTx(ctx, tx, orgID, &ChangelogEntry{
+			EntityType: "trust_center_item", EntityID: itemID, Action: "update",
+			Field: "access_level", OldValue: &oldLevel, NewValue: &level, ChangedBy: actor,
+		})
+	}
+	return nil
 }
 
 // ClearTrustCenterOverviewDocument clears the overview document setting when it
@@ -513,21 +524,24 @@ func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string
 	}
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, public_id::text FROM trust_center_items
+			SELECT id, public_id::text, sort_order FROM trust_center_items
 			WHERE organization_id = $1 AND kind = $2 ORDER BY id FOR UPDATE
 		`, orgID, kind)
 		if err != nil {
 			return err
 		}
 		byPublic := map[string]int64{}
+		oldOrder := map[int64]int{}
 		for rows.Next() {
 			var id int64
 			var pub string
-			if err := rows.Scan(&id, &pub); err != nil {
+			var order int
+			if err := rows.Scan(&id, &pub, &order); err != nil {
 				rows.Close()
 				return err
 			}
 			byPublic[pub] = id
+			oldOrder[id] = order
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
@@ -550,12 +564,25 @@ func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string
 		if len(internal) == 0 {
 			return nil
 		}
-		_, err = tx.Exec(ctx, `
+		changed := false
+		for pos, id := range internal {
+			if oldOrder[id] != pos+1 {
+				changed = true
+			}
+		}
+		if _, err = tx.Exec(ctx, `
 			UPDATE trust_center_items AS t SET sort_order = o.pos
 			FROM unnest($3::bigint[]) WITH ORDINALITY AS o(id, pos)
 			WHERE t.id = o.id AND t.organization_id = $1 AND t.kind = $2
-		`, orgID, kind, internal)
-		return err
+		`, orgID, kind, internal); err != nil {
+			return err
+		}
+		// The subprocessor order is visible to visitors, so a real change moves
+		// "last changed" (#522).
+		if kind == TrustKindSubprocessor && changed {
+			return bumpSubprocessorsChangedTx(ctx, tx, orgID)
+		}
+		return nil
 	})
 }
 

@@ -77,6 +77,9 @@ type trustPublicOverview struct {
 	VisitorSignIn bool `json:"visitor_sign_in"`
 	// PrivacyNoticeURL is the organization's privacy notice link, or "".
 	PrivacyNoticeURL string `json:"privacy_notice_url"`
+	// SubprocessorsChangedAt is when the subprocessor list last changed, in
+	// epoch seconds; absent when it never did.
+	SubprocessorsChangedAt int64 `json:"subprocessors_changed_at,omitempty"`
 }
 
 // trustPublicOverviewDocument is the overview text of the trust center page.
@@ -255,14 +258,23 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 		showPoweredBy = val == "true" || val == "1"
 	}
 	orgLocale, _ := s.db.GetOrgSetting(ctx, org.ID, "default_locale")
+	var changedAt int64
+	changed, err := s.db.TrustSubprocessorsChangedAt(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	if changed != nil {
+		changedAt = changed.Unix()
+	}
 	return c.JSON(http.StatusOK, trustPublicOverview{
-		Title:           settings.Title,
-		SecurityContact: settings.SecurityContact,
-		BrandingName:    s.db.OrgBrandName(ctx, org),
-		BrandingColor:   color,
-		DefaultLocale:   i18n.Resolve("", orgLocale),
-		ShowPoweredBy:   showPoweredBy,
-		Overview:        s.trustOverviewDocument(ctx, org, settings),
+		SubprocessorsChangedAt: changedAt,
+		Title:                  settings.Title,
+		SecurityContact:        settings.SecurityContact,
+		BrandingName:           s.db.OrgBrandName(ctx, org),
+		BrandingColor:          color,
+		DefaultLocale:          i18n.Resolve("", orgLocale),
+		ShowPoweredBy:          showPoweredBy,
+		Overview:               s.trustOverviewDocument(ctx, org, settings),
 
 		VisitorSignIn:    s.mailer != nil,
 		PrivacyNoticeURL: settings.PrivacyNoticeURL,
@@ -291,9 +303,26 @@ func (s *Server) trustPublicItems(c echo.Context, org *db.Organization, v *db.Tr
 	for i := range servable {
 		certs[strconv.FormatInt(servable[i].ID, 10)] = &servable[i]
 	}
-	out := make([]trustPublicItem, 0, len(rows))
+	subs, err := s.trustServableSubprocessors(ctx, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	out := make([]any, 0, len(rows))
 	for _, it := range rows {
 		if it.HiddenAt != nil {
+			continue
+		}
+		if it.Kind == db.TrustKindSubprocessor {
+			// Only a subprocessor the servable check returned goes out, and only
+			// as the dedicated struct.
+			if sp := subs[it.ID]; sp != nil {
+				out = append(out, trustPublicSubprocessorItem{
+					ID: it.PublicID, Kind: it.Kind, Section: it.Section,
+					SortOrder: it.SortOrder, AccessLevel: db.TrustAccessPublic,
+					Name: trustPublicName(sp), Purpose: strings.TrimSpace(sp.PublicPurpose),
+					Location: strings.TrimSpace(sp.ProcessingLocation), DataCategories: strings.TrimSpace(sp.DataCategories),
+				})
+			}
 			continue
 		}
 		pi := trustPublicItem{

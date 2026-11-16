@@ -1549,8 +1549,9 @@ paths:
         document public (from another level) whose classification, at HEAD or in
         the served version, is confidential or restricted needs
         `confirm_classification: true`; otherwise 409 with code
-        `trust_classification_confirm` and nothing is written. Answers with the
-        item as `GET /trust-center/items` lists it.
+        `trust_classification_confirm` and nothing is written. A subprocessor is
+        always public: any other level is a 400 (`invalid_request`). Answers with
+        the item as `GET /trust-center/items` lists it.
       requestBody:
         required: true
         content:
@@ -1885,6 +1886,81 @@ paths:
       tags: [Trust Center]
       summary: Unpublish a certification
       description: Admin or manager only. Keeps the certification and its file. 404 when it is not published.
+      responses:
+        '204': { description: Unpublished }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/subprocessors:
+    get:
+      tags: [Trust Center]
+      summary: List the suppliers that can be, or are, published as subprocessors
+      description: >-
+        Admin or manager only. Every supplier that has data access or already has
+        a subprocessor item, plus deleted suppliers that still have an item.
+        Published ones come first in display order, then the rest by name. A
+        visible item whose supplier is no longer eligible is hidden before the
+        answer is built. `changed_at` is when the list last changed visibly
+        (Unix seconds), null when it never did.
+      responses:
+        '200':
+          description: Suppliers
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changed_at, suppliers]
+                properties:
+                  changed_at: { type: [integer, 'null'], format: int64 }
+                  suppliers:
+                    type: array
+                    items: { $ref: '#/components/schemas/TrustSubprocessor' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Trust Center]
+      summary: Publish a supplier as a subprocessor
+      description: >-
+        Admin or manager only. Always public. A supplier whose item is hidden is
+        published again with the same public id; one that was terminated, lost data
+        access or was deleted is never published again by itself. 404 for an unknown,
+        other-organization or deleted supplier; 409 `trust_subprocessor_ineligible`
+        (`params.value` is `terminated` or `no_data_access`) or
+        `trust_subprocessor_already_published`; 400 for an `access_level` other
+        than `public`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrustSubprocessorPublishRequest' }
+      responses:
+        '201':
+          description: The supplier's entry, now with its `item`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustSubprocessor' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Not eligible (code `trust_subprocessor_ineligible`) or already published (code `trust_subprocessor_already_published`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/subprocessors/{supplierId}:
+    parameters:
+      - name: supplierId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+        description: Supplier id.
+    delete:
+      tags: [Trust Center]
+      summary: Unpublish a subprocessor
+      description: Admin or manager only. Removes the item, hidden or not, and moves the list's last-changed time. 404 when the supplier is not published.
       responses:
         '204': { description: Unpublished }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -4984,6 +5060,7 @@ components:
             html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
         visitor_sign_in: { type: boolean, description: "Whether visitors can sign in by emailed link: false when the server has no mail configured. The preview shows the same value." }
         privacy_notice_url: { type: string, description: The organization's privacy notice link shown to visitors who sign in; empty when unset. }
+        subprocessors_changed_at: { $ref: '#/components/schemas/EpochSeconds', description: "When the subprocessor list last changed visibly (publish, unpublish, hide, reorder, or an edit of a published supplier's name or public details). Omitted when no subprocessor was ever published." }
     TrustCenterItem:
       type: object
       required: [id, kind, section, sort_order, access_level]
@@ -5006,6 +5083,41 @@ components:
         url: { type: string, description: "Certifications only, link source, and only when the viewer may read it: public, or gated for a signed-in visitor. Restricted rows never carry it." }
         file_name: { type: string, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor. The file is at /trust/{slug}/certifications/{id}/file." }
         file_size: { type: integer, format: int64, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor." }
+        name: { type: string, description: "Subprocessors only (always `public`): the supplier's public name, else its name. Always present for a subprocessor." }
+        purpose: { type: string, description: "Subprocessors only: what it does for the organization; empty string when not set." }
+        location: { type: string, description: "Subprocessors only: where it processes data; empty string when not set." }
+        data_categories: { type: string, description: "Subprocessors only: the data it processes; empty string when not set." }
+    TrustSubprocessor:
+      type: object
+      required: [supplier_id, identifier, name, public_name, public_purpose, processing_location, data_categories, status, data_access, deleted, eligible, ineligible_reason, item]
+      properties:
+        supplier_id: { type: integer, format: int64 }
+        identifier: { type: string }
+        name: { type: string }
+        public_name: { type: string, description: "As stored; empty means the list uses `name`." }
+        public_purpose: { type: string }
+        processing_location: { type: string }
+        data_categories: { type: string }
+        status: { type: string, enum: [active, under_review, suspended, terminated] }
+        data_access: { type: boolean }
+        deleted: { type: boolean, description: "The supplier is deleted; listed only because it still has an item." }
+        eligible: { type: boolean, description: "May be published, or is served now: not terminated, has data access, not deleted." }
+        ineligible_reason: { type: string, enum: ['', terminated, no_data_access, deleted], description: "Terminated wins over no_data_access." }
+        item:
+          type: [object, 'null']
+          description: The trust center item, or null when the supplier is not published.
+          required: [id, hidden_reason, sort_order, published_at]
+          properties:
+            id: { type: string, format: uuid, description: Public identifier of the item. }
+            hidden_reason: { type: string, enum: ['', terminated, no_data_access, deleted], description: "Empty when visible. A hidden item stays hidden until it is published again." }
+            sort_order: { type: integer }
+            published_at: { type: integer, format: int64, description: Unix seconds when the item was published or last published again. }
+    TrustSubprocessorPublishRequest:
+      type: object
+      required: [supplier_id]
+      properties:
+        supplier_id: { type: integer, format: int64 }
+        access_level: { type: string, enum: [public], description: "Optional. Subprocessors are always public; any other value is a 400." }
     TrustCenterDocument:
       type: object
       required: [id, title, version, approved_at, content_hash, html]
@@ -5083,7 +5195,7 @@ components:
         active_sessions: { type: integer, description: Sessions that are neither revoked nor expired. }
     TrustCenterManagerItem:
       type: object
-      required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document, certification]
+      required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document, certification, subprocessor]
       properties:
         id: { type: string, format: uuid, description: Public identifier of the item. }
         kind: { type: string, enum: [document, certification, subprocessor, card, faq, update] }
@@ -5103,7 +5215,23 @@ components:
             state: { type: string, enum: ['', current, expiring, expired], description: Empty when there is no valid_until. }
             source: { type: string, enum: [file, link] }
         sort_order: { type: integer, description: Display position among the items of the same kind. }
-        hidden_reason: { type: string, enum: ['', retired, deleted], description: Why the item is hidden from visitors; empty when it is visible. }
+        hidden_reason: { type: string, enum: ['', retired, deleted, terminated, no_data_access], description: Why the item is hidden from visitors; empty when it is visible. }
+        subprocessor:
+          type: [object, 'null']
+          description: The supplier behind the item; null for every kind except `subprocessor`, and when the supplier row is gone.
+          required: [supplier_id, identifier, name, public_name, purpose, location, data_categories, status, data_access, deleted, details_missing]
+          properties:
+            supplier_id: { type: integer, format: int64 }
+            identifier: { type: string }
+            name: { type: string }
+            public_name: { type: string, description: "The name visitors see: the supplier's public name, else its name." }
+            purpose: { type: string }
+            location: { type: string }
+            data_categories: { type: string }
+            status: { type: string, enum: [active, under_review, suspended, terminated] }
+            data_access: { type: boolean }
+            deleted: { type: boolean }
+            details_missing: { type: boolean, description: "True when purpose, location and data categories are all empty." }
         published_at: { type: integer, format: int64, description: Unix seconds when the item was published or last published again. }
         document:
           type: [object, 'null']

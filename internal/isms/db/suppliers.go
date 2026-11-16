@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // SupplierListParams specifies filtering, sorting, and pagination for the supplier register.
@@ -368,36 +370,48 @@ func (d *DB) GetSupplierByIdentifier(ctx context.Context, orgID int, identifier 
 // criticality-derived one. CalculateNextReview always recomputes NextReview, so
 // the override has to come after it (#202). Pass nil to keep the derived date.
 func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier, explicitNextReview *Epoch) error {
-	s.trimPublicFields()
-	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
-	if explicitNextReview != nil {
-		s.NextReview = explicitNextReview
-	}
-	_, err := d.pool.Exec(ctx, `
-		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
-			data_access = $5, contact = $6, contract_ref = $7,
-			status = $8,
-			owner_id = CASE WHEN $9 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $9) END,
-			contract_expiry = $10,
-			confidentiality = $11, integrity = $12, availability = $13,
-			last_review = $14, next_review = $15,
-			notes = $16, external_id = $18,
-			public_name = $19, public_purpose = $20, processing_location = $21, data_categories = $22,
-			`+supplierPublicChangedSQL+`,
-			updated_at = now()
-		WHERE id = $1 AND organization_id = $17 AND deleted_at IS NULL
-	`, s.ID, s.Name, s.SupplierType, s.Criticality,
-		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
-		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
-		s.Confidentiality, s.Integrity, s.Availability,
-		s.LastReview, s.NextReview,
-		nilIfEmpty(s.Notes), orgID,
-		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
-		s.PublicName, s.PublicPurpose, s.ProcessingLocation, s.DataCategories)
-	return err
+	// Same statement as UpdateSupplierTx (it also hides the supplier's trust
+	// center item when the supplier is no longer eligible), so every writer,
+	// this one included, commits the update and the hide together (#522).
+	cycles := d.SupplierReviewCycles(ctx, orgID)
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		return UpdateSupplierTx(ctx, tx, orgID, s, cycles, explicitNextReview)
+	})
 }
 
 func (d *DB) DeleteSupplier(ctx context.Context, orgID int, id int64) error {
-	_, err := d.pool.Exec(ctx, `UPDATE suppliers SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
-	return err
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `UPDATE suppliers SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return nil
+		}
+		return hideSubprocessorForSupplierTx(ctx, tx, orgID, id, TrustHiddenDeleted, "system")
+	})
+}
+
+// SupplierActive reports whether a supplier with this status is still in
+// service: everything but terminated (suspended and under_review suppliers are
+// still our subprocessors). One definition for the trust center subprocessor
+// list and, later, the overdue-review filter (#453). supplierActiveSQL is its
+// SQL twin; the two must agree.
+func SupplierActive(status string) bool { return status != "terminated" }
+
+// supplierActiveSQL is SupplierActive for a suppliers row in a query.
+const supplierActiveSQL = `COALESCE(status, 'active') <> 'terminated'`
+
+// SupplierTrustIneligibleReason says why a supplier cannot be a published
+// subprocessor: "terminated" (no longer active, which wins), "no_data_access",
+// or "" when it can. A deleted supplier is handled by the callers that know the
+// row is gone.
+func SupplierTrustIneligibleReason(s *Supplier) string {
+	switch {
+	case !SupplierActive(s.Status):
+		return TrustHiddenTerminated
+	case !s.DataAccess:
+		return TrustHiddenNoDataAccess
+	}
+	return ""
 }

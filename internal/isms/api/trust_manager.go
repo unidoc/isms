@@ -78,6 +78,9 @@ type trustManagerItem struct {
 	// Certification is set for kind certification; null when the certification
 	// row is missing, which the list tolerates.
 	Certification *trustManagerCertification `json:"certification"`
+	// Subprocessor is set for kind subprocessor (#522); null for other kinds
+	// and when the supplier row is gone.
+	Subprocessor *trustManagerSubprocessor `json:"subprocessor"`
 }
 
 type trustOrderRequest struct {
@@ -258,6 +261,11 @@ func (s *Server) trustManagerRow(c echo.Context, orgID int, st **store.Store, it
 			}
 		}
 	}
+	if it.Kind == db.TrustKindSubprocessor {
+		if err := s.trustManagerSubprocessorRow(c, orgID, it, row); err != nil {
+			return nil, err
+		}
+	}
 	if it.Kind == db.TrustKindDocument {
 		if *st == nil {
 			opened, err := s.storeForOrg(c.Request().Context(), orgID)
@@ -383,6 +391,10 @@ func (s *Server) handlePatchTrustItem(c echo.Context) error {
 	switch req.AccessLevel {
 	case db.TrustAccessPublic, db.TrustAccessGated, db.TrustAccessRestricted:
 	default:
+		return apiError(http.StatusBadRequest, CodeInvalidRequest)
+	}
+	// Subprocessors are always public (#522).
+	if it.Kind == db.TrustKindSubprocessor && req.AccessLevel != db.TrustAccessPublic {
 		return apiError(http.StatusBadRequest, CodeInvalidRequest)
 	}
 	var st *store.Store

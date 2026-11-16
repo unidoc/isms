@@ -423,7 +423,15 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 		nilIfEmpty(s.Notes), orgID,
 		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
 		s.PublicName, s.PublicPurpose, s.ProcessingLocation, s.DataCategories)
-	return err
+	if err != nil {
+		return err
+	}
+	// A published subprocessor stops being served in the same transaction that
+	// makes its supplier ineligible, whichever writer got here (#522).
+	if reason := SupplierTrustIneligibleReason(s); reason != "" {
+		return hideSubprocessorForSupplierTx(ctx, tx, orgID, s.ID, reason, "system")
+	}
+	return nil
 }
 
 // CreateLegalRequirementTx creates a legal requirement within an existing transaction.

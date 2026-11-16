@@ -218,19 +218,23 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		return s.trustVisitorPost(c, org, settings, postRoute)
 	case visitorGet:
 		return s.trustPublicVisitor(c, org)
-	case certID != "":
-		return s.trustPublicCertificationFile(c, org, certID)
-	case docID != "":
-		// The only route that looks at the visitor cookie besides GET /visitor.
-		v, err := s.trustVisitorFromRequest(c, org.ID)
-		if err != nil {
-			return trustPublicError(c, err)
-		}
-		return s.trustPublicDocument(c, org, docID, v)
-	case items:
-		return s.trustPublicItems(c, org)
+	case certID == "" && docID == "" && !items:
+		return s.trustPublicOverview(c, org, settings)
 	}
-	return s.trustPublicOverview(c, org, settings)
+	// A document, a certification file and the items list answer by access
+	// level, so they look at the visitor cookie (trustViewerMayRead). The
+	// overview is the same for everyone.
+	v, err := s.trustVisitorFromRequest(c, org.ID)
+	if err != nil {
+		return trustPublicError(c, err)
+	}
+	switch {
+	case certID != "":
+		return s.trustPublicCertificationFile(c, org, certID, v)
+	case docID != "":
+		return s.trustPublicDocument(c, org, docID, v)
+	}
+	return s.trustPublicItems(c, org, v)
 }
 
 // The three answers below are shared with the authenticated preview
@@ -265,8 +269,11 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 	})
 }
 
-// trustPublicItems answers GET /api/v1/trust/:slug/items.
-func (s *Server) trustPublicItems(c echo.Context, org *db.Organization) error {
+// trustPublicItems answers GET /api/v1/trust/:slug/items. Every visible item is
+// listed for everyone; a certification's file name, size and link are added only
+// when the viewer may read it (trustViewerMayRead). v is the signed-in visitor,
+// or nil; the preview always passes nil, so it stays the anonymous view.
+func (s *Server) trustPublicItems(c echo.Context, org *db.Organization, v *db.TrustVisitor) error {
 	ctx := c.Request().Context()
 	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
 	if err != nil {
@@ -318,7 +325,7 @@ func (s *Server) trustPublicItems(c echo.Context, org *db.Organization) error {
 			if cert.ValidUntil != nil {
 				pi.ValidUntil = *cert.ValidUntil
 			}
-			if cert.Item.AccessLevel == db.TrustAccessPublic {
+			if trustViewerMayRead(cert.Item.AccessLevel, v) {
 				pi.URL, pi.FileName, pi.FileSize = cert.URL, cert.FileName, cert.FileSize
 			}
 		}
@@ -417,8 +424,8 @@ func trustOverviewWithheld(items []db.TrustCenterItem, docID string) bool {
 // level? Public is for everyone, gated needs a signed-in visitor (until an NDA
 // step exists, signing in is all gated asks), restricted is for no visitor (an
 // explicit grant comes later) and an unknown level is refused. Every read path
-// (documents, and the overview through trustOverviewWithheld) goes through
-// here, so the rule lives in one place.
+// (documents, certification files and links, and the overview through
+// trustOverviewWithheld) goes through here, so the rule lives in one place.
 func trustViewerMayRead(level string, v *db.TrustVisitor) bool {
 	switch level {
 	case db.TrustAccessPublic:

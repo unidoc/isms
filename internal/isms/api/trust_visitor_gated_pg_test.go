@@ -1,6 +1,6 @@
 package api
 
-// A signed-in trust center visitor reads gated documents (#524); restricted
+// A signed-in trust center visitor reads gated documents and certifications (#524); restricted
 // ones stay locked for everyone, and the manager preview stays the anonymous
 // view. Run with:
 //
@@ -8,6 +8,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -104,7 +105,8 @@ func TestTrustGatedDocumentAccess(t *testing.T) {
 	}
 	// a Bearer header is not a visitor credential
 	g.wantNotFound(t, g.doc(g.gatedID, withBearer(g.cookie)), "visitor token as Bearer")
-	// the items list carries no per-viewer fields and no bodies
+	// the items list carries no per-viewer document fields and no bodies (only a
+	// certification's file and link depend on the viewer)
 	items := vdo(g.f.s, http.MethodGet, g.e.path("/items"), "", withCookie(g.cookie))
 	anon := vdo(g.f.s, http.MethodGet, g.e.path("/items"), "")
 	if items.body != anon.body || strings.Contains(items.body, "body text") {
@@ -170,5 +172,178 @@ func TestTrustGatedPreviewIgnoresTheVisitorCookie(t *testing.T) {
 	g.wantNotFound(t, r, "preview of a gated document with a visitor cookie")
 	if r := vdo(g.f.s, http.MethodGet, p+g.pubID, "", withBearer(jwt), withCookie(g.cookie)); r.code != http.StatusOK {
 		t.Errorf("preview of a public document = %d", r.code)
+	}
+}
+
+// gatedCertFx is an organization with certifications (a blob store) and a
+// signed-in visitor, for the gated certification rule.
+type gatedCertFx struct {
+	*certFx
+	e      visitorEnv
+	cookie string
+}
+
+func newGatedCertFx(t *testing.T, tag string) *gatedCertFx {
+	t.Helper()
+	purgeTestLinks(t)
+	t.Setenv("ISMS_BASE_URL", "http://"+trustTestBase)
+	t.Setenv("ISMS_RATE_LIMIT", "")
+	t.Setenv("ISMS_TRUST_RATE_LIMIT", "100000")
+	f := newCertFx(t, tag)
+	sink := newSMTPSink(t)
+	f.s.mailer = sink.mailer()
+	g := &gatedCertFx{certFx: f, e: visitorEnv{s: f.s, sink: sink, org: f.o}}
+	g.cookie = g.e.signIn(t, "reader@auditco.test")
+	return g
+}
+
+func (g *gatedCertFx) file(itemID string, mods ...func(*http.Request)) trustResp {
+	return vdo(g.s, http.MethodGet, g.e.path("/certifications/"+itemID+"/file"), "", mods...)
+}
+
+func (g *gatedCertFx) items(mods ...func(*http.Request)) map[string]map[string]any {
+	g.t.Helper()
+	r := vdo(g.s, http.MethodGet, g.e.path("/items"), "", mods...)
+	if r.code != http.StatusOK {
+		g.t.Fatalf("items = %d %s", r.code, r.body)
+	}
+	var list []map[string]any
+	if err := json.Unmarshal([]byte(r.body), &list); err != nil {
+		g.t.Fatal(err)
+	}
+	out := map[string]map[string]any{}
+	for _, it := range list {
+		if it["kind"] == "certification" {
+			out[it["title"].(string)] = it
+		}
+	}
+	return out
+}
+
+// A signed-in visitor downloads a gated certification's file and sees a gated
+// link; anonymous viewers, restricted items and expired ones stay as before.
+func TestTrustGatedCertificationAccess(t *testing.T) {
+	g := newGatedCertFx(t, "a3cert")
+	gf := g.mkFile("Gated file", certPDF, map[string]string{"publish": "true", "access_level": "gated"})
+	g.mkLink("Gated link", `,"publish":true,"access_level":"gated"`)
+	rf := g.mkFile("Restricted file", certPDF, map[string]string{"publish": "true", "access_level": "restricted"})
+	g.mkLink("Restricted link", `,"publish":true,"access_level":"restricted"`)
+	pf := g.mkFile("Public file", certPDF, map[string]string{"publish": "true", "access_level": "public"})
+
+	// The file route.
+	if r := g.file(gf.Item.ID); r.code != http.StatusNotFound {
+		t.Errorf("anonymous, gated file = %d", r.code)
+	}
+	r := g.file(gf.Item.ID, withCookie(g.cookie))
+	if r.code != http.StatusOK || r.body != string(certPDF) {
+		t.Fatalf("visitor, gated file = %d", r.code)
+	}
+	if r.hdr.Get("Cache-Control") != "no-store" || !strings.HasPrefix(r.hdr.Get("Content-Disposition"), "attachment") {
+		t.Errorf("gated file headers = %v", r.hdr)
+	}
+	if r := g.file(gf.Item.ID); r.code != http.StatusNotFound {
+		t.Errorf("anonymous after a visitor download = %d", r.code)
+	}
+	if r := g.file(gf.Item.ID, withBearer(g.cookie)); r.code != http.StatusNotFound {
+		t.Errorf("visitor token as Bearer = %d", r.code)
+	}
+	if r := g.file(rf.Item.ID, withCookie(g.cookie)); r.code != http.StatusNotFound {
+		t.Errorf("visitor, restricted file = %d", r.code)
+	}
+	for _, mods := range [][]func(*http.Request){nil, {withCookie(g.cookie)}} {
+		if r := g.file(pf.Item.ID, mods...); r.code != http.StatusOK {
+			t.Errorf("public file (cookie %v) = %d", mods != nil, r.code)
+		}
+	}
+
+	// The items list: a gated certification's file and link only for the visitor.
+	anon, vis := g.items(), g.items(withCookie(g.cookie))
+	for _, title := range []string{"Gated file", "Gated link", "Restricted file", "Restricted link"} {
+		for _, k := range []string{"url", "file_name", "file_size"} {
+			if _, ok := anon[title][k]; ok {
+				t.Errorf("anonymous %s carries %s: %v", title, k, anon[title])
+			}
+		}
+	}
+	if vis["Gated file"]["file_name"] != "Gated file.pdf" || vis["Gated file"]["file_size"] != float64(len(certPDF)) {
+		t.Errorf("visitor, gated file item = %v", vis["Gated file"])
+	}
+	if vis["Gated link"]["url"] != "https://example.com/r" {
+		t.Errorf("visitor, gated link item = %v", vis["Gated link"])
+	}
+	for _, title := range []string{"Restricted file", "Restricted link"} {
+		for _, k := range []string{"url", "file_name", "file_size"} {
+			if _, ok := vis[title][k]; ok {
+				t.Errorf("visitor, %s carries %s: %v", title, k, vis[title])
+			}
+		}
+	}
+	if mustJSON(anon["Public file"]) != mustJSON(vis["Public file"]) {
+		t.Errorf("public item differs for a visitor:\n%v\n%v", anon["Public file"], vis["Public file"])
+	}
+
+	// Expired: gone for the visitor too.
+	setUntil(t, gf.ID, intp(-1))
+	if r := g.file(gf.Item.ID, withCookie(g.cookie)); r.code != http.StatusNotFound {
+		t.Errorf("visitor, expired gated file = %d", r.code)
+	}
+	if _, ok := g.items(withCookie(g.cookie))["Gated file"]; ok {
+		t.Errorf("expired gated certification still listed")
+	}
+}
+
+// Another organization's session, a sign-out and a block all end access.
+func TestTrustGatedCertificationEndsWithTheSession(t *testing.T) {
+	g := newGatedCertFx(t, "a3certend")
+	gf := g.mkFile("Gated file", certPDF, map[string]string{"publish": "true", "access_level": "gated"})
+	orgB := trustNewOrg(t, g.s, "a3certendb", true)
+	cookieB := visitorEnv{s: g.s, sink: g.e.sink, org: orgB}.signIn(t, "reader@auditco.test")
+	if r := g.file(gf.Item.ID, withCookie(cookieB)); r.code != http.StatusNotFound {
+		t.Errorf("org B visitor cookie = %d", r.code)
+	}
+	if _, ok := g.items(withCookie(cookieB))["Gated file"]["file_name"]; ok {
+		t.Errorf("org B visitor sees the gated file name")
+	}
+
+	c2 := g.e.signIn(t, "second@auditco.test")
+	if r := g.file(gf.Item.ID, withCookie(c2)); r.code != http.StatusOK {
+		t.Fatalf("second visitor = %d", r.code)
+	}
+	vdo(g.s, http.MethodPost, g.e.path("/visitor/sign-out"), "", withCookie(g.cookie))
+	if r := g.file(gf.Item.ID, withCookie(g.cookie)); r.code != http.StatusNotFound {
+		t.Errorf("after sign-out = %d", r.code)
+	}
+	if _, ok := g.items(withCookie(g.cookie))["Gated file"]["file_name"]; ok {
+		t.Errorf("signed-out visitor still sees the gated file name")
+	}
+	v, err := g.s.db.GetTrustVisitorByEmail(context.Background(), g.o.id, "second@auditco.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.s.db.SetTrustVisitorBlocked(context.Background(), g.o.id, v.ID, true, "mgr@example.com"); err != nil {
+		t.Fatal(err)
+	}
+	if r := g.file(gf.Item.ID, withCookie(c2)); r.code != http.StatusNotFound {
+		t.Errorf("after a block = %d", r.code)
+	}
+}
+
+// The preview is the anonymous view: a manager who also carries a valid visitor
+// cookie gets no gated file and no gated file details.
+func TestTrustGatedCertificationPreviewIgnoresTheVisitorCookie(t *testing.T) {
+	g := newGatedCertFx(t, "a3certprev")
+	gf := g.mkFile("Gated file", certPDF, map[string]string{"publish": "true", "access_level": "gated"})
+	u := contractTestUser(t, g.s, g.o.id, "mgr-a3certprev@vis.test", "manager")
+	jwt, err := g.s.createSessionJWT(u, g.o.id, "manager", g.o.slug, "Org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := vdo(g.s, http.MethodGet, "/api/v1/trust-center/preview/certifications/"+gf.Item.ID+"/file", "", withBearer(jwt), withCookie(g.cookie))
+	if r.code != http.StatusNotFound {
+		t.Errorf("preview of a gated file with a visitor cookie = %d", r.code)
+	}
+	r = vdo(g.s, http.MethodGet, "/api/v1/trust-center/preview/items", "", withBearer(jwt), withCookie(g.cookie))
+	if r.code != http.StatusOK || strings.Contains(r.body, "Gated file.pdf") {
+		t.Errorf("preview items with a visitor cookie = %d %s", r.code, r.body)
 	}
 }

@@ -33,14 +33,14 @@ const ITEMS = [item(PUB, 'public', 'Policy One'), item(GATED, 'gated', 'Policy T
 const VISITOR = { email: 'ada@auditco.test', name: 'Ada', company: 'Audit Co' }
 
 // A stub server with a visitor session switch. Every call is recorded.
-function stub({ ov = overview(), signedIn = false, link = () => json(202, { status: 'sent' }) } = {}) {
+function stub({ ov = overview(), signedIn = false, link = () => json(202, { status: 'sent' }), items = () => ITEMS } = {}) {
   const st = { calls: [], signedIn }
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url)
     st.calls.push({ url: u, method: opts.method || 'GET', body: opts.body, headers: opts.headers || {} })
     if (u.endsWith('/api/v1/config')) return json(200, { locales: [{ tag: 'en', name: 'English' }] })
     if (u.endsWith('/api/v1/trust/acme')) return json(200, ov)
-    if (u.endsWith('/api/v1/trust/acme/items')) return json(200, ITEMS)
+    if (u.endsWith('/api/v1/trust/acme/items')) return json(200, items(st))
     if (u.endsWith('/api/v1/trust/acme/visitor')) return json(200, { visitor: st.signedIn ? VISITOR : null })
     if (u.endsWith('/api/v1/trust/acme/visitor/link')) return link(opts)
     if (u.endsWith('/api/v1/trust/acme/visitor/sign-out')) { st.signedIn = false; return json(200, { visitor: null }) }
@@ -278,4 +278,74 @@ test('the preview of a locked gated document: an inert sign-in hint when sign-in
   assert.ok(on.includes('data-trust="locked"') && on.includes('data-trust="doc-sign-in"') && /data-trust="doc-sign-in"[^>]*disabled|disabled[^>]*data-trust="doc-sign-in"/.test(on), on)
   const off = norm(await mount(props({ source: previewSource(overview({ visitor_sign_in: false })), docId: GATED }), null, h => h.includes('data-trust="locked"')))
   assert.ok(!off.includes('doc-sign-in') && off.includes('mailto:security@acme.example'), off)
+})
+
+// Gated certifications (#524 on top of #534): the server adds a gated
+// certification's file and link only for a signed-in visitor.
+const CG_FILE = '44444444-4444-4444-8444-444444444444'
+const CG_LINK = '55555555-5555-4555-8555-555555555555'
+const CR_LINK = '66666666-6666-4666-8666-666666666666'
+const cert = (id, level, source, title, extra = {}) => ({
+  id, kind: 'certification', section: '', sort_order: 0, access_level: level, title,
+  link_type: 'certificate', issuer: 'BSI', source, ...extra,
+})
+const certItems = signedIn => [
+  ...ITEMS,
+  cert(CG_FILE, 'gated', 'file', 'Gated Cert', signedIn ? { file_name: 'iso.pdf', file_size: 10 } : {}),
+  cert(CG_LINK, 'gated', 'link', 'Gated Report', signedIn ? { url: 'https://registry.example/cert' } : {}),
+  cert(CR_LINK, 'restricted', 'link', 'Restricted Report'),
+]
+const certStub = (opts = {}) => stub({ ...opts, items: st => certItems(st.signedIn) })
+const certRow = (html, title) => {
+  const doc = new window.DOMParser().parseFromString(html, 'text/html')
+  return [...doc.querySelectorAll('[data-trust=certifications] [role=row]')].find(r => r.textContent.includes(title))
+}
+
+test('anonymous: a gated certification asks to sign in, a restricted one shows the contact', async () => {
+  certStub()
+  const html = norm(await mount(props()))
+  for (const title of ['Gated Cert', 'Gated Report']) {
+    const row = certRow(html, title)
+    assert.ok(row && row.querySelector('[data-trust=cert-sign-in]') && row.textContent.includes('Sign in to view'), `${title}: ${html}`)
+    assert.ok(!row.querySelector('[data-trust=cert-download], [data-trust=cert-view]'), `${title}: ${row.outerHTML}`)
+  }
+  const restr = certRow(html, 'Restricted Report')
+  assert.ok(restr && !restr.querySelector('[data-trust=cert-sign-in]') && restr.textContent.includes('Contact security@acme.example'), restr && restr.outerHTML)
+  assert.ok(!html.includes(`certifications/${CG_FILE}`) && !html.includes('registry.example'), html)
+})
+
+test('signed in: a gated certification file downloads and a gated link opens', async () => {
+  certStub({ signedIn: true })
+  const html = norm(await mount(props()))
+  const file = certRow(html, 'Gated Cert').querySelector('[data-trust=cert-download]')
+  assert.ok(file && file.getAttribute('href') === `/api/v1/trust/acme/certifications/${CG_FILE}/file`, html)
+  const link = certRow(html, 'Gated Report').querySelector('[data-trust=cert-view]')
+  assert.ok(link && link.getAttribute('href') === 'https://registry.example/cert' && link.getAttribute('rel') === 'noopener noreferrer', html)
+  assert.ok(!html.includes('data-trust="cert-sign-in"'), html)
+  assert.ok(certRow(html, 'Restricted Report').textContent.includes('Contact security@acme.example'), html)
+})
+
+test('sign out reads the list again, so the gated certification file and link go', async () => {
+  const st = certStub({ signedIn: true })
+  const html = norm(await mount(props(), async (host, settle) => {
+    host.querySelector('[data-trust=sign-out]').click()
+    await settle(h => h.includes('data-trust="cert-sign-in"'))
+  }))
+  assert.equal(st.calls.filter(c => c.url.endsWith('/items')).length, 2, JSON.stringify(st.calls.map(c => c.url)))
+  assert.ok(!html.includes(`certifications/${CG_FILE}`) && !html.includes('registry.example'), html)
+})
+
+test('sign-in off: a gated certification keeps the contact fallback', async () => {
+  certStub({ ov: overview({ visitor_sign_in: false }) })
+  const html = norm(await mount(props()))
+  assert.ok(!html.includes('cert-sign-in'), html)
+  assert.ok(certRow(html, 'Gated Cert').textContent.includes('Contact security@acme.example'), html)
+})
+
+test('the preview shows a gated certification as an inert sign-in button', async () => {
+  const st = certStub()
+  const html = norm(await mount(props({ source: { ...previewSource(), items: async () => certItems(false) } })))
+  const b = certRow(html, 'Gated Cert').querySelector('[data-trust=cert-sign-in]')
+  assert.ok(b && b.hasAttribute('disabled') && b.getAttribute('type') === 'button', html)
+  assert.ok(!st.calls.some(c => c.url.includes('/visitor')))
 })

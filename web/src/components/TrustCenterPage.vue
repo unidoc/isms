@@ -153,11 +153,12 @@
                   <span v-if="c.state" class="inline-block text-xs font-medium px-2 py-0.5 rounded-full" :class="certStateClass(c.state)" data-trust="cert-state">{{ certStateLabel(c.state) }}</span>
                 </div>
                 <div role="cell" class="text-sm min-w-0 break-words">
-                  <template v-if="c.access_level === 'public' && c.source === 'file'">
+                  <template v-if="mayRead(c) && c.source === 'file'">
                     <button v-if="source && source.certificationFile" type="button" class="font-medium trust-brand-text hover:underline" data-trust="cert-download" @click="downloadCert(c)">{{ $t('trust.public.certifications.action_download') }}</button>
                     <a v-else :href="certFileHref(c)" download class="font-medium trust-brand-text hover:underline" data-trust="cert-download">{{ $t('trust.public.certifications.action_download') }}</a>
                   </template>
-                  <a v-else-if="c.access_level === 'public' && c.source === 'link' && safeHref(c.url)" :href="safeHref(c.url)" target="_blank" rel="noopener noreferrer" class="font-medium trust-brand-text hover:underline" data-trust="cert-view">{{ $t('trust.public.certifications.action_view_at', { host: hostOf(c.url) }) }}</a>
+                  <a v-else-if="mayRead(c) && c.source === 'link' && safeHref(c.url)" :href="safeHref(c.url)" target="_blank" rel="noopener noreferrer" class="font-medium trust-brand-text hover:underline" data-trust="cert-view">{{ $t('trust.public.certifications.action_view_at', { host: hostOf(c.url) }) }}</a>
+                  <button v-else-if="needsSignIn(c)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="cert-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -278,7 +279,8 @@ const sendLabel = computed(() => t(sendState.value === 'sending' ? 'trust.public
 // Only an http(s) link is rendered from the organization's setting.
 const privacyUrl = computed(() => (/^https?:\/\//i.test(ov.value.privacy_notice_url || '') ? ov.value.privacy_notice_url : ''))
 
-// The same rule as the server's: public for everyone, gated for a signed-in visitor.
+// The same rule as the server's (documents and certifications): public for
+// everyone, gated for a signed-in visitor.
 const mayRead = (d) => d.access_level === 'public' || (d.access_level === 'gated' && !!visitor.value)
 const needsSignIn = (d) => d.access_level === 'gated' && !visitor.value && signInShown.value
 
@@ -322,6 +324,11 @@ async function signOut() {
     await api.trustSignOut(props.slug)
   } catch { /* the state is read again below either way */ }
   await loadVisitor()
+  // The list carries a gated certification's file and link only for a
+  // signed-in visitor: read it again so they go with the session.
+  try {
+    items.value = await loaders.value.items()
+  } catch { /* the server no longer serves them either way */ }
   signingOut.value = false
   if (state.value === 'ready') await loadDocument()
 }

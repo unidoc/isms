@@ -926,9 +926,11 @@ paths:
       tags: [Trust Center]
       summary: List the items published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Lists items of
-        every access level, so a page can show gated and restricted ones as
-        locked. The list is empty (`[]`) when nothing is published. The 404, 429 and
+        Needs no member session; any Authorization header is ignored. Lists items
+        of every access level, so a page can show gated and restricted ones as
+        locked. A certification's `url`, `file_name` and `file_size` are included
+        only when the viewer may read it: at `public` for anyone, at `gated` with a
+        valid visitor session cookie (`isms_trust_visitor`) for this organization. The list is empty (`[]`) when nothing is published. The 404, 429 and
         500 responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:
@@ -970,11 +972,13 @@ paths:
       tags: [Trust Center]
       summary: Download the file of a certification published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Serves the file
-        of a certification that is published, not hidden, not past its
-        `valid_until` day and at access level `public`; gated and restricted files
-        are not served here (managers read them through
-        `/trust-center/certifications/{id}/file`). Every other case, including a
+        Needs no member session; any Authorization header is ignored. Serves the
+        file of a certification that is published, not hidden and not past its
+        `valid_until` day, by access level as for `/trust/{slug}/documents/{id}`:
+        a `public` file to anyone, a `gated` file only when the request carries a
+        valid visitor session cookie (`isms_trust_visitor`) for this
+        organization. Restricted files are not served here (managers read them
+        through `/trust-center/certifications/{id}/file`). Every other case, including a
         link certification (which has no file), is the same 404 as for
         `/trust/{slug}`. The bytes are streamed through the application on every
         storage backend, never as a redirect: `Content-Disposition: attachment`,
@@ -1634,6 +1638,7 @@ paths:
         Admin or manager only; the organization is the session's. Answers exactly
         what `GET /trust/{slug}/certifications/{id}/file` would (the same checks:
         published, not hidden, not expired, access level `public`, otherwise 404)
+        for a visitor who is not signed in, whatever cookie the request carries,
         and ignores the on/off setting.
       responses:
         '200':
@@ -4921,9 +4926,9 @@ components:
         valid_until: { type: string, description: "Certifications only: YYYY-MM-DD; omitted when not set. A certification is listed through this day and not after." }
         state: { type: string, enum: [current, expiring], description: "Certifications only: expiring within 30 days; omitted when there is no valid_until. Expired ones are not listed." }
         source: { type: string, enum: [file, link], description: "Certifications only." }
-        url: { type: string, description: "Certifications only, link source, and only at access level public. Gated and restricted rows never carry it." }
-        file_name: { type: string, description: "Certifications only, file source, and only at access level public. The file is at /trust/{slug}/certifications/{id}/file." }
-        file_size: { type: integer, format: int64, description: "Certifications only, file source, and only at access level public." }
+        url: { type: string, description: "Certifications only, link source, and only when the viewer may read it: public, or gated for a signed-in visitor. Restricted rows never carry it." }
+        file_name: { type: string, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor. The file is at /trust/{slug}/certifications/{id}/file." }
+        file_size: { type: integer, format: int64, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor." }
     TrustCenterDocument:
       type: object
       required: [id, title, version, approved_at, content_hash, html]

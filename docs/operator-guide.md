@@ -263,10 +263,10 @@ Each org's email is sent under its own name: the sender display name and the bra
 
 ### Trust center visitor sign-in
 
-Visitors to an organization's public trust center can sign in with their email address to read the documents published as "gated". They enter their email and get a one-time sign-in link; the first time, they also give a name and company.
+Visitors to an organization's public trust center can sign in with their email address to read the documents and download the certifications and reports published as "gated". They enter their email and get a one-time sign-in link; the first time, they also give a name and company.
 
-- **SMTP is required.** The link is sent by email, so visitors can only sign in when SMTP is configured (see above). Without it, the trust center page shows no sign-in option, gated documents show the security contact instead, and managers see an "Email is not configured" warning on the trust center screen.
-- **Visitors are not users.** They get no account, no role and no organization membership, and never appear in the user list. They can only read what the trust center publishes for them: gated documents. Restricted documents stay locked for everyone. Managers see and control visitors on the trust center screen, Visitors tab: end a visitor's sessions, or block and unblock them (blocking ends their sessions at once).
+- **SMTP is required.** The link is sent by email, so visitors can only sign in when SMTP is configured (see above). Without it, the trust center page shows no sign-in option, gated documents and certifications show the security contact instead, and managers see an "Email is not configured" warning on the trust center screen.
+- **Visitors are not users.** They get no account, no role and no organization membership, and never appear in the user list. They can only read what the trust center publishes for them: gated documents, certifications and reports. Restricted items stay locked for everyone. Managers see and control visitors on the trust center screen, Visitors tab: end a visitor's sessions, or block and unblock them (blocking ends their sessions at once).
 - **Links and sessions.** A sign-in link is valid for 15 minutes and works once. A sign-in lasts 7 days, or until a manager ends it or the visitor signs out.
 - **Blocked email domains.** By default, addresses at common personal email providers (Gmail, Outlook, Yahoo and similar) cannot sign in, so visitors use a work address. Managers can change the list, or allow every domain, in the trust center settings.
 - **Privacy notice.** Managers can set a privacy notice link in the trust center settings; it is shown on the sign-in form.

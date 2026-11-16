@@ -800,7 +800,9 @@ func TestTrustCertFileGate(t *testing.T) {
 	f := newCertFx(t, "tcgate")
 	c := f.mkFile("Gate", certPDF, map[string]string{"publish": "true", "access_level": "gated"})
 	id := c.Item.ID
-	// Gated: 404 for visitors (with or without a bearer) and in the preview; managers still get it.
+	// Gated: 404 for anonymous visitors (with or without a bearer) and in the
+	// preview; managers still get it. A signed-in visitor's access is in
+	// trust_visitor_gated_pg_test.go.
 	for _, bearer := range []string{"", "garbage", "Bearer-of-someone"} {
 		if r := f.publicFile(trustTestBase, id, bearer); r.code != 404 {
 			t.Errorf("gated public file (bearer %q) = %d", bearer, r.code)
@@ -812,7 +814,8 @@ func TestTrustCertFileGate(t *testing.T) {
 	if r := f.mgrDL(c.ID); r.code != 200 {
 		t.Errorf("gated manager file = %d", r.code)
 	}
-	// Public: served, and a bearer changes nothing (the route is session-blind).
+	// Public: served, and a bearer changes nothing (a member session is not a
+	// visitor credential).
 	patch := f.patch(id, `{"access_level":"public"}`, "manager", f.mgr)
 	if patch.code != 200 {
 		t.Fatalf("patch = %d %s", patch.code, patch.body)

@@ -395,12 +395,8 @@ func (d *DB) DeleteSupplier(ctx context.Context, orgID int, id int64) error {
 // SupplierActive reports whether a supplier with this status is still in
 // service: everything but terminated (suspended and under_review suppliers are
 // still our subprocessors). One definition for the trust center subprocessor
-// list and, later, the overdue-review filter (#453). supplierActiveSQL is its
-// SQL twin; the two must agree.
+// list and, later, the overdue-review filter (#453).
 func SupplierActive(status string) bool { return status != "terminated" }
-
-// supplierActiveSQL is SupplierActive for a suppliers row in a query.
-const supplierActiveSQL = `COALESCE(status, 'active') <> 'terminated'`
 
 // SupplierTrustIneligibleReason says why a supplier cannot be a published
 // subprocessor: "terminated" (no longer active, which wins), "no_data_access",

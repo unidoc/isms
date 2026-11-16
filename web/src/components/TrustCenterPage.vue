@@ -155,7 +155,7 @@
                 <div role="cell" class="text-sm min-w-0 break-words">
                   <template v-if="mayRead(c) && c.source === 'file'">
                     <button v-if="source && source.certificationFile" type="button" class="font-medium trust-brand-text hover:underline" data-trust="cert-download" @click="downloadCert(c)">{{ $t('trust.public.certifications.action_download') }}</button>
-                    <a v-else :href="certFileHref(c)" download class="font-medium trust-brand-text hover:underline" data-trust="cert-download">{{ $t('trust.public.certifications.action_download') }}</a>
+                    <a v-else :href="certFileHref(c)" download class="font-medium trust-brand-text hover:underline" data-trust="cert-download" @click="downloadGated($event, c)">{{ $t('trust.public.certifications.action_download') }}</a>
                   </template>
                   <a v-else-if="mayRead(c) && c.source === 'link' && safeHref(c.url)" :href="safeHref(c.url)" target="_blank" rel="noopener noreferrer" class="font-medium trust-brand-text hover:underline" data-trust="cert-view">{{ $t('trust.public.certifications.action_view_at', { host: hostOf(c.url) }) }}</a>
                   <button v-else-if="needsSignIn(c)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="cert-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
@@ -324,13 +324,51 @@ async function signOut() {
     await api.trustSignOut(props.slug)
   } catch { /* the state is read again below either way */ }
   await loadVisitor()
-  // The list carries a gated certification's file and link only for a
-  // signed-in visitor: read it again so they go with the session.
+  await reloadItems()
+  signingOut.value = false
+  if (state.value === 'ready') await loadDocument()
+}
+
+// The list carries a gated certification's file and link only for a signed-in
+// visitor: read it again whenever the session ends, so they go with it.
+async function reloadItems() {
   try {
     items.value = await loaders.value.items()
   } catch { /* the server no longer serves them either way */ }
-  signingOut.value = false
-  if (state.value === 'ready') await loadDocument()
+}
+
+// Asks the server whether the visitor shown is still signed in. When not, the
+// page drops to the signed-out view (header and list). A failed check changes
+// nothing.
+async function visitorStillSignedIn() {
+  let v
+  try {
+    v = (await api.trustVisitor(props.slug)).visitor
+  } catch {
+    return true
+  }
+  if (v) return true
+  visitor.value = null
+  await reloadItems()
+  return false
+}
+
+// A gated file is served only while the visitor's session lasts, and the session
+// can end while the page is open: a manager ends it or blocks the visitor, a
+// sign-out in another tab, expiry. A plain click on a gated Download therefore
+// checks first, and when nobody is signed in any more the row turns back into
+// "Sign in to view" instead of the download failing. Public files, and modified
+// clicks (new tab, save link), are left to the browser.
+async function downloadGated(e, c) {
+  if (c.access_level === 'public' || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  e.preventDefault()
+  if (!(await visitorStillSignedIn())) return
+  const a = document.createElement('a')
+  a.href = certFileHref(c)
+  a.download = ''
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 const docState = ref('loading') // loading | ready | locked | missing | error

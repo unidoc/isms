@@ -289,8 +289,10 @@ const cert = (id, level, source, title, extra = {}) => ({
   id, kind: 'certification', section: '', sort_order: 0, access_level: level, title,
   link_type: 'certificate', issuer: 'BSI', source, ...extra,
 })
+const CP_FILE = '77777777-7777-4777-8777-777777777777'
 const certItems = signedIn => [
   ...ITEMS,
+  cert(CP_FILE, 'public', 'file', 'Public Cert', { file_name: 'pub.pdf', file_size: 10 }),
   cert(CG_FILE, 'gated', 'file', 'Gated Cert', signedIn ? { file_name: 'iso.pdf', file_size: 10 } : {}),
   cert(CG_LINK, 'gated', 'link', 'Gated Report', signedIn ? { url: 'https://registry.example/cert' } : {}),
   cert(CR_LINK, 'restricted', 'link', 'Restricted Report'),
@@ -348,4 +350,72 @@ test('the preview shows a gated certification as an inert sign-in button', async
   const b = certRow(html, 'Gated Cert').querySelector('[data-trust=cert-sign-in]')
   assert.ok(b && b.hasAttribute('disabled') && b.getAttribute('type') === 'button', html)
   assert.ok(!st.calls.some(c => c.url.includes('/visitor')))
+})
+
+// #537: the session can end while the page is open. A plain click on a gated
+// Download checks first; programmatic anchor clicks (the real download) are
+// recorded instead of navigating.
+function recordDownloads() {
+  const proto = window.HTMLAnchorElement.prototype
+  const orig = proto.click
+  const seen = []
+  proto.click = function () { seen.push({ href: this.getAttribute('href'), download: this.hasAttribute('download') }) }
+  return { seen, restore: () => { proto.click = orig } }
+}
+const userClick = (el, init = {}) => {
+  const ev = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init })
+  el.dispatchEvent(ev)
+  return ev
+}
+const dlIn = (host, title) => [...host.querySelectorAll('[data-trust=cert-row]')].find(r => r.textContent.includes(title)).querySelector('[data-trust=cert-download]')
+
+test('a gated Download after the session ended elsewhere: no download, the row asks to sign in again', async () => {
+  const st = certStub({ signedIn: true })
+  const rec = recordDownloads()
+  let ev
+  try {
+    const html = norm(await mount(props(), async (host, settle) => {
+      st.signedIn = false // a manager ended the session
+      ev = userClick(dlIn(host, 'Gated Cert'))
+      await settle(h => h.includes('data-trust="cert-sign-in"'))
+    }))
+    assert.ok(ev.defaultPrevented, 'the browser must not start the doomed download')
+    assert.equal(rec.seen.length, 0, JSON.stringify(rec.seen))
+    assert.ok(html.includes('data-trust="sign-in-link"') && !html.includes('Signed in as'), html)
+    assert.ok(!html.includes(`certifications/${CG_FILE}`) && !html.includes('registry.example'), html)
+    assert.equal(st.calls.filter(c => c.url.endsWith('/items')).length, 2, 'the list is read again')
+  } finally {
+    rec.restore()
+  }
+})
+
+test('a gated Download while still signed in: checks, then downloads the file', async () => {
+  const st = certStub({ signedIn: true })
+  const rec = recordDownloads()
+  try {
+    const html = norm(await mount(props(), async (host, settle) => {
+      userClick(dlIn(host, 'Gated Cert'))
+      for (let i = 0; i < 50 && rec.seen.length === 0; i++) await new Promise(r => setTimeout(r, 10))
+      await settle(() => true)
+    }))
+    assert.deepEqual(rec.seen, [{ href: `/api/v1/trust/acme/certifications/${CG_FILE}/file`, download: true }])
+    assert.equal(st.calls.filter(c => c.url.endsWith('/visitor')).length, 2, 'one check at load, one at the click')
+    assert.ok(html.includes('Signed in as') && dlIn(new window.DOMParser().parseFromString(html, 'text/html').body, 'Gated Cert'), html)
+  } finally {
+    rec.restore()
+  }
+})
+
+test('a public Download and a modified click on a gated one are left to the browser', async () => {
+  const st = certStub({ signedIn: true })
+  let pub, mod
+  await mount(props(), async (host) => {
+    // Stop the event after the page's handler ran, so jsdom does not try to navigate.
+    host.addEventListener('click', e => { if (!e.defaultPrevented) { e.preventDefault(); e.leftAlone = true } })
+    pub = userClick(dlIn(host, 'Public Cert'))
+    mod = userClick(dlIn(host, 'Gated Cert'), { ctrlKey: true })
+    await new Promise(r => setTimeout(r, 40))
+  })
+  assert.ok(pub.leftAlone && mod.leftAlone, 'neither click is intercepted')
+  assert.equal(st.calls.filter(c => c.url.endsWith('/visitor')).length, 1, 'no session check for them')
 })

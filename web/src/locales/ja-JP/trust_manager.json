@@ -164,5 +164,27 @@
     "err_file_too_large": "ファイルが 50 MB を超えています",
     "err_file_type": "PDF、PNG、JPEG のファイルのみ使用できます",
     "err_dates_order": "「有効開始日」は「有効期限」より後にできません"
+  },
+  "subprocessors": {
+    "heading": "再委託先",
+    "last_changed": "最終変更: {date}",
+    "picker_label": "公開するサプライヤー",
+    "picker_placeholder": "サプライヤーを選択",
+    "publish": "公開",
+    "no_candidates": "データアクセスがあり、終了していないサプライヤーのみ掲載できます。",
+    "empty": "公開中の再委託先はまだありません。",
+    "hidden": "非表示: {reason}",
+    "details_missing": "公開用の詳細がまだありません: サプライヤーを編集して、目的、場所、データの種類を追加してください",
+    "still_ineligible": "まだ再公開できません（{reason}）。",
+    "publish_again": "再公開",
+    "unpublish": "公開を取り消す",
+    "unpublish_title": "{title} を再委託先の一覧から外しますか?",
+    "unpublish_body": "訪問者には表示されなくなります。後でもう一度公開できます。",
+    "err_ineligible": "このサプライヤーは再委託先として公開できません（{reason}）。",
+    "reason": {
+      "terminated": "サプライヤー契約終了",
+      "no_data_access": "データアクセスなし",
+      "deleted": "サプライヤー削除済み"
+    }
   }
 }

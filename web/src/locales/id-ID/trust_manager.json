@@ -164,5 +164,27 @@
     "err_file_too_large": "Ukuran berkas melebihi 50 MB",
     "err_file_type": "Hanya berkas PDF, PNG, atau JPEG yang diterima",
     "err_dates_order": "“Berlaku sejak” tidak boleh setelah “Berlaku hingga”"
+  },
+  "subprocessors": {
+    "heading": "Subprosesor",
+    "last_changed": "Terakhir diubah {date}",
+    "picker_label": "Pemasok yang akan dipublikasikan",
+    "picker_placeholder": "Pilih pemasok",
+    "publish": "Publikasikan",
+    "no_candidates": "Hanya pemasok dengan akses data yang belum diakhiri yang dapat dicantumkan.",
+    "empty": "Belum ada subprosesor yang dipublikasikan.",
+    "hidden": "Disembunyikan: {reason}",
+    "details_missing": "Belum ada rincian publik: ubah pemasok untuk menambahkan tujuan, lokasi, dan kategori data",
+    "still_ineligible": "Belum dapat dipublikasikan lagi ({reason}).",
+    "publish_again": "Publikasikan lagi",
+    "unpublish": "Batalkan publikasi",
+    "unpublish_title": "Hapus {title} dari daftar subprosesor?",
+    "unpublish_body": "Pengunjung tidak akan melihatnya lagi. Anda dapat mempublikasikannya lagi nanti.",
+    "err_ineligible": "Pemasok ini tidak dapat dipublikasikan sebagai subprosesor ({reason}).",
+    "reason": {
+      "terminated": "Pemasok diakhiri",
+      "no_data_access": "Tanpa akses data",
+      "deleted": "Pemasok dihapus"
+    }
   }
 }

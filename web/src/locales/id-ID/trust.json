@@ -63,6 +63,14 @@
       "state_expiring": "Segera kedaluwarsa",
       "action_download": "Unduh",
       "action_view_at": "Lihat di {host}"
+    },
+    "subprocessors": {
+      "heading": "Subprosesor",
+      "updated": "Terakhir diperbarui {date}",
+      "col_name": "Nama",
+      "col_purpose": "Tujuan",
+      "col_location": "Lokasi",
+      "col_data": "Kategori data"
     }
   },
   "signin": {

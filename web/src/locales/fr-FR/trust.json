@@ -63,6 +63,14 @@
       "state_expiring": "Expire bientôt",
       "action_download": "Télécharger",
       "action_view_at": "Voir sur {host}"
+    },
+    "subprocessors": {
+      "heading": "Sous-traitants ultérieurs",
+      "updated": "Dernière mise à jour : {date}",
+      "col_name": "Nom",
+      "col_purpose": "Finalité",
+      "col_location": "Lieu",
+      "col_data": "Catégories de données"
     }
   },
   "signin": {

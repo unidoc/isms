@@ -164,5 +164,27 @@
     "err_file_too_large": "Skráin er stærri en 50 MB",
     "err_file_type": "Aðeins PDF-, PNG- eða JPEG-skrár eru leyfðar",
     "err_dates_order": "„Gildir frá“ má ekki vera á eftir „Gildir til“"
+  },
+  "subprocessors": {
+    "heading": "Undirvinnsluaðilar",
+    "last_changed": "Síðast breytt {date}",
+    "picker_label": "Birgir sem á að birta",
+    "picker_placeholder": "Veldu birgi",
+    "publish": "Birta",
+    "no_candidates": "Aðeins birgjar með gagnaaðgang sem er ekki sagt upp má skrá.",
+    "empty": "Engir undirvinnsluaðilar hafa verið birtir enn.",
+    "hidden": "Falið: {reason}",
+    "details_missing": "Engar opinberar upplýsingar enn: breyttu birgjanum til að bæta við tilgangi, stað og gagnaflokkum",
+    "still_ineligible": "Ekki er hægt að birta aftur strax ({reason}).",
+    "publish_again": "Birta aftur",
+    "unpublish": "Afbirta",
+    "unpublish_title": "Fjarlægja {title} af lista yfir undirvinnsluaðila?",
+    "unpublish_body": "Gestir sjá hann ekki lengur. Þú getur birt hann aftur síðar.",
+    "err_ineligible": "Ekki er hægt að birta þennan birgi sem undirvinnsluaðila ({reason}).",
+    "reason": {
+      "terminated": "Birgi sagt upp",
+      "no_data_access": "Enginn gagnaaðgangur",
+      "deleted": "Birgir eytt"
+    }
   }
 }

@@ -373,6 +373,9 @@ export const api = {
   deleteTrustCertification: (id) => deleteNoContent(`${API}/trust-center/certifications/${id}`),
   publishTrustCertification: (id, accessLevel) => postJSON(`${API}/trust-center/certifications/${id}/publish`, { access_level: accessLevel }),
   unpublishTrustCertification: (id) => deleteNoContent(`${API}/trust-center/certifications/${id}/publish`),
+  getTrustSubprocessors: () => fetchJSON(`${API}/trust-center/subprocessors`),
+  publishTrustSubprocessor: (supplierId) => postJSON(`${API}/trust-center/subprocessors`, { supplier_id: supplierId }),
+  unpublishTrustSubprocessor: (supplierId) => deleteNoContent(`${API}/trust-center/subprocessors/${supplierId}`),
   // The file as { blob, filename }, through the session; the manager route works at any level and validity.
   downloadTrustCertificationFile: (id) => downloadTrustFile(`${API}/trust-center/certifications/${id}/file`),
   trustPreviewCertificationFile: (itemId) => downloadTrustFile(`${API}/trust-center/preview/certifications/${encodeURIComponent(itemId)}/file`),

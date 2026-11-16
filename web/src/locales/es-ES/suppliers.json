@@ -49,12 +49,19 @@
     "data_access": "Acceso a Datos",
     "created": "Creado",
     "created_by": "Creado por",
-    "external_id": "ID Externo"
+    "external_id": "ID Externo",
+    "public_name": "Nombre público",
+    "public_purpose": "Finalidad pública",
+    "processing_location": "Ubicación del tratamiento",
+    "data_categories": "Categorías de datos"
   },
   "placeholder": {
     "contact": "contacto{'@'}proveedor.com",
     "contract_ref": "URL del DPA / contrato",
-    "notes": "Notas adicionales... Escriba /doc para vincular un documento"
+    "notes": "Notas adicionales... Escriba /doc para vincular un documento",
+    "public_purpose": "p. ej. Alojamiento en la nube",
+    "processing_location": "p. ej. UE (Fráncfort)",
+    "data_categories": "p. ej. Nombre, dirección de correo electrónico"
   },
   "data_access": {
     "checkbox": "El proveedor tiene acceso a nuestros datos",
@@ -80,5 +87,9 @@
     "warning": "Eliminar este proveedor es permanente y no se puede deshacer. Se perderán el historial, los comentarios, las revisiones y las referencias vinculadas.",
     "delete": "Eliminar proveedor",
     "confirm": "¿Eliminar este proveedor? Esta acción no se puede deshacer."
+  },
+  "trust": {
+    "heading": "Centro de confianza (público)",
+    "help": "Se muestra en su centro de confianza solo si este proveedor se publica como subencargado. Si no hay nombre público, se usa el nombre del proveedor."
   }
 }

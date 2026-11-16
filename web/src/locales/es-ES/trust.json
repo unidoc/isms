@@ -63,6 +63,14 @@
       "state_expiring": "Caduca pronto",
       "action_download": "Descargar",
       "action_view_at": "Ver en {host}"
+    },
+    "subprocessors": {
+      "heading": "Subencargados del tratamiento",
+      "updated": "Última actualización: {date}",
+      "col_name": "Nombre",
+      "col_purpose": "Finalidad",
+      "col_location": "Ubicación",
+      "col_data": "Categorías de datos"
     }
   },
   "signin": {

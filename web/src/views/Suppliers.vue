@@ -275,6 +275,28 @@
                         <input id="data_access" type="checkbox" v-model="editForm.data_access" class="w-4 h-4 bg-slate-800 border-slate-700 rounded focus:ring-blue-500" />
                         <label for="data_access" class="text-xs text-slate-400">{{ t('suppliers.data_access.checkbox') }}</label>
                       </div>
+                      <div class="sm:col-span-2 border-t border-slate-800 pt-3 space-y-3" data-supplier="trust-fields">
+                        <div>
+                          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ t('suppliers.trust.heading') }}</div>
+                          <p class="text-[11px] text-slate-500 mt-1">{{ t('suppliers.trust.help') }}</p>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.public_name') }}</label>
+                          <input v-model="editForm.public_name" maxlength="200" data-supplier="public-name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="selectedItem?.name || ''" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.public_purpose') }}</label>
+                          <textarea v-model="editForm.public_purpose" maxlength="1000" rows="2" data-supplier="public-purpose" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.placeholder.public_purpose')" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.processing_location') }}</label>
+                          <input v-model="editForm.processing_location" maxlength="200" data-supplier="processing-location" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.placeholder.processing_location')" />
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-slate-500 mb-1">{{ t('suppliers.field.data_categories') }}</label>
+                          <textarea v-model="editForm.data_categories" maxlength="1000" rows="2" data-supplier="data-categories" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" :placeholder="t('suppliers.placeholder.data_categories')" />
+                        </div>
+                      </div>
                     </div>
                   </template>
                   <template v-else>
@@ -311,6 +333,23 @@
                         <div>
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.data_access') }}</div>
                           <div class="text-sm text-slate-300">{{ selectedItem.data_access ? t('suppliers.data_access.yes') : t('suppliers.data_access.no') }}</div>
+                        </div>
+                        <div class="col-span-2 border-t border-slate-800 pt-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider" data-supplier="trust-detail">{{ t('suppliers.trust.heading') }}</div>
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.public_name') }}</div>
+                          <div class="text-sm text-slate-300 break-words">{{ selectedItem.public_name || '—' }}</div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.processing_location') }}</div>
+                          <div class="text-sm text-slate-300 break-words">{{ selectedItem.processing_location || '—' }}</div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.public_purpose') }}</div>
+                          <div class="text-sm text-slate-300 break-words whitespace-pre-line">{{ selectedItem.public_purpose || '—' }}</div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.data_categories') }}</div>
+                          <div class="text-sm text-slate-300 break-words whitespace-pre-line">{{ selectedItem.data_categories || '—' }}</div>
                         </div>
                         <div v-if="selectedItem.created_at">
                           <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">{{ t('suppliers.field.created') }}</div>
@@ -735,6 +774,10 @@ function startEdit(item) {
     availability: item.availability || 0,
     notes: item.notes || '',
     external_id: item.external_id || '',
+    public_name: item.public_name || '',
+    public_purpose: item.public_purpose || '',
+    processing_location: item.processing_location || '',
+    data_categories: item.data_categories || '',
   }
   captureEditSnapshot()
 }

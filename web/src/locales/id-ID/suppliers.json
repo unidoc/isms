@@ -49,12 +49,19 @@
     "data_access": "Akses Data",
     "created": "Dibuat",
     "created_by": "Dibuat oleh",
-    "external_id": "ID Eksternal"
+    "external_id": "ID Eksternal",
+    "public_name": "Nama publik",
+    "public_purpose": "Tujuan publik",
+    "processing_location": "Lokasi pemrosesan",
+    "data_categories": "Kategori data"
   },
   "placeholder": {
     "contact": "kontak{'@'}pemasok.com",
     "contract_ref": "DPA / URL kontrak",
-    "notes": "Catatan tambahan… Ketik /doc untuk menautkan dokumen"
+    "notes": "Catatan tambahan… Ketik /doc untuk menautkan dokumen",
+    "public_purpose": "mis. Hosting cloud",
+    "processing_location": "mis. UE (Frankfurt)",
+    "data_categories": "mis. Nama, alamat email"
   },
   "data_access": {
     "checkbox": "Pemasok memiliki akses ke data kami",
@@ -80,5 +87,9 @@
     "warning": "Menghapus pemasok ini bersifat permanen dan tidak dapat dibatalkan. Riwayat, komentar, tinjauan, dan referensi yang tertaut akan hilang.",
     "delete": "Hapus pemasok",
     "confirm": "Hapus pemasok ini? Tindakan ini tidak dapat dibatalkan."
+  },
+  "trust": {
+    "heading": "Trust center (publik)",
+    "help": "Hanya ditampilkan di trust center Anda jika pemasok ini dipublikasikan sebagai subprosesor. Jika nama publik kosong, nama pemasok yang dipakai."
   }
 }

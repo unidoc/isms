@@ -164,5 +164,27 @@
     "err_file_too_large": "Die Datei ist größer als 50 MB",
     "err_file_type": "Nur PDF-, PNG- oder JPEG-Dateien werden akzeptiert",
     "err_dates_order": "„Gültig ab“ darf nicht nach „Gültig bis“ liegen"
+  },
+  "subprocessors": {
+    "heading": "Unterauftragsverarbeiter",
+    "last_changed": "Zuletzt geändert {date}",
+    "picker_label": "Zu veröffentlichender Lieferant",
+    "picker_placeholder": "Lieferant auswählen",
+    "publish": "Veröffentlichen",
+    "no_candidates": "Nur Lieferanten mit Datenzugriff, die nicht beendet sind, können aufgeführt werden.",
+    "empty": "Noch keine Unterauftragsverarbeiter veröffentlicht.",
+    "hidden": "Ausgeblendet: {reason}",
+    "details_missing": "Noch keine öffentlichen Angaben: Bearbeiten Sie den Lieferanten, um Zweck, Ort und Datenkategorien zu ergänzen",
+    "still_ineligible": "Kann noch nicht erneut veröffentlicht werden ({reason}).",
+    "publish_again": "Erneut veröffentlichen",
+    "unpublish": "Veröffentlichung aufheben",
+    "unpublish_title": "{title} aus der Liste entfernen?",
+    "unpublish_body": "Besucher sehen den Eintrag nicht mehr. Sie können ihn später erneut veröffentlichen.",
+    "err_ineligible": "Dieser Lieferant kann nicht als Unterauftragsverarbeiter veröffentlicht werden ({reason}).",
+    "reason": {
+      "terminated": "Lieferant beendet",
+      "no_data_access": "Kein Datenzugriff",
+      "deleted": "Lieferant gelöscht"
+    }
   }
 }

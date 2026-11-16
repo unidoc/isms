@@ -63,6 +63,14 @@
       "state_expiring": "まもなく期限切れ",
       "action_download": "ダウンロード",
       "action_view_at": "{host} で表示"
+    },
+    "subprocessors": {
+      "heading": "再委託先",
+      "updated": "最終更新: {date}",
+      "col_name": "名称",
+      "col_purpose": "目的",
+      "col_location": "場所",
+      "col_data": "データの種類"
     }
   },
   "signin": {

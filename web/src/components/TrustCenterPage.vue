@@ -118,7 +118,7 @@
 
         <!-- Landing page -->
         <template v-else>
-          <p v-if="!hasOverview && !documents.length && !certifications.length" class="text-slate-600" data-trust="empty">
+          <p v-if="!hasOverview && !documents.length && !certifications.length && !subprocessors.length" class="text-slate-600" data-trust="empty">
             {{ $t('trust.public.empty') }}
           </p>
 
@@ -211,6 +211,35 @@
               </div>
             </div>
             <p class="mt-3 text-xs text-slate-500">{{ $t('trust.public.hash_note') }}</p>
+          </section>
+
+          <section v-if="subprocessors.length" data-trust="subprocessors">
+            <h2 class="text-lg font-semibold">{{ $t('trust.public.subprocessors.heading') }}</h2>
+            <p v-if="ov.subprocessors_changed_at" class="mt-1 text-xs text-slate-500" data-trust="subprocessors-updated">{{ $t('trust.public.subprocessors.updated', { date: fmtDate(ov.subprocessors_changed_at) }) }}</p>
+            <div class="mt-4 bg-white border border-slate-200 rounded-xl overflow-hidden" role="table">
+              <div class="hidden md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,2fr)] gap-4 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-500 border-b border-slate-200 bg-slate-50" role="row">
+                <div role="columnheader">{{ $t('trust.public.subprocessors.col_name') }}</div>
+                <div role="columnheader">{{ $t('trust.public.subprocessors.col_purpose') }}</div>
+                <div role="columnheader">{{ $t('trust.public.subprocessors.col_location') }}</div>
+                <div role="columnheader">{{ $t('trust.public.subprocessors.col_data') }}</div>
+              </div>
+              <div v-for="sp in subprocessors" :key="sp.id" role="row" data-trust="subprocessor-row"
+                class="grid gap-2 md:gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,2fr)] px-4 py-3 border-b border-slate-100 last:border-b-0">
+                <div role="cell" class="font-medium break-words" data-trust="sp-name">{{ sp.name }}</div>
+                <div role="cell" class="text-sm text-slate-600 break-words">
+                  <span class="md:hidden block text-[11px] uppercase tracking-wide text-slate-400">{{ $t('trust.public.subprocessors.col_purpose') }}</span>
+                  <span data-trust="sp-purpose">{{ sp.purpose || '\u2014' }}</span>
+                </div>
+                <div role="cell" class="text-sm text-slate-600 break-words">
+                  <span class="md:hidden block text-[11px] uppercase tracking-wide text-slate-400">{{ $t('trust.public.subprocessors.col_location') }}</span>
+                  <span data-trust="sp-location">{{ sp.location || '\u2014' }}</span>
+                </div>
+                <div role="cell" class="text-sm text-slate-600 break-words">
+                  <span class="md:hidden block text-[11px] uppercase tracking-wide text-slate-400">{{ $t('trust.public.subprocessors.col_data') }}</span>
+                  <span data-trust="sp-data">{{ sp.data_categories || '\u2014' }}</span>
+                </div>
+              </div>
+            </div>
           </section>
         </template>
       </main>
@@ -411,6 +440,11 @@ const documents = computed(() =>
 const certifications = computed(() =>
   items.value
     .filter((i) => i.kind === 'certification')
+    .sort(compareTrustItems),
+)
+const subprocessors = computed(() =>
+  items.value
+    .filter((i) => i.kind === 'subprocessor')
     .sort(compareTrustItems),
 )
 const certStateLabel = (s) => t(s === 'expiring' ? 'trust.public.certifications.state_expiring' : 'trust.public.certifications.state_current')

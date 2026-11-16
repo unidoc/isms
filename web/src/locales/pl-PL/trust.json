@@ -63,6 +63,14 @@
       "state_expiring": "Wkrótce wygasa",
       "action_download": "Pobierz",
       "action_view_at": "Zobacz na {host}"
+    },
+    "subprocessors": {
+      "heading": "Podprocesorzy",
+      "updated": "Ostatnia aktualizacja: {date}",
+      "col_name": "Nazwa",
+      "col_purpose": "Cel",
+      "col_location": "Lokalizacja",
+      "col_data": "Kategorie danych"
     }
   },
   "signin": {

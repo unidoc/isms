@@ -164,5 +164,27 @@
     "err_file_too_large": "El archivo supera los 50 MB",
     "err_file_type": "Solo se aceptan archivos PDF, PNG o JPEG",
     "err_dates_order": "«Válido desde» no puede ser posterior a «Válido hasta»"
+  },
+  "subprocessors": {
+    "heading": "Subencargados del tratamiento",
+    "last_changed": "Último cambio: {date}",
+    "picker_label": "Proveedor que publicar",
+    "picker_placeholder": "Elija un proveedor",
+    "publish": "Publicar",
+    "no_candidates": "Solo se pueden incluir proveedores con acceso a datos que no estén dados de baja.",
+    "empty": "Aún no hay subencargados publicados.",
+    "hidden": "Oculto: {reason}",
+    "details_missing": "Aún sin datos públicos: edite el proveedor para añadir la finalidad, la ubicación y las categorías de datos",
+    "still_ineligible": "Aún no se puede volver a publicar ({reason}).",
+    "publish_again": "Publicar de nuevo",
+    "unpublish": "Retirar",
+    "unpublish_title": "¿Quitar {title} de la lista de subencargados?",
+    "unpublish_body": "Los visitantes dejarán de verlo. Puede volver a publicarlo más tarde.",
+    "err_ineligible": "Este proveedor no se puede publicar como subencargado ({reason}).",
+    "reason": {
+      "terminated": "Proveedor dado de baja",
+      "no_data_access": "Sin acceso a datos",
+      "deleted": "Proveedor eliminado"
+    }
   }
 }

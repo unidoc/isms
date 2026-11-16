@@ -49,12 +49,19 @@
     "data_access": "Dostęp do danych",
     "created": "Utworzono",
     "created_by": "Utworzone przez",
-    "external_id": "Identyfikator zewnętrzny"
+    "external_id": "Identyfikator zewnętrzny",
+    "public_name": "Nazwa publiczna",
+    "public_purpose": "Cel (publiczny)",
+    "processing_location": "Miejsce przetwarzania",
+    "data_categories": "Kategorie danych"
   },
   "placeholder": {
     "contact": "kontakt{'@'}dostawca.com",
     "contract_ref": "URL DPA / umowy",
-    "notes": "Dodatkowe notatki... Wpisz /doc, aby powiązać dokument"
+    "notes": "Dodatkowe notatki... Wpisz /doc, aby powiązać dokument",
+    "public_purpose": "np. Hosting w chmurze",
+    "processing_location": "np. UE (Frankfurt)",
+    "data_categories": "np. imię i nazwisko, adres e-mail"
   },
   "data_access": {
     "checkbox": "Dostawca ma dostęp do naszych danych",
@@ -80,5 +87,9 @@
     "warning": "Usunięcie tego dostawcy jest trwałe i nie można go cofnąć. Historia, komentarze, przeglądy i powiązane odniesienia zostaną utracone.",
     "delete": "Usuń dostawcę",
     "confirm": "Usunąć tego dostawcę? Tej operacji nie można cofnąć."
+  },
+  "trust": {
+    "heading": "Centrum zaufania (publiczne)",
+    "help": "Wyświetlane w centrum zaufania tylko wtedy, gdy ten dostawca jest opublikowany jako podprocesor. Gdy nazwa publiczna jest pusta, używana jest nazwa dostawcy."
   }
 }

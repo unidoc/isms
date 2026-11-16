@@ -49,12 +49,19 @@
     "data_access": "Gagnaaðgangur",
     "created": "Stofnað",
     "created_by": "Stofnað af",
-    "external_id": "Utanaðkomandi auðkenni"
+    "external_id": "Utanaðkomandi auðkenni",
+    "public_name": "Opinbert heiti",
+    "public_purpose": "Opinber tilgangur",
+    "processing_location": "Vinnslustaður",
+    "data_categories": "Gagnaflokkar"
   },
   "placeholder": {
     "contact": "tengilidur{'@'}birgir.is",
     "contract_ref": "DPA / vefslóð samnings",
-    "notes": "Frekari athugasemdir... Skrifaðu /doc til að tengja skjal"
+    "notes": "Frekari athugasemdir... Skrifaðu /doc til að tengja skjal",
+    "public_purpose": "t.d. Skýjahýsing",
+    "processing_location": "t.d. ESB (Frankfurt)",
+    "data_categories": "t.d. Nafn, netfang"
   },
   "data_access": {
     "checkbox": "Birgi hefur aðgang að gögnum okkar",
@@ -80,5 +87,9 @@
     "warning": "Að eyða þessum birgi er varanlegt og verður ekki afturkallað. Saga, athugasemdir, yfirferðir og tengdar tilvísanir tapast.",
     "delete": "Eyða birgi",
     "confirm": "Eyða þessum birgi? Þetta verður ekki afturkallað."
+  },
+  "trust": {
+    "heading": "Traustmiðstöð (opinbert)",
+    "help": "Birtist aðeins í traustmiðstöðinni þinni ef þessi birgir er birtur sem undirvinnsluaðili. Ef opinbert heiti er autt er heiti birgisins notað."
   }
 }

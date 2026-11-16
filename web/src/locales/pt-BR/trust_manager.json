@@ -164,5 +164,27 @@
     "err_file_too_large": "O arquivo é maior que 50 MB",
     "err_file_type": "Somente arquivos PDF, PNG ou JPEG são aceitos",
     "err_dates_order": "“Válido desde” não pode ser posterior a “Válido até”"
+  },
+  "subprocessors": {
+    "heading": "Subprocessadores",
+    "last_changed": "Última alteração: {date}",
+    "picker_label": "Fornecedor a publicar",
+    "picker_placeholder": "Escolha um fornecedor",
+    "publish": "Publicar",
+    "no_candidates": "Somente fornecedores com acesso a dados que não foram encerrados podem ser listados.",
+    "empty": "Nenhum subprocessador publicado ainda.",
+    "hidden": "Oculto: {reason}",
+    "details_missing": "Ainda sem detalhes públicos: edite o fornecedor para adicionar finalidade, local e categorias de dados",
+    "still_ineligible": "Ainda não pode ser publicado novamente ({reason}).",
+    "publish_again": "Publicar novamente",
+    "unpublish": "Cancelar publicação",
+    "unpublish_title": "Remover {title} da lista de subprocessadores?",
+    "unpublish_body": "Os visitantes deixarão de vê-lo. Você pode publicá-lo novamente depois.",
+    "err_ineligible": "Este fornecedor não pode ser publicado como subprocessador ({reason}).",
+    "reason": {
+      "terminated": "Fornecedor encerrado",
+      "no_data_access": "Sem acesso a dados",
+      "deleted": "Fornecedor excluído"
+    }
   }
 }

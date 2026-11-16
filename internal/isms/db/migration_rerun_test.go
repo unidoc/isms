@@ -37,7 +37,7 @@ func TestV100MigrationReRunsOnPopulatedData(t *testing.T) {
 			t.Fatalf("precondition: entity_changelog row for %s: %v (is the test database migrated?)", et, err)
 		}
 	}
-	for i, reason := range []string{"retired", "deleted"} {
+	for i, reason := range []string{"retired", "deleted", "terminated", "no_data_access"} {
 		if _, err := d.pool.Exec(ctx, `
 			INSERT INTO trust_center_items (organization_id, kind, reference, access_level, published_by, hidden_at, hidden_reason)
 			VALUES ($1, 'subprocessor', $2, 'public', 'migration-test@example.test', now(), $3)`,

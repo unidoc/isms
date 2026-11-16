@@ -79,9 +79,8 @@ END $$;
 -- publishing it again clears the flag. hidden_reason says why.
 ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_at TIMESTAMPTZ;
 ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_reason TEXT;
-ALTER TABLE trust_center_items DROP CONSTRAINT IF EXISTS trust_center_items_hidden_reason_check;
-ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_check
-    CHECK (hidden_reason IN ('retired','deleted'));
+-- The hidden_reason CHECK is set once, with its final list, at the end of this
+-- file (see the note on entity_type above for why it is not added here).
 
 -- #521: certifications and audit reports shown in the trust center. A
 -- certification is a record in its own right (it can exist unpublished);

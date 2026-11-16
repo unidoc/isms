@@ -119,15 +119,16 @@ func (d *DB) PublishTrustSubprocessor(ctx context.Context, orgID int, supplierID
 }
 
 // UnpublishTrustSubprocessor removes the supplier's item (hidden or not) and
-// moves "last changed". A supplier that is not published is ErrTrustItemNotFound.
+// moves "last changed" when the item was visible. A supplier that is not published is ErrTrustItemNotFound.
 func (d *DB) UnpublishTrustSubprocessor(ctx context.Context, orgID int, supplierID int64, actor string) error {
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 		var itemID int64
+		var hiddenAt *time.Time
 		err := tx.QueryRow(ctx, `
 			DELETE FROM trust_center_items
 			WHERE organization_id = $1 AND kind = 'subprocessor' AND reference = $2
-			RETURNING id
-		`, orgID, subprocessorRef(supplierID)).Scan(&itemID)
+			RETURNING id, hidden_at
+		`, orgID, subprocessorRef(supplierID)).Scan(&itemID, &hiddenAt)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrTrustItemNotFound
 		}
@@ -140,6 +141,10 @@ func (d *DB) UnpublishTrustSubprocessor(ctx context.Context, orgID int, supplier
 			OldValue: &ref, ChangedBy: actor,
 		}); err != nil {
 			return err
+		}
+		// Removing an item that was already hidden changes nothing a visitor sees.
+		if hiddenAt != nil {
+			return nil
 		}
 		return bumpSubprocessorsChangedTx(ctx, tx, orgID)
 	})

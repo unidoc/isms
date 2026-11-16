@@ -161,9 +161,9 @@ func (s *Supplier) trimPublicFields() {
 // UpdateSupplier and UpdateSupplierTx; computed in SQL so concurrent writers
 // compare against the committed row, and no trigger is involved.
 const supplierPublicChangedSQL = `trust_public_changed_at = CASE WHEN
-			ROW(COALESCE(NULLIF(public_name, ''), name), public_purpose, processing_location, data_categories)
+			ROW(COALESCE(NULLIF(public_name, ''), btrim(name, E' \t\r\n')), public_purpose, processing_location, data_categories)
 			IS DISTINCT FROM
-			ROW(COALESCE(NULLIF($19::text, ''), $2::text), $20::text, $21::text, $22::text)
+			ROW(COALESCE(NULLIF($19::text, ''), btrim($2::text, E' \t\r\n')), $20::text, $21::text, $22::text)
 		THEN now() ELSE trust_public_changed_at END`
 
 func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {

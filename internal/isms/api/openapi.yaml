@@ -1960,9 +1960,10 @@ paths:
     delete:
       tags: [Trust Center]
       summary: Unpublish a subprocessor
-      description: Admin or manager only. Removes the item, hidden or not, and moves the list's last-changed time. 404 when the supplier is not published.
+      description: Admin or manager only. Removes the item, hidden or not, and moves the list's last-changed time when the item was visible. 400 for an id that is not a number; 404 when the supplier is not published.
       responses:
         '204': { description: Unpublished }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }

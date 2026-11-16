@@ -411,6 +411,7 @@ func TestTrustSubprocessorLastChanged(t *testing.T) {
 	step("public edit of an UNPUBLISHED supplier", false, func() { f.put(b.ID, `{"public_purpose":"Payments"}`) })
 	step("public field edit of a published supplier", true, func() { f.put(a.ID, `{"public_purpose":"Hosting"}`) })
 	step("name edit, public_name empty", true, func() { f.put(a.ID, `{"name":"Alpha Renamed Ltd"}`) })
+	step("name edit that only adds trailing spaces", false, func() { f.put(a.ID, `{"name":"Alpha Renamed Ltd  "}`) })
 	step("publish B", true, func() { f.publishOK(b.ID) })
 	step("reorder that changes the order", true, func() { f.reorder(b, a) })
 	step("reorder with the same order", false, func() { f.reorder(b, a) })
@@ -419,6 +420,12 @@ func TestTrustSubprocessorLastChanged(t *testing.T) {
 		r := f.call(f.s.handleUnpublishTrustSubprocessor, http.MethodDelete, spBase+"/"+fmt.Sprint(b.ID), "", "supplierId", fmt.Sprint(b.ID))
 		if r.code != 204 {
 			t.Fatalf("unpublish: %d %s", r.code, r.body)
+		}
+	})
+	step("unpublish of an already hidden item", false, func() {
+		r := f.call(f.s.handleUnpublishTrustSubprocessor, http.MethodDelete, spBase+"/"+fmt.Sprint(a.ID), "", "supplierId", fmt.Sprint(a.ID))
+		if r.code != 204 {
+			t.Fatalf("unpublish hidden: %d %s", r.code, r.body)
 		}
 	})
 	// The unpublish stamp left the other settings alone.
@@ -562,4 +569,56 @@ func TestTrustSubprocessorManagerList(t *testing.T) {
 			t.Errorf("A Active: %+v", it.Subprocessor)
 		}
 	}
+}
+
+func (f *spFx) reorderIDs(ids ...string) {
+	f.t.Helper()
+	body, _ := json.Marshal(map[string]any{"kind": "subprocessor", "ids": ids})
+	if r := f.call(f.s.handleReorderTrustItems, http.MethodPut, tmOrder, string(body)); r.code != 200 {
+		f.t.Fatalf("reorder: %d %s", r.code, r.body)
+	}
+}
+
+// Only a change in the relative order of the items visitors can see moves "last
+// changed": not reordering hidden items, and not a resubmit that only closes
+// gaps in the stored positions.
+func TestTrustSubprocessorReorderOnlyVisibleOrder(t *testing.T) {
+	f := newSPFx(t, "sp-reorder")
+	x := f.supplier("X Ltd", nil)
+	y := f.supplier("Y Ltd", nil)
+	z := f.supplier("Z Ltd", nil)
+	for _, s := range []*db.Supplier{x, y, z} {
+		f.publishOK(s.ID)
+	}
+	pid := func(s *db.Supplier) string { return f.stored(s.ID).PublicID }
+	var last time.Time
+	step := func(label string, wantMove bool, do func()) {
+		t.Helper()
+		time.Sleep(25 * time.Millisecond)
+		before := f.changed()
+		do()
+		after := f.changed()
+		if before == nil || after == nil {
+			t.Fatalf("%s: changed is nil", label)
+		}
+		if moved := after.After(*before); moved != wantMove {
+			t.Fatalf("%s: moved = %v, want %v", label, moved, wantMove)
+		}
+		last = *after
+	}
+	_ = last
+	f.put(y.ID, `{"status":"terminated"}`) // Y hidden
+	step("reordering only the hidden item", false, func() { f.reorderIDs(pid(y), pid(x), pid(z)) })
+	step("the visible order really changes", true, func() { f.reorderIDs(pid(y), pid(z), pid(x)) })
+	step("a resubmit of the same visible order", false, func() { f.reorderIDs(pid(y), pid(z), pid(x)) })
+	// Close a gap in the stored positions: unpublish the hidden Y (its slot is
+	// left empty), then resubmit the same visible order.
+	r := f.call(f.s.handleUnpublishTrustSubprocessor, http.MethodDelete, spBase+"/"+fmt.Sprint(y.ID), "", "supplierId", fmt.Sprint(y.ID))
+	if r.code != 204 {
+		t.Fatalf("unpublish: %d %s", r.code, r.body)
+	}
+	if it := f.stored(z.ID); it.SortOrder == 1 {
+		t.Fatalf("precondition: expected a gap in the stored order, Z has %d", it.SortOrder)
+	}
+	step("resubmitting the same visible order while closing a gap", false, func() { f.reorderIDs(pid(z), pid(x)) })
 }

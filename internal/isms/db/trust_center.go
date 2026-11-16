@@ -524,7 +524,7 @@ func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string
 	}
 	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, public_id::text, sort_order FROM trust_center_items
+			SELECT id, public_id::text, sort_order, hidden_at IS NOT NULL FROM trust_center_items
 			WHERE organization_id = $1 AND kind = $2 ORDER BY id FOR UPDATE
 		`, orgID, kind)
 		if err != nil {
@@ -532,16 +532,19 @@ func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string
 		}
 		byPublic := map[string]int64{}
 		oldOrder := map[int64]int{}
+		hidden := map[int64]bool{}
 		for rows.Next() {
 			var id int64
 			var pub string
 			var order int
-			if err := rows.Scan(&id, &pub, &order); err != nil {
+			var isHidden bool
+			if err := rows.Scan(&id, &pub, &order, &isHidden); err != nil {
 				rows.Close()
 				return err
 			}
 			byPublic[pub] = id
 			oldOrder[id] = order
+			hidden[id] = isHidden
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
@@ -564,12 +567,28 @@ func (d *DB) ReorderTrustCenterItems(ctx context.Context, orgID int, kind string
 		if len(internal) == 0 {
 			return nil
 		}
-		changed := false
-		for pos, id := range internal {
-			if oldOrder[id] != pos+1 {
-				changed = true
+		// Visitors only see the visible items, so only a change in their relative
+		// order counts: not moving hidden items, not closing gaps in sort_order.
+		visibleBefore := make([]int64, 0, len(internal))
+		for id := range oldOrder {
+			if !hidden[id] {
+				visibleBefore = append(visibleBefore, id)
 			}
 		}
+		sort.Slice(visibleBefore, func(i, j int) bool {
+			a, b := visibleBefore[i], visibleBefore[j]
+			if oldOrder[a] != oldOrder[b] {
+				return oldOrder[a] < oldOrder[b]
+			}
+			return a < b
+		})
+		visibleAfter := make([]int64, 0, len(visibleBefore))
+		for _, id := range internal {
+			if !hidden[id] {
+				visibleAfter = append(visibleAfter, id)
+			}
+		}
+		changed := !slices.Equal(visibleBefore, visibleAfter)
 		if _, err = tx.Exec(ctx, `
 			UPDATE trust_center_items AS t SET sort_order = o.pos
 			FROM unnest($3::bigint[]) WITH ORDINALITY AS o(id, pos)

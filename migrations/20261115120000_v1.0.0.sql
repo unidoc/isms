@@ -65,13 +65,13 @@ END $$;
 
 -- #517: publishing, unpublishing and changing the access level of a trust
 -- center item are recorded in the entity changelog as create / delete / update
--- (field access_level). Widen the entity_type CHECK to every type it already
--- allowed plus 'trust_center_item'; it only adds a value, so no existing row
--- can violate it. #519 adds 'trust_center_settings' (clearing the overview
--- document when it is retired or deleted is recorded under it).
-ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
-ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
-    CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review','trust_center_item','trust_center_settings'));
+-- (field access_level). The entity_type CHECK has to allow 'trust_center_item'
+-- (#517) and 'trust_center_settings' (#519: clearing the overview document when
+-- it is retired or deleted is recorded under it); it is widened once, with the
+-- final list, further down. It is deliberately NOT re-added here with a shorter
+-- list: the runner records migrations by file name, so a database that already
+-- ran an earlier name of this file runs the whole file again, and a shorter
+-- list would be violated by rows written since.
 
 -- #518: a published document stays published across edits, but a document that
 -- is retired or deleted must not come back by itself when it is un-retired or

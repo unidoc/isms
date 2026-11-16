@@ -65,6 +65,11 @@ type supplierCreateRequest struct {
 	Notes           string           `json:"notes"`
 	ExternalID      string           `json:"external_id"`
 	References      []ReferenceInput `json:"references"`
+
+	PublicName         string `json:"public_name"`
+	PublicPurpose      string `json:"public_purpose"`
+	ProcessingLocation string `json:"processing_location"`
+	DataCategories     string `json:"data_categories"`
 }
 
 type supplierUpdateRequest struct {
@@ -84,6 +89,11 @@ type supplierUpdateRequest struct {
 	NextReview      Optional[db.Epoch] `json:"next_review"`
 	Notes           *string            `json:"notes"`
 	ExternalID      *string            `json:"external_id"`
+
+	PublicName         *string `json:"public_name"`
+	PublicPurpose      *string `json:"public_purpose"`
+	ProcessingLocation *string `json:"processing_location"`
+	DataCategories     *string `json:"data_categories"`
 }
 
 // --- Systems ---

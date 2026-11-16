@@ -182,6 +182,78 @@ class TestSuppliers:
         assert r.status_code == 200
 
 
+class TestSupplierPublicFields:
+    """public_name, public_purpose, processing_location, data_categories (#522):
+    free text, trimmed, length-limited, partial-update safe."""
+
+    FIELDS = ("public_name", "public_purpose", "processing_location", "data_categories")
+
+    def _create(self, api_url, admin_headers, **extra):
+        body = {"name": "Public fields supplier", "supplier_type": "saas", "criticality": "medium"}
+        body.update(extra)
+        r = requests.post(f"{api_url}/suppliers", headers=admin_headers, json=body)
+        assert r.status_code == 201, r.text
+        return r.json()
+
+    def _get(self, api_url, admin_headers, sid):
+        r = requests.get(f"{api_url}/suppliers/{sid}", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    def test_default_is_empty_and_keys_present(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers)
+        got = self._get(api_url, admin_headers, created["id"])
+        for k in self.FIELDS:
+            assert got[k] == "", (k, got)
+        assert "trust_public_changed_at" not in got
+
+    def test_create_and_update_store_trimmed_values(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, public_name="  Acme GmbH ", public_purpose="Hosting",
+                               processing_location="EU", data_categories="Email")
+        got = self._get(api_url, admin_headers, created["id"])
+        assert [got[k] for k in self.FIELDS] == ["Acme GmbH", "Hosting", "EU", "Email"], got
+        u = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers,
+                         json={"public_purpose": " Payments "})
+        assert u.status_code == 200, u.text
+        got = self._get(api_url, admin_headers, created["id"])
+        assert got["public_purpose"] == "Payments"
+        assert got["name"] == "Public fields supplier"  # no fallback stored
+
+    def test_partial_put_keeps_and_empty_string_clears(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, public_name="Acme GmbH", public_purpose="Hosting")
+        u = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers, json={"notes": "n"})
+        assert u.status_code == 200, u.text
+        got = self._get(api_url, admin_headers, created["id"])
+        assert got["public_name"] == "Acme GmbH" and got["public_purpose"] == "Hosting", got
+        u = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers, json={"public_purpose": ""})
+        assert u.status_code == 200, u.text
+        got = self._get(api_url, admin_headers, created["id"])
+        assert got["public_purpose"] == "" and got["public_name"] == "Acme GmbH", got
+
+    def test_over_length_is_400(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers)
+        for field, limit in (("public_name", 200), ("public_purpose", 1000),
+                             ("processing_location", 200), ("data_categories", 1000)):
+            ok = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers,
+                              json={field: "é" * limit})
+            assert ok.status_code == 200, (field, ok.text)
+            bad = requests.put(f"{api_url}/suppliers/{created['id']}", headers=admin_headers,
+                               json={field: "x" * (limit + 1)})
+            assert bad.status_code == 400 and field in bad.text, (field, bad.status_code, bad.text)
+            bad = requests.post(f"{api_url}/suppliers", headers=admin_headers,
+                                json={"name": "too long", "supplier_type": "saas", "criticality": "low",
+                                      field: "x" * (limit + 1)})
+            assert bad.status_code == 400, (field, bad.status_code, bad.text)
+
+    def test_review_keeps_public_fields(self, api_url, admin_headers):
+        created = self._create(api_url, admin_headers, public_name="Acme GmbH", data_categories="Email")
+        r = requests.post(f"{api_url}/suppliers/{created['id']}/reviews", headers=admin_headers,
+                          json={"outcome": "satisfactory", "notes": "checked"})
+        assert r.status_code == 201, r.text
+        got = self._get(api_url, admin_headers, created["id"])
+        assert got["public_name"] == "Acme GmbH" and got["data_categories"] == "Email", got
+
+
 class TestAssetExternalID:
     """Optional external_id (#39) — the org's own reference, free text, not a key."""
 

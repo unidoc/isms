@@ -1111,6 +1111,11 @@ func applySupplierCreate(ctx context.Context, tx pgx.Tx, s *Server, orgID int, s
 		NextReview:      p.NextReview,
 		Notes:           p.Notes,
 		ExternalID:      p.ExternalID,
+
+		PublicName:         p.PublicName,
+		PublicPurpose:      p.PublicPurpose,
+		ProcessingLocation: p.ProcessingLocation,
+		DataCategories:     p.DataCategories,
 	}
 	applySupplierDefaults(&sup, actor)
 	if err := validateSupplierCreate(&sup); err != nil {

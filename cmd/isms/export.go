@@ -506,6 +506,18 @@ func exportSuppliersCmd() *cobra.Command {
 				if s.ContractRef != "" {
 					b.WriteString(fmt.Sprintf("- **Contract Ref:** %s\n", s.ContractRef))
 				}
+				if s.PublicName != "" {
+					b.WriteString(fmt.Sprintf("- **Public Name:** %s\n", s.PublicName))
+				}
+				if s.PublicPurpose != "" {
+					b.WriteString(fmt.Sprintf("- **Purpose:** %s\n", s.PublicPurpose))
+				}
+				if s.ProcessingLocation != "" {
+					b.WriteString(fmt.Sprintf("- **Processing Location:** %s\n", s.ProcessingLocation))
+				}
+				if s.DataCategories != "" {
+					b.WriteString(fmt.Sprintf("- **Data Categories:** %s\n", s.DataCategories))
+				}
 				if s.LastReview != nil && !s.LastReview.IsZero() {
 					b.WriteString(fmt.Sprintf("- **Last Review:** %s\n", timefmt.Day(s.LastReview)))
 				}

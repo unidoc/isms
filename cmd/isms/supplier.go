@@ -31,6 +31,8 @@ func supplierAddCmd() *cobra.Command {
 		confidentiality int
 		integrity       int
 		availability    int
+
+		publicName, publicPurpose, processingLocation, dataCategories string
 	)
 
 	cmd := &cobra.Command{
@@ -53,6 +55,11 @@ func supplierAddCmd() *cobra.Command {
 				Contact:      contact,
 				ContractRef:  contractRef,
 				Notes:        notes,
+
+				PublicName:         publicName,
+				PublicPurpose:      publicPurpose,
+				ProcessingLocation: processingLocation,
+				DataCategories:     dataCategories,
 			}
 			// CIA ratings: set only when supplied, so an unset flag stays NULL
 			// (not assessed) rather than writing 0.
@@ -84,6 +91,10 @@ func supplierAddCmd() *cobra.Command {
 	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5, unset = not assessed)")
 	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5, unset = not assessed)")
 	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5, unset = not assessed)")
+	cmd.Flags().StringVar(&publicName, "public-name", "", "Name shown in the trust center subprocessor list (default: the supplier name)")
+	cmd.Flags().StringVar(&publicPurpose, "purpose", "", "What the supplier does for us, as shown in the trust center (e.g. Cloud hosting)")
+	cmd.Flags().StringVar(&processingLocation, "processing-location", "", "Where data is processed (e.g. EU (Frankfurt))")
+	cmd.Flags().StringVar(&dataCategories, "data-categories", "", "Data categories the supplier processes (e.g. Name, email address)")
 	return cmd
 }
 
@@ -167,6 +178,12 @@ type supplierEditPayload struct {
 	Confidentiality *int    `json:"confidentiality,omitempty"`
 	Integrity       *int    `json:"integrity,omitempty"`
 	Availability    *int    `json:"availability,omitempty"`
+
+	// Public-facing text (#522). A pointer to "" is sent and clears the field.
+	PublicName         *string `json:"public_name,omitempty"`
+	PublicPurpose      *string `json:"public_purpose,omitempty"`
+	ProcessingLocation *string `json:"processing_location,omitempty"`
+	DataCategories     *string `json:"data_categories,omitempty"`
 }
 
 func supplierEditCmd() *cobra.Command {
@@ -180,6 +197,8 @@ func supplierEditCmd() *cobra.Command {
 		confidentiality int
 		integrity       int
 		availability    int
+
+		publicName, publicPurpose, processingLocation, dataCategories string
 	)
 
 	cmd := &cobra.Command{
@@ -223,6 +242,18 @@ func supplierEditCmd() *cobra.Command {
 			if cmd.Flags().Changed("availability") {
 				update.Availability = &availability
 			}
+			if cmd.Flags().Changed("public-name") {
+				update.PublicName = &publicName
+			}
+			if cmd.Flags().Changed("purpose") {
+				update.PublicPurpose = &publicPurpose
+			}
+			if cmd.Flags().Changed("processing-location") {
+				update.ProcessingLocation = &processingLocation
+			}
+			if cmd.Flags().Changed("data-categories") {
+				update.DataCategories = &dataCategories
+			}
 			if _, err := c.UpdateSupplier(id, update); err != nil {
 				return err
 			}
@@ -240,6 +271,10 @@ func supplierEditCmd() *cobra.Command {
 	cmd.Flags().IntVar(&confidentiality, "confidentiality", 0, "Confidentiality rating (0-5, unset = not assessed)")
 	cmd.Flags().IntVar(&integrity, "integrity", 0, "Integrity rating (0-5, unset = not assessed)")
 	cmd.Flags().IntVar(&availability, "availability", 0, "Availability rating (0-5, unset = not assessed)")
+	cmd.Flags().StringVar(&publicName, "public-name", "", "Name shown in the trust center subprocessor list (default: the supplier name)")
+	cmd.Flags().StringVar(&publicPurpose, "purpose", "", "What the supplier does for us, as shown in the trust center (e.g. Cloud hosting)")
+	cmd.Flags().StringVar(&processingLocation, "processing-location", "", "Where data is processed (e.g. EU (Frankfurt))")
+	cmd.Flags().StringVar(&dataCategories, "data-categories", "", "Data categories the supplier processes (e.g. Name, email address)")
 	return cmd
 }
 

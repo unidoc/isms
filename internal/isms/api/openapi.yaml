@@ -5520,6 +5520,10 @@ components:
         created_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true }
         external_id: { type: string, description: "The org's own reference for this record in an external system. Optional, free text, not unique. Omitted when empty." }
+        public_name: { type: string, maxLength: 200, description: "Name shown in the trust center subprocessor list, e.g. the legal entity. Empty means the list uses name. Stored as sent, trimmed. Always present; send an empty string on update to clear." }
+        public_purpose: { type: string, maxLength: 1000, description: "What the supplier does for the organization, as shown publicly, e.g. Cloud hosting. Free text, trimmed. Always present; send an empty string on update to clear." }
+        processing_location: { type: string, maxLength: 200, description: "Where the supplier processes data, as shown publicly, e.g. EU (Frankfurt). Free text, trimmed. Always present; send an empty string on update to clear." }
+        data_categories: { type: string, maxLength: 1000, description: "Data categories the supplier processes, as shown publicly, e.g. Name, email address. Free text, trimmed. Always present; send an empty string on update to clear." }
         references: { type: array, items: { $ref: '#/components/schemas/ReferenceInput' }, writeOnly: true, description: "Links to create together with the record, each naming a target entity. Request only; read the stored links through GET /references. Set on create; ignored on update." }
 
     System:

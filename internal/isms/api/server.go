@@ -2759,6 +2759,11 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 		ExternalID:      req.ExternalID,
+
+		PublicName:         req.PublicName,
+		PublicPurpose:      req.PublicPurpose,
+		ProcessingLocation: req.ProcessingLocation,
+		DataCategories:     req.DataCategories,
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateSupplierCreate(&sup); err != nil {
@@ -3425,6 +3430,21 @@ func (s *Server) prepareSupplierUpdate(ctx context.Context, orgID int, old *db.S
 	}
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
+	}
+	if req.PublicName != nil {
+		updated.PublicName = *req.PublicName
+	}
+	if req.PublicPurpose != nil {
+		updated.PublicPurpose = *req.PublicPurpose
+	}
+	if req.ProcessingLocation != nil {
+		updated.ProcessingLocation = *req.ProcessingLocation
+	}
+	if req.DataCategories != nil {
+		updated.DataCategories = *req.DataCategories
+	}
+	if err := validateSupplierPublicFields(&updated); err != nil {
+		return db.Supplier{}, nil, err
 	}
 	return updated, explicitNextReview, nil
 }

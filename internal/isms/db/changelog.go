@@ -293,6 +293,11 @@ func (sup *Supplier) ToChangeMap() map[string]string {
 		"last_review":     epochToString(sup.LastReview),
 		"next_review":     epochToString(sup.NextReview),
 		"notes":           sup.Notes,
+
+		"public_name":         sup.PublicName,
+		"public_purpose":      sup.PublicPurpose,
+		"processing_location": sup.ProcessingLocation,
+		"data_categories":     sup.DataCategories,
 	}
 }
 

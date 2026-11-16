@@ -251,3 +251,14 @@ DO $$ BEGIN
             WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
     END IF;
 END $$;
+
+-- Suppliers: public-facing fields for the trust center subprocessor list (#522).
+-- All free text; empty means "not set". trust_public_changed_at is internal: it
+-- moves only when the visible projection (public name falling back to name,
+-- purpose, location, data categories) changes, and is written by the UPDATE SQL.
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS public_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS public_purpose TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS processing_location TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS data_categories TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS trust_public_changed_at TIMESTAMPTZ;
+UPDATE suppliers SET trust_public_changed_at = COALESCE(updated_at, now()) WHERE trust_public_changed_at IS NULL;

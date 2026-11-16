@@ -222,8 +222,9 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 | `ISMS_WEB_DIR` | Path to the Vue `dist/` directory on disk. If unset, the server uses the embedded web UI built into the binary. Only needed for development or custom builds. |
 | `ISMS_CORS_ORIGIN` | Override CORS allowed origins (comma-separated). Defaults to `ISMS_BASE_URL`. Falls back to `http://localhost:*` if neither is set. |
 | `ISMS_DOMAIN` | Base domain for subdomain-based org resolution (e.g. `isms.sh` makes `acme.isms.sh` resolve to the `acme` org). Only needed for multi-tenant SaaS deployment. |
-| `ISMS_RATE_LIMIT` | Auth rate limiting. Unset: failed logins are capped at 5 per email and 20 per IP address in a 15-minute window. A positive number replaces the per-IP cap. `0` disables both limits and the trust center limit below; for testing only. See [Rate limiting in development/testing](#rate-limiting-in-developmenttesting). |
+| `ISMS_RATE_LIMIT` | Auth rate limiting. Unset: failed logins are capped at 5 per email and 20 per IP address in a 15-minute window. A positive number replaces the per-IP cap. `0` disables both limits, the trust center limit and the trust center sign-in link limit below; for testing only. See [Rate limiting in development/testing](#rate-limiting-in-developmenttesting). |
 | `ISMS_TRUST_RATE_LIMIT` | Requests per minute per IP address on the public trust center API (`/api/v1/trust/...`, no sign-in). Default 120, with a short burst allowance for loading a page. A positive number replaces it; unset or invalid keeps the default. `ISMS_RATE_LIMIT=0` turns it off. Over the limit a request gets `429` with a `Retry-After` header. The limit is in memory per server process; the address comes from `CF-Connecting-IP`, `X-Real-IP` or `X-Forwarded-For`, so run the server behind a proxy that sets them. |
+| `ISMS_TRUST_SIGNIN_ORG_HOURLY` | Most trust center sign-in emails one organization can send per hour. A backstop against abuse, far above real use. Default 500; a positive number replaces it, unset or invalid keeps the default. When it is reached, further requests still get the normal answer but no email is sent, and managers see a "sign-in emails are paused" warning on the trust center screen with the time they resume. See [Trust center visitor sign-in](#trust-center-visitor-sign-in). |
 | `ISMS_JWT_LIFETIME` | JWT session duration. Default: `24h`. Go duration format (e.g. `720h` for 30 days). |
 
 ### S3 storage (required when `ISMS_STORAGE_BACKEND=s3`)
@@ -259,6 +260,18 @@ All configuration is via environment variables. See `contrib/unidoc.env` for the
 Email is used for review notifications, invite links, and verification. Without SMTP configured, email-dependent features silently skip sending, and inviting someone by email is refused; use Admin > Invite > Create invite link instead (see the README, "Adding people without email").
 
 Each org's email is sent under its own name: the sender display name and the brand in the subject and body are the org's **Organization Display Name** (Admin → Branding) when one is set, otherwise the org name. The envelope sender stays the `SMTP_FROM` address, so SPF and DKIM are unaffected. `isms server test-email --org <slug>` previews the From header a given org's mail will carry.
+
+### Trust center visitor sign-in
+
+Visitors to an organization's public trust center can sign in with their email address to read the documents and download the certifications and reports published as "gated". They enter their email and get a one-time sign-in link; the first time, they also give a name and company.
+
+- **SMTP is required.** The link is sent by email, so visitors can only sign in when SMTP is configured (see above). Without it, the trust center page shows no sign-in option, gated documents and certifications show the security contact instead, and managers see an "Email is not configured" warning on the trust center screen.
+- **Visitors are not users.** They get no account, no role and no organization membership, and never appear in the user list. They can only read what the trust center publishes for them: gated documents, certifications and reports. Restricted items stay locked for everyone. Managers see and control visitors on the trust center screen, Visitors tab: end a visitor's sessions, or block and unblock them (blocking ends their sessions at once).
+- **Links and sessions.** A sign-in link is valid for 15 minutes and works once. A sign-in lasts 7 days, or until a manager ends it or the visitor signs out.
+- **Blocked email domains.** By default, addresses at common personal email providers (Gmail, Outlook, Yahoo and similar) cannot sign in, so visitors use a work address. Managers can change the list, or allow every domain, in the trust center settings.
+- **Privacy notice.** Managers can set a privacy notice link in the trust center settings; it is shown on the sign-in form.
+
+Sign-in link requests are rate limited; see [Rate limiting in development/testing](#rate-limiting-in-developmenttesting).
 
 ### Notifications
 
@@ -706,6 +719,14 @@ Rate limiting counts failed logins (a wrong email or password, or a failed passk
 Disable both with `ISMS_RATE_LIMIT=0`. The integration test suite needs this on the server, because it runs many failed logins on purpose.
 
 The public trust center API has its own limit, separate from the two above: requests per minute per IP address, not failed logins. See `ISMS_TRUST_RATE_LIMIT`. `ISMS_RATE_LIMIT=0` disables it too.
+
+Trust center visitor sign-in has limits of its own, because anyone on the internet can ask for a link to be emailed:
+
+- **Per IP address:** at most 10 sign-in link requests per 15 minutes on the link endpoint; over that a request gets `429` with a `Retry-After` header. Other trust center requests do not count. `ISMS_RATE_LIMIT=0` turns this limit off.
+- **Per email address:** at most 3 links per address per 15 minutes within one organization, and at most 10 per address per hour across all organizations, so one inbox cannot be flooded. Over either limit the request is answered as usual but no email is sent.
+- **Per organization:** at most `ISMS_TRUST_SIGNIN_ORG_HOURLY` emails per hour (default 500), a backstop. When it is reached, no more are sent until a slot frees up, and managers see a "sign-in emails are paused" warning with the time they resume.
+
+The address and organization limits are counted in the database, so they hold across server processes and restarts. The per-IP limit is in memory per server process, and the address comes from `CF-Connecting-IP`, `X-Real-IP` or `X-Forwarded-For`, as for `ISMS_TRUST_RATE_LIMIT`: run the server behind a proxy that sets them, or a client can spoof them. The per-address and per-organization limits do not depend on the IP address.
 
 ### CF Access warning: "ISMS_CF_AUDIENCE not set"
 

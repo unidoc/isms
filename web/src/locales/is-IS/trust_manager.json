@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Hlutar traustmiðstöðvar",
     "content": "Efni",
-    "settings": "Stillingar"
+    "settings": "Stillingar",
+    "visitors": "Gestir"
   },
   "not_allowed": "Aðeins stjórnendur og umsjónarmenn geta stýrt traustmiðstöðinni.",
   "load_error": "Ekki tókst að hlaða traustmiðstöðinni: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Sjálfgefið aðgangsstig",
     "default_level_help": "Stigið sem nýbirt skjal byrjar á.",
     "saved": "Vistað",
-    "save_error": "Ekki tókst að vista: {message}"
+    "save_error": "Ekki tókst að vista: {message}",
+    "domains_label": "Netfangalén sem lokað er á",
+    "domains_help": "Fólk með netfang á þessum lénum getur ekki skráð sig inn. Eitt lén í hverri línu. Gestir sem þegar eru innskráðir halda aðgangi þar til lotan þeirra rennur út; ljúktu henni á flipanum Gestir.",
+    "domains_default_note": "Innbyggður listi yfir einkanetfangaþjónustur er í notkun.",
+    "domains_restore": "Endurheimta sjálfgefið",
+    "domains_allow_all": "Leyfa öll lén",
+    "domains_error": "Athugaðu listann: hver færsla verður að vera lén eins og example.com, að hámarki 500.",
+    "privacy_label": "Slóð persónuverndartilkynningar",
+    "privacy_help": "Birt þeim sem biðja um innskráningartengil. Hafðu tómt til að birta ekkert.",
+    "privacy_error": "Sláðu inn fulla vefslóð sem byrjar á http:// eða https://."
   },
   "preview": {
     "banner": "Forskoðun: þetta sjá gestir",
     "off": "Slökkt er á traustmiðstöðinni; gestir sjá ekkert eins og er.",
     "back": "Til baka í stjórnun traustmiðstöðvar"
+  },
+  "visitors": {
+    "heading": "Gestir",
+    "empty": "Enginn gestur hefur skráð sig inn enn.",
+    "loading": "Hleð gestum...",
+    "col_email": "Netfang",
+    "col_name": "Nafn",
+    "col_company": "Fyrirtæki",
+    "col_first_seen": "Fyrst séð",
+    "col_last_seen": "Síðast séð",
+    "col_sessions": "Virkar lotur",
+    "col_status": "Staða",
+    "status_active": "Virkur",
+    "blocked": "Lokað á",
+    "blocked_by": "Lokað af {by}",
+    "revoke": "Afturkalla lotur",
+    "revoke_title": "Lýkur öllum lotum þessa aðila. Hann getur skráð sig inn aftur með nýjum tengli.",
+    "block": "Loka á",
+    "block_title": "Kemur í veg fyrir innskráningu þessa aðila og lýkur öllum lotum hans.",
+    "unblock": "Opna fyrir",
+    "unblock_title": "Leyfir þessum aðila að skrá sig inn aftur. Gömlu loturnar eru áfram liðnar.",
+    "action_error": "Ekki tókst að uppfæra gestinn: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "Tölvupóstur er ekki settur upp: gestir geta ekki skráð sig inn. Skjöl með innskráningu sýna öryggistengiliðinn í staðinn.",
+    "sign_in_paused": "Innskráningarpóstar eru í bið: klukkustundarmörkum var náð. Þeir halda áfram kl. {time}.",
+    "overview_withheld": "Yfirlitsskjalið er birt sem „Með innskráningu“ eða „Takmarkað“, svo gestir sjá ekkert yfirlit."
   },
   "certifications": {
     "heading": "Vottanir og skýrslur",

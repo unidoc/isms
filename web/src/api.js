@@ -261,6 +261,30 @@ async function publicGetJSON(url) {
   return res.json()
 }
 
+// The visitor sign-in calls (#524). Like publicGetJSON: plain fetch, no
+// Authorization header, no isms:unauthorized event. Same-origin credentials are
+// the fetch default, so the HttpOnly visitor cookie travels. The server requires
+// a JSON content type on every POST. A non-2xx answer throws an Error carrying
+// status and, when the body is JSON, its code and params.
+async function publicPostJSON(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  })
+  if (!res.ok) {
+    let data = null
+    try { data = await res.json() } catch { /* not JSON */ }
+    const err = new Error((data && data.message) || `${res.status}`)
+    err.status = res.status
+    if (data && data.code) err.code = data.code
+    if (data && data.params) err.params = data.params
+    throw err
+  }
+  return res.json()
+}
+
 export const api = {
   // Raw helpers for custom calls
   postJSON,
@@ -277,6 +301,13 @@ export const api = {
   trustOverview: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}`),
   trustItems: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/items`),
   trustDocument: (slug, id) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/documents/${encodeURIComponent(id)}`),
+
+  // Trust center visitor sign-in (#524)
+  trustVisitor: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor`),
+  trustRequestLink: (slug, email) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/link`, { email }),
+  trustInspectLink: (slug, token) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/link/inspect`, { token }),
+  trustSignIn: (slug, token, name, company) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/session`, { token, name, company }),
+  trustSignOut: (slug) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/sign-out`, {}),
 
   // Cloudflare Access SSO: when behind CF Access, the proxy adds identity
   // headers and the server mints a session. Returns the login payload, or null
@@ -325,6 +356,9 @@ export const api = {
   trustPreviewDocument: (id) => fetchJSON(`${API}/trust-center/preview/documents/${encodeURIComponent(id)}`),
   getTrustSettings: () => fetchJSON(`${API}/trust-center/settings`),
   updateTrustSettings: (patch) => putJSON(`${API}/trust-center/settings`, patch),
+  listTrustVisitors: () => fetchJSON(`${API}/trust-center/visitors`),
+  revokeTrustVisitorSessions: (id) => postJSON(`${API}/trust-center/visitors/${encodeURIComponent(id)}/revoke-sessions`, {}),
+  setTrustVisitorBlocked: (id, blocked) => putJSON(`${API}/trust-center/visitors/${encodeURIComponent(id)}/blocked`, { blocked }),
   getTrustItems: () => fetchJSON(`${API}/trust-center/items`),
   setTrustItemLevel: (id, accessLevel, confirm) => patchJSON(`${API}/trust-center/items/${encodeURIComponent(id)}`, { access_level: accessLevel, ...(confirm && { confirm_classification: true }) }),
   reorderTrustItems: (kind, ids) => putJSON(`${API}/trust-center/items/order`, { kind, ids }),

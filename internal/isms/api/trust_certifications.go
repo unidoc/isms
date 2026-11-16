@@ -478,11 +478,12 @@ func (s *Server) serveTrustCertFile(c echo.Context, org *db.Organization, cert *
 
 // trustPublicCertificationFile answers a visitor's file request, and the
 // manager preview's: the same checks for both. The certification must be
-// published, not hidden, not past valid_until, have a file, and be at access
-// level public; every other case is the same 404. Gated and restricted files
-// are readable by managers only, through the manager route, until visitor
-// sign-in exists.
-func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organization, publicID string) error {
+// published, not hidden, not past valid_until, have a file, and be at a level
+// the viewer may read (trustViewerMayRead: public for everyone, gated for a
+// signed-in visitor); every other case is the same 404. Restricted files are
+// readable by managers only, through the manager route. v is the signed-in
+// visitor, or nil; the preview always passes nil, so it stays the anonymous view.
+func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organization, publicID string, v *db.TrustVisitor) error {
 	cert, err := s.db.GetServableTrustCertification(c.Request().Context(), org.ID, strings.ToLower(publicID))
 	if errors.Is(err, db.ErrTrustCertificationNotFound) {
 		return trustPublicNotFound(c)
@@ -490,7 +491,7 @@ func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organizati
 	if err != nil {
 		return trustPublicError(c, err)
 	}
-	if cert.Item == nil || cert.Item.AccessLevel != db.TrustAccessPublic || cert.FileKey == "" {
+	if cert.Item == nil || !trustViewerMayRead(cert.Item.AccessLevel, v) || cert.FileKey == "" {
 		return trustPublicNotFound(c)
 	}
 	if err := s.serveTrustCertFile(c, org, cert); err != nil {
@@ -883,5 +884,5 @@ func (s *Server) handleTrustPreviewCertificationFile(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return s.trustPublicCertificationFile(c, org, c.Param("id"))
+	return s.trustPublicCertificationFile(c, org, c.Param("id"), nil)
 }

@@ -10,8 +10,10 @@ import (
 // on: the same builders, the same hidden-item skipping, the same locked-item
 // handling and the same 404. The one difference is that the "enabled" setting is
 // ignored. The organization is the session's, never a slug from the request, so
-// a manager can only preview their own. The anonymous handler stays
-// session-blind; nothing here is reachable without a token.
+// a manager can only preview their own. The anonymous handler never reads a
+// member session (only the trust visitor cookie), and the preview never reads
+// the visitor cookie, so it stays the anonymous view; nothing here is reachable
+// without a token.
 
 // trustPreviewOrg resolves the session's organization and settings after the
 // role check. The responses are never cacheable, like the public ones.
@@ -47,7 +49,7 @@ func (s *Server) handleTrustPreviewItems(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return s.trustPublicItems(c, org)
+	return s.trustPublicItems(c, org, nil)
 }
 
 // GET /api/v1/trust-center/preview/documents/:id
@@ -56,5 +58,6 @@ func (s *Server) handleTrustPreviewDocument(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return s.trustPublicDocument(c, org, c.Param("id"))
+	// nil visitor: the preview is the anonymous view and never reads the cookie.
+	return s.trustPublicDocument(c, org, c.Param("id"), nil)
 }

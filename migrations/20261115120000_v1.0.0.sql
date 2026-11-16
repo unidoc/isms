@@ -145,3 +145,109 @@ END $$;
 ALTER TABLE entity_changelog DROP CONSTRAINT IF EXISTS entity_changelog_entity_type_check;
 ALTER TABLE entity_changelog ADD CONSTRAINT entity_changelog_entity_type_check
     CHECK (entity_type IN ('risk','supplier','incident','legal_requirement','change_request','corrective_action','objective','task','system','asset','audit','audit_finding','audit_programme','program','checkin','access_review','document','review','trust_center_item','trust_center_settings','trust_center_certification'));
+
+-- #524: trust center visitor sign-in by one-time email link.
+--
+-- A visitor (prospect, auditor) is NOT an ISMS user: never a row in users or
+-- organization_members. A visitor belongs to one organization; the same email
+-- at two organizations is two visitors. Name and company are asked once, at
+-- the first sign-in. blocked stops sign-in and revokes the sessions.
+CREATE TABLE IF NOT EXISTS trust_visitors (
+    id              BIGSERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    email           TEXT NOT NULL CHECK (email = lower(email) AND length(email) <= 320),
+    name            TEXT NOT NULL DEFAULT '' CHECK (length(name) <= 200),
+    company         TEXT NOT NULL DEFAULT '' CHECK (length(company) <= 200),
+    verified_at     TIMESTAMPTZ,
+    first_seen      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    blocked         BOOLEAN NOT NULL DEFAULT false,
+    blocked_at      TIMESTAMPTZ,
+    blocked_by      TEXT,
+    UNIQUE (organization_id, email)
+);
+-- (organization_id, id) is unique so a session can reference its visitor
+-- together with the organization: a session can never belong to another
+-- organization's visitor.
+CREATE UNIQUE INDEX IF NOT EXISTS trust_visitors_org_id_uq ON trust_visitors(organization_id, id);
+
+-- Sign-in links. Only the sha256 of the token is stored. A link is valid
+-- until expires_at and until used_at is set; redeeming sets used_at in one
+-- atomic UPDATE. The indexes serve the per-email and per-organization send caps.
+CREATE TABLE IF NOT EXISTS trust_visitor_links (
+    id              BIGSERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    email           TEXT NOT NULL,
+    token_hash      TEXT NOT NULL UNIQUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    used_at         TIMESTAMPTZ
+);
+ALTER TABLE trust_visitor_links DROP CONSTRAINT IF EXISTS trust_visitor_links_email_check;
+ALTER TABLE trust_visitor_links ADD CONSTRAINT trust_visitor_links_email_check
+    CHECK (email = lower(email) AND length(email) <= 320);
+CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_org_email
+    ON trust_visitor_links(organization_id, email, created_at);
+CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_org_created
+    ON trust_visitor_links(organization_id, created_at);
+-- The per-address cap across all organizations counts by email alone.
+CREATE INDEX IF NOT EXISTS idx_trust_visitor_links_email_created
+    ON trust_visitor_links(email, created_at);
+
+-- Visitor sessions: opaque token stored hashed, revocable at once.
+CREATE TABLE IF NOT EXISTS trust_visitor_sessions (
+    id              BIGSERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    visitor_id      BIGINT NOT NULL,
+    token_hash      TEXT NOT NULL UNIQUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    revoked_at      TIMESTAMPTZ,
+    last_seen_at    TIMESTAMPTZ
+);
+-- The visitor reference carries the organization, replacing the single-column
+-- foreign key an earlier version of this file created.
+ALTER TABLE trust_visitor_sessions DROP CONSTRAINT IF EXISTS trust_visitor_sessions_visitor_id_fkey;
+ALTER TABLE trust_visitor_sessions DROP CONSTRAINT IF EXISTS trust_visitor_sessions_visitor_fk;
+ALTER TABLE trust_visitor_sessions ADD CONSTRAINT trust_visitor_sessions_visitor_fk
+    FOREIGN KEY (organization_id, visitor_id) REFERENCES trust_visitors(organization_id, id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_trust_visitor_sessions_visitor
+    ON trust_visitor_sessions(visitor_id);
+
+-- blocked_email_domains: NULL = the built-in list of personal providers, an
+-- array = the organization's own list, an empty array = allow every domain.
+ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS blocked_email_domains TEXT[];
+ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS privacy_notice_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE trust_center_settings DROP CONSTRAINT IF EXISTS trust_center_settings_privacy_notice_url_check;
+ALTER TABLE trust_center_settings ADD CONSTRAINT trust_center_settings_privacy_notice_url_check
+    CHECK (length(privacy_notice_url) <= 2000);
+
+ALTER TABLE trust_visitors ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'trust_visitors' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON trust_visitors
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;
+
+ALTER TABLE trust_visitor_links ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'trust_visitor_links' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON trust_visitor_links
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;
+
+ALTER TABLE trust_visitor_sessions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'trust_visitor_sessions' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON trust_visitor_sessions
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;

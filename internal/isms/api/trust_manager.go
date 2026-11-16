@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
@@ -21,6 +23,22 @@ type trustSettingsJSON struct {
 	DefaultAccessLevel string   `json:"default_access_level"`
 	UpdatedAt          db.Epoch `json:"updated_at"`
 	UpdatedBy          *string  `json:"updated_by"`
+	// BlockedEmailDomains is the list in effect, never null: the built-in list
+	// when BlockedEmailDomainsDefault, else the organization's own (possibly empty).
+	BlockedEmailDomains        []string `json:"blocked_email_domains"`
+	BlockedEmailDomainsDefault bool     `json:"blocked_email_domains_default"`
+	// DefaultBlockedEmailDomains is the built-in list, for "Restore defaults".
+	DefaultBlockedEmailDomains []string `json:"default_blocked_email_domains"`
+	PrivacyNoticeURL           string   `json:"privacy_notice_url"`
+	// SignInPausedUntil is set while the organization's hourly sign-in link cap
+	// (a backstop) is reached: when the first slot frees up. Null otherwise.
+	SignInPausedUntil *db.Epoch `json:"sign_in_paused_until"`
+	// OverviewWithheld is true when an overview document is set but is also
+	// published at a gated or restricted level, so the page shows no overview.
+	OverviewWithheld bool `json:"overview_withheld"`
+	// EmailConfigured is false when the server cannot send mail, in which case
+	// visitors cannot sign in.
+	EmailConfigured bool `json:"email_configured"`
 }
 
 type trustSettingsRequest struct {
@@ -29,6 +47,10 @@ type trustSettingsRequest struct {
 	SecurityContact    *string          `json:"security_contact"`
 	DefaultAccessLevel *string          `json:"default_access_level"`
 	OverviewDocumentID Optional[string] `json:"overview_document_id"`
+	// BlockedEmailDomains: absent leaves it alone, null restores the built-in
+	// list, a list (possibly empty) is the organization's own.
+	BlockedEmailDomains Optional[[]string] `json:"blocked_email_domains"`
+	PrivacyNoticeURL    *string            `json:"privacy_notice_url"`
 }
 
 type trustManagerDocument struct {
@@ -63,12 +85,30 @@ type trustOrderRequest struct {
 	IDs  []string `json:"ids"`
 }
 
-func trustSettingsResponse(st *db.TrustCenterSettings) trustSettingsJSON {
-	return trustSettingsJSON{
-		Enabled: st.Enabled, Title: st.Title, OverviewDocumentID: st.OverviewDocumentID,
+func (s *Server) trustSettingsResponse(ctx context.Context, st *db.TrustCenterSettings) (trustSettingsJSON, error) {
+	out := trustSettingsJSON{
+		BlockedEmailDomains: st.EffectiveBlockedEmailDomains(), BlockedEmailDomainsDefault: st.BlockedEmailDomains == nil,
+		DefaultBlockedEmailDomains: db.TrustBuiltinBlockedEmailDomains(), PrivacyNoticeURL: st.PrivacyNoticeURL,
+		EmailConfigured: s.mailer != nil,
+		Enabled:         st.Enabled, Title: st.Title, OverviewDocumentID: st.OverviewDocumentID,
 		SecurityContact: st.SecurityContact, DefaultAccessLevel: st.DefaultAccessLevel,
 		UpdatedAt: st.UpdatedAt, UpdatedBy: st.UpdatedBy,
 	}
+	until, err := s.db.TrustVisitorLinkPausedUntil(ctx, st.OrganizationID, trustSignInOrgHourly(), time.Hour)
+	if err != nil {
+		return out, err
+	}
+	if until != nil {
+		out.SignInPausedUntil = &db.Epoch{Time: *until}
+	}
+	if st.OverviewDocumentID != nil && *st.OverviewDocumentID != "" {
+		items, err := s.db.ListPublishedTrustCenterItems(ctx, st.OrganizationID)
+		if err != nil {
+			return out, err
+		}
+		out.OverviewWithheld = trustOverviewWithheld(items, *st.OverviewDocumentID)
+	}
+	return out, nil
 }
 
 // GET /api/v1/trust-center/settings
@@ -76,11 +116,16 @@ func (s *Server) handleGetTrustSettings(c echo.Context) error {
 	if err := requireRole(c, "admin", "manager"); err != nil {
 		return err
 	}
-	st, err := s.db.GetTrustCenterSettings(c.Request().Context(), getOrgID(c))
+	ctx := c.Request().Context()
+	st, err := s.db.GetTrustCenterSettings(ctx, getOrgID(c))
 	if err != nil {
 		return trustInternalError(c, "reading settings", err)
 	}
-	return c.JSON(http.StatusOK, trustSettingsResponse(st))
+	resp, err := s.trustSettingsResponse(ctx, st)
+	if err != nil {
+		return trustInternalError(c, "reading settings", err)
+	}
+	return c.JSON(http.StatusOK, resp)
 }
 
 // PUT /api/v1/trust-center/settings
@@ -98,10 +143,30 @@ func (s *Server) handlePutTrustSettings(c echo.Context) error {
 		Enabled: req.Enabled, Title: req.Title, SecurityContact: req.SecurityContact,
 		DefaultAccessLevel: req.DefaultAccessLevel, SetOverview: req.OverviewDocumentID.Set,
 	}
+	if req.BlockedEmailDomains.Set {
+		patch.SetBlockedEmailDomains = true
+		if req.BlockedEmailDomains.Value != nil {
+			norm, err := db.NormalizeBlockedEmailDomains(*req.BlockedEmailDomains.Value)
+			if err != nil {
+				return apiError(http.StatusBadRequest, CodeInvalidRequest)
+			}
+			patch.BlockedEmailDomains = norm
+		}
+	}
+	patch.PrivacyNoticeURL = req.PrivacyNoticeURL
 	if req.OverviewDocumentID.Set && req.OverviewDocumentID.Value != nil {
 		if id := strings.ToLower(strings.TrimSpace(*req.OverviewDocumentID.Value)); id != "" {
 			if err := s.checkTrustOverviewDocument(c, orgID, id); err != nil {
 				return err
+			}
+			// A document published at a level that is not public would leak
+			// through the overview, which is a public element.
+			items, err := s.db.ListPublishedTrustCenterItems(ctx, orgID)
+			if err != nil {
+				return trustInternalError(c, "reading items", err)
+			}
+			if trustOverviewWithheld(items, id) {
+				return apiError(http.StatusConflict, CodeTrustOverviewNotPublic)
 			}
 			patch.OverviewDocumentID = &id
 		}
@@ -113,7 +178,11 @@ func (s *Server) handlePutTrustSettings(c echo.Context) error {
 	if err != nil {
 		return trustInternalError(c, "updating settings", err)
 	}
-	return c.JSON(http.StatusOK, trustSettingsResponse(st))
+	resp, err := s.trustSettingsResponse(ctx, st)
+	if err != nil {
+		return trustInternalError(c, "reading settings", err)
+	}
+	return c.JSON(http.StatusOK, resp)
 }
 
 // checkTrustOverviewDocument: the overview document must exist and not be

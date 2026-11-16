@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Secciones del centro de confianza",
     "content": "Contenido",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "visitors": "Visitantes"
   },
   "not_allowed": "Solo los administradores y gestores pueden gestionar el centro de confianza.",
   "load_error": "No se pudo cargar el centro de confianza: {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Nivel de acceso predeterminado",
     "default_level_help": "El nivel con el que empieza un documento recién publicado.",
     "saved": "Guardado",
-    "save_error": "No se pudo guardar: {message}"
+    "save_error": "No se pudo guardar: {message}",
+    "domains_label": "Dominios de correo bloqueados",
+    "domains_help": "Las personas con una dirección de correo en estos dominios no pueden iniciar sesión. Un dominio por línea. Los visitantes que ya iniciaron sesión conservan el acceso hasta que termine su sesión; finalízala desde la pestaña Visitantes.",
+    "domains_default_note": "Se usa la lista integrada de proveedores de correo personales.",
+    "domains_restore": "Restaurar valores predeterminados",
+    "domains_allow_all": "Permitir todos los dominios",
+    "domains_error": "Revisa la lista: cada entrada debe ser un dominio como example.com, con un máximo de 500.",
+    "privacy_label": "URL del aviso de privacidad",
+    "privacy_help": "Se muestra a quienes piden un enlace de inicio de sesión. Déjalo vacío para no mostrar ninguno.",
+    "privacy_error": "Introduce una dirección web completa que empiece por http:// o https://."
   },
   "preview": {
     "banner": "Vista previa: esto es lo que ven los visitantes",
     "off": "El centro de confianza está desactivado; los visitantes no ven nada por ahora.",
     "back": "Volver a la gestión del centro de confianza"
+  },
+  "visitors": {
+    "heading": "Visitantes",
+    "empty": "Todavía no ha iniciado sesión ningún visitante.",
+    "loading": "Cargando visitantes...",
+    "col_email": "Correo",
+    "col_name": "Nombre",
+    "col_company": "Empresa",
+    "col_first_seen": "Primera visita",
+    "col_last_seen": "Última visita",
+    "col_sessions": "Sesiones activas",
+    "col_status": "Estado",
+    "status_active": "Activo",
+    "blocked": "Bloqueado",
+    "blocked_by": "Bloqueado por {by}",
+    "revoke": "Revocar sesiones",
+    "revoke_title": "Finaliza todas las sesiones de esta persona. Podrá iniciar sesión de nuevo con un enlace nuevo.",
+    "block": "Bloquear",
+    "block_title": "Impide que esta persona inicie sesión y finaliza todas sus sesiones.",
+    "unblock": "Desbloquear",
+    "unblock_title": "Permite que esta persona inicie sesión de nuevo. Sus sesiones anteriores siguen finalizadas.",
+    "action_error": "No se pudo actualizar el visitante: {message}"
+  },
+  "warnings": {
+    "email_not_configured": "El correo no está configurado: los visitantes no pueden iniciar sesión. Los documentos con acceso muestran el contacto de seguridad.",
+    "sign_in_paused": "Los correos de inicio de sesión están en pausa: se alcanzó el límite por hora. Se reanudarán a las {time}.",
+    "overview_withheld": "El documento de presentación está publicado como «Con acceso» o «Restringido», así que los visitantes no ven ninguna presentación."
   },
   "certifications": {
     "heading": "Certificaciones e informes",

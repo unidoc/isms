@@ -144,6 +144,18 @@ const (
 	// certification, whose message names the right noun.
 	CodeTrustCertificationAlreadyPublished = "trust_certification_already_published"
 
+	// Trust center visitor sign-in. CodeTrustLinkInvalid covers an unknown,
+	// used, expired and other-organization link alike: the visitor cannot tell
+	// them apart.
+	CodeTrustSignInUnavailable      = "trust_sign_in_unavailable"
+	CodeTrustEmailDomainBlocked     = "trust_email_domain_blocked"
+	CodeTrustLinkInvalid            = "trust_link_invalid"
+	CodeTrustVisitorBlocked         = "trust_visitor_blocked"
+	CodeTrustVisitorProfileRequired = "trust_visitor_profile_required"
+	// CodeTrustOverviewNotPublic: the document chosen as the public overview is
+	// published at a level that is not public.
+	CodeTrustOverviewNotPublic = "trust_overview_not_public"
+
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
 	CodeUnsupportedLocale = "unsupported_locale"
@@ -227,6 +239,13 @@ var errorMessages = map[string]string{
 	CodeTrustCertificationSource:           "provide either a link or a file, not both",
 	CodeTrustDateInvalid:                   "{field} must be a date written as YYYY-MM-DD",
 	CodeTrustCertificationAlreadyPublished: "this certification is already published in the trust center",
+
+	CodeTrustSignInUnavailable:      "sign-in by email is not available for this trust center",
+	CodeTrustEmailDomainBlocked:     "email addresses at {value} cannot be used to sign in — use your work email",
+	CodeTrustLinkInvalid:            "this sign-in link is invalid or has expired — request a new one",
+	CodeTrustVisitorBlocked:         "this email address cannot sign in to this trust center",
+	CodeTrustVisitorProfileRequired: "enter your name and company to continue",
+	CodeTrustOverviewNotPublic:      "this document is published as gated or restricted, so it cannot be the public overview",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

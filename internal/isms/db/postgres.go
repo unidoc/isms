@@ -129,6 +129,7 @@ func (d *DB) CleanupExpired(ctx context.Context) {
 	_, _ = d.pool.Exec(ctx, `DELETE FROM login_attempts WHERE expires_at < now()`)
 	_, _ = d.pool.Exec(ctx, `DELETE FROM oidc_sessions WHERE expires_at < now()`)
 	_, _ = d.pool.Exec(ctx, `DELETE FROM jwt_blocklist WHERE expires_at < now()`)
+	_ = d.PruneTrustVisitorData(ctx) // old sign-in links and dead visitor sessions
 }
 
 // --- Migrations ---

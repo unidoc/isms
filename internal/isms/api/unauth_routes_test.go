@@ -45,7 +45,10 @@ var unauthRoutes = []string{
 	"POST /api/v1/auth/verify-email",
 	"POST /api/v1/auth/verify-email-change",
 	// Trust center public read API (#517): one handler registered for every
-	// method, answering the same 404 for all but the two GET endpoints.
+	// method, answering the same 404 for all but the GET endpoints and the
+	// visitor sign-in POST routes (#524: /visitor/link, /visitor/link/inspect,
+	// /visitor/session, /visitor/sign-out), which that handler dispatches itself.
+	// They are reached through this same catch-all, so they add no entry here.
 	"CONNECT /api/v1/trust",
 	"CONNECT /api/v1/trust/sample",
 	"DELETE /api/v1/trust",

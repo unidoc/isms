@@ -926,9 +926,11 @@ paths:
       tags: [Trust Center]
       summary: List the items published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Lists items of
-        every access level, so a page can show gated and restricted ones as
-        locked. The list is empty (`[]`) when nothing is published. The 404, 429 and
+        Needs no member session; any Authorization header is ignored. Lists items
+        of every access level, so a page can show gated and restricted ones as
+        locked. A certification's `url`, `file_name` and `file_size` are included
+        only when the viewer may read it: at `public` for anyone, at `gated` with a
+        valid visitor session cookie (`isms_trust_visitor`) for this organization. The list is empty (`[]`) when nothing is published. The 404, 429 and
         500 responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:
@@ -970,11 +972,13 @@ paths:
       tags: [Trust Center]
       summary: Download the file of a certification published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Serves the file
-        of a certification that is published, not hidden, not past its
-        `valid_until` day and at access level `public`; gated and restricted files
-        are not served here (managers read them through
-        `/trust-center/certifications/{id}/file`). Every other case, including a
+        Needs no member session; any Authorization header is ignored. Serves the
+        file of a certification that is published, not hidden and not past its
+        `valid_until` day, by access level as for `/trust/{slug}/documents/{id}`:
+        a `public` file to anyone, a `gated` file only when the request carries a
+        valid visitor session cookie (`isms_trust_visitor`) for this
+        organization. Restricted files are not served here (managers read them
+        through `/trust-center/certifications/{id}/file`). Every other case, including a
         link certification (which has no file), is the same 404 as for
         `/trust/{slug}`. The bytes are streamed through the application on every
         storage backend, never as a redirect: `Content-Disposition: attachment`,
@@ -1016,7 +1020,10 @@ paths:
       tags: [Trust Center]
       summary: Read a document published in an organization's trust center
       description: >-
-        Needs no session; any Authorization header is ignored. Serves the last
+        Needs no member session; any Authorization header is ignored. A `public`
+        document is served to anyone. A `gated` document is served only when the
+        request carries a valid visitor session cookie (`isms_trust_visitor`) for
+        this organization; see `/trust/{slug}/visitor/session`. Serves the last
         approved version of the document, never the repository's current draft,
         as HTML rendered on the server. The document's frontmatter (authors,
         owners, reviewers, approvers) is never included, raw HTML in the body is
@@ -1024,8 +1031,11 @@ paths:
         another published document, which becomes `<a data-trust-document="<id>">`
         with no `href`. Returns the fixed 404 body for an unknown id, another
         organization's id, an item that is hidden, a document that is retired or
-        deleted, a document with no approved version, and any access level other
-        than `public` (visitor sign-in is not available yet). The 429 and 500
+        deleted, a document with no approved version, a `gated` document without a
+        valid visitor session (none, expired, revoked, blocked or another
+        organization's), and every `restricted` document, which stays locked for
+        everyone. Never cacheable, so a gated body cannot reach the next anonymous
+        visitor. The manager preview is always the anonymous view. The 429 and 500
         responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:
@@ -1064,6 +1074,224 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /trust/{slug}/visitor:
+    get:
+      tags: [Trust Center]
+      summary: Read the signed-in trust center visitor
+      description: >-
+        Needs no member session. Reads only the `isms_trust_visitor` cookie, never
+        the Authorization header. `visitor` is null when nobody is signed in
+        (no cookie, or an unknown, expired, revoked, blocked or other-organization
+        session). Not found and caching are as for `/trust/{slug}`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: The visitor, or null
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/link:
+    post:
+      tags: [Trust Center]
+      summary: Email a one-time sign-in link to a visitor
+      description: >-
+        The body must be `application/json` (400 otherwise), which with the
+        SameSite=Strict cookie is the CSRF defence. A bare address only. Every
+        accepted request answers the same 202 whether or not the address is
+        known, blocked or throttled; no mail is sent for a blocked visitor, a
+        per-address cap (3 per 15 minutes) or the per-organization hourly cap
+        (`ISMS_TRUST_SIGNIN_ORG_HOURLY`, default 100). Only a blocked email domain
+        is refused (400 `trust_email_domain_blocked`; its `value` param is the
+        domain). 503 `trust_sign_in_unavailable` when the server has no mail
+        configured. The link is valid 15 minutes and works once; the mail is sent
+        in the background. At most 10 requests per 15 minutes per IP address
+        (429), off when `ISMS_RATE_LIMIT=0`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, description: The visitor's email address. }
+      responses:
+        '202':
+          description: Accepted (the link is sent if the address may sign in)
+          content:
+            application/json:
+              schema: { type: object, required: [status], properties: { status: { type: string, enum: [sent] } } }
+        '400':
+          description: Not JSON, not a bare email address, or a blocked email domain (code `trust_email_domain_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: No mail configured (code `trust_sign_in_unavailable`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: Too many link requests from this IP address
+          headers:
+            Retry-After:
+              schema: { type: integer }
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust/{slug}/visitor/link/inspect:
+    post:
+      tags: [Trust Center]
+      summary: Check a sign-in link without using it
+      description: >-
+        Consumes nothing, so a page can show "Sign in as <email>" before the
+        visitor confirms. The body must be `application/json`. 400
+        `trust_link_invalid` for an unknown, used, expired or other-organization
+        token; 403 `trust_visitor_blocked` for a blocked visitor.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, description: The token from the emailed link. }
+      responses:
+        '200':
+          description: The link's address and whether name and company are still needed
+          content:
+            application/json:
+              schema: { type: object, required: [email, needs_profile], properties: { email: { type: string }, needs_profile: { type: boolean } } }
+        '400':
+          description: Not JSON, or the link is not valid (code `trust_link_invalid`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: The visitor is blocked (code `trust_visitor_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/session:
+    post:
+      tags: [Trust Center]
+      summary: Redeem a sign-in link and sign the visitor in
+      description: >-
+        Redeems the link by POST, never GET, so a mail scanner cannot consume it.
+        The body must be `application/json`. Sets the `isms_trust_visitor` cookie
+        (HttpOnly, SameSite=Strict, `Secure` on an https base URL,
+        `Path=/api/v1/trust/<slug>`, 7 days); the token is never in the body. A
+        first sign-in needs `name` and `company` (409
+        `trust_visitor_profile_required`, and the link is not consumed); they are
+        stored once and a later sign-in never overwrites them. 400
+        `trust_link_invalid` for an unknown, used, expired or other-organization
+        token; 403 `trust_visitor_blocked`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, description: The token from the emailed link. }
+                name: { type: string, description: "Required at a first sign-in; at most 200 characters." }
+                company: { type: string, description: "Required at a first sign-in; at most 200 characters." }
+      responses:
+        '200':
+          description: Signed in; the session cookie is set
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: The `isms_trust_visitor` session cookie.
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '400':
+          description: Not JSON, a field too long, or the link is not valid (code `trust_link_invalid`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: The visitor is blocked (code `trust_visitor_blocked`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: A first sign-in without name and company (code `trust_visitor_profile_required`); the link is still usable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/visitor/sign-out:
+    post:
+      tags: [Trust Center]
+      summary: Sign the visitor out
+      description: >-
+        Revokes the cookie's session and clears the cookie. Always 200 with
+        `visitor: null`, whether or not there was a session. The body must be
+        `application/json` (it may be empty).
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: Signed out
+          content:
+            application/json:
+              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+        '400':
+          description: Not JSON
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /documents/{docId}/trust-center:
     parameters:
@@ -1161,7 +1389,11 @@ paths:
         existing document that is not retired (404 when unknown, 409
         `trust_document_retired` when retired); a document with no approved
         version is accepted, and the public page leaves it out until there is one.
-        Returns the settings as they are after the update.
+        A document currently published at a gated or restricted level is refused
+        (409 `trust_overview_not_public`), because the overview is public; if an
+        overview document is published at such a level later, the page shows no
+        overview and `overview_withheld` is true. Returns the settings as they are
+        after the update.
       requestBody:
         required: true
         content:
@@ -1177,10 +1409,78 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: The overview document is retired (code `trust_document_retired`)
+          description: The overview document is retired (code `trust_document_retired`) or published as gated or restricted (code `trust_overview_not_public`)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /trust-center/visitors:
+    get:
+      tags: [Trust Center]
+      summary: List the people who signed in to the trust center
+      description: >-
+        Admin or manager only. Visitors of the session's organization, most
+        recently seen first. A visitor is not a user and never appears in the user
+        list.
+      responses:
+        '200':
+          description: Visitors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrustCenterVisitor' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /trust-center/visitors/{id}/revoke-sessions:
+    post:
+      tags: [Trust Center]
+      summary: End every session of a visitor at once
+      description: >-
+        Admin or manager only. The visitor can sign in again with a new link. 404
+        for an unknown id, another organization's visitor or a non-numeric id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: How many sessions were ended
+          content:
+            application/json:
+              schema: { type: object, required: [revoked], properties: { revoked: { type: integer } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /trust-center/visitors/{id}/blocked:
+    put:
+      tags: [Trust Center]
+      summary: Block or unblock a visitor
+      description: >-
+        Admin or manager only. Blocking ends every session at once and silently
+        stops further sign-in links for the address; unblocking does not bring the
+        old sessions back. 404 for an unknown id, another organization's visitor or
+        a non-numeric id; 400 when `blocked` is missing or not a boolean.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [blocked], properties: { blocked: { type: boolean } } }
+      responses:
+        '200':
+          description: The visitor after the change
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterVisitor' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /trust-center/items:
     get:
@@ -1338,6 +1638,7 @@ paths:
         Admin or manager only; the organization is the session's. Answers exactly
         what `GET /trust/{slug}/certifications/{id}/file` would (the same checks:
         published, not hidden, not expired, access level `public`, otherwise 404)
+        for a visitor who is not signed in, whatever cookie the request carries,
         and ignores the on/off setting.
       responses:
         '200':
@@ -4583,7 +4884,7 @@ components:
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     TrustCenterOverview:
       type: object
-      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview]
+      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url]
       properties:
         title: { type: string, description: The page title the organization chose; empty when unset. }
         security_contact: { type: string, description: Where to report a security issue; empty when unset. }
@@ -4604,6 +4905,8 @@ components:
             approved_at: { $ref: '#/components/schemas/EpochSeconds', description: When the served version was recorded. }
             content_hash: { type: string, description: SHA-256 of the served version's file as committed. }
             html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
+        visitor_sign_in: { type: boolean, description: "Whether visitors can sign in by emailed link: false when the server has no mail configured. The preview shows the same value." }
+        privacy_notice_url: { type: string, description: The organization's privacy notice link shown to visitors who sign in; empty when unset. }
     TrustCenterItem:
       type: object
       required: [id, kind, section, sort_order, access_level]
@@ -4623,9 +4926,9 @@ components:
         valid_until: { type: string, description: "Certifications only: YYYY-MM-DD; omitted when not set. A certification is listed through this day and not after." }
         state: { type: string, enum: [current, expiring], description: "Certifications only: expiring within 30 days; omitted when there is no valid_until. Expired ones are not listed." }
         source: { type: string, enum: [file, link], description: "Certifications only." }
-        url: { type: string, description: "Certifications only, link source, and only at access level public. Gated and restricted rows never carry it." }
-        file_name: { type: string, description: "Certifications only, file source, and only at access level public. The file is at /trust/{slug}/certifications/{id}/file." }
-        file_size: { type: integer, format: int64, description: "Certifications only, file source, and only at access level public." }
+        url: { type: string, description: "Certifications only, link source, and only when the viewer may read it: public, or gated for a signed-in visitor. Restricted rows never carry it." }
+        file_name: { type: string, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor. The file is at /trust/{slug}/certifications/{id}/file." }
+        file_size: { type: integer, format: int64, description: "Certifications only, file source, and only when the viewer may read it: public, or gated for a signed-in visitor." }
     TrustCenterDocument:
       type: object
       required: [id, title, version, approved_at, content_hash, html]
@@ -4658,7 +4961,7 @@ components:
         cannot_publish_reason: { type: string, enum: ['', no_approved_version, retired] }
     TrustCenterSettings:
       type: object
-      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by]
+      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by, blocked_email_domains, blocked_email_domains_default, default_blocked_email_domains, privacy_notice_url, sign_in_paused_until, overview_withheld, email_configured]
       properties:
         enabled: { type: boolean, description: "False until the organization switches the trust center on; a disabled trust center answers 404 to visitors." }
         title: { type: string, maxLength: 200, description: The page title; empty when unset. }
@@ -4667,6 +4970,40 @@ components:
         default_access_level: { type: string, enum: [public, gated, restricted], description: The level a newly published item starts with. }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', readOnly: true, description: "Null when the trust center was never configured." }
         updated_by: { type: [string, 'null'], readOnly: true, description: Email of whoever last changed the settings; null when never configured. }
+        blocked_email_domains:
+          type: [array, 'null']
+          items: { type: string }
+          maxItems: 500
+          description: >-
+            Email domains that cannot sign in to the trust center. In a response it is
+            the list in effect and never null: the built-in list while
+            `blocked_email_domains_default` is true, otherwise the organization's own
+            list (empty allows every domain). On update, absent leaves it alone, null
+            restores the built-in list and a list replaces it; entries are trimmed,
+            lower-cased, stripped of a leading `@`, de-duplicated and sorted. An entry
+            that is empty, has `@`, whitespace or `/`, has no dot or is longer than 253
+            characters is a 400, as is a list of more than 500.
+        blocked_email_domains_default: { type: boolean, readOnly: true, description: "True while the organization has not set its own list, so the built-in list applies." }
+        default_blocked_email_domains: { type: array, items: { type: string }, readOnly: true, description: "The built-in list of personal mail providers, for a Restore defaults action." }
+        privacy_notice_url: { type: string, maxLength: 2000, description: "Link to the privacy notice shown to visitors who sign in. An absolute http or https URL with a host, or an empty string to clear it; anything else is a 400." }
+        sign_in_paused_until: { $ref: '#/components/schemas/EpochSecondsNullable', readOnly: true, description: "Set while the organization has reached its hourly sign-in link cap (a backstop, 500 by default, `ISMS_TRUST_SIGNIN_ORG_HOURLY`): when the first slot frees up. Null otherwise. Derived from the links created in the last hour." }
+        overview_withheld: { type: boolean, readOnly: true, description: "True when an overview document is set but is also published at a gated or restricted level, so the page shows no overview. The overview is a public element." }
+        email_configured: { type: boolean, readOnly: true, description: "False when the server cannot send mail; visitors cannot sign in then." }
+    TrustCenterVisitor:
+      type: object
+      required: [id, email, name, company, verified_at, first_seen, last_seen, blocked, blocked_at, blocked_by, active_sessions]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, description: The verified address, lower-case. }
+        name: { type: string, description: Asked once, at the first sign-in. }
+        company: { type: string, description: Asked once, at the first sign-in. }
+        verified_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: When the address was first verified by a sign-in link. }
+        first_seen: { $ref: '#/components/schemas/EpochSeconds' }
+        last_seen: { $ref: '#/components/schemas/EpochSeconds' }
+        blocked: { type: boolean }
+        blocked_at: { $ref: '#/components/schemas/EpochSecondsNullable', description: Null unless blocked. }
+        blocked_by: { type: [string, 'null'], description: Email of the manager who blocked the visitor; null unless blocked. }
+        active_sessions: { type: integer, description: Sessions that are neither revoked nor expired. }
     TrustCenterManagerItem:
       type: object
       required: [id, kind, section, access_level, sort_order, hidden_reason, published_at, document, certification]

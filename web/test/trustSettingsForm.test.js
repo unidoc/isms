@@ -187,3 +187,165 @@ test('a settings update from the parent resets only the fields the user has not 
   assert.equal(contact, 'mine@acme.test')
   assert.equal(level, 'public')
 })
+
+// ---- sign-in settings (#524) ----
+const BUILTIN = ['gmail.com', 'outlook.com', 'yahoo.com']
+const withSignIn = (extra = {}) => ({
+  ...base, blocked_email_domains: BUILTIN, blocked_email_domains_default: true, default_blocked_email_domains: BUILTIN,
+  privacy_notice_url: '', email_configured: true, sign_in_paused_until: null, overview_withheld: false, ...extra,
+})
+const area = host => host.querySelector('[data-trust="domains"]')
+const answer = (cur, body) => json(200, { ...cur, ...body, blocked_email_domains: body.blocked_email_domains === null ? BUILTIN : (body.blocked_email_domains ?? cur.blocked_email_domains), blocked_email_domains_default: body.blocked_email_domains === null ? true : (body.blocked_email_domains === undefined ? cur.blocked_email_domains_default : false) })
+
+test('domains: with the built-in list the effective list is shown with the default note, and nothing is dirty', async () => {
+  stub()
+  let val, dirty
+  const html = await mount({ settings: withSignIn() }, async (host) => {
+    val = area(host).value
+    dirty = !host.querySelector('[data-trust="save"]').disabled
+  })
+  assert.equal(val, 'gmail.com\noutlook.com\nyahoo.com')
+  assert.equal(dirty, false)
+  assert.ok(html.includes('data-trust="domains-default-note"') && html.includes('Using the built-in list of personal email providers.'), html)
+})
+
+test('domains: editing the list sends the lines, and the note goes away', async () => {
+  const calls = stub({ put: b => answer(withSignIn(), b) })
+  let noteAfterEdit
+  await mount({ settings: withSignIn() }, async (host, settle) => {
+    type(host, '[data-trust="domains"]', 'Rival.test\n@example.com\n')
+    await flush()
+    noteAfterEdit = host.innerHTML.includes('domains-default-note')
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 1)
+  })
+  assert.deepEqual(puts(calls)[0].body, { blocked_email_domains: ['Rival.test', '@example.com'] })
+  assert.equal(noteAfterEdit, false)
+})
+
+test('domains: Allow every domain sends [] on Save, Restore defaults sends null', async () => {
+  let calls = stub({ put: b => answer(withSignIn(), b) })
+  await mount({ settings: withSignIn() }, async (host, settle) => {
+    click(host, '[data-trust="domains-allow-all"]')
+    await flush()
+    assert.equal(area(host).value, '')
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 1)
+  })
+  assert.deepEqual(puts(calls)[0].body, { blocked_email_domains: [] })
+
+  const custom = withSignIn({ blocked_email_domains: ['a.test'], blocked_email_domains_default: false })
+  calls = stub({ put: b => answer(custom, b) })
+  let restored
+  await mount({ settings: custom }, async (host, settle) => {
+    assert.ok(!host.innerHTML.includes('domains-default-note'))
+    click(host, '[data-trust="domains-restore"]')
+    await flush()
+    restored = area(host).value
+    assert.ok(host.innerHTML.includes('domains-default-note'))
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 1)
+  })
+  assert.equal(restored, 'gmail.com\noutlook.com\nyahoo.com')
+  assert.deepEqual(puts(calls)[0].body, { blocked_email_domains: null })
+})
+
+test('domains: a list equal to the stored custom one (any order or case) is not a change', async () => {
+  stub()
+  const custom = withSignIn({ blocked_email_domains: ['a.test', 'b.test'], blocked_email_domains_default: false })
+  let disabled
+  await mount({ settings: custom }, async (host) => {
+    type(host, '[data-trust="domains"]', 'B.test\n@a.test')
+    await flush()
+    disabled = host.querySelector('[data-trust="save"]').disabled
+  })
+  assert.equal(disabled, true)
+})
+
+test('domains: a 400 shows an inline error under the field and keeps the edit', async () => {
+  stub({ put: () => json(400, { message: 'x', code: 'invalid_request' }) })
+  let kept
+  const html = await mount({ settings: withSignIn() }, async (host, settle) => {
+    type(host, '[data-trust="domains"]', 'nodot')
+    await flush()
+    click(host, '[data-trust="save"]')
+    await settle(h => h.includes('data-trust="domains-error"'))
+    kept = area(host).value
+  })
+  assert.ok(html.includes('data-trust="domains-error"') && html.includes('Check the domain list'), html)
+  assert.ok(!html.includes('data-trust="settings-error"'), 'not the general line')
+  assert.equal(kept, 'nodot')
+})
+
+test('privacy URL: saves the trimmed value, clears with an empty string, and a 400 is inline', async () => {
+  let calls = stub({ put: b => json(200, { ...withSignIn(), ...b }) })
+  await mount({ settings: withSignIn() }, async (host, settle) => {
+    type(host, '[data-trust="privacy-url"]', '  https://acme.test/privacy ')
+    await flush()
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 1)
+  })
+  assert.deepEqual(puts(calls)[0].body, { privacy_notice_url: 'https://acme.test/privacy' })
+
+  const has = withSignIn({ privacy_notice_url: 'https://acme.test/privacy' })
+  calls = stub({ put: b => json(200, { ...has, ...b }) })
+  await mount({ settings: has }, async (host, settle) => {
+    type(host, '[data-trust="privacy-url"]', '')
+    await flush()
+    click(host, '[data-trust="save"]')
+    await settle(() => puts(calls).length === 1)
+  })
+  assert.deepEqual(puts(calls)[0].body, { privacy_notice_url: '' })
+
+  stub({ put: () => json(400, { message: 'x', code: 'invalid_request' }) })
+  const html = await mount({ settings: withSignIn() }, async (host, settle) => {
+    type(host, '[data-trust="privacy-url"]', 'javascript:alert(1)')
+    await flush()
+    click(host, '[data-trust="save"]')
+    await settle(h => h.includes('data-trust="privacy-error"'))
+  })
+  assert.ok(html.includes('Enter a full web address starting with http:// or https://.'), html)
+})
+
+test('overview 409 trust_overview_not_public shows the localized message', async () => {
+  stub({ put: () => json(409, { message: 'raw english', code: 'trust_overview_not_public' }) })
+  const html = await mount({ settings: withSignIn({ overview_document_id: null }) }, async (host, settle) => {
+    // choosing needs the picker; set the field the way the picker does via the clear/choose state instead
+    type(host, '[data-trust="contact"]', 'x@y.test')
+    await flush()
+    click(host, '[data-trust="save"]')
+    await settle(h => h.includes('settings-error'))
+  })
+  assert.ok(html.includes('this document is published as gated or restricted, so it cannot be the public overview'), html)
+})
+
+test('an unsaved domain edit survives the settings prop changing underneath it', async () => {
+  stub()
+  let kept
+  const { createApp, h, ref } = await import('vue')
+  const { i18n } = await import('../src/i18n.js')
+  const settings = ref(withSignIn())
+  const app = createApp({ render: () => h(Form, { settings: settings.value }) })
+  app.use(i18n)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  app.mount(host)
+  await flush()
+  type(host, '[data-trust="domains"]', 'mine.test')
+  await flush()
+  settings.value = withSignIn({ enabled: true }) // the switch was flipped elsewhere
+  await flush()
+  kept = area(host).value
+  app.unmount()
+  host.remove()
+  assert.equal(kept, 'mine.test')
+})
+
+test('every button in the form that is not the submit is type=button', async () => {
+  stub()
+  const html = await mount({ settings: withSignIn() })
+  const doc = new window.DOMParser().parseFromString(html, 'text/html')
+  for (const b of doc.querySelectorAll('button')) {
+    assert.ok(b.getAttribute('type') === 'button' || b.getAttribute('data-trust') === 'save', b.outerHTML)
+  }
+})

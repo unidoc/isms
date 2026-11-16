@@ -29,6 +29,18 @@ export function publicAddress(origin, slug, subdomainMode) {
   return subdomainMode ? `${origin}/trust` : `${origin}/${slug}/trust`
 }
 
+// The blocked-domains textarea: one domain per line (commas and spaces also
+// separate). The server normalises and validates; this only splits.
+export function parseDomains(text) {
+  return String(text || '').split(/[\s,]+/).filter(Boolean)
+}
+
+// Mirrors the server's normalisation (trim, lower-case, leading @ dropped,
+// de-duplicated, sorted) so "did the list change" ignores spelling and order.
+export function normalizeDomains(list) {
+  return [...new Set((list || []).map((d) => String(d).trim().toLowerCase().replace(/^@/, '')).filter(Boolean))].sort()
+}
+
 // The fields of a settings form that differ from what the server last sent.
 // Only these are sent, so a stale form cannot restore a value the server has
 // since changed (for instance an overview document it cleared on retire).
@@ -39,6 +51,22 @@ export function changedSettings(orig, form) {
   }
   if ((form.overview_document_id || null) !== (orig.overview_document_id || null)) {
     patch.overview_document_id = form.overview_document_id || null
+  }
+  if (form.privacy_notice_url !== undefined && (form.privacy_notice_url || '').trim() !== (orig.privacy_notice_url || '')) {
+    patch.privacy_notice_url = (form.privacy_notice_url || '').trim()
+  }
+  // Blocked domains: mode 'default' is null (the built-in list), mode 'custom'
+  // is the list in the text, which may be empty (allow every domain).
+  if (form.domainsMode !== undefined) {
+    if (form.domainsMode === 'default') {
+      if (orig.blocked_email_domains_default === false) patch.blocked_email_domains = null
+    } else {
+      const list = parseDomains(form.domainsText)
+      // The same list as the one in effect is no change, even when the original
+      // is the built-in default: touching the textarea must not freeze the list.
+      const same = JSON.stringify(normalizeDomains(list)) === JSON.stringify(normalizeDomains(orig.blocked_email_domains))
+      if (!same) patch.blocked_email_domains = list
+    }
   }
   return patch
 }

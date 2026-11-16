@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Sections du centre de confiance",
     "content": "Contenu",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "visitors": "Visiteurs"
   },
   "not_allowed": "Seuls les administrateurs et les gestionnaires peuvent gérer le centre de confiance.",
   "load_error": "Impossible de charger le centre de confiance : {message}",
@@ -73,12 +74,48 @@
     "default_level_label": "Niveau d'accès par défaut",
     "default_level_help": "Le niveau avec lequel un document nouvellement publié commence.",
     "saved": "Enregistré",
-    "save_error": "Échec de l'enregistrement : {message}"
+    "save_error": "Échec de l'enregistrement : {message}",
+    "domains_label": "Domaines d'e-mail bloqués",
+    "domains_help": "Les personnes dont l'adresse e-mail appartient à ces domaines ne peuvent pas se connecter. Un domaine par ligne. Les visiteurs déjà connectés gardent l'accès jusqu'à la fin de leur session ; mettez-y fin depuis l'onglet Visiteurs.",
+    "domains_default_note": "La liste intégrée des fournisseurs d'e-mail personnels est utilisée.",
+    "domains_restore": "Rétablir les valeurs par défaut",
+    "domains_allow_all": "Autoriser tous les domaines",
+    "domains_error": "Vérifiez la liste : chaque entrée doit être un domaine comme example.com, 500 au maximum.",
+    "privacy_label": "URL de la politique de confidentialité",
+    "privacy_help": "Affichée aux personnes qui demandent un lien de connexion. Laissez vide pour n'en afficher aucune.",
+    "privacy_error": "Saisissez une adresse web complète commençant par http:// ou https://."
   },
   "preview": {
     "banner": "Aperçu : voici ce que voient les visiteurs",
     "off": "Le centre de confiance est désactivé ; les visiteurs ne voient rien pour l'instant.",
     "back": "Retour à la gestion du centre de confiance"
+  },
+  "visitors": {
+    "heading": "Visiteurs",
+    "empty": "Aucun visiteur ne s'est encore connecté.",
+    "loading": "Chargement des visiteurs...",
+    "col_email": "E-mail",
+    "col_name": "Nom",
+    "col_company": "Entreprise",
+    "col_first_seen": "Première visite",
+    "col_last_seen": "Dernière visite",
+    "col_sessions": "Sessions actives",
+    "col_status": "Statut",
+    "status_active": "Actif",
+    "blocked": "Bloqué",
+    "blocked_by": "Bloqué par {by}",
+    "revoke": "Révoquer les sessions",
+    "revoke_title": "Met fin à toutes les sessions de cette personne. Elle pourra se reconnecter avec un nouveau lien.",
+    "block": "Bloquer",
+    "block_title": "Empêche cette personne de se connecter et met fin à toutes ses sessions.",
+    "unblock": "Débloquer",
+    "unblock_title": "Permet à cette personne de se reconnecter. Ses anciennes sessions restent terminées.",
+    "action_error": "Impossible de mettre à jour le visiteur : {message}"
+  },
+  "warnings": {
+    "email_not_configured": "L'e-mail n'est pas configuré : les visiteurs ne peuvent pas se connecter. Les documents avec connexion affichent le contact sécurité à la place.",
+    "sign_in_paused": "Les e-mails de connexion sont suspendus : la limite horaire a été atteinte. Ils reprendront à {time}.",
+    "overview_withheld": "Le document de présentation est publié avec le niveau « Avec connexion » ou « Restreint » : les visiteurs ne voient donc aucune présentation."
   },
   "certifications": {
     "heading": "Certifications et rapports",

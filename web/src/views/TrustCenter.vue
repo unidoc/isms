@@ -1,5 +1,6 @@
 <template>
-  <TrustCenterPage v-if="resolved" :slug="slug" :base-path="basePath" :doc-id="docId" @navigate="go" />
+  <TrustSignIn v-if="resolved && route.meta.signIn" :slug="slug" :base-path="basePath" @navigate="go" />
+  <TrustCenterPage v-else-if="resolved" :slug="slug" :base-path="basePath" :doc-id="docId" @navigate="go" />
   <div v-else class="trust-page min-h-screen bg-slate-50" />
 </template>
 
@@ -12,6 +13,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
 import { isSubdomainMode } from '../composables/useCurrentOrg'
 import TrustCenterPage from '../components/TrustCenterPage.vue'
+import TrustSignIn from '../components/TrustSignIn.vue'
 
 const route = useRoute()
 const router = useRouter()

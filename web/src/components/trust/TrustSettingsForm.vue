@@ -44,6 +44,27 @@
         <p class="text-xs text-slate-500 mt-1">{{ $t('trust_manager.settings.default_level_help') }}</p>
       </div>
 
+      <div>
+        <label for="trust-privacy-url" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.privacy_label') }}</label>
+        <input id="trust-privacy-url" v-model="form.privacy_notice_url" type="text" maxlength="2000" data-trust="privacy-url" inputmode="url"
+          class="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500" />
+        <p class="text-xs text-slate-500 mt-1">{{ $t('trust_manager.settings.privacy_help') }}</p>
+        <p v-if="privacyError" class="text-xs text-red-400 mt-1" data-trust="privacy-error">{{ $t('trust_manager.settings.privacy_error') }}</p>
+      </div>
+
+      <div>
+        <label for="trust-domains" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.domains_label') }}</label>
+        <textarea id="trust-domains" v-model="form.domainsText" rows="6" data-trust="domains" spellcheck="false" @input="form.domainsMode = 'custom'"
+          class="w-full px-3 py-2 text-sm font-mono bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500" />
+        <p class="text-xs text-slate-500 mt-1">{{ $t('trust_manager.settings.domains_help') }}</p>
+        <p v-if="form.domainsMode === 'default'" class="text-xs text-slate-400 mt-1" data-trust="domains-default-note">{{ $t('trust_manager.settings.domains_default_note') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mt-2 text-xs">
+          <button type="button" data-trust="domains-restore" @click="restoreDomains" class="text-blue-400 hover:text-blue-300">{{ $t('trust_manager.settings.domains_restore') }}</button>
+          <button type="button" data-trust="domains-allow-all" @click="allowAllDomains" class="text-blue-400 hover:text-blue-300">{{ $t('trust_manager.settings.domains_allow_all') }}</button>
+        </div>
+        <p v-if="domainsError" class="text-xs text-red-400 mt-1" data-trust="domains-error">{{ $t('trust_manager.settings.domains_error') }}</p>
+      </div>
+
       <div class="flex items-center gap-3">
         <button type="submit" data-trust="save" :disabled="busy || !dirty"
           class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed">{{ $t('common.action.save') }}</button>
@@ -112,23 +133,39 @@ const pickedTitle = ref('')
 const overviewNoApproved = ref(false)
 const { documents, load: loadDocs } = useOrgDocuments()
 
-function reset() {
-  Object.assign(form, {
-    security_contact: props.settings.security_contact,
-    default_access_level: props.settings.default_access_level,
-    overview_document_id: props.settings.overview_document_id || null,
-  })
+// What the form shows for a settings object from the server.
+function fromSettings(st) {
+  return {
+    security_contact: st.security_contact,
+    default_access_level: st.default_access_level,
+    overview_document_id: st.overview_document_id || null,
+    privacy_notice_url: st.privacy_notice_url || '',
+    // 'default' = the built-in list (null on the wire), 'custom' = the list below.
+    domainsMode: st.blocked_email_domains_default === false ? 'custom' : 'default',
+    domainsText: (st.blocked_email_domains || []).join('\n'),
+  }
 }
-reset()
+const domainsError = ref(false)
+const privacyError = ref(false)
+
+function restoreDomains() {
+  form.domainsMode = 'default'
+  form.domainsText = (props.settings.default_blocked_email_domains || []).join('\n')
+}
+function allowAllDomains() {
+  form.domainsMode = 'custom'
+  form.domainsText = ''
+}
+Object.assign(form, fromSettings(props.settings))
 // When the server's settings change (the switch was flipped, or Save returned),
 // only the fields the user has not edited follow; an unsaved edit stays.
 watch(() => props.settings, (next, prev) => {
   let overviewChanged = false
-  for (const k of ['security_contact', 'default_access_level', 'overview_document_id']) {
-    const was = prev?.[k] ?? null
-    const now = next[k] ?? null
-    if ((form[k] ?? null) === was && now !== was) {
-      form[k] = now
+  const was = fromSettings(prev || {})
+  const now = fromSettings(next)
+  for (const k of Object.keys(now)) {
+    if ((form[k] ?? null) === (was[k] ?? null) && (now[k] ?? null) !== (was[k] ?? null)) {
+      form[k] = now[k]
       if (k === 'overview_document_id') overviewChanged = true
     }
   }
@@ -173,16 +210,27 @@ function clearOverview() {
 async function put(body) {
   busy.value = true
   error.value = ''
+  domainsError.value = false
+  privacyError.value = false
   saved.value = false
   try {
     const next = await api.updateTrustSettings(body)
     emit('saved', next)
-    Object.assign(form, { security_contact: next.security_contact, default_access_level: next.default_access_level, overview_document_id: next.overview_document_id || null })
+    Object.assign(form, fromSettings(next))
     savedSnapshot.value = JSON.stringify(form)
     saved.value = true
     return true
   } catch (e) {
-    error.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })
+    // A 400 is the server refusing a value. When exactly one of the two
+    // validated fields was in the request the error belongs under it; with both
+    // (or neither) it stays the general line.
+    const touched = ['blocked_email_domains', 'privacy_notice_url'].filter((k) => k in body)
+    if (e && e.status === 400 && touched.length === 1) {
+      if (touched[0] === 'blocked_email_domains') domainsError.value = true
+      else privacyError.value = true
+    } else {
+      error.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })
+    }
     return false
   } finally {
     busy.value = false

@@ -310,7 +310,8 @@ When set, all git commits made by the server are signed with this SSH key.
 | Variable | Description |
 |----------|-------------|
 | `ISMS_UNIDOC_API_KEY` | UniDoc metered API key. Licenses PDF and DOCX export. `UNIDOC_API_KEY` is accepted as a legacy alias; if both are set, `ISMS_UNIDOC_API_KEY` wins. |
-| `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to stop the licence libraries from writing metered state to disk (default: on) |
+| `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to ask the licence libraries to persist less usage state (default: on). The state directory is still needed. |
+| `UNIDOC_LICENSE_DIR` | Directory for the licence libraries' metered state. Default: `unidoc` under `ISMS_DATA_DIR`. It must be writable. |
 | `ISMS_EXPORT_FONT_DIR` | Directory of TrueType fonts for PDF export (see below). Unset: the standard PDF fonts. |
 
 One metered key covers both PDF and DOCX. The server validates it against
@@ -324,12 +325,28 @@ Things to plan for:
 
 - Usage is reported to UniDoc while the server runs, so it needs outbound
   network access to `cloud.unidoc.io`.
-- The libraries keep metered state in `$UNIDOC_LICENSE_DIR`, or in the home
-  directory when that is unset. In a container, point `UNIDOC_LICENSE_DIR` at a
-  writable volume, or set `ISMS_UNIDOC_METERED_CACHE=0`.
-- Do not combine an API key with the vendor variables `UNIPDF_LICENSE_PATH` or
-  `UNIOFFICE_LICENSE_PATH`. The server logs a warning naming the variables and
-  turns export off. Offline licence keys are not supported yet.
+- The libraries keep metered usage state in files. By default the server keeps
+  them in `unidoc` under `ISMS_DATA_DIR` (created with mode 0700), which is
+  already your persistent, writable volume, so a read-only root filesystem and an
+  unwritable home directory need no extra setup. Set `UNIDOC_LICENSE_DIR` to put
+  the state elsewhere; an explicit value is used as given. The server logs the
+  directory it uses (never the key).
+- The state directory must be writable. It is checked at start by writing and
+  removing a temporary file. If it cannot be written, the server logs one warning
+  naming the directory and the fix, and offers no export format (`export_formats`
+  stays empty, the Export button is hidden, and the endpoint answers 403
+  `export_not_licensed`), because licensing would succeed and every export would
+  then fail.
+- `ISMS_UNIDOC_METERED_CACHE=0` is not a substitute for a writable directory:
+  the libraries still write their state file there; with it off they persist
+  less. Leave it unset unless UniDoc asks otherwise.
+- Do not combine an API key with the vendor's own offline-licence variables
+  (`UNIPDF_LICENSE_PATH` with `UNIPDF_CUSTOMER_NAME`, `UNIOFFICE_LICENSE_PATH`
+  with `UNIOFFICE_CUSTOMER_NAME`). Those variables, set on their own, license that
+  library without an API key and are honoured: the server then offers that format
+  (and logs that it came from them). Set together with an API key, the server logs
+  a warning naming the variables and turns export off. The `ISMS_*` variables for
+  offline keys are not supported yet.
 
 #### PDF fonts
 

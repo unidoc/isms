@@ -11,9 +11,12 @@ package license
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,6 +27,9 @@ const (
 	envAPIKey       = "ISMS_UNIDOC_API_KEY"
 	envLegacyAPIKey = "UNIDOC_API_KEY"
 	envCache        = "ISMS_UNIDOC_METERED_CACHE"
+	// envLicenseDir is where the vendor libraries keep their metered state. They
+	// read it on every call, so setting it in-process before licensing works.
+	envLicenseDir = "UNIDOC_LICENSE_DIR"
 )
 
 // Source says how a format was licensed.
@@ -165,10 +171,17 @@ type manager struct {
 	caps     atomic.Pointer[Capabilities]
 	schedule func(n int) time.Duration
 	sleep    func(ctx context.Context, d time.Duration) bool
+
+	// dataDir is the server's data directory: the licence state lives under it
+	// unless UNIDOC_LICENSE_DIR says otherwise. setenv is os.Setenv.
+	dataDir string
+	setenv  func(key, value string) error
+	// noState skips the state directory handling (tests of the licensing flow).
+	noState bool
 }
 
 func newManager() *manager {
-	m := &manager{schedule: defaultSchedule, sleep: sleepCtx}
+	m := &manager{schedule: defaultSchedule, sleep: sleepCtx, setenv: os.Setenv}
 	m.caps.Store(&Capabilities{})
 	return m
 }
@@ -208,6 +221,14 @@ func (m *manager) run(ctx context.Context, getenv func(string) string, libs []li
 	if p.APIKey == "" {
 		return
 	}
+	if !m.noState {
+		if err := m.prepareStateDir(getenv); err != nil {
+			// Licensing would succeed but every export would then fail writing its
+			// state, so export is not offered at all.
+			log.Printf("export licence: %v; PDF/DOCX export is off", err)
+			return
+		}
+	}
 	cacheOff := false
 	switch strings.ToLower(strings.TrimSpace(getenv(envCache))) {
 	case "0", "false", "off":
@@ -222,6 +243,54 @@ func (m *manager) run(ctx context.Context, getenv func(string) string, libs []li
 		}(l)
 	}
 	wg.Wait()
+}
+
+// prepareStateDir makes sure the vendor libraries have a writable place for their
+// metered state. An explicit UNIDOC_LICENSE_DIR is used as it is; otherwise the
+// state goes under the data directory ("<data>/unidoc"), which is the operator's
+// persistent, writable volume, instead of the vendor default under the home
+// directory that a container often cannot write. Either way the directory is
+// created (0700) and a temporary file is written and removed, so an unusable
+// directory is found now and not on the first export.
+func (m *manager) prepareStateDir(getenv func(string) string) error {
+	dir := strings.TrimSpace(getenv(envLicenseDir))
+	switch {
+	case dir != "":
+	case m.dataDir != "":
+		dir = filepath.Join(m.dataDir, "unidoc")
+		if err := m.setenv(envLicenseDir, dir); err != nil {
+			return fmt.Errorf("setting %s: %v", envLicenseDir, err)
+		}
+		log.Printf("export licence: licence state is kept in %s (set %s to change it)", dir, envLicenseDir)
+	default:
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("no home directory for the licence state and %s is unset: set %s to a writable directory", envLicenseDir, envLicenseDir)
+		}
+		dir = filepath.Join(home, ".unidoc")
+	}
+	if err := checkWritable(dir); err != nil {
+		var pe *fs.PathError
+		if errors.As(err, &pe) {
+			err = pe.Err // the path is named once, in the message
+		}
+		return fmt.Errorf("the licence state directory %s is not writable (%v): set %s to a writable directory, or make this one writable", dir, err, envLicenseDir)
+	}
+	return nil
+}
+
+// checkWritable creates dir if needed and proves it can be written to.
+func checkWritable(dir string) error {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(dir, ".write-check-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	f.Close()
+	return os.Remove(name)
 }
 
 func (m *manager) applyOne(ctx context.Context, l lib, key string, cacheOff bool) {
@@ -259,7 +328,11 @@ func Current() Capabilities { return std.current() }
 
 // Start licenses the libraries in the background. It returns immediately and
 // is idempotent.
-func Start(ctx context.Context) {
+//
+// dataDir is the server's data directory; the licence state is kept under it
+// unless UNIDOC_LICENSE_DIR is set.
+func Start(ctx context.Context, dataDir string) {
+	std.dataDir = dataDir
 	startOn(&startOne, ctx, std, os.Getenv, realLibs())
 }
 

@@ -472,7 +472,8 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 // The caller is expected to plumb an os/signal-cancelled context (SIGINT/SIGTERM).
 func (s *Server) Start(ctx context.Context) error {
 	// Licence UniPDF/UniOffice in the background; never blocks the listener.
-	license.Start(ctx)
+	dataDir, _ := blob.DataDir() // NewWithFS already required it
+	license.Start(ctx, dataDir)
 
 	errCh := make(chan error, 1)
 	go func() {

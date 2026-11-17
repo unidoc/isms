@@ -131,6 +131,7 @@ func TestResolve(t *testing.T) {
 
 func newTestManager() *manager {
 	m := newManager()
+	m.noState = true
 	m.schedule = func(n int) time.Duration { return time.Duration(n+1) * time.Minute }
 	m.sleep = func(ctx context.Context, d time.Duration) bool { return ctx.Err() == nil }
 	return m

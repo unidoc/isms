@@ -3,6 +3,7 @@ package export
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/unidoc/unioffice/v2/color"
@@ -10,6 +11,7 @@ import (
 	offlic "github.com/unidoc/unioffice/v2/common/license"
 	"github.com/unidoc/unioffice/v2/document"
 	"github.com/unidoc/unioffice/v2/measurement"
+	sharedtypes "github.com/unidoc/unioffice/v2/schema/soo/ofc/sharedTypes"
 	"github.com/unidoc/unioffice/v2/schema/soo/wml"
 )
 
@@ -35,6 +37,14 @@ var (
 	dxDraft  = color.FromHex("#B42318")
 )
 
+// Page geometry, in millimetres: the section and every width derived from it use
+// these, so the text width is stated once.
+const (
+	dxPageWidthMM = 210.0
+	dxMarginMM    = 20.0
+	dxTextWidthMM = dxPageWidthMM - 2*dxMarginMM
+)
+
 const (
 	dxMM     measurement.Distance = measurement.Millimeter
 	dxIndent measurement.Distance = 6 * measurement.Millimeter // one list or quote level
@@ -42,6 +52,33 @@ const (
 )
 
 func pts(v float64) measurement.Distance { return measurement.Distance(v) * dxPt }
+
+// dxTextWidthTwips is the text width (page less both margins) in twips, the unit
+// of a table's grid columns (a point is 20 twips).
+func dxTextWidthTwips() int {
+	return int(math.Round(dxTextWidthMM * float64(measurement.Millimeter) * 20))
+}
+
+// setGrid sets a table's grid column widths, in twips, from column fractions
+// that sum to 1. The library derives the grid from the cell widths and copies the
+// percent values (1500 for 30%), but w:gridCol is always twips; with a fixed
+// layout Word sizes the columns from the grid, so percent values give a table a
+// fraction of its width.
+func setGrid(t document.Table, fractions []float64) {
+	t.EnsureGridColumns()
+	g := t.X().TblGrid
+	if g == nil {
+		return
+	}
+	total := float64(dxTextWidthTwips())
+	for i, c := range g.GridCol {
+		if i >= len(fractions) {
+			break
+		}
+		w := uint64(math.Round(fractions[i] * total))
+		c.WAttr = &sharedtypes.ST_TwipsMeasure{ST_UnsignedDecimalNumber: &w}
+	}
+}
 
 // renderDOCX renders d to DOCX bytes. The vendor's "not licensed" failure is
 // wrapped as ErrUnlicensed.
@@ -138,8 +175,8 @@ func (r *docxRender) styles() {
 // page is A4 with 20 mm margins.
 func (r *docxRender) page() {
 	s := r.doc.BodySection()
-	s.SetPageSizeAndOrientation(210*dxMM, 297*dxMM, wml.ST_PageOrientationPortrait)
-	m := 20 * dxMM
+	s.SetPageSizeAndOrientation(dxPageWidthMM*dxMM, 297*dxMM, wml.ST_PageOrientationPortrait)
+	m := dxMarginMM * dxMM
 	s.SetPageMargins(m, m, m, m, 10*dxMM, 10*dxMM, 0)
 	s.SetTitlePage(true) // the cover has its own, empty, header and footer
 }
@@ -314,6 +351,7 @@ func (r *docxRender) cover() {
 		r.cellText(tr.AddCell(), row[0], 30, dxStyle{bold: true, size: 10}, true, wml.ST_JcLeft)
 		r.cellText(tr.AddCell(), orDash(row[1]), 70, dxStyle{size: 10}, false, wml.ST_JcLeft)
 	}
+	setGrid(tb, []float64{0.30, 0.70})
 	g := r.para()
 	g.SetBeforeSpacing(pts(14))
 	gg := dxGrey
@@ -350,6 +388,17 @@ func (r *docxRender) logo(png []byte) {
 	in.SetSize(pts(w), pts(h))
 }
 
+// revisionWidths are the revision table's column widths in percent.
+var revisionWidths = []float64{10, 14, 17, 17, 42}
+
+var revisionFractions = func() []float64 {
+	f := make([]float64, len(revisionWidths))
+	for i, w := range revisionWidths {
+		f[i] = w / 100
+	}
+	return f
+}()
+
 func (r *docxRender) revisions() {
 	rows := r.d.RevisionRows()
 	if len(rows) == 0 {
@@ -359,7 +408,7 @@ func (r *docxRender) revisions() {
 	h.SetStyle("Heading1")
 	r.text(h, "Revision history", dxStyle{})
 	tb := r.table()
-	widths := []float64{10, 14, 17, 17, 42}
+	widths := revisionWidths
 	head := tb.AddRow()
 	head.Properties().SetTblHeader(true)
 	for i, s := range []string{"Version", "Date", "Author", "Approved by", "Description"} {
@@ -372,6 +421,7 @@ func (r *docxRender) revisions() {
 			r.cellText(tr.AddCell(), orDash(s), widths[i], dxStyle{size: 9}, false, wml.ST_JcLeft)
 		}
 	}
+	setGrid(tb, revisionFractions)
 	r.pageBreak = true
 }
 
@@ -450,6 +500,7 @@ func (r *docxRender) tableBlock(tb Table) {
 	for _, rw := range tb.Rows {
 		row(rw, false)
 	}
+	setGrid(t, widths)
 	r.spacer(2)
 }
 
@@ -463,7 +514,7 @@ func (r *docxRender) tableBlock(tb Table) {
 func (r *docxRender) headerFooter() {
 	s := r.doc.BodySection()
 	d := r.d
-	const contentMM = 170.0 // 210 mm page less 2 x 20 mm margins
+	const contentMM = dxTextWidthMM
 
 	hdr := r.doc.AddHeader()
 	left, centre, right, draft := headerParts(d)

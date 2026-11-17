@@ -203,6 +203,37 @@ func checkDOCX(t *testing.T, doc *document.Document, draft bool) {
 		t.Error("the centre column is not centred")
 	}
 
+	// Table grid columns are twips: each table spans the text width, in the
+	// proportions of its columns, with no sliver column.
+	total := dxTextWidthTwips()
+	fixtureCols := columnWidths(richDoc("draft").Blocks[len(richDoc("draft").Blocks)-2].(Table), 3)
+	expect := [][]float64{{0.30, 0.70}, revisionFractions, fixtureCols}
+	for ti, tb := range tables {
+		g := tb.X().TblGrid
+		if g == nil || len(g.GridCol) != len(expect[ti]) {
+			t.Errorf("table %d: grid columns missing or the wrong count", ti)
+			continue
+		}
+		sum := 0
+		for ci, c := range g.GridCol {
+			if c.WAttr == nil || c.WAttr.ST_UnsignedDecimalNumber == nil {
+				t.Errorf("table %d column %d has no width", ti, ci)
+				continue
+			}
+			w := int(*c.WAttr.ST_UnsignedDecimalNumber)
+			sum += w
+			if frac := float64(w) / float64(total); frac < expect[ti][ci]-0.01 || frac > expect[ti][ci]+0.01 {
+				t.Errorf("table %d column %d is %d twips (%.1f%% of the text width), want about %.1f%%", ti, ci, w, frac*100, expect[ti][ci]*100)
+			}
+			if w < 400 && len(g.GridCol) <= 12 {
+				t.Errorf("table %d column %d is only %d twips wide", ti, ci, w)
+			}
+		}
+		if d := float64(sum-total) / float64(total); d > 0.02 || d < -0.02 {
+			t.Errorf("table %d grid sums to %d twips, want the text width %d (within 2%%)", ti, sum, total)
+		}
+	}
+
 	// Hyperlinks: exactly the three allowed targets.
 	var links []string
 	for _, r := range doc.DocRels().Relationships() {

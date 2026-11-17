@@ -19,14 +19,25 @@ require (
 	github.com/unidoc/unioffice/v2 v2.15.0
 	github.com/unidoc/unipdf/v5 v5.2.0
 	github.com/yuin/goldmark v1.8.6
+	golang.org/x/image v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/llgcode/draw2d v0.0.0-20240627062922-0ed1ff131195 // indirect
+	github.com/sirupsen/logrus v1.10.2 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/unidoc/emf v0.2.0 // indirect
-	golang.org/x/image v0.45.0 // indirect
+	github.com/unidoc/freetype v0.2.5 // indirect
+	github.com/unidoc/pkcs7 v0.4.1 // indirect
+	github.com/unidoc/timestamp v0.0.0-20200412005513-91597fd3793a // indirect
+	github.com/unidoc/typesetting v0.1.1 // indirect
+	github.com/unidoc/unichart v0.5.2 // indirect
+	github.com/unidoc/unitype v0.5.1 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 )
 
 require (

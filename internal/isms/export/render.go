@@ -30,10 +30,9 @@ func Render(format string, d *ExportDoc) ([]byte, error) {
 	return nil, fmt.Errorf("%w: %q", ErrUnsupportedFormat, format)
 }
 
-// renderPDF and renderDOCX are placeholders: the UniPDF and UniOffice renderers
-// replace them. They return errRendererPending so nothing can mistake an empty
-// result for a document.
-func renderPDF(*ExportDoc) ([]byte, error)  { return nil, errRendererPending }
+// renderDOCX is a placeholder until the UniOffice renderer replaces it. It
+// returns errRendererPending so nothing can mistake an empty result for a
+// document. renderPDF is in pdf.go.
 func renderDOCX(*ExportDoc) ([]byte, error) { return nil, errRendererPending }
 
 // MIMEType is the Content-Type of an export, or "" for an unknown format.

@@ -311,6 +311,7 @@ When set, all git commits made by the server are signed with this SSH key.
 |----------|-------------|
 | `ISMS_UNIDOC_API_KEY` | UniDoc metered API key. Licenses PDF and DOCX export. `UNIDOC_API_KEY` is accepted as a legacy alias; if both are set, `ISMS_UNIDOC_API_KEY` wins. |
 | `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to stop the licence libraries from writing metered state to disk (default: on) |
+| `ISMS_EXPORT_FONT_DIR` | Directory of TrueType fonts for PDF export (see below). Unset: the standard PDF fonts. |
 
 One metered key covers both PDF and DOCX. The server validates it against
 UniDoc's cloud in the background at start, so startup never waits for it. A
@@ -329,6 +330,35 @@ Things to plan for:
 - Do not combine an API key with the vendor variables `UNIPDF_LICENSE_PATH` or
   `UNIOFFICE_LICENSE_PATH`. The server logs a warning naming the variables and
   turns export off. Offline licence keys are not supported yet.
+
+#### PDF fonts
+
+PDF export draws text with fonts read from disk; no font is built into the
+binary. Point `ISMS_EXPORT_FONT_DIR` at a directory of TrueType (`.ttf`) files
+with these names (lower case):
+
+| File | Used for |
+|------|----------|
+| `sans-regular.ttf` | body text; **required** to use the directory at all |
+| `sans-bold.ttf` | bold text, headings, table headers |
+| `sans-italic.ttf` | italic text |
+| `sans-bolditalic.ttf` | bold italic text |
+| `mono-regular.ttf` | code |
+
+Every file except `sans-regular.ttf` is optional; a missing one falls back to
+`sans-regular.ttf`. Fonts are read once and the PDF embeds only the glyphs a
+document uses, so files stay small. OpenType fonts with PostScript (CFF)
+outlines load, but only TrueType is supported.
+
+Without a usable directory (unset, no `sans-regular.ttf`, or a file that is not
+a valid font) the export uses the standard PDF fonts (Helvetica and Courier) and
+still succeeds. Those fonts cover Western European text (Latin-1 and the Windows
+code page 1252 symbols); any other character, such as Polish letters outside
+Latin-1, Cyrillic, Greek or CJK, is printed as `?`. To print those scripts, supply
+fonts that contain them. A free family such as Noto Sans and Noto Sans Mono (SIL
+Open Font License, from the official Noto project at fonts.google.com/noto) works;
+copy its regular, bold, italic, bold italic and mono files to the names above.
+The server logs which fonts it chose, and why, the first time a PDF is exported.
 
 ### CLI-only variables
 

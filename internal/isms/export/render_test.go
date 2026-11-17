@@ -6,10 +6,13 @@ import (
 )
 
 func TestRenderDispatch(t *testing.T) {
-	for _, f := range []string{"pdf", "docx"} {
-		if _, err := Render(f, &ExportDoc{}); !errors.Is(err, errRendererPending) {
-			t.Errorf("Render(%q) = %v, want the pending placeholder", f, err)
-		}
+	if _, err := Render("docx", &ExportDoc{}); !errors.Is(err, errRendererPending) {
+		t.Errorf("Render(docx) = %v, want the pending placeholder", err)
+	}
+	// pdf is dispatched to the real renderer: with no licence that is
+	// ErrUnlicensed, with one it succeeds. Never "unsupported".
+	if _, err := Render("pdf", &ExportDoc{}); errors.Is(err, ErrUnsupportedFormat) || errors.Is(err, errRendererPending) {
+		t.Errorf("Render(pdf) = %v", err)
 	}
 	for _, f := range []string{"", "xls", "PDF", "pdf ", "odt"} {
 		if _, err := Render(f, &ExportDoc{}); !errors.Is(err, ErrUnsupportedFormat) {

@@ -16,8 +16,17 @@ require (
 	github.com/labstack/echo/v4 v4.16.3
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/spf13/cobra v1.10.2
+	github.com/unidoc/unioffice/v2 v2.15.0
+	github.com/unidoc/unipdf/v5 v5.2.0
 	github.com/yuin/goldmark v1.8.6
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/llgcode/draw2d v0.0.0-20240627062922-0ed1ff131195 // indirect
+	github.com/unidoc/emf v0.2.0 // indirect
+	golang.org/x/image v0.45.0 // indirect
 )
 
 require (

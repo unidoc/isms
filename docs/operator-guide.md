@@ -305,6 +305,31 @@ When set, all git commits made by the server are signed with this SSH key.
 | `ISMS_PRIVACY_FILE` | Path to a markdown file with Privacy Policy |
 | `ISMS_HIDE_POWERED_BY` | Set to `1` to hide the "Powered by isms.sh" branding |
 
+### Document export licence (optional)
+
+| Variable | Description |
+|----------|-------------|
+| `ISMS_UNIDOC_API_KEY` | UniDoc metered API key. Licenses PDF and DOCX export. `UNIDOC_API_KEY` is accepted as a legacy alias; if both are set, `ISMS_UNIDOC_API_KEY` wins. |
+| `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to stop the licence libraries from writing metered state to disk (default: on) |
+
+One metered key covers both PDF and DOCX. The server validates it against
+UniDoc's cloud in the background at start, so startup never waits for it. A
+format appears in `export_formats` of `GET /api/v1/config` once its validation
+succeeds; if the cloud is unreachable the server retries after 1 minute, 5
+minutes, 15 minutes and then hourly. An invalid key is logged once and not
+retried. Without a key, no export format is offered.
+
+Things to plan for:
+
+- Usage is reported to UniDoc while the server runs, so it needs outbound
+  network access to `cloud.unidoc.io`.
+- The libraries keep metered state in `$UNIDOC_LICENSE_DIR`, or in the home
+  directory when that is unset. In a container, point `UNIDOC_LICENSE_DIR` at a
+  writable volume, or set `ISMS_UNIDOC_METERED_CACHE=0`.
+- Do not combine an API key with the vendor variables `UNIPDF_LICENSE_PATH` or
+  `UNIOFFICE_LICENSE_PATH`. The server logs a warning naming the variables and
+  turns export off. Offline licence keys are not supported yet.
+
 ### CLI-only variables
 
 These are used by the CLI client, not the server:

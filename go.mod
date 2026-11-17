@@ -27,6 +27,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/llgcode/draw2d v0.0.0-20240627062922-0ed1ff131195 // indirect
+	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/unidoc/emf v0.2.0 // indirect

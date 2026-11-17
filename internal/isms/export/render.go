@@ -13,10 +13,6 @@ var (
 	ErrUnlicensed = errors.New("export: format not licensed")
 	// ErrUnsupportedFormat means the format is neither "pdf" nor "docx".
 	ErrUnsupportedFormat = errors.New("export: unsupported format")
-
-	// errRendererPending is what the placeholder renderers return until the
-	// real ones are written.
-	errRendererPending = errors.New("export: renderer not implemented yet")
 )
 
 // Render renders d in the given format ("pdf" or "docx").
@@ -29,11 +25,6 @@ func Render(format string, d *ExportDoc) ([]byte, error) {
 	}
 	return nil, fmt.Errorf("%w: %q", ErrUnsupportedFormat, format)
 }
-
-// renderDOCX is a placeholder until the UniOffice renderer replaces it. It
-// returns errRendererPending so nothing can mistake an empty result for a
-// document. renderPDF is in pdf.go.
-func renderDOCX(*ExportDoc) ([]byte, error) { return nil, errRendererPending }
 
 // MIMEType is the Content-Type of an export, or "" for an unknown format.
 func MIMEType(format string) string {

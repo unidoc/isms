@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	docxlic "github.com/unidoc/unioffice/v2/common/license"
 	pdflic "github.com/unidoc/unipdf/v5/common/license"
 	"github.com/unidoc/unipdf/v5/core"
 	"github.com/unidoc/unipdf/v5/extractor"
@@ -25,8 +26,11 @@ var keyedReady bool
 
 func TestMain(m *testing.M) {
 	if key := os.Getenv("ISMS_TEST_UNIDOC_API_KEY"); key != "" {
-		if err := pdflic.SetMeteredKey(key); err != nil {
-			fmt.Fprintln(os.Stderr, "key-gated export tests: licensing failed:", err)
+		// Both libraries are licensed: the PDF and the DOCX tests share this package.
+		errPDF := pdflic.SetMeteredKey(key)
+		errDOCX := docxlic.SetMeteredKey(key)
+		if errPDF != nil || errDOCX != nil {
+			fmt.Fprintln(os.Stderr, "key-gated export tests: licensing failed:", errPDF, errDOCX)
 		} else {
 			keyedReady = true
 		}

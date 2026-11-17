@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	pdflic "github.com/unidoc/unipdf/v5/common/license"
+	"github.com/unidoc/unipdf/v5/core"
 	"github.com/unidoc/unipdf/v5/extractor"
 	"github.com/unidoc/unipdf/v5/model"
 )
@@ -44,6 +45,25 @@ type parsedPDF struct {
 	pages []string // extracted text per page
 	links []string // URIs of link annotations
 	paths []int    // stroke paths per page
+
+	texts []string                   // same as pages
+	marks []*extractor.TextMarkArray // text runs with positions, per page
+}
+
+// bbox is the bounding box of the first occurrence of s on any page.
+func (p *parsedPDF) bbox(s string) (model.PdfRectangle, bool) {
+	for i, txt := range p.texts {
+		if k := strings.Index(txt, s); k >= 0 {
+			sub, err := p.marks[i].RangeOffset(len(txt[:k]), len(txt[:k])+len(s))
+			if err != nil {
+				continue
+			}
+			if b, ok := sub.BBox(); ok {
+				return b, true
+			}
+		}
+	}
+	return model.PdfRectangle{}, false
 }
 
 func parsePDF(t *testing.T, b []byte) *parsedPDF {
@@ -74,6 +94,13 @@ func parsePDF(t *testing.T, b []byte) *parsedPDF {
 			t.Fatal(err)
 		}
 		out.pages = append(out.pages, txt)
+		if pt, _, _, err := ex.ExtractPageText(); err == nil {
+			out.texts = append(out.texts, pt.Text())
+			out.marks = append(out.marks, pt.Marks())
+		} else {
+			out.texts = append(out.texts, "")
+			out.marks = append(out.marks, &extractor.TextMarkArray{})
+		}
 		if sp, err := ex.ExtractStrokePaths(); err == nil {
 			out.paths = append(out.paths, len(sp))
 		} else {
@@ -85,12 +112,12 @@ func parsePDF(t *testing.T, b []byte) *parsedPDF {
 			if !ok {
 				continue
 			}
-			act, err := l.GetAction()
-			if err != nil || act == nil {
-				continue
-			}
-			if u, ok := act.GetContext().(*model.PdfActionURI); ok {
-				out.links = append(out.links, fmt.Sprint(u.URI))
+			// The /A dictionary is read directly: GetAction returns nil for the
+			// reader's lazily loaded objects.
+			if d, ok := core.TraceToDirectObject(l.A).(*core.PdfObjectDictionary); ok {
+				if u, ok := core.GetString(d.Get("URI")); ok {
+					out.links = append(out.links, u.Str())
+				}
 			}
 		}
 	}
@@ -172,6 +199,36 @@ func TestKeyedRenderPDF(t *testing.T) {
 			}
 			if n := p.pagesWith("Control ID"); n < 2 {
 				t.Errorf("table header on %d pages, want it repeated (>= 2)", n)
+			}
+			// Lists: each marker is on its text's baseline, with a gap of about
+			// 2 mm (4 to 14 points here), and the numbering continues from Start.
+			for _, pair := range [][2]string{{"3.", "nested three"}, {"4.", "nested four"}, {"[x]", "done task"}, {"[ ]", "open task"}} {
+				m, ok1 := p.bbox(pair[0])
+				x, ok2 := p.bbox(pair[1])
+				if !ok1 || !ok2 {
+					t.Errorf("list item %q %q not found (marker %v, text %v)", pair[0], pair[1], ok1, ok2)
+					continue
+				}
+				if d := m.Lly - x.Lly; d > 1.5 || d < -1.5 {
+					t.Errorf("marker %q is %.1f pt off the baseline of %q", pair[0], d, pair[1])
+				}
+				if gap := x.Llx - m.Urx; gap < 2 || gap > 14 {
+					t.Errorf("gap between marker %q and %q is %.1f pt", pair[0], pair[1], gap)
+				}
+			}
+			// The last column is right-aligned: it must still print, header and
+			// last row included, and every header cell must be on each table page.
+			if !strings.Contains(all, "Score") || !strings.Contains(all, "1043") {
+				t.Errorf("right-aligned column missing: Score=%v 1043=%v", strings.Contains(all, "Score"), strings.Contains(all, "1043"))
+			}
+			for i, pg := range p.pages {
+				if strings.Contains(pg, "Control ID") {
+					for _, h := range []string{"Description", "Score"} {
+						if !strings.Contains(pg, h) {
+							t.Errorf("table page %d lacks the header cell %q", i+1, h)
+						}
+					}
+				}
 			}
 			if !strings.Contains(all, "[image: network diagram]") {
 				t.Error("image placeholder missing")

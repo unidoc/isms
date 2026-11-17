@@ -616,22 +616,20 @@ func plainText(ins []Inline) string {
 	return sb.String()
 }
 
-// list draws a list. Blocks inside an item that a native list cannot hold
-// (code, tables, quotes, rules) end the list, are drawn at the item's indent, and
-// the list continues after them with its numbering intact.
+// listMarkerMM is the width of the marker column of a list item.
+const listMarkerMM = 8.0
+
+// list draws a list as one row per item: a marker cell and a text cell side by
+// side, so the marker shares the text's baseline whatever the font. The rest of
+// an item (further paragraphs, nested lists, code, tables, quotes) follows the
+// row, indented one level; numbering continues across them.
 func (r *pdfRender) list(l List, cx ctx) []creator.VectorDrawable {
 	var out []creator.VectorDrawable
-	cur := r.newList(cx)
-	flush := func() {
-		if cur != nil {
-			out = append(out, cur)
-			cur = nil
-		}
-	}
 	n := l.Start
 	if n == 0 && l.Ordered {
 		n = 1
 	}
+	inner := ctx{indent: cx.indent + indentMM*creator.PPMM, inList: true}
 	for _, it := range l.Items {
 		marker := "\u2022"
 		if l.Ordered {
@@ -644,139 +642,39 @@ func (r *pdfRender) list(l List, cx ctx) []creator.VectorDrawable {
 		case TaskUnchecked:
 			marker = "[ ]"
 		}
-		if cur == nil {
-			cur = r.newList(cx)
+		rest := it.Blocks
+		first := r.para()
+		if len(rest) > 0 {
+			if p, ok := rest[0].(Paragraph); ok {
+				r.inlines(first, p.Inlines, inl{face: r.f.regular, size: baseSize, col: colText})
+				rest = rest[1:]
+			}
 		}
-		extras := r.listItem(cur, marker, it, cx)
-		if len(extras) > 0 {
-			flush()
-			out = append(out, extras...)
+		if len(first.GetChunks()) == 0 {
+			r.text(first, r.f.regular, " ", baseSize, colText)
 		}
+		out = append(out, r.listRow(marker, first, cx))
+		out = append(out, r.blocks(rest, inner)...)
 	}
-	flush()
 	return out
 }
 
-func (r *pdfRender) newList(cx ctx) *creator.List {
-	ls := r.c.NewList()
-	ls.SetIndent(indentMM * creator.PPMM)
-	ls.SetMargins(cx.indent, 0, 0, 2)
-	return ls
-}
-
-// listItem adds one item to ls and returns blocks to draw after the list.
-func (r *pdfRender) listItem(ls *creator.List, marker string, it ListItem, cx ctx) []creator.VectorDrawable {
-	var first *creator.StyledParagraph
-	var nested []*creator.List
-	var after []creator.VectorDrawable
-	inner := ctx{indent: cx.indent + indentMM*creator.PPMM, inList: true}
-	for _, b := range it.Blocks {
-		switch b := b.(type) {
-		case Paragraph:
-			if first == nil {
-				first = r.para()
-				r.inlines(first, b.Inlines, inl{face: r.f.regular, size: baseSize, col: colText})
-			} else {
-				r.text(first, r.f.regular, "\n", baseSize, colText)
-				r.inlines(first, b.Inlines, inl{face: r.f.regular, size: baseSize, col: colText})
-			}
-		case List:
-			sub := r.nestedList(b)
-			nested = append(nested, sub)
-		default:
-			after = append(after, r.blocks([]Block{b}, inner)...)
-		}
-	}
-	if first == nil {
-		first = r.para()
-		r.text(first, r.f.regular, " ", baseSize, colText)
-	}
-	mk, err := ls.Add(first)
-	if err != nil {
-		log.Printf("export: list item: %v", err)
-		return after
-	}
-	mk.Text = r.f.regular.clean(marker)
-	mk.Style.Font, mk.Style.FontSize, mk.Style.Color = r.f.regular.font, baseSize, colText
-	for _, sub := range nested {
-		if _, err := ls.Add(sub); err != nil {
-			log.Printf("export: nested list: %v", err)
-		}
-	}
-	return after
-}
-
-// nestedList builds a list for use inside a list item. A native list can only
-// hold paragraphs and lists, so anything else inside it is drawn as text.
-func (r *pdfRender) nestedList(l List) *creator.List {
-	ls := r.c.NewList()
-	ls.SetIndent(indentMM * creator.PPMM)
-	n := l.Start
-	if n == 0 && l.Ordered {
-		n = 1
-	}
-	for _, it := range l.Items {
-		marker := "\u2022"
-		if l.Ordered {
-			marker = fmt.Sprintf("%d.", n)
-			n++
-		}
-		switch it.Task {
-		case TaskChecked:
-			marker = "[x]"
-		case TaskUnchecked:
-			marker = "[ ]"
-		}
-		p := r.para()
-		var subs []*creator.List
-		for _, b := range it.Blocks {
-			switch b := b.(type) {
-			case List:
-				subs = append(subs, r.nestedList(b))
-			default:
-				if t := blockText(b); t != "" {
-					if len(p.GetChunks()) > 0 {
-						r.text(p, r.f.regular, "\n", baseSize, colText)
-					}
-					r.inlines(p, []Inline{Text{Text: t}}, inl{face: r.f.regular, size: baseSize, col: colText})
-				}
-			}
-		}
-		if len(p.GetChunks()) == 0 {
-			r.text(p, r.f.regular, " ", baseSize, colText)
-		}
-		mk, err := ls.Add(p)
-		if err != nil {
-			continue
-		}
-		mk.Text = r.f.regular.clean(marker)
-		mk.Style.Font, mk.Style.FontSize, mk.Style.Color = r.f.regular.font, baseSize, colText
-		for _, s := range subs {
-			_, _ = ls.Add(s)
-		}
-	}
-	return ls
-}
-
-// blockText is a block's text, for places that can only hold a paragraph.
-func blockText(b Block) string {
-	switch b := b.(type) {
-	case Paragraph:
-		return plainText(b.Inlines)
-	case Heading:
-		return plainText(b.Inlines)
-	case CodeBlock:
-		return b.Text
-	case Quote:
-		var parts []string
-		for _, c := range b.Blocks {
-			if t := blockText(c); t != "" {
-				parts = append(parts, t)
-			}
-		}
-		return strings.Join(parts, "\n")
-	}
-	return ""
+// listRow is one list item's first line: marker and text.
+func (r *pdfRender) listRow(marker string, text *creator.StyledParagraph, cx ctx) *creator.Table {
+	t := r.c.NewTable(2)
+	frac := listMarkerMM * creator.PPMM / (r.w - cx.indent)
+	_ = t.SetColumnWidths(frac, 1-frac)
+	t.SetMargins(cx.indent, 0, 0, 0)
+	mp := r.textPara(marker, r.f.regular, baseSize, colText)
+	mc := t.NewCell()
+	mp.SetMargins(0, 0, 0, 2)
+	mc.SetIndent(0)
+	_ = mc.SetContent(mp)
+	tc := t.NewCell()
+	text.SetMargins(0, 0, 0, 2)
+	tc.SetIndent(0)
+	_ = tc.SetContent(text)
+	return t
 }
 
 // codeBlock is mono text on a light grey background, one paragraph per line so
@@ -853,7 +751,9 @@ func (r *pdfRender) table(tb Table, cx ctx) *creator.Table {
 				r.text(p, r.f.regular, " ", 9.5, colText)
 			}
 			p.SetTextAlignment(textAlign(al(i)))
-			r.cell(t, p, al(i), bg, true)
+			// Alignment is the paragraph's; the cell stays left. Both together hid
+			// right-aligned text.
+			r.cell(t, p, creator.CellHorizontalAlignmentLeft, bg, true)
 		}
 	}
 	if len(tb.Header) > 0 {

@@ -9,8 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -300,7 +302,7 @@ func TestExportFilename(t *testing.T) {
 		{"Weird ID/../x", "v 2\"", "pdf", "weird-id-..-x-vv-2-.pdf"},
 	}
 	for _, c := range cases {
-		if got := exportFilename(c.id, c.v, c.ext); got != c.want {
+		if got := exportFilename(c.id, c.v, "", c.ext); got != c.want {
 			t.Errorf("exportFilename(%q,%q) = %q, want %q", c.id, c.v, got, c.want)
 		}
 	}
@@ -432,5 +434,105 @@ func TestExportFailsClosedWhenActivityCannotBeWritten(t *testing.T) {
 	}
 	if got := f.activity(); len(got) != 0 {
 		t.Errorf("rows = %d", len(got))
+	}
+}
+
+// unlabelledVersion commits the document without a version field (as a template
+// document is on its first approval) and records a version row with an empty
+// label for that commit.
+func (f *exFx) unlabelledVersion(body string) *db.DocumentVersion {
+	f.t.Helper()
+	abs := filepath.Join(f.st.Root(), "documents", "test", f.docID+".md")
+	content := "---\ndocument_id: " + f.docID + "\ntitle: Test Doc\nstatus: approved\n---\n" + body + "\n"
+	hash, err := f.st.CommitFile(abs, []byte(content), "T", "t@example.com", "approve")
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	rel, err := filepath.Rel(f.st.Root(), abs)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	v := &db.DocumentVersion{DocumentID: f.docID, CommitHash: hash, FilePath: rel, CreatedBy: f.admin}
+	if err := f.s.db.RecordVersion(context.Background(), f.o.id, v); err != nil {
+		f.t.Fatal(err)
+	}
+	return v
+}
+
+func TestExportVersionByIDWithoutANumber(t *testing.T) {
+	f := newExFx(t, "exvid")
+	v := f.unlabelledVersion("# Approved text\n\nthe approved body")
+	f.save("# Current text\n\nthe current draft body")
+
+	rec := f.get(f.docID, fmt.Sprintf("?format=pdf&version_id=%d", v.ID), "admin")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	d := f.last()
+	if d.Meta.Status != "approved" || d.Draft() {
+		t.Errorf("the recorded version is approved, got status %q (Draft %v)", d.Meta.Status, d.Draft())
+	}
+	if h, ok := d.Blocks[0].(export.Heading); !ok || h.Inlines[0].(export.Text).Text != "Approved text" {
+		t.Errorf("blocks = %+v: this is not the recorded version's text", d.Blocks)
+	}
+	if d.VersionLabel != "" {
+		t.Errorf("VersionLabel = %q, want empty", d.VersionLabel)
+	}
+	date := v.CreatedAt.Time.UTC().Format("2006-01-02")
+	if cd := rec.Header().Get("Content-Disposition"); cd != "attachment; filename="+f.docID+"-"+date+".pdf" {
+		t.Errorf("Content-Disposition = %q", cd)
+	}
+	rows := f.activity()
+	if len(rows) != 1 || rows[0].Detail != "Exported "+f.docID+" version of "+date+" as PDF" {
+		t.Errorf("activity = %+v", rows)
+	}
+
+	// The current working copy is a different, draft document.
+	rec = f.get(f.docID, "?format=pdf", "admin")
+	if rec.Code != http.StatusOK {
+		t.Fatal(rec.Body)
+	}
+	if d := f.last(); !d.Draft() {
+		t.Errorf("current status = %q, want a draft", d.Meta.Status)
+	} else if h, ok := d.Blocks[0].(export.Heading); !ok || h.Inlines[0].(export.Text).Text != "Current text" {
+		t.Errorf("current blocks = %+v", d.Blocks)
+	}
+}
+
+func TestExportVersionIDIsScopedToTheDocumentAndOrganization(t *testing.T) {
+	f := newExFx(t, "exscope")
+	// A version of another document in the same organization.
+	other := &db.DocumentVersion{DocumentID: "some-other-doc", CommitHash: "0000000000000000000000000000000000000000", FilePath: "x.md", CreatedBy: f.admin}
+	if err := f.s.db.RecordVersion(context.Background(), f.o.id, other); err != nil {
+		t.Fatal(err)
+	}
+	// A version with the same document id in another organization.
+	o2 := trustNewOrg(t, f.s, "exscope2", false)
+	foreign := &db.DocumentVersion{DocumentID: f.docID, CommitHash: "0000000000000000000000000000000000000000", FilePath: "x.md", CreatedBy: f.admin}
+	if err := f.s.db.RecordVersion(context.Background(), o2.id, foreign); err != nil {
+		t.Fatal(err)
+	}
+	for name, id := range map[string]int{"another document": other.ID, "another organization": foreign.ID, "unknown id": 999999999} {
+		rec := f.get(f.docID, fmt.Sprintf("?format=pdf&version_id=%d", id), "admin")
+		if rec.Code != http.StatusNotFound || exCode(rec) != CodeExportVersionNotFound {
+			t.Errorf("%s: %d %s", name, rec.Code, rec.Body)
+		}
+	}
+	if len(f.docs) != 0 || len(f.activity()) != 0 {
+		t.Error("a refused export rendered something or wrote an activity row")
+	}
+}
+
+func TestExportVersionParameterValidation(t *testing.T) {
+	f := newExFx(t, "exvval")
+	rec := f.get(f.docID, "?format=pdf&version=1.0&version_id=3", "admin")
+	if rec.Code != http.StatusBadRequest || exCode(rec) != CodeExportVersionAmbiguous {
+		t.Errorf("both: %d %s", rec.Code, rec.Body)
+	}
+	for _, v := range []string{"abc", "0", "-3", "1.5", "99999999999999999999"} {
+		rec := f.get(f.docID, "?format=pdf&version_id="+v, "admin")
+		if rec.Code != http.StatusBadRequest || exCode(rec) != CodeExportVersionInvalid {
+			t.Errorf("version_id=%s: %d %s", v, rec.Code, rec.Body)
+		}
 	}
 }

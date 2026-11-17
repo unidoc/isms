@@ -34,18 +34,28 @@ const fileResponse = (cd) => ({
 test('exportDocument encodes the doc id and query, and sends the token', async () => {
   localStorage.setItem('isms_api_token', 'tok-123')
   const calls = stubFetch(() => fileResponse('attachment; filename=pol-1-v1.0.pdf'))
-  const out = await api.exportDocument('a b/c', { format: 'docx', version: '1.0 & x' })
+  const out = await api.exportDocument('a b/c', { format: 'docx', versionId: '42' })
   assert.equal(calls.length, 1)
-  assert.equal(calls[0].url, '/api/v1/documents/a%20b%2Fc/export?format=docx&version=1.0+%26+x')
+  assert.equal(calls[0].url, '/api/v1/documents/a%20b%2Fc/export?format=docx&version_id=42')
   assert.equal(calls[0].opts.headers.Authorization, 'Bearer tok-123')
   assert.deepEqual(out, { blob: 'BLOB', filename: 'pol-1-v1.0.pdf' })
 })
 
-test('exportDocument omits an empty or "current" version', async () => {
-  for (const version of [undefined, '', 'current']) {
+test('exportDocument sends neither version nor version_id for the current copy', async () => {
+  for (const versionId of [undefined, null, '']) {
     const calls = stubFetch(() => fileResponse('attachment; filename=x.pdf'))
-    await api.exportDocument('pol-1', { format: 'pdf', version })
-    assert.equal(calls[0].url, '/api/v1/documents/pol-1/export?format=pdf', `version=${JSON.stringify(version)}`)
+    await api.exportDocument('pol-1', { format: 'pdf', versionId })
+    assert.equal(calls[0].url, '/api/v1/documents/pol-1/export?format=pdf', `versionId=${JSON.stringify(versionId)}`)
+  }
+})
+
+test('a chosen version is sent by id and never by label', async () => {
+  for (const versionId of ['7', 7]) {
+    const calls = stubFetch(() => fileResponse('attachment; filename=x.pdf'))
+    await api.exportDocument('pol-1', { format: 'pdf', versionId })
+    const u = new URL(calls[0].url, 'https://x.example')
+    assert.equal(u.searchParams.get('version_id'), '7')
+    assert.equal(u.searchParams.has('version'), false, 'the label parameter must not be sent')
   }
 })
 
@@ -111,4 +121,17 @@ test('every button in the export modal declares a type', () => {
   const tags = buttonTags(DOCUMENTS.slice(start, end))
   assert.ok(tags.length >= 2, `expected Cancel and Download, found ${tags.length}`)
   for (const t of tags) assert.match(t, /\stype="button"/, `typeless button: ${t}`)
+})
+
+// Two versions can share the label "" (a document with no version field), so the
+// dialog's option values are the version ids: "" is only ever "Current version".
+test('the export dialog uses version ids as option values', () => {
+  const m = DOCUMENTS.match(/<select id="export-version"[\s\S]*?<\/select>/)
+  assert.ok(m, 'export version select not found')
+  const sel = m[0]
+  assert.match(sel, /<option value="">\{\{ t\('documents\.export\.current_version'\) \}\}<\/option>/)
+  assert.match(sel, /:value="String\(ver\.id\)"/)
+  assert.doesNotMatch(sel, /:value="ver\.version"/)
+  assert.match(sel, /t\('documents\.export\.unnumbered_version'\)/)
+  assert.match(DOCUMENTS, /versionId: exportVersion\.value/)
 })

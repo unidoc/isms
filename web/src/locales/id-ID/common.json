@@ -504,7 +504,9 @@
     "export_format_invalid": "format harus pdf atau docx",
     "export_not_licensed": "Ekspor {value} tidak tersedia di server ini",
     "export_version_not_found": "versi dokumen tersebut tidak ada",
-    "export_failed": "ekspor gagal"
+    "export_failed": "ekspor gagal",
+    "export_version_ambiguous": "berikan version atau version_id, bukan keduanya",
+    "export_version_invalid": "version_id harus berupa bilangan bulat positif"
   },
   "region": {
     "global": "Global",

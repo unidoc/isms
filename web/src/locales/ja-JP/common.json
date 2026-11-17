@@ -491,7 +491,9 @@
     "export_format_invalid": "形式は pdf または docx にしてください",
     "export_not_licensed": "このサーバーでは {value} へのエクスポートは利用できません",
     "export_version_not_found": "文書にそのバージョンは存在しません",
-    "export_failed": "エクスポートに失敗しました"
+    "export_failed": "エクスポートに失敗しました",
+    "export_version_ambiguous": "version と version_id のどちらか一方だけを指定してください",
+    "export_version_invalid": "version_id は正の整数にしてください"
   },
   "region": {
     "global": "グローバル",

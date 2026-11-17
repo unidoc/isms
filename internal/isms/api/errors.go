@@ -128,10 +128,12 @@ const (
 	// Document export: the format is not pdf or docx; the format is not licensed
 	// on this server (or the licence was lost while rendering); the requested
 	// version does not exist; rendering failed (details are only logged).
-	CodeExportFormatInvalid   = "export_format_invalid"
-	CodeExportNotLicensed     = "export_not_licensed"
-	CodeExportVersionNotFound = "export_version_not_found"
-	CodeExportFailed          = "export_failed"
+	CodeExportFormatInvalid    = "export_format_invalid"
+	CodeExportNotLicensed      = "export_not_licensed"
+	CodeExportVersionNotFound  = "export_version_not_found"
+	CodeExportFailed           = "export_failed"
+	CodeExportVersionAmbiguous = "export_version_ambiguous"
+	CodeExportVersionInvalid   = "export_version_invalid"
 
 	// Trust center.
 	CodeTrustNoApprovedVersion = "trust_no_approved_version"
@@ -240,6 +242,8 @@ var errorMessages = map[string]string{
 	CodeExportNotLicensed:                  "{value} export is not available on this server",
 	CodeExportVersionNotFound:              "that version of the document does not exist",
 	CodeExportFailed:                       "export failed",
+	CodeExportVersionAmbiguous:             "give either version or version_id, not both",
+	CodeExportVersionInvalid:               "version_id must be a positive whole number",
 	CodeDocumentNotApproved:                "only approved documents can be confirmed — a document that has changed since its approval needs a full review",
 	CodeTrustNoApprovedVersion:             "this document has no approved version to publish",
 	CodeTrustDocumentRetired:               "a retired document cannot be published",

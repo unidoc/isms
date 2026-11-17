@@ -133,7 +133,7 @@ scaffold.ScaffoldToRepo(st, ...)  // scaffold into bare git repo
 ```
 GET  /documents/all              — list all documents with folder tree
 GET  /documents/:docId/body      — get document content by ID
-GET  /documents/:docId/export    — download as PDF/DOCX: `format=pdf|docx` (400 export_format_invalid), 403 export_not_licensed when the format is not licensed (see `export_formats` in /config), optional `version` (default the working copy; 404 export_version_not_found); any reader
+GET  /documents/:docId/export    — download as PDF/DOCX: `format=pdf|docx` (400 export_format_invalid), 403 export_not_licensed when the format is not licensed (see `export_formats` in /config), optional `version` (label) or `version_id` (row id; the only way to address a version with an empty label; not both, 400 export_version_ambiguous; default the working copy; 404 export_version_not_found); any reader
 PUT  /documents/:docId/metadata  — update document metadata
 PUT  /documents/:docId/content   — update document content
 GET  /documents/search           — search documents

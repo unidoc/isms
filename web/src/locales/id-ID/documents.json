@@ -177,6 +177,7 @@
     "format": "Format",
     "version": "Versi",
     "current_version": "Versi saat ini",
+    "unnumbered_version": "Tanpa nomor versi",
     "download": "Unduh",
     "downloading": "Mengunduh…"
   },

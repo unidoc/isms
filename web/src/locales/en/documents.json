@@ -183,6 +183,7 @@
     "format": "Format",
     "version": "Version",
     "current_version": "Current version",
+    "unnumbered_version": "No version number",
     "download": "Download",
     "downloading": "Downloading..."
   },

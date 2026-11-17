@@ -504,7 +504,9 @@
     "export_format_invalid": "sniðið verður að vera pdf eða docx",
     "export_not_licensed": "Útflutningur í {value} er ekki í boði á þessum þjóni",
     "export_version_not_found": "þessi útgáfa skjalsins er ekki til",
-    "export_failed": "útflutningur mistókst"
+    "export_failed": "útflutningur mistókst",
+    "export_version_ambiguous": "gefðu upp annaðhvort version eða version_id, ekki bæði",
+    "export_version_invalid": "version_id verður að vera jákvæð heil tala"
   },
   "region": {
     "global": "Á heimsvísu",

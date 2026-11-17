@@ -7,6 +7,7 @@ import (
 	"mime"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,12 +39,15 @@ func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, error
 
 var exportNameUnsafe = regexp.MustCompile(`[^a-z0-9._-]`)
 
-// exportFilename is "<doc-id>-v<version>.<ext>", or "<doc-id>.<ext>" without a
-// version label, reduced to [a-z0-9._-].
-func exportFilename(docID, version, ext string) string {
+// exportFilename is "<doc-id>-v<version>.<ext>", "<doc-id>-<date>.<ext>" for a
+// version without a number, or "<doc-id>.<ext>", reduced to [a-z0-9._-].
+func exportFilename(docID, version, date, ext string) string {
 	name := docID
-	if version != "" {
+	switch {
+	case version != "":
 		name += "-v" + version
+	case date != "":
+		name += "-" + date
 	}
 	name = exportNameUnsafe.ReplaceAllString(strings.ToLower(name), "-")
 	return name + "." + ext
@@ -84,9 +88,25 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "document not found: "+docID)
 	}
 
+	// A version is addressed by its label (`version`) or its row id (`version_id`).
+	// An empty label, which every template document's first approval has, can only
+	// be addressed by id: "" means the current working copy.
 	version := strings.TrimSpace(c.QueryParam("version"))
+	idParam := strings.TrimSpace(c.QueryParam("version_id"))
+	if idParam != "" && version != "" {
+		return apiError(http.StatusBadRequest, CodeExportVersionAmbiguous)
+	}
+	versionID := 0
+	if idParam != "" {
+		n, err := strconv.Atoi(idParam)
+		if err != nil || n <= 0 {
+			return apiError(http.StatusBadRequest, CodeExportVersionInvalid)
+		}
+		versionID = n
+	}
 	var pf *store.DocumentFile
-	if version == "" || version == "current" {
+	var row *db.DocumentVersion // the recorded version being exported, if any
+	if versionID == 0 && (version == "" || version == "current") {
 		version = ""
 		pf, err = st.LoadDocument(path)
 		if err != nil {
@@ -94,21 +114,28 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 			return apiError(http.StatusInternalServerError, CodeExportFailed)
 		}
 	} else {
-		v, err := s.db.GetVersion(ctx, orgID, docID, version)
+		var v *db.DocumentVersion
+		var err error
+		if versionID != 0 {
+			v, err = s.db.GetVersionByID(ctx, orgID, docID, versionID)
+		} else {
+			v, err = s.db.GetVersion(ctx, orgID, docID, version)
+		}
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return apiError(http.StatusNotFound, CodeExportVersionNotFound)
 			}
-			log.Printf("export %s: looking up version %s: %v", docID, version, err)
+			log.Printf("export %s: looking up version %s%d: %v", docID, version, versionID, err)
 			return apiError(http.StatusInternalServerError, CodeExportFailed)
 		}
+		row = v
 		raw, err := st.ReadFileAtRef(v.CommitHash, v.FilePath)
 		if err != nil {
-			log.Printf("export %s: reading version %s: %v", docID, version, err)
+			log.Printf("export %s: reading version %d: %v", docID, v.ID, err)
 			return apiError(http.StatusInternalServerError, CodeExportFailed)
 		}
 		if pf, err = store.ParseDocument(v.FilePath, raw); err != nil {
-			log.Printf("export %s: parsing version %s: %v", docID, version, err)
+			log.Printf("export %s: parsing version %d: %v", docID, v.ID, err)
 			return apiError(http.StatusInternalServerError, CodeExportFailed)
 		}
 	}
@@ -126,6 +153,18 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	}
 	if d.VersionLabel == "" {
 		d.VersionLabel = version
+	}
+	// A recorded version whose document carries no version number is named by the
+	// date it was recorded (UTC), in the file name and the activity trail; its
+	// cover shows "-" for the number.
+	date := ""
+	if row != nil {
+		if d.VersionLabel == "" {
+			d.VersionLabel = row.Version
+		}
+		if d.VersionLabel == "" {
+			date = row.CreatedAt.Time.UTC().Format("2006-01-02")
+		}
 	}
 	if org, err := s.db.GetOrganization(ctx, orgID); err == nil && org != nil {
 		d.Org.Name = s.db.OrgBrandName(ctx, org)
@@ -147,8 +186,11 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	// Fail closed: an export the activity trail cannot record is not served.
 	// A plain write, not logAndNotify: an export never posts to chat.
 	what := "(current)"
-	if d.VersionLabel != "" {
+	switch {
+	case d.VersionLabel != "":
 		what = "version " + d.VersionLabel
+	case date != "":
+		what = "version of " + date
 	}
 	if err := s.db.LogActivity(ctx, orgID, &db.Activity{
 		DocumentID: docID,
@@ -160,7 +202,7 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		return apiError(http.StatusInternalServerError, CodeExportFailed)
 	}
 
-	name := exportFilename(docID, d.VersionLabel, export.Ext(format))
+	name := exportFilename(docID, d.VersionLabel, date, export.Ext(format))
 	disp := mime.FormatMediaType("attachment", map[string]string{"filename": name})
 	if disp == "" {
 		disp = "attachment"

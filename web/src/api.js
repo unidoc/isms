@@ -514,11 +514,13 @@ export const api = {
   deleteAccessReview: (id) => deleteJSON(`${API}/access-reviews/${id}`),
 
   // Export a document as PDF or DOCX. The token is in localStorage, not a cookie,
-  // so the file is fetched here and handed back as a blob to save. `version` ""
-  // or "current" means the working copy and is not sent.
-  exportDocument: async (docId, { format, version } = {}) => {
+  // so the file is fetched here and handed back as a blob to save. A chosen
+  // version is sent by its row id (`version_id`), because a version's label can
+  // be empty and "" means the working copy; no versionId (or "") is the current
+  // working copy and sends nothing.
+  exportDocument: async (docId, { format, versionId } = {}) => {
     const q = new URLSearchParams({ format })
-    if (version && version !== 'current') q.set('version', version)
+    if (versionId !== undefined && versionId !== null && String(versionId) !== '') q.set('version_id', String(versionId))
     const res = await safeFetch(`${API}/documents/${encodeURIComponent(docId)}/export?${q}`, { headers: getHeaders() })
     checkAuth(res)
     if (!res.ok) {

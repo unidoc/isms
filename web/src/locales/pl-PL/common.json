@@ -504,7 +504,9 @@
     "export_format_invalid": "format musi mieć wartość pdf lub docx",
     "export_not_licensed": "Eksport do formatu {value} nie jest dostępny na tym serwerze",
     "export_version_not_found": "taka wersja dokumentu nie istnieje",
-    "export_failed": "eksport nie powiódł się"
+    "export_failed": "eksport nie powiódł się",
+    "export_version_ambiguous": "podaj version albo version_id, nie oba naraz",
+    "export_version_invalid": "version_id musi być dodatnią liczbą całkowitą"
   },
   "region": {
     "global": "Globalny",

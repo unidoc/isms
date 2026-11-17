@@ -177,6 +177,7 @@
     "format": "形式",
     "version": "バージョン",
     "current_version": "現在のバージョン",
+    "unnumbered_version": "バージョン番号なし",
     "download": "ダウンロード",
     "downloading": "ダウンロード中…"
   },

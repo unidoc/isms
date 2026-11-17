@@ -177,6 +177,7 @@
     "format": "Formato",
     "version": "Versión",
     "current_version": "Versión actual",
+    "unnumbered_version": "Sin número de versión",
     "download": "Descargar",
     "downloading": "Descargando..."
   },

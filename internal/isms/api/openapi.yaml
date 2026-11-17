@@ -2152,8 +2152,8 @@ paths:
         stamped as a draft. Every successful export is recorded in the activity
         trail. The file is an attachment: `Content-Disposition: attachment`,
         `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. Error
-        bodies carry a `code`: `export_format_invalid` (400),
-        `export_not_licensed` (403), `export_version_not_found` (404),
+        bodies carry a `code`: `export_format_invalid`, `export_version_ambiguous`
+        and `export_version_invalid` (400), `export_not_licensed` (403), `export_version_not_found` (404),
         `export_failed` (500, details are only logged).
       parameters:
         - $ref: '#/components/parameters/docId'
@@ -2165,6 +2165,15 @@ paths:
           in: query
           schema: { type: string }
           description: A version label, or `current` (the default) for the working copy.
+        - name: version_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+          description: >-
+            A recorded version by its id (the `id` in `/documents/{docId}/versions`).
+            The only way to address a version whose label is empty. It must belong to
+            this document and organization, otherwise 404 `export_version_not_found`.
+            Giving both `version` and `version_id` is 400 `export_version_ambiguous`;
+            a `version_id` that is not a positive integer is 400 `export_version_invalid`.
       responses:
         '200':
           description: The document file

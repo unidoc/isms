@@ -1293,8 +1293,8 @@
             <select id="export-version" v-model="exportVersion"
               class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500">
               <option value="">{{ t('documents.export.current_version') }}</option>
-              <option v-for="ver in exportVersions" :key="ver.id ?? ver.version" :value="ver.version">
-                {{ ver.version }} — {{ formatDate(ver.created_at) }}
+              <option v-for="ver in exportVersions" :key="ver.id" :value="String(ver.id)">
+                {{ ver.version || t('documents.export.unnumbered_version') }} — {{ formatDate(ver.created_at) }}
               </option>
             </select>
           </div>
@@ -2248,7 +2248,7 @@ async function deleteCurrentDocument() {
 // Export as PDF/DOCX. The server renders; this only asks and saves the file.
 const showExportModal = ref(false)
 const exportFormat = ref('')
-const exportVersion = ref('') // '' = the current working copy
+const exportVersion = ref('') // '' = the current working copy; else a version's row id, as a string
 const exportVersions = ref([])
 const exportBusy = ref(false)
 
@@ -2278,7 +2278,7 @@ async function downloadExport() {
   if (!activeId.value || !exportFormat.value || exportBusy.value) return
   exportBusy.value = true
   try {
-    const { blob, filename } = await api.exportDocument(activeId.value, { format: exportFormat.value, version: exportVersion.value })
+    const { blob, filename } = await api.exportDocument(activeId.value, { format: exportFormat.value, versionId: exportVersion.value })
     const objUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = objUrl

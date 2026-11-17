@@ -177,6 +177,7 @@
     "format": "Snið",
     "version": "Útgáfa",
     "current_version": "Núverandi útgáfa",
+    "unnumbered_version": "Ekkert útgáfunúmer",
     "download": "Sækja",
     "downloading": "Sæki..."
   },

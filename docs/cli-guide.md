@@ -94,6 +94,9 @@ writes no file.
 
 - `--version <v>` exports that version as it was approved. Without it, the
   current working copy is exported (stamped as a draft unless it is approved).
+- `--version` takes a version label. A version that has no number (common for a
+  document's first approval) cannot be addressed by label; export it from the
+  document's page in the web app instead.
 - Without `-o` the file is saved in the current directory under the server's
   name. An existing file with that name is never overwritten: the command stops
   and tells you to use `-o`.

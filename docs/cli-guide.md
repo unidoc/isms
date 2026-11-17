@@ -76,7 +76,33 @@ The CLI prints calendar dates (due, review, planned and end dates, expiry) as UT
 | `isms sync` | Push local commits to `main` (live immediately; manager/admin-only) |
 | `isms document list\|show\|cat` | List/inspect documents |
 | `isms diff` | Show a document diff |
-| `isms export` | Export documents |
+| `isms export` | Export documents (markdown; one document as PDF or DOCX, see below) |
+
+#### Exporting a document as PDF or DOCX
+
+```bash
+isms export policy POL-AC-001                        # markdown to stdout
+isms export policy POL-AC-001 --format pdf           # saves POL-AC-001-v1.0.pdf here
+isms export policy POL-AC-001 --format docx --version 1.0 -o out.docx
+```
+
+PDF and DOCX are rendered by the ISMS server and downloaded: the CLI itself needs
+no licence and renders nothing. The server must have document export enabled;
+`GET /api/v1/config` lists the available formats in `export_formats`. If the
+server has no export licence the command fails with the server's message and
+writes no file.
+
+- `--version <v>` exports that version as it was approved. Without it, the
+  current working copy is exported (stamped as a draft unless it is approved).
+- Without `-o` the file is saved in the current directory under the server's
+  name. An existing file with that name is never overwritten: the command stops
+  and tells you to use `-o`.
+- `-o <file>` writes there and overwrites an existing file.
+- `-o -` writes to stdout, only when stdout is not a terminal (for example when
+  piped); a terminal is refused.
+- After saving, `Saved <name> (<n> bytes)` is printed to stderr.
+- Other `isms export` subcommands (documents, risks, assets, suppliers,
+  audit-pack, manual) are markdown only.
 
 ### Registers
 | Command | Purpose |

@@ -28,7 +28,8 @@ func exportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export ISMS documents (markdown, PDF, DOCX)",
-		Long:  "Export ISMS data as markdown. PDF/DOCX export requires a UniDoc license (UNIDOC_API_KEY).",
+		Long: "Export ISMS data as markdown. A single document can also be downloaded as PDF or DOCX:\n" +
+			"the ISMS server renders it, and the server needs its export licence (see \"export_formats\" in /api/v1/config).",
 	}
 
 	cmd.AddCommand(
@@ -44,22 +45,29 @@ func exportCmd() *cobra.Command {
 	return cmd
 }
 
-// checkUniDocKey checks if UNIDOC_API_KEY is set for non-markdown formats.
-// For markdown format, it always returns nil.
-// For pdf/docx, it returns an error telling the user it's coming soon.
+// checkExportFormat validates --format. PDF and DOCX are rendered by the
+// server, so nothing about a licence is checked here: the CLI never licenses
+// or renders anything.
 func checkExportFormat(format string) error {
 	switch format {
-	case "md", "markdown":
+	case "md", "markdown", "pdf", "docx":
 		return nil
-	case "pdf", "docx", "xlsx":
-		key := os.Getenv("UNIDOC_API_KEY")
-		if key == "" {
-			return fmt.Errorf("%s export requires a UniDoc license. Set UNIDOC_API_KEY in your env file.\nGet one at https://unidoc.io\n\nUse --format md for markdown export.", format)
-		}
-		return fmt.Errorf("PDF/DOCX export coming soon. UniDoc integration is in progress.\nUse --format md for markdown export.")
 	default:
 		return fmt.Errorf("unsupported format: %s (supported: md, pdf, docx)", format)
 	}
+}
+
+// checkMarkdownOnly is checkExportFormat for the commands that build one
+// markdown document from many records: only `export policy` can download a
+// rendered PDF or DOCX.
+func checkMarkdownOnly(format string) error {
+	if err := checkExportFormat(format); err != nil {
+		return err
+	}
+	if format == "pdf" || format == "docx" {
+		return fmt.Errorf("PDF/DOCX export is available for a single document: isms export policy <id> --format pdf")
+	}
+	return nil
 }
 
 // writeOutput writes content to a file or stdout.
@@ -75,15 +83,68 @@ func writeOutput(output, content string) error {
 	return nil
 }
 
+// downloadExport fetches a rendered PDF/DOCX from the server and saves it. A
+// failure writes no file.
+func downloadExport(c *client.Client, docID, format, version, output string) error {
+	if output == "-" && stdoutIsTerminal() {
+		return fmt.Errorf("refusing to write binary PDF/DOCX to a terminal; use -o <file>")
+	}
+	f, err := c.ExportDocument(docID, format, version)
+	if err != nil {
+		return err
+	}
+	if output == "-" {
+		_, err := os.Stdout.Write(f.Data)
+		return err
+	}
+	name := output
+	flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	if name == "" {
+		// A default name never replaces a file that is already there.
+		name = f.Filename
+		flags = os.O_WRONLY | os.O_CREATE | os.O_EXCL
+	}
+	out, err := os.OpenFile(name, flags, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("%s already exists; use -o <file> to choose where to write (an existing -o file is overwritten)", name)
+		}
+		return fmt.Errorf("writing file: %w", err)
+	}
+	if _, err := out.Write(f.Data); err != nil {
+		_ = out.Close()
+		return fmt.Errorf("writing file: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("writing file: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "Saved %s (%d bytes)\n", name, len(f.Data))
+	return nil
+}
+
+// stdoutIsTerminal reports whether stdout is a character device.
+func stdoutIsTerminal() bool {
+	fi, err := os.Stdout.Stat()
+	return err == nil && fi.Mode()&os.ModeCharDevice != 0
+}
+
 func exportPolicyCmd() *cobra.Command {
-	var format, output string
+	var format, output, version string
 
 	cmd := &cobra.Command{
-		Use:     "policy <doc-id>",
-		Short:   "Export a single policy as markdown",
-		Long:    "Export a policy document. Use the document ID (e.g. POL-AC-001).",
-		Example: "  isms export policy POL-AC-001\n  isms export policy POL-AC-001 --output policy.md",
-		Args:    cobra.ExactArgs(1),
+		Use:   "policy <doc-id>",
+		Short: "Export a single document as markdown, PDF or DOCX",
+		Long: "Export a document by its ID (e.g. POL-AC-001).\n\n" +
+			"Markdown is built locally from the document body. PDF and DOCX are rendered by the\n" +
+			"ISMS server and downloaded; the server needs its export licence. Without -o the file\n" +
+			"is saved in the current directory under the server's name (never overwriting an\n" +
+			"existing file); -o <file> overwrites; -o - writes to stdout when it is not a terminal.\n" +
+			"--version picks an earlier version (default: the current working copy).",
+		Example: "  isms export policy POL-AC-001\n" +
+			"  isms export policy POL-AC-001 --output policy.md\n" +
+			"  isms export policy POL-AC-001 --format pdf\n" +
+			"  isms export policy POL-AC-001 --format docx --version 1.0 -o out.docx",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkExportFormat(format); err != nil {
 				return err
@@ -91,6 +152,12 @@ func exportPolicyCmd() *cobra.Command {
 
 			c := requireAPI()
 			docID := args[0]
+			if format == "pdf" || format == "docx" {
+				return downloadExport(c, docID, format, version, output)
+			}
+			if version != "" {
+				return fmt.Errorf("--version applies to --format pdf or docx")
+			}
 			doc, err := c.GetDocumentBody(docID)
 			if err != nil {
 				return fmt.Errorf("document not found: %s", docID)
@@ -117,7 +184,8 @@ func exportPolicyCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&format, "format", "md", "Export format: md, pdf, docx")
-	cmd.Flags().StringVarP(&output, "output", "o", "", "Output file (default: stdout)")
+	cmd.Flags().StringVar(&version, "version", "", "Version to export (pdf/docx; default: the current working copy)")
+	cmd.Flags().StringVarP(&output, "output", "o", "", "Output file (md: default stdout; pdf/docx: default a file in the current directory; - for stdout)")
 	return cmd
 }
 
@@ -129,7 +197,7 @@ func exportDocumentsCmd() *cobra.Command {
 		Short:   "Export all documents (or a specific folder)",
 		Example: "  isms export documents\n  isms export documents --folder my-folder --output export.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 
@@ -199,7 +267,7 @@ func exportRisksCmd() *cobra.Command {
 		Short:   "Export risk register",
 		Example: "  isms export risks\n  isms export risks --output risks.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 
@@ -273,7 +341,7 @@ func exportAssetsCmd() *cobra.Command {
 		Short:   "Export asset register",
 		Example: "  isms export assets\n  isms export assets --output assets.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 
@@ -359,7 +427,7 @@ func exportSuppliersCmd() *cobra.Command {
 		Short:   "Export supplier register",
 		Example: "  isms export suppliers\n  isms export suppliers --output suppliers.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 
@@ -452,7 +520,7 @@ func exportAuditPackCmd() *cobra.Command {
 		Example: "  isms export audit-pack 1\n  isms export audit-pack 1 --output audit-report.md",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 
@@ -586,7 +654,7 @@ func exportManualCmd() *cobra.Command {
 		Short:   "Export full ISMS manual (all document folders)",
 		Example: "  isms export manual\n  isms export manual --output isms-manual.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := checkExportFormat(format); err != nil {
+			if err := checkMarkdownOnly(format); err != nil {
 				return err
 			}
 

@@ -69,6 +69,7 @@
     "send_for_review": "Kirim untuk ditinjau",
     "version_history": "Riwayat versi",
     "comments": "Komentar",
+    "export": "Ekspor",
     "print": "Cetak dokumen",
     "delete": "Hapus dokumen"
   },
@@ -171,6 +172,14 @@
     "version_note_hint": "Catatan ini menjadi bagian dari riwayat versi permanen dokumen setelah disetujui.",
     "send": "Kirim ke {count} peninjau | Kirim ke {count} peninjau"
   },
+  "export": {
+    "title": "Ekspor dokumen",
+    "format": "Format",
+    "version": "Versi",
+    "current_version": "Versi saat ini",
+    "download": "Unduh",
+    "downloading": "Mengunduh…"
+  },
   "new_doc": {
     "heading": "Dokumen Baru",
     "title": "Judul",
@@ -209,6 +218,7 @@
     "submit_comment": "Gagal mengirim komentar: {message}",
     "resolve_comment": "Gagal menyelesaikan komentar: {message}",
     "load_documents": "Gagal memuat dokumen: {message}",
-    "save": "Gagal menyimpan: {message}"
+    "save": "Gagal menyimpan: {message}",
+    "export": "Gagal mengekspor: {message}"
   }
 }

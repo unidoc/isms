@@ -455,6 +455,14 @@
                 </svg>
                 <span v-if="openCommentCount > 0" class="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 text-[9px] font-bold text-white bg-blue-500 rounded-full">{{ openCommentCount }}</span>
               </button>
+              <!-- Export (labelled): only when the server has an export licence -->
+              <button type="button" v-if="!editMode && exportFormats.length > 0" @click="openExport"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors text-slate-500 hover:text-slate-300 hover:bg-slate-800 no-print">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                {{ t('documents.toolbar.export') }}
+              </button>
               <!-- Print (icon only) -->
               <button v-if="!editMode" @click="printDocument"
                 class="p-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-300 hover:bg-slate-800 no-print" :title="t('documents.toolbar.print')">
@@ -1261,6 +1269,50 @@
       </Transition>
     </Teleport>
 
+    <!-- Export Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+      <div v-if="showExportModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" @click="closeExport" />
+        <div class="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+          <h2 class="text-lg font-bold text-white">{{ t('documents.export.title') }}</h2>
+          <p class="text-sm text-slate-400">{{ activeDoc?.title || activeId }}</p>
+
+          <fieldset>
+            <legend class="block text-xs text-slate-500 mb-2">{{ t('documents.export.format') }}</legend>
+            <div class="flex gap-4">
+              <label v-for="f in exportFormats" :key="f" class="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                <input type="radio" name="export-format" :value="f" v-model="exportFormat" class="accent-blue-500" />
+                {{ f.toUpperCase() }}
+              </label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label for="export-version" class="block text-xs text-slate-500 mb-1">{{ t('documents.export.version') }}</label>
+            <select id="export-version" v-model="exportVersion"
+              class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">{{ t('documents.export.current_version') }}</option>
+              <option v-for="ver in exportVersions" :key="ver.id ?? ver.version" :value="ver.version">
+                {{ ver.version }} — {{ formatDate(ver.created_at) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button type="button" @click="downloadExport" :disabled="exportBusy || !exportFormat"
+              class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+              {{ exportBusy ? t('documents.export.downloading') : t('documents.export.download') }}
+            </button>
+            <button type="button" @click="closeExport" class="px-4 py-2.5 text-sm text-slate-400 hover:text-white">
+              {{ t('common.action.cancel') }}
+            </button>
+          </div>
+        </div>
+      </div>
+      </Transition>
+    </Teleport>
+
     <!-- New Document Modal -->
     <Teleport to="body">
       <Transition name="modal">
@@ -1448,6 +1500,7 @@ function renderRefLinks(html) {
 }
 import { api, getCurrentUser } from '../api'
 import { useToast } from '../composables/useToast'
+import { useSession } from '../composables/useSession'
 import { useConfirm } from '../composables/useConfirm'
 import { useModalEscape } from '../composables/useModalEscape'
 import { useDocumentTree } from '../composables/useDocumentTree'
@@ -1473,6 +1526,7 @@ const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
 const { error: toastError } = useToast()
+const { exportFormats } = useSession()
 
 const {
   folders,
@@ -2191,6 +2245,57 @@ async function deleteCurrentDocument() {
   }
 }
 
+// Export as PDF/DOCX. The server renders; this only asks and saves the file.
+const showExportModal = ref(false)
+const exportFormat = ref('')
+const exportVersion = ref('') // '' = the current working copy
+const exportVersions = ref([])
+const exportBusy = ref(false)
+
+async function openExport() {
+  exportFormat.value = exportFormats.value[0] || ''
+  exportVersion.value = ''
+  exportVersions.value = []
+  showExportModal.value = true
+  // Versions fill in when they arrive; if the load fails "Current version"
+  // is still all there is to pick, so nothing is shown.
+  const docId = activeId.value
+  try {
+    const list = (await api.getDocVersions(docId)) || []
+    if (showExportModal.value && activeId.value === docId) {
+      exportVersions.value = [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at) || (b.id ?? 0) - (a.id ?? 0))
+    }
+  } catch {
+    exportVersions.value = []
+  }
+}
+
+function closeExport() {
+  showExportModal.value = false
+}
+
+async function downloadExport() {
+  if (!activeId.value || !exportFormat.value || exportBusy.value) return
+  exportBusy.value = true
+  try {
+    const { blob, filename } = await api.exportDocument(activeId.value, { format: exportFormat.value, version: exportVersion.value })
+    const objUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(objUrl)
+    showExportModal.value = false
+  } catch (e) {
+    // The modal stays open so another format or version can be tried.
+    toastError(t('documents.error.export', { message: renderApiError(e) }))
+  } finally {
+    exportBusy.value = false
+  }
+}
+
 const showReviewModal = ref(false)
 const reviewMessage = ref('')
 const reviewSending = ref(false)
@@ -2826,6 +2931,7 @@ useModalEscape(showRemoveConfirm)
 useModalEscape(showTemplatePicker)
 useModalEscape(showNewDocModal)
 useModalEscape(showReviewModal)
+useModalEscape(showExportModal)
 
 document.addEventListener('click', (e) => {
   if (showNewMenu.value && !e.target.closest('.relative')) showNewMenu.value = false

@@ -69,6 +69,7 @@
     "send_for_review": "Senda til yfirferðar",
     "version_history": "Útgáfusaga",
     "comments": "Athugasemdir",
+    "export": "Flytja út",
     "print": "Prenta skjal",
     "delete": "Eyða skjali"
   },
@@ -171,6 +172,14 @@
     "version_note_hint": "Þetta verður hluti af varanlegri útgáfusögu skjalsins eftir samþykki.",
     "send": "Senda til {count} yfirferðaraðila | Senda til {count} yfirferðaraðila"
   },
+  "export": {
+    "title": "Flytja skjal út",
+    "format": "Snið",
+    "version": "Útgáfa",
+    "current_version": "Núverandi útgáfa",
+    "download": "Sækja",
+    "downloading": "Sæki..."
+  },
   "new_doc": {
     "heading": "Nýtt skjal",
     "title": "Titill",
@@ -209,6 +218,7 @@
     "submit_comment": "Ekki tókst að senda athugasemd: {message}",
     "resolve_comment": "Ekki tókst að leysa athugasemd: {message}",
     "load_documents": "Ekki tókst að sækja skjöl: {message}",
-    "save": "Ekki tókst að vista: {message}"
+    "save": "Ekki tókst að vista: {message}",
+    "export": "Útflutningur mistókst: {message}"
   }
 }

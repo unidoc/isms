@@ -69,6 +69,7 @@
     "send_for_review": "Enviar para revisão",
     "version_history": "Histórico de versões",
     "comments": "Comentários",
+    "export": "Exportar",
     "print": "Imprimir documento",
     "delete": "Excluir documento"
   },
@@ -171,6 +172,14 @@
     "version_note_hint": "Isso se tornará parte do histórico permanente de versões do documento após a aprovação.",
     "send": "Enviar para {count} revisor | Enviar para {count} revisores"
   },
+  "export": {
+    "title": "Exportar documento",
+    "format": "Formato",
+    "version": "Versão",
+    "current_version": "Versão atual",
+    "download": "Baixar",
+    "downloading": "Baixando..."
+  },
   "new_doc": {
     "heading": "Novo Documento",
     "title": "Título",
@@ -209,6 +218,7 @@
     "submit_comment": "Falha ao enviar comentário: {message}",
     "resolve_comment": "Falha ao resolver comentário: {message}",
     "load_documents": "Falha ao carregar documentos: {message}",
-    "save": "Falha ao salvar: {message}"
+    "save": "Falha ao salvar: {message}",
+    "export": "Falha ao exportar: {message}"
   }
 }

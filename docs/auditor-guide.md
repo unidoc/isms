@@ -219,7 +219,13 @@ isms export suppliers             # Supplier register
 isms export audit-pack <id>       # Audit report with findings
 ```
 
-Export currently produces markdown. PDF and DOCX export (via UniDoc) is planned.
+The commands above produce markdown. A single document can also be downloaded as
+PDF or DOCX, when the server has its export licence: use **Export** in the
+document's toolbar (choose the format and, if you want an earlier one, the
+version), or run `isms export policy <id> --format pdf` (or `docx`, with
+`--version`). Every export is recorded in the activity trail: who exported which
+document and version, and in which format. An export of a document that is not
+approved carries a DRAFT mark.
 
 ### API access
 

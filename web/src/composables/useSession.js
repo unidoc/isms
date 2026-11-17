@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { api, getCurrentUser, clearApiToken, setApiToken, setCurrentUser } from '../api'
 import { applyConfigLocales, applySessionLocale } from './useLocale'
 import { applyBrandColor } from '../utils/brandColor.js'
+import { exportFormatsFrom } from './exportFormats.js'
 import { orgFromSubdomain, isSubdomainMode, orgEntryURL, setSubdomainRouting, setApexHost, ensureConfigLoaded } from './useCurrentOrg'
 
 const user = ref(getCurrentUser())
@@ -21,6 +22,8 @@ const logoError = ref(false)
 const termsUrl = ref('')
 const privacyUrl = ref('')
 const showPoweredBy = ref(true)
+// Formats the server can export documents to ([] when it has no export licence).
+const exportFormats = ref([])
 const openReviewCount = ref(0)
 
 let refreshTimer = null
@@ -182,6 +185,7 @@ export function useSession() {
       if (cfg.privacy_url) privacyUrl.value = cfg.privacy_url
       else if (cfg.has_privacy) privacyUrl.value = '/privacy'
       showPoweredBy.value = cfg.show_powered_by !== false
+      exportFormats.value = exportFormatsFrom(cfg)
       // Routing config — server tells us the deployment's apex hostname and
       // whether wildcard subdomain routing is enabled. Both are needed for
       // orgEntryURL() to build the right URL when switching org.
@@ -244,6 +248,7 @@ export function useSession() {
     termsUrl,
     privacyUrl,
     showPoweredBy,
+    exportFormats,
     openReviewCount,
 
     // Computed

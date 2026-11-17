@@ -500,7 +500,11 @@
     "trust_file_required": "wybierz plik do przesłania",
     "trust_certification_source": "podaj łącze albo plik, nie jedno i drugie",
     "trust_date_invalid": "{field} musi być datą w formacie RRRR-MM-DD",
-    "trust_certification_already_published": "ta certyfikacja jest już opublikowana w centrum zaufania"
+    "trust_certification_already_published": "ta certyfikacja jest już opublikowana w centrum zaufania",
+    "export_format_invalid": "format musi mieć wartość pdf lub docx",
+    "export_not_licensed": "Eksport do formatu {value} nie jest dostępny na tym serwerze",
+    "export_version_not_found": "taka wersja dokumentu nie istnieje",
+    "export_failed": "eksport nie powiódł się"
   },
   "region": {
     "global": "Globalny",

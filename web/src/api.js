@@ -513,6 +513,23 @@ export const api = {
   createAccessReview: (systemId, review) => postJSON(`${API}/systems/${systemId}/access-reviews`, review),
   deleteAccessReview: (id) => deleteJSON(`${API}/access-reviews/${id}`),
 
+  // Export a document as PDF or DOCX. The token is in localStorage, not a cookie,
+  // so the file is fetched here and handed back as a blob to save. `version` ""
+  // or "current" means the working copy and is not sent.
+  exportDocument: async (docId, { format, version } = {}) => {
+    const q = new URLSearchParams({ format })
+    if (version && version !== 'current') q.set('version', version)
+    const res = await safeFetch(`${API}/documents/${encodeURIComponent(docId)}/export?${q}`, { headers: getHeaders() })
+    checkAuth(res)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw apiErrorFrom(res, body)
+    }
+    const cd = res.headers.get('content-disposition') || ''
+    const m = /filename="?([^";]+)"?/.exec(cd)
+    return { blob: await res.blob(), filename: m ? m[1] : `${docId}.${format}` }
+  },
+
   // Versions & Diff
   getDocVersions: (docId) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/versions`),
   getDocDiff: (docId, from, to) => fetchJSON(`${API}/documents/${encodeURIComponent(docId)}/diff?from=${from}&to=${to || 'HEAD'}`),

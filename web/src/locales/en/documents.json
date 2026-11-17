@@ -69,6 +69,7 @@
     "send_for_review": "Send for review",
     "version_history": "Version history",
     "comments": "Comments",
+    "export": "Export",
     "print": "Print document",
     "delete": "Delete document"
   },
@@ -177,6 +178,14 @@
     "version_note_hint": "This becomes part of the document's permanent version history after approval.",
     "send": "Send to {count} reviewer | Send to {count} reviewers"
   },
+  "export": {
+    "title": "Export document",
+    "format": "Format",
+    "version": "Version",
+    "current_version": "Current version",
+    "download": "Download",
+    "downloading": "Downloading..."
+  },
   "new_doc": {
     "heading": "New Document",
     "title": "Title",
@@ -215,6 +224,7 @@
     "submit_comment": "Failed to submit comment: {message}",
     "resolve_comment": "Failed to resolve comment: {message}",
     "load_documents": "Failed to load documents: {message}",
-    "save": "Failed to save: {message}"
+    "save": "Failed to save: {message}",
+    "export": "Export failed: {message}"
   }
 }

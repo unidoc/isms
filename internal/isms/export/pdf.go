@@ -10,7 +10,6 @@ import (
 	"unicode"
 
 	pdflic "github.com/unidoc/unipdf/v5/common/license"
-	"github.com/unidoc/unipdf/v5/contentstream/draw"
 	"github.com/unidoc/unipdf/v5/core"
 	"github.com/unidoc/unipdf/v5/creator"
 	"github.com/unidoc/unipdf/v5/model"
@@ -39,7 +38,6 @@ var (
 	colHead   = creator.ColorRGBFromHex("#e6e6e6")
 	colLink   = creator.ColorRGBFromHex("#1a56c4")
 	colDraft  = creator.ColorRGBFromHex("#b42318")
-	colMark   = creator.ColorRGBFromHex("#9a9a9a") // draft watermark
 )
 
 // renderPDF renders d to PDF bytes. Errors from the vendor library that mean
@@ -99,8 +97,8 @@ type pdfRender struct {
 	w     float64 // content width in points
 
 	// Counters for tests: pages given a running header, and pages given the draft
-	// watermark and the draft header line.
-	pages, watermarks, draftLines int
+	// header line.
+	pages, draftLines int
 }
 
 // buildPDF lays the document out and finalises it. It needs no licence; Write
@@ -118,8 +116,17 @@ func buildPDF(d *ExportDoc) (*pdfRender, error) {
 		}
 	}
 	c.SetLanguage("en")
-	c.SetPdfWriterAccessFunc(func(w *model.PdfWriter) error { return setDocInfo(w, d) })
+	c.SetPdfWriterAccessFunc(func(w *model.PdfWriter) error {
+		if err := setDocInfo(w, d); err != nil {
+			return err
+		}
+		return nil
+	})
 
+	if d.Draft() {
+		// Behind the content of every page, cover included, in this same pass.
+		c.SetOptimizer(&watermarkOptimizer{pageW: c.Width(), pageH: c.Height(), next: c.GetOptimizer()})
+	}
 	r := &pdfRender{d: d, c: c, f: f, brand: brandColor(d.Org.BrandColor), w: c.Width() - 2*m}
 	r.hooks()
 	r.cover()
@@ -221,10 +228,6 @@ func (r *pdfRender) hooks() {
 	m := pageMarginMM * creator.PPMM
 	r.c.DrawHeader(func(b *creator.Block, a creator.HeaderFunctionArgs) {
 		r.pages++
-		if r.d.Draft() {
-			r.watermark(b)
-			r.watermarks++
-		}
 		if a.PageNum <= 1 {
 			return // the cover has no running header
 		}
@@ -265,53 +268,6 @@ func (r *pdfRender) hfText(b *creator.Block, text string, x, y, width float64, a
 	p.SetPos(x, y)
 	if err := b.Draw(p); err != nil {
 		log.Printf("export: header/footer: %v", err)
-	}
-}
-
-// watermarkLetters is a stroke font for "DRAFT": each letter is polylines on a
-// 6x10 grid. It is drawn as translucent vector strokes because the library has
-// no text transparency and no font ships in the binary.
-var watermarkLetters = [][][][2]float64{
-	{{{0, 0}, {0, 10}, {3, 10}, {5.5, 8}, {6, 5}, {5.5, 2}, {3, 0}, {0, 0}}},           // D
-	{{{0, 10}, {0, 0}, {4, 0}, {6, 1.5}, {6, 3.5}, {4, 5}, {0, 5}}, {{3, 5}, {6, 10}}}, // R
-	{{{0, 10}, {3, 0}, {6, 10}}, {{1.2, 6.5}, {4.8, 6.5}}},                             // A
-	{{{6, 0}, {0, 0}, {0, 10}}, {{0, 5}, {4.5, 5}}},                                    // F
-	{{{0, 0}, {6, 0}}, {{3, 0}, {3, 10}}},                                              // T
-}
-
-// watermarkStrokes returns the polylines of "DRAFT", rotated 45 degrees about
-// (cx, cy), with the given scale (points per grid unit).
-func watermarkStrokes(cx, cy, scale float64) [][]draw.Point {
-	const gap, letterW, h = 2.0, 6.0, 10.0
-	total := float64(len(watermarkLetters))*letterW + float64(len(watermarkLetters)-1)*gap
-	const cos, sin = 0.7071067811865476, -0.7071067811865476 // 45 degrees counter-clockwise on the page
-	var out [][]draw.Point
-	for i, strokes := range watermarkLetters {
-		ox := float64(i) * (letterW + gap)
-		for _, s := range strokes {
-			pts := make([]draw.Point, len(s))
-			for j, p := range s {
-				x := (ox + p[0] - total/2) * scale
-				y := (p[1] - h/2) * scale
-				pts[j] = draw.Point{X: cx + x*cos - y*sin, Y: cy + x*sin + y*cos}
-			}
-			out = append(out, pts)
-		}
-	}
-	return out
-}
-
-func (r *pdfRender) watermark(b *creator.Block) {
-	pageW, pageH := r.c.Width(), r.c.Height()
-	for _, pts := range watermarkStrokes(pageW/2, pageH/2, 0.7*r.w/38) {
-		pl := r.c.NewPolyline(pts)
-		pl.SetLineColor(colMark)
-		pl.SetLineWidth(0.9 * r.w / 38)
-		pl.SetLineOpacity(0.14)
-		if err := b.Draw(pl); err != nil {
-			log.Printf("export: watermark: %v", err)
-			return
-		}
 	}
 }
 

@@ -68,20 +68,6 @@ func TestBrandColorValidation(t *testing.T) {
 	}
 }
 
-func TestWatermarkStrokes(t *testing.T) {
-	strokes := watermarkStrokes(300, 400, 10)
-	if len(strokes) != 9 { // D1 R2 A2 F2 T2
-		t.Fatalf("strokes = %d", len(strokes))
-	}
-	for _, s := range strokes {
-		for _, p := range s {
-			if p.X < 0 || p.X > 600 || p.Y < 100 || p.Y > 700 {
-				t.Fatalf("point %+v far from the page centre", p)
-			}
-		}
-	}
-}
-
 func TestColumnWidthsSumToOne(t *testing.T) {
 	tb := richDoc("draft").Blocks[len(richDoc("draft").Blocks)-2].(Table)
 	var sum float64
@@ -185,25 +171,23 @@ func TestRenderUnlicensedPDF(t *testing.T) {
 	}
 }
 
-// The draft marks are on every page for a draft and on none for an approved
-// document. Header callbacks run in Finalize, so this needs no licence.
-func TestDraftMarksOnEveryPage(t *testing.T) {
+// The draft header line is on every page after the cover for a draft and on none
+// for an approved document. Header callbacks run in Finalize, so this needs no
+// licence. (The watermark is added to the writer, see pdf_watermark_test.go.)
+func TestDraftHeaderLineOnEveryPage(t *testing.T) {
 	dr := buildWith(t, "", richDoc("draft"))
 	if dr.pages < 3 {
 		t.Fatalf("pages = %d, want a multi-page document", dr.pages)
-	}
-	if dr.watermarks != dr.pages {
-		t.Errorf("watermark on %d of %d pages (the cover included)", dr.watermarks, dr.pages)
 	}
 	if dr.draftLines != dr.pages-1 {
 		t.Errorf("draft header line on %d pages, want %d (every page after the cover)", dr.draftLines, dr.pages-1)
 	}
 	ap := buildWith(t, "", richDoc("approved"))
-	if ap.watermarks != 0 || ap.draftLines != 0 {
-		t.Errorf("an approved export has %d watermarks and %d draft lines", ap.watermarks, ap.draftLines)
+	if ap.draftLines != 0 {
+		t.Errorf("an approved export has %d draft lines", ap.draftLines)
 	}
 	for _, status := range []string{"retired", "in_review", ""} {
-		if r := buildWith(t, "", richDoc(status)); r.watermarks == 0 {
+		if r := buildWith(t, "", richDoc(status)); r.draftLines == 0 {
 			t.Errorf("status %q is not approved and must be marked draft", status)
 		}
 	}

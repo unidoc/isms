@@ -46,9 +46,9 @@ func needKey(t *testing.T) {
 }
 
 type parsedPDF struct {
-	pages []string // extracted text per page
-	links []string // URIs of link annotations
-	paths []int    // stroke paths per page
+	pages   []string // extracted text per page
+	links   []string // URIs of link annotations
+	content []string // decoded page content (all streams, in drawing order)
 
 	texts []string                   // same as pages
 	marks []*extractor.TextMarkArray // text runs with positions, per page
@@ -105,11 +105,8 @@ func parsePDF(t *testing.T, b []byte) *parsedPDF {
 			out.texts = append(out.texts, "")
 			out.marks = append(out.marks, &extractor.TextMarkArray{})
 		}
-		if sp, err := ex.ExtractStrokePaths(); err == nil {
-			out.paths = append(out.paths, len(sp))
-		} else {
-			out.paths = append(out.paths, -1)
-		}
+		cs, _ := pg.GetAllContentStreams()
+		out.content = append(out.content, cs)
 		anns, _ := pg.GetAnnotations()
 		for _, a := range anns {
 			l, ok := a.GetContext().(*model.PdfAnnotationLink)
@@ -189,6 +186,38 @@ func TestKeyedRenderPDF(t *testing.T) {
 			} else if !rn.draft && n != 0 {
 				t.Errorf("an approved export has DRAFT on %d pages", n)
 			}
+			// The watermark is Helvetica-Bold text in a stream that comes before
+			// every body content stream, on each page of a draft and on none of an
+			// approved export; the body text it overlaps still extracts.
+			for i, c := range p.content {
+				k := strings.Index(c, "/GSWM gs")
+				if !rn.draft {
+					if k >= 0 {
+						t.Errorf("approved page %d has a watermark", i+1)
+					}
+					continue
+				}
+				if k < 0 {
+					t.Errorf("draft page %d has no watermark", i+1)
+					continue
+				}
+				end := k + strings.Index(c[k:], "\nQ\n")
+				if before := c[:k]; strings.Contains(before, "Tj") || strings.Contains(before, "TJ") {
+					t.Errorf("page %d: text is drawn before the watermark, so the watermark is on top of it", i+1)
+				}
+				if rest := c[end:]; !strings.Contains(rest, "Tj") && !strings.Contains(rest, "TJ") {
+					t.Errorf("page %d: no body text after the watermark", i+1)
+				}
+				// The header line or cover banner is real extractable text too; the
+				// watermark's own text is large and rotated, which the extractor
+				// does not return, so its presence is asserted from the content.
+				if !strings.Contains(p.pages[i], "DRAFT") {
+					t.Errorf("page %d has no DRAFT header line or banner", i+1)
+				}
+			}
+			if !strings.Contains(strings.Join(p.pages, "\n"), "line 003 := compute(3)") {
+				t.Error("code text under the watermark does not extract")
+			}
 			if p.pagesWith("CONFIDENTIAL") < len(p.pages)-1 {
 				t.Errorf("CONFIDENTIAL in %d pages, want every page after the cover", p.pagesWith("CONFIDENTIAL"))
 			}
@@ -260,16 +289,5 @@ func TestKeyedRenderPDF(t *testing.T) {
 				t.Error("non-clickable link text must still be printed")
 			}
 		})
-	}
-	// The watermark is vector strokes: a draft page has at least the nine of
-	// "DRAFT" more than the same page of the approved render.
-	for _, pair := range [][2]string{{"draft-gofont", "approved-gofont"}, {"draft-std", "approved-std"}} {
-		d, a := parsed[pair[0]], parsed[pair[1]]
-		if d == nil || a == nil || d.paths[0] < 0 {
-			continue
-		}
-		if d.paths[0] < a.paths[0]+9 {
-			t.Errorf("%s cover has %d stroke paths vs %d: no watermark?", pair[0], d.paths[0], a.paths[0])
-		}
 	}
 }

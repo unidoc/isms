@@ -27,6 +27,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
+	"isms.sh/internal/isms/export"
 	"isms.sh/internal/isms/i18n"
 	"isms.sh/internal/isms/license"
 	"isms.sh/internal/isms/mail"
@@ -51,6 +52,12 @@ type Server struct {
 	// Unified storage for org files (branding, evidence, etc.).
 	// Local filesystem by default, S3 with ISMS_STORAGE_BACKEND=s3.
 	blobs blob.Store
+
+	// Document export seams. New sets the real defaults (the process-wide
+	// licence state and the vendor renderers); handler tests replace them so
+	// they never touch global licence state. Nil means the default.
+	exportCaps   func() license.Capabilities
+	exportRender func(format string, d *export.ExportDoc) ([]byte, error)
 
 	// JWT session signing secret
 	secret string
@@ -245,7 +252,8 @@ func New(addr, webDir string, database *db.DB) *Server {
 
 // NewWithFS creates a new API server with an optional embedded web filesystem.
 func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
-	srv := &Server{db: database, addr: addr, webDir: webDir, webFS: embeddedFS, searchIndex: NewSearchIndex()}
+	srv := &Server{db: database, addr: addr, webDir: webDir, webFS: embeddedFS, searchIndex: NewSearchIndex(),
+		exportCaps: license.Current, exportRender: export.Render}
 
 	// Server secret — master key, derived into purpose-specific keys via HKDF.
 	secret := os.Getenv("ISMS_SECRET")
@@ -575,6 +583,7 @@ func (s *Server) routes() {
 	api.GET("/documents/changed", s.handleChangedDocuments)
 	api.GET("/documents/file/:folder/:id", s.handleGetDocument)
 	api.GET("/documents/:docId/body", s.handleGetDocumentBody)
+	api.GET("/documents/:docId/export", s.handleExportDocument)
 	api.GET("/documents/:docId/blame", s.handleDocumentBlame)
 	api.GET("/documents/:docId/trust-center", s.handleGetDocumentTrust)
 	api.POST("/documents/:docId/trust-center", s.handlePublishDocumentTrust)

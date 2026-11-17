@@ -507,7 +507,11 @@
     "trust_file_required": "choose a file to upload",
     "trust_certification_source": "provide either a link or a file, not both",
     "trust_date_invalid": "{field} must be a date written as YYYY-MM-DD",
-    "trust_certification_already_published": "this certification is already published in the trust center"
+    "trust_certification_already_published": "this certification is already published in the trust center",
+    "export_format_invalid": "format must be pdf or docx",
+    "export_not_licensed": "{value} export is not available on this server",
+    "export_version_not_found": "that version of the document does not exist",
+    "export_failed": "export failed"
   },
   "region": {
     "global": "Global",

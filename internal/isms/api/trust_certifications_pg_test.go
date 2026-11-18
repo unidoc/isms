@@ -25,7 +25,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
@@ -203,10 +202,7 @@ func (f *certFx) blobFiles() []string {
 func pgExec(t *testing.T, sql string, args ...any) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, os.Getenv("ISMS_TEST_DATABASE_URL"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := rawConn(t)
 	defer conn.Close(ctx)
 	if _, err := conn.Exec(ctx, sql, args...); err != nil {
 		t.Fatal(err)

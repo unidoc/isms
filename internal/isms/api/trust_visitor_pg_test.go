@@ -61,14 +61,48 @@ func visitorSetup(t *testing.T) visitorEnv {
 	return visitorEnv{s: s, sink: sink, org: trustNewOrg(t, s, "vis", true)}
 }
 
+// rawConn opens a separate connection to the test database in a UTC session,
+// as the server's pool does (db.Open). Without it the session takes the
+// Postgres server's default zone, so CURRENT_DATE written here could be a day
+// off from the CURRENT_DATE the server judges by (#546).
+func rawConn(t *testing.T) *pgx.Conn {
+	t.Helper()
+	cfg, err := pgx.ParseConfig(os.Getenv("ISMS_TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k := range cfg.RuntimeParams {
+		if strings.EqualFold(k, "timezone") {
+			delete(cfg.RuntimeParams, k)
+		}
+	}
+	cfg.RuntimeParams["timezone"] = "UTC"
+	conn, err := pgx.ConnectConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return conn
+}
+
+// The raw helpers must judge dates like the server: a UTC session, whatever
+// the Postgres server's default zone. Clock-independent, unlike the date
+// boundary tests that rely on it (#546).
+func TestRawConnIsUTC(t *testing.T) {
+	if os.Getenv("ISMS_TEST_DATABASE_URL") == "" {
+		t.Skip("ISMS_TEST_DATABASE_URL not set")
+	}
+	var zone string
+	rawQuery(t, `SHOW timezone`, nil, &zone)
+	if zone != "UTC" {
+		t.Errorf("raw test connection session zone = %q, want UTC", zone)
+	}
+}
+
 // rawExec runs one statement on a separate connection to the test database,
 // for state no handler can set yet.
 func rawExec(t *testing.T, sql string, args ...any) {
 	t.Helper()
-	conn, err := pgx.Connect(context.Background(), os.Getenv("ISMS_TEST_DATABASE_URL"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := rawConn(t)
 	defer conn.Close(context.Background())
 	if _, err := conn.Exec(context.Background(), sql, args...); err != nil {
 		t.Fatal(err)
@@ -78,10 +112,7 @@ func rawExec(t *testing.T, sql string, args ...any) {
 // rawQuery scans one row into dest on a separate connection.
 func rawQuery(t *testing.T, sql string, args []any, dest ...any) {
 	t.Helper()
-	conn, err := pgx.Connect(context.Background(), os.Getenv("ISMS_TEST_DATABASE_URL"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := rawConn(t)
 	defer conn.Close(context.Background())
 	if err := conn.QueryRow(context.Background(), sql, args...).Scan(dest...); err != nil {
 		t.Fatal(err)

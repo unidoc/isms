@@ -134,6 +134,7 @@ const (
 	CodeExportFailed           = "export_failed"
 	CodeExportVersionAmbiguous = "export_version_ambiguous"
 	CodeExportVersionInvalid   = "export_version_invalid"
+	CodeExportRateLimited      = "export_rate_limited"
 
 	// Trust center.
 	CodeTrustNoApprovedVersion = "trust_no_approved_version"
@@ -244,6 +245,7 @@ var errorMessages = map[string]string{
 	CodeExportFailed:                       "export failed",
 	CodeExportVersionAmbiguous:             "give either version or version_id, not both",
 	CodeExportVersionInvalid:               "version_id must be a positive whole number",
+	CodeExportRateLimited:                  "export limit reached, try again in {count} min",
 	CodeDocumentNotApproved:                "only approved documents can be confirmed — a document that has changed since its approval needs a full review",
 	CodeTrustNoApprovedVersion:             "this document has no approved version to publish",
 	CodeTrustDocumentRetired:               "a retired document cannot be published",

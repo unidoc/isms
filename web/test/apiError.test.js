@@ -159,3 +159,13 @@ test('the fallback parameter wins over the status line but not over the server',
   assert.equal(apiErrorFrom(res, await res.json(), 'Login failed (429)').message,
     'too many attempts, try again later')
 })
+
+// The export limit's retry time is a count spliced into the sentence; the
+// export dialog shows it through this same renderer.
+test('export_rate_limited renders the retry minutes in the active locale', () => {
+  const e = err('export_rate_limited', { count: '30' }, 'export limit reached, try again in 30 min')
+  assert.equal(renderApiError(e), 'export limit reached, try again in 30 min')
+  withLocale('id-ID', () => {
+    assert.equal(renderApiError(e), 'batas ekspor tercapai, coba lagi dalam 30 menit')
+  })
+})

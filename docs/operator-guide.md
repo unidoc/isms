@@ -313,6 +313,8 @@ When set, all git commits made by the server are signed with this SSH key.
 | `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to ask the licence libraries to persist less usage state (default: on). The state directory is still needed. |
 | `UNIDOC_LICENSE_DIR` | Directory for the licence libraries' metered state. Default: `unidoc` under `ISMS_DATA_DIR`. It must be writable. |
 | `ISMS_EXPORT_FONT_DIR` | Directory of TrueType fonts for PDF export (see below). Unset: the standard PDF fonts. |
+| `ISMS_EXPORT_LIMIT_USER_HOURLY` | Exports per member per hour (default 30; `0` = no per-member limit). See "Export limits" below. |
+| `ISMS_EXPORT_LIMIT_ORG_DAILY` | Exports per organization per day (default 500; `0` = no per-organization limit). |
 
 One metered key covers both PDF and DOCX. The server validates it against
 UniDoc's cloud in the background at start, so startup never waits for it. A
@@ -347,6 +349,31 @@ Things to plan for:
   (and logs that it came from them). Set together with an API key, the server logs
   a warning naming the variables and turns export off. The `ISMS_*` variables for
   offline keys are not supported yet.
+
+#### Export limits
+
+Every PDF or DOCX export spends one metered credit, and any member who can read
+a document can export it, including with a read-only API key. Two limits cap the
+spend:
+
+- **Per member:** `ISMS_EXPORT_LIMIT_USER_HOURLY` exports per hour (default 30),
+  counted by the member's email across all their organizations. An API key
+  counts as the member who owns it.
+- **Per organization:** `ISMS_EXPORT_LIMIT_ORG_DAILY` exports per day (default
+  500).
+
+Each limit is a bucket that starts full and refills evenly: with the defaults a
+member can export 30 documents at once, then about one every two minutes. Over
+a limit the endpoint answers `429` with code `export_rate_limited` and a
+`Retry-After` header (seconds); the web dialog and the CLI show when to try
+again. Only an export that is about to be rendered counts: a request refused for
+a bad format, a missing licence, document or version costs nothing, and a render
+that fails is given back.
+
+`0` turns that one limit off; a value that is not a whole number logs a warning
+and keeps the default. `ISMS_RATE_LIMIT=0` turns both off. The counts are kept in
+memory per server process, so a restart resets them and several server processes
+each count separately.
 
 #### PDF fonts
 
@@ -791,6 +818,8 @@ Rate limiting counts failed logins (a wrong email or password, or a failed passk
 Disable both with `ISMS_RATE_LIMIT=0`. The integration test suite needs this on the server, because it runs many failed logins on purpose.
 
 The public trust center API has its own limit, separate from the two above: requests per minute per IP address, not failed logins. See `ISMS_TRUST_RATE_LIMIT`. `ISMS_RATE_LIMIT=0` disables it too.
+
+PDF/DOCX export has per-member and per-organization limits, because each export spends a metered credit. See "Export limits" under the document export licence. `ISMS_RATE_LIMIT=0` disables them too.
 
 Trust center visitor sign-in has limits of its own, because anyone on the internet can ask for a link to be emailed:
 

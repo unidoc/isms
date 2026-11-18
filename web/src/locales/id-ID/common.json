@@ -506,7 +506,8 @@
     "export_version_not_found": "versi dokumen tersebut tidak ada",
     "export_failed": "ekspor gagal",
     "export_version_ambiguous": "berikan version atau version_id, bukan keduanya",
-    "export_version_invalid": "version_id harus berupa bilangan bulat positif"
+    "export_version_invalid": "version_id harus berupa bilangan bulat positif",
+    "export_rate_limited": "batas ekspor tercapai, coba lagi dalam {count} menit"
   },
   "region": {
     "global": "Global",

@@ -493,7 +493,8 @@
     "export_version_not_found": "文書にそのバージョンは存在しません",
     "export_failed": "エクスポートに失敗しました",
     "export_version_ambiguous": "version と version_id のどちらか一方だけを指定してください",
-    "export_version_invalid": "version_id は正の整数にしてください"
+    "export_version_invalid": "version_id は正の整数にしてください",
+    "export_rate_limited": "エクスポートの上限に達しました。{count} 分後に再試行してください"
   },
   "region": {
     "global": "グローバル",

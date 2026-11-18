@@ -970,6 +970,7 @@
   "common.error.export_failed",
   "common.error.export_format_invalid",
   "common.error.export_not_licensed",
+  "common.error.export_rate_limited",
   "common.error.export_version_ambiguous",
   "common.error.export_version_invalid",
   "common.error.export_version_not_found",

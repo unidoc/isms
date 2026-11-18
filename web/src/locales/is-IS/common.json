@@ -506,7 +506,8 @@
     "export_version_not_found": "þessi útgáfa skjalsins er ekki til",
     "export_failed": "útflutningur mistókst",
     "export_version_ambiguous": "gefðu upp annaðhvort version eða version_id, ekki bæði",
-    "export_version_invalid": "version_id verður að vera jákvæð heil tala"
+    "export_version_invalid": "version_id verður að vera jákvæð heil tala",
+    "export_rate_limited": "útflutningsmörkum náð, reyndu aftur eftir {count} mín."
   },
   "region": {
     "global": "Á heimsvísu",

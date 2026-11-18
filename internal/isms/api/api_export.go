@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math"
 	"mime"
 	"net/http"
 	"regexp"
@@ -174,8 +175,23 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		d.Org.BrandColor = color
 	}
 
+	// Every render spends a metered credit: take one from the caller's and the
+	// organization's allowance only now, after every check that can refuse.
+	release, wait, ok := s.exportLimit.take(exportLimitUser(c), orgID)
+	if !ok {
+		mins := int(math.Ceil(wait.Minutes()))
+		if mins < 1 {
+			mins = 1
+		}
+		h := c.Response().Header()
+		h.Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+		h.Set("Cache-Control", "no-store")
+		return apiError(http.StatusTooManyRequests, CodeExportRateLimited, Count(mins))
+	}
+
 	out, err := s.renderExport(format, &d)
 	if err != nil {
+		release()
 		if errors.Is(err, export.ErrUnlicensed) {
 			return apiError(http.StatusForbidden, CodeExportNotLicensed, Value(strings.ToUpper(format)))
 		}
@@ -212,6 +228,19 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Cache-Control", "no-store")
 	return c.Blob(http.StatusOK, export.MIMEType(format), out)
+}
+
+// exportLimitUser is who an export is counted against: the member's email,
+// lower-cased (an API key carries its owner's), or the API key itself when it
+// has no email, so no request goes uncounted.
+func exportLimitUser(c echo.Context) string {
+	if email := strings.ToLower(strings.TrimSpace(getUserEmail(c))); email != "" {
+		return email
+	}
+	if id, ok := c.Get("api_key_id").(int); ok {
+		return "api-key:" + strconv.Itoa(id)
+	}
+	return ""
 }
 
 // exportLogo returns the organisation's PNG logo, or nil when there is none,

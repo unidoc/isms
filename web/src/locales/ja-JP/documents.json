@@ -179,7 +179,8 @@
     "current_version": "現在のバージョン",
     "unnumbered_version": "バージョン番号なし",
     "download": "ダウンロード",
-    "downloading": "ダウンロード中…"
+    "downloading": "ダウンロード中…",
+    "unprintable": "PDF を保存しましたが、{count} 文字がサーバーの PDF フォントに含まれていないため「?」で表示されます。DOCX でダウンロードするか、管理者にフォントの追加を依頼してください。 | PDF を保存しましたが、{count} 文字がサーバーの PDF フォントに含まれていないため「?」で表示されます。DOCX でダウンロードするか、管理者にフォントの追加を依頼してください。"
   },
   "new_doc": {
     "heading": "新しい文書",

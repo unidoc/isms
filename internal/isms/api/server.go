@@ -57,7 +57,7 @@ type Server struct {
 	// licence state and the vendor renderers); handler tests replace them so
 	// they never touch global licence state. Nil means the default.
 	exportCaps   func() license.Capabilities
-	exportRender func(format string, d *export.ExportDoc) ([]byte, error)
+	exportRender func(format string, d *export.ExportDoc) ([]byte, export.Report, error)
 	// exportLimit caps exports per user and per organization (export_limit.go).
 	// Nil allows everything.
 	exportLimit *exportLimiter
@@ -256,7 +256,7 @@ func New(addr, webDir string, database *db.DB) *Server {
 // NewWithFS creates a new API server with an optional embedded web filesystem.
 func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	srv := &Server{db: database, addr: addr, webDir: webDir, webFS: embeddedFS, searchIndex: NewSearchIndex(),
-		exportCaps: license.Current, exportRender: export.Render, exportLimit: exportLimiterFromEnv()}
+		exportCaps: license.Current, exportRender: export.RenderReport, exportLimit: exportLimiterFromEnv()}
 
 	// Server secret — master key, derived into purpose-specific keys via HKDF.
 	secret := os.Getenv("ISMS_SECRET")

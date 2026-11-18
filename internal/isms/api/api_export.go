@@ -31,12 +31,17 @@ func (s *Server) exportFormats() []string {
 	return license.Current().Formats()
 }
 
-func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, error) {
+func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 	if s.exportRender != nil {
 		return s.exportRender(format, d)
 	}
-	return export.Render(format, d)
+	return export.RenderReport(format, d)
 }
+
+// headerExportUnprintable carries the number of distinct characters the PDF
+// fonts printed as "?" (export.Report.Unprintable). Absent when there are none,
+// and always for DOCX. Clients warn on it after saving the file.
+const headerExportUnprintable = "X-Export-Unprintable-Characters"
 
 var exportNameUnsafe = regexp.MustCompile(`[^a-z0-9._-]`)
 
@@ -189,7 +194,7 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		return apiError(http.StatusTooManyRequests, CodeExportRateLimited, Count(mins))
 	}
 
-	out, err := s.renderExport(format, &d)
+	out, report, err := s.renderExport(format, &d)
 	if err != nil {
 		release()
 		if errors.Is(err, export.ErrUnlicensed) {
@@ -227,6 +232,9 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	h.Set("Content-Disposition", disp)
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Cache-Control", "no-store")
+	if report.Unprintable > 0 {
+		h.Set(headerExportUnprintable, strconv.Itoa(report.Unprintable))
+	}
 	return c.Blob(http.StatusOK, export.MIMEType(format), out)
 }
 

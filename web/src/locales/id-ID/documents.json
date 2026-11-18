@@ -179,7 +179,8 @@
     "current_version": "Versi saat ini",
     "unnumbered_version": "Tanpa nomor versi",
     "download": "Unduh",
-    "downloading": "Mengunduh…"
+    "downloading": "Mengunduh…",
+    "unprintable": "PDF sudah disimpan, tetapi {count} karakter tidak ada di font PDF server dan tampil sebagai \"?\". Unduh sebagai DOCX, atau minta administrator menambahkan font. | PDF sudah disimpan, tetapi {count} karakter tidak ada di font PDF server dan tampil sebagai \"?\". Unduh sebagai DOCX, atau minta administrator menambahkan font."
   },
   "new_doc": {
     "heading": "Dokumen Baru",

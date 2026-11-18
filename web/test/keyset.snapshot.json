@@ -1693,6 +1693,7 @@
   "documents.export.format",
   "documents.export.title",
   "documents.export.unnumbered_version",
+  "documents.export.unprintable",
   "documents.export.version",
   "documents.meta.approved_version",
   "documents.meta.author",

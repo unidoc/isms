@@ -404,6 +404,13 @@ Open Font License, from the official Noto project at fonts.google.com/noto) work
 copy its regular, bold, italic, bold italic and mono files to the names above.
 The server logs which fonts it chose, and why, the first time a PDF is exported.
 
+A PDF with characters the fonts cannot print is still saved, and the person who
+exported it is told: the web dialog shows a warning with the number of distinct
+characters printed as `?`, and the CLI prints the same on stderr. Either one
+suggests DOCX (whose text is drawn by the reader's own fonts) or asking you to
+set `ISMS_EXPORT_FONT_DIR`. The count reaches clients in the
+`X-Export-Unprintable-Characters` response header.
+
 ### CLI-only variables
 
 These are used by the CLI client, not the server:

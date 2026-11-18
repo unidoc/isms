@@ -179,7 +179,8 @@
     "current_version": "Version actuelle",
     "unnumbered_version": "Sans numéro de version",
     "download": "Télécharger",
-    "downloading": "Téléchargement..."
+    "downloading": "Téléchargement...",
+    "unprintable": "Le PDF a été enregistré, mais {count} caractère est absent des polices PDF du serveur et apparaît comme « ? ». Téléchargez-le en DOCX ou demandez à un administrateur d’ajouter des polices. | Le PDF a été enregistré, mais {count} caractères sont absents des polices PDF du serveur et apparaissent comme « ? ». Téléchargez-le en DOCX ou demandez à un administrateur d’ajouter des polices."
   },
   "new_doc": {
     "heading": "Nouveau document",

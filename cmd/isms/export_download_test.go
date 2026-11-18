@@ -12,6 +12,10 @@ import (
 
 var exportBytes = []byte("%PDF-1.7 fake\x00bytes")
 
+// exportUnprintable is the X-Export-Unprintable-Characters value the test
+// server sends with a file ("" sends none).
+var exportUnprintable string
+
 // exportServer serves a document body (for md) and an export endpoint, and
 // points the CLI at itself. exportStatus 0 means 200 with the file.
 func exportServer(t *testing.T, exportStatus int) *[]string {
@@ -29,6 +33,9 @@ func exportServer(t *testing.T, exportStatus int) *[]string {
 			}
 			w.Header().Set("Content-Type", "application/pdf")
 			w.Header().Set("Content-Disposition", "attachment; filename=pol-1-v1.0.pdf")
+			if exportUnprintable != "" {
+				w.Header().Set("X-Export-Unprintable-Characters", exportUnprintable)
+			}
 			_, _ = w.Write(exportBytes)
 		case strings.HasSuffix(r.URL.Path, "/body"):
 			w.Header().Set("Content-Type", "application/json")
@@ -192,5 +199,39 @@ func TestExportPolicyMarkdownUnchanged(t *testing.T) {
 	want := "# Access Policy\n\n| Field | Value |\n|-------|-------|\n| Document ID | pol-1 |\n| Version | 1.0 |\n| Status | approved |\n| Author | Ann |\n\n---\n\nHello\n"
 	if out != want {
 		t.Errorf("markdown output changed:\n%q\nwant\n%q", out, want)
+	}
+}
+
+// Characters the server's PDF fonts could not print are reported after the
+// file is saved, on stderr; the file is still written and stdout stays clean.
+func TestExportPolicyWarnsAboutUnprintableCharacters(t *testing.T) {
+	exportServer(t, 0)
+	t.Cleanup(func() { exportUnprintable = "" })
+	for _, tc := range []struct{ header, want string }{
+		{"8", "Warning: 8 characters are not in the server's PDF fonts and printed as \"?\""},
+		{"1", "Warning: 1 character is not in the server's PDF fonts"},
+		{"", ""},
+		{"0", ""},
+		{"junk", ""},
+	} {
+		exportUnprintable = tc.header
+		dir, out, errOut, err := runExport(t, "policy", "pol-1", "--format", "pdf")
+		if err != nil {
+			t.Fatalf("%q: %v", tc.header, err)
+		}
+		if _, rerr := os.Stat(filepath.Join(dir, "pol-1-v1.0.pdf")); rerr != nil {
+			t.Errorf("%q: file not saved: %v", tc.header, rerr)
+		}
+		if out != "" {
+			t.Errorf("%q: stdout must stay clean: %q", tc.header, out)
+		}
+		switch {
+		case tc.want == "" && strings.Contains(errOut, "Warning"):
+			t.Errorf("%q: unexpected warning: %q", tc.header, errOut)
+		case tc.want != "" && !strings.Contains(errOut, tc.want):
+			t.Errorf("%q: stderr = %q, want %q", tc.header, errOut, tc.want)
+		case tc.want != "" && !strings.Contains(errOut, "ISMS_EXPORT_FONT_DIR"):
+			t.Errorf("%q: the warning must name the fix: %q", tc.header, errOut)
+		}
 	}
 }

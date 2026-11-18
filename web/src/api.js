@@ -517,7 +517,8 @@ export const api = {
   // so the file is fetched here and handed back as a blob to save. A chosen
   // version is sent by its row id (`version_id`), because a version's label can
   // be empty and "" means the working copy; no versionId (or "") is the current
-  // working copy and sends nothing.
+  // working copy and sends nothing. `unprintable` is how many distinct
+  // characters the server's PDF fonts could not print (shown as "?"), 0 if none.
   exportDocument: async (docId, { format, versionId } = {}) => {
     const q = new URLSearchParams({ format })
     if (versionId !== undefined && versionId !== null && String(versionId) !== '') q.set('version_id', String(versionId))
@@ -529,7 +530,12 @@ export const api = {
     }
     const cd = res.headers.get('content-disposition') || ''
     const m = /filename="?([^";]+)"?/.exec(cd)
-    return { blob: await res.blob(), filename: m ? m[1] : `${docId}.${format}` }
+    const unprintable = Number.parseInt(res.headers.get('x-export-unprintable-characters') || '', 10)
+    return {
+      blob: await res.blob(),
+      filename: m ? m[1] : `${docId}.${format}`,
+      unprintable: Number.isFinite(unprintable) && unprintable > 0 ? unprintable : 0,
+    }
   },
 
   // Versions & Diff

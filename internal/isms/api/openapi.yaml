@@ -2179,6 +2179,13 @@ paths:
       responses:
         '200':
           description: The document file
+          headers:
+            X-Export-Unprintable-Characters:
+              description: >-
+                PDF only, and only when non-zero: how many distinct characters the
+                server's PDF fonts could not print. Each occurrence is printed as
+                "?". Clients warn after saving the file; DOCX is unaffected.
+              schema: { type: integer, minimum: 1 }
           content:
             application/pdf: { schema: { type: string, format: binary } }
             application/vnd.openxmlformats-officedocument.wordprocessingml.document: { schema: { type: string, format: binary } }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"golang.org/x/image/font/gofont/goregular"
+	"isms.sh/internal/isms/model"
 )
 
 func TestFontsUnsetUsesStandard(t *testing.T) {
@@ -128,4 +129,51 @@ func TestFontsForCachesAndReportsStatus(t *testing.T) {
 	if !strings.Contains(FontStatus(), "not set") {
 		t.Errorf("FontStatus = %q", FontStatus())
 	}
+}
+
+// A render reports how many distinct characters its fonts printed as "?", so
+// the server can warn instead of handing over a silently wrong PDF. Distinct,
+// not occurrences: the title repeats in the header of every page.
+func TestPDFReportsUnprintableCharacters(t *testing.T) {
+	doc := func(title string, body ...string) *ExportDoc {
+		d := &ExportDoc{Meta: model.DocumentFrontmatter{DocumentID: "pol-1", Title: title, Status: "approved"}}
+		for i := 0; i < 80; i++ { // several pages, so the header repeats
+			for _, s := range body {
+				d.Blocks = append(d.Blocks, para(txt(s)))
+			}
+		}
+		return d
+	}
+	count := func(t *testing.T, d *ExportDoc) int {
+		t.Helper()
+		r, err := buildPDF(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.pages < 2 {
+			t.Fatalf("want a multi-page document, got %d pages", r.pages)
+		}
+		return r.f.miss.count()
+	}
+
+	t.Run("standard fonts", func(t *testing.T) {
+		t.Setenv(envExportFontDir, "")
+		if n := count(t, doc("Policy café", "Plain Western text: naïve façade, 10 €.")); n != 0 {
+			t.Errorf("Western European text: %d unprintable, want 0", n)
+		}
+		// ż ł ć ę ś ą ź ń are outside the standard fonts' encoding; ó is not.
+		if n := count(t, doc("Polityka "+polish, polish)); n != 8 {
+			t.Errorf("Polish: %d unprintable, want 8", n)
+		}
+		if n := count(t, doc("Policy", polish, japanese)); n != 16 {
+			t.Errorf("Polish and Japanese: %d unprintable, want 16", n)
+		}
+	})
+	t.Run("fonts from disk", func(t *testing.T) {
+		// The Go fonts cover Polish but not Japanese.
+		t.Setenv(envExportFontDir, goFontDir(t))
+		if n := count(t, doc("Polityka "+polish, polish, japanese)); n != 8 {
+			t.Errorf("Go fonts: %d unprintable, want the 8 Japanese characters", n)
+		}
+	})
 }

@@ -179,7 +179,8 @@
     "current_version": "Aktuelle Version",
     "unnumbered_version": "Keine Versionsnummer",
     "download": "Herunterladen",
-    "downloading": "Wird heruntergeladen..."
+    "downloading": "Wird heruntergeladen...",
+    "unprintable": "Das PDF wurde gespeichert, aber {count} Zeichen ist in den PDF-Schriftarten des Servers nicht enthalten und erscheint als „?“. Laden Sie stattdessen DOCX herunter oder bitten Sie die Administration, Schriftarten hinzuzufügen. | Das PDF wurde gespeichert, aber {count} Zeichen sind in den PDF-Schriftarten des Servers nicht enthalten und erscheinen als „?“. Laden Sie stattdessen DOCX herunter oder bitten Sie die Administration, Schriftarten hinzuzufügen."
   },
   "new_doc": {
     "heading": "Neues Dokument",

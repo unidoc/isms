@@ -38,7 +38,7 @@ test('exportDocument encodes the doc id and query, and sends the token', async (
   assert.equal(calls.length, 1)
   assert.equal(calls[0].url, '/api/v1/documents/a%20b%2Fc/export?format=docx&version_id=42')
   assert.equal(calls[0].opts.headers.Authorization, 'Bearer tok-123')
-  assert.deepEqual(out, { blob: 'BLOB', filename: 'pol-1-v1.0.pdf' })
+  assert.deepEqual(out, { blob: 'BLOB', filename: 'pol-1-v1.0.pdf', unprintable: 0 })
 })
 
 test('exportDocument sends neither version nor version_id for the current copy', async () => {
@@ -64,6 +64,21 @@ test('exportDocument filename: quoted, and the <docId>.<format> fallback', async
   assert.equal((await api.exportDocument('pol-1', { format: 'pdf' })).filename, 'my-doc.pdf')
   stubFetch(() => fileResponse(undefined))
   assert.equal((await api.exportDocument('pol-1', { format: 'docx' })).filename, 'pol-1.docx')
+})
+
+// The server sends how many characters its PDF fonts printed as "?"; the
+// dialog warns on it. Absent, zero or junk means none.
+test('exportDocument returns the unprintable-character count', async () => {
+  const withHeader = (v) => ({
+    ok: true,
+    status: 200,
+    headers: { get: (h) => ({ 'content-type': 'application/pdf', 'x-export-unprintable-characters': v })[h.toLowerCase()] ?? null },
+    blob: async () => new Blob(['%PDF']),
+  })
+  for (const [v, want] of [['8', 8], ['1', 1], [undefined, 0], ['0', 0], ['junk', 0], ['-3', 0]]) {
+    stubFetch(() => withHeader(v))
+    assert.equal((await api.exportDocument('pol-1', { format: 'pdf' })).unprintable, want, String(v))
+  }
 })
 
 test('exportDocument throws the shared error shape on a refusal', async () => {

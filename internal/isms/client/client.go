@@ -242,6 +242,9 @@ type ExportFile struct {
 	Data        []byte
 	Filename    string // as sanitised by ExportFilename; the document id and extension are the fallback
 	ContentType string
+	// Unprintable is how many distinct characters the server's PDF fonts could
+	// not print (each printed as "?"); 0 when none, and always for DOCX.
+	Unprintable int
 }
 
 // ExportDocument downloads a document as "pdf" or "docx". The server renders
@@ -256,7 +259,9 @@ func (c *Client) ExportDocument(docID, format, version string) (*ExportFile, err
 	if err != nil {
 		return nil, err
 	}
-	return &ExportFile{Data: data, Filename: ExportFilename(hdr, docID, format), ContentType: hdr.Get("Content-Type")}, nil
+	unprintable, _ := strconv.Atoi(hdr.Get("X-Export-Unprintable-Characters"))
+	return &ExportFile{Data: data, Filename: ExportFilename(hdr, docID, format), ContentType: hdr.Get("Content-Type"),
+		Unprintable: max(unprintable, 0)}, nil
 }
 
 // ExportFilename picks the local file name for a download: the server's

@@ -31,18 +31,20 @@ type exFx struct {
 	caps   license.Capabilities
 	docs   []export.ExportDoc
 	render func(string, *export.ExportDoc) ([]byte, error)
+	report export.Report // what the fake renderer reports
 }
 
 func newExFx(t *testing.T, tag string) *exFx {
 	t.Helper()
 	f := &exFx{tdFx: newTDFx(t, tag, "exp-"+tag), caps: license.Capabilities{PDF: license.SourceMetered, DOCX: license.SourceMetered}}
 	f.s.exportCaps = func() license.Capabilities { return f.caps }
-	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, error) {
+	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 		f.docs = append(f.docs, *d)
 		if f.render != nil {
-			return f.render(format, d)
+			b, err := f.render(format, d)
+			return b, f.report, err
 		}
-		return fakeExportBytes, nil
+		return fakeExportBytes, f.report, nil
 	}
 	return f
 }
@@ -405,7 +407,7 @@ func TestExportActivityReaderActorAndNoVersionLabel(t *testing.T) {
 	// The label is read after rendering, so the stub empties it: a document
 	// with no version label reads "(current)".
 	orig := f.s.exportRender
-	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, error) {
+	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 		d.VersionLabel = ""
 		return orig(format, d)
 	}

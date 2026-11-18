@@ -67,6 +67,17 @@ func (c Capabilities) Formats() []string {
 	return out
 }
 
+// Source is how the given format ("pdf" or "docx") is licensed.
+func (c Capabilities) Source(format string) Source {
+	switch format {
+	case "pdf":
+		return c.PDF
+	case "docx":
+		return c.DOCX
+	}
+	return SourceOff
+}
+
 func (c Capabilities) with(format string, s Source) Capabilities {
 	switch format {
 	case "pdf":

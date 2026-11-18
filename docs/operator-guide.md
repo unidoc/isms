@@ -313,8 +313,8 @@ When set, all git commits made by the server are signed with this SSH key.
 | `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to ask the licence libraries to persist less usage state (default: on). The state directory is still needed. |
 | `UNIDOC_LICENSE_DIR` | Directory for the licence libraries' metered state. Default: `unidoc` under `ISMS_DATA_DIR`. It must be writable. |
 | `ISMS_EXPORT_FONT_DIR` | Directory of TrueType fonts for PDF export (see below). Unset: the standard PDF fonts. |
-| `ISMS_EXPORT_LIMIT_USER_HOURLY` | Exports per member per hour (default 30; `0` = no per-member limit). See "Export limits" below. |
-| `ISMS_EXPORT_LIMIT_ORG_DAILY` | Exports per organization per day (default 500; `0` = no per-organization limit). |
+| `ISMS_EXPORT_LIMIT_USER_HOURLY` | Exports per member per hour (default 30; `0` = no per-member limit). Metered key only: an offline key has no export limits. See "Export limits" below. |
+| `ISMS_EXPORT_LIMIT_ORG_DAILY` | Exports per organization per day (default 500; `0` = no per-organization limit). Metered key only. |
 
 One metered key covers both PDF and DOCX. The server validates it against
 UniDoc's cloud in the background at start, so startup never waits for it. A
@@ -393,9 +393,11 @@ that are licensed. Log lines (the first words are `export licence:`):
 
 #### Export limits
 
-With a metered key, every PDF or DOCX export spends one metered credit (an offline
-key spends none), and any member who can read a document can export it, including
-with a read-only API key. Two limits cap the spend and the load:
+These limits apply only to formats licensed with a metered key, where every PDF
+or DOCX export spends one metered credit. An offline key is not credit-based, so
+its formats have no export limits and the two variables have no effect. Any
+member who can read a document can export it, including with a read-only API
+key. Two limits cap the spend:
 
 - **Per member:** `ISMS_EXPORT_LIMIT_USER_HOURLY` exports per hour (default 30),
   counted by the member's email across all their organizations. An API key
@@ -872,7 +874,7 @@ Disable both with `ISMS_RATE_LIMIT=0`. The integration test suite needs this on 
 
 The public trust center API has its own limit, separate from the two above: requests per minute per IP address, not failed logins. See `ISMS_TRUST_RATE_LIMIT`. `ISMS_RATE_LIMIT=0` disables it too.
 
-PDF/DOCX export has per-member and per-organization limits, because with a metered key each export spends a credit. See "Export limits" under the document export licence. `ISMS_RATE_LIMIT=0` disables them too.
+PDF/DOCX export has per-member and per-organization limits, because with a metered key each export spends a credit; they do not apply under an offline key. See "Export limits" under the document export licence. `ISMS_RATE_LIMIT=0` disables them too.
 
 Trust center visitor sign-in has limits of its own, because anyone on the internet can ask for a link to be emailed:
 

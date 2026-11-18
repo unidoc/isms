@@ -628,6 +628,55 @@ func TestExportRateLimit(t *testing.T) {
 	}
 }
 
+// An offline licence is not credit-based, so a format licensed offline has no
+// per-member and no per-organization limit; a metered format next to it keeps
+// both.
+func TestExportNoLimitOffline(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		user, orgDay int
+	}{{"member limit", 2, 0}, {"org limit", 0, 2}} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newExFx(t, "exoff"+tc.name[:3])
+			f.caps = license.Capabilities{PDF: license.SourceOffline, DOCX: license.SourceOffline}
+			f.s.exportLimit = limiterAt(newFakeClock(), tc.user, tc.orgDay)
+			const n = 6
+			for i := 0; i < n; i++ {
+				for _, format := range []string{"pdf", "docx"} {
+					if rec := f.get(f.docID, "?format="+format, "reader"); rec.Code != http.StatusOK {
+						t.Fatalf("offline %s export %d: %d %s", format, i+1, rec.Code, rec.Body)
+					}
+				}
+			}
+			if got := len(f.activity()); got != 2*n {
+				t.Errorf("document_exported rows = %d, want %d", got, 2*n)
+			}
+		})
+	}
+}
+
+func TestExportMixedLicenceLimits(t *testing.T) {
+	f := newExFx(t, "exmix")
+	f.caps = license.Capabilities{PDF: license.SourceOffline, DOCX: license.SourceMetered}
+	f.s.exportLimit = limiterAt(newFakeClock(), 4, 0) // 2 at once
+	for i := 0; i < 5; i++ { // offline PDF must not spend the metered allowance
+		if rec := f.get(f.docID, "?format=pdf", "reader"); rec.Code != http.StatusOK {
+			t.Fatalf("pdf export %d: %d %s", i+1, rec.Code, rec.Body)
+		}
+	}
+	for i := 0; i < 2; i++ {
+		if rec := f.get(f.docID, "?format=docx", "reader"); rec.Code != http.StatusOK {
+			t.Fatalf("docx export %d within the limit: %d %s", i+1, rec.Code, rec.Body)
+		}
+	}
+	if rec := f.get(f.docID, "?format=docx", "reader"); rec.Code != http.StatusTooManyRequests {
+		t.Errorf("metered docx over the limit: %d %s", rec.Code, rec.Body)
+	}
+	if rec := f.get(f.docID, "?format=pdf", "reader"); rec.Code != http.StatusOK {
+		t.Errorf("offline pdf after the metered limit: %d %s", rec.Code, rec.Body)
+	}
+}
+
 // An export is counted against the member's email, case-insensitively; an API
 // key with no email is counted against itself, never against nobody.
 func TestExportLimitUserIdentity(t *testing.T) {

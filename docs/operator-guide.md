@@ -342,19 +342,60 @@ Things to plan for:
 - `ISMS_UNIDOC_METERED_CACHE=0` is not a substitute for a writable directory:
   the libraries still write their state file there; with it off they persist
   less. Leave it unset unless UniDoc asks otherwise.
-- Do not combine an API key with the vendor's own offline-licence variables
-  (`UNIPDF_LICENSE_PATH` with `UNIPDF_CUSTOMER_NAME`, `UNIOFFICE_LICENSE_PATH`
-  with `UNIOFFICE_CUSTOMER_NAME`). Those variables, set on their own, license that
-  library without an API key and are honoured: the server then offers that format
-  (and logs that it came from them). Set together with an API key, the server logs
-  a warning naming the variables and turns export off. The `ISMS_*` variables for
-  offline keys are not supported yet.
+- Do not combine an API key with any offline licence source (see "Offline
+  keys" below). Set together, the server logs a warning naming the variables
+  (never their values) and turns export off, and does not contact UniDoc.
+
+#### Offline keys
+
+An offline key needs no network, so it suits air-gapped installs. Use either an
+offline key or the metered key, not both.
+
+| Variable | Description |
+|----------|-------------|
+| `ISMS_UNIDOC_LICENSE_KEY` | Offline key applied to both libraries (a UniSuite key, or a single-product key). |
+| `ISMS_UNIPDF_LICENSE_KEY`, `ISMS_UNIOFFICE_LICENSE_KEY` | Optional: that library uses this key instead of the shared one. |
+| `ISMS_UNIDOC_CUSTOMER_NAME` | Customer name the key was issued to. |
+| `ISMS_UNIPDF_CUSTOMER_NAME`, `ISMS_UNIOFFICE_CUSTOMER_NAME` | Optional: customer name for that library; falls back to `ISMS_UNIDOC_CUSTOMER_NAME`. |
+
+Every key variable also has a `_FILE` variant (for example
+`ISMS_UNIDOC_LICENSE_KEY_FILE`) holding the path of a file that contains the key.
+Prefer it: a key is several lines long and awkward in an env file.
+
+Rules:
+
+- A key needs a customer name. Without one the server does not try the key.
+- A per-library key replaces the shared key for that library. If it is rejected,
+  the library stays off; the shared key is not tried instead.
+- A variable and its `_FILE` variant together are a configuration error for that
+  variable. A `_FILE` that cannot be read (or is empty) turns that library off.
+- Blank or whitespace-only values count as unset.
+- The vendor variables (`UNIPDF_LICENSE_PATH` with `UNIPDF_CUSTOMER_NAME`,
+  `UNIOFFICE_LICENSE_PATH` with `UNIOFFICE_CUSTOMER_NAME`) still work on their own.
+  A vendor variable that is set owns its library: if the library did not accept it,
+  that format is off and any `ISMS_*` key for the same library is ignored.
+- An API key together with any of the above, even a wrong one, is refused: the
+  check is on the variable being set, not on the key being valid.
+
+A key that is wrong never stops the server and never appears in the log. A
+rejected key turns off only its library, and `/config` then lists only the formats
+that are licensed. Log lines (the first words are `export licence:`):
+
+- `UniPDF did not accept ISMS_UNIDOC_LICENSE_KEY: not a UniDoc licence key; PDF export is off`
+  (other reasons: `malformed licence key`, `signature check failed`, or the
+  library's own message).
+- `ISMS_UNIDOC_LICENSE_KEY is set without a customer name for UniPDF; set ISMS_UNIPDF_CUSTOMER_NAME or ISMS_UNIDOC_CUSTOMER_NAME; PDF export is off`
+- `cannot read ISMS_UNIDOC_LICENSE_KEY_FILE (/path): no such file or directory; PDF export is off`
+- `ISMS_UNIDOC_LICENSE_KEY and ISMS_UNIDOC_LICENSE_KEY_FILE are both set; set only one; PDF export is off`
+- `UNIPDF_LICENSE_PATH is set but UniPDF did not accept that licence (check the file and UNIPDF_CUSTOMER_NAME); PDF export is off`
+- `PDF export licensed from ISMS_UNIDOC_LICENSE_KEY (offline)` when it worked.
+- `ISMS_UNIDOC_API_KEY and ISMS_UNIDOC_LICENSE_KEY are both set; use one licence type. PDF/DOCX export is off.`
 
 #### Export limits
 
-Every PDF or DOCX export spends one metered credit, and any member who can read
-a document can export it, including with a read-only API key. Two limits cap the
-spend:
+With a metered key, every PDF or DOCX export spends one metered credit (an offline
+key spends none), and any member who can read a document can export it, including
+with a read-only API key. Two limits cap the spend and the load:
 
 - **Per member:** `ISMS_EXPORT_LIMIT_USER_HOURLY` exports per hour (default 30),
   counted by the member's email across all their organizations. An API key
@@ -831,7 +872,7 @@ Disable both with `ISMS_RATE_LIMIT=0`. The integration test suite needs this on 
 
 The public trust center API has its own limit, separate from the two above: requests per minute per IP address, not failed logins. See `ISMS_TRUST_RATE_LIMIT`. `ISMS_RATE_LIMIT=0` disables it too.
 
-PDF/DOCX export has per-member and per-organization limits, because each export spends a metered credit. See "Export limits" under the document export licence. `ISMS_RATE_LIMIT=0` disables them too.
+PDF/DOCX export has per-member and per-organization limits, because with a metered key each export spends a credit. See "Export limits" under the document export licence. `ISMS_RATE_LIMIT=0` disables them too.
 
 Trust center visitor sign-in has limits of its own, because anyone on the internet can ask for a link to be emailed:
 

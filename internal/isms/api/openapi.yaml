@@ -2154,7 +2154,9 @@ paths:
         `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. Error
         bodies carry a `code`: `export_format_invalid`, `export_version_ambiguous`
         and `export_version_invalid` (400), `export_not_licensed` (403), `export_version_not_found` (404),
-        `export_failed` (500, details are only logged).
+        `export_rate_limited` (429), `export_failed` (500, details are only logged). Exports are
+        limited per member per hour and per organization per day (`ISMS_EXPORT_LIMIT_USER_HOURLY`,
+        `ISMS_EXPORT_LIMIT_ORG_DAILY`); only a request that reaches rendering counts.
       parameters:
         - $ref: '#/components/parameters/docId'
         - name: format
@@ -2177,6 +2179,13 @@ paths:
       responses:
         '200':
           description: The document file
+          headers:
+            X-Export-Unprintable-Characters:
+              description: >-
+                PDF only, and only when non-zero: how many distinct characters the
+                server's PDF fonts could not print. Each occurrence is printed as
+                "?". Clients warn after saving the file; DOCX is unaffected.
+              schema: { type: integer, minimum: 1 }
           content:
             application/pdf: { schema: { type: string, format: binary } }
             application/vnd.openxmlformats-officedocument.wordprocessingml.document: { schema: { type: string, format: binary } }
@@ -2188,6 +2197,17 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          description: >-
+            Export limit reached, for this member or this organization. Carries
+            `Retry-After` in seconds; the body has code `export_rate_limited` and
+            `params.count`, the wait in whole minutes.
+          headers:
+            Retry-After:
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500':
           description: Export failed. The body is a fixed message; details are only logged.
           content:

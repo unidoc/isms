@@ -513,7 +513,8 @@
     "export_version_not_found": "that version of the document does not exist",
     "export_failed": "export failed",
     "export_version_ambiguous": "give either version or version_id, not both",
-    "export_version_invalid": "version_id must be a positive whole number"
+    "export_version_invalid": "version_id must be a positive whole number",
+    "export_rate_limited": "export limit reached, try again in {count} min"
   },
   "region": {
     "global": "Global",

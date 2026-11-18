@@ -506,7 +506,8 @@
     "export_version_not_found": "esa versión del documento no existe",
     "export_failed": "error al exportar",
     "export_version_ambiguous": "indica version o version_id, no ambos",
-    "export_version_invalid": "version_id debe ser un número entero positivo"
+    "export_version_invalid": "version_id debe ser un número entero positivo",
+    "export_rate_limited": "límite de exportaciones alcanzado, inténtelo de nuevo en {count} min"
   },
   "region": {
     "global": "Global",

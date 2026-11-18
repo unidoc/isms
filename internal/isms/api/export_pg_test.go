@@ -15,7 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/blob"
 	"isms.sh/internal/isms/db"
 	"isms.sh/internal/isms/export"
@@ -29,18 +31,20 @@ type exFx struct {
 	caps   license.Capabilities
 	docs   []export.ExportDoc
 	render func(string, *export.ExportDoc) ([]byte, error)
+	report export.Report // what the fake renderer reports
 }
 
 func newExFx(t *testing.T, tag string) *exFx {
 	t.Helper()
 	f := &exFx{tdFx: newTDFx(t, tag, "exp-"+tag), caps: license.Capabilities{PDF: license.SourceMetered, DOCX: license.SourceMetered}}
 	f.s.exportCaps = func() license.Capabilities { return f.caps }
-	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, error) {
+	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 		f.docs = append(f.docs, *d)
 		if f.render != nil {
-			return f.render(format, d)
+			b, err := f.render(format, d)
+			return b, f.report, err
 		}
-		return fakeExportBytes, nil
+		return fakeExportBytes, f.report, nil
 	}
 	return f
 }
@@ -123,6 +127,36 @@ func TestExportLicenceGate(t *testing.T) {
 	}
 	if rec := f.get(f.docID, "?format=docx", "admin"); !strings.Contains(rec.Body.String(), "DOCX export is not available on this server") {
 		t.Errorf("message: %s", rec.Body)
+	}
+}
+
+// /config advertises exactly what the export handler accepts: both read the
+// same exportCaps seam, so the web dialog never offers a format the endpoint
+// refuses. Nothing licensed is [] on the wire, not null.
+func TestExportConfigFormatsFollowTheSeam(t *testing.T) {
+	f := newExFx(t, "excfg")
+	f.s.blobs = blob.NewLocal(t.TempDir()) // /config looks up branding files
+	for _, tc := range []struct {
+		caps license.Capabilities
+		want string
+	}{
+		{license.Capabilities{}, `[]`},
+		{license.Capabilities{PDF: license.SourceMetered}, `["pdf"]`},
+		{license.Capabilities{DOCX: license.SourceOffline}, `["docx"]`},
+		{license.Capabilities{PDF: license.SourceMetered, DOCX: license.SourceMetered}, `["pdf","docx"]`},
+	} {
+		f.caps = tc.caps
+		c, rec := reviewCtxForPath(f.o.id, http.MethodGet, "/api/v1/config", "", "reader", f.admin)
+		if err := f.s.handleGetConfig(c); err != nil {
+			t.Fatalf("%+v: %v", tc.caps, err)
+		}
+		var body map[string]json.RawMessage
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("%+v: %v: %s", tc.caps, err, rec.Body)
+		}
+		if got := string(body["export_formats"]); got != tc.want {
+			t.Errorf("caps %+v: export_formats = %s, want %s", tc.caps, got, tc.want)
+		}
 	}
 }
 
@@ -373,7 +407,7 @@ func TestExportActivityReaderActorAndNoVersionLabel(t *testing.T) {
 	// The label is read after rendering, so the stub empties it: a document
 	// with no version label reads "(current)".
 	orig := f.s.exportRender
-	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, error) {
+	f.s.exportRender = func(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 		d.VersionLabel = ""
 		return orig(format, d)
 	}
@@ -533,6 +567,89 @@ func TestExportVersionParameterValidation(t *testing.T) {
 		rec := f.get(f.docID, "?format=pdf&version_id="+v, "admin")
 		if rec.Code != http.StatusBadRequest || exCode(rec) != CodeExportVersionInvalid {
 			t.Errorf("version_id=%s: %d %s", v, rec.Code, rec.Body)
+		}
+	}
+}
+
+// The export limit is taken only when a render is about to run: refused
+// requests cost nothing, a failed render gives its export back, and a request
+// over the limit is a 429 with Retry-After that never reaches the renderer or
+// the activity trail.
+func TestExportRateLimit(t *testing.T) {
+	f := newExFx(t, "exrl")
+	clk := newFakeClock()
+	f.s.exportLimit = limiterAt(clk, 2, 0)
+
+	// Refusals before the render are free.
+	for _, q := range []string{"?format=xls", "?format=pdf&version_id=999999", "?format=pdf&version=nope"} {
+		if rec := f.get(f.docID, q, "reader"); rec.Code == http.StatusOK || rec.Code == http.StatusTooManyRequests {
+			t.Fatalf("%s: %d %s", q, rec.Code, rec.Body)
+		}
+	}
+	// A failed render gives its export back.
+	f.render = func(string, *export.ExportDoc) ([]byte, error) { return nil, errors.New("boom") }
+	if rec := f.get(f.docID, "?format=pdf", "reader"); rec.Code != http.StatusInternalServerError {
+		t.Fatalf("failing render: %d %s", rec.Code, rec.Body)
+	}
+	f.render = nil
+
+	for i := 0; i < 2; i++ {
+		if rec := f.get(f.docID, "?format=pdf", "reader"); rec.Code != http.StatusOK {
+			t.Fatalf("export %d within the limit: %d %s", i+1, rec.Code, rec.Body)
+		}
+	}
+	rendered := len(f.docs)
+	rec := f.get(f.docID, "?format=docx", "reader")
+	if rec.Code != http.StatusTooManyRequests || exCode(rec) != CodeExportRateLimited {
+		t.Fatalf("over the limit: %d %s", rec.Code, rec.Body)
+	}
+	// 2 an hour: the next one is back in 30 minutes.
+	if got := rec.Header().Get("Retry-After"); got != "1800" {
+		t.Errorf("Retry-After = %q, want 1800", got)
+	}
+	var body struct {
+		Message string            `json:"message"`
+		Params  map[string]string `json:"params"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if body.Params["count"] != "30" || body.Message != "export limit reached, try again in 30 min" {
+		t.Errorf("body = %s", rec.Body)
+	}
+	if len(f.docs) != rendered {
+		t.Error("the renderer ran for a refused export")
+	}
+	if n := len(f.activity()); n != 2 {
+		t.Errorf("document_exported rows = %d, want 2", n)
+	}
+
+	clk.add(30 * time.Minute)
+	if rec := f.get(f.docID, "?format=docx", "reader"); rec.Code != http.StatusOK {
+		t.Errorf("after the refill: %d %s", rec.Code, rec.Body)
+	}
+}
+
+// An export is counted against the member's email, case-insensitively; an API
+// key with no email is counted against itself, never against nobody.
+func TestExportLimitUserIdentity(t *testing.T) {
+	e := echo.New()
+	for _, tc := range []struct {
+		email string
+		keyID any
+		want  string
+	}{
+		{"Alice@Example.COM", 7, "alice@example.com"},
+		{"", 7, "api-key:7"},
+		{"", nil, ""},
+	} {
+		c := e.NewContext(httptest.NewRequest(http.MethodGet, "/", nil), httptest.NewRecorder())
+		if tc.email != "" {
+			c.Set("user_email", tc.email)
+		}
+		if tc.keyID != nil {
+			c.Set("api_key_id", tc.keyID)
+		}
+		if got := exportLimitUser(c); got != tc.want {
+			t.Errorf("email %q key %v: %q, want %q", tc.email, tc.keyID, got, tc.want)
 		}
 	}
 }

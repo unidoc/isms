@@ -179,7 +179,8 @@
     "current_version": "Núverandi útgáfa",
     "unnumbered_version": "Ekkert útgáfunúmer",
     "download": "Sækja",
-    "downloading": "Sæki..."
+    "downloading": "Sæki...",
+    "unprintable": "PDF-skjalið var vistað, en {count} stafur er ekki í PDF-letri þjónsins og birtist sem „?“. Sæktu skjalið sem DOCX eða biddu kerfisstjóra að bæta við letri. | PDF-skjalið var vistað, en {count} stafir eru ekki í PDF-letri þjónsins og birtast sem „?“. Sæktu skjalið sem DOCX eða biddu kerfisstjóra að bæta við letri."
   },
   "new_doc": {
     "heading": "Nýtt skjal",

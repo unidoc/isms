@@ -179,7 +179,8 @@
     "current_version": "Versão atual",
     "unnumbered_version": "Sem número de versão",
     "download": "Baixar",
-    "downloading": "Baixando..."
+    "downloading": "Baixando...",
+    "unprintable": "O PDF foi salvo, mas {count} caractere não está nas fontes PDF do servidor e aparece como \"?\". Baixe como DOCX ou peça a um administrador para adicionar fontes. | O PDF foi salvo, mas {count} caracteres não estão nas fontes PDF do servidor e aparecem como \"?\". Baixe como DOCX ou peça a um administrador para adicionar fontes."
   },
   "new_doc": {
     "heading": "Novo Documento",

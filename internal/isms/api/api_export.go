@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math"
 	"mime"
 	"net/http"
 	"regexp"
@@ -30,12 +31,17 @@ func (s *Server) exportFormats() []string {
 	return license.Current().Formats()
 }
 
-func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, error) {
+func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 	if s.exportRender != nil {
 		return s.exportRender(format, d)
 	}
-	return export.Render(format, d)
+	return export.RenderReport(format, d)
 }
+
+// headerExportUnprintable carries the number of distinct characters the PDF
+// fonts printed as "?" (export.Report.Unprintable). Absent when there are none,
+// and always for DOCX. Clients warn on it after saving the file.
+const headerExportUnprintable = "X-Export-Unprintable-Characters"
 
 var exportNameUnsafe = regexp.MustCompile(`[^a-z0-9._-]`)
 
@@ -174,8 +180,23 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		d.Org.BrandColor = color
 	}
 
-	out, err := s.renderExport(format, &d)
+	// Every render spends a metered credit: take one from the caller's and the
+	// organization's allowance only now, after every check that can refuse.
+	release, wait, ok := s.exportLimit.take(exportLimitUser(c), orgID)
+	if !ok {
+		mins := int(math.Ceil(wait.Minutes()))
+		if mins < 1 {
+			mins = 1
+		}
+		h := c.Response().Header()
+		h.Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+		h.Set("Cache-Control", "no-store")
+		return apiError(http.StatusTooManyRequests, CodeExportRateLimited, Count(mins))
+	}
+
+	out, report, err := s.renderExport(format, &d)
 	if err != nil {
+		release()
 		if errors.Is(err, export.ErrUnlicensed) {
 			return apiError(http.StatusForbidden, CodeExportNotLicensed, Value(strings.ToUpper(format)))
 		}
@@ -211,7 +232,23 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	h.Set("Content-Disposition", disp)
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Cache-Control", "no-store")
+	if report.Unprintable > 0 {
+		h.Set(headerExportUnprintable, strconv.Itoa(report.Unprintable))
+	}
 	return c.Blob(http.StatusOK, export.MIMEType(format), out)
+}
+
+// exportLimitUser is who an export is counted against: the member's email,
+// lower-cased (an API key carries its owner's), or the API key itself when it
+// has no email, so no request goes uncounted.
+func exportLimitUser(c echo.Context) string {
+	if email := strings.ToLower(strings.TrimSpace(getUserEmail(c))); email != "" {
+		return email
+	}
+	if id, ok := c.Get("api_key_id").(int); ok {
+		return "api-key:" + strconv.Itoa(id)
+	}
+	return ""
 }
 
 // exportLogo returns the organisation's PNG logo, or nil when there is none,

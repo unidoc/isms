@@ -11,8 +11,10 @@ What this pins: the button shows only when a format is licensed and sits before
 Print; the dialog offers the licensed formats and the versions; a chosen
 version is sent by its id (`version_id`, never the label, because a version can
 have an empty label and "" means the current copy); the file is saved; a refusal
-is shown as a toast and keeps the dialog open; Cancel and Esc close it without a
-request; a reader can export.
+(not licensed, or over the export limit) is shown as a toast and keeps the
+dialog open; characters the server's PDF fonts could not print are reported in a
+warning after the file is saved; Cancel and Esc close it without a request; a
+reader can export.
 
 Own file to keep the monolithic test_e2e_browser.py free of per-branch conflicts.
 
@@ -40,6 +42,12 @@ DENIED = {
     "params": {"value": "PDF"},
 }
 
+RATE_LIMITED = {
+    "message": "export limit reached, try again in 30 min",
+    "code": "export_rate_limited",
+    "params": {"count": "30"},
+}
+
 DAY = 86400
 
 
@@ -60,9 +68,13 @@ def versions_payload():
 class Server:
     """What the page.route handlers saw and what they answer."""
 
-    def __init__(self, formats, deny=False, filename="iso27001-4-1.pdf", content_type=PDF_TYPE):
+    def __init__(self, formats, deny=False, filename="iso27001-4-1.pdf", content_type=PDF_TYPE,
+                 deny_status=403, deny_body=None, unprintable=None):
         self.formats = formats
         self.deny = deny
+        self.deny_status = deny_status
+        self.deny_body = deny_body or DENIED
+        self.unprintable = unprintable  # X-Export-Unprintable-Characters, or None
         self.filename = filename
         self.content_type = content_type
         self.requests = []  # export request URLs
@@ -83,11 +95,16 @@ class Server:
         def export(route):
             self.requests.append(route.request.url)
             if self.deny:
-                route.fulfill(status=403, content_type="application/json", body=json.dumps(DENIED))
+                headers = {"Retry-After": "1800"} if self.deny_status == 429 else {}
+                route.fulfill(status=self.deny_status, content_type="application/json",
+                              headers=headers, body=json.dumps(self.deny_body))
                 return
+            headers = {"Content-Disposition": f'attachment; filename="{self.filename}"'}
+            if self.unprintable is not None:
+                headers["X-Export-Unprintable-Characters"] = self.unprintable
             route.fulfill(
                 status=200, content_type=self.content_type,
-                headers={"Content-Disposition": f'attachment; filename="{self.filename}"'},
+                headers=headers,
                 body=b"%PDF-1.4 fake" if self.content_type == PDF_TYPE else b"PK\x03\x04fake",
             )
 
@@ -230,6 +247,38 @@ class TestExportDialog:
         page.wait_for_timeout(1500)  # a download would have fired by now
         assert downloads == [], downloads
         assert len(srv.requests) == 1
+
+    # 6b: over the export limit
+    def test_rate_limit_shows_when_to_retry(self, page):
+        srv = Server(formats=["pdf", "docx"], deny=True, deny_status=429, deny_body=RATE_LIMITED)
+        open_doc(page, srv)
+        dialog = open_dialog(page)
+        download_button(dialog).click()
+        expect(page.get_by_text("export limit reached, try again in 30 min").first).to_be_visible(timeout=10000)
+        expect(dialog).to_be_visible()
+        expect(download_button(dialog)).to_be_enabled()
+
+    # 6c: the file is saved, then a warning names the unprintable characters
+    def test_unprintable_characters_warn_after_saving(self, page):
+        srv = Server(formats=["pdf", "docx"], unprintable="8")
+        open_doc(page, srv)
+        dialog = open_dialog(page)
+        with page.expect_download(timeout=10000) as dl:
+            download_button(dialog).click()
+        assert dl.value.suggested_filename == "iso27001-4-1.pdf"
+        expect(dialog).to_have_count(0)
+        expect(page.get_by_text("8 characters are not in the server's PDF fonts").first).to_be_visible(timeout=10000)
+
+    # 6d: no header, no warning
+    def test_no_warning_for_a_faithful_pdf(self, page):
+        srv = Server(formats=["pdf"])
+        open_doc(page, srv)
+        dialog = open_dialog(page)
+        with page.expect_download(timeout=10000):
+            download_button(dialog).click()
+        expect(dialog).to_have_count(0)
+        page.wait_for_timeout(1000)
+        expect(page.get_by_text("not in the server's PDF fonts")).to_have_count(0)
 
     # 7
     def test_cancel_and_escape_close_without_a_request(self, page):

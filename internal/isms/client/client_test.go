@@ -314,6 +314,25 @@ func TestExportDocumentRendersTheServersRefusal(t *testing.T) {
 	}
 }
 
+// The CLI prints the client's error as is, so a 429 reads as the server's
+// sentence with the retry time in it.
+func TestExportDocumentRendersTheRateLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Retry-After", "1800")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"message":"export limit reached, try again in 30 min","code":"export_rate_limited","params":{"count":"30"}}`))
+	}))
+	defer srv.Close()
+	f, err := New(Config{BaseURL: srv.URL}).ExportDocument("pol-1", "pdf", "")
+	if f != nil || err == nil {
+		t.Fatalf("file %v err %v", f, err)
+	}
+	if want := "API error 429: export limit reached, try again in 30 min"; err.Error() != want {
+		t.Errorf("err = %q, want %q", err, want)
+	}
+}
+
 func TestExportFilename(t *testing.T) {
 	h := func(v string) http.Header {
 		hd := http.Header{}

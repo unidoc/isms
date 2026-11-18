@@ -1525,7 +1525,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { orgSlug, orgPath } = useCurrentOrg()
-const { error: toastError } = useToast()
+const { error: toastError, show: toastShow } = useToast()
 const { exportFormats } = useSession()
 
 const {
@@ -2278,7 +2278,7 @@ async function downloadExport() {
   if (!activeId.value || !exportFormat.value || exportBusy.value) return
   exportBusy.value = true
   try {
-    const { blob, filename } = await api.exportDocument(activeId.value, { format: exportFormat.value, versionId: exportVersion.value })
+    const { blob, filename, unprintable } = await api.exportDocument(activeId.value, { format: exportFormat.value, versionId: exportVersion.value })
     const objUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = objUrl
@@ -2288,6 +2288,11 @@ async function downloadExport() {
     a.remove()
     URL.revokeObjectURL(objUrl)
     showExportModal.value = false
+    // The file is saved either way; say which characters printed as "?". Long
+    // enough on screen to read the advice.
+    if (unprintable > 0) {
+      toastShow(t('documents.export.unprintable', { count: unprintable }, unprintable), 'warning', 12000)
+    }
   } catch (e) {
     // The modal stays open so another format or version can be tried.
     toastError(t('documents.error.export', { message: renderApiError(e) }))

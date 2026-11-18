@@ -179,7 +179,8 @@
     "current_version": "Bieżąca wersja",
     "unnumbered_version": "Brak numeru wersji",
     "download": "Pobierz",
-    "downloading": "Pobieranie..."
+    "downloading": "Pobieranie...",
+    "unprintable": "Zapisano PDF, ale {count} znak nie występuje w czcionkach PDF serwera i jest wyświetlany jako „?”. Pobierz plik jako DOCX lub poproś administratora o dodanie czcionek. | Zapisano PDF, ale liczba znaków spoza czcionek PDF serwera: {count}; są wyświetlane jako „?”. Pobierz plik jako DOCX lub poproś administratora o dodanie czcionek."
   },
   "new_doc": {
     "heading": "Nowy dokument",

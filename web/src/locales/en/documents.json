@@ -185,7 +185,8 @@
     "current_version": "Current version",
     "unnumbered_version": "No version number",
     "download": "Download",
-    "downloading": "Downloading..."
+    "downloading": "Downloading...",
+    "unprintable": "The PDF was saved, but {count} character is not in the server's PDF fonts and appears as \"?\". Download as DOCX instead, or ask an administrator to add fonts. | The PDF was saved, but {count} characters are not in the server's PDF fonts and appear as \"?\". Download as DOCX instead, or ask an administrator to add fonts."
   },
   "new_doc": {
     "heading": "New Document",

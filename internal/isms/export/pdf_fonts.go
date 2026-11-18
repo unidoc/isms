@@ -29,7 +29,30 @@ const envExportFontDir = "ISMS_EXPORT_FONT_DIR"
 // face is one font and what it can print.
 type face struct {
 	font *model.PdfFont
-	std  bool // a standard 14 font (one-byte encoding)
+	std  bool         // a standard 14 font (one-byte encoding)
+	miss *unprintable // this render's record of characters printed as "?"
+}
+
+// unprintable collects, for one render, the distinct characters its fonts
+// could not print. Distinct, because the running header repeats the title on
+// every page: a count of occurrences would grow with the page count.
+type unprintable struct{ runes map[rune]struct{} }
+
+func (u *unprintable) add(r rune) {
+	if u == nil {
+		return
+	}
+	if u.runes == nil {
+		u.runes = map[rune]struct{}{}
+	}
+	u.runes[r] = struct{}{}
+}
+
+func (u *unprintable) count() int {
+	if u == nil {
+		return 0
+	}
+	return len(u.runes)
 }
 
 // has reports whether the font can encode r.
@@ -65,6 +88,7 @@ func (f face) clean(s string) string {
 		case f.has(r):
 			sb.WriteRune(r)
 		default:
+			f.miss.add(r)
 			sb.WriteRune('?')
 		}
 	}
@@ -75,6 +99,7 @@ func (f face) clean(s string) string {
 type pdfFonts struct {
 	regular, bold, italic, boldItalic, mono face
 	embedded                                bool // TrueType fonts (subsetting applies)
+	miss                                    *unprintable
 }
 
 var fontFileNames = [...]string{"sans-regular.ttf", "sans-bold.ttf", "sans-italic.ttf", "sans-bolditalic.ttf", "mono-regular.ttf"}
@@ -167,18 +192,22 @@ func (fd *fontData) build() *pdfFonts {
 		}
 		fs[i] = f
 	}
+	miss := &unprintable{}
 	return &pdfFonts{
-		regular: face{font: fs[0]}, bold: face{font: fs[1]}, italic: face{font: fs[2]},
-		boldItalic: face{font: fs[3]}, mono: face{font: fs[4]}, embedded: true,
+		regular: face{font: fs[0], miss: miss}, bold: face{font: fs[1], miss: miss}, italic: face{font: fs[2], miss: miss},
+		boldItalic: face{font: fs[3], miss: miss}, mono: face{font: fs[4], miss: miss}, embedded: true, miss: miss,
 	}
 }
 
 func standardFonts() *pdfFonts {
-	mk := func(n model.StdFontName) face { return face{font: model.NewStandard14FontMustCompile(n), std: true} }
+	miss := &unprintable{}
+	mk := func(n model.StdFontName) face {
+		return face{font: model.NewStandard14FontMustCompile(n), std: true, miss: miss}
+	}
 	return &pdfFonts{
 		regular: mk(model.HelveticaName), bold: mk(model.HelveticaBoldName),
 		italic: mk(model.HelveticaObliqueName), boldItalic: mk(model.HelveticaBoldObliqueName),
-		mono: mk(model.CourierName),
+		mono: mk(model.CourierName), miss: miss,
 	}
 }
 

@@ -95,6 +95,7 @@ func downloadExport(c *client.Client, docID, format, version, output string) err
 	}
 	if output == "-" {
 		_, err := os.Stdout.Write(f.Data)
+		warnUnprintable(f.Unprintable)
 		return err
 	}
 	name := output
@@ -119,7 +120,22 @@ func downloadExport(c *client.Client, docID, format, version, output string) err
 		return fmt.Errorf("writing file: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "Saved %s (%d bytes)\n", name, len(f.Data))
+	warnUnprintable(f.Unprintable)
 	return nil
+}
+
+// warnUnprintable says, on stderr, that the PDF has characters printed as "?"
+// because the server's fonts lack them.
+func warnUnprintable(n int) {
+	if n <= 0 {
+		return
+	}
+	what := "characters are"
+	if n == 1 {
+		what = "character is"
+	}
+	fmt.Fprintf(os.Stderr, "Warning: %d %s not in the server's PDF fonts and printed as \"?\". "+
+		"Export as DOCX, or ask the server administrator to set ISMS_EXPORT_FONT_DIR.\n", n, what)
 }
 
 // stdoutIsTerminal reports whether stdout is a character device.

@@ -29,6 +29,9 @@ const (
 	envCache        = "ISMS_UNIDOC_METERED_CACHE"
 	// envLicenseDir is where the vendor libraries keep their metered state. They
 	// read it on every call, so setting it in-process before licensing works.
+	// TestKeyedLicenseDirReadPerCall (internal/isms/export) proves that with a
+	// key; TestVendorVersionsAudited fails when either library's version moves,
+	// so an upgrade cannot change it unnoticed.
 	envLicenseDir = "UNIDOC_LICENSE_DIR"
 )
 

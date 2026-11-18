@@ -179,7 +179,8 @@
     "current_version": "Versión actual",
     "unnumbered_version": "Sin número de versión",
     "download": "Descargar",
-    "downloading": "Descargando..."
+    "downloading": "Descargando...",
+    "unprintable": "El PDF se ha guardado, pero {count} carácter no está en las fuentes PDF del servidor y aparece como «?». Descárguelo en DOCX o pida a un administrador que añada fuentes. | El PDF se ha guardado, pero {count} caracteres no están en las fuentes PDF del servidor y aparecen como «?». Descárguelo en DOCX o pida a un administrador que añada fuentes."
   },
   "new_doc": {
     "heading": "Nuevo Documento",

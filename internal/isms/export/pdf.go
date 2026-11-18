@@ -42,22 +42,22 @@ var (
 
 // renderPDF renders d to PDF bytes. Errors from the vendor library that mean
 // "not licensed" are wrapped as ErrUnlicensed.
-func renderPDF(d *ExportDoc) ([]byte, error) {
+func renderPDF(d *ExportDoc) ([]byte, Report, error) {
 	if !pdfLicensed() {
-		return nil, fmt.Errorf("%w: unipdf is not licensed", ErrUnlicensed)
+		return nil, Report{}, fmt.Errorf("%w: unipdf is not licensed", ErrUnlicensed)
 	}
 	r, err := buildPDF(d)
 	if err != nil {
-		return nil, err
+		return nil, Report{}, err
 	}
 	var buf bytes.Buffer
 	if err := r.c.Write(&buf); err != nil {
-		return nil, mapPDFErr(err)
+		return nil, Report{}, mapPDFErr(err)
 	}
 	if buf.Len() == 0 {
-		return nil, errors.New("export: the PDF library produced no output")
+		return nil, Report{}, errors.New("export: the PDF library produced no output")
 	}
-	return buf.Bytes(), nil
+	return buf.Bytes(), Report{Unprintable: r.f.miss.count()}, nil
 }
 
 func pdfLicensed() bool {

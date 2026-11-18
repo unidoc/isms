@@ -205,7 +205,9 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 	}
 
 	// Fail closed: an export the activity trail cannot record is not served.
-	// A plain write, not logAndNotify: an export never posts to chat.
+	// A plain write, not logAndNotify: an export never posts to chat. The limit
+	// token is deliberately kept on this path: the render succeeded, so the
+	// credit is spent even though the file is not served.
 	what := "(current)"
 	switch {
 	case d.VersionLabel != "":
@@ -240,7 +242,10 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 
 // exportLimitUser is who an export is counted against: the member's email,
 // lower-cased (an API key carries its owner's), or the API key itself when it
-// has no email, so no request goes uncounted.
+// has no email, so no request goes uncounted. A request with neither gets "",
+// so all such requests share one bucket. The route needs authentication, which
+// sets one or the other, so that is not expected; sharing is the safe failure
+// (stricter, never unlimited).
 func exportLimitUser(c echo.Context) string {
 	if email := strings.ToLower(strings.TrimSpace(getUserEmail(c))); email != "" {
 		return email

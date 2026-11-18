@@ -17,14 +17,18 @@ import (
 //     organizations: ISMS_EXPORT_LIMIT_USER_HOURLY, default 30 an hour;
 //   - per organization: ISMS_EXPORT_LIMIT_ORG_DAILY, default 500 a day.
 //
-// A bucket starts full and refills evenly, so a member can export up to the
-// hourly number at once and then about one every two minutes. 0 turns that one
-// limit off; an invalid value logs a warning and keeps the default.
+// A bucket holds half the configured number, rounded up, and refills evenly at
+// the full rate. With the defaults a member can export 15 at once, then about
+// one every two minutes, and never more than 45 in any hour (half the number
+// plus an hour's refill); an organization 250 at once and at most 750 in any
+// day. A full-size bucket would allow twice the number in the first period
+// after an idle spell. 0 turns that one limit off; an invalid value logs a
+// warning and keeps the default.
 // ISMS_RATE_LIMIT=0 turns both off, the same dev/test switch as the other
 // limits. Read once, when the server is built.
 //
 // The buckets live in this process: a restart refills them, and each server
-// instance counts on its own. A token is taken only when a render is about to
+// instance counts on its own, so N replicas allow N times the limit. A token is taken only when a render is about to
 // run, after the format, licence, document and version checks, so a refused
 // request costs nothing; a render that fails gives its token back.
 const (
@@ -39,7 +43,7 @@ const (
 	exportLimitSweepEvery = 10 * time.Minute
 )
 
-// exportBucket is one token bucket: size tokens, refilled one per every.
+// exportBucket is one token bucket: at most size tokens, refilled one per every.
 type exportBucket struct {
 	size   float64
 	every  time.Duration
@@ -47,8 +51,11 @@ type exportBucket struct {
 	last   time.Time
 }
 
+// newExportBucket allows perPeriod exports per period: it refills at that rate
+// and holds half of it, rounded up so a limit of 1 still allows one export.
 func newExportBucket(perPeriod int, period time.Duration, now time.Time) *exportBucket {
-	return &exportBucket{size: float64(perPeriod), every: period / time.Duration(perPeriod), tokens: float64(perPeriod), last: now}
+	size := float64((perPeriod + 1) / 2)
+	return &exportBucket{size: size, every: period / time.Duration(perPeriod), tokens: size, last: now}
 }
 
 func (b *exportBucket) refill(now time.Time) {

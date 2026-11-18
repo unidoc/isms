@@ -500,7 +500,13 @@
     "trust_file_required": "pilih file untuk diunggah",
     "trust_certification_source": "berikan tautan atau file, bukan keduanya",
     "trust_date_invalid": "{field} harus berupa tanggal dengan format YYYY-MM-DD",
-    "trust_certification_already_published": "sertifikasi ini sudah dipublikasikan di trust center"
+    "trust_certification_already_published": "sertifikasi ini sudah dipublikasikan di trust center",
+    "export_format_invalid": "format harus pdf atau docx",
+    "export_not_licensed": "Ekspor {value} tidak tersedia di server ini",
+    "export_version_not_found": "versi dokumen tersebut tidak ada",
+    "export_failed": "ekspor gagal",
+    "export_version_ambiguous": "berikan version atau version_id, bukan keduanya",
+    "export_version_invalid": "version_id harus berupa bilangan bulat positif"
   },
   "region": {
     "global": "Global",

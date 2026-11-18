@@ -78,6 +78,22 @@ func (d *DB) GetVersion(ctx context.Context, orgID int, documentID, version stri
 	return &v, nil
 }
 
+// GetVersionByID returns one version of a document by its row id. The row must
+// belong to the given organization and document, so an id from another document
+// or organization is simply not found (pgx.ErrNoRows). A version with an empty
+// label can only be addressed this way.
+func (d *DB) GetVersionByID(ctx context.Context, orgID int, documentID string, id int) (*DocumentVersion, error) {
+	var v DocumentVersion
+	err := d.pool.QueryRow(ctx, `
+		SELECT id, organization_id, document_id, version, commit_hash, file_path, COALESCE(content_hash, ''), COALESCE(message, ''), COALESCE(owner, ''), review_cycle_months, created_by, created_at
+		FROM document_versions WHERE id = $1 AND organization_id = $2 AND document_id = $3
+	`, id, orgID, documentID).Scan(&v.ID, &v.OrganizationID, &v.DocumentID, &v.Version, &v.CommitHash, &v.FilePath, &v.ContentHash, &v.Message, &v.Owner, &v.ReviewCycleMonths, &v.CreatedBy, &v.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("version %d of %s not found: %w", id, documentID, err)
+	}
+	return &v, nil
+}
+
 // LatestVersion returns the most recent version of a document.
 func (d *DB) LatestVersion(ctx context.Context, orgID int, documentID string) (*DocumentVersion, error) {
 	var v DocumentVersion

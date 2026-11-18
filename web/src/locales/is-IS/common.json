@@ -500,7 +500,13 @@
     "trust_file_required": "veldu skrá til að hlaða upp",
     "trust_certification_source": "gefðu upp annaðhvort tengil eða skrá, ekki bæði",
     "trust_date_invalid": "{field} verður að vera dagsetning á sniðinu ÁÁÁÁ-MM-DD",
-    "trust_certification_already_published": "þessi vottun er þegar birt í traustmiðstöðinni"
+    "trust_certification_already_published": "þessi vottun er þegar birt í traustmiðstöðinni",
+    "export_format_invalid": "sniðið verður að vera pdf eða docx",
+    "export_not_licensed": "Útflutningur í {value} er ekki í boði á þessum þjóni",
+    "export_version_not_found": "þessi útgáfa skjalsins er ekki til",
+    "export_failed": "útflutningur mistókst",
+    "export_version_ambiguous": "gefðu upp annaðhvort version eða version_id, ekki bæði",
+    "export_version_invalid": "version_id verður að vera jákvæð heil tala"
   },
   "region": {
     "global": "Á heimsvísu",

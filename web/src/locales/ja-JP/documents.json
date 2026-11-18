@@ -69,6 +69,7 @@
     "send_for_review": "レビューに送信",
     "version_history": "バージョン履歴",
     "comments": "コメント",
+    "export": "エクスポート",
     "print": "文書を印刷",
     "delete": "文書を削除"
   },
@@ -171,6 +172,15 @@
     "version_note_hint": "これは承認後に文書の永続的なバージョン履歴の一部になります。",
     "send": "{count} 人のレビュー担当者に送信 | {count} 人のレビュー担当者に送信"
   },
+  "export": {
+    "title": "文書をエクスポート",
+    "format": "形式",
+    "version": "バージョン",
+    "current_version": "現在のバージョン",
+    "unnumbered_version": "バージョン番号なし",
+    "download": "ダウンロード",
+    "downloading": "ダウンロード中…"
+  },
   "new_doc": {
     "heading": "新しい文書",
     "title": "タイトル",
@@ -209,6 +219,7 @@
     "submit_comment": "コメントの送信に失敗しました: {message}",
     "resolve_comment": "コメントの解決に失敗しました: {message}",
     "load_documents": "文書の読み込みに失敗しました: {message}",
-    "save": "保存に失敗しました: {message}"
+    "save": "保存に失敗しました: {message}",
+    "export": "エクスポートに失敗しました: {message}"
   }
 }

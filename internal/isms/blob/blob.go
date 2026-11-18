@@ -64,20 +64,31 @@ func NewLocal(dataDir string) *LocalStore {
 //   - ISMS_S3_BUCKET, ISMS_S3_REGION, ISMS_S3_ENDPOINT,
 //     ISMS_S3_ACCESS_KEY, ISMS_S3_SECRET_KEY — required when backend is s3
 //
-// Use this from any code path that needs to write to the same store the
-// running API uses (e.g. demo seeders, migration tools), so the
-// configuration logic lives in exactly one place.
-func NewFromEnv() (Store, error) {
+// DataDir returns ISMS_DATA_DIR resolved to an absolute path. It is the one place
+// that reads the variable for storage, so other code that keeps files under the
+// data directory (the licence state, for one) agrees with the blob store.
+func DataDir() (string, error) {
 	dataDir := os.Getenv("ISMS_DATA_DIR")
 	if dataDir == "" {
-		return nil, fmt.Errorf("ISMS_DATA_DIR is required")
+		return "", fmt.Errorf("ISMS_DATA_DIR is required")
 	}
 	if !filepath.IsAbs(dataDir) {
 		abs, err := filepath.Abs(dataDir)
 		if err != nil {
-			return nil, fmt.Errorf("resolving ISMS_DATA_DIR=%q: %w", dataDir, err)
+			return "", fmt.Errorf("resolving ISMS_DATA_DIR=%q: %w", dataDir, err)
 		}
 		dataDir = abs
+	}
+	return dataDir, nil
+}
+
+// Use this from any code path that needs to write to the same store the
+// running API uses (e.g. demo seeders, migration tools), so the
+// configuration logic lives in exactly one place.
+func NewFromEnv() (Store, error) {
+	dataDir, err := DataDir()
+	if err != nil {
+		return nil, err
 	}
 
 	switch backend := os.Getenv("ISMS_STORAGE_BACKEND"); backend {

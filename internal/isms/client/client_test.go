@@ -262,3 +262,96 @@ func TestSendReviewRendersACodedRefusal(t *testing.T) {
 		t.Errorf("err = %q, want %q", err.Error(), want)
 	}
 }
+
+func TestExportDocumentRequestAndResponse(t *testing.T) {
+	var gotPath, gotRawQuery, gotAuth string
+	body := []byte("%PDF-fake\x00\x01binary")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath, gotRawQuery, gotAuth = r.URL.EscapedPath(), r.URL.RawQuery, r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Disposition", `attachment; filename=pol-1-v1.0.pdf`)
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+	c := New(Config{BaseURL: srv.URL, BearerToken: "tok"})
+
+	f, err := c.ExportDocument("pol-1", "pdf", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/v1/documents/pol-1/export" || gotRawQuery != "format=pdf" || gotAuth != "Bearer tok" {
+		t.Errorf("request = %s ?%s auth %q", gotPath, gotRawQuery, gotAuth)
+	}
+	if string(f.Data) != string(body) || f.ContentType != "application/pdf" || f.Filename != "pol-1-v1.0.pdf" {
+		t.Errorf("file = %+v", f)
+	}
+
+	// Escaping: a version with spaces and symbols, and a doc id with a slash.
+	if _, err := c.ExportDocument("a b/c", "docx", "1.0 & x=y"); err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/v1/documents/a%20b%2Fc/export" {
+		t.Errorf("path = %s", gotPath)
+	}
+	if gotRawQuery != "format=docx&version=1.0+%26+x%3Dy" {
+		t.Errorf("query = %s", gotRawQuery)
+	}
+}
+
+func TestExportDocumentRendersTheServersRefusal(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"message":"PDF export is not available on this server","code":"export_not_licensed"}`))
+	}))
+	defer srv.Close()
+	f, err := New(Config{BaseURL: srv.URL}).ExportDocument("pol-1", "pdf", "")
+	if f != nil || err == nil {
+		t.Fatalf("file %v err %v", f, err)
+	}
+	if want := "API error 403: PDF export is not available on this server"; err.Error() != want {
+		t.Errorf("err = %q, want %q", err, want)
+	}
+}
+
+func TestExportFilename(t *testing.T) {
+	h := func(v string) http.Header {
+		hd := http.Header{}
+		if v != "" {
+			hd.Set("Content-Disposition", v)
+		}
+		return hd
+	}
+	cases := []struct {
+		name   string
+		header http.Header
+		docID  string
+		want   string
+	}{
+		{"normal", h(`attachment; filename=iso27001-4-1-v1.0.pdf`), "iso27001-4-1", "iso27001-4-1-v1.0.pdf"},
+		{"quoted", h(`attachment; filename="pol-1.pdf"`), "x", "pol-1.pdf"},
+		{"traversal", h(`attachment; filename="../../etc/passwd"`), "pol-1", "passwd"},
+		{"absolute", h(`attachment; filename="/abs/x.pdf"`), "pol-1", "x.pdf"},
+		{"windows separators", h(`attachment; filename="..\\..\\x.pdf"`), "pol-1", "x.pdf"},
+		{"hidden", h(`attachment; filename=".hidden.pdf"`), "pol-1", "pol-1.pdf"},
+		{"dotdot", h(`attachment; filename=".."`), "pol-1", "pol-1.pdf"},
+		{"dot", h(`attachment; filename="."`), "pol-1", "pol-1.pdf"},
+		{"empty header", h(""), "pol-1", "pol-1.pdf"},
+		{"no filename param", h("attachment"), "pol-1", "pol-1.pdf"},
+		{"unparseable", h(";;;"), "pol-1", "pol-1.pdf"},
+		{"unicode", h(`attachment; filename="résumé 日本.pdf"`), "pol-1", "r-sum----.pdf"},
+		{"spaces", h(`attachment; filename="my doc.pdf"`), "pol-1", "my-doc.pdf"},
+		{"fallback id sanitised", h(""), "../Weird id/x", "x.pdf"},
+		{"fallback id hidden", h(""), ".secret", "secret.pdf"},
+		{"fallback empty id", h(""), "", "export.pdf"},
+	}
+	for _, c := range cases {
+		got := ExportFilename(c.header, c.docID, "pdf")
+		if got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		}
+		if strings.ContainsAny(got, `/\`) || strings.HasPrefix(got, ".") || got == "" {
+			t.Errorf("%s: unsafe name %q", c.name, got)
+		}
+	}
+}

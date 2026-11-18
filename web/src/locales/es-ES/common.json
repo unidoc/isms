@@ -500,7 +500,13 @@
     "trust_file_required": "elige un archivo para subir",
     "trust_certification_source": "indica un enlace o un archivo, no ambos",
     "trust_date_invalid": "{field} debe ser una fecha con el formato AAAA-MM-DD",
-    "trust_certification_already_published": "esta certificación ya está publicada en el centro de confianza"
+    "trust_certification_already_published": "esta certificación ya está publicada en el centro de confianza",
+    "export_format_invalid": "el formato debe ser pdf o docx",
+    "export_not_licensed": "La exportación a {value} no está disponible en este servidor",
+    "export_version_not_found": "esa versión del documento no existe",
+    "export_failed": "error al exportar",
+    "export_version_ambiguous": "indica version o version_id, no ambos",
+    "export_version_invalid": "version_id debe ser un número entero positivo"
   },
   "region": {
     "global": "Global",

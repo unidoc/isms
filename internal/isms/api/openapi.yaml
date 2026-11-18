@@ -2137,6 +2137,63 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/DocumentVersion' }
 
+  /documents/{docId}/export:
+    get:
+      tags: [Versions & Diff]
+      summary: Download a document as PDF or DOCX
+      description: >-
+        Any member who can read the document can export it (the same access as
+        `/documents/{docId}/body`). The format must be licensed on this server:
+        `GET /config` lists the available ones in `export_formats`. Without
+        `version` (or with `current`) the working copy is exported; with a
+        version label, that version is read from its recorded commit, and a
+        document that was approved then is stamped as approved even if the
+        working copy has changed since. Anything but an approved document is
+        stamped as a draft. Every successful export is recorded in the activity
+        trail. The file is an attachment: `Content-Disposition: attachment`,
+        `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. Error
+        bodies carry a `code`: `export_format_invalid`, `export_version_ambiguous`
+        and `export_version_invalid` (400), `export_not_licensed` (403), `export_version_not_found` (404),
+        `export_failed` (500, details are only logged).
+      parameters:
+        - $ref: '#/components/parameters/docId'
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [pdf, docx] }
+        - name: version
+          in: query
+          schema: { type: string }
+          description: A version label, or `current` (the default) for the working copy.
+        - name: version_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+          description: >-
+            A recorded version by its id (the `id` in `/documents/{docId}/versions`).
+            The only way to address a version whose label is empty. It must belong to
+            this document and organization, otherwise 404 `export_version_not_found`.
+            Giving both `version` and `version_id` is 400 `export_version_ambiguous`;
+            a `version_id` that is not a positive integer is 400 `export_version_invalid`.
+      responses:
+        '200':
+          description: The document file
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document: { schema: { type: string, format: binary } }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Export failed. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /documents/{docId}/diff:
     get:
       tags: [Versions & Diff]

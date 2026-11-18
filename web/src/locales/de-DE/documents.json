@@ -69,6 +69,7 @@
     "send_for_review": "Zur Prüfung senden",
     "version_history": "Versionshistorie",
     "comments": "Kommentare",
+    "export": "Exportieren",
     "print": "Dokument drucken",
     "delete": "Dokument löschen"
   },
@@ -171,6 +172,15 @@
     "version_note_hint": "Dies wird nach der Genehmigung Teil der dauerhaften Versionshistorie des Dokuments.",
     "send": "An {count} Prüfer senden | An {count} Prüfer senden"
   },
+  "export": {
+    "title": "Dokument exportieren",
+    "format": "Format",
+    "version": "Version",
+    "current_version": "Aktuelle Version",
+    "unnumbered_version": "Keine Versionsnummer",
+    "download": "Herunterladen",
+    "downloading": "Wird heruntergeladen..."
+  },
   "new_doc": {
     "heading": "Neues Dokument",
     "title": "Titel",
@@ -209,6 +219,7 @@
     "submit_comment": "Kommentar konnte nicht übermittelt werden: {message}",
     "resolve_comment": "Kommentar konnte nicht gelöst werden: {message}",
     "load_documents": "Dokumente konnten nicht geladen werden: {message}",
-    "save": "Speichern fehlgeschlagen: {message}"
+    "save": "Speichern fehlgeschlagen: {message}",
+    "export": "Export fehlgeschlagen: {message}"
   }
 }

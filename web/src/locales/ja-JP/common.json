@@ -487,7 +487,13 @@
     "trust_file_required": "アップロードするファイルを選択してください",
     "trust_certification_source": "リンクまたはファイルのどちらか一方を指定してください",
     "trust_date_invalid": "{field}は YYYY-MM-DD 形式の日付で指定してください",
-    "trust_certification_already_published": "この認証はすでにトラストセンターで公開されています"
+    "trust_certification_already_published": "この認証はすでにトラストセンターで公開されています",
+    "export_format_invalid": "形式は pdf または docx にしてください",
+    "export_not_licensed": "このサーバーでは {value} へのエクスポートは利用できません",
+    "export_version_not_found": "文書にそのバージョンは存在しません",
+    "export_failed": "エクスポートに失敗しました",
+    "export_version_ambiguous": "version と version_id のどちらか一方だけを指定してください",
+    "export_version_invalid": "version_id は正の整数にしてください"
   },
   "region": {
     "global": "グローバル",

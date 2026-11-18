@@ -305,6 +305,78 @@ When set, all git commits made by the server are signed with this SSH key.
 | `ISMS_PRIVACY_FILE` | Path to a markdown file with Privacy Policy |
 | `ISMS_HIDE_POWERED_BY` | Set to `1` to hide the "Powered by isms.sh" branding |
 
+### Document export licence (optional)
+
+| Variable | Description |
+|----------|-------------|
+| `ISMS_UNIDOC_API_KEY` | UniDoc metered API key. Licenses PDF and DOCX export. `UNIDOC_API_KEY` is accepted as a legacy alias; if both are set, `ISMS_UNIDOC_API_KEY` wins. |
+| `ISMS_UNIDOC_METERED_CACHE` | Set to `0`, `false` or `off` to ask the licence libraries to persist less usage state (default: on). The state directory is still needed. |
+| `UNIDOC_LICENSE_DIR` | Directory for the licence libraries' metered state. Default: `unidoc` under `ISMS_DATA_DIR`. It must be writable. |
+| `ISMS_EXPORT_FONT_DIR` | Directory of TrueType fonts for PDF export (see below). Unset: the standard PDF fonts. |
+
+One metered key covers both PDF and DOCX. The server validates it against
+UniDoc's cloud in the background at start, so startup never waits for it. A
+format appears in `export_formats` of `GET /api/v1/config` once its validation
+succeeds; if the cloud is unreachable the server retries after 1 minute, 5
+minutes, 15 minutes and then hourly. An invalid key is logged once and not
+retried. Without a key, no export format is offered.
+
+Things to plan for:
+
+- Usage is reported to UniDoc while the server runs, so it needs outbound
+  network access to `cloud.unidoc.io`.
+- The libraries keep metered usage state in files. By default the server keeps
+  them in `unidoc` under `ISMS_DATA_DIR` (created with mode 0700), which is
+  already your persistent, writable volume, so a read-only root filesystem and an
+  unwritable home directory need no extra setup. Set `UNIDOC_LICENSE_DIR` to put
+  the state elsewhere; an explicit value is used as given. The server logs the
+  directory it uses (never the key).
+- The state directory must be writable. It is checked at start by writing and
+  removing a temporary file. If it cannot be written, the server logs one warning
+  naming the directory and the fix, and offers no export format (`export_formats`
+  stays empty, the Export button is hidden, and the endpoint answers 403
+  `export_not_licensed`), because licensing would succeed and every export would
+  then fail.
+- `ISMS_UNIDOC_METERED_CACHE=0` is not a substitute for a writable directory:
+  the libraries still write their state file there; with it off they persist
+  less. Leave it unset unless UniDoc asks otherwise.
+- Do not combine an API key with the vendor's own offline-licence variables
+  (`UNIPDF_LICENSE_PATH` with `UNIPDF_CUSTOMER_NAME`, `UNIOFFICE_LICENSE_PATH`
+  with `UNIOFFICE_CUSTOMER_NAME`). Those variables, set on their own, license that
+  library without an API key and are honoured: the server then offers that format
+  (and logs that it came from them). Set together with an API key, the server logs
+  a warning naming the variables and turns export off. The `ISMS_*` variables for
+  offline keys are not supported yet.
+
+#### PDF fonts
+
+PDF export draws text with fonts read from disk; no font is built into the
+binary. Point `ISMS_EXPORT_FONT_DIR` at a directory of TrueType (`.ttf`) files
+with these names (lower case):
+
+| File | Used for |
+|------|----------|
+| `sans-regular.ttf` | body text; **required** to use the directory at all |
+| `sans-bold.ttf` | bold text, headings, table headers |
+| `sans-italic.ttf` | italic text |
+| `sans-bolditalic.ttf` | bold italic text |
+| `mono-regular.ttf` | code |
+
+Every file except `sans-regular.ttf` is optional; a missing one falls back to
+`sans-regular.ttf`. Fonts are read once and the PDF embeds only the glyphs a
+document uses, so files stay small. OpenType fonts with PostScript (CFF)
+outlines load, but only TrueType is supported.
+
+Without a usable directory (unset, no `sans-regular.ttf`, or a file that is not
+a valid font) the export uses the standard PDF fonts (Helvetica and Courier) and
+still succeeds. Those fonts cover Western European text (Latin-1 and the Windows
+code page 1252 symbols); any other character, such as Polish letters outside
+Latin-1, Cyrillic, Greek or CJK, is printed as `?`. To print those scripts, supply
+fonts that contain them. A free family such as Noto Sans and Noto Sans Mono (SIL
+Open Font License, from the official Noto project at fonts.google.com/noto) works;
+copy its regular, bold, italic, bold italic and mono files to the names above.
+The server logs which fonts it chose, and why, the first time a PDF is exported.
+
 ### CLI-only variables
 
 These are used by the CLI client, not the server:

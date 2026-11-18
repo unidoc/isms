@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -53,11 +54,17 @@ func (c *Client) BaseURL() string {
 }
 
 func (c *Client) do(method, path string, body interface{}) ([]byte, error) {
+	respBody, _, err := c.doWithHeaders(method, path, body)
+	return respBody, err
+}
+
+// doWithHeaders is do, also returning the response headers.
+func (c *Client) doWithHeaders(method, path string, body interface{}) ([]byte, http.Header, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return nil, fmt.Errorf("marshalling request: %w", err)
+			return nil, nil, fmt.Errorf("marshalling request: %w", err)
 		}
 		reqBody = bytes.NewReader(data)
 	}
@@ -65,7 +72,7 @@ func (c *Client) do(method, path string, body interface{}) ([]byte, error) {
 	url := c.baseURL + path
 	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if body != nil {
@@ -85,20 +92,20 @@ func (c *Client) do(method, path string, body interface{}) ([]byte, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
+		return nil, nil, fmt.Errorf("API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading response: %w", err)
+		return nil, nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, errorDetail(respBody))
+		return nil, nil, fmt.Errorf("API error %d: %s", resp.StatusCode, errorDetail(respBody))
 	}
 
-	return respBody, nil
+	return respBody, resp.Header, nil
 }
 
 // errorDetail turns an API error body into the text a CLI user reads.
@@ -228,6 +235,68 @@ func (c *Client) GetDocumentBody(docID string) (*DocBody, error) {
 	}
 	var result DocBody
 	return &result, json.Unmarshal(data, &result)
+}
+
+// ExportFile is a rendered document downloaded from the server.
+type ExportFile struct {
+	Data        []byte
+	Filename    string // as sanitised by ExportFilename; the document id and extension are the fallback
+	ContentType string
+}
+
+// ExportDocument downloads a document as "pdf" or "docx". The server renders
+// it; the CLI never licenses or renders anything. version "" means the current
+// working copy.
+func (c *Client) ExportDocument(docID, format, version string) (*ExportFile, error) {
+	q := url.Values{"format": {format}}
+	if version != "" {
+		q.Set("version", version)
+	}
+	data, hdr, err := c.doWithHeaders(http.MethodGet, "/v1/documents/"+url.PathEscape(docID)+"/export?"+q.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return &ExportFile{Data: data, Filename: ExportFilename(hdr, docID, format), ContentType: hdr.Get("Content-Type")}, nil
+}
+
+// ExportFilename picks the local file name for a download: the server's
+// Content-Disposition filename reduced to a safe name, or "<docID>.<ext>". A
+// server-supplied name never reaches outside the current directory or makes a
+// hidden file: any directory part is dropped (slash or backslash), characters
+// outside [A-Za-z0-9._-] become "-", and an empty, dot-only or dot-leading name
+// falls back.
+func ExportFilename(header http.Header, docID, ext string) string {
+	if _, params, err := mime.ParseMediaType(header.Get("Content-Disposition")); err == nil {
+		if name := safeFileName(params["filename"]); name != "" && !strings.HasPrefix(name, ".") {
+			return name
+		}
+	}
+	id := strings.TrimLeft(safeFileName(docID), ".")
+	if id == "" {
+		id = "export"
+	}
+	return id + "." + ext
+}
+
+// safeFileName drops any directory part and replaces unsafe characters.
+func safeFileName(name string) string {
+	if i := strings.LastIndexAny(name, `/\`); i >= 0 {
+		name = name[i+1:]
+	}
+	var sb strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '_', r == '-':
+			sb.WriteRune(r)
+		default:
+			sb.WriteRune('-')
+		}
+	}
+	name = sb.String()
+	if name == "." || name == ".." {
+		return ""
+	}
+	return name
 }
 
 // ListDocsByFolder returns a flat list of DocSummary for a given folder name.

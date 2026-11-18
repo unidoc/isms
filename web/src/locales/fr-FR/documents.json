@@ -69,6 +69,7 @@
     "send_for_review": "Envoyer pour revue",
     "version_history": "Historique des versions",
     "comments": "Commentaires",
+    "export": "Exporter",
     "print": "Imprimer le document",
     "delete": "Supprimer le document"
   },
@@ -171,6 +172,15 @@
     "version_note_hint": "Cette note fera partie de l'historique de version permanent du document après approbation.",
     "send": "Envoyer à {count} relecteur | Envoyer à {count} relecteurs"
   },
+  "export": {
+    "title": "Exporter le document",
+    "format": "Format",
+    "version": "Version",
+    "current_version": "Version actuelle",
+    "unnumbered_version": "Sans numéro de version",
+    "download": "Télécharger",
+    "downloading": "Téléchargement..."
+  },
   "new_doc": {
     "heading": "Nouveau document",
     "title": "Titre",
@@ -209,6 +219,7 @@
     "submit_comment": "Échec de l'envoi du commentaire : {message}",
     "resolve_comment": "Échec de la résolution du commentaire : {message}",
     "load_documents": "Échec du chargement des documents : {message}",
-    "save": "Échec de l'enregistrement : {message}"
+    "save": "Échec de l'enregistrement : {message}",
+    "export": "Échec de l’exportation : {message}"
   }
 }

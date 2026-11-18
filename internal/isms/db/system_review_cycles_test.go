@@ -32,7 +32,7 @@ func TestSystemCalculateNextReview(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			base := time.Now()
+			base := time.Now().UTC() // the code works in UTC: a local date can be a day ahead or behind
 			sys := &System{Criticality: tt.criticality}
 			sys.CalculateNextReview(tt.cycles)
 
@@ -71,7 +71,7 @@ func TestSystemCalculateNextReviewBaseDate(t *testing.T) {
 	})
 
 	t.Run("base is now when last_review is zero", func(t *testing.T) {
-		base := time.Now()
+		base := time.Now().UTC() // the code works in UTC: a local date can be a day ahead or behind
 		sys := &System{Criticality: "low", LastReview: &Epoch{}}
 		sys.CalculateNextReview(nil)
 

@@ -31,7 +31,7 @@ const (
 	// holding the key); a library's own variable (lib.KeyVar) replaces the shared
 	// one for that library.
 	envSharedKey      = "ISMS_UNIDOC_LICENSE_KEY"
-	envSharedCustomer = "ISMS_UNIDOC_CUSTOMER_NAME"
+	envSharedCustomer = "ISMS_UNIDOC_LICENSE_CUSTOMER_NAME"
 	// envLicenseDir is where the vendor libraries keep their metered state. They
 	// read it on every call, so setting it in-process before licensing works.
 	// TestKeyedLicenseDirReadPerCall (internal/isms/export) proves that with a

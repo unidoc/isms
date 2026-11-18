@@ -16,7 +16,7 @@ func (pdfLib) Format() string                  { return "pdf" }
 func (pdfLib) VendorVar() string               { return "UNIPDF_LICENSE_PATH" }
 func (pdfLib) VendorCustomerVar() string       { return "UNIPDF_CUSTOMER_NAME" }
 func (pdfLib) KeyVar() string                  { return "ISMS_UNIPDF_LICENSE_KEY" }
-func (pdfLib) CustomerVar() string             { return "ISMS_UNIPDF_CUSTOMER_NAME" }
+func (pdfLib) CustomerVar() string             { return "ISMS_UNIPDF_LICENSE_CUSTOMER_NAME" }
 func (pdfLib) SetLicenseKey(k, c string) error { return pdflic.SetLicenseKey(k, c) }
 func (pdfLib) SetMeteredKey(k string) error    { return pdflic.SetMeteredKey(k) }
 func (pdfLib) SetPersistentCache(v bool)       { pdflic.SetMeteredKeyPersistentCache(v) }
@@ -33,7 +33,7 @@ func (docxLib) Format() string                  { return "docx" }
 func (docxLib) VendorVar() string               { return "UNIOFFICE_LICENSE_PATH" }
 func (docxLib) VendorCustomerVar() string       { return "UNIOFFICE_CUSTOMER_NAME" }
 func (docxLib) KeyVar() string                  { return "ISMS_UNIOFFICE_LICENSE_KEY" }
-func (docxLib) CustomerVar() string             { return "ISMS_UNIOFFICE_CUSTOMER_NAME" }
+func (docxLib) CustomerVar() string             { return "ISMS_UNIOFFICE_LICENSE_CUSTOMER_NAME" }
 func (docxLib) SetLicenseKey(k, c string) error { return docxlic.SetLicenseKey(k, c) }
 func (docxLib) SetMeteredKey(k string) error    { return docxlic.SetMeteredKey(k) }
 func (docxLib) SetPersistentCache(v bool)       { docxlic.SetMeteredKeyPersistentCache(v) }

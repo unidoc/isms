@@ -21,7 +21,7 @@ const sentinel = "SENTINEL-KEY-DO-NOT-LOG-7f3a"
 type fakeLib struct {
 	name, format, vvar string
 	product, vcust     string // UniPDF, UNIPDF_CUSTOMER_NAME
-	keyVar, custVar    string // ISMS_UNIPDF_LICENSE_KEY, ISMS_UNIPDF_CUSTOMER_NAME
+	keyVar, custVar    string // ISMS_UNIPDF_LICENSE_KEY, ISMS_UNIPDF_LICENSE_CUSTOMER_NAME
 	licensed           bool
 
 	mu       sync.Mutex
@@ -73,9 +73,9 @@ func (f *fakeLib) eventList() []string {
 
 func fakes() (*fakeLib, *fakeLib) {
 	return &fakeLib{name: "PDF", product: "UniPDF", format: "pdf", vvar: "UNIPDF_LICENSE_PATH",
-			vcust: "UNIPDF_CUSTOMER_NAME", keyVar: "ISMS_UNIPDF_LICENSE_KEY", custVar: "ISMS_UNIPDF_CUSTOMER_NAME"},
+			vcust: "UNIPDF_CUSTOMER_NAME", keyVar: "ISMS_UNIPDF_LICENSE_KEY", custVar: "ISMS_UNIPDF_LICENSE_CUSTOMER_NAME"},
 		&fakeLib{name: "DOCX", product: "UniOffice", format: "docx", vvar: "UNIOFFICE_LICENSE_PATH",
-			vcust: "UNIOFFICE_CUSTOMER_NAME", keyVar: "ISMS_UNIOFFICE_LICENSE_KEY", custVar: "ISMS_UNIOFFICE_CUSTOMER_NAME"}
+			vcust: "UNIOFFICE_CUSTOMER_NAME", keyVar: "ISMS_UNIOFFICE_LICENSE_KEY", custVar: "ISMS_UNIOFFICE_LICENSE_CUSTOMER_NAME"}
 }
 
 // noFiles is a readFile that has no files.

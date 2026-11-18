@@ -355,8 +355,8 @@ offline key or the metered key, not both.
 |----------|-------------|
 | `ISMS_UNIDOC_LICENSE_KEY` | Offline key applied to both libraries (a UniSuite key, or a single-product key). |
 | `ISMS_UNIPDF_LICENSE_KEY`, `ISMS_UNIOFFICE_LICENSE_KEY` | Optional: that library uses this key instead of the shared one. |
-| `ISMS_UNIDOC_CUSTOMER_NAME` | Customer name the key was issued to. |
-| `ISMS_UNIPDF_CUSTOMER_NAME`, `ISMS_UNIOFFICE_CUSTOMER_NAME` | Optional: customer name for that library; falls back to `ISMS_UNIDOC_CUSTOMER_NAME`. |
+| `ISMS_UNIDOC_LICENSE_CUSTOMER_NAME` | Customer name the key was issued to. |
+| `ISMS_UNIPDF_LICENSE_CUSTOMER_NAME`, `ISMS_UNIOFFICE_LICENSE_CUSTOMER_NAME` | Optional: customer name for that library; falls back to `ISMS_UNIDOC_LICENSE_CUSTOMER_NAME`. |
 
 Every key variable also has a `_FILE` variant (for example
 `ISMS_UNIDOC_LICENSE_KEY_FILE`) holding the path of a file that contains the key.
@@ -384,7 +384,7 @@ that are licensed. Log lines (the first words are `export licence:`):
 - `UniPDF did not accept ISMS_UNIDOC_LICENSE_KEY: not a UniDoc licence key; PDF export is off`
   (other reasons: `malformed licence key`, `signature check failed`, or the
   library's own message).
-- `ISMS_UNIDOC_LICENSE_KEY is set without a customer name for UniPDF; set ISMS_UNIPDF_CUSTOMER_NAME or ISMS_UNIDOC_CUSTOMER_NAME; PDF export is off`
+- `ISMS_UNIDOC_LICENSE_KEY is set without a customer name for UniPDF; set ISMS_UNIPDF_LICENSE_CUSTOMER_NAME or ISMS_UNIDOC_LICENSE_CUSTOMER_NAME; PDF export is off`
 - `cannot read ISMS_UNIDOC_LICENSE_KEY_FILE (/path): no such file or directory; PDF export is off`
 - `ISMS_UNIDOC_LICENSE_KEY and ISMS_UNIDOC_LICENSE_KEY_FILE are both set; set only one; PDF export is off`
 - `UNIPDF_LICENSE_PATH is set but UniPDF did not accept that licence (check the file and UNIPDF_CUSTOMER_NAME); PDF export is off`

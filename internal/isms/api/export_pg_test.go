@@ -126,6 +126,36 @@ func TestExportLicenceGate(t *testing.T) {
 	}
 }
 
+// /config advertises exactly what the export handler accepts: both read the
+// same exportCaps seam, so the web dialog never offers a format the endpoint
+// refuses. Nothing licensed is [] on the wire, not null.
+func TestExportConfigFormatsFollowTheSeam(t *testing.T) {
+	f := newExFx(t, "excfg")
+	f.s.blobs = blob.NewLocal(t.TempDir()) // /config looks up branding files
+	for _, tc := range []struct {
+		caps license.Capabilities
+		want string
+	}{
+		{license.Capabilities{}, `[]`},
+		{license.Capabilities{PDF: license.SourceMetered}, `["pdf"]`},
+		{license.Capabilities{DOCX: license.SourceOffline}, `["docx"]`},
+		{license.Capabilities{PDF: license.SourceMetered, DOCX: license.SourceMetered}, `["pdf","docx"]`},
+	} {
+		f.caps = tc.caps
+		c, rec := reviewCtxForPath(f.o.id, http.MethodGet, "/api/v1/config", "", "reader", f.admin)
+		if err := f.s.handleGetConfig(c); err != nil {
+			t.Fatalf("%+v: %v", tc.caps, err)
+		}
+		var body map[string]json.RawMessage
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("%+v: %v: %s", tc.caps, err, rec.Body)
+		}
+		if got := string(body["export_formats"]); got != tc.want {
+			t.Errorf("caps %+v: export_formats = %s, want %s", tc.caps, got, tc.want)
+		}
+	}
+}
+
 func TestExportUnknownDocAndVersion(t *testing.T) {
 	f := newExFx(t, "exnf")
 	if rec := f.get("no-such-doc", "?format=pdf", "admin"); rec.Code != http.StatusNotFound {

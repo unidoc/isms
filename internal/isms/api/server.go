@@ -1069,7 +1069,7 @@ func (s *Server) handleGetConfig(c echo.Context) error {
 	if sv := os.Getenv("ISMS_USER_SIGNUP"); sv == "true" || sv == "1" {
 		resp.SignupEnabled = true
 	}
-	resp.ExportFormats = license.Current().Formats()
+	resp.ExportFormats = s.exportFormats()
 
 	// Branding from org settings (Postgres)
 	branding := map[string]string{}

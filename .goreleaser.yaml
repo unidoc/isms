@@ -42,8 +42,11 @@ archives:
     # tarball silently loses them — a licence-distribution regression, not just a
     # FreeBSD one. Keep the defaults, then add the FreeBSD rc.d script + config
     # sample so a jail install is copy-into-place (harmless on other OSes).
+    # NOTICE carries the third-party credits (the FreeType License asks for one
+    # in the documentation of distributed binaries).
     files:
       - LICENSE*
+      - NOTICE*
       - README*
       - CHANGELOG*
       - src: contrib/freebsd/rc.d/isms

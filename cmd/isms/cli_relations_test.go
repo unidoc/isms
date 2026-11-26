@@ -287,3 +287,42 @@ func TestAssetEditOmitsUnchangedFields(t *testing.T) {
 		}
 	}
 }
+
+// #522: the four public supplier fields reach the API from the add and edit
+// flags. An unset edit flag is omitted; --purpose "" is sent and clears.
+func TestSupplierPublicFieldFlags(t *testing.T) {
+	srv, got := cliServer(t)
+	defer srv.Close()
+	cmd := supplierCmd()
+	cmd.SetArgs([]string{"add", "--name", "Acme", "--type", "saas", "--criticality", "high",
+		"--public-name", "Acme GmbH", "--purpose", "Cloud hosting",
+		"--processing-location", "EU (Frankfurt)", "--data-categories", "Name, email address"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	b := (*got)[len(*got)-1].body
+	for k, want := range map[string]string{"public_name": "Acme GmbH", "public_purpose": "Cloud hosting",
+		"processing_location": "EU (Frankfurt)", "data_categories": "Name, email address"} {
+		if b[k] != want {
+			t.Errorf("add: %s = %v, want %q", k, b[k], want)
+		}
+	}
+
+	cmd = supplierCmd()
+	cmd.SetArgs([]string{"edit", "SUP-001", "--purpose", "", "--processing-location", "EU"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("edit: %v", err)
+	}
+	b = (*got)[len(*got)-1].body
+	if v, ok := b["public_purpose"]; !ok || v != "" {
+		t.Errorf("edit: --purpose \"\" must be sent as an empty string, got %v (present=%v)", v, ok)
+	}
+	if b["processing_location"] != "EU" {
+		t.Errorf("edit: processing_location = %v, want EU", b["processing_location"])
+	}
+	for _, k := range []string{"public_name", "data_categories"} {
+		if _, ok := b[k]; ok {
+			t.Errorf("edit: unset flag %q must be omitted, got %v", k, b[k])
+		}
+	}
+}

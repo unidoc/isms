@@ -79,9 +79,8 @@ END $$;
 -- publishing it again clears the flag. hidden_reason says why.
 ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_at TIMESTAMPTZ;
 ALTER TABLE trust_center_items ADD COLUMN IF NOT EXISTS hidden_reason TEXT;
-ALTER TABLE trust_center_items DROP CONSTRAINT IF EXISTS trust_center_items_hidden_reason_check;
-ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_check
-    CHECK (hidden_reason IN ('retired','deleted'));
+-- The hidden_reason CHECK is set once, with its final list, at the end of this
+-- file (see the note on entity_type above for why it is not added here).
 
 -- #521: certifications and audit reports shown in the trust center. A
 -- certification is a record in its own right (it can exist unpublished);
@@ -251,3 +250,26 @@ DO $$ BEGIN
             WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
     END IF;
 END $$;
+
+-- Suppliers: public-facing fields for the trust center subprocessor list (#522).
+-- All free text; empty means "not set". trust_public_changed_at is internal: it
+-- moves only when the visible projection (public name falling back to name,
+-- purpose, location, data categories) changes, and is written by the UPDATE SQL.
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS public_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS public_purpose TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS processing_location TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS data_categories TEXT NOT NULL DEFAULT '';
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS trust_public_changed_at TIMESTAMPTZ;
+UPDATE suppliers SET trust_public_changed_at = COALESCE(updated_at, now()) WHERE trust_public_changed_at IS NULL;
+
+-- #522: subprocessors are published from the Suppliers register. An item whose
+-- supplier is terminated, loses data access or is deleted is hidden with its own
+-- reason (it is not served until a manager publishes it again). Widen the CHECK
+-- to the reasons already allowed plus these two.
+ALTER TABLE trust_center_items DROP CONSTRAINT IF EXISTS trust_center_items_hidden_reason_check;
+ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_check
+    CHECK (hidden_reason IN ('retired','deleted','terminated','no_data_access'));
+
+-- When a visitor-visible change to the subprocessor list last happened and is not
+-- derivable from the items or the suppliers: unpublishing and reordering.
+ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS subprocessors_changed_at TIMESTAMPTZ;

@@ -501,6 +501,8 @@
     "trust_certification_source": "berikan tautan atau file, bukan keduanya",
     "trust_date_invalid": "{field} harus berupa tanggal dengan format YYYY-MM-DD",
     "trust_certification_already_published": "sertifikasi ini sudah dipublikasikan di trust center",
+    "trust_subprocessor_ineligible": "pemasok ini tidak dapat dipublikasikan sebagai subprosesor ({value})",
+    "trust_subprocessor_already_published": "pemasok ini sudah dipublikasikan sebagai subprosesor",
     "export_format_invalid": "format harus pdf atau docx",
     "export_not_licensed": "Ekspor {value} tidak tersedia di server ini",
     "export_version_not_found": "versi dokumen tersebut tidak ada",

@@ -49,12 +49,19 @@
     "data_access": "データアクセス",
     "created": "作成日",
     "created_by": "作成者",
-    "external_id": "外部ID"
+    "external_id": "外部ID",
+    "public_name": "公開名",
+    "public_purpose": "公開用の目的",
+    "processing_location": "処理場所",
+    "data_categories": "データの種類"
   },
   "placeholder": {
     "contact": "contact{'@'}supplier.com",
     "contract_ref": "DPA / 契約URL",
-    "notes": "追加メモ… 文書をリンクするには /doc と入力"
+    "notes": "追加メモ… 文書をリンクするには /doc と入力",
+    "public_purpose": "例: クラウドホスティング",
+    "processing_location": "例: EU（フランクフルト）",
+    "data_categories": "例: 氏名、メールアドレス"
   },
   "data_access": {
     "checkbox": "サプライヤーは当社のデータにアクセスできます",
@@ -80,5 +87,9 @@
     "warning": "このサプライヤーの削除は永続的で元に戻せません。履歴、コメント、レビュー、リンクされた参照情報は失われます。",
     "delete": "サプライヤーを削除",
     "confirm": "このサプライヤーを削除しますか？元に戻せません。"
+  },
+  "trust": {
+    "heading": "トラストセンター（公開）",
+    "help": "このサプライヤーを再委託先として公開した場合にのみ、トラストセンターに表示されます。公開名が空の場合はサプライヤー名が使われます。"
   }
 }

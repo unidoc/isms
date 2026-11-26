@@ -49,12 +49,19 @@
     "data_access": "Datenzugriff",
     "created": "Erstellt",
     "created_by": "Erstellt von",
-    "external_id": "Externe ID"
+    "external_id": "Externe ID",
+    "public_name": "Öffentlicher Name",
+    "public_purpose": "Öffentlicher Zweck",
+    "processing_location": "Verarbeitungsort",
+    "data_categories": "Datenkategorien"
   },
   "placeholder": {
     "contact": "kontakt{'@'}lieferant.de",
     "contract_ref": "DPA-/Vertrags-URL",
-    "notes": "Weitere Notizen... /doc eingeben, um ein Dokument zu verknüpfen"
+    "notes": "Weitere Notizen... /doc eingeben, um ein Dokument zu verknüpfen",
+    "public_purpose": "z. B. Cloud-Hosting",
+    "processing_location": "z. B. EU (Frankfurt)",
+    "data_categories": "z. B. Name, E-Mail-Adresse"
   },
   "data_access": {
     "checkbox": "Lieferant hat Zugriff auf unsere Daten",
@@ -80,5 +87,9 @@
     "warning": "Das Löschen dieses Lieferanten ist endgültig und kann nicht rückgängig gemacht werden. Verlauf, Kommentare, Prüfungen und verknüpfte Referenzen gehen verloren.",
     "delete": "Lieferant löschen",
     "confirm": "Diesen Lieferanten löschen? Dies kann nicht rückgängig gemacht werden."
+  },
+  "trust": {
+    "heading": "Trust Center (öffentlich)",
+    "help": "Wird in Ihrem Trust Center nur angezeigt, wenn dieser Lieferant als Unterauftragsverarbeiter veröffentlicht ist. Ohne öffentlichen Namen wird der Lieferantenname verwendet."
   }
 }

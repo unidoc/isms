@@ -613,6 +613,9 @@ func (s *Server) routes() {
 	api.POST("/trust-center/certifications/:id/publish", s.handlePublishTrustCertification)
 	api.DELETE("/trust-center/certifications/:id/publish", s.handleUnpublishTrustCertification)
 	api.GET("/trust-center/certifications/:id/file", s.handleDownloadTrustCertificationFile)
+	api.GET("/trust-center/subprocessors", s.handleListTrustSubprocessors)
+	api.POST("/trust-center/subprocessors", s.handlePublishTrustSubprocessor)
+	api.DELETE("/trust-center/subprocessors/:supplierId", s.handleUnpublishTrustSubprocessor)
 	api.PUT("/documents/:docId/metadata", s.handleUpdateDocumentMetadata)
 	api.PUT("/documents/:docId/content", s.handleUpdateDocumentContent)
 	api.POST("/documents", s.handleCreateDocument)
@@ -2759,6 +2762,11 @@ func (s *Server) handleAddSupplier(c echo.Context) error {
 		NextReview:      req.NextReview,
 		Notes:           req.Notes,
 		ExternalID:      req.ExternalID,
+
+		PublicName:         req.PublicName,
+		PublicPurpose:      req.PublicPurpose,
+		ProcessingLocation: req.ProcessingLocation,
+		DataCategories:     req.DataCategories,
 	}
 	applySupplierDefaults(&sup, getUserEmail(c))
 	if err := validateSupplierCreate(&sup); err != nil {
@@ -3425,6 +3433,21 @@ func (s *Server) prepareSupplierUpdate(ctx context.Context, orgID int, old *db.S
 	}
 	if req.ExternalID != nil {
 		updated.ExternalID = *req.ExternalID
+	}
+	if req.PublicName != nil {
+		updated.PublicName = *req.PublicName
+	}
+	if req.PublicPurpose != nil {
+		updated.PublicPurpose = *req.PublicPurpose
+	}
+	if req.ProcessingLocation != nil {
+		updated.ProcessingLocation = *req.ProcessingLocation
+	}
+	if req.DataCategories != nil {
+		updated.DataCategories = *req.DataCategories
+	}
+	if err := validateSupplierPublicFields(&updated); err != nil {
+		return db.Supplier{}, nil, err
 	}
 	return updated, explicitNextReview, nil
 }

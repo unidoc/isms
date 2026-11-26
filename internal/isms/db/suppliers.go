@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // SupplierListParams specifies filtering, sorting, and pagination for the supplier register.
@@ -66,6 +68,13 @@ type Supplier struct {
 	CreatedAt       Epoch  `json:"created_at"`
 	UpdatedAt       Epoch  `json:"updated_at"`
 	ExternalID      string `json:"external_id,omitempty"`
+	// Public-facing free text for the trust center subprocessor list (#522).
+	// Stored as typed and trimmed on write; the public name falls back to Name
+	// only where the list is built, never in the stored value.
+	PublicName         string `json:"public_name"`
+	PublicPurpose      string `json:"public_purpose"`
+	ProcessingLocation string `json:"processing_location"`
+	DataCategories     string `json:"data_categories"`
 }
 
 // Valid supplier types.
@@ -118,7 +127,8 @@ const supplierSelectCols = `id, organization_id, identifier, name, supplier_type
 		confidentiality, integrity, availability,
 		last_review, next_review,
 		COALESCE(notes, ''), created_at, updated_at,
-		COALESCE(external_id, '')`
+		COALESCE(external_id, ''),
+		public_name, public_purpose, processing_location, data_categories`
 
 func scanSupplier(scanner interface {
 	Scan(dest ...interface{}) error
@@ -131,11 +141,34 @@ func scanSupplier(scanner interface {
 		&s.Confidentiality, &s.Integrity, &s.Availability,
 		&s.LastReview, &s.NextReview,
 		&s.Notes, &s.CreatedAt, &s.UpdatedAt,
-		&s.ExternalID)
+		&s.ExternalID,
+		&s.PublicName, &s.PublicPurpose, &s.ProcessingLocation, &s.DataCategories)
 }
+
+// trimPublicFields normalises the public-facing fields before a write, so the
+// stored value and the projection compared in the UPDATE SQL are the trimmed one.
+func (s *Supplier) trimPublicFields() {
+	s.PublicName = strings.TrimSpace(s.PublicName)
+	s.PublicPurpose = strings.TrimSpace(s.PublicPurpose)
+	s.ProcessingLocation = strings.TrimSpace(s.ProcessingLocation)
+	s.DataCategories = strings.TrimSpace(s.DataCategories)
+}
+
+// supplierPublicChangedSQL is the SET clause that moves trust_public_changed_at
+// only when the visible projection changes. In an UPDATE the bare column names
+// read the OLD row, so the left side is the stored projection and the right side
+// the bound parameters ($2 name, $19..$22 the public fields). Shared by
+// UpdateSupplier and UpdateSupplierTx; computed in SQL so concurrent writers
+// compare against the committed row, and no trigger is involved.
+const supplierPublicChangedSQL = `trust_public_changed_at = CASE WHEN
+			ROW(COALESCE(NULLIF(public_name, ''), btrim(name, E' \t\r\n')), public_purpose, processing_location, data_categories)
+			IS DISTINCT FROM
+			ROW(COALESCE(NULLIF($19::text, ''), btrim($2::text, E' \t\r\n')), $20::text, $21::text, $22::text)
+		THEN now() ELSE trust_public_changed_at END`
 
 func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 	s.OrganizationID = orgID
+	s.trimPublicFields()
 	// An explicit next_review on create wins over the calculated one (#202).
 	explicitNextReview := s.NextReview
 	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
@@ -152,13 +185,17 @@ func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 			data_access, contact, contract_ref,
 			status, owner_id, contract_expiry,
 			confidentiality, integrity, availability,
-			last_review, next_review, notes, external_id)
+			last_review, next_review, notes, external_id,
+			public_name, public_purpose, processing_location, data_categories,
+			trust_public_changed_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
 			$9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11,
 			$12, $13, $14,
-			$15, $16, $17, $18)
+			$15, $16, $17, $18,
+			$19, $20, $21, $22,
+			now())
 		RETURNING id, created_at, updated_at
 	`, orgID, s.Identifier, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
@@ -166,6 +203,7 @@ func (d *DB) CreateSupplier(ctx context.Context, orgID int, s *Supplier) error {
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview, nilIfEmpty(s.Notes),
 		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
+		s.PublicName, s.PublicPurpose, s.ProcessingLocation, s.DataCategories,
 	).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
 }
 
@@ -332,31 +370,44 @@ func (d *DB) GetSupplierByIdentifier(ctx context.Context, orgID int, identifier 
 // criticality-derived one. CalculateNextReview always recomputes NextReview, so
 // the override has to come after it (#202). Pass nil to keep the derived date.
 func (d *DB) UpdateSupplier(ctx context.Context, orgID int, s *Supplier, explicitNextReview *Epoch) error {
-	s.CalculateNextReview(d.SupplierReviewCycles(ctx, orgID))
-	if explicitNextReview != nil {
-		s.NextReview = explicitNextReview
-	}
-	_, err := d.pool.Exec(ctx, `
-		UPDATE suppliers SET name = $2, supplier_type = $3, criticality = $4,
-			data_access = $5, contact = $6, contract_ref = $7,
-			status = $8,
-			owner_id = CASE WHEN $9 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $9) END,
-			contract_expiry = $10,
-			confidentiality = $11, integrity = $12, availability = $13,
-			last_review = $14, next_review = $15,
-			notes = $16, external_id = $18, updated_at = now()
-		WHERE id = $1 AND organization_id = $17 AND deleted_at IS NULL
-	`, s.ID, s.Name, s.SupplierType, s.Criticality,
-		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
-		nilIfEmpty(s.Status), s.Owner, s.ContractExpiry,
-		s.Confidentiality, s.Integrity, s.Availability,
-		s.LastReview, s.NextReview,
-		nilIfEmpty(s.Notes), orgID,
-		nilIfEmpty(strings.TrimSpace(s.ExternalID)))
-	return err
+	// Same statement as UpdateSupplierTx (it also hides the supplier's trust
+	// center item when the supplier is no longer eligible), so every writer,
+	// this one included, commits the update and the hide together (#522).
+	cycles := d.SupplierReviewCycles(ctx, orgID)
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		return UpdateSupplierTx(ctx, tx, orgID, s, cycles, explicitNextReview)
+	})
 }
 
 func (d *DB) DeleteSupplier(ctx context.Context, orgID int, id int64) error {
-	_, err := d.pool.Exec(ctx, `UPDATE suppliers SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
-	return err
+	return d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `UPDATE suppliers SET deleted_at = now(), updated_at = now() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`, id, orgID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return nil
+		}
+		return hideSubprocessorForSupplierTx(ctx, tx, orgID, id, TrustHiddenDeleted, "system")
+	})
+}
+
+// SupplierActive reports whether a supplier with this status is still in
+// service: everything but terminated (suspended and under_review suppliers are
+// still our subprocessors). One definition for the trust center subprocessor
+// list and, later, the overdue-review filter (#453).
+func SupplierActive(status string) bool { return status != "terminated" }
+
+// SupplierTrustIneligibleReason says why a supplier cannot be a published
+// subprocessor: "terminated" (no longer active, which wins), "no_data_access",
+// or "" when it can. A deleted supplier is handled by the callers that know the
+// row is gone.
+func SupplierTrustIneligibleReason(s *Supplier) string {
+	switch {
+	case !SupplierActive(s.Status):
+		return TrustHiddenTerminated
+	case !s.DataAccess:
+		return TrustHiddenNoDataAccess
+	}
+	return ""
 }

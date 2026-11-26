@@ -501,6 +501,8 @@
     "trust_certification_source": "indiquez un lien ou un fichier, pas les deux",
     "trust_date_invalid": "{field} doit être une date au format AAAA-MM-JJ",
     "trust_certification_already_published": "cette certification est déjà publiée dans le trust center",
+    "trust_subprocessor_ineligible": "ce fournisseur ne peut pas être publié comme sous-traitant ultérieur ({value})",
+    "trust_subprocessor_already_published": "ce fournisseur est déjà publié comme sous-traitant ultérieur",
     "export_format_invalid": "le format doit être pdf ou docx",
     "export_not_licensed": "L’exportation {value} n’est pas disponible sur ce serveur",
     "export_version_not_found": "cette version du document n’existe pas",

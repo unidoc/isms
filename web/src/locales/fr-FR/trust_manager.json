@@ -164,5 +164,27 @@
     "err_file_too_large": "Le fichier dépasse 50 Mo",
     "err_file_type": "Seuls les fichiers PDF, PNG ou JPEG sont acceptés",
     "err_dates_order": "« Valide à partir du » ne peut pas être postérieur à « Valide jusqu’au »"
+  },
+  "subprocessors": {
+    "heading": "Sous-traitants ultérieurs",
+    "last_changed": "Dernière modification : {date}",
+    "picker_label": "Fournisseur à publier",
+    "picker_placeholder": "Choisir un fournisseur",
+    "publish": "Publier",
+    "no_candidates": "Seuls les fournisseurs ayant accès aux données et non résiliés peuvent figurer dans la liste.",
+    "empty": "Aucun sous-traitant ultérieur publié pour l'instant.",
+    "hidden": "Masqué : {reason}",
+    "details_missing": "Pas encore de détails publics : modifiez le fournisseur pour ajouter la finalité, le lieu et les catégories de données",
+    "still_ineligible": "Ne peut pas encore être republié ({reason}).",
+    "publish_again": "Publier à nouveau",
+    "unpublish": "Dépublier",
+    "unpublish_title": "Retirer {title} de la liste des sous-traitants ultérieurs ?",
+    "unpublish_body": "Les visiteurs ne le verront plus. Vous pourrez le publier à nouveau plus tard.",
+    "err_ineligible": "Ce fournisseur ne peut pas être publié comme sous-traitant ultérieur ({reason}).",
+    "reason": {
+      "terminated": "Fournisseur résilié",
+      "no_data_access": "Pas d'accès aux données",
+      "deleted": "Fournisseur supprimé"
+    }
   }
 }

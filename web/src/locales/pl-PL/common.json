@@ -501,6 +501,8 @@
     "trust_certification_source": "podaj łącze albo plik, nie jedno i drugie",
     "trust_date_invalid": "{field} musi być datą w formacie RRRR-MM-DD",
     "trust_certification_already_published": "ta certyfikacja jest już opublikowana w centrum zaufania",
+    "trust_subprocessor_ineligible": "tego dostawcy nie można opublikować jako podprocesora ({value})",
+    "trust_subprocessor_already_published": "ten dostawca jest już opublikowany jako podprocesor",
     "export_format_invalid": "format musi mieć wartość pdf lub docx",
     "export_not_licensed": "Eksport do formatu {value} nie jest dostępny na tym serwerze",
     "export_version_not_found": "taka wersja dokumentu nie istnieje",

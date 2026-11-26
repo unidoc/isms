@@ -166,6 +166,10 @@ const (
 	// CodeTrustOverviewNotPublic: the document chosen as the public overview is
 	// published at a level that is not public.
 	CodeTrustOverviewNotPublic = "trust_overview_not_public"
+	// Subprocessors (#522): the supplier is terminated or has no data access
+	// (params.value says which); it is already on the list.
+	CodeTrustSubprocessorIneligible       = "trust_subprocessor_ineligible"
+	CodeTrustSubprocessorAlreadyPublished = "trust_subprocessor_already_published"
 
 	// Organization settings.
 	CodeAIDisabled        = "ai_disabled"
@@ -264,6 +268,9 @@ var errorMessages = map[string]string{
 	CodeTrustVisitorBlocked:         "this email address cannot sign in to this trust center",
 	CodeTrustVisitorProfileRequired: "enter your name and company to continue",
 	CodeTrustOverviewNotPublic:      "this document is published as gated or restricted, so it cannot be the public overview",
+
+	CodeTrustSubprocessorIneligible:       "this supplier cannot be published as a subprocessor ({value})",
+	CodeTrustSubprocessorAlreadyPublished: "this supplier is already published as a subprocessor",
 
 	CodeAIDisabled:        "AI features are disabled for this organization",
 	CodeUnsupportedLocale: "unsupported locale",

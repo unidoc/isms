@@ -372,7 +372,20 @@ var contractTable = []contractEntry{
 	{
 		component: "TrustCenterItem",
 		//   api_trust_public.go:186 handleTrustPublic: c.JSON(200, out) out is []trustPublicItem (never nil)
-		shapes: []contractShape{shape(tReq(trustPublicItem{}), "api_trust_public.go:186 handleTrustPublic: element of the array, trustPublicItem")},
+		shapes: []contractShape{
+			shape(tReq(trustPublicItem{}), "api_trust_public.go:186 handleTrustPublic: element of the array, trustPublicItem"),
+			shape(tReq(trustPublicSubprocessorItem{}), "api_trust_public.go trustPublicItems: a subprocessor row, trustPublicSubprocessorItem"),
+		},
+	},
+	{
+		component: "TrustSubprocessor",
+		//   trust_subprocessors.go handleListTrustSubprocessors: suppliers is []trustSubprocessorJSON; handlePublishTrustSubprocessor: c.JSON(201, trustSubprocessorJSON)
+		shapes: []contractShape{shape(tReq(trustSubprocessorJSON{}), "trust_subprocessors.go handleListTrustSubprocessors: element of suppliers, trustSubprocessorJSON")},
+	},
+	{
+		component:   "TrustSubprocessorPublishRequest",
+		shapes:      []contractShape{shape(tReq(trustSubprocessorPublishRequest{}), "trust_subprocessors.go handlePublishTrustSubprocessor: request body")},
+		requestOnly: true,
 	},
 	{
 		component: "TrustCenterDocument",

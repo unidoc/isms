@@ -63,6 +63,14 @@
       "state_expiring": "Rennur bráðum út",
       "action_download": "Sækja",
       "action_view_at": "Skoða á {host}"
+    },
+    "subprocessors": {
+      "heading": "Undirvinnsluaðilar",
+      "updated": "Síðast uppfært {date}",
+      "col_name": "Heiti",
+      "col_purpose": "Tilgangur",
+      "col_location": "Staðsetning",
+      "col_data": "Gagnaflokkar"
     }
   },
   "signin": {

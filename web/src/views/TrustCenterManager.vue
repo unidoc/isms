@@ -40,6 +40,7 @@
           <div class="space-y-10">
             <TrustDocumentsSection @changed="loadSettings" />
             <TrustCertificationsSection />
+            <TrustSubprocessorsSection />
           </div>
         </div>
         <div v-show="tab === 'visitors'" role="tabpanel">
@@ -63,6 +64,7 @@ import { useCurrentOrg } from '../composables/useCurrentOrg.js'
 import { publicAddress, previewAddress } from '../utils/trustManager.js'
 import TrustDocumentsSection from '../components/trust/TrustDocumentsSection.vue'
 import TrustCertificationsSection from '../components/trust/TrustCertificationsSection.vue'
+import TrustSubprocessorsSection from '../components/trust/TrustSubprocessorsSection.vue'
 import TrustSettingsForm from '../components/trust/TrustSettingsForm.vue'
 import TrustVisitorsSection from '../components/trust/TrustVisitorsSection.vue'
 import { formatDate } from '../composables/useFormat.js'

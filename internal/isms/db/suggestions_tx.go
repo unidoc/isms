@@ -340,6 +340,7 @@ func LogChangesTx(ctx context.Context, tx pgx.Tx, orgID int, entries []Changelog
 // CreateSupplierTx creates a supplier within an existing transaction.
 func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int) error {
 	s.OrganizationID = orgID
+	s.trimPublicFields()
 	// An explicit next_review on create wins over the calculated one (#202).
 	explicitNextReview := s.NextReview
 	s.CalculateNextReview(cycles)
@@ -365,13 +366,17 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 			data_access, contact, contract_ref,
 			status, owner_id, contract_expiry,
 			confidentiality, integrity, availability,
-			last_review, next_review, notes, external_id)
+			last_review, next_review, notes, external_id,
+			public_name, public_purpose, processing_location, data_categories,
+			trust_public_changed_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
 			$9,
 			CASE WHEN $10 = '' THEN NULL ELSE (SELECT id FROM users WHERE email = $10) END,
 			$11,
 			$12, $13, $14,
-			$15, $16, $17, $18)
+			$15, $16, $17, $18,
+			$19, $20, $21, $22,
+			now())
 		RETURNING id, created_at, updated_at
 	`, orgID, s.Identifier, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
@@ -379,6 +384,7 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview, nilIfEmpty(s.Notes),
 		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
+		s.PublicName, s.PublicPurpose, s.ProcessingLocation, s.DataCategories,
 	).Scan(&s.ID, &s.CreatedAt, &s.UpdatedAt)
 }
 
@@ -391,6 +397,7 @@ func CreateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 // criticality-derived one. CalculateNextReview always recomputes NextReview, so
 // the override has to happen after it (#288).
 func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cycles map[string]int, explicitNextReview *Epoch) error {
+	s.trimPublicFields()
 	s.CalculateNextReview(cycles)
 	if explicitNextReview != nil {
 		s.NextReview = explicitNextReview
@@ -403,7 +410,10 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 			contract_expiry = $10,
 			confidentiality = $11, integrity = $12, availability = $13,
 			last_review = $14, next_review = $15,
-			notes = $16, external_id = $18, updated_at = now()
+			notes = $16, external_id = $18,
+			public_name = $19, public_purpose = $20, processing_location = $21, data_categories = $22,
+			`+supplierPublicChangedSQL+`,
+			updated_at = now()
 		WHERE id = $1 AND organization_id = $17 AND deleted_at IS NULL
 	`, s.ID, s.Name, s.SupplierType, s.Criticality,
 		s.DataAccess, nilIfEmpty(s.Contact), nilIfEmpty(s.ContractRef),
@@ -411,8 +421,17 @@ func UpdateSupplierTx(ctx context.Context, tx pgx.Tx, orgID int, s *Supplier, cy
 		s.Confidentiality, s.Integrity, s.Availability,
 		s.LastReview, s.NextReview,
 		nilIfEmpty(s.Notes), orgID,
-		nilIfEmpty(strings.TrimSpace(s.ExternalID)))
-	return err
+		nilIfEmpty(strings.TrimSpace(s.ExternalID)),
+		s.PublicName, s.PublicPurpose, s.ProcessingLocation, s.DataCategories)
+	if err != nil {
+		return err
+	}
+	// A published subprocessor stops being served in the same transaction that
+	// makes its supplier ineligible, whichever writer got here (#522).
+	if reason := SupplierTrustIneligibleReason(s); reason != "" {
+		return hideSubprocessorForSupplierTx(ctx, tx, orgID, s.ID, reason, "system")
+	}
+	return nil
 }
 
 // CreateLegalRequirementTx creates a legal requirement within an existing transaction.

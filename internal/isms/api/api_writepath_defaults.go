@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/labstack/echo/v4"
 
 	"isms.sh/internal/isms/db"
 )
@@ -120,7 +124,39 @@ func validateSupplierCreate(sup *db.Supplier) error {
 	if err := validateEnum("supplier_type", sup.SupplierType, db.SupplierTypes); err != nil {
 		return err
 	}
-	return validateEnum("criticality", sup.Criticality, db.CriticalityLevels)
+	if err := validateEnum("criticality", sup.Criticality, db.CriticalityLevels); err != nil {
+		return err
+	}
+	return validateSupplierPublicFields(sup)
+}
+
+// Longest accepted public-facing supplier texts, in characters (#522).
+const (
+	maxSupplierPublicName         = 200
+	maxSupplierPublicPurpose      = 1000
+	maxSupplierProcessingLocation = 200
+	maxSupplierDataCategories     = 1000
+)
+
+// validateSupplierPublicFields checks the trimmed length of the four public
+// fields, in characters, answering 400 like validateEnum. Used for create and,
+// through prepareSupplierUpdate, for PUT and suggestion apply.
+func validateSupplierPublicFields(sup *db.Supplier) error {
+	for _, f := range []struct {
+		name  string
+		value string
+		max   int
+	}{
+		{"public_name", sup.PublicName, maxSupplierPublicName},
+		{"public_purpose", sup.PublicPurpose, maxSupplierPublicPurpose},
+		{"processing_location", sup.ProcessingLocation, maxSupplierProcessingLocation},
+		{"data_categories", sup.DataCategories, maxSupplierDataCategories},
+	} {
+		if n := utf8.RuneCountInString(strings.TrimSpace(f.value)); n > f.max {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("%s is too long: %d characters (at most %d)", f.name, n, f.max))
+		}
+	}
+	return nil
 }
 
 func validateLegalCreate(lr *db.LegalRequirement) error {

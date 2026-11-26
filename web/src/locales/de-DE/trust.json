@@ -63,6 +63,14 @@
       "state_expiring": "Läuft bald ab",
       "action_download": "Herunterladen",
       "action_view_at": "Ansehen auf {host}"
+    },
+    "subprocessors": {
+      "heading": "Unterauftragsverarbeiter",
+      "updated": "Zuletzt aktualisiert {date}",
+      "col_name": "Name",
+      "col_purpose": "Zweck",
+      "col_location": "Ort",
+      "col_data": "Datenkategorien"
     }
   },
   "signin": {

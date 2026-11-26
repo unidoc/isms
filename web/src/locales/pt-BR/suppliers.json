@@ -49,12 +49,19 @@
     "data_access": "Acesso a Dados",
     "created": "Criado",
     "created_by": "Criado por",
-    "external_id": "ID Externo"
+    "external_id": "ID Externo",
+    "public_name": "Nome público",
+    "public_purpose": "Finalidade pública",
+    "processing_location": "Local de processamento",
+    "data_categories": "Categorias de dados"
   },
   "placeholder": {
     "contact": "contato{'@'}fornecedor.com",
     "contract_ref": "DPA / URL do contrato",
-    "notes": "Notas adicionais... Digite /doc para vincular um documento"
+    "notes": "Notas adicionais... Digite /doc para vincular um documento",
+    "public_purpose": "ex.: Hospedagem em nuvem",
+    "processing_location": "ex.: UE (Frankfurt)",
+    "data_categories": "ex.: nome, endereço de e-mail"
   },
   "data_access": {
     "checkbox": "Fornecedor tem acesso aos nossos dados",
@@ -80,5 +87,9 @@
     "warning": "Excluir este fornecedor é permanente e não pode ser desfeito. Histórico, comentários, revisões e referências vinculadas serão perdidos.",
     "delete": "Excluir fornecedor",
     "confirm": "Excluir este fornecedor? Esta ação não pode ser desfeita."
+  },
+  "trust": {
+    "heading": "Central de confiança (público)",
+    "help": "Exibido na sua central de confiança somente se este fornecedor for publicado como subprocessador. Sem nome público, usa-se o nome do fornecedor."
   }
 }

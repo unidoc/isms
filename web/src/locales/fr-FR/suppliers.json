@@ -49,12 +49,19 @@
     "data_access": "Accès aux données",
     "created": "Créé",
     "created_by": "Créé par",
-    "external_id": "Identifiant externe"
+    "external_id": "Identifiant externe",
+    "public_name": "Nom public",
+    "public_purpose": "Finalité publique",
+    "processing_location": "Lieu de traitement",
+    "data_categories": "Catégories de données"
   },
   "placeholder": {
     "contact": "contact{'@'}fournisseur.com",
     "contract_ref": "URL du DPA / contrat",
-    "notes": "Notes additionnelles... Tapez /doc pour lier un document"
+    "notes": "Notes additionnelles... Tapez /doc pour lier un document",
+    "public_purpose": "p. ex. Hébergement cloud",
+    "processing_location": "p. ex. UE (Francfort)",
+    "data_categories": "p. ex. Nom, adresse e-mail"
   },
   "data_access": {
     "checkbox": "Le fournisseur a accès à nos données",
@@ -80,5 +87,9 @@
     "warning": "La suppression de ce fournisseur est définitive et irréversible. L'historique, les commentaires, les revues et les références liées seront perdus.",
     "delete": "Supprimer le fournisseur",
     "confirm": "Supprimer ce fournisseur ? Cette action est irréversible."
+  },
+  "trust": {
+    "heading": "Trust center (public)",
+    "help": "Affiché dans votre trust center uniquement si ce fournisseur est publié comme sous-traitant ultérieur. À défaut de nom public, le nom du fournisseur est utilisé."
   }
 }

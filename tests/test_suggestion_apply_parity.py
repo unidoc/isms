@@ -261,6 +261,9 @@ SUPPLIER_FIELDS = {
     "contract_expiry": 1893456000, "confidentiality": 3, "integrity": 2, "availability": 1,
     "last_review": 1767225600, "next_review": 1893456000,
     "notes": "supplier notes", "external_id": "SUP-EXT",
+    # #522: public-facing text for the trust center subprocessor list.
+    "public_name": "Renamed Supplier GmbH", "public_purpose": "Cloud hosting",
+    "processing_location": "EU (Frankfurt)", "data_categories": "Name, email address",
 }
 
 

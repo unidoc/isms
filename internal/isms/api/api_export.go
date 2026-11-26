@@ -31,6 +31,14 @@ func (s *Server) exportFormats() []string {
 	return license.Current().Formats()
 }
 
+// exportSource is how format is licensed right now.
+func (s *Server) exportSource(format string) license.Source {
+	if s.exportCaps != nil {
+		return s.exportCaps().Source(format)
+	}
+	return license.Current().Source(format)
+}
+
 func (s *Server) renderExport(format string, d *export.ExportDoc) ([]byte, export.Report, error) {
 	if s.exportRender != nil {
 		return s.exportRender(format, d)
@@ -180,9 +188,13 @@ func (s *Server) handleExportDocument(c echo.Context) error {
 		d.Org.BrandColor = color
 	}
 
-	// Every render spends a metered credit: take one from the caller's and the
-	// organization's allowance only now, after every check that can refuse.
-	release, wait, ok := s.exportLimit.take(exportLimitUser(c), orgID)
+	// A metered render spends a credit: take one from the caller's and the
+	// organization's allowance only now, after every check that can refuse. An
+	// offline licence is not credit-based, so its formats have no limit.
+	release, wait, ok := func() {}, time.Duration(0), true
+	if s.exportSource(format) != license.SourceOffline {
+		release, wait, ok = s.exportLimit.take(exportLimitUser(c), orgID)
+	}
 	if !ok {
 		mins := int(math.Ceil(wait.Minutes()))
 		if mins < 1 {

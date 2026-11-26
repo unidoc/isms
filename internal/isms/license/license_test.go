@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"log"
 	"net/url"
 	"os"
@@ -19,18 +20,33 @@ const sentinel = "SENTINEL-KEY-DO-NOT-LOG-7f3a"
 
 type fakeLib struct {
 	name, format, vvar string
+	product, vcust     string // UniPDF, UNIPDF_CUSTOMER_NAME
+	keyVar, custVar    string // ISMS_UNIPDF_LICENSE_KEY, ISMS_UNIPDF_LICENSE_CUSTOMER_NAME
 	licensed           bool
 
-	mu     sync.Mutex
-	errs   []error // returned by successive SetMeteredKey calls; then nil
-	calls  []string
-	events []string
+	mu       sync.Mutex
+	errs     []error // returned by successive SetMeteredKey calls; then nil
+	calls    []string
+	events   []string
+	setErr   error      // returned by SetLicenseKey
+	setCalls [][]string // {key, customer} per SetLicenseKey call
 }
 
-func (f *fakeLib) Name() string      { return f.name }
-func (f *fakeLib) Format() string    { return f.format }
-func (f *fakeLib) VendorVar() string { return f.vvar }
-func (f *fakeLib) Licensed() bool    { return f.licensed }
+func (f *fakeLib) Name() string              { return f.name }
+func (f *fakeLib) Product() string           { return f.product }
+func (f *fakeLib) Format() string            { return f.format }
+func (f *fakeLib) VendorVar() string         { return f.vvar }
+func (f *fakeLib) VendorCustomerVar() string { return f.vcust }
+func (f *fakeLib) KeyVar() string            { return f.keyVar }
+func (f *fakeLib) CustomerVar() string       { return f.custVar }
+func (f *fakeLib) Licensed() bool            { return f.licensed }
+func (f *fakeLib) SetLicenseKey(k, c string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.setCalls = append(f.setCalls, []string{k, c})
+	f.events = append(f.events, "offline")
+	return f.setErr
+}
 func (f *fakeLib) SetMeteredKey(k string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -56,9 +72,14 @@ func (f *fakeLib) eventList() []string {
 }
 
 func fakes() (*fakeLib, *fakeLib) {
-	return &fakeLib{name: "PDF", format: "pdf", vvar: "UNIPDF_LICENSE_PATH"},
-		&fakeLib{name: "DOCX", format: "docx", vvar: "UNIOFFICE_LICENSE_PATH"}
+	return &fakeLib{name: "PDF", product: "UniPDF", format: "pdf", vvar: "UNIPDF_LICENSE_PATH",
+			vcust: "UNIPDF_CUSTOMER_NAME", keyVar: "ISMS_UNIPDF_LICENSE_KEY", custVar: "ISMS_UNIPDF_LICENSE_CUSTOMER_NAME"},
+		&fakeLib{name: "DOCX", product: "UniOffice", format: "docx", vvar: "UNIOFFICE_LICENSE_PATH",
+			vcust: "UNIOFFICE_CUSTOMER_NAME", keyVar: "ISMS_UNIOFFICE_LICENSE_KEY", custVar: "ISMS_UNIOFFICE_LICENSE_CUSTOMER_NAME"}
 }
+
+// noFiles is a readFile that has no files.
+func noFiles(string) ([]byte, error) { return nil, fs.ErrNotExist }
 
 func env(m map[string]string) func(string) string {
 	return func(k string) string { return m[k] }
@@ -102,7 +123,7 @@ func TestResolve(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			plan, warns := resolve(env(c.env), libs, c.vendor)
+			plan, warns := resolve(env(c.env), noFiles, libs, c.vendor)
 			if plan.APIKey != c.wantKey {
 				t.Errorf("key = %q, want %q", plan.APIKey, c.wantKey)
 			}
@@ -123,7 +144,7 @@ func TestResolve(t *testing.T) {
 		})
 	}
 	// The conflict warning names the vendor variable.
-	_, warns := resolve(env(map[string]string{envAPIKey: "k"}), libs, vendorState{"pdf": true})
+	_, warns := resolve(env(map[string]string{envAPIKey: "k"}), noFiles, libs, vendorState{"pdf": true})
 	if !strings.Contains(warns[0], "UNIPDF_LICENSE_PATH") {
 		t.Errorf("warning does not name the vendor variable: %v", warns)
 	}
@@ -368,7 +389,22 @@ func TestSecretNeverLogged(t *testing.T) {
 	p, d = fakes()
 	newTestManager().run(context.Background(), env(map[string]string{envLegacyAPIKey: sentinel}), []lib{p, d})
 	newTestManager().run(context.Background(), env(map[string]string{envAPIKey: sentinel, envLegacyAPIKey: sentinel + "x"}), []lib{p, d})
-	_, warns := resolve(env(keyEnv), []lib{p, d}, vendorState{"pdf": true})
+	_, warns := resolve(env(keyEnv), noFiles, []lib{p, d}, vendorState{"pdf": true})
+	// offline keys: from the variables, from a file, rejected, rejected with the
+	// key inside the vendor error
+	offEnv := map[string]string{envSharedKey: sentinel + "\n" + sentinel + "-line2", envSharedCustomer: "ACME", envPDFKey: sentinel + "-pdf"}
+	p, d = fakes()
+	newTestManager().run(context.Background(), env(offEnv), []lib{p, d})
+	p, d = fakes()
+	p.setErr = errors.New("header not found")
+	d.setErr = errors.New("bad key " + sentinel + "-line2")
+	newTestManager().run(context.Background(), env(offEnv), []lib{p, d})
+	fm := newTestManager()
+	fm.readFile = files(map[string]string{"/k": sentinel + "-file-contents"})
+	p, d = fakes()
+	d.setErr = errors.New("x " + sentinel + "-file-contents")
+	fm.run(context.Background(), env(map[string]string{envSharedFile: "/k", envSharedCustomer: "ACME"}), []lib{p, d})
+	fm.run(context.Background(), env(map[string]string{envSharedFile: "/k", envAPIKey: "k"}), []lib{p, d})
 
 	out := buf.String() + strings.Join(warns, "\n")
 	if out == "" {

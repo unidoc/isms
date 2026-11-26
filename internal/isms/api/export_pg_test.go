@@ -658,7 +658,8 @@ func TestExportNoLimitOffline(t *testing.T) {
 func TestExportMixedLicenceLimits(t *testing.T) {
 	f := newExFx(t, "exmix")
 	f.caps = license.Capabilities{PDF: license.SourceOffline, DOCX: license.SourceMetered}
-	f.s.exportLimit = limiterAt(newFakeClock(), 4, 0) // 2 at once
+	// A bucket holds half the limit: 4 lets two metered exports through.
+	f.s.exportLimit = limiterAt(newFakeClock(), 4, 0)
 	for i := 0; i < 5; i++ { // offline PDF must not spend the metered allowance
 		if rec := f.get(f.docID, "?format=pdf", "reader"); rec.Code != http.StatusOK {
 			t.Fatalf("pdf export %d: %d %s", i+1, rec.Code, rec.Body)

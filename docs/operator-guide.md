@@ -362,8 +362,11 @@ spend:
 - **Per organization:** `ISMS_EXPORT_LIMIT_ORG_DAILY` exports per day (default
   500).
 
-Each limit is a bucket that starts full and refills evenly: with the defaults a
-member can export 30 documents at once, then about one every two minutes. Over
+Each limit is a bucket that holds half the configured number (rounded up) and
+refills evenly at the full rate. With the defaults a member can export 15
+documents at once, then about one every two minutes, and never more than 45 in
+any hour; an organization can export 250 at once and never more than 750 in any
+day. Over
 a limit the endpoint answers `429` with code `export_rate_limited` and a
 `Retry-After` header (seconds); the web dialog and the CLI show when to try
 again. Only an export that is about to be rendered counts: a request refused for
@@ -373,7 +376,9 @@ that fails is given back.
 `0` turns that one limit off; a value that is not a whole number logs a warning
 and keeps the default. `ISMS_RATE_LIMIT=0` turns both off. The counts are kept in
 memory per server process, so a restart resets them and several server processes
-each count separately.
+each count separately: with several replicas behind a load balancer the
+effective limit is the configured number times the number of replicas. Divide
+the numbers by the replica count if the total matters.
 
 #### PDF fonts
 

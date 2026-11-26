@@ -578,7 +578,7 @@ func TestExportVersionParameterValidation(t *testing.T) {
 func TestExportRateLimit(t *testing.T) {
 	f := newExFx(t, "exrl")
 	clk := newFakeClock()
-	f.s.exportLimit = limiterAt(clk, 2, 0)
+	f.s.exportLimit = limiterAt(clk, 4, 0) // 2 at once, one back every 15 minutes
 
 	// Refusals before the render are free.
 	for _, q := range []string{"?format=xls", "?format=pdf&version_id=999999", "?format=pdf&version=nope"} {
@@ -603,16 +603,16 @@ func TestExportRateLimit(t *testing.T) {
 	if rec.Code != http.StatusTooManyRequests || exCode(rec) != CodeExportRateLimited {
 		t.Fatalf("over the limit: %d %s", rec.Code, rec.Body)
 	}
-	// 2 an hour: the next one is back in 30 minutes.
-	if got := rec.Header().Get("Retry-After"); got != "1800" {
-		t.Errorf("Retry-After = %q, want 1800", got)
+	// 4 an hour: the next one is back in 15 minutes.
+	if got := rec.Header().Get("Retry-After"); got != "900" {
+		t.Errorf("Retry-After = %q, want 900", got)
 	}
 	var body struct {
 		Message string            `json:"message"`
 		Params  map[string]string `json:"params"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &body)
-	if body.Params["count"] != "30" || body.Message != "export limit reached, try again in 30 min" {
+	if body.Params["count"] != "15" || body.Message != "export limit reached, try again in 15 min" {
 		t.Errorf("body = %s", rec.Body)
 	}
 	if len(f.docs) != rendered {
@@ -622,7 +622,7 @@ func TestExportRateLimit(t *testing.T) {
 		t.Errorf("document_exported rows = %d, want 2", n)
 	}
 
-	clk.add(30 * time.Minute)
+	clk.add(15 * time.Minute)
 	if rec := f.get(f.docID, "?format=docx", "reader"); rec.Code != http.StatusOK {
 		t.Errorf("after the refill: %d %s", rec.Code, rec.Body)
 	}

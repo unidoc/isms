@@ -3,3 +3,17 @@ Copyright 2026 UniDoc ehf.
 
 This product was originally created by UniDoc ehf. (https://unidoc.io)
 and is maintained as an open-source project at github.com/unidoc/isms.
+
+Third-party software
+--------------------
+
+The isms binary includes Freetype-Go (github.com/golang/freetype and
+github.com/unidoc/freetype), used for PDF export under the FreeType License:
+
+    Portions of this software are copyright (c) 1996-2002, 2006 The FreeType
+    Project (www.freetype.org). All rights reserved.
+
+PDF and DOCX export use UniPDF and UniOffice, commercial libraries licensed
+separately by UniDoc ehf. Every other third-party Go module is used under its
+own licence; the full list is in go.mod in the source repository at
+github.com/unidoc/isms.

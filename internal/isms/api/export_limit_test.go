@@ -27,44 +27,83 @@ func mustTake(t *testing.T, l *exportLimiter, user string, org int) func() {
 	return release
 }
 
+// A bucket holds half the configured number, rounded up, and refills at the
+// full rate.
+func TestExportLimitBucketHoldsHalf(t *testing.T) {
+	for _, tc := range []struct{ limit, atOnce int }{{1, 1}, {2, 1}, {3, 2}, {30, 15}, {500, 250}} {
+		c := newFakeClock()
+		l := limiterAt(c, tc.limit, 0)
+		n := 0
+		for {
+			if _, _, ok := l.take("a@x", 1); !ok {
+				break
+			}
+			n++
+		}
+		if n != tc.atOnce {
+			t.Errorf("limit %d: %d exports at once, want %d", tc.limit, n, tc.atOnce)
+		}
+	}
+}
+
+// The worst case in an hour is half the number plus an hour's refill: 45 for
+// the default 30 counting both ends of the hour, 44 in [0, 60) as measured
+// here, against 60 for a full-size bucket.
+func TestExportLimitWorstHour(t *testing.T) {
+	c := newFakeClock()
+	l := limiterAt(c, 30, 0)
+	n := 0
+	for m := 0; m < 60; m++ {
+		for {
+			if _, _, ok := l.take("a@x", 1); !ok {
+				break
+			}
+			n++
+		}
+		c.add(time.Minute)
+	}
+	if n != 15+29 { // the refill at minute 60 falls outside the hour
+		t.Errorf("exports in the first hour = %d, want 44", n)
+	}
+}
+
 func TestExportLimitUserBucket(t *testing.T) {
 	c := newFakeClock()
-	l := limiterAt(c, 3, 0)
+	l := limiterAt(c, 6, 0) // 3 at once, one back every 10 minutes
 	for i := 0; i < 3; i++ {
 		mustTake(t, l, "a@x", 1)
 	}
 	_, wait, ok := l.take("a@x", 1)
 	if ok {
-		t.Fatal("fourth export within the hour allowed")
+		t.Fatal("fourth export at once allowed")
 	}
-	// 3 an hour refills one every 20 minutes.
-	if wait != 20*time.Minute {
-		t.Errorf("wait = %s, want 20m", wait)
+	if wait != 10*time.Minute {
+		t.Errorf("wait = %s, want 10m", wait)
 	}
-	// Another member and the same member in another organization are separate
-	// from the org side, but the user bucket is per member across organizations.
+	// Another member is separate, but the user bucket follows the member
+	// across organizations.
 	mustTake(t, l, "b@x", 1)
 	if _, _, ok := l.take("a@x", 2); ok {
 		t.Error("the user limit must follow the member across organizations")
 	}
-	c.add(20 * time.Minute)
+	c.add(10 * time.Minute)
 	mustTake(t, l, "a@x", 1)
 	if _, _, ok := l.take("a@x", 1); ok {
-		t.Error("only one export refilled after 20 minutes")
+		t.Error("only one export refilled after 10 minutes")
 	}
 }
 
 func TestExportLimitOrgBucket(t *testing.T) {
 	c := newFakeClock()
-	l := limiterAt(c, 0, 2)
+	l := limiterAt(c, 0, 4) // 2 at once, one back every 6 hours
 	mustTake(t, l, "a@x", 1)
 	mustTake(t, l, "b@x", 1)
 	_, wait, ok := l.take("c@x", 1)
 	if ok {
 		t.Fatal("third export for the organization allowed")
 	}
-	if wait != 12*time.Hour {
-		t.Errorf("wait = %s, want 12h (2 a day)", wait)
+	if wait != 6*time.Hour {
+		t.Errorf("wait = %s, want 6h (4 a day)", wait)
 	}
 	mustTake(t, l, "c@x", 2) // another organization has its own allowance
 }
@@ -73,7 +112,7 @@ func TestExportLimitOrgBucket(t *testing.T) {
 // is reported.
 func TestExportLimitBothOrNeither(t *testing.T) {
 	c := newFakeClock()
-	l := limiterAt(c, 1, 5)
+	l := limiterAt(c, 2, 10) // user: 1 at once; org: 5 at once
 	mustTake(t, l, "a@x", 1)
 	for i := 0; i < 3; i++ {
 		if _, _, ok := l.take("a@x", 1); ok {
@@ -88,16 +127,16 @@ func TestExportLimitBothOrNeither(t *testing.T) {
 	if ok {
 		t.Fatal("org over the limit allowed")
 	}
-	if want := 24 * time.Hour / 5; wait != want {
+	if want := 24 * time.Hour / 10; wait != want {
 		t.Errorf("wait = %s, want %s", wait, want)
 	}
 
 	// The org is empty now; a member with a full user bucket is refused and
-	// keeps that user token.
+	// keeps those user tokens.
 	c2 := newFakeClock()
-	l2 := limiterAt(c2, 2, 1)
+	l2 := limiterAt(c2, 4, 2) // user: 2 at once; org: 1 at once
 	mustTake(t, l2, "a@x", 1)
-	if _, wait, ok := l2.take("b@x", 1); ok || wait != 24*time.Hour {
+	if _, wait, ok := l2.take("b@x", 1); ok || wait != 12*time.Hour {
 		t.Fatalf("org-empty refusal: ok=%v wait=%s", ok, wait)
 	}
 	if got := l2.users["b@x"].tokens; got != 2 {
@@ -126,11 +165,11 @@ func TestExportLimitReleaseGivesBack(t *testing.T) {
 
 func TestExportLimitSweepDropsRefilledBuckets(t *testing.T) {
 	c := newFakeClock()
-	l := limiterAt(c, 4, 10)
+	l := limiterAt(c, 8, 10) // user: 4 at once, one back every 7.5 minutes
 	for i := 0; i < 4; i++ {
 		mustTake(t, l, "a@x", 1)
 	}
-	c.add(30 * time.Minute) // two of four back: not full, kept
+	c.add(15 * time.Minute) // two of four back: not full, kept
 	mustTake(t, l, "b@x", 2)
 	c.add(exportLimitSweepEvery)
 	l.take("c@x", 3)

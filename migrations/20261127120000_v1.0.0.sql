@@ -284,7 +284,8 @@ ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS nda_document_id TEXT;
 ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS nda_skip_domains TEXT[] NOT NULL DEFAULT '{}';
 
 -- One row per visitor, NDA version (content_hash of the served document_versions
--- row, version_id is its id) and method. 'accepted' is a click-through;
+-- row, version_id is its id; commit_hash and file_path locate the accepted bytes
+-- in git, which stay provable if that row is overwritten later) and method. 'accepted' is a click-through;
 -- 'domain_skip' is a log row written the first time a visitor is let in by the
 -- skip list. A skip row is never a grant: the skip list is evaluated on every
 -- request. company, ip and user_agent are snapshots taken at that moment.
@@ -296,6 +297,8 @@ CREATE TABLE IF NOT EXISTS trust_nda_acceptances (
     version_id      BIGINT NOT NULL,
     version         TEXT NOT NULL DEFAULT '',
     content_hash    TEXT NOT NULL CHECK (content_hash <> ''),
+    commit_hash     TEXT NOT NULL DEFAULT '',
+    file_path       TEXT NOT NULL DEFAULT '',
     method          TEXT NOT NULL CHECK (method IN ('accepted','domain_skip')),
     company         TEXT NOT NULL DEFAULT '',
     ip              TEXT NOT NULL DEFAULT '',

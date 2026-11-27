@@ -43,10 +43,15 @@ func TestNormalizeNDASkipDomains(t *testing.T) {
 	if want := []string{"*.example.com", "b.example.org", "example.com"}; !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+	// A wildcard under a public suffix is fine; the suffix itself is refused.
+	ok, err := NormalizeNDASkipDomains([]string{"*.example.co.uk", "*.acme.com.au", "co.uk"})
+	if err != nil || !slices.Equal(ok, []string{"*.acme.com.au", "*.example.co.uk", "co.uk"}) {
+		t.Errorf("wildcards under a public suffix = %v, %v", ok, err)
+	}
 	if got, err := NormalizeNDASkipDomains(nil); err != nil || got == nil || len(got) != 0 {
 		t.Errorf("nil input = %#v, %v; want an empty non-nil list", got, err)
 	}
-	for _, bad := range []string{"", "  ", "localhost", "*.com", "*.", "*", "a.*.com", "ex*.example.com", "a b.com", "a@b.com", "a/b.com", ".example.com", "example.com.", "a..com", "**.example.com"} {
+	for _, bad := range []string{"*.co.uk", "*.com.au", "*.github.io", "*.gov.uk", "*.CO.UK", "*.blogspot.com", "*.", "", "  ", "localhost", "*.com", "*.", "*", "a.*.com", "ex*.example.com", "a b.com", "a@b.com", "a/b.com", ".example.com", "example.com.", "a..com", "**.example.com"} {
 		if _, err := NormalizeNDASkipDomains([]string{bad}); err == nil {
 			t.Errorf("%q was accepted", bad)
 		}

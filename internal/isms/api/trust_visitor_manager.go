@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -179,9 +180,13 @@ func (s *Server) handleBlockTrustVisitor(c echo.Context) error {
 	if err != nil {
 		return trustInternalError(c, "updating visitor", err)
 	}
-	ndas, err := s.trustVisitorNDAs(c.Request().Context(), getOrgID(c), []db.TrustVisitor{*out})
-	if err != nil {
-		return trustInternalError(c, "reading NDA status", err)
+	// The block has been written: a failure to read the NDA status is logged and
+	// shown as "unavailable", never a 500.
+	nda := trustManagerVisitorNDA{Status: trustNDAUnavailable}
+	if ndas, err := s.trustVisitorNDAs(c.Request().Context(), getOrgID(c), []db.TrustVisitor{*out}); err != nil {
+		log.Printf("trust center: visitor %d NDA status: %v", out.ID, err)
+	} else {
+		nda = ndas[out.ID]
 	}
-	return c.JSON(http.StatusOK, trustVisitorRow(out, ndas[out.ID]))
+	return c.JSON(http.StatusOK, trustVisitorRow(out, nda))
 }

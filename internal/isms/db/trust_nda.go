@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/net/publicsuffix"
 )
 
 // Click-through NDA for gated trust center items (#525). The settings name the
@@ -33,7 +34,8 @@ func nonNilStrings(l []string) []string {
 // NormalizeNDASkipDomains trims, lower-cases, strips a leading "@", de-duplicates
 // and sorts the entries. An entry is a domain ("example.com", that domain only)
 // or a wildcard ("*.example.com", any subdomain at any depth, never the domain
-// itself). It refuses an empty entry, one with an "@", whitespace, "/" or a "*"
+// itself); a wildcard over a public suffix (`*.co.uk`, `*.github.io`) is
+// refused. It refuses an empty entry, one with an "@", whitespace, "/" or a "*"
 // anywhere but the "*." prefix, one whose domain part has no dot (so "*.com" is
 // refused) or is longer than 253 characters, and a list of more than 500. The
 // result is never nil.
@@ -51,6 +53,13 @@ func NormalizeNDASkipDomains(in []string) ([]string, error) {
 			strings.HasPrefix(base, ".") || strings.HasSuffix(base, ".") || strings.Contains(base, "..") ||
 			strings.IndexFunc(d, unicode.IsSpace) >= 0 {
 			return nil, trustInvalid("NDA skip domain %q", raw)
+		}
+		// A wildcard over a public suffix (*.co.uk, *.github.io) would cover
+		// unrelated organizations, so it is refused. *.example.co.uk is fine.
+		if base != d {
+			if suffix, _ := publicsuffix.PublicSuffix(base); suffix == base {
+				return nil, trustInvalid("NDA skip domain %q covers a public suffix", raw)
+			}
 		}
 		if !seen[d] {
 			seen[d] = true
@@ -100,15 +109,33 @@ type TrustNDAAcceptance struct {
 	VersionID   int64
 	Version     string
 	ContentHash string
-	Method      string // TrustNDAAccepted | TrustNDADomainSkip
-	Company     string // the visitor's company when they accepted
-	IP          string
-	UserAgent   string
-	CreatedAt   Epoch
+	// CommitHash and FilePath locate the accepted bytes in git: the
+	// document_versions row can be overwritten later (same document and label),
+	// the commit cannot, so the text a visitor accepted stays provable.
+	CommitHash string
+	FilePath   string
+	Method     string // TrustNDAAccepted | TrustNDADomainSkip
+	Company    string // the visitor's company when they accepted
+	IP         string
+	UserAgent  string
+	CreatedAt  Epoch
 }
 
-// maxNDAUserAgent bounds the stored user agent.
-const maxNDAUserAgent = 512
+// Bounds on the text stored with an acceptance.
+const (
+	maxNDAUserAgent = 512
+	maxNDAIP        = 64
+)
+
+// clampText makes s valid UTF-8 (Postgres refuses anything else in a TEXT
+// column, which would fail the whole acceptance) and at most max bytes.
+func clampText(s string, max int) string {
+	s = strings.ToValidUTF8(s, "")
+	if len(s) > max {
+		s = strings.ToValidUTF8(s[:max], "")
+	}
+	return s
+}
 
 // RecordTrustNDAAcceptance stores a.Method for the visitor and version unless
 // the same row exists already, and reports whether it wrote one. A row without
@@ -120,20 +147,17 @@ func (d *DB) RecordTrustNDAAcceptance(ctx context.Context, orgID int, a *TrustND
 	if a.Method != TrustNDAAccepted && a.Method != TrustNDADomainSkip {
 		return false, trustInvalid("NDA method %q", a.Method)
 	}
-	ua := a.UserAgent
-	if len(ua) > maxNDAUserAgent {
-		ua = strings.ToValidUTF8(ua[:maxNDAUserAgent], "")
-	}
+	ua, ip := clampText(a.UserAgent, maxNDAUserAgent), clampText(a.IP, maxNDAIP)
 	var inserted bool
 	err := d.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
 			INSERT INTO trust_nda_acceptances
 				(organization_id, visitor_id, document_id, version_id, version, content_hash,
-				 method, company, ip, user_agent)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				 commit_hash, file_path, method, company, ip, user_agent)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			ON CONFLICT (organization_id, visitor_id, content_hash, method) DO NOTHING
 		`, orgID, a.VisitorID, a.DocumentID, a.VersionID, a.Version, a.ContentHash,
-			a.Method, a.Company, a.IP, ua)
+			a.CommitHash, a.FilePath, a.Method, a.Company, ip, ua)
 		inserted = err == nil && tag.RowsAffected() == 1
 		return err
 	})
@@ -162,7 +186,7 @@ func (d *DB) HasTrustNDAAccepted(ctx context.Context, orgID int, visitorID int64
 func (d *DB) ListTrustNDAAccepted(ctx context.Context, orgID int) ([]TrustNDAAcceptance, error) {
 	rows, err := d.pool.Query(ctx, `
 		SELECT id, organization_id, visitor_id, document_id, version_id, version, content_hash,
-		       method, company, ip, user_agent, created_at
+		       commit_hash, file_path, method, company, ip, user_agent, created_at
 		FROM trust_nda_acceptances WHERE organization_id = $1 AND method = 'accepted'
 		ORDER BY created_at, id
 	`, orgID)
@@ -174,7 +198,7 @@ func (d *DB) ListTrustNDAAccepted(ctx context.Context, orgID int) ([]TrustNDAAcc
 	for rows.Next() {
 		var a TrustNDAAcceptance
 		if err := rows.Scan(&a.ID, &a.OrganizationID, &a.VisitorID, &a.DocumentID, &a.VersionID, &a.Version,
-			&a.ContentHash, &a.Method, &a.Company, &a.IP, &a.UserAgent, &a.CreatedAt); err != nil {
+			&a.ContentHash, &a.CommitHash, &a.FilePath, &a.Method, &a.Company, &a.IP, &a.UserAgent, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, a)

@@ -55,8 +55,8 @@ func TestV100MigrationReRunsOnPopulatedData(t *testing.T) {
 		t.Fatalf("precondition: visitor: %v", err)
 	}
 	if _, err := d.pool.Exec(ctx, `
-		INSERT INTO trust_nda_acceptances (organization_id, visitor_id, document_id, version_id, version, content_hash, method)
-		VALUES ($1, $2, 'nda', 1, '1.0', 'abc', 'accepted'), ($1, $2, 'nda', 1, '1.0', 'abc', 'domain_skip')`,
+		INSERT INTO trust_nda_acceptances (organization_id, visitor_id, document_id, version_id, version, content_hash, commit_hash, file_path, method)
+		VALUES ($1, $2, 'nda', 1, '1.0', 'abc', 'c0ffee', 'documents/nda.md', 'accepted'), ($1, $2, 'nda', 1, '1.0', 'abc', 'c0ffee', 'documents/nda.md', 'domain_skip')`,
 		orgID, visitorID); err != nil {
 		t.Fatalf("precondition: NDA acceptances: %v", err)
 	}

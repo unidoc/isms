@@ -9,10 +9,13 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -308,11 +311,12 @@ func TestTrustNDAAcceptOpensGatedAndStoresTheVersion(t *testing.T) {
 		t.Errorf("visitor nda after accepting = %v", st)
 	}
 
-	var docID, version, hash, company, ip, ua, method string
+	var docID, version, hash, company, ip, ua, method, commit, path string
 	var versionID int64
-	rawQuery(t, `SELECT document_id, version_id, version, content_hash, method, company, ip, user_agent
+	rawQuery(t, `SELECT document_id, version_id, version, content_hash, method, company, ip, user_agent, commit_hash, file_path
 		FROM trust_nda_acceptances WHERE organization_id = $1`, []any{g.o.id},
-		&docID, &versionID, &version, &hash, &method, &company, &ip, &ua)
+		&docID, &versionID, &version, &hash, &method, &company, &ip, &ua, &commit, &path)
+	g.wantProvable(t, commit, path, hash)
 	if docID != g.nda.docID || versionID != verID || version != verLabel || hash != verHash ||
 		method != "accepted" || company != "Audit Co" {
 		t.Errorf("row = doc %q version_id %d version %q hash %q method %q company %q", docID, versionID, version, hash, method, company)
@@ -320,12 +324,39 @@ func TestTrustNDAAcceptOpensGatedAndStoresTheVersion(t *testing.T) {
 	if ip == "" {
 		t.Errorf("row has no ip")
 	}
+	var okBody struct {
+		NDA map[string]any `json:"nda"`
+	}
+	if err := json.Unmarshal([]byte(r.body), &okBody); err != nil || okBody.NDA["status"] != "accepted" || okBody.NDA["content_hash"] != n.ContentHash {
+		t.Errorf("accept answer nda = %s", r.body)
+	}
 	// Accepting again is fine and writes nothing new.
 	if r := g.accept(n.ContentHash, g.cookie); r.code != http.StatusOK {
 		t.Errorf("second accept = %d %s", r.code, r.body)
 	}
 	if n := g.ndaRows(t, "accepted"); n != 1 {
 		t.Errorf("accepted rows = %d, want 1", n)
+	}
+}
+
+// wantProvable checks that an acceptance row's commit and path lead to the exact
+// bytes whose hash it stores, and that they are the served version's: the text a
+// visitor accepted stays provable from git even if the version row is overwritten.
+func (g *ndaFx) wantProvable(t *testing.T, commit, path, hash string) {
+	t.Helper()
+	served, err := g.s.trustServed(context.Background(), g.nda.st, g.o.id, g.nda.docID)
+	if err != nil || served == nil {
+		t.Fatalf("served version: %v %v", served, err)
+	}
+	if commit == "" || path == "" || commit != served.CommitHash || path != served.FilePath {
+		t.Errorf("row commit/path = %q %q, want the served %q %q", commit, path, served.CommitHash, served.FilePath)
+	}
+	raw, err := g.nda.st.ReadFileAtRef(commit, path)
+	if err != nil {
+		t.Fatalf("reading %s at %s: %v", path, commit, err)
+	}
+	if sum := sha256.Sum256(raw); hex.EncodeToString(sum[:]) != hash {
+		t.Errorf("sha256 of the committed file = %x, row content_hash = %s", sum, hash)
 	}
 }
 
@@ -653,4 +684,90 @@ func TestTrustNDADoesNotChangeTheOverviewRule(t *testing.T) {
 	if o.Overview == nil || !strings.Contains(o.Overview.HTML, "the overview text") {
 		t.Errorf("overview = %s", raw)
 	}
+}
+
+// The visitor responses report the status and write no skip row; only a gated
+// read that the skip list lets in does, once.
+func TestTrustNDAVisitorResponsesWriteNoSkipRow(t *testing.T) {
+	g := newNDAFx(t, "nda-skiplog")
+	g.setNDA(g.nda.docID)
+	g.setSkip("example.com")
+	email := uniqueEmail("example.com")
+	cookie := g.e.signIn(t, email)
+	for i := 0; i < 3; i++ {
+		if st := g.visitorNDA(t, cookie); st["status"] != "skipped" {
+			t.Fatalf("visitor nda = %v", st)
+		}
+	}
+	if n := g.ndaRowsFor(t, email, "domain_skip"); n != 0 {
+		t.Errorf("GET visitor x3 wrote %d skip rows", n)
+	}
+	g.wantPublicOpen(t, cookie, "skip-listed, public reads")
+	if n := g.ndaRowsFor(t, email, "domain_skip"); n != 0 {
+		t.Errorf("public reads wrote %d skip rows", n)
+	}
+	g.wantOpen(t, cookie, "skip-listed")
+	g.wantOpen(t, cookie, "skip-listed, again")
+	if n := g.ndaRowsFor(t, email, "domain_skip"); n != 1 {
+		t.Errorf("gated reads wrote %d skip rows, want 1", n)
+	}
+	var commit, path, hash string
+	rawQuery(t, `SELECT commit_hash, file_path, content_hash FROM trust_nda_acceptances a JOIN trust_visitors v
+		ON v.id = a.visitor_id WHERE a.organization_id = $1 AND v.email = $2 AND a.method = 'domain_skip'`, []any{g.o.id, email}, &commit, &path, &hash)
+	g.wantProvable(t, commit, path, hash)
+}
+
+// A failure to work out the NDA status after something was already written (the
+// sign-in cookie, a block) is logged and shown as "unavailable", not a 500. The
+// seam is the acceptances table going missing for the duration of the test.
+func TestTrustNDAStatusFailureAfterASideEffectIsNot500(t *testing.T) {
+	g := newNDAFx(t, "nda-r3")
+	g.setNDA(g.nda.docID)
+	acc := "r3acc@auditco.test"
+	accCookie := g.e.signIn(t, acc)
+	n := g.wantNDA(t, accCookie)
+	if r := g.accept(n.ContentHash, accCookie); r.code != http.StatusOK {
+		t.Fatal(r.body)
+	}
+	tok := g.e.requestLink(t, "r3new@auditco.test")
+
+	rawExec(t, `ALTER TABLE trust_nda_acceptances RENAME TO trust_nda_acceptances_away`)
+	restored := false
+	restore := func() {
+		if !restored {
+			restored = true
+			rawExec(t, `ALTER TABLE trust_nda_acceptances_away RENAME TO trust_nda_acceptances`)
+		}
+	}
+	t.Cleanup(restore)
+
+	if st := g.visitorNDA(t, accCookie); st["status"] != "unavailable" {
+		t.Errorf("GET visitor with a failing lookup: nda = %v", st)
+	}
+	r := vdo(g.s, http.MethodPost, g.e.path("/visitor/session"), `{"token":"`+tok+`","name":"N","company":"C"}`)
+	var sess struct {
+		Visitor *struct{} `json:"visitor"`
+		NDA     map[string]any
+	}
+	if err := json.Unmarshal([]byte(r.body), &sess); err != nil || r.code != http.StatusOK || sess.Visitor == nil || sess.NDA["status"] != "unavailable" || visitorCookieOf(t, r) == nil {
+		t.Errorf("sign-in with a failing lookup = %d %s", r.code, r.body)
+	}
+	v, err := g.s.db.GetTrustVisitorByEmail(context.Background(), g.o.id, acc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	br := g.mustOK(g.call(g.s.handleBlockTrustVisitor, http.MethodPut, "/api/v1/trust-center/visitors/1/blocked", `{"blocked":true}`, "manager", g.mgr, "id", strconv.FormatInt(v.ID, 10)), "block")
+	var row mgrNDAVisitor
+	if err := json.Unmarshal([]byte(br.body), &row); err != nil || row.NDA == nil || row.NDA.Status != "unavailable" {
+		t.Errorf("block answer = %s", br.body)
+	}
+	// The block itself went through.
+	if v2, err := g.s.db.GetTrustVisitorByEmail(context.Background(), g.o.id, acc); err != nil || !v2.Blocked {
+		t.Errorf("the block was not written: %+v %v", v2, err)
+	}
+	// Gated reads still fail closed.
+	if r := g.doc(g.gatedDoc, g.cookie); r.code == http.StatusOK || strings.Contains(r.body, "gated body text") {
+		t.Errorf("a gated read with a failing lookup = %d", r.code)
+	}
+	restore()
 }

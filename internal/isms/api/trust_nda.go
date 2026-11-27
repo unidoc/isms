@@ -34,8 +34,12 @@ type trustNDACurrent struct {
 	Version     string
 	ApprovedAt  db.Epoch
 	ContentHash string
-	Title       string
-	Body        string // markdown, frontmatter stripped
+	// CommitHash and FilePath are where the served bytes live in git; an
+	// acceptance records them so the accepted text stays provable.
+	CommitHash string
+	FilePath   string
+	Title      string
+	Body       string // markdown, frontmatter stripped
 }
 
 // trustPublicNDA is the response of GET /api/v1/trust/:slug/nda, and the
@@ -124,6 +128,7 @@ func (s *Server) trustNDAState(ctx context.Context, orgID int, settings *db.Trus
 	return &trustNDACurrent{
 		DocumentID: docID, VersionID: int64(served.VersionID), Version: served.Version,
 		ApprovedAt: served.ApprovedAt, ContentHash: served.ContentHash,
+		CommitHash: served.CommitHash, FilePath: served.FilePath,
 		Title: served.Title, Body: served.Body,
 	}, true, ""
 }
@@ -150,8 +155,10 @@ func (s *Server) trustNDAPayload(ctx context.Context, org *db.Organization, cur 
 
 // trustViewer is a signed-in visitor together with what the NDA says about
 // them. The NDA is resolved on first use and at most once per request, so a
-// request that never reaches a gated item does not read the NDA document or
-// write a skip row. A nil *trustViewer is an anonymous viewer.
+// request that never reaches a gated item does not read the NDA document. Only a
+// gated read that the skip list actually lets in (satisfied) writes the
+// domain_skip log row; reading the status for a visitor response writes nothing.
+// A nil *trustViewer is an anonymous viewer.
 type trustViewer struct {
 	Visitor *db.TrustVisitor
 
@@ -160,10 +167,11 @@ type trustViewer struct {
 	org      *db.Organization
 	settings *db.TrustCenterSettings
 
-	done    bool
-	status  string
-	current *trustNDACurrent
-	err     error
+	done       bool
+	status     string
+	current    *trustNDACurrent
+	err        error
+	skipLogged bool
 }
 
 // newTrustViewer wraps the visitor from the cookie; nil stays nil.
@@ -174,8 +182,8 @@ func (s *Server) newTrustViewer(c echo.Context, org *db.Organization, settings *
 	return &trustViewer{Visitor: v, s: s, c: c, org: org, settings: settings}
 }
 
-// resolve works out the NDA status once. The skip list is read as it is now;
-// the domain_skip row it writes is a log, never a grant.
+// resolve works out the NDA status once, writing nothing. The skip list is read
+// as it is now; a domain_skip row is only a log, never a grant.
 func (tv *trustViewer) resolve() {
 	if tv.done {
 		return
@@ -193,30 +201,41 @@ func (tv *trustViewer) resolve() {
 			return
 		}
 	}
-	status := trustNDAStatusFor(set, cur, accepted, tv.settings.NDASkips(tv.Visitor.Email))
-	if status == trustNDASkipped {
-		_, err := tv.s.db.RecordTrustNDAAcceptance(ctx, tv.org.ID, &db.TrustNDAAcceptance{
-			VisitorID: tv.Visitor.ID, DocumentID: cur.DocumentID, VersionID: cur.VersionID,
-			Version: cur.Version, ContentHash: cur.ContentHash, Method: db.TrustNDADomainSkip,
-			Company: tv.Visitor.Company, IP: tv.c.RealIP(), UserAgent: tv.c.Request().UserAgent(),
-		})
-		if err != nil {
-			tv.err = err
-			return
-		}
+	tv.status = trustNDAStatusFor(set, cur, accepted, tv.settings.NDASkips(tv.Visitor.Email))
+}
+
+// logSkip writes the domain_skip row for the current version, once per request
+// (and once per version in the database).
+func (tv *trustViewer) logSkip() {
+	if tv.skipLogged || tv.current == nil {
+		return
 	}
-	tv.status = status
+	tv.skipLogged = true
+	cur := tv.current
+	_, err := tv.s.db.RecordTrustNDAAcceptance(tv.c.Request().Context(), tv.org.ID, &db.TrustNDAAcceptance{
+		VisitorID: tv.Visitor.ID, DocumentID: cur.DocumentID, VersionID: cur.VersionID,
+		Version: cur.Version, ContentHash: cur.ContentHash, CommitHash: cur.CommitHash, FilePath: cur.FilePath,
+		Method: db.TrustNDADomainSkip, Company: tv.Visitor.Company,
+		IP: tv.c.RealIP(), UserAgent: tv.c.Request().UserAgent(),
+	})
+	if err != nil {
+		tv.err = err
+	}
 }
 
 // satisfied reports whether the visitor has met the NDA step (or there is none).
+// A visitor let in by the skip list is logged, then; a failure to log fails closed.
 func (tv *trustViewer) satisfied() bool {
 	tv.resolve()
 	if tv.err != nil {
 		return false
 	}
 	switch tv.status {
-	case trustNDANone, trustNDAAccepted, trustNDASkipped:
+	case trustNDANone, trustNDAAccepted:
 		return true
+	case trustNDASkipped:
+		tv.logSkip()
+		return tv.err == nil
 	}
 	return false
 }
@@ -295,15 +314,12 @@ func (s *Server) trustNDAAccept(c echo.Context, org *db.Organization, settings *
 	}
 	if _, err := s.db.RecordTrustNDAAcceptance(ctx, org.ID, &db.TrustNDAAcceptance{
 		VisitorID: v.ID, DocumentID: cur.DocumentID, VersionID: cur.VersionID,
-		Version: cur.Version, ContentHash: cur.ContentHash, Method: db.TrustNDAAccepted,
-		Company: v.Company, IP: c.RealIP(), UserAgent: c.Request().UserAgent(),
+		Version: cur.Version, ContentHash: cur.ContentHash, CommitHash: cur.CommitHash, FilePath: cur.FilePath,
+		Method: db.TrustNDAAccepted, Company: v.Company, IP: c.RealIP(), UserAgent: c.Request().UserAgent(),
 	}); err != nil {
 		return trustPublicError(c, err)
 	}
-	tv := s.newTrustViewer(c, org, settings, v)
-	nda, err := tv.info()
-	if err != nil {
-		return trustPublicError(c, err)
-	}
-	return trustVisitorResponse(c, v, nda)
+	// The row is written: answer from what was just accepted, with no further
+	// lookup that could fail after the side effect.
+	return trustVisitorResponse(c, v, &trustVisitorNDA{Status: trustNDAAccepted, Version: cur.Version, ContentHash: cur.ContentHash})
 }

@@ -255,10 +255,14 @@ func trustVisitorResponse(c echo.Context, v *db.TrustVisitor, nda *trustVisitorN
 
 // trustVisitorWithNDA answers like trustVisitorResponse for a signed-in visitor,
 // resolving their NDA status.
+// The sign-in cookie may already be set when this runs, so a failure to work out
+// the NDA status is logged and answered as "unavailable" (200), not as a 500;
+// gated reads fail closed on their own.
 func (s *Server) trustVisitorWithNDA(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings, v *db.TrustVisitor) error {
 	nda, err := s.newTrustViewer(c, org, settings, v).info()
 	if err != nil {
-		return trustPublicError(c, err)
+		log.Printf("trust center: org %d visitor %d NDA status: %v", org.ID, v.ID, err)
+		nda = &trustVisitorNDA{Status: trustNDAUnavailable}
 	}
 	return trustVisitorResponse(c, v, nda)
 }

@@ -55,6 +55,15 @@ export function changedSettings(orig, form) {
   if (form.privacy_notice_url !== undefined && (form.privacy_notice_url || '').trim() !== (orig.privacy_notice_url || '')) {
     patch.privacy_notice_url = (form.privacy_notice_url || '').trim()
   }
+  // The NDA document (#525) and its skip list. The list is compared like the
+  // blocked domains: spelling and order are not a change.
+  if (form.nda_document_id !== undefined && (form.nda_document_id || null) !== (orig.nda_document_id || null)) {
+    patch.nda_document_id = form.nda_document_id || null
+  }
+  if (form.ndaSkipText !== undefined) {
+    const list = parseDomains(form.ndaSkipText)
+    if (JSON.stringify(normalizeDomains(list)) !== JSON.stringify(normalizeDomains(orig.nda_skip_domains))) patch.nda_skip_domains = list
+  }
   // Blocked domains: mode 'default' is null (the built-in list), mode 'custom'
   // is the list in the text, which may be empty (allow every domain).
   if (form.domainsMode !== undefined) {

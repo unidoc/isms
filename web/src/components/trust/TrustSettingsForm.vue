@@ -28,6 +28,30 @@
         <p v-if="overviewNoApproved" class="text-xs text-amber-400 mt-1" data-trust="overview-hint">{{ $t('trust_manager.settings.overview_no_approved') }}</p>
       </div>
 
+      <!-- The click-through NDA (#525): gated items need sign-in and an acceptance
+           of this document's approved version, unless the visitor's domain is on
+           the skip list. -->
+      <div data-trust="nda-block">
+        <div class="text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.nda_label') }}</div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm" :class="form.nda_document_id ? 'text-slate-200' : 'text-slate-500'" data-trust="nda-value">{{ ndaText }}</span>
+          <button type="button" data-trust="nda-choose" @click="showNdaPicker = true" class="text-xs text-blue-400 hover:text-blue-300">{{ $t('trust_manager.settings.nda_choose') }}</button>
+          <button v-if="form.nda_document_id" type="button" data-trust="nda-clear" @click="clearNda" class="text-xs text-slate-400 hover:text-red-400">{{ $t('trust_manager.settings.nda_clear') }}</button>
+          <button v-else type="button" data-trust="nda-setup-open" @click="openSetup" class="text-xs text-blue-400 hover:text-blue-300">{{ $t('trust_manager.settings.nda_setup') }}</button>
+        </div>
+        <p v-if="ndaLine" class="text-xs mt-1" :class="ndaLine.warn ? 'text-amber-400' : 'text-slate-500'" :data-trust="ndaLine.warn ? 'nda-warning' : 'nda-status'">{{ ndaLine.text }}</p>
+        <p v-if="setupDone" class="text-xs text-slate-300 mt-1" data-trust="nda-setup-done">
+          {{ $t('trust_manager.settings.nda_setup_done') }}
+          <router-link :to="orgPath('/documents/' + setupDone)" class="text-blue-400 hover:text-blue-300" data-trust="nda-open-doc">{{ $t('trust_manager.settings.nda_open_doc') }}</router-link>
+        </p>
+
+        <label for="trust-nda-skip" class="block text-sm font-medium text-slate-200 mt-4 mb-1">{{ $t('trust_manager.settings.nda_skip_label') }}</label>
+        <textarea id="trust-nda-skip" v-model="form.ndaSkipText" rows="4" data-trust="nda-skip" spellcheck="false"
+          class="w-full px-3 py-2 text-sm font-mono bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500" />
+        <p class="text-xs text-slate-500 mt-1">{{ $t('trust_manager.settings.nda_skip_help') }}</p>
+        <p v-if="skipError" class="text-xs text-red-400 mt-1" data-trust="nda-skip-error">{{ $t('trust_manager.settings.nda_skip_error') }}</p>
+      </div>
+
       <div>
         <label for="trust-contact" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.contact_label') }}</label>
         <input id="trust-contact" v-model="form.security_contact" type="text" maxlength="320" data-trust="contact"
@@ -98,6 +122,49 @@
         </div>
       </div>
     </div>
+    <!-- NDA document picker -->
+    <div v-if="showNdaPicker" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4" data-trust="nda-picker">
+      <div class="absolute inset-0 bg-black/60" @click="showNdaPicker = false" />
+      <div class="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4 text-sm">
+        <h2 class="text-lg font-bold text-white">{{ $t('trust_manager.settings.nda_label') }}</h2>
+        <TrustDocumentSearch hide-retired @pick="pickNda" />
+        <div class="flex justify-end">
+          <button type="button" @click="showNdaPicker = false" class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200">{{ $t('common.action.cancel') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set up an NDA: a new document the manager then writes and sends for review. -->
+    <div v-if="showSetup" class="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4" data-trust="nda-setup">
+      <div class="absolute inset-0 bg-black/60" @click="showSetup = false" />
+      <form class="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 text-sm" @submit.prevent="createNda">
+        <h2 class="text-lg font-bold text-white">{{ $t('trust_manager.settings.nda_setup') }}</h2>
+        <p class="text-xs text-slate-400">{{ $t('trust_manager.settings.nda_setup_help') }}</p>
+        <div>
+          <label for="trust-nda-folder" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.nda_setup_folder') }}</label>
+          <select id="trust-nda-folder" v-model="setup.folder" data-trust="nda-setup-folder" class="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-200">
+            <option v-for="f in folderPaths" :key="f" :value="f">{{ f }}</option>
+          </select>
+          <p v-if="!folderPaths.length" class="text-xs text-amber-400 mt-1" data-trust="nda-setup-no-folder">{{ $t('trust_manager.settings.nda_setup_no_folder') }}</p>
+        </div>
+        <div>
+          <label for="trust-nda-title" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.nda_setup_title') }}</label>
+          <input id="trust-nda-title" v-model="setup.title" type="text" maxlength="200" data-trust="nda-setup-title"
+            class="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-200" />
+        </div>
+        <div>
+          <label for="trust-nda-id" class="block text-sm font-medium text-slate-200 mb-1">{{ $t('trust_manager.settings.nda_setup_id') }}</label>
+          <input id="trust-nda-id" v-model="setup.id" type="text" maxlength="100" data-trust="nda-setup-id" spellcheck="false"
+            class="w-full px-3 py-2 text-sm font-mono bg-slate-800 border border-slate-700 rounded-lg text-slate-200" />
+        </div>
+        <p v-if="setupError" class="text-xs text-red-400" role="alert" data-trust="nda-setup-error">{{ setupError }}</p>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-trust="nda-setup-cancel" @click="showSetup = false" class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200">{{ $t('common.action.cancel') }}</button>
+          <button type="submit" data-trust="nda-setup-create" :disabled="setupBusy || !setup.folder || !setup.title.trim() || !setup.id.trim()"
+            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50">{{ $t('trust_manager.settings.nda_setup_create') }}</button>
+        </div>
+      </form>
+    </div>
   </section>
 </template>
 
@@ -106,6 +173,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '../../api'
 import { renderApiError } from '../../composables/useApiError.js'
+import { useCurrentOrg } from '../../composables/useCurrentOrg.js'
+import { formatDate } from '../../composables/useFormat.js'
 import { useOrgDocuments } from '../../composables/useOrgDocuments.js'
 import { changedSettings } from '../../utils/trustManager.js'
 import TrustDocumentSearch from './TrustDocumentSearch.vue'
@@ -131,7 +200,16 @@ const confirmOn = ref(false)
 const showPicker = ref(false)
 const pickedTitle = ref('')
 const overviewNoApproved = ref(false)
-const { documents, load: loadDocs } = useOrgDocuments()
+const { documents, folderPaths, load: loadDocs } = useOrgDocuments()
+const { orgPath } = useCurrentOrg()
+const showNdaPicker = ref(false)
+const pickedNdaTitle = ref('')
+const skipError = ref(false)
+const showSetup = ref(false)
+const setupBusy = ref(false)
+const setupError = ref('')
+const setupDone = ref('')
+const setup = reactive({ folder: '', title: '', id: '' })
 
 // What the form shows for a settings object from the server.
 function fromSettings(st) {
@@ -140,6 +218,8 @@ function fromSettings(st) {
     default_access_level: st.default_access_level,
     overview_document_id: st.overview_document_id || null,
     privacy_notice_url: st.privacy_notice_url || '',
+    nda_document_id: st.nda_document_id || null,
+    ndaSkipText: (st.nda_skip_domains || []).join('\n'),
     // 'default' = the built-in list (null on the wire), 'custom' = the list below.
     domainsMode: st.blocked_email_domains_default === false ? 'custom' : 'default',
     domainsText: (st.blocked_email_domains || []).join('\n'),
@@ -170,6 +250,27 @@ watch(() => props.settings, (next, prev) => {
     }
   }
   if (overviewChanged) { pickedTitle.value = ''; checkOverview() }
+  if ((next.nda_document_id || null) !== (prev?.nda_document_id || null)) pickedNdaTitle.value = ''
+})
+
+const ndaText = computed(() => {
+  const id = form.nda_document_id
+  if (!id) return t('trust_manager.settings.nda_none')
+  const title = pickedNdaTitle.value || documents.value.find((d) => d.document_id.toLowerCase() === id.toLowerCase())?.title
+  return title ? `${title} (${id})` : id
+})
+
+// The status line describes what the server has saved; with an unsaved change
+// of the NDA document there is nothing to say yet.
+const ndaLine = computed(() => {
+  const st = props.settings
+  if ((form.nda_document_id || null) !== (st.nda_document_id || null)) return null
+  if (!st.nda_document_id || st.nda_status === 'none' || !st.nda_status) return { warn: false, text: t('trust_manager.settings.nda_status_none') }
+  if (st.nda_status === 'approved') {
+    return { warn: false, text: t('trust_manager.settings.nda_status_approved', { version: st.nda_version || '', date: formatDate(st.nda_approved_at, 'short') }) }
+  }
+  const reason = ['not_approved', 'retired', 'deleted'].includes(st.nda_unavailable_reason) ? st.nda_unavailable_reason : 'error'
+  return { warn: true, text: t('trust_manager.settings.nda_unavailable_' + reason) }
 })
 
 const patch = computed(() => changedSettings(props.settings, { ...form, enabled: props.settings.enabled }))
@@ -194,6 +295,57 @@ async function checkOverview() {
   } catch { /* the hint is optional */ }
 }
 
+function pickNda(doc) {
+  form.nda_document_id = doc.document_id
+  pickedNdaTitle.value = doc.title
+  showNdaPicker.value = false
+}
+function clearNda() {
+  form.nda_document_id = null
+  pickedNdaTitle.value = ''
+  setupDone.value = ''
+}
+
+function openSetup() {
+  setup.folder = folderPaths.value[0] || ''
+  setup.title = t('trust_manager.settings.nda_setup_default_title')
+  setup.id = 'trust-center-nda'
+  setupError.value = ''
+  showSetup.value = true
+}
+// Creates the document (a plain POST /documents with a placeholder body), then
+// sets it as the NDA. It stays a draft: the manager writes the text and sends it
+// for review, and gated items stay locked until a version is approved.
+async function createNda() {
+  if (setupBusy.value) return
+  setupBusy.value = true
+  setupError.value = ''
+  const id = setup.id.trim().toLowerCase()
+  try {
+    await api.createDocument({
+      folder: setup.folder, filename: id + '.md', document_id: id, title: setup.title.trim(),
+      content: `# ${setup.title.trim()}\n\n[Your NDA text]\n`,
+    })
+  } catch (e) {
+    setupError.value = renderApiError(e) || t('common.state.unknown')
+    setupBusy.value = false
+    return
+  }
+  try {
+    const next = await api.updateTrustSettings({ nda_document_id: id })
+    emit('saved', next)
+    form.nda_document_id = next.nda_document_id || id
+    pickedNdaTitle.value = setup.title.trim()
+    setupDone.value = id
+    showSetup.value = false
+    loadDocs()
+  } catch (e) {
+    setupError.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })
+  } finally {
+    setupBusy.value = false
+  }
+}
+
 function pickOverview(doc) {
   form.overview_document_id = doc.document_id
   pickedTitle.value = doc.title
@@ -212,6 +364,7 @@ async function put(body) {
   error.value = ''
   domainsError.value = false
   privacyError.value = false
+  skipError.value = false
   saved.value = false
   try {
     const next = await api.updateTrustSettings(body)
@@ -224,9 +377,10 @@ async function put(body) {
     // A 400 is the server refusing a value. When exactly one of the two
     // validated fields was in the request the error belongs under it; with both
     // (or neither) it stays the general line.
-    const touched = ['blocked_email_domains', 'privacy_notice_url'].filter((k) => k in body)
+    const touched = ['blocked_email_domains', 'privacy_notice_url', 'nda_skip_domains'].filter((k) => k in body)
     if (e && e.status === 400 && touched.length === 1) {
       if (touched[0] === 'blocked_email_domains') domainsError.value = true
+      else if (touched[0] === 'nda_skip_domains') skipError.value = true
       else privacyError.value = true
     } else {
       error.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })

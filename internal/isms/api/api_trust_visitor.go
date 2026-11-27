@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"mime"
@@ -260,10 +261,7 @@ func trustVisitorResponse(c echo.Context, v *db.TrustVisitor, nda *trustVisitorN
 // gated reads fail closed on their own.
 func (s *Server) trustVisitorWithNDA(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings, v *db.TrustVisitor) error {
 	nda, err := s.newTrustViewer(c, org, settings, v).info()
-	if err != nil {
-		log.Printf("trust center: org %d visitor %d NDA status: %v", org.ID, v.ID, err)
-		nda = &trustVisitorNDA{Status: trustNDAUnavailable}
-	}
+	nda = trustNDAOrUnavailable(nda, &trustVisitorNDA{Status: trustNDAUnavailable}, err, fmt.Sprintf("org %d visitor %d", org.ID, v.ID))
 	return trustVisitorResponse(c, v, nda)
 }
 

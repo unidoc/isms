@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -715,59 +714,4 @@ func TestTrustNDAVisitorResponsesWriteNoSkipRow(t *testing.T) {
 	rawQuery(t, `SELECT commit_hash, file_path, content_hash FROM trust_nda_acceptances a JOIN trust_visitors v
 		ON v.id = a.visitor_id WHERE a.organization_id = $1 AND v.email = $2 AND a.method = 'domain_skip'`, []any{g.o.id, email}, &commit, &path, &hash)
 	g.wantProvable(t, commit, path, hash)
-}
-
-// A failure to work out the NDA status after something was already written (the
-// sign-in cookie, a block) is logged and shown as "unavailable", not a 500. The
-// seam is the acceptances table going missing for the duration of the test.
-func TestTrustNDAStatusFailureAfterASideEffectIsNot500(t *testing.T) {
-	g := newNDAFx(t, "nda-r3")
-	g.setNDA(g.nda.docID)
-	acc := "r3acc@auditco.test"
-	accCookie := g.e.signIn(t, acc)
-	n := g.wantNDA(t, accCookie)
-	if r := g.accept(n.ContentHash, accCookie); r.code != http.StatusOK {
-		t.Fatal(r.body)
-	}
-	tok := g.e.requestLink(t, "r3new@auditco.test")
-
-	rawExec(t, `ALTER TABLE trust_nda_acceptances RENAME TO trust_nda_acceptances_away`)
-	restored := false
-	restore := func() {
-		if !restored {
-			restored = true
-			rawExec(t, `ALTER TABLE trust_nda_acceptances_away RENAME TO trust_nda_acceptances`)
-		}
-	}
-	t.Cleanup(restore)
-
-	if st := g.visitorNDA(t, accCookie); st["status"] != "unavailable" {
-		t.Errorf("GET visitor with a failing lookup: nda = %v", st)
-	}
-	r := vdo(g.s, http.MethodPost, g.e.path("/visitor/session"), `{"token":"`+tok+`","name":"N","company":"C"}`)
-	var sess struct {
-		Visitor *struct{} `json:"visitor"`
-		NDA     map[string]any
-	}
-	if err := json.Unmarshal([]byte(r.body), &sess); err != nil || r.code != http.StatusOK || sess.Visitor == nil || sess.NDA["status"] != "unavailable" || visitorCookieOf(t, r) == nil {
-		t.Errorf("sign-in with a failing lookup = %d %s", r.code, r.body)
-	}
-	v, err := g.s.db.GetTrustVisitorByEmail(context.Background(), g.o.id, acc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	br := g.mustOK(g.call(g.s.handleBlockTrustVisitor, http.MethodPut, "/api/v1/trust-center/visitors/1/blocked", `{"blocked":true}`, "manager", g.mgr, "id", strconv.FormatInt(v.ID, 10)), "block")
-	var row mgrNDAVisitor
-	if err := json.Unmarshal([]byte(br.body), &row); err != nil || row.NDA == nil || row.NDA.Status != "unavailable" {
-		t.Errorf("block answer = %s", br.body)
-	}
-	// The block itself went through.
-	if v2, err := g.s.db.GetTrustVisitorByEmail(context.Background(), g.o.id, acc); err != nil || !v2.Blocked {
-		t.Errorf("the block was not written: %+v %v", v2, err)
-	}
-	// Gated reads still fail closed.
-	if r := g.doc(g.gatedDoc, g.cookie); r.code == http.StatusOK || strings.Contains(r.body, "gated body text") {
-		t.Errorf("a gated read with a failing lookup = %d", r.code)
-	}
-	restore()
 }

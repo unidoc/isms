@@ -153,6 +153,19 @@ func (s *Server) trustNDAPayload(ctx context.Context, org *db.Organization, cur 
 	}, nil
 }
 
+// trustNDAOrUnavailable is the answer to a failed NDA status lookup once a side
+// effect is already written (the sign-in cookie, a block): the failure is logged
+// and the "unavailable" fallback is returned, so the caller answers 200 instead of
+// a 500 that would hide the write. With no error it returns got unchanged. Gated
+// reads do not use it: they fail closed on their own.
+func trustNDAOrUnavailable[T any](got, unavailable T, err error, what string) T {
+	if err != nil {
+		log.Printf("trust center: %s NDA status: %v", what, err)
+		return unavailable
+	}
+	return got
+}
+
 // trustViewer is a signed-in visitor together with what the NDA says about
 // them. The NDA is resolved on first use and at most once per request, so a
 // request that never reaches a gated item does not read the NDA document. Only a

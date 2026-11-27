@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -29,18 +30,80 @@ type trustManagerVisitor struct {
 	BlockedBy  *string   `json:"blocked_by"`
 	// ActiveSessions counts sessions that are neither revoked nor expired.
 	ActiveSessions int `json:"active_sessions"`
+	// NDA is where the visitor stands with the organization's NDA right now.
+	NDA trustManagerVisitorNDA `json:"nda"`
+}
+
+// trustManagerVisitorNDA mirrors the access rule (trustNDAStatusFor).
+// Version and ContentHash are the current NDA's (empty for none and
+// unavailable). AcceptedAt and AcceptedVersion describe the visitor's own click
+// through: the one for the current version when there is one, else their latest
+// (an older version); null / empty when they never accepted.
+type trustManagerVisitorNDA struct {
+	Status          string    `json:"status"`
+	Version         string    `json:"version"`
+	ContentHash     string    `json:"content_hash"`
+	AcceptedAt      *db.Epoch `json:"accepted_at"`
+	AcceptedVersion string    `json:"accepted_version"`
 }
 
 type trustVisitorBlockRequest struct {
 	Blocked *bool `json:"blocked"`
 }
 
-func trustVisitorRow(v *db.TrustVisitor) trustManagerVisitor {
+func trustVisitorRow(v *db.TrustVisitor, nda trustManagerVisitorNDA) trustManagerVisitor {
 	return trustManagerVisitor{
 		ID: v.ID, Email: v.Email, Name: v.Name, Company: v.Company, VerifiedAt: v.VerifiedAt,
 		FirstSeen: v.FirstSeen, LastSeen: v.LastSeen, Blocked: v.Blocked, BlockedAt: v.BlockedAt,
-		BlockedBy: v.BlockedBy, ActiveSessions: v.ActiveSessions,
+		BlockedBy: v.BlockedBy, ActiveSessions: v.ActiveSessions, NDA: nda,
 	}
+}
+
+// trustVisitorNDAs works out the NDA status of every visitor in vs with one
+// resolution of the NDA and one query for the acceptances, so a long list costs
+// no more git reads than a short one. It is a read: unlike a visitor's own
+// request it writes no skip row. The status comes from trustNDAStatusFor, with
+// the skip list as it is now.
+func (s *Server) trustVisitorNDAs(ctx context.Context, orgID int, vs []db.TrustVisitor) (map[int64]trustManagerVisitorNDA, error) {
+	settings, err := s.db.GetTrustCenterSettings(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	cur, set, _ := s.trustNDAState(ctx, orgID, settings)
+	accepted := map[int64][]db.TrustNDAAcceptance{} // per visitor, oldest first
+	if set {
+		rows, err := s.db.ListTrustNDAAccepted(ctx, orgID)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range rows {
+			accepted[a.VisitorID] = append(accepted[a.VisitorID], a)
+		}
+	}
+	out := make(map[int64]trustManagerVisitorNDA, len(vs))
+	for _, v := range vs {
+		var match, latest *db.TrustNDAAcceptance
+		mine := accepted[v.ID]
+		for i := range mine {
+			latest = &mine[i]
+			if cur != nil && mine[i].ContentHash == cur.ContentHash {
+				match = &mine[i]
+			}
+		}
+		n := trustManagerVisitorNDA{Status: trustNDAStatusFor(set, cur, match != nil, settings.NDASkips(v.Email))}
+		if cur != nil {
+			n.Version, n.ContentHash = cur.Version, cur.ContentHash
+		}
+		if match != nil {
+			latest = match
+		}
+		if latest != nil {
+			at := latest.CreatedAt
+			n.AcceptedAt, n.AcceptedVersion = &at, latest.Version
+		}
+		out[v.ID] = n
+	}
+	return out, nil
 }
 
 // GET /api/v1/trust-center/visitors
@@ -52,9 +115,13 @@ func (s *Server) handleListTrustVisitors(c echo.Context) error {
 	if err != nil {
 		return trustInternalError(c, "listing visitors", err)
 	}
+	ndas, err := s.trustVisitorNDAs(c.Request().Context(), getOrgID(c), vs)
+	if err != nil {
+		return trustInternalError(c, "reading NDA status", err)
+	}
 	out := make([]trustManagerVisitor, 0, len(vs))
 	for i := range vs {
-		out = append(out, trustVisitorRow(&vs[i]))
+		out = append(out, trustVisitorRow(&vs[i], ndas[vs[i].ID]))
 	}
 	return c.JSON(http.StatusOK, out)
 }
@@ -112,5 +179,9 @@ func (s *Server) handleBlockTrustVisitor(c echo.Context) error {
 	if err != nil {
 		return trustInternalError(c, "updating visitor", err)
 	}
-	return c.JSON(http.StatusOK, trustVisitorRow(out))
+	ndas, err := s.trustVisitorNDAs(c.Request().Context(), getOrgID(c), []db.TrustVisitor{*out})
+	if err != nil {
+		return trustInternalError(c, "reading NDA status", err)
+	}
+	return c.JSON(http.StatusOK, trustVisitorRow(out, ndas[out.ID]))
 }

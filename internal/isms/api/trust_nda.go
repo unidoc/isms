@@ -57,43 +57,75 @@ type trustVisitorNDA struct {
 	ContentHash string `json:"content_hash,omitempty"`
 }
 
+// Why a set NDA cannot be served (trustNDAState), for the manager's warning.
+const (
+	trustNDANotApproved = "not_approved" // no approved version yet
+	trustNDARetired     = "retired"
+	trustNDADeleted     = "deleted"
+	trustNDAError       = "error" // unreadable, or a served version without a content hash
+)
+
+// trustNDAStatusFor is the one mapping from the facts about a visitor to their
+// NDA status, shared by the public routes and the manager's visitor list so the
+// two cannot drift from the access rule: gated is open exactly for none,
+// accepted and skipped. cur is nil when the NDA is set but cannot be served.
+func trustNDAStatusFor(set bool, cur *trustNDACurrent, acceptedCurrent, skipListed bool) string {
+	switch {
+	case !set:
+		return trustNDANone
+	case cur == nil:
+		return trustNDAUnavailable
+	case acceptedCurrent:
+		return trustNDAAccepted
+	case skipListed:
+		return trustNDASkipped
+	}
+	return trustNDARequired
+}
+
 // trustNDAState resolves the NDA of an organization. set is whether the
-// settings name one; cur is nil when it is set but cannot be served. Any read
-// failure counts as "cannot be served": it is logged and fails closed, and it
-// never clears the setting.
-func (s *Server) trustNDAState(ctx context.Context, org *db.Organization, settings *db.TrustCenterSettings) (cur *trustNDACurrent, set bool) {
+// settings name one; cur is nil when it is set but cannot be served, and
+// reason then says why. Any read failure counts as "cannot be served": it is
+// logged and fails closed, and it never clears the setting.
+func (s *Server) trustNDAState(ctx context.Context, orgID int, settings *db.TrustCenterSettings) (cur *trustNDACurrent, set bool, reason string) {
 	if settings.NDADocumentID == nil || *settings.NDADocumentID == "" {
-		return nil, false
+		return nil, false, ""
 	}
 	docID := strings.ToLower(*settings.NDADocumentID)
-	fail := func(err error) (*trustNDACurrent, bool) {
-		log.Printf("trust center: org %d NDA document %s: %v", org.ID, docID, err)
-		return nil, true
+	fail := func(err error) (*trustNDACurrent, bool, string) {
+		log.Printf("trust center: org %d NDA document %s: %v", orgID, docID, err)
+		return nil, true, trustNDAError
 	}
-	st, err := s.storeForOrg(ctx, org.ID)
+	st, err := s.storeForOrg(ctx, orgID)
 	if err != nil {
 		return fail(err)
 	}
-	head, err := s.trustDocumentHead(ctx, st, org.ID, docID)
+	head, err := s.trustDocumentHead(ctx, st, orgID, docID)
 	if err != nil {
 		return fail(err)
 	}
-	if trustHideReason(head) != "" {
-		return nil, true
+	switch trustHideReason(head) {
+	case db.TrustHiddenDeleted:
+		return nil, true, trustNDADeleted
+	case db.TrustHiddenRetired:
+		return nil, true, trustNDARetired
 	}
-	served, err := s.trustServed(ctx, st, org.ID, docID)
+	served, err := s.trustServed(ctx, st, orgID, docID)
 	if err != nil {
 		return fail(err)
+	}
+	if served == nil {
+		return nil, true, trustNDANotApproved
 	}
 	// An empty hash could never be told apart from "not accepted".
-	if served == nil || served.ContentHash == "" {
-		return nil, true
+	if served.ContentHash == "" {
+		return nil, true, trustNDAError
 	}
 	return &trustNDACurrent{
 		DocumentID: docID, VersionID: int64(served.VersionID), Version: served.Version,
 		ApprovedAt: served.ApprovedAt, ContentHash: served.ContentHash,
 		Title: served.Title, Body: served.Body,
-	}, true
+	}, true, ""
 }
 
 // trustNDAPayload renders the NDA for a visitor, like a published document.
@@ -151,26 +183,18 @@ func (tv *trustViewer) resolve() {
 	tv.done = true
 	tv.status = trustNDARequired // anything unresolved stays closed
 	ctx := tv.c.Request().Context()
-	cur, set := tv.s.trustNDAState(ctx, tv.org, tv.settings)
-	switch {
-	case !set:
-		tv.status = trustNDANone
-		return
-	case cur == nil:
-		tv.status = trustNDAUnavailable
-		return
-	}
+	cur, set, _ := tv.s.trustNDAState(ctx, tv.org.ID, tv.settings)
 	tv.current = cur
-	accepted, err := tv.s.db.HasTrustNDAAccepted(ctx, tv.org.ID, tv.Visitor.ID, cur.ContentHash)
-	if err != nil {
-		tv.err = err
-		return
+	var accepted bool
+	if set && cur != nil {
+		var err error
+		if accepted, err = tv.s.db.HasTrustNDAAccepted(ctx, tv.org.ID, tv.Visitor.ID, cur.ContentHash); err != nil {
+			tv.err = err
+			return
+		}
 	}
-	if accepted {
-		tv.status = trustNDAAccepted
-		return
-	}
-	if tv.settings.NDASkips(tv.Visitor.Email) {
+	status := trustNDAStatusFor(set, cur, accepted, tv.settings.NDASkips(tv.Visitor.Email))
+	if status == trustNDASkipped {
 		_, err := tv.s.db.RecordTrustNDAAcceptance(ctx, tv.org.ID, &db.TrustNDAAcceptance{
 			VisitorID: tv.Visitor.ID, DocumentID: cur.DocumentID, VersionID: cur.VersionID,
 			Version: cur.Version, ContentHash: cur.ContentHash, Method: db.TrustNDADomainSkip,
@@ -180,8 +204,8 @@ func (tv *trustViewer) resolve() {
 			tv.err = err
 			return
 		}
-		tv.status = trustNDASkipped
 	}
+	tv.status = status
 }
 
 // satisfied reports whether the visitor has met the NDA step (or there is none).
@@ -230,7 +254,7 @@ func (s *Server) trustPublicNDAGet(c echo.Context, org *db.Organization, setting
 	if v == nil {
 		return trustPublicNotFound(c)
 	}
-	cur, set := s.trustNDAState(c.Request().Context(), org, settings)
+	cur, set, _ := s.trustNDAState(c.Request().Context(), org.ID, settings)
 	if !set || cur == nil {
 		return trustPublicNotFound(c)
 	}
@@ -253,7 +277,7 @@ func (s *Server) trustNDAAccept(c echo.Context, org *db.Organization, settings *
 	if v == nil {
 		return trustPublicNotFound(c)
 	}
-	cur, set := s.trustNDAState(ctx, org, settings)
+	cur, set, _ := s.trustNDAState(ctx, org.ID, settings)
 	if !set || cur == nil {
 		return trustPublicNotFound(c)
 	}

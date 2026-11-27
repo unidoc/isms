@@ -156,28 +156,28 @@ func (d *DB) HasTrustNDAAccepted(ctx context.Context, orgID int, visitorID int64
 	return ok, err
 }
 
-// LatestTrustNDAByVisitor returns each visitor's most recent acceptance or skip
-// row, keyed by visitor id, for the visitors list.
-func (d *DB) LatestTrustNDAByVisitor(ctx context.Context, orgID int) (map[int64]TrustNDAAcceptance, error) {
+// ListTrustNDAAccepted returns every click-through acceptance of the
+// organization (domain-skip log rows are not included), oldest first, for the
+// visitors list: one query for all visitors.
+func (d *DB) ListTrustNDAAccepted(ctx context.Context, orgID int) ([]TrustNDAAcceptance, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT DISTINCT ON (visitor_id)
-		       id, organization_id, visitor_id, document_id, version_id, version, content_hash,
+		SELECT id, organization_id, visitor_id, document_id, version_id, version, content_hash,
 		       method, company, ip, user_agent, created_at
-		FROM trust_nda_acceptances WHERE organization_id = $1
-		ORDER BY visitor_id, created_at DESC, id DESC
+		FROM trust_nda_acceptances WHERE organization_id = $1 AND method = 'accepted'
+		ORDER BY created_at, id
 	`, orgID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := map[int64]TrustNDAAcceptance{}
+	out := []TrustNDAAcceptance{}
 	for rows.Next() {
 		var a TrustNDAAcceptance
 		if err := rows.Scan(&a.ID, &a.OrganizationID, &a.VisitorID, &a.DocumentID, &a.VersionID, &a.Version,
 			&a.ContentHash, &a.Method, &a.Company, &a.IP, &a.UserAgent, &a.CreatedAt); err != nil {
 			return nil, err
 		}
-		out[a.VisitorID] = a
+		out = append(out, a)
 	}
 	return out, rows.Err()
 }

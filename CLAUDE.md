@@ -160,13 +160,13 @@ DELETE /trust-center/certifications/:id — removes the certification, its item 
 POST/DELETE /trust-center/certifications/:id/publish — publish (409 trust_certification_already_published) / unpublish (manager/admin)
 GET  /trust-center/certifications/:id/file — download at any level or validity, streamed as an attachment (manager/admin)
 GET  /trust-center/preview/certifications/:id/file — exactly what the public file route answers, ignoring the on/off setting (manager/admin)
-GET  /api/v1/trust/:slug/certifications/:id/file — public: a published, not hidden, not expired certification at level public, or gated with a signed-in visitor cookie (same rule as documents; the preview stays anonymous); otherwise the standard 404
+GET  /api/v1/trust/:slug/certifications/:id/file — public: a published, not hidden, not expired certification at level public, or gated with a signed-in visitor cookie and the NDA step when one is set (same rule as documents; the preview stays anonymous); otherwise the standard 404
 GET  /trust-center/subprocessors — suppliers with data access or a subprocessor item (deleted ones with an item too), with eligibility and item state, and `changed_at` (manager/admin)
 POST /trust-center/subprocessors — publish a supplier as a subprocessor, always public (`access_level` other than public is a 400); 409 `trust_subprocessor_ineligible` (terminated or no data access) / `trust_subprocessor_already_published`; a hidden one is published again with the same id (manager/admin)
 DELETE /trust-center/subprocessors/:supplierId — unpublish; terminating, removing data access from, or deleting a published supplier hides it in the same transaction and a restore does not bring it back (manager/admin)
 GET  /trust/:slug/visitor — the signed-in trust center visitor from the cookie, or null (public)
 POST /trust/:slug/visitor/link — email a one-time sign-in link; same 202 for known/unknown/blocked/throttled addresses, 503 without SMTP (public)
-POST /trust/:slug/visitor/link/inspect, /visitor/session, /visitor/sign-out — check a link without using it, redeem it by POST (sets the HttpOnly cookie; gated documents then readable), sign out (public, JSON only)
+POST /trust/:slug/visitor/link/inspect, /visitor/session, /visitor/sign-out — check a link without using it, redeem it by POST (sets the HttpOnly cookie; gated documents then readable, after the NDA step when one is set), sign out (public, JSON only)
 GET  /trust/:slug/nda — the current NDA (version, content_hash, title, html, company) for a signed-in visitor when the org set an NDA document; 404 otherwise, also while the NDA cannot be served (then gated items are locked for everyone) (public)
 POST /trust/:slug/nda/accept — accept the current NDA `{content_hash}`; 200, or 409 `trust_nda_outdated` with the current NDA for an old/empty hash; gated items need sign-in AND this (or a skip-listed email domain) once an NDA is set (public, JSON only)
 GET  /templates/available        — list available templates

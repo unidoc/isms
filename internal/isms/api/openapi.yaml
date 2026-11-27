@@ -979,7 +979,9 @@ paths:
         valid visitor session cookie (`isms_trust_visitor`) for this
         organization and, when an NDA is set, the visitor accepted it or is on its skip list. Restricted files are not served here (managers read them
         through `/trust-center/certifications/{id}/file`). Every other case, including a
-        link certification (which has no file), is the same 404 as for
+        link certification (which has no file), a `gated` file without a valid visitor session or
+        without the current NDA acceptance (when an NDA is set, unless the visitor's
+        domain is on the skip list), is the same 404 as for
         `/trust/{slug}`. The bytes are streamed through the application on every
         storage backend, never as a redirect: `Content-Disposition: attachment`,
         `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`.
@@ -1035,7 +1037,8 @@ paths:
         organization's id, an item that is hidden, a document that is retired or
         deleted, a document with no approved version, a `gated` document without a
         valid visitor session (none, expired, revoked, blocked or another
-        organization's), and every `restricted` document, which stays locked for
+        organization's) or without the current NDA acceptance (when an NDA is set,
+        unless the visitor's domain is on the skip list), and every `restricted` document, which stays locked for
         everyone. Never cacheable, so a gated body cannot reach the next anonymous
         visitor. The manager preview is always the anonymous view. The 429 and 500
         responses and caching are as for `/trust/{slug}`.

@@ -930,7 +930,7 @@ paths:
         of every access level, so a page can show gated and restricted ones as
         locked. A certification's `url`, `file_name` and `file_size` are included
         only when the viewer may read it: at `public` for anyone, at `gated` with a
-        valid visitor session cookie (`isms_trust_visitor`) for this organization. The list is empty (`[]`) when nothing is published. The 404, 429 and
+        valid visitor session cookie (`isms_trust_visitor`) for this organization and, when an NDA is set, an accepted or skipped NDA (`/trust/{slug}/nda`). The list is empty (`[]`) when nothing is published. The 404, 429 and
         500 responses and caching are as for `/trust/{slug}`.
       security: []
       parameters:
@@ -977,7 +977,7 @@ paths:
         `valid_until` day, by access level as for `/trust/{slug}/documents/{id}`:
         a `public` file to anyone, a `gated` file only when the request carries a
         valid visitor session cookie (`isms_trust_visitor`) for this
-        organization. Restricted files are not served here (managers read them
+        organization and, when an NDA is set, the visitor accepted it or is on its skip list. Restricted files are not served here (managers read them
         through `/trust-center/certifications/{id}/file`). Every other case, including a
         link certification (which has no file), is the same 404 as for
         `/trust/{slug}`. The bytes are streamed through the application on every
@@ -1023,7 +1023,9 @@ paths:
         Needs no member session; any Authorization header is ignored. A `public`
         document is served to anyone. A `gated` document is served only when the
         request carries a valid visitor session cookie (`isms_trust_visitor`) for
-        this organization; see `/trust/{slug}/visitor/session`. Serves the last
+        this organization (see `/trust/{slug}/visitor/session`) and, when an NDA
+        is set, the visitor accepted its current version or is on its skip list
+        (see `/trust/{slug}/nda`). Serves the last
         approved version of the document, never the repository's current draft,
         as HTML rendered on the server. The document's frontmatter (authors,
         owners, reviewers, approvers) is never included, raw HTML in the body is
@@ -1083,7 +1085,9 @@ paths:
         Needs no member session. Reads only the `isms_trust_visitor` cookie, never
         the Authorization header. `visitor` is null when nobody is signed in
         (no cookie, or an unknown, expired, revoked, blocked or other-organization
-        session). Not found and caching are as for `/trust/{slug}`.
+        session); `nda` is null then too. For a signed-in visitor, `nda` says where
+        they stand with the organization's NDA (see `/trust/{slug}/nda`). Not found
+        and caching are as for `/trust/{slug}`.
       security: []
       parameters:
         - name: slug
@@ -1096,7 +1100,7 @@ paths:
           description: The visitor, or null
           content:
             application/json:
-              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+              schema: { $ref: '#/components/schemas/TrustVisitorSession' }
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1245,7 +1249,7 @@ paths:
               description: The `isms_trust_visitor` session cookie.
           content:
             application/json:
-              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+              schema: { $ref: '#/components/schemas/TrustVisitorSession' }
         '400':
           description: Not JSON, a field too long, or the link is not valid (code `trust_link_invalid`)
           content:
@@ -1284,7 +1288,7 @@ paths:
           description: Signed out
           content:
             application/json:
-              schema: { type: object, required: [visitor], properties: { visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } } } }
+              schema: { $ref: '#/components/schemas/TrustVisitorSession' }
         '400':
           description: Not JSON
           content:
@@ -1292,6 +1296,96 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /trust/{slug}/nda:
+    get:
+      tags: [Trust Center]
+      summary: Read the NDA a signed-in visitor must accept
+      description: >-
+        Needs no member session; reads only the `isms_trust_visitor` cookie. When
+        the organization has set an NDA document, `gated` items need a signed-in
+        visitor who accepted the NDA's current approved version (or whose email
+        domain is on the organization's skip list). This returns that version, the
+        last approved one, rendered like a published document, with its
+        `content_hash`, which is what `/trust/{slug}/nda/accept` takes. `company` is
+        the visitor's company. Returns the fixed 404 body when nobody is signed in,
+        when no NDA is set, and when the NDA cannot be served (never approved,
+        retired, deleted): an NDA that is set but unavailable locks gated items for
+        everyone. Never cacheable. The 429 and 500 responses are as for `/trust/{slug}`.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      responses:
+        '200':
+          description: The current NDA
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustCenterNDA' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal error. The body is a fixed message; details are only logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /trust/{slug}/nda/accept:
+    post:
+      tags: [Trust Center]
+      summary: Accept the current NDA
+      description: >-
+        The body must be `application/json` (400 otherwise). `content_hash` must be
+        the hash of the NDA version currently served (`/trust/{slug}/nda`). The
+        acceptance records the visitor, the version row, its label and hash, the
+        visitor's company, the IP address and the user agent; accepting the same
+        version again changes nothing. A hash that is not the current one, an empty
+        or a missing one, is a 409 (code `trust_nda_outdated`) whose body carries
+        the current NDA in `nda`, and writes nothing. Returns the fixed 404 body when
+        nobody is signed in, no NDA is set or it cannot be served. A visitor whose
+        domain is on the skip list may accept too.
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          description: Organization slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content_hash: { type: string, description: The hash of the NDA version being accepted. }
+      responses:
+        '200':
+          description: Accepted; the visitor and their NDA status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrustVisitorSession' }
+        '400':
+          description: Not JSON
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The hash is not the current version (code `trust_nda_outdated`); `nda` is the current one
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message, code, nda]
+                properties:
+                  message: { type: string }
+                  code: { type: string }
+                  nda: { $ref: '#/components/schemas/TrustCenterNDA' }
 
   /documents/{docId}/trust-center:
     parameters:
@@ -5038,7 +5132,7 @@ components:
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     TrustCenterOverview:
       type: object
-      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url]
+      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url, nda_required]
       properties:
         title: { type: string, description: The page title the organization chose; empty when unset. }
         security_contact: { type: string, description: Where to report a security issue; empty when unset. }
@@ -5061,7 +5155,38 @@ components:
             html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
         visitor_sign_in: { type: boolean, description: "Whether visitors can sign in by emailed link: false when the server has no mail configured. The preview shows the same value." }
         privacy_notice_url: { type: string, description: The organization's privacy notice link shown to visitors who sign in; empty when unset. }
+        nda_required: { type: boolean, description: "Whether an NDA is set: gated items then need the visitor to accept it after signing in. Also true while the NDA cannot be served (gated items are then locked for everyone)." }
         subprocessors_changed_at: { $ref: '#/components/schemas/EpochSeconds', description: "When the subprocessor list last changed visibly (publish, unpublish, hide, reorder, or an edit of a published supplier's name or public details). Omitted when no subprocessor was ever published." }
+    TrustCenterNDA:
+      type: object
+      required: [version, approved_at, content_hash, title, html, company]
+      properties:
+        version: { type: string, description: The served version's label; can be empty. }
+        approved_at: { $ref: '#/components/schemas/EpochSeconds', description: When the served version was recorded. }
+        content_hash: { type: string, description: SHA-256 of the served version's file as committed; never empty. }
+        title: { type: string }
+        html: { type: string, description: The body rendered as HTML, links neutralised as for a published document. }
+        company: { type: string, description: The signed-in visitor's company. }
+    TrustVisitorSession:
+      type: object
+      required: [visitor, nda]
+      properties:
+        visitor: { type: [object, 'null'], required: [email, name, company], properties: { email: { type: string }, name: { type: string }, company: { type: string } } }
+        nda:
+          type: [object, 'null']
+          description: The visitor's standing with the organization's NDA; null when nobody is signed in.
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [none, required, accepted, skipped, unavailable]
+              description: >-
+                none: no NDA is set. required: the current version is not accepted.
+                accepted: it is. skipped: the visitor's email domain is on the skip list
+                right now. unavailable: an NDA is set but cannot be served, so gated
+                items are locked for everyone.
+            version: { type: string, description: "The current NDA version's label; omitted for none and unavailable, and when the label is empty." }
+            content_hash: { type: string, description: "The current NDA version's hash; omitted for none and unavailable." }
     TrustCenterItem:
       type: object
       required: [id, kind, section, sort_order, access_level]

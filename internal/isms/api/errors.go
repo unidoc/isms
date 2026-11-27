@@ -166,6 +166,9 @@ const (
 	// CodeTrustOverviewNotPublic: the document chosen as the public overview is
 	// published at a level that is not public.
 	CodeTrustOverviewNotPublic = "trust_overview_not_public"
+	// CodeTrustNDAOutdated: the visitor accepted an NDA version that is no longer
+	// the current one; the response carries the current one (#525).
+	CodeTrustNDAOutdated = "trust_nda_outdated"
 	// Subprocessors (#522): the supplier is terminated or has no data access
 	// (params.value says which); it is already on the list.
 	CodeTrustSubprocessorIneligible       = "trust_subprocessor_ineligible"
@@ -268,6 +271,7 @@ var errorMessages = map[string]string{
 	CodeTrustVisitorBlocked:         "this email address cannot sign in to this trust center",
 	CodeTrustVisitorProfileRequired: "enter your name and company to continue",
 	CodeTrustOverviewNotPublic:      "this document is published as gated or restricted, so it cannot be the public overview",
+	CodeTrustNDAOutdated:            "the NDA has changed since you opened it — read the current version and accept it again",
 
 	CodeTrustSubprocessorIneligible:       "this supplier cannot be published as a subprocessor ({value})",
 	CodeTrustSubprocessorAlreadyPublished: "this supplier is already published as a subprocessor",

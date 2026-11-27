@@ -29,7 +29,7 @@ import (
 //   - Every "no" answer is the same 404 body: unknown or deleted organization,
 //     trust center off or never set up, host/slug mismatch, unknown path and
 //     any method or path that is not a documented one (GET, or POST for the
-//     visitor sign-in routes only). A visitor cannot tell the cases apart.
+//     visitor sign-in routes and the NDA acceptance only). A visitor cannot tell the cases apart.
 //   - A 500 carries a fixed message. The real error goes to the log.
 //   - Responses are never cacheable, so unpublishing takes effect immediately.
 
@@ -80,6 +80,10 @@ type trustPublicOverview struct {
 	// SubprocessorsChangedAt is when the subprocessor list last changed, in
 	// epoch seconds; absent when it never did.
 	SubprocessorsChangedAt int64 `json:"subprocessors_changed_at,omitempty"`
+	// NDARequired is true when an NDA is set: gated items then need the visitor
+	// to accept it after signing in. Settings only, so it is also true while the
+	// NDA cannot be served (gated items are then locked for everyone).
+	NDARequired bool `json:"nda_required"`
 }
 
 // trustPublicOverviewDocument is the overview text of the trust center page.
@@ -161,15 +165,15 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	}
 	parts := strings.Split(strings.TrimPrefix(req.URL.Path, trustPublicPrefix+"/"), "/")
 	slug := parts[0]
-	var items, visitorGet bool
+	var items, visitorGet, ndaGet bool
 	var docID, certID, postRoute string
 	switch {
 	case slug == "":
 		return trustPublicNotFound(c)
 	case isPost:
-		// POST is answered for the four visitor routes only.
+		// POST is answered for the four visitor routes and the NDA acceptance only.
 		switch r := strings.Join(parts[1:], "/"); r {
-		case "visitor/link", "visitor/link/inspect", "visitor/session", "visitor/sign-out":
+		case "visitor/link", "visitor/link/inspect", "visitor/session", "visitor/sign-out", "nda/accept":
 			postRoute = r
 		default:
 			return trustPublicNotFound(c)
@@ -185,6 +189,8 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 		items = true
 	case len(parts) == 2 && parts[1] == "visitor":
 		visitorGet = true
+	case len(parts) == 2 && parts[1] == "nda":
+		ndaGet = true
 	case len(parts) == 3 && parts[1] == "documents" && parts[2] != "":
 		docID = parts[2]
 	case len(parts) == 4 && parts[1] == "certifications" && parts[2] != "" && parts[3] == "file":
@@ -220,17 +226,20 @@ func (s *Server) handleTrustPublic(c echo.Context) error {
 	case postRoute != "":
 		return s.trustVisitorPost(c, org, settings, postRoute)
 	case visitorGet:
-		return s.trustPublicVisitor(c, org)
+		return s.trustPublicVisitor(c, org, settings)
+	case ndaGet:
+		return s.trustPublicNDAGet(c, org, settings)
 	case certID == "" && docID == "" && !items:
 		return s.trustPublicOverview(c, org, settings)
 	}
 	// A document, a certification file and the items list answer by access
 	// level, so they look at the visitor cookie (trustViewerMayRead). The
 	// overview is the same for everyone.
-	v, err := s.trustVisitorFromRequest(c, org.ID)
+	visitor, err := s.trustVisitorFromRequest(c, org.ID)
 	if err != nil {
 		return trustPublicError(c, err)
 	}
+	v := s.newTrustViewer(c, org, settings, visitor)
 	switch {
 	case certID != "":
 		return s.trustPublicCertificationFile(c, org, certID, v)
@@ -274,6 +283,7 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 		BrandingColor:          color,
 		DefaultLocale:          i18n.Resolve("", orgLocale),
 		ShowPoweredBy:          showPoweredBy,
+		NDARequired:            settings.NDADocumentID != nil && *settings.NDADocumentID != "",
 		Overview:               s.trustOverviewDocument(ctx, org, settings),
 
 		VisitorSignIn:    s.mailer != nil,
@@ -285,7 +295,7 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 // listed for everyone; a certification's file name, size and link are added only
 // when the viewer may read it (trustViewerMayRead). v is the signed-in visitor,
 // or nil; the preview always passes nil, so it stays the anonymous view.
-func (s *Server) trustPublicItems(c echo.Context, org *db.Organization, v *db.TrustVisitor) error {
+func (s *Server) trustPublicItems(c echo.Context, org *db.Organization, v *trustViewer) error {
 	ctx := c.Request().Context()
 	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
 	if err != nil {
@@ -359,6 +369,9 @@ func (s *Server) trustPublicItems(c echo.Context, org *db.Organization, v *db.Tr
 			}
 		}
 		out = append(out, pi)
+	}
+	if err := v.Err(); err != nil {
+		return trustPublicError(c, err)
 	}
 	return c.JSON(http.StatusOK, out)
 }
@@ -449,18 +462,21 @@ func trustOverviewWithheld(items []db.TrustCenterItem, docID string) bool {
 }
 
 // trustViewerMayRead is the single access rule for trust center content: may a
-// viewer, signed in as visitor v or anonymous (nil), read an item at this
-// level? Public is for everyone, gated needs a signed-in visitor (until an NDA
-// step exists, signing in is all gated asks), restricted is for no visitor (an
-// explicit grant comes later) and an unknown level is refused. Every read path
-// (documents, certification files and links, and the overview through
+// viewer, signed in as a visitor or anonymous (nil), read an item at this
+// level? Public is for everyone. Gated needs a signed-in visitor who has met
+// the NDA step: no NDA set, or the current version of the NDA accepted, or an
+// email domain on the NDA skip list; an NDA that is set but cannot be served
+// refuses every visitor. Restricted is for no visitor (an explicit grant comes
+// later) and an unknown level is refused. Every read path (documents,
+// certification files and links, and the overview through
 // trustOverviewWithheld) goes through here, so the rule lives in one place.
-func trustViewerMayRead(level string, v *db.TrustVisitor) bool {
+// Resolving the NDA can fail; callers check v.Err() after asking and answer 500.
+func trustViewerMayRead(level string, v *trustViewer) bool {
 	switch level {
 	case db.TrustAccessPublic:
 		return true
 	case db.TrustAccessGated:
-		return v != nil
+		return v != nil && v.Visitor != nil && v.satisfied()
 	}
 	return false
 }
@@ -470,7 +486,7 @@ func trustViewerMayRead(level string, v *db.TrustVisitor) bool {
 // id, a hidden item, a retired or deleted document, no approved version, and an
 // access level the viewer may not read (trustViewerMayRead). v is the signed-in
 // visitor, or nil; the preview always passes nil, so it stays the anonymous view.
-func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publicID string, v *db.TrustVisitor) error {
+func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publicID string, v *trustViewer) error {
 	ctx := c.Request().Context()
 	rows, err := s.db.ListPublishedTrustCenterItems(ctx, org.ID)
 	if err != nil {
@@ -487,6 +503,9 @@ func (s *Server) trustPublicDocument(c echo.Context, org *db.Organization, publi
 		}
 	}
 	if info == nil || !trustViewerMayRead(info.Item.AccessLevel, v) {
+		if err := v.Err(); err != nil {
+			return trustPublicError(c, err)
+		}
 		return trustPublicNotFound(c)
 	}
 	html, err := renderTrustMarkdown([]byte(info.Served.Body), s.trustLinkPolicyFor(org, docs))

@@ -167,6 +167,8 @@ DELETE /trust-center/subprocessors/:supplierId — unpublish; terminating, remov
 GET  /trust/:slug/visitor — the signed-in trust center visitor from the cookie, or null (public)
 POST /trust/:slug/visitor/link — email a one-time sign-in link; same 202 for known/unknown/blocked/throttled addresses, 503 without SMTP (public)
 POST /trust/:slug/visitor/link/inspect, /visitor/session, /visitor/sign-out — check a link without using it, redeem it by POST (sets the HttpOnly cookie; gated documents then readable), sign out (public, JSON only)
+GET  /trust/:slug/nda — the current NDA (version, content_hash, title, html, company) for a signed-in visitor when the org set an NDA document; 404 otherwise, also while the NDA cannot be served (then gated items are locked for everyone) (public)
+POST /trust/:slug/nda/accept — accept the current NDA `{content_hash}`; 200, or 409 `trust_nda_outdated` with the current NDA for an old/empty hash; gated items need sign-in AND this (or a skip-listed email domain) once an NDA is set (public, JSON only)
 GET  /templates/available        — list available templates
 POST /templates                  — scaffold template into org
 ```

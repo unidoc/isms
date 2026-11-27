@@ -370,6 +370,16 @@ var contractTable = []contractEntry{
 		shapes: []contractShape{shape(tReq(trustPublicOverview{}), "api_trust_public.go:193 handleTrustPublic: c.JSON(200, trustPublicOverview{...})")},
 	},
 	{
+		component: "TrustCenterNDA",
+		//   trust_nda.go trustPublicNDAGet: c.JSON(200, payload) payload is *trustPublicNDA
+		shapes: []contractShape{shape(tReq(trustPublicNDA{}), "trust_nda.go trustPublicNDAGet: c.JSON(200, payload), payload is *trustPublicNDA")},
+	},
+	{
+		component: "TrustVisitorSession",
+		//   api_trust_visitor.go trustVisitorResponse: c.JSON(200, trustVisitorSession{...})
+		shapes: []contractShape{shape(tReq(trustVisitorSession{}), "api_trust_visitor.go trustVisitorResponse: c.JSON(200, trustVisitorSession{...})")},
+	},
+	{
 		component: "TrustCenterItem",
 		//   api_trust_public.go:186 handleTrustPublic: c.JSON(200, out) out is []trustPublicItem (never nil)
 		shapes: []contractShape{

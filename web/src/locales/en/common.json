@@ -501,6 +501,7 @@
     "trust_visitor_blocked": "this email address cannot sign in to this trust center",
     "trust_visitor_profile_required": "enter your name and company to continue",
     "trust_overview_not_public": "this document is published as gated or restricted, so it cannot be the public overview",
+    "trust_nda_outdated": "the NDA has changed since you opened it — read the current version and accept it again",
     "ai_disabled": "AI features are disabled for this organization",
     "unsupported_locale": "unsupported locale",
     "trust_file_type": "only PDF, PNG or JPEG files are accepted",

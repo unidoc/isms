@@ -494,6 +494,7 @@
     "trust_visitor_blocked": "alamat email ini tidak dapat masuk ke pusat kepercayaan ini",
     "trust_visitor_profile_required": "masukkan nama dan perusahaan Anda untuk melanjutkan",
     "trust_overview_not_public": "dokumen ini dipublikasikan sebagai «Dengan masuk» atau «Terbatas», sehingga tidak dapat menjadi dokumen ikhtisar publik",
+    "trust_nda_outdated": "NDA telah berubah sejak Anda membukanya: baca versi terbaru lalu setujui lagi",
     "ai_disabled": "fitur AI dinonaktifkan untuk organisasi ini",
     "unsupported_locale": "locale tidak didukung",
     "trust_file_type": "hanya file PDF, PNG, atau JPEG yang diterima",

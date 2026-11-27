@@ -280,6 +280,9 @@ async function publicPostJSON(url, body) {
     err.status = res.status
     if (data && data.code) err.code = data.code
     if (data && data.params) err.params = data.params
+    // The whole body, for an answer that carries more than a message (the 409 of
+    // an NDA acceptance holds the current NDA).
+    if (data) err.body = data
     throw err
   }
   return res.json()
@@ -308,6 +311,10 @@ export const api = {
   trustInspectLink: (slug, token) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/link/inspect`, { token }),
   trustSignIn: (slug, token, name, company) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/session`, { token, name, company }),
   trustSignOut: (slug) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/visitor/sign-out`, {}),
+  // The click-through NDA (#525): the current text for a signed-in visitor, and
+  // the acceptance of the version whose hash is given.
+  trustNDA: (slug) => publicGetJSON(`${API}/trust/${encodeURIComponent(slug)}/nda`),
+  trustNDAAccept: (slug, contentHash) => publicPostJSON(`${API}/trust/${encodeURIComponent(slug)}/nda/accept`, { content_hash: contentHash }),
 
   // Cloudflare Access SSO: when behind CF Access, the proxy adds identity
   // headers and the server mints a session. Returns the login payload, or null

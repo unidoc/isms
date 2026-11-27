@@ -494,6 +494,7 @@
     "trust_visitor_blocked": "esta dirección de correo no puede iniciar sesión en este centro de confianza",
     "trust_visitor_profile_required": "introduce tu nombre y tu empresa para continuar",
     "trust_overview_not_public": "este documento está publicado como «Con acceso» o «Restringido», por lo que no puede ser el documento de presentación público",
+    "trust_nda_outdated": "el NDA ha cambiado desde que lo abriste: lee la versión actual y acéptala de nuevo",
     "ai_disabled": "las funciones de IA están desactivadas para esta organización",
     "unsupported_locale": "idioma no admitido",
     "trust_file_type": "solo se aceptan archivos PDF, PNG o JPEG",

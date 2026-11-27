@@ -494,6 +494,7 @@
     "trust_visitor_blocked": "þetta netfang getur ekki skráð sig inn í þessa traustmiðstöð",
     "trust_visitor_profile_required": "sláðu inn nafn og fyrirtæki til að halda áfram",
     "trust_overview_not_public": "þetta skjal er birt sem „Með innskráningu“ eða „Takmarkað“ og getur því ekki verið opinbera yfirlitsskjalið",
+    "trust_nda_outdated": "trúnaðarsamningnum hefur verið breytt síðan þú opnaðir hann: lestu núverandi útgáfu og samþykktu hana aftur",
     "ai_disabled": "gervigreindarþættir eru óvirkir fyrir þetta fyrirtæki",
     "unsupported_locale": "óstutt tungumál",
     "trust_file_type": "aðeins PDF-, PNG- eða JPEG-skrár eru leyfðar",

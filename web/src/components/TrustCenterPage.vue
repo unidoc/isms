@@ -267,7 +267,7 @@
               <p class="mt-1 text-sm text-slate-600" data-trust="nda-version">{{ $t('trust.public.doc_version', { version: ndaDoc.version }) }}</p>
             </div>
             <p v-if="ndaChanged" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" role="alert" data-trust="nda-changed">{{ $t('trust.public.nda_changed') }}</p>
-            <div class="trust-prose max-h-[50vh] overflow-y-auto border border-slate-200 rounded-lg px-4 py-2" data-trust="nda-body" @click="onContentClick" v-html="ndaHtml"></div>
+            <div class="trust-prose max-h-[50vh] overflow-y-auto border border-slate-200 rounded-lg px-4 py-2" data-trust="nda-body" @click="onNdaClick" v-html="ndaHtml"></div>
             <label class="flex items-start gap-2 text-sm">
               <input v-model="ndaAccepted" type="checkbox" class="mt-0.5" data-trust="nda-check" />
               <span>{{ ndaDoc.company ? $t('trust.public.nda_accept_label', { company: ndaDoc.company }) : $t('trust.public.nda_accept_label_plain') }}</span>
@@ -633,9 +633,15 @@ function go(e, path) {
 // server cannot know the hosting mode): route it from here.
 function onContentClick(e) {
   const a = e.target && e.target.closest ? e.target.closest('a[data-trust-document]') : null
-  if (!a) return
+  if (!a) return false
   e.preventDefault()
   emit('navigate', `${props.basePath}/documents/${a.getAttribute('data-trust-document')}`)
+  return true
+}
+// A link in the NDA text that leaves for another document closes the panel, so it
+// does not stay open over the page the visitor went to.
+function onNdaClick(e) {
+  if (onContentClick(e)) ndaOpen.value = false
 }
 
 const lockedItem = ref({})

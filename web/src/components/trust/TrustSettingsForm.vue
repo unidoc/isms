@@ -40,9 +40,10 @@
           <button v-else type="button" data-trust="nda-setup-open" @click="openSetup" class="text-xs text-blue-400 hover:text-blue-300">{{ $t('trust_manager.settings.nda_setup') }}</button>
         </div>
         <p v-if="ndaLine" class="text-xs mt-1" :class="ndaLine.warn ? 'text-amber-400' : 'text-slate-500'" :data-trust="ndaLine.warn ? 'nda-warning' : 'nda-status'">{{ ndaLine.text }}</p>
+        <p v-if="ndaPickWarning" class="text-xs text-amber-400 mt-1" data-trust="nda-pick-warning">{{ $t('trust_manager.settings.nda_pick_warning') }}</p>
         <p v-if="setupDone" class="text-xs text-slate-300 mt-1" data-trust="nda-setup-done">
-          {{ $t('trust_manager.settings.nda_setup_done') }}
-          <router-link :to="orgPath('/documents/' + setupDone)" class="text-blue-400 hover:text-blue-300" data-trust="nda-open-doc">{{ $t('trust_manager.settings.nda_open_doc') }}</router-link>
+          {{ $t('trust_manager.settings.nda_setup_done', { title: setupDone.title }) }}
+          <router-link :to="orgPath('/documents/' + setupDone.id)" class="text-blue-400 hover:text-blue-300" data-trust="nda-open-doc">{{ $t('trust_manager.settings.nda_open_doc') }}</router-link>
         </p>
 
         <label for="trust-nda-skip" class="block text-sm font-medium text-slate-200 mt-4 mb-1">{{ $t('trust_manager.settings.nda_skip_label') }}</label>
@@ -203,12 +204,17 @@ const overviewNoApproved = ref(false)
 const { documents, folderPaths, load: loadDocs } = useOrgDocuments()
 const { orgPath } = useCurrentOrg()
 const showNdaPicker = ref(false)
-const pickedNdaTitle = ref('')
+// The document just chosen in the picker, so its title shows before the list knows it.
+const pickedNda = ref({ id: '', title: '' })
+// True until the chosen document is known to have an approved version: an NDA
+// without one locks gated items for every visitor, so the manager is told
+// before saving. An unknown answer counts as "no approved version".
+const ndaNoApproved = ref(false)
 const skipError = ref(false)
 const showSetup = ref(false)
 const setupBusy = ref(false)
 const setupError = ref('')
-const setupDone = ref('')
+const setupDone = ref(null) // {id, title} of the draft just created
 const setup = reactive({ folder: '', title: '', id: '' })
 
 // What the form shows for a settings object from the server.
@@ -250,15 +256,18 @@ watch(() => props.settings, (next, prev) => {
     }
   }
   if (overviewChanged) { pickedTitle.value = ''; checkOverview() }
-  if ((next.nda_document_id || null) !== (prev?.nda_document_id || null)) pickedNdaTitle.value = ''
 })
 
 const ndaText = computed(() => {
   const id = form.nda_document_id
   if (!id) return t('trust_manager.settings.nda_none')
-  const title = pickedNdaTitle.value || documents.value.find((d) => d.document_id.toLowerCase() === id.toLowerCase())?.title
+  const picked = pickedNda.value.id.toLowerCase() === id.toLowerCase() ? pickedNda.value.title : ''
+  const title = picked || documents.value.find((d) => d.document_id.toLowerCase() === id.toLowerCase())?.title
   return title ? `${title} (${id})` : id
 })
+
+// Shown for a chosen document that has not been saved yet.
+const ndaPickWarning = computed(() => ndaNoApproved.value && (form.nda_document_id || null) !== (props.settings.nda_document_id || null))
 
 // The status line describes what the server has saved; with an unsaved change
 // of the NDA document there is nothing to say yet.
@@ -295,15 +304,27 @@ async function checkOverview() {
   } catch { /* the hint is optional */ }
 }
 
+async function checkNda() {
+  const id = form.nda_document_id
+  ndaNoApproved.value = false
+  if (!id) return
+  ndaNoApproved.value = true
+  try {
+    const st = await api.getDocumentTrust(id)
+    if (form.nda_document_id === id) ndaNoApproved.value = !st.served_version
+  } catch { /* unknown: the warning stays */ }
+}
 function pickNda(doc) {
   form.nda_document_id = doc.document_id
-  pickedNdaTitle.value = doc.title
+  pickedNda.value = { id: doc.document_id, title: doc.title }
   showNdaPicker.value = false
+  setupDone.value = null
+  checkNda()
 }
 function clearNda() {
   form.nda_document_id = null
-  pickedNdaTitle.value = ''
-  setupDone.value = ''
+  ndaNoApproved.value = false
+  setupDone.value = null
 }
 
 function openSetup() {
@@ -313,34 +334,27 @@ function openSetup() {
   setupError.value = ''
   showSetup.value = true
 }
-// Creates the document (a plain POST /documents with a placeholder body), then
-// sets it as the NDA. It stays a draft: the manager writes the text and sends it
-// for review, and gated items stay locked until a version is approved.
+// Creates the draft document (a plain POST /documents with a placeholder body)
+// and nothing else: it is NOT set as the NDA. The manager writes the text, sends
+// it for review, and chooses it here once it is approved, so gated items are never
+// locked by a placeholder. A failure (for instance an id that exists) changes
+// nothing, and the dialog stays open for another try.
 async function createNda() {
   if (setupBusy.value) return
   setupBusy.value = true
   setupError.value = ''
   const id = setup.id.trim().toLowerCase()
+  const title = setup.title.trim()
   try {
     await api.createDocument({
-      folder: setup.folder, filename: id + '.md', document_id: id, title: setup.title.trim(),
-      content: `# ${setup.title.trim()}\n\n[Your NDA text]\n`,
+      folder: setup.folder, filename: id + '.md', document_id: id, title,
+      content: `# ${title}\n\n[Your NDA text]\n`,
     })
-  } catch (e) {
-    setupError.value = renderApiError(e) || t('common.state.unknown')
-    setupBusy.value = false
-    return
-  }
-  try {
-    const next = await api.updateTrustSettings({ nda_document_id: id })
-    emit('saved', next)
-    form.nda_document_id = next.nda_document_id || id
-    pickedNdaTitle.value = setup.title.trim()
-    setupDone.value = id
+    setupDone.value = { id, title }
     showSetup.value = false
     loadDocs()
   } catch (e) {
-    setupError.value = t('trust_manager.settings.save_error', { message: renderApiError(e) || t('common.state.unknown') })
+    setupError.value = renderApiError(e) || t('common.state.unknown')
   } finally {
     setupBusy.value = false
   }
@@ -370,6 +384,7 @@ async function put(body) {
     const next = await api.updateTrustSettings(body)
     emit('saved', next)
     Object.assign(form, fromSettings(next))
+    ndaNoApproved.value = false // saved: the status line speaks for it now
     savedSnapshot.value = JSON.stringify(form)
     saved.value = true
     return true
@@ -420,5 +435,5 @@ async function save() {
   await put(patch.value)
 }
 
-onMounted(() => { loadDocs(); checkOverview() })
+onMounted(() => { loadDocs(); checkOverview(); checkNda() })
 </script>

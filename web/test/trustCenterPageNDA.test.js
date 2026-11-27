@@ -265,3 +265,20 @@ test('the manager preview stays anonymous: labels follow nda_required, no panel,
   assert.ok(!html.includes('data-trust="nda-panel"') && !html.includes('accept-nda'))
   assert.equal(nCalls(st, /\/(visitor|nda)/), 0, 'no visitor or NDA request: ' + JSON.stringify(st.calls.map(c => c.url)))
 })
+
+test('a link in the NDA text that navigates to another document closes the panel', async () => {
+  const st = stub({ status: 'required' })
+  st.text = `See <a data-trust-document="${PD}">our policy</a>.`
+  const nav = []
+  let open
+  await mount(props({ onNavigate: p => nav.push(p) }), async (host, settle) => {
+    await settle(h => h.includes('data-trust="nda-body"'))
+    const a = host.querySelector('[data-trust="nda-body"] a[data-trust-document]')
+    assert.ok(a, 'the link survives sanitising')
+    a.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+    await flush()
+    open = !!host.querySelector('[data-trust="nda-panel"]')
+  })
+  assert.deepEqual(nav, [`/acme/trust/documents/${PD}`])
+  assert.equal(open, false)
+})

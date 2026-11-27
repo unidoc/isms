@@ -2944,6 +2944,7 @@
   "trust_manager.settings.nda_label",
   "trust_manager.settings.nda_none",
   "trust_manager.settings.nda_open_doc",
+  "trust_manager.settings.nda_pick_warning",
   "trust_manager.settings.nda_setup",
   "trust_manager.settings.nda_setup_create",
   "trust_manager.settings.nda_setup_default_title",

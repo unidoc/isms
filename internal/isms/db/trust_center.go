@@ -72,6 +72,13 @@ type TrustCenterSettings struct {
 	BlockedEmailDomains []string
 	// PrivacyNoticeURL is shown to visitors who sign in; empty = none.
 	PrivacyNoticeURL string
+	// NDADocumentID names the document whose last approved version a visitor
+	// accepts before reading a gated item; nil = no NDA (#525). It is never
+	// cleared when the document is retired or deleted.
+	NDADocumentID *string
+	// NDASkipDomains are the email domains that need not accept the NDA:
+	// "example.com" is that domain only, "*.example.com" any subdomain.
+	NDASkipDomains []string
 }
 
 // TrustCenterItem is one published item. Reference is internal (a document_id,
@@ -133,11 +140,13 @@ func (d *DB) GetTrustCenterSettings(ctx context.Context, orgID int) (*TrustCente
 	err := d.pool.QueryRow(ctx, `
 		SELECT enabled, title, overview_document_id, security_contact,
 		       default_access_level, updated_at, updated_by,
-		       blocked_email_domains, privacy_notice_url
+		       blocked_email_domains, privacy_notice_url,
+		       nda_document_id, nda_skip_domains
 		FROM trust_center_settings WHERE organization_id = $1
 	`, orgID).Scan(&s.Enabled, &s.Title, &s.OverviewDocumentID, &s.SecurityContact,
 		&s.DefaultAccessLevel, &s.UpdatedAt, &s.UpdatedBy,
-		&s.BlockedEmailDomains, &s.PrivacyNoticeURL)
+		&s.BlockedEmailDomains, &s.PrivacyNoticeURL,
+		&s.NDADocumentID, &s.NDASkipDomains)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return &TrustCenterSettings{OrganizationID: orgID, DefaultAccessLevel: TrustAccessGated}, nil
 	}
@@ -622,6 +631,13 @@ type TrustCenterSettingsPatch struct {
 	BlockedEmailDomains    []string
 	// PrivacyNoticeURL is validated here; "" clears it.
 	PrivacyNoticeURL *string
+	// SetNDA applies NDADocumentID: nil (or "") then clears the NDA (#525).
+	SetNDA        bool
+	NDADocumentID *string
+	// SetNDASkipDomains applies NDASkipDomains (normalised here); nil or an
+	// empty list clears it.
+	SetNDASkipDomains bool
+	NDASkipDomains    []string
 }
 
 // maxBlockedEmailDomains caps an organization's own domain list.
@@ -704,6 +720,16 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 		}
 		p.BlockedEmailDomains = norm
 	}
+	if p.SetNDASkipDomains {
+		norm, err := NormalizeNDASkipDomains(p.NDASkipDomains)
+		if err != nil {
+			return nil, err
+		}
+		p.NDASkipDomains = norm
+	}
+	if p.SetNDA && p.NDADocumentID != nil && len(*p.NDADocumentID) > 200 {
+		return nil, trustInvalid("nda_document_id is longer than 200 characters")
+	}
 	type change struct{ field, old, new string }
 	boolStr := func(b bool) string {
 		if b {
@@ -753,6 +779,23 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 			changes = append(changes, change{"privacy_notice_url", cur.PrivacyNoticeURL, *p.PrivacyNoticeURL})
 			next.PrivacyNoticeURL = *p.PrivacyNoticeURL
 		}
+		if p.SetNDA {
+			oldNDA, newNDA := "", ""
+			if cur.NDADocumentID != nil {
+				oldNDA = *cur.NDADocumentID
+			}
+			if p.NDADocumentID != nil {
+				newNDA = *p.NDADocumentID
+			}
+			if oldNDA != newNDA {
+				changes = append(changes, change{"nda_document_id", oldNDA, newNDA})
+				next.NDADocumentID = nilIfEmpty(newNDA)
+			}
+		}
+		if p.SetNDASkipDomains && !slices.Equal(p.NDASkipDomains, cur.NDASkipDomains) {
+			changes = append(changes, change{"nda_skip_domains", strings.Join(cur.NDASkipDomains, ","), strings.Join(p.NDASkipDomains, ",")})
+			next.NDASkipDomains = p.NDASkipDomains
+		}
 		return &next, changes
 	}
 
@@ -764,11 +807,13 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 			err = tx.QueryRow(ctx, `
 				SELECT enabled, title, overview_document_id, security_contact,
 				       default_access_level, updated_at, updated_by,
-				       blocked_email_domains, privacy_notice_url
+				       blocked_email_domains, privacy_notice_url,
+				       nda_document_id, nda_skip_domains
 				FROM trust_center_settings WHERE organization_id = $1 FOR UPDATE
 			`, orgID).Scan(&cur.Enabled, &cur.Title, &cur.OverviewDocumentID, &cur.SecurityContact,
 				&cur.DefaultAccessLevel, &cur.UpdatedAt, &cur.UpdatedBy,
-				&cur.BlockedEmailDomains, &cur.PrivacyNoticeURL)
+				&cur.BlockedEmailDomains, &cur.PrivacyNoticeURL,
+				&cur.NDADocumentID, &cur.NDASkipDomains)
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &TrustCenterSettings{OrganizationID: orgID, DefaultAccessLevel: TrustAccessGated}, false, nil
 			}
@@ -804,11 +849,13 @@ func (d *DB) UpdateTrustCenterSettings(ctx context.Context, orgID int, p TrustCe
 			UPDATE trust_center_settings
 			SET enabled = $2, title = $3, overview_document_id = $4, security_contact = $5,
 			    default_access_level = $6, updated_at = now(), updated_by = $7,
-			    blocked_email_domains = $8, privacy_notice_url = $9
+			    blocked_email_domains = $8, privacy_notice_url = $9,
+			    nda_document_id = $10, nda_skip_domains = $11
 			WHERE organization_id = $1
 			RETURNING updated_at
 		`, orgID, next.Enabled, next.Title, next.OverviewDocumentID, next.SecurityContact,
-			next.DefaultAccessLevel, nilIfEmpty(actor), next.BlockedEmailDomains, next.PrivacyNoticeURL).Scan(&next.UpdatedAt); err != nil {
+			next.DefaultAccessLevel, nilIfEmpty(actor), next.BlockedEmailDomains, next.PrivacyNoticeURL,
+			next.NDADocumentID, nonNilStrings(next.NDASkipDomains)).Scan(&next.UpdatedAt); err != nil {
 			return err
 		}
 		next.UpdatedBy = nilIfEmpty(actor)

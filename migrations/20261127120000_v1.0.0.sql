@@ -273,3 +273,51 @@ ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_c
 -- When a visitor-visible change to the subprocessor list last happened and is not
 -- derivable from the items or the suppliers: unpublishing and reordering.
 ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS subprocessors_changed_at TIMESTAMPTZ;
+
+-- #525: click-through NDA for gated items. nda_document_id names the document
+-- whose last approved version a visitor accepts before reading a gated item
+-- (NULL = no NDA, signing in is enough). It is never cleared when the document
+-- is retired or deleted: an NDA that is set but cannot be served locks gated
+-- items for everyone. nda_skip_domains lists email domains that do not need to
+-- accept: "example.com" matches that domain only, "*.example.com" any subdomain.
+ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS nda_document_id TEXT;
+ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS nda_skip_domains TEXT[] NOT NULL DEFAULT '{}';
+
+-- One row per visitor, NDA version (content_hash of the served document_versions
+-- row, version_id is its id; commit_hash and file_path locate the accepted bytes
+-- in git, which stay provable if that row is overwritten later) and method. 'accepted' is a click-through;
+-- 'domain_skip' is a log row written the first time a visitor is let in by the
+-- skip list. A skip row is never a grant: the skip list is evaluated on every
+-- request. company, ip and user_agent are snapshots taken at that moment.
+CREATE TABLE IF NOT EXISTS trust_nda_acceptances (
+    id              BIGSERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    visitor_id      BIGINT NOT NULL,
+    document_id     TEXT NOT NULL,
+    version_id      BIGINT NOT NULL,
+    version         TEXT NOT NULL DEFAULT '',
+    content_hash    TEXT NOT NULL CHECK (content_hash <> ''),
+    commit_hash     TEXT NOT NULL DEFAULT '',
+    file_path       TEXT NOT NULL DEFAULT '',
+    method          TEXT NOT NULL CHECK (method IN ('accepted','domain_skip')),
+    company         TEXT NOT NULL DEFAULT '',
+    ip              TEXT NOT NULL DEFAULT '',
+    user_agent      TEXT NOT NULL DEFAULT '',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (organization_id, visitor_id, content_hash, method)
+);
+ALTER TABLE trust_nda_acceptances DROP CONSTRAINT IF EXISTS trust_nda_acceptances_visitor_fk;
+ALTER TABLE trust_nda_acceptances ADD CONSTRAINT trust_nda_acceptances_visitor_fk
+    FOREIGN KEY (organization_id, visitor_id) REFERENCES trust_visitors(organization_id, id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_trust_nda_acceptances_visitor
+    ON trust_nda_acceptances(organization_id, visitor_id, created_at);
+
+ALTER TABLE trust_nda_acceptances ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'trust_nda_acceptances' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON trust_nda_acceptances
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;

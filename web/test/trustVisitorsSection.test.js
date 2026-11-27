@@ -68,7 +68,7 @@ test('timestamps go through formatDate (an instant in the viewer zone, not a UTC
   assert.equal(cell.textContent.trim(), fmt(1760003600))
   assert.equal(cell.getAttribute('title'), `First seen: ${fmt(1760000000)}`)
   assert.ok(!doc.querySelector('thead').textContent.includes('First seen'), 'no separate first-seen column')
-  assert.equal(doc.querySelectorAll('thead th').length, 7)
+  assert.equal(doc.querySelectorAll('thead th').length, 8) // the NDA column (#525) is the eighth
 })
 
 test('revoke is disabled with no active sessions and enabled otherwise', async () => {

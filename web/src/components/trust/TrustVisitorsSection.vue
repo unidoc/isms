@@ -13,7 +13,7 @@
 
     <!-- The table scrolls inside its box instead of squeezing its columns. -->
     <div v-if="rows.length" class="overflow-x-auto border border-slate-800 rounded-xl bg-slate-900/40">
-      <table class="w-full min-w-[44rem] text-sm text-left">
+      <table class="w-full min-w-[54rem] text-sm text-left">
         <thead class="text-xs uppercase tracking-wide text-slate-500 border-b border-slate-800">
           <tr>
             <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_email') }}</th>
@@ -22,6 +22,7 @@
             <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_last_seen') }}</th>
             <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_sessions') }}</th>
             <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_status') }}</th>
+            <th class="px-3 py-2 font-medium">{{ $t('trust_manager.visitors.col_nda') }}</th>
             <th class="px-3 py-2 text-right" />
           </tr>
         </thead>
@@ -37,6 +38,7 @@
               <span v-if="v.blocked" class="text-xs px-2 py-1 rounded-full bg-red-500/15 text-red-300 whitespace-nowrap" data-trust="v-blocked" :title="blockedTitle(v)">{{ $t('trust_manager.visitors.blocked') }}</span>
               <span v-else class="text-xs px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 whitespace-nowrap" data-trust="v-active">{{ $t('trust_manager.visitors.status_active') }}</span>
             </td>
+            <td class="px-3 py-2 text-slate-300 whitespace-nowrap" data-trust="v-nda" :data-trust-nda="ndaOf(v).status" :title="ndaTitle(v)">{{ ndaText(v) }}</td>
             <td class="px-3 py-2">
               <div class="flex items-center justify-end gap-4 text-xs whitespace-nowrap">
                 <button type="button" data-trust="revoke" :disabled="v.active_sessions === 0 || busyId === v.id"
@@ -78,6 +80,23 @@ const when = (sec) => formatDate(sec, 'datetime')
 const firstSeenTitle = (v) => t('trust_manager.visitors.col_first_seen') + ': ' + when(v.first_seen)
 // Who blocked and when: a tooltip, so the badge itself stays one short word.
 const blockedTitle = (v) => [v.blocked_by ? t('trust_manager.visitors.blocked_by', { by: v.blocked_by }) : '', v.blocked_at ? when(v.blocked_at) : ''].filter(Boolean).join(' · ')
+
+// Where the visitor stands with the NDA (#525), from the server's row.
+const ndaOf = (v) => v.nda || { status: 'none' }
+function ndaText(v) {
+  const n = ndaOf(v)
+  switch (n.status) {
+    case 'accepted': return t('trust_manager.visitors.nda_accepted', { version: n.accepted_version || n.version || '' })
+    case 'required': return n.accepted_at
+      ? t('trust_manager.visitors.nda_again', { version: n.accepted_version || '' })
+      : t('trust_manager.visitors.nda_not_yet')
+    case 'skipped': return t('trust_manager.visitors.nda_skipped')
+    case 'unavailable': return t('trust_manager.visitors.nda_unavailable')
+    default: return '-'
+  }
+}
+// When they accepted, as a tooltip.
+const ndaTitle = (v) => (ndaOf(v).accepted_at ? when(ndaOf(v).accepted_at) : '')
 
 async function load() {
   loading.value = true

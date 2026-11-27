@@ -480,10 +480,10 @@ func (s *Server) serveTrustCertFile(c echo.Context, org *db.Organization, cert *
 // manager preview's: the same checks for both. The certification must be
 // published, not hidden, not past valid_until, have a file, and be at a level
 // the viewer may read (trustViewerMayRead: public for everyone, gated for a
-// signed-in visitor); every other case is the same 404. Restricted files are
+// signed-in visitor who has met the NDA step); every other case is the same 404. Restricted files are
 // readable by managers only, through the manager route. v is the signed-in
 // visitor, or nil; the preview always passes nil, so it stays the anonymous view.
-func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organization, publicID string, v *db.TrustVisitor) error {
+func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organization, publicID string, v *trustViewer) error {
 	cert, err := s.db.GetServableTrustCertification(c.Request().Context(), org.ID, strings.ToLower(publicID))
 	if errors.Is(err, db.ErrTrustCertificationNotFound) {
 		return trustPublicNotFound(c)
@@ -492,6 +492,9 @@ func (s *Server) trustPublicCertificationFile(c echo.Context, org *db.Organizati
 		return trustPublicError(c, err)
 	}
 	if cert.Item == nil || !trustViewerMayRead(cert.Item.AccessLevel, v) || cert.FileKey == "" {
+		if err := v.Err(); err != nil {
+			return trustPublicError(c, err)
+		}
 		return trustPublicNotFound(c)
 	}
 	if err := s.serveTrustCertFile(c, org, cert); err != nil {

@@ -24,6 +24,8 @@ import (
 
 // trustServedVersion is the content visitors may see for a document.
 type trustServedVersion struct {
+	// VersionID is the document_versions row id; the label can be empty.
+	VersionID   int
 	Version     string
 	ApprovedAt  db.Epoch
 	ContentHash string
@@ -105,7 +107,7 @@ func (s *Server) trustServed(ctx context.Context, st *store.Store, orgID int, do
 			continue
 		}
 		return &trustServedVersion{
-			Version: v.Version, ApprovedAt: v.CreatedAt, ContentHash: v.ContentHash,
+			VersionID: v.ID, Version: v.Version, ApprovedAt: v.CreatedAt, ContentHash: v.ContentHash,
 			CommitHash: v.CommitHash, FilePath: v.FilePath,
 			Title: doc.Frontmatter.Title, Body: doc.Body,
 			Classification: doc.Frontmatter.Classification,

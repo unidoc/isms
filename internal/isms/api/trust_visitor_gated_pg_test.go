@@ -9,6 +9,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -17,20 +18,38 @@ import (
 )
 
 func TestTrustViewerMayRead(t *testing.T) {
-	v := &db.TrustVisitor{ID: 1, Email: "a@b.test"}
+	visitor := &db.TrustVisitor{ID: 1, Email: "a@b.test"}
+	// A viewer whose NDA step is already resolved to the given status.
+	viewer := func(status string) *trustViewer {
+		return &trustViewer{Visitor: visitor, done: true, status: status}
+	}
 	cases := []struct {
+		name  string
 		level string
-		v     *db.TrustVisitor
+		v     *trustViewer
 		want  bool
 	}{
-		{db.TrustAccessPublic, nil, true}, {db.TrustAccessPublic, v, true},
-		{db.TrustAccessGated, nil, false}, {db.TrustAccessGated, v, true},
-		{db.TrustAccessRestricted, nil, false}, {db.TrustAccessRestricted, v, false},
-		{"", nil, false}, {"", v, false}, {"secret", v, false}, {"PUBLIC", v, false},
+		{"public anonymous", db.TrustAccessPublic, nil, true},
+		{"public no NDA", db.TrustAccessPublic, viewer(trustNDANone), true},
+		{"public NDA required", db.TrustAccessPublic, viewer(trustNDARequired), true},
+		{"public NDA unavailable", db.TrustAccessPublic, viewer(trustNDAUnavailable), true},
+		{"gated anonymous", db.TrustAccessGated, nil, false},
+		{"gated no NDA", db.TrustAccessGated, viewer(trustNDANone), true},
+		{"gated accepted", db.TrustAccessGated, viewer(trustNDAAccepted), true},
+		{"gated skipped", db.TrustAccessGated, viewer(trustNDASkipped), true},
+		{"gated NDA required", db.TrustAccessGated, viewer(trustNDARequired), false},
+		{"gated NDA unavailable", db.TrustAccessGated, viewer(trustNDAUnavailable), false},
+		{"gated failed lookup", db.TrustAccessGated, &trustViewer{Visitor: visitor, done: true, status: trustNDANone, err: errors.New("db")}, false},
+		{"restricted anonymous", db.TrustAccessRestricted, nil, false},
+		{"restricted accepted", db.TrustAccessRestricted, viewer(trustNDAAccepted), false},
+		{"restricted no NDA", db.TrustAccessRestricted, viewer(trustNDANone), false},
+		{"empty level", "", viewer(trustNDANone), false},
+		{"unknown level", "secret", viewer(trustNDAAccepted), false},
+		{"wrong case", "PUBLIC", viewer(trustNDANone), false},
 	}
 	for _, c := range cases {
 		if got := trustViewerMayRead(c.level, c.v); got != c.want {
-			t.Errorf("trustViewerMayRead(%q, visitor=%v) = %v, want %v", c.level, c.v != nil, got, c.want)
+			t.Errorf("%s: trustViewerMayRead(%q) = %v, want %v", c.name, c.level, got, c.want)
 		}
 	}
 }

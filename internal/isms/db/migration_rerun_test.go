@@ -46,6 +46,21 @@ func TestV100MigrationReRunsOnPopulatedData(t *testing.T) {
 		}
 	}
 
+	// An NDA acceptance (#525): its table, foreign key and unique key must
+	// survive the file running again with a row in place.
+	var visitorID int64
+	if err := d.pool.QueryRow(ctx, `
+		INSERT INTO trust_visitors (organization_id, email) VALUES ($1, 'migration-test@example.test')
+		RETURNING id`, orgID).Scan(&visitorID); err != nil {
+		t.Fatalf("precondition: visitor: %v", err)
+	}
+	if _, err := d.pool.Exec(ctx, `
+		INSERT INTO trust_nda_acceptances (organization_id, visitor_id, document_id, version_id, version, content_hash, commit_hash, file_path, method)
+		VALUES ($1, $2, 'nda', 1, '1.0', 'abc', 'c0ffee', 'documents/nda.md', 'accepted'), ($1, $2, 'nda', 1, '1.0', 'abc', 'c0ffee', 'documents/nda.md', 'domain_skip')`,
+		orgID, visitorID); err != nil {
+		t.Fatalf("precondition: NDA acceptances: %v", err)
+	}
+
 	if _, err := d.pool.Exec(ctx, string(sqlText)); err != nil {
 		t.Fatalf("re-running %s on a populated database: %v", filepath.Base(files[0]), err)
 	}

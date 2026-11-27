@@ -98,6 +98,10 @@
             <p v-if="needsSignIn(lockedItem)" class="mt-4 text-sm">
               <button type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="doc-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.doc_sign_in') }}</button>
             </p>
+            <p v-else-if="needsNDA(lockedItem)" class="mt-4 text-sm">
+              <button type="button" class="font-medium trust-brand-text hover:underline" data-trust="doc-accept-nda" @click="openNDA">{{ $t('trust.public.action_accept_nda') }}</button>
+            </p>
+            <p v-else-if="ndaLocked(lockedItem)" class="mt-4 text-sm text-slate-600" data-trust="doc-nda-unavailable">{{ $t('trust.public.action_nda_unavailable') }}</p>
             <p v-else class="mt-4 text-sm">
               <a v-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
               <span v-else-if="ov.security_contact" class="font-medium">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
@@ -131,6 +135,8 @@
             </p>
           </section>
 
+          <p v-if="ndaUnavailableNote" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" role="status" data-trust="nda-unavailable-note">{{ $t('trust.public.nda_unavailable_note') }}</p>
+
           <section v-if="certifications.length" data-trust="certifications">
             <h2 class="text-lg font-semibold">{{ $t('trust.public.certifications.heading') }}</h2>
             <div class="mt-4 bg-white border border-slate-200 rounded-xl overflow-hidden" role="table">
@@ -158,7 +164,9 @@
                     <a v-else :href="certFileHref(c)" download class="font-medium trust-brand-text hover:underline" data-trust="cert-download" @click="downloadGated($event, c)">{{ $t('trust.public.certifications.action_download') }}</a>
                   </template>
                   <a v-else-if="mayRead(c) && c.source === 'link' && safeHref(c.url)" :href="safeHref(c.url)" target="_blank" rel="noopener noreferrer" class="font-medium trust-brand-text hover:underline" data-trust="cert-view">{{ $t('trust.public.certifications.action_view_at', { host: hostOf(c.url) }) }}</a>
-                  <button v-else-if="needsSignIn(c)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="cert-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
+                  <button v-else-if="needsSignIn(c)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="cert-sign-in" :disabled="!visitorFeatures" @click="openSignIn">{{ signInLabel }}</button>
+                  <button v-else-if="needsNDA(c)" type="button" class="font-medium trust-brand-text hover:underline" data-trust="cert-accept-nda" @click="openNDA">{{ $t('trust.public.action_accept_nda') }}</button>
+                  <span v-else-if="ndaLocked(c)" class="text-slate-500" data-trust="cert-nda-unavailable">{{ $t('trust.public.action_nda_unavailable') }}</span>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -203,7 +211,9 @@
                 <div role="cell" class="text-sm min-w-0 break-words">
                   <a v-if="mayRead(d)" :href="basePath + '/documents/' + d.id" class="font-medium trust-brand-text hover:underline" data-trust="view"
                     @click="go($event, basePath + '/documents/' + d.id)">{{ $t('trust.public.action_view') }}</a>
-                  <button v-else-if="needsSignIn(d)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="sign-in-to-view" :disabled="!visitorFeatures" @click="openSignIn">{{ $t('trust.public.action_sign_in') }}</button>
+                  <button v-else-if="needsSignIn(d)" type="button" class="font-medium trust-brand-text hover:underline disabled:opacity-70 disabled:no-underline disabled:cursor-default" data-trust="sign-in-to-view" :disabled="!visitorFeatures" @click="openSignIn">{{ signInLabel }}</button>
+                  <button v-else-if="needsNDA(d)" type="button" class="font-medium trust-brand-text hover:underline" data-trust="accept-nda" @click="openNDA">{{ $t('trust.public.action_accept_nda') }}</button>
+                  <span v-else-if="ndaLocked(d)" class="text-slate-500" data-trust="nda-unavailable">{{ $t('trust.public.action_nda_unavailable') }}</span>
                   <a v-else-if="isEmail(ov.security_contact)" :href="'mailto:' + ov.security_contact" class="font-medium trust-brand-text hover:underline" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</a>
                   <span v-else-if="ov.security_contact" class="text-slate-700" data-trust="contact">{{ $t('trust.public.action_contact', { contact: ov.security_contact }) }}</span>
                   <span v-else class="text-slate-500" data-trust="on-request">{{ $t('trust.public.action_on_request') }}</span>
@@ -243,6 +253,35 @@
           </section>
         </template>
       </main>
+
+      <!-- The NDA panel: a signed-in visitor reads the current version and accepts
+           it. Never in the manager's preview. -->
+      <div v-if="ndaOpen" class="fixed inset-0 z-50 flex items-start justify-center px-4 py-8 overflow-y-auto" data-trust="nda-panel">
+        <div class="fixed inset-0 bg-slate-900/50" @click="closeNDA" />
+        <div class="relative bg-white text-slate-900 border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" role="dialog" aria-modal="true" :aria-label="$t('trust.public.nda_heading')">
+          <p v-if="ndaLoading" class="text-sm text-slate-500" data-trust="nda-loading">{{ $t('trust.public.nda_loading') }}</p>
+          <p v-else-if="!ndaDoc" class="text-sm text-red-700" role="alert" data-trust="nda-load-error">{{ $t('trust.public.nda_load_error') }}</p>
+          <template v-else>
+            <div>
+              <h2 class="text-xl font-semibold" data-trust="nda-title">{{ ndaDoc.title }}</h2>
+              <p class="mt-1 text-sm text-slate-600" data-trust="nda-version">{{ $t('trust.public.doc_version', { version: ndaDoc.version }) }}</p>
+            </div>
+            <p v-if="ndaChanged" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" role="alert" data-trust="nda-changed">{{ $t('trust.public.nda_changed') }}</p>
+            <div class="trust-prose max-h-[50vh] overflow-y-auto border border-slate-200 rounded-lg px-4 py-2" data-trust="nda-body" @click="onNdaClick" v-html="ndaHtml"></div>
+            <label class="flex items-start gap-2 text-sm">
+              <input v-model="ndaAccepted" type="checkbox" class="mt-0.5" data-trust="nda-check" />
+              <span>{{ ndaDoc.company ? $t('trust.public.nda_accept_label', { company: ndaDoc.company }) : $t('trust.public.nda_accept_label_plain') }}</span>
+            </label>
+            <p v-if="ndaError" class="text-sm text-red-700" role="alert" data-trust="nda-error">{{ ndaError }}</p>
+          </template>
+          <div class="flex items-center gap-2">
+            <button v-if="ndaDoc && !ndaLoading" type="button" class="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 trust-fill disabled:opacity-60" data-trust="nda-accept" :disabled="!ndaAccepted || ndaSending" @click="acceptNDA">
+              {{ ndaSending ? $t('trust.public.nda_accepting') : $t('trust.public.nda_accept') }}
+            </button>
+            <button type="button" class="px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100" data-trust="nda-cancel" @click="closeNDA">{{ $t('trust.public.nda_cancel') }}</button>
+          </div>
+        </div>
+      </div>
 
       <footer class="border-t border-slate-200 bg-white">
         <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3 text-xs text-slate-500">
@@ -294,6 +333,9 @@ const hasSession = ref(false)
 // (a data source is given) is the anonymous view and never asks who is signed in.
 const visitorFeatures = computed(() => !props.source)
 const visitor = ref(null)
+// Where the visitor stands with the organization's NDA (#525): {status: none |
+// required | accepted | skipped | unavailable, ...}; null while signed out.
+const nda = ref(null)
 // Whether the anonymous sign-in affordances are shown. In the manager's preview
 // they are shown too, because that is what visitors see, but inert: disabled, no
 // form, and no visitor request (signInAvailable below is what makes requests).
@@ -309,9 +351,84 @@ const sendLabel = computed(() => t(sendState.value === 'sending' ? 'trust.public
 const privacyUrl = computed(() => (/^https?:\/\//i.test(ov.value.privacy_notice_url || '') ? ov.value.privacy_notice_url : ''))
 
 // The same rule as the server's (documents and certifications): public for
-// everyone, gated for a signed-in visitor.
-const mayRead = (d) => d.access_level === 'public' || (d.access_level === 'gated' && !!visitor.value)
+// everyone, gated for a signed-in visitor who has met the NDA step (no NDA set,
+// accepted, or on the skip list). An NDA that is set but unavailable locks gated
+// items for every visitor.
+const ndaRequired = computed(() => !!ov.value.nda_required)
+const ndaStatus = computed(() => (visitor.value ? (nda.value && nda.value.status) || 'none' : ''))
+const mayRead = (d) => d.access_level === 'public' || (d.access_level === 'gated' && !!visitor.value && ['none', 'accepted', 'skipped'].includes(ndaStatus.value))
 const needsSignIn = (d) => d.access_level === 'gated' && !visitor.value && signInShown.value
+const needsNDA = (d) => d.access_level === 'gated' && visitorFeatures.value && ndaStatus.value === 'required'
+const ndaLocked = (d) => d.access_level === 'gated' && visitorFeatures.value && ndaStatus.value === 'unavailable'
+const ndaUnavailableNote = computed(() => visitorFeatures.value && ndaStatus.value === 'unavailable' && items.value.some((i) => i.access_level === 'gated'))
+const signInLabel = computed(() => t(ndaRequired.value ? 'trust.public.action_sign_in_nda' : 'trust.public.action_sign_in'))
+
+// The click-through NDA panel.
+const ndaOpen = ref(false)
+const ndaDoc = ref(null)
+const ndaLoading = ref(false)
+const ndaAccepted = ref(false)
+const ndaSending = ref(false)
+const ndaError = ref('')
+const ndaChanged = ref(false)
+let ndaAutoOpened = false
+const ndaHtml = computed(() => (ndaDoc.value ? sanitize(ndaDoc.value.html) : ''))
+
+async function openNDA() {
+  if (!visitorFeatures.value) return
+  ndaOpen.value = true
+  ndaAccepted.value = false
+  ndaError.value = ''
+  ndaChanged.value = false
+  ndaDoc.value = null
+  ndaLoading.value = true
+  try {
+    ndaDoc.value = await api.trustNDA(props.slug)
+  } catch (err) {
+    // A 404 means the session ended, or the NDA is gone: ask again and let the
+    // page show where the visitor stands now.
+    if (err && err.status === 404) {
+      await loadVisitor()
+      await reloadItems()
+      if (ndaStatus.value !== 'required') ndaOpen.value = false
+    }
+  } finally {
+    ndaLoading.value = false
+  }
+}
+
+function closeNDA() {
+  ndaOpen.value = false
+}
+
+async function acceptNDA() {
+  if (!ndaAccepted.value || ndaSending.value || !ndaDoc.value) return
+  ndaSending.value = true
+  ndaError.value = ''
+  try {
+    const r = await api.trustNDAAccept(props.slug, ndaDoc.value.content_hash)
+    visitor.value = r.visitor || null
+    nda.value = r.nda || null
+    ndaOpen.value = false
+    await reloadItems()
+    if (props.docId && state.value === 'ready') await loadDocument()
+  } catch (err) {
+    if (err && err.status === 409 && err.body && err.body.nda) {
+      // A newer version was approved while the text was open: show it and ask again.
+      ndaDoc.value = err.body.nda
+      ndaAccepted.value = false
+      ndaChanged.value = true
+    } else if (err && err.status === 404) {
+      await loadVisitor()
+      await reloadItems()
+      if (ndaStatus.value !== 'required') ndaOpen.value = false
+    } else {
+      ndaError.value = t('trust.public.nda_error')
+    }
+  } finally {
+    ndaSending.value = false
+  }
+}
 
 function openSignIn() {
   if (!visitorFeatures.value) return
@@ -339,16 +456,21 @@ async function sendLink() {
 
 async function loadVisitor() {
   visitor.value = null
+  nda.value = null
   if (!signInAvailable.value) return
   try {
-    visitor.value = (await api.trustVisitor(props.slug)).visitor || null
+    const r = await api.trustVisitor(props.slug)
+    visitor.value = r.visitor || null
+    nda.value = visitor.value ? r.nda || null : null
   } catch {
     visitor.value = null
+    nda.value = null
   }
 }
 
 async function signOut() {
   signingOut.value = true
+  ndaOpen.value = false
   try {
     await api.trustSignOut(props.slug)
   } catch { /* the state is read again below either way */ }
@@ -369,16 +491,26 @@ async function reloadItems() {
 // Asks the server whether the visitor shown is still signed in. When not, the
 // page drops to the signed-out view (header and list). A failed check changes
 // nothing.
-async function visitorStillSignedIn() {
-  let v
+async function visitorStillSignedIn(c) {
+  let r
   try {
-    v = (await api.trustVisitor(props.slug)).visitor
+    r = await api.trustVisitor(props.slug)
   } catch {
     return true
   }
-  if (v) return true
-  visitor.value = null
+  if (!r.visitor) {
+    visitor.value = null
+    nda.value = null
+    await reloadItems()
+    return false
+  }
+  visitor.value = r.visitor
+  nda.value = r.nda || null
+  if (mayRead(c)) return true
+  // Still signed in but no longer allowed: a new NDA version was approved while
+  // the page was open. Show the NDA panel, not the signed-out view.
   await reloadItems()
+  if (ndaStatus.value === 'required') await openNDA()
   return false
 }
 
@@ -391,7 +523,7 @@ async function visitorStillSignedIn() {
 async function downloadGated(e, c) {
   if (c.access_level === 'public' || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
   e.preventDefault()
-  if (!(await visitorStillSignedIn())) return
+  if (!(await visitorStillSignedIn(c))) return
   const a = document.createElement('a')
   a.href = certFileHref(c)
   a.download = ''
@@ -471,13 +603,13 @@ const filters = computed(() => {
   return [
     { key: 'all', label: t('trust.public.filter_all') },
     have('public') && { key: 'public', label: t('trust.public.filter_public') },
-    have('gated') && { key: 'gated', label: t('trust.public.filter_gated') },
+    have('gated') && { key: 'gated', label: t(ndaRequired.value ? 'trust.public.filter_gated_nda' : 'trust.public.filter_gated') },
     have('restricted') && { key: 'restricted', label: t('trust.public.filter_restricted') },
   ].filter(Boolean)
 })
 
 function accessLabel(level) {
-  return t(`trust.public.access_${level}`)
+  return t(level === 'gated' && ndaRequired.value ? 'trust.public.access_gated_nda' : `trust.public.access_${level}`)
 }
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '')
 const shortHash = (h) => (h || '').slice(0, 10)
@@ -501,9 +633,15 @@ function go(e, path) {
 // server cannot know the hosting mode): route it from here.
 function onContentClick(e) {
   const a = e.target && e.target.closest ? e.target.closest('a[data-trust-document]') : null
-  if (!a) return
+  if (!a) return false
   e.preventDefault()
   emit('navigate', `${props.basePath}/documents/${a.getAttribute('data-trust-document')}`)
+  return true
+}
+// A link in the NDA text that leaves for another document closes the panel, so it
+// does not stay open over the page the visitor went to.
+function onNdaClick(e) {
+  if (onContentClick(e)) ndaOpen.value = false
 }
 
 const lockedItem = ref({})
@@ -531,11 +669,14 @@ async function loadDocument() {
     // A 404 while we think a visitor is signed in may mean the session ended
     // (revoked, blocked, expired): ask again, and if they are signed out show the
     // locked state with its sign-in prompt, not "missing".
+    // The same 404 also means a new NDA version was approved while the page was
+    // open: then the visitor is still signed in and needs to accept it again.
     if (err && err.status === 404 && visitor.value && visitorFeatures.value) {
       await loadVisitor()
-      if (!visitor.value && !mayRead(it)) {
+      if (!mayRead(it)) {
         lockedItem.value = it
         docState.value = 'locked'
+        if (ndaStatus.value === 'required') await openNDA()
         return
       }
     }
@@ -565,6 +706,11 @@ async function load() {
     state.value = 'ready'
     if (typeof location !== 'undefined' && location.hash === '#sign-in' && signInAvailable.value && !visitor.value) openSignIn()
     await loadDocument()
+    // Someone who just signed in and has not accepted the NDA is asked once.
+    if (visitor.value && ndaStatus.value === 'required' && !ndaAutoOpened && !ndaOpen.value) {
+      ndaAutoOpened = true
+      await openNDA()
+    }
   } catch (err) {
     state.value = err && err.status === 404 ? 'unavailable' : 'error'
   }

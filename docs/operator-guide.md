@@ -270,6 +270,7 @@ Visitors to an organization's public trust center can sign in with their email a
 - **Links and sessions.** A sign-in link is valid for 15 minutes and works once. A sign-in lasts 7 days, or until a manager ends it or the visitor signs out.
 - **Blocked email domains.** By default, addresses at common personal email providers (Gmail, Outlook, Yahoo and similar) cannot sign in, so visitors use a work address. Managers can change the list, or allow every domain, in the trust center settings.
 - **Privacy notice.** Managers can set a privacy notice link in the trust center settings; it is shown on the sign-in form.
+- **Click-through NDA.** Managers can pick a document in the trust center settings as an NDA (or have one created with Set up NDA). Gated items then need sign-in and an acceptance of the NDA's current approved version; approving a new version asks visitors again. Email domains on the skip list (`example.com` for that domain only, `*.example.com` for its subdomains) skip the NDA. An NDA that has no approved version locks gated items for every visitor until one is approved.
 
 Sign-in link requests are rate limited; see [Rate limiting in development/testing](#rate-limiting-in-developmenttesting).
 

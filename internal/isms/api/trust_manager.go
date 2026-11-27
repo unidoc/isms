@@ -39,6 +39,18 @@ type trustSettingsJSON struct {
 	// EmailConfigured is false when the server cannot send mail, in which case
 	// visitors cannot sign in.
 	EmailConfigured bool `json:"email_configured"`
+	// NDADocumentID is the click-through NDA document, or null (#525).
+	NDADocumentID *string `json:"nda_document_id"`
+	// NDASkipDomains never null: emails at these domains need not accept the
+	// NDA ("example.com" that domain only, "*.example.com" its subdomains).
+	NDASkipDomains []string `json:"nda_skip_domains"`
+	// NDAStatus: none (no NDA set) | approved (NDAVersion, NDAApprovedAt) |
+	// unavailable (set but nothing can be served: gated items are locked for
+	// everyone; NDAUnavailableReason says why).
+	NDAStatus            string `json:"nda_status"`
+	NDAVersion           string `json:"nda_version,omitempty"`
+	NDAApprovedAt        int64  `json:"nda_approved_at,omitempty"` // epoch seconds
+	NDAUnavailableReason string `json:"nda_unavailable_reason,omitempty"`
 }
 
 type trustSettingsRequest struct {
@@ -51,6 +63,10 @@ type trustSettingsRequest struct {
 	// list, a list (possibly empty) is the organization's own.
 	BlockedEmailDomains Optional[[]string] `json:"blocked_email_domains"`
 	PrivacyNoticeURL    *string            `json:"privacy_notice_url"`
+	// NDADocumentID: absent leaves it alone, null or "" clears it.
+	NDADocumentID Optional[string] `json:"nda_document_id"`
+	// NDASkipDomains: absent leaves it alone, null or [] clears it.
+	NDASkipDomains Optional[[]string] `json:"nda_skip_domains"`
 }
 
 type trustManagerDocument struct {
@@ -96,6 +112,14 @@ func (s *Server) trustSettingsResponse(ctx context.Context, st *db.TrustCenterSe
 		Enabled:         st.Enabled, Title: st.Title, OverviewDocumentID: st.OverviewDocumentID,
 		SecurityContact: st.SecurityContact, DefaultAccessLevel: st.DefaultAccessLevel,
 		UpdatedAt: st.UpdatedAt, UpdatedBy: st.UpdatedBy,
+		NDADocumentID: st.NDADocumentID, NDASkipDomains: append([]string{}, st.NDASkipDomains...), NDAStatus: trustNDANone,
+	}
+	if cur, set, reason := s.trustNDAState(ctx, st.OrganizationID, st); set {
+		if cur == nil {
+			out.NDAStatus, out.NDAUnavailableReason = trustNDAUnavailable, reason
+		} else {
+			out.NDAStatus, out.NDAVersion, out.NDAApprovedAt = "approved", cur.Version, cur.ApprovedAt.Unix()
+		}
 	}
 	until, err := s.db.TrustVisitorLinkPausedUntil(ctx, st.OrganizationID, trustSignInOrgHourly(), time.Hour)
 	if err != nil {
@@ -157,6 +181,28 @@ func (s *Server) handlePutTrustSettings(c echo.Context) error {
 		}
 	}
 	patch.PrivacyNoticeURL = req.PrivacyNoticeURL
+	if req.NDASkipDomains.Set {
+		patch.SetNDASkipDomains = true
+		if req.NDASkipDomains.Value != nil {
+			norm, err := db.NormalizeNDASkipDomains(*req.NDASkipDomains.Value)
+			if err != nil {
+				return apiError(http.StatusBadRequest, CodeInvalidRequest)
+			}
+			patch.NDASkipDomains = norm
+		}
+	}
+	patch.SetNDA = req.NDADocumentID.Set
+	if req.NDADocumentID.Set && req.NDADocumentID.Value != nil {
+		// Same check as the overview document: it must exist and not be retired.
+		// A draft with no approved version is allowed (the manager approves it
+		// after setting it up); gated items stay locked until then.
+		if id := strings.ToLower(strings.TrimSpace(*req.NDADocumentID.Value)); id != "" {
+			if err := s.checkTrustOverviewDocument(c, orgID, id); err != nil {
+				return err
+			}
+			patch.NDADocumentID = &id
+		}
+	}
 	if req.OverviewDocumentID.Set && req.OverviewDocumentID.Value != nil {
 		if id := strings.ToLower(strings.TrimSpace(*req.OverviewDocumentID.Value)); id != "" {
 			if err := s.checkTrustOverviewDocument(c, orgID, id); err != nil {
@@ -188,8 +234,8 @@ func (s *Server) handlePutTrustSettings(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-// checkTrustOverviewDocument: the overview document must exist and not be
-// retired. One with no approved version is allowed; the public page leaves it
+// checkTrustOverviewDocument: the overview document (and the NDA document, which
+// follows the same rule) must exist and not be retired. One with no approved version is allowed; the public page leaves it
 // out until there is one.
 func (s *Server) checkTrustOverviewDocument(c echo.Context, orgID int, docID string) error {
 	ctx := c.Request().Context()

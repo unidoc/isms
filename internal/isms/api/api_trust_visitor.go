@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"mime"
@@ -127,6 +128,8 @@ type trustVisitorBody struct {
 	Token   string `json:"token"`
 	Name    string `json:"name"`
 	Company string `json:"company"`
+	// ContentHash is the NDA version being accepted (POST /nda/accept).
+	ContentHash string `json:"content_hash"`
 }
 
 // trustVisitorJSON reports whether the request declares a JSON body. It is the
@@ -235,21 +238,43 @@ type trustVisitorInfo struct {
 	Company string `json:"company"`
 }
 
-func trustVisitorResponse(c echo.Context, v *db.TrustVisitor) error {
+// trustVisitorSession is the response of the visitor routes.
+type trustVisitorSession struct {
+	Visitor *trustVisitorInfo `json:"visitor"`
+	NDA     *trustVisitorNDA  `json:"nda"`
+}
+
+// trustVisitorResponse answers with the visitor and their NDA status; both are
+// null when nobody is signed in.
+func trustVisitorResponse(c echo.Context, v *db.TrustVisitor, nda *trustVisitorNDA) error {
 	var info *trustVisitorInfo
 	if v != nil {
 		info = &trustVisitorInfo{Email: v.Email, Name: v.Name, Company: v.Company}
 	}
-	return c.JSON(http.StatusOK, map[string]*trustVisitorInfo{"visitor": info})
+	return c.JSON(http.StatusOK, trustVisitorSession{Visitor: info, NDA: nda})
+}
+
+// trustVisitorWithNDA answers like trustVisitorResponse for a signed-in visitor,
+// resolving their NDA status.
+// The sign-in cookie may already be set when this runs, so a failure to work out
+// the NDA status is logged and answered as "unavailable" (200), not as a 500;
+// gated reads fail closed on their own.
+func (s *Server) trustVisitorWithNDA(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings, v *db.TrustVisitor) error {
+	nda, err := s.newTrustViewer(c, org, settings, v).info()
+	nda = trustNDAOrUnavailable(nda, &trustVisitorNDA{Status: trustNDAUnavailable}, err, fmt.Sprintf("org %d visitor %d", org.ID, v.ID))
+	return trustVisitorResponse(c, v, nda)
 }
 
 // trustPublicVisitor answers GET /api/v1/trust/:slug/visitor.
-func (s *Server) trustPublicVisitor(c echo.Context, org *db.Organization) error {
+func (s *Server) trustPublicVisitor(c echo.Context, org *db.Organization, settings *db.TrustCenterSettings) error {
 	v, err := s.trustVisitorFromRequest(c, org.ID)
 	if err != nil {
 		return trustPublicError(c, err)
 	}
-	return trustVisitorResponse(c, v)
+	if v == nil {
+		return trustVisitorResponse(c, nil, nil)
+	}
+	return s.trustVisitorWithNDA(c, org, settings, v)
 }
 
 // trustVisitorPost serves the POST routes under /visitor. Organization, host
@@ -269,6 +294,8 @@ func (s *Server) trustVisitorPost(c echo.Context, org *db.Organization, settings
 		return s.trustVisitorInspect(c, org, settings, body)
 	case "visitor/session":
 		return s.trustVisitorSession(c, org, settings, body)
+	case "nda/accept":
+		return s.trustNDAAccept(c, org, settings, body)
 	}
 	return s.trustVisitorSignOut(c, org)
 }
@@ -407,7 +434,7 @@ func (s *Server) trustVisitorSession(c echo.Context, org *db.Organization, setti
 		return trustPublicError(c, err)
 	}
 	s.setTrustVisitorCookie(c, org, raw, int(trustSessionTTL/time.Second))
-	return trustVisitorResponse(c, v)
+	return s.trustVisitorWithNDA(c, org, settings, v)
 }
 
 // trustVisitorSignOut answers POST /visitor/sign-out.
@@ -418,5 +445,5 @@ func (s *Server) trustVisitorSignOut(c echo.Context, org *db.Organization) error
 		}
 	}
 	s.setTrustVisitorCookie(c, org, "", -1)
-	return trustVisitorResponse(c, nil)
+	return trustVisitorResponse(c, nil, nil)
 }

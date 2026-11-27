@@ -96,14 +96,36 @@ def test_visitor_is_null_when_nobody_is_signed_in(api_url, tv):
     for kwargs in ({}, {"cookies": {"isms_trust_visitor": "0" * 64}}, {"headers": {"Authorization": "Bearer " + "0" * 64}}):
         r = requests.get(f"{api_url}/trust/{tv}/visitor", **kwargs)
         assert r.status_code == 200, r.text
-        assert r.json() == {"visitor": None}
+        assert r.json() == {"visitor": None, "nda": None}
         assert r.headers.get("Cache-Control") == "no-store"
 
 
 def test_sign_out_without_a_session_is_ok(api_url, tv):
     r = requests.post(f"{api_url}/trust/{tv}/visitor/sign-out", json={})
     assert r.status_code == 200, r.text
-    assert r.json() == {"visitor": None}
+    assert r.json() == {"visitor": None, "nda": None}
+
+
+def test_nda_routes_are_the_single_404_when_not_signed_in(api_url, tv):
+    want = requests.get(f"{api_url}/trust/no-such-org-{_tag()}").content
+    for kwargs in ({}, {"cookies": {"isms_trust_visitor": "0" * 64}}):
+        r = requests.get(f"{api_url}/trust/{tv}/nda", **kwargs)
+        assert r.status_code == 404 and r.content == want, r.text
+        r = requests.post(f"{api_url}/trust/{tv}/nda/accept", json={"content_hash": "x"}, **kwargs)
+        assert r.status_code == 404 and r.content == want, r.text
+        assert r.headers.get("Cache-Control") == "no-store"
+
+
+def test_nda_accept_must_be_json(api_url, tv):
+    for headers in ({"Content-Type": "text/plain"}, {"Content-Type": "application/x-www-form-urlencoded"}):
+        r = requests.post(f"{api_url}/trust/{tv}/nda/accept", data="content_hash=x", headers=headers)
+        assert r.status_code == 400, f"{headers}: {r.status_code} {r.text}"
+
+
+def test_overview_says_whether_an_nda_is_required(api_url, tv):
+    r = requests.get(f"{api_url}/trust/{tv}")
+    assert r.status_code == 200, r.text
+    assert r.json()["nda_required"] is False
 
 
 def test_post_must_be_json(api_url, tv):

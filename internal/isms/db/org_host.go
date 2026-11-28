@@ -146,7 +146,7 @@ func (d *DB) GetOrganizationByHost(ctx context.Context, host string) (*Organizat
 	var trustMatch bool
 	err := d.pool.QueryRow(ctx, `
 		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at,
-		       lower(trust_domain) = $1
+		       COALESCE(lower(trust_domain) = $1, false)
 		FROM organizations
 		WHERE deleted_at IS NULL AND (lower(trust_domain) = $1 OR isms_org_host(domain) = $1)
 		LIMIT 1

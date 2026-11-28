@@ -39,7 +39,7 @@ func trustServer(t *testing.T) *Server {
 	s := testServer(t)
 	s.secret = "trust-public-test-secret-0123456789abcdef"
 	s.echo = echo.New()
-	s.echo.Use(OrgResolverMiddleware(s.db, trustTestBase, true))
+	s.useHostResolution(trustTestBase, true)
 	s.echo.Use(AuthMiddleware(AuthConfig{DB: s.db, Secret: s.secret}))
 	s.echo.Use(s.RoleMiddleware())
 	s.routes()

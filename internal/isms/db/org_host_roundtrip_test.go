@@ -111,6 +111,18 @@ func TestTrustDomainSetChangeClearAndLookup(t *testing.T) {
 	}
 }
 
+// An organization with an app domain and no trust domain must still resolve
+// by its app domain (the trust-domain comparison is NULL for it).
+func TestGetOrganizationByHostAppDomainWithoutTrustDomain(t *testing.T) {
+	d := testDB(t)
+	appHost := uniqueHost("appo")
+	org := hostTestOrg(t, d, "appo", sp(appHost))
+	o, kind, err := d.GetOrganizationByHost(context.Background(), appHost)
+	if err != nil || o.ID != org.ID || kind != OrgHostApp {
+		t.Fatalf("by app host = %v %v %v, want OrgHostApp", o, kind, err)
+	}
+}
+
 func capitalize(s string) string {
 	if s == "" {
 		return s

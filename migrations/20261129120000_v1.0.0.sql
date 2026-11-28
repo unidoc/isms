@@ -352,3 +352,9 @@ DROP TRIGGER IF EXISTS organizations_host_unique ON organizations;
 CREATE TRIGGER organizations_host_unique
     BEFORE INSERT OR UPDATE OF domain, trust_domain, deleted_at ON organizations
     FOR EACH ROW EXECUTE FUNCTION organizations_host_unique();
+
+-- #528: the resolver looks up every request host that is not the apex; back the
+-- app-domain half of that lookup with an index (the trust domain has its own).
+CREATE INDEX IF NOT EXISTS ix_organizations_app_host
+    ON organizations (isms_org_host(domain))
+    WHERE deleted_at IS NULL;

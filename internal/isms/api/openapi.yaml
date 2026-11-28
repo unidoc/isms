@@ -5151,7 +5151,7 @@ components:
         cannot_publish_reason: { type: string, enum: ['', no_approved_version, retired] }
     TrustCenterSettings:
       type: object
-      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by, blocked_email_domains, blocked_email_domains_default, default_blocked_email_domains, privacy_notice_url, sign_in_paused_until, overview_withheld, email_configured]
+      required: [enabled, title, overview_document_id, security_contact, default_access_level, updated_at, updated_by, blocked_email_domains, blocked_email_domains_default, default_blocked_email_domains, privacy_notice_url, sign_in_paused_until, overview_withheld, email_configured, trust_domain]
       properties:
         enabled: { type: boolean, description: "False until the organization switches the trust center on; a disabled trust center answers 404 to visitors." }
         title: { type: string, maxLength: 200, description: The page title; empty when unset. }
@@ -5179,6 +5179,7 @@ components:
         sign_in_paused_until: { $ref: '#/components/schemas/EpochSecondsNullable', readOnly: true, description: "Set while the organization has reached its hourly sign-in link cap (a backstop, 500 by default, `ISMS_TRUST_SIGNIN_ORG_HOURLY`): when the first slot frees up. Null otherwise. Derived from the links created in the last hour." }
         overview_withheld: { type: boolean, readOnly: true, description: "True when an overview document is set but is also published at a gated or restricted level, so the page shows no overview. The overview is a public element." }
         email_configured: { type: boolean, readOnly: true, description: "False when the server cannot send mail; visitors cannot sign in then." }
+        trust_domain: { type: [string, 'null'], readOnly: true, description: "The host the trust center is also served on (for example trust.example.com), set by the server operator with the CLI; null when none. Read-only: a value sent on update is ignored." }
     TrustCenterVisitor:
       type: object
       required: [id, email, name, company, verified_at, first_seen, last_seen, blocked, blocked_at, blocked_by, active_sessions]

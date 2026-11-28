@@ -414,7 +414,7 @@ func NewWithFS(addr, webDir string, database *db.DB, embeddedFS fs.FS) *Server {
 	}
 	srv.apexHost = baseDomain
 	if baseDomain != "" {
-		srv.echo.Use(OrgResolverMiddleware(database, baseDomain, srv.subdomainRouting))
+		srv.useHostResolution(baseDomain, srv.subdomainRouting)
 	}
 
 	// Authentication + role enforcement
@@ -940,12 +940,7 @@ func (s *Server) routes() {
 
 	// Vue SPA — serve static files with index.html fallback
 	// Priority: webDir (disk) > webFS (embedded) > nothing
-	var spaFS fs.FS
-	if s.webDir != "" {
-		spaFS = os.DirFS(s.webDir)
-	} else if s.webFS != nil {
-		spaFS = s.webFS
-	}
+	spaFS := s.spaFileSystem()
 	if spaFS != nil {
 		fileServer := http.FileServerFS(spaFS)
 		// serveIndex serves index.html with the deployment's apex host and
@@ -957,7 +952,11 @@ func (s *Server) routes() {
 		// on /organizations). Without the apex seed specifically, a self-hosted
 		// apex like isms.example.com is misread as tenant "isms" on boot.
 		// See web/src/composables/useCurrentOrg.js.
-		serveIndex := func(w http.ResponseWriter) {
+		//
+		// On a trust host (trustSlug != "") it also carries the organization's
+		// slug as isms-trust-host, which the SPA reads to render only the trust
+		// center.
+		serveIndex := func(w http.ResponseWriter, trustSlug string) {
 			data, err := fs.ReadFile(spaFS, "index.html")
 			if err != nil {
 				http.Error(w, "index.html not found", http.StatusInternalServerError)
@@ -974,6 +973,9 @@ func (s *Server) routes() {
 				fmt.Fprintf(&inject, `<meta name="isms-apex" content="%s">`, html.EscapeString(s.apexHost))
 			}
 			fmt.Fprintf(&inject, `<meta name="isms-subdomain-routing" content="%t">`, s.subdomainRouting)
+			if trustSlug != "" {
+				fmt.Fprintf(&inject, `<meta name="isms-trust-host" content="%s">`, html.EscapeString(trustSlug))
+			}
 			if inject.Len() > 0 {
 				data = []byte(strings.Replace(string(data), "</head>", inject.String()+"</head>", 1))
 			}
@@ -981,28 +983,34 @@ func (s *Server) routes() {
 			w.Header().Set("Cache-Control", "no-cache")
 			w.Write(data)
 		}
-		s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Go vanity import: go get isms.sh@latest
-			if r.URL.Query().Get("go-get") == "1" {
+		s.echo.GET("/*", func(c echo.Context) error {
+			w, r := c.Response(), c.Request()
+			trustSlug := ""
+			if isTrustHost(c) {
+				trustSlug, _ = c.Get("org_slug").(string)
+			}
+			// Go vanity import: go get isms.sh@latest (not on a trust host)
+			if trustSlug == "" && r.URL.Query().Get("go-get") == "1" {
 				w.Header().Set("Content-Type", "text/html")
 				w.Write([]byte(`<!DOCTYPE html><html><head>
 <meta name="go-import" content="isms.sh git https://github.com/unidoc/isms">
 <meta name="go-source" content="isms.sh https://github.com/unidoc/isms https://github.com/unidoc/isms/tree/main{/dir} https://github.com/unidoc/isms/blob/main{/dir}/{file}#L{line}">
 </head><body>go get isms.sh</body></html>`))
-				return
+				return nil
 			}
 			path := strings.TrimPrefix(r.URL.Path, "/")
 			if path == "" || path == "index.html" {
-				serveIndex(w)
-				return
+				serveIndex(w, trustSlug)
+				return nil
 			}
 			if f, err := fs.Stat(spaFS, path); err == nil && !f.IsDir() {
 				fileServer.ServeHTTP(w, r)
-				return
+				return nil
 			}
 			// SPA client-side route — serve the injected index.html.
-			serveIndex(w)
-		})))
+			serveIndex(w, trustSlug)
+			return nil
+		})
 	}
 }
 

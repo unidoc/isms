@@ -60,7 +60,8 @@ func AuthMiddleware(cfg AuthConfig) echo.MiddlewareFunc {
 			// Soft auth: try to extract org context from JWT if present, but never block.
 			// This lets /config and /branding/ serve the right org in multi-tenant setups.
 			if softAuthPaths {
-				if authHeader := c.Request().Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
+				// Never on a trust host: its org comes from the host alone.
+				if authHeader := c.Request().Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") && !isTrustHost(c) {
 					rawToken := strings.TrimPrefix(authHeader, "Bearer ")
 					if cfg.Secret != "" && !strings.HasPrefix(rawToken, "isms_") {
 						if claims, err := validateSessionJWT(rawToken, cfg.Secret); err == nil {

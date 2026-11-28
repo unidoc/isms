@@ -39,6 +39,9 @@ type trustSettingsJSON struct {
 	// EmailConfigured is false when the server cannot send mail, in which case
 	// visitors cannot sign in.
 	EmailConfigured bool `json:"email_configured"`
+	// TrustDomain is the host the trust center is served on, set by the server
+	// operator (read-only here); null when unset.
+	TrustDomain *string `json:"trust_domain"`
 }
 
 type trustSettingsRequest struct {
@@ -97,6 +100,11 @@ func (s *Server) trustSettingsResponse(ctx context.Context, st *db.TrustCenterSe
 		SecurityContact: st.SecurityContact, DefaultAccessLevel: st.DefaultAccessLevel,
 		UpdatedAt: st.UpdatedAt, UpdatedBy: st.UpdatedBy,
 	}
+	org, err := s.db.GetOrganization(ctx, st.OrganizationID)
+	if err != nil {
+		return out, err
+	}
+	out.TrustDomain = org.TrustDomain
 	until, err := s.db.TrustVisitorLinkPausedUntil(ctx, st.OrganizationID, trustSignInOrgHourly(), time.Hour)
 	if err != nil {
 		return out, err

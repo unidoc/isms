@@ -27,16 +27,13 @@ test('trust host table: exactly /, /sign-in and /documents/:id, all public trust
   assert.equal(root.meta.signIn, undefined)
   assert.equal(doc.params.id, 'pol-1')
   const paths = buildTrustHostRoutes().map((x) => x.path)
-  assert.deepEqual(paths, ['/', '/sign-in', '/documents/:id', '/:pathMatch(.*)*'])
+  assert.deepEqual(paths, ['/', '/sign-in', '/documents/:id'])
 })
 
-test('trust host table: everything else redirects to /', async () => {
+test('trust host table has no catch-all: other paths match nothing, so links navigate natively', () => {
   const r = hostRouter()
-  for (const p of ['/trust', '/login', '/acme/trust', '/documents', '/documents/a/b']) {
-    const m = r.resolve(p)
-    assert.equal(m.matched[0].path, '/:pathMatch(.*)*', p)
-    await r.push(p)
-    assert.equal(r.currentRoute.value.path, '/', p)
+  for (const p of ['/trust', '/login', '/acme/trust', '/documents', '/documents/a/b', '/branding/logo', '/api/v1/trust/acme/certifications/1/file', '/assets/app.js']) {
+    assert.equal(r.resolve(p).matched.length, 0, p)
   }
 })
 

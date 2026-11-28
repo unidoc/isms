@@ -270,3 +270,66 @@ func TestV100MigrationReRunKeepsTrustDomains(t *testing.T) {
 		t.Fatalf("after re-run err = %v, want ErrOrgHostTaken", err)
 	}
 }
+
+// Legacy data the old app-domain index allows (two live orgs whose domains differ
+// only by scheme) must not make a trust domain change fail, clearing included;
+// a new org with another variant of that domain is still refused.
+func TestOrgHostLegacyDuplicatesDoNotBlockTrustDomainChanges(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	host := uniqueHost("legacy")
+	a := hostTestOrg(t, d, "la", nil)
+	b := hostTestOrg(t, d, "lb", nil)
+
+	// Write the legacy rows with the trigger off, in one transaction: the ALTER
+	// is invisible to other connections until commit, and it is re-enabled first.
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	for _, q := range []string{
+		`ALTER TABLE organizations DISABLE TRIGGER organizations_host_unique`,
+	} {
+		if _, err := tx.Exec(ctx, q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := tx.Exec(ctx, `UPDATE organizations SET domain = $2 WHERE id = $1`, a.ID, host); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE organizations SET domain = $2 WHERE id = $1`, b.ID, "https://"+host+"/"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `ALTER TABLE organizations ENABLE TRIGGER organizations_host_unique`); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	trust := uniqueHost("lt")
+	if err := d.SetOrganizationTrustDomain(ctx, a.ID, &trust); err != nil {
+		t.Fatalf("set on a legacy-duplicate org: %v", err)
+	}
+	if err := d.SetOrganizationTrustDomain(ctx, a.ID, nil); err != nil {
+		t.Fatalf("clear on a legacy-duplicate org: %v", err)
+	}
+	if err := d.SetOrganizationTrustDomain(ctx, b.ID, &trust); err != nil {
+		t.Fatalf("set on the other legacy org: %v", err)
+	}
+	if _, err := d.pool.Exec(ctx, `UPDATE organizations SET name = 'x' WHERE id = $1`, b.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	c := &Organization{Name: "C", Slug: fmt.Sprintf("host-lc-%d", time.Now().UnixNano()), RepoPath: "/tmp/none", Domain: sp("HTTP://" + host)}
+	err = d.CreateOrganization(ctx, c)
+	if !errors.Is(err, ErrOrgHostTaken) {
+		_, _ = d.pool.Exec(ctx, `DELETE FROM organizations WHERE id = $1`, c.ID)
+		t.Fatalf("a new org with another variant of the domain: err = %v, want ErrOrgHostTaken", err)
+	}
+	// an own-org collision is still refused
+	if err := d.SetOrganizationTrustDomain(ctx, b.ID, &host); !errors.Is(err, ErrOrgHostTaken) {
+		t.Fatalf("trust == own app domain: err = %v, want ErrOrgHostTaken", err)
+	}
+}

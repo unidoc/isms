@@ -207,6 +207,9 @@ func orgSetTrustDomainCmd() *cobra.Command {
 			}
 			if err := d.SetOrganizationTrustDomain(ctx, org.ID, newDomain); err != nil {
 				if errors.Is(err, db.ErrOrgHostTaken) {
+					if newDomain == nil {
+						return fmt.Errorf("the change was refused: it conflicts with an organization's app or trust domain")
+					}
 					return fmt.Errorf("%s is already used by an organization's app or trust domain", *newDomain)
 				}
 				return fmt.Errorf("updating trust domain: %w", err)

@@ -19,14 +19,14 @@ export function buildTrustRoutes(subdomainMode) {
 // The routes of a trust domain (#528): the host serves only the trust center, at
 // the root. These are exactly the three page shapes the server's gate answers
 // (trustHostPage in internal/isms/api/trust_host.go): "/", "/sign-in" and
-// "/documents/<one segment>". Anything else is redirected to "/" in the SPA
-// (the server already answers 404 to what it does not serve).
+// "/documents/<one segment>". No catch-all, like the main table (router.js): a
+// plain link to a server-served path must navigate natively, and the server
+// already answers 404 to what it does not serve.
 export function buildTrustHostRoutes() {
   const meta = { public: true, trust: true, trustHost: true }
   return [
     { path: '/', component: TrustCenter, meta },
     { path: '/sign-in', component: TrustCenter, meta: { ...meta, signIn: true } },
     { path: '/documents/:id', component: TrustCenter, meta },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
   ]
 }

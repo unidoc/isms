@@ -172,6 +172,7 @@ func trustSignInLink(baseURL string, org *db.Organization, subdomainRouting bool
 	if h, _, err := net.SplitHostPort(reqHost); err == nil {
 		reqHost = h
 	}
+	reqHost = strings.TrimSuffix(reqHost, ".")
 	if org.TrustDomain != nil && *org.TrustDomain != "" && reqHost == strings.ToLower(*org.TrustDomain) {
 		// On the trust host the page lives at the root, and the base URL's port
 		// is not appended (like a custom domain).

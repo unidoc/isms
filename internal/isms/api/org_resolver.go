@@ -35,6 +35,8 @@ func OrgResolverMiddleware(database *db.DB, baseDomain string, subdomainRouting 
 			if i := strings.LastIndex(host, ":"); i > 0 {
 				hostname = host[:i]
 			}
+			// "trust.acme.test." is the same host as "trust.acme.test".
+			hostname = strings.TrimSuffix(hostname, ".")
 
 			path := c.Request().URL.Path
 

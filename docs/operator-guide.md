@@ -216,6 +216,8 @@ The command prints the old and new value. A change applies on the next request; 
 
 The host must be a plain host name such as `trust.mycompany.com`: letters, digits and hyphens in at least two dot-separated labels, written in punycode if it is not ASCII. The command refuses a scheme (`https://`), a port, a path, a wildcard, an IP address, `localhost`, the app's own host (`ISMS_DOMAIN`, or the host of `ISMS_BASE_URL`) or anything under it (`www.` and tenant subdomains included), and a host that another organization already uses as its app domain or trust domain. A deleted organization does not block its hosts.
 
+A trust domain needs `ISMS_BASE_URL` (or `ISMS_DOMAIN`) set on the server, as visitor sign-in links already do: the server recognises custom and trust domains only when it knows its own address, and without it a trust domain is ignored and that host serves the plain app.
+
 To put a trust domain into service:
 
 1. **DNS.** Point the host at the server (or at the reverse proxy in front of it) with an A, AAAA or CNAME record.

@@ -165,12 +165,17 @@ func TestTrustHostServesTheOrgsOwnPages(t *testing.T) {
 
 func TestTrustHostCaseAndPortAreIgnored(t *testing.T) {
 	e := trustHostSetup(t)
-	for _, host := range []string{strings.ToUpper(e.trust), e.trust + ":8443", strings.ToUpper(e.trust) + ":1"} {
+	for _, host := range []string{strings.ToUpper(e.trust), e.trust + ":8443", strings.ToUpper(e.trust) + ":1", e.trust + ".", e.trust + ".:443", strings.ToUpper(e.trust) + "."} {
 		if r := trustDo(e.s, host, "GET", "/", ""); !strings.Contains(r.body, `isms-trust-host" content="`+e.a.slug) {
 			t.Errorf("host %q: / = %d, no trust meta", host, r.code)
 		}
 		if r := trustDo(e.s, host, "GET", "/login", ""); r.code != http.StatusNotFound {
 			t.Errorf("host %q: /login = %d, want 404", host, r.code)
+		}
+		for _, denied := range []string{"/api/v1/config", "/healthz"} {
+			if r := trustDo(e.s, host, "GET", denied, ""); r.code != http.StatusNotFound {
+				t.Errorf("host %q: %s = %d, want 404", host, denied, r.code)
+			}
 		}
 		if r := trustDo(e.s, host, "GET", "/api/v1/trust/"+e.a.slug, ""); r.code != http.StatusOK {
 			t.Errorf("host %q: trust API = %d", host, r.code)

@@ -74,7 +74,7 @@
       <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8 space-y-8">
         <!-- Document page -->
         <section v-if="docId" data-trust="document-page">
-          <a :href="basePath" class="text-sm font-medium trust-brand-text hover:underline" data-trust="doc-back" @click="go($event, basePath)">
+          <a :href="root" class="text-sm font-medium trust-brand-text hover:underline" data-trust="doc-back" @click="go($event, root)">
             <svg class="inline w-4 h-4 -mt-0.5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
             {{ $t('trust.public.doc_back') }}
           </a>
@@ -258,6 +258,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import DOMPurify from 'dompurify'
 import api, { getApiToken } from '../api.js'
+import { trustHostSlug } from '../composables/useCurrentOrg'
 import { i18n, t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
 import { applyBrandColor } from '../utils/brandColor.js'
@@ -271,6 +272,9 @@ const props = defineProps({
   slug: { type: String, default: '' },
   // Where this page lives (/acme/trust, or /trust on a tenant host).
   basePath: { type: String, required: true },
+  // The page itself, where the back link goes; defaults to basePath (on a trust
+  // domain basePath is '' and this is '/').
+  rootPath: { type: String, default: null },
   // The public id of the document page to show, when on one.
   docId: { type: String, default: '' },
   // Where the data comes from: {overview(), items(), document(id)}. The default
@@ -279,6 +283,7 @@ const props = defineProps({
   // returns { blob, filename } through the session.
   source: { type: Object, default: null },
 })
+const root = computed(() => props.rootPath ?? props.basePath)
 // Navigation is the parent's job: the component renders real hrefs and hands a
 // plain click up, so it needs no router to be mounted.
 const emit = defineEmits(['navigate'])
@@ -554,7 +559,7 @@ async function load() {
     const [o, list, cfg] = await Promise.all([
       loaders.value.overview(),
       loaders.value.items(),
-      api.publicConfig().catch(() => null),
+      trustHostSlug() ? null : api.publicConfig().catch(() => null), // not served on a trust domain
     ])
     ov.value = o
     items.value = list

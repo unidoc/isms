@@ -11,7 +11,9 @@
   "address": {
     "label": "Public address",
     "copied": "Copied",
-    "preview": "Preview as visitor"
+    "preview": "Preview as visitor",
+    "trust_domain": "Trust domain",
+    "trust_domain_note": "Set by the server operator"
   },
   "documents": {
     "heading": "Documents",

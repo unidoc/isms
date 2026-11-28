@@ -2825,6 +2825,8 @@
   "trust_manager.address.copied",
   "trust_manager.address.label",
   "trust_manager.address.preview",
+  "trust_manager.address.trust_domain",
+  "trust_manager.address.trust_domain_note",
   "trust_manager.certifications.add",
   "trust_manager.certifications.delete",
   "trust_manager.certifications.delete_body",

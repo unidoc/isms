@@ -39,7 +39,8 @@ func (s *Server) spaFileSystem() fs.FS {
 
 // trustHostPage reports whether path is one of the SPA pages a trust host
 // serves. Keep in step with buildTrustHostRoutes in web/src/trustRoutes.js:
-// "/", "/sign-in" and "/documents/<id>" (exactly one non-empty segment).
+// "/", "/sign-in" and "/documents/<id>" (exactly one non-empty segment). The
+// SPA side is the same three shapes.
 func trustHostPage(path string) bool {
 	switch path {
 	case "/", "/sign-in":

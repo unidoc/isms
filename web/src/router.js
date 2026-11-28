@@ -7,8 +7,8 @@ import ForgotPassword from './views/ForgotPassword.vue'
 import VerifyEmail from './views/VerifyEmail.vue'
 import VerifyEmailChange from './views/VerifyEmailChange.vue'
 import Landing from './views/Landing.vue'
-import { isSubdomainMode, orgFromSubdomain } from './composables/useCurrentOrg'
-import { buildTrustRoutes } from './trustRoutes'
+import { isSubdomainMode, orgFromSubdomain, trustHostSlug } from './composables/useCurrentOrg'
+import { buildTrustRoutes, buildTrustHostRoutes } from './trustRoutes'
 import { ssoHashToken } from './utils/ssoHashToken'
 
 const Dashboard = () => import('./views/Dashboard.vue')
@@ -92,7 +92,7 @@ function buildOrgRoutes(subdomainMode) {
 
 const subdomainMode = isSubdomainMode()
 
-const routes = [
+const routes = trustHostSlug() ? buildTrustHostRoutes() : [
   // Public — always at the top level regardless of host
   { path: '/', component: Landing, meta: { public: true } },
   { path: '/login', component: Login, meta: { public: true } },
@@ -136,6 +136,10 @@ let sessionValidated = false
 let cfTried = false
 
 router.beforeEach(async (to, from) => {
+  // A trust domain serves only the public trust center: no SSO hand-off, no
+  // Cloudflare probe, no auth (those calls would all 404 there).
+  if (trustHostSlug()) return true
+
   // SSO (OIDC, …) hands the session token back in the URL hash (#token=…). Store
   // it BEFORE any auth gate runs: otherwise the guard sees no local token and
   // bounces to /login, trapping the token in a ?redirect= param — and in path mode

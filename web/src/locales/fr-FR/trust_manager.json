@@ -11,7 +11,9 @@
   "address": {
     "label": "Adresse publique",
     "copied": "Copié",
-    "preview": "Voir comme un visiteur"
+    "preview": "Voir comme un visiteur",
+    "trust_domain": "Domaine du centre de confiance",
+    "trust_domain_note": "Défini par l'opérateur du serveur"
   },
   "documents": {
     "heading": "Documents",

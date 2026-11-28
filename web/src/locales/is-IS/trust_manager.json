@@ -11,7 +11,9 @@
   "address": {
     "label": "Opinbert vistfang",
     "copied": "Afritað",
-    "preview": "Skoða sem gestur"
+    "preview": "Skoða sem gestur",
+    "trust_domain": "Lén traustmiðstöðvar",
+    "trust_domain_note": "Stillt af rekstraraðila þjónsins"
   },
   "documents": {
     "heading": "Skjöl",

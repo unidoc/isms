@@ -11,7 +11,9 @@
   "address": {
     "label": "Alamat publik",
     "copied": "Disalin",
-    "preview": "Pratinjau sebagai pengunjung"
+    "preview": "Pratinjau sebagai pengunjung",
+    "trust_domain": "Domain Pusat Kepercayaan",
+    "trust_domain_note": "Ditetapkan oleh operator server"
   },
   "documents": {
     "heading": "Dokumen",

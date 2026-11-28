@@ -11,7 +11,9 @@
   "address": {
     "label": "Öffentliche Adresse",
     "copied": "Kopiert",
-    "preview": "Als Besucher ansehen"
+    "preview": "Als Besucher ansehen",
+    "trust_domain": "Trust-Domain",
+    "trust_domain_note": "Vom Serverbetreiber festgelegt"
   },
   "documents": {
     "heading": "Dokumente",

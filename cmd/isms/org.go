@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ func orgCmd() *cobra.Command {
 		Short: "Manage organizations (multi-tenant)",
 	}
 
-	cmd.AddCommand(orgCreateCmd(), orgListCmd(), orgAddMemberCmd(), orgMembersCmd(), orgSetRepoPathCmd())
+	cmd.AddCommand(orgCreateCmd(), orgListCmd(), orgAddMemberCmd(), orgMembersCmd(), orgSetRepoPathCmd(), orgSetTrustDomainCmd())
 	return cmd
 }
 
@@ -70,6 +71,9 @@ func orgCreateCmd() *cobra.Command {
 				org.Domain = &domain
 			}
 			if err := d.CreateOrganization(ctx, org); err != nil {
+				if errors.Is(err, db.ErrOrgHostTaken) {
+					return fmt.Errorf("creating organization: %s is already used by an organization's app or trust domain", domain)
+				}
 				return fmt.Errorf("creating organization: %w", err)
 			}
 
@@ -91,6 +95,9 @@ func orgCreateCmd() *cobra.Command {
 			fmt.Printf("  Repo:      %s\n", org.RepoPath)
 			if org.Domain != nil {
 				fmt.Printf("  Domain:    %s\n", *org.Domain)
+			}
+			if org.TrustDomain != nil {
+				fmt.Printf("  Trust domain: %s\n", *org.TrustDomain)
 			}
 			fmt.Printf("  Created:   %s\n\n", timefmt.LocalTime(org.CreatedAt))
 			fmt.Printf("Set in your env file:\n")
@@ -165,6 +172,65 @@ func orgSetRepoPathCmd() *cobra.Command {
 	return cmd
 }
 
+func orgSetTrustDomainCmd() *cobra.Command {
+	var slug, domain string
+	var clear bool
+
+	cmd := &cobra.Command{
+		Use:   "set-trust-domain",
+		Short: "Serve an organization's trust center on its own host (e.g. trust.company.com), or stop doing so",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if slug == "" {
+				return fmt.Errorf("--org is required")
+			}
+			if clear == (domain != "") {
+				return fmt.Errorf("give exactly one of --domain or --clear")
+			}
+			var newDomain *string
+			if !clear {
+				norm, err := db.NormalizeTrustDomain(domain, db.ApexHost(os.Getenv("ISMS_DOMAIN"), os.Getenv("ISMS_BASE_URL")))
+				if err != nil {
+					return err
+				}
+				newDomain = &norm
+			}
+			d, err := connectDB()
+			if err != nil {
+				return err
+			}
+			defer d.Close()
+
+			ctx := cmd.Context()
+			org, err := d.GetOrganizationBySlug(ctx, slug)
+			if err != nil {
+				return fmt.Errorf("organization %q not found", slug)
+			}
+			if err := d.SetOrganizationTrustDomain(ctx, org.ID, newDomain); err != nil {
+				if errors.Is(err, db.ErrOrgHostTaken) {
+					return fmt.Errorf("%s is already used by an organization's app or trust domain", *newDomain)
+				}
+				return fmt.Errorf("updating trust domain: %w", err)
+			}
+			old, now := "(none)", "(none)"
+			if org.TrustDomain != nil {
+				old = *org.TrustDomain
+			}
+			if newDomain != nil {
+				now = *newDomain
+			}
+			fmt.Printf("Trust domain for %s updated:\n", org.Slug)
+			fmt.Printf("  Old: %s\n", old)
+			fmt.Printf("  New: %s\n", now)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&slug, "org", "", "Organization slug (required)")
+	cmd.Flags().StringVar(&domain, "domain", "", "Host name to serve the trust center on (e.g. trust.example.com)")
+	cmd.Flags().BoolVar(&clear, "clear", false, "Remove the organization's trust domain")
+	return cmd
+}
+
 func orgListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -187,10 +253,14 @@ func orgListCmd() *cobra.Command {
 			}
 
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "UUID\tNAME\tSLUG\tREPO PATH\tCREATED")
+			fmt.Fprintln(w, "UUID\tNAME\tSLUG\tREPO PATH\tTRUST DOMAIN\tCREATED")
 			for _, o := range orgs {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-					o.UUID[:8]+"...", o.Name, o.Slug, o.RepoPath,
+				trust := "-"
+				if o.TrustDomain != nil {
+					trust = *o.TrustDomain
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+					o.UUID[:8]+"...", o.Name, o.Slug, o.RepoPath, trust,
 					timefmt.LocalTime(o.CreatedAt))
 			}
 			w.Flush()

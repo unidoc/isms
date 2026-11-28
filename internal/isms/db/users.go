@@ -19,6 +19,10 @@ var ErrEmailTaken = errors.New("email address is already in use")
 // already uses the slug (case-insensitive).
 var ErrSlugTaken = errors.New("an organization with this slug already exists")
 
+// ErrOrgHostTaken is returned when a host is already the app domain or the trust
+// domain of another live organization (or the organization's own app domain).
+var ErrOrgHostTaken = errors.New("host is already used by an organization's app or trust domain")
+
 // User represents an ISMS platform user.
 type User struct {
 	ID            int     `json:"id"`
@@ -47,14 +51,17 @@ type UserWithRole struct {
 
 // Organization represents a tenant / customer org.
 type Organization struct {
-	ID        int     `json:"-"`    // never exposed externally
-	UUID      string  `json:"uuid"` // public identifier
-	Name      string  `json:"name"`
-	Slug      string  `json:"slug"`                // URL-friendly (e.g. "unidoc")
-	RepoPath  string  `json:"repo_path,omitempty"` // git repo path on server
-	Domain    *string `json:"domain,omitempty"`    // custom domain
-	CreatedAt Epoch   `json:"created_at"`
-	UpdatedAt Epoch   `json:"updated_at"`
+	ID       int     `json:"-"`    // never exposed externally
+	UUID     string  `json:"uuid"` // public identifier
+	Name     string  `json:"name"`
+	Slug     string  `json:"slug"`                // URL-friendly (e.g. "unidoc")
+	RepoPath string  `json:"repo_path,omitempty"` // git repo path on server
+	Domain   *string `json:"domain,omitempty"`    // custom domain
+	// TrustDomain is the host the org's trust center is served on, set by the
+	// server operator (bare lowercase host).
+	TrustDomain *string `json:"trust_domain,omitempty"`
+	CreatedAt   Epoch   `json:"created_at"`
+	UpdatedAt   Epoch   `json:"updated_at"`
 }
 
 // OrgMember represents a user's membership and role within an organization.
@@ -563,6 +570,9 @@ func (d *DB) CreateOrganization(ctx context.Context, org *Organization) error {
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "uq_organizations_slug_lower" {
 		return ErrSlugTaken
 	}
+	if isOrgHostViolation(err) {
+		return ErrOrgHostTaken
+	}
 	return err
 }
 
@@ -608,9 +618,9 @@ func (d *DB) HardDeleteOrganization(ctx context.Context, orgID int) error {
 func (d *DB) GetOrganization(ctx context.Context, id int) (*Organization, error) {
 	var o Organization
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, uuid, name, slug, repo_path, domain, created_at, updated_at
+		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at
 		FROM organizations WHERE id = $1 AND deleted_at IS NULL
-	`, id).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt)
+	`, id).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -621,22 +631,23 @@ func (d *DB) GetOrganization(ctx context.Context, id int) (*Organization, error)
 func (d *DB) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
 	var o Organization
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, uuid, name, slug, repo_path, domain, created_at, updated_at
+		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at
 		FROM organizations WHERE slug = $1 AND deleted_at IS NULL
-	`, slug).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt)
+	`, slug).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &o, nil
 }
 
-// GetOrganizationByDomain returns an organization by its custom domain.
+// GetOrganizationByDomain returns an organization by its custom domain. The
+// match is on the normalised host (case, scheme and trailing slash ignored).
 func (d *DB) GetOrganizationByDomain(ctx context.Context, domain string) (*Organization, error) {
 	var o Organization
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, uuid, name, slug, repo_path, domain, created_at, updated_at
-		FROM organizations WHERE domain = $1 AND deleted_at IS NULL
-	`, domain).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt)
+		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at
+		FROM organizations WHERE isms_org_host(domain) = isms_org_host($1) AND deleted_at IS NULL
+	`, domain).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -647,9 +658,9 @@ func (d *DB) GetOrganizationByDomain(ctx context.Context, domain string) (*Organ
 func (d *DB) GetOrganizationByUUID(ctx context.Context, uuid string) (*Organization, error) {
 	var o Organization
 	err := d.pool.QueryRow(ctx, `
-		SELECT id, uuid, name, slug, repo_path, domain, created_at, updated_at
+		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at
 		FROM organizations WHERE uuid = $1 AND deleted_at IS NULL
-	`, uuid).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt)
+	`, uuid).Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +670,7 @@ func (d *DB) GetOrganizationByUUID(ctx context.Context, uuid string) (*Organizat
 // ListOrganizations returns all active (non-deleted) organizations ordered by name.
 func (d *DB) ListOrganizations(ctx context.Context) ([]Organization, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT id, uuid, name, slug, repo_path, domain, created_at, updated_at
+		SELECT id, uuid, name, slug, repo_path, domain, trust_domain, created_at, updated_at
 		FROM organizations WHERE deleted_at IS NULL ORDER BY name
 	`)
 	if err != nil {
@@ -670,7 +681,7 @@ func (d *DB) ListOrganizations(ctx context.Context) ([]Organization, error) {
 	var orgs []Organization
 	for rows.Next() {
 		var o Organization
-		if err := rows.Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt); err != nil {
+		if err := rows.Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt); err != nil {
 			return nil, err
 		}
 		orgs = append(orgs, o)
@@ -753,7 +764,7 @@ func (d *DB) ListOrgMembers(ctx context.Context, orgID int) ([]OrgMember, error)
 // ListUserOrgs returns all organizations a user belongs to.
 func (d *DB) ListUserOrgs(ctx context.Context, userID int) ([]Organization, error) {
 	rows, err := d.pool.Query(ctx, `
-		SELECT o.id, o.uuid, o.name, o.slug, o.repo_path, o.domain, o.created_at, o.updated_at
+		SELECT o.id, o.uuid, o.name, o.slug, o.repo_path, o.domain, o.trust_domain, o.created_at, o.updated_at
 		FROM organizations o
 		JOIN organization_members m ON m.organization_id = o.id
 		WHERE m.user_id = $1 AND o.deleted_at IS NULL
@@ -767,7 +778,7 @@ func (d *DB) ListUserOrgs(ctx context.Context, userID int) ([]Organization, erro
 	var orgs []Organization
 	for rows.Next() {
 		var o Organization
-		if err := rows.Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.CreatedAt, &o.UpdatedAt); err != nil {
+		if err := rows.Scan(&o.ID, &o.UUID, &o.Name, &o.Slug, &o.RepoPath, &o.Domain, &o.TrustDomain, &o.CreatedAt, &o.UpdatedAt); err != nil {
 			return nil, err
 		}
 		orgs = append(orgs, o)

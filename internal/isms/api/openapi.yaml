@@ -5406,6 +5406,7 @@ components:
         slug: { type: string }
         repo_path: { type: string, description: "Server-side path of the organization's git repository. Not in the create response. Omitted when empty." }
         domain: { type: string, description: "Custom domain. Not in the create response. Omitted when not set." }
+        trust_domain: { type: string, description: "Host the trust center is served on, set by the server operator. Not in the create response. Omitted when not set." }
         created_at: { $ref: '#/components/schemas/EpochSeconds', description: "Not in the create response." }
         updated_at: { $ref: '#/components/schemas/EpochSeconds', description: "Not in the create response." }
         role: { type: string, description: "Only in GET /me/organizations: the caller's role in that organization." }

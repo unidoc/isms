@@ -426,6 +426,16 @@ func (s *Server) handleAddTemplate(c echo.Context) error {
 		return errNotFound("organization")
 	}
 
+	// Documents the template adds that were deleted earlier start with no
+	// history. Ids already at HEAD (a template added twice) are left alone.
+	tplIDs, err := scaffold.TemplateDocumentIDs(req.Template)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("scaffolding template: %v", err))
+	}
+	if err := s.archiveIfAbsent(ctx, orgID, st, tplIDs, "template added"); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("scaffolding template: %v", err))
+	}
+
 	if err := scaffold.ScaffoldToRepo(st, req.Template, authorName, email); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("scaffolding template: %v", err))
 	}
@@ -480,6 +490,23 @@ func (s *Server) handleRemoveTemplate(c echo.Context) error {
 		fmt.Sprintf("chore: remove %s template documents", name))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("removing template: %v", err))
+	}
+	// Only the template's own documents that really left are archived: the ids
+	// are read at the commit the removal made and at its parent.
+	if tplIDs, terr := scaffold.TemplateDocumentIDs(name); terr != nil {
+		log.Printf("documents: org %d: not archiving versions of template %s: %v", orgID, name, terr)
+	} else {
+		scope := map[string]bool{}
+		for _, id := range tplIDs {
+			scope[id] = true
+		}
+		parent, perr := st.ParentHash(commitHash)
+		if perr == nil {
+			perr = s.archiveBetween(ctx, orgID, st, parent, commitHash, scope, "template removed")
+		}
+		if perr != nil {
+			log.Printf("documents: org %d: not archiving versions of template %s: %v", orgID, name, perr)
+		}
 	}
 
 	// Invalidate store cache

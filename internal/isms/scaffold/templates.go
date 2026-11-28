@@ -252,3 +252,27 @@ func copyDir(src, dest string) error {
 		return os.WriteFile(destPath, content, 0o644)
 	})
 }
+
+// TemplateDocumentIDs returns the document ids (lowercase) of the markdown
+// files in a template, as the documents they scaffold will carry them.
+func TemplateDocumentIDs(template string) ([]string, error) {
+	base := TemplatePath()
+	if base == "" {
+		return nil, fmt.Errorf("ISMS_TEMPLATE_PATH not set")
+	}
+	var ids []string
+	err := filepath.WalkDir(filepath.Join(base, template), func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
+			return walkErr
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if pf, perr := store.ParseDocument(path, raw); perr == nil && pf.Frontmatter.DocumentID != "" {
+			ids = append(ids, strings.ToLower(pf.Frontmatter.DocumentID))
+		}
+		return nil
+	})
+	return ids, err
+}

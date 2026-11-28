@@ -61,7 +61,29 @@ func TestV100MigrationReRunsOnPopulatedData(t *testing.T) {
 		t.Fatalf("precondition: NDA acceptances: %v", err)
 	}
 
+	// An archived and an active version that share (organization, document,
+	// version): the partial unique key must let both exist and survive the file
+	// running again.
+	for i, archived := range []string{"now()", "NULL"} {
+		if _, err := d.pool.Exec(ctx, `
+			INSERT INTO document_versions (organization_id, document_id, version, commit_hash, file_path, created_by, archived_at)
+			VALUES ($1, 'rerun-doc', '1.0', $2, 'documents/rerun-doc.md', 'migration-test@example.test', `+archived+`)`,
+			orgID, fmt.Sprint("c", i)); err != nil {
+			t.Fatalf("precondition: version with archived_at %s: %v", archived, err)
+		}
+	}
+
 	if _, err := d.pool.Exec(ctx, string(sqlText)); err != nil {
 		t.Fatalf("re-running %s on a populated database: %v", filepath.Base(files[0]), err)
+	}
+	var total, archived int
+	if err := d.pool.QueryRow(ctx, `SELECT count(*), count(archived_at) FROM document_versions WHERE organization_id = $1 AND document_id = 'rerun-doc'`, orgID).Scan(&total, &archived); err != nil || total != 2 || archived != 1 {
+		t.Errorf("after the re-run: %d rows, %d archived (%v); want 2 and 1", total, archived, err)
+	}
+	// A second ACTIVE row with the same label is still refused.
+	if _, err := d.pool.Exec(ctx, `
+		INSERT INTO document_versions (organization_id, document_id, version, commit_hash, file_path, created_by)
+		VALUES ($1, 'rerun-doc', '1.0', 'c9', 'documents/rerun-doc.md', 'migration-test@example.test')`, orgID); err == nil {
+		t.Error("two active versions with the same label were accepted")
 	}
 }

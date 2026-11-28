@@ -557,7 +557,10 @@ func (s *Server) handleUpdateReviewStatus(c echo.Context) error {
 		return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status(review.Status))
 	}
 
-	if err := s.db.UpdateReviewStatus(ctx, orgID, id, "closed"); err != nil {
+	if err := s.db.UpdateReviewStatusFrom(ctx, orgID, id, "closed", db.LiveReviewStatuses); err != nil {
+		if errors.Is(err, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
@@ -604,6 +607,11 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 	if err != nil {
 		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
+	// A closed or merged review is finished: forwarding it must not open it again
+	// (its document may be gone).
+	if review.Status == "merged" || review.Status == "closed" {
+		return apiError(http.StatusBadRequest, CodeReviewWrongStatus, Status(review.Status))
+	}
 
 	// Add assignments + status update in a single transaction with RLS
 	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -613,13 +621,16 @@ func (s *Server) handleForwardReview(c echo.Context) error {
 			}
 		}
 		if review.Status != "open" {
-			if err := db.UpdateReviewStatusTx(ctx, tx, orgID, id, "open"); err != nil {
+			if err := db.UpdateReviewStatusFromTx(ctx, tx, orgID, id, "open", db.LiveReviewStatuses); err != nil {
 				return fmt.Errorf("updating review status: %w", err)
 			}
 		}
 		return nil
 	})
 	if txErr != nil {
+		if errors.Is(txErr, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
@@ -1142,6 +1153,10 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 	if err != nil {
 		return apiError(http.StatusNotFound, CodeNotFound, Entity("review"))
 	}
+	// A closed or merged review is finished: a decision must not bring it back.
+	if review.Status == "merged" || review.Status == "closed" {
+		return apiError(http.StatusBadRequest, CodeReviewWrongStatus, Status(review.Status))
+	}
 
 	var req struct {
 		Decision string `json:"decision"` // "approved" or "changes_requested"
@@ -1291,7 +1306,7 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 		}
 
 		if newStatus != review.Status {
-			if err := db.UpdateReviewStatusTx(ctx, tx, orgID, id, newStatus); err != nil {
+			if err := db.UpdateReviewStatusFromTx(ctx, tx, orgID, id, newStatus, db.LiveReviewStatuses); err != nil {
 				return fmt.Errorf("failed to update review status: %w", err)
 			}
 		}
@@ -1299,6 +1314,9 @@ func (s *Server) handleReviewApprove(c echo.Context) error {
 		return nil
 	})
 	if txErr != nil {
+		if errors.Is(txErr, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		msg := txErr.Error()
 		if strings.HasPrefix(msg, "CONFLICT:") {
 			return echo.NewHTTPError(http.StatusConflict, strings.TrimPrefix(msg, "CONFLICT:"))
@@ -1452,23 +1470,31 @@ func (s *Server) performMerge(ctx context.Context, orgID int, id int, review *db
 	if err != nil {
 		return fmt.Errorf("opening repository: %w", err)
 	}
+	target, err := s.checkReviewIncarnation(ctx, orgID, st, review)
+	if err != nil {
+		return err
+	}
 
-	// Git merge
+	// Git merge. The review branch holds the reviewer's edits; a review without
+	// reviewer edits has none, and then the document is exactly what was sent
+	// (checkReviewIncarnation compared it by id), so there is nothing to merge.
 	branchName := fmt.Sprintf("review/%d", id)
 	docPath := resolveDocPathFromStore(st, review.DocumentID)
 	if docPath != "" {
-		baseForMerge := review.SentHead
-		if baseForMerge == "" {
-			baseForMerge = review.CommitHash
-		}
-		if _, mergeErr := st.MergeSuggestion(docPath, branchName, actorName, actor, baseForMerge); mergeErr != nil {
-			if mergeErr == store.ErrConflict {
-				return fmt.Errorf("document was modified since review was sent")
+		if _, branchErr := st.RefHash(branchName); branchErr == nil {
+			if target.basePath != target.curPath {
+				return fmt.Errorf("document was modified since review was sent: the document moved and the review has reviewer edits")
 			}
-			// "reference not found" means no review branch exists — content was edited
-			// directly on main (e.g. no reviewer edits). This is a valid no-op merge.
-			errMsg := mergeErr.Error()
-			if !strings.Contains(errMsg, "reference not found") && !strings.Contains(errMsg, "not found") {
+			baseForMerge := review.SentHead
+			if baseForMerge == "" {
+				baseForMerge = review.CommitHash
+			}
+			if _, mergeErr := st.MergeSuggestion(docPath, branchName, actorName, actor, baseForMerge); mergeErr != nil {
+				if mergeErr == store.ErrConflict {
+					return fmt.Errorf("document was modified since review was sent")
+				}
+				// The branch exists, so a missing file on it is a real problem, not a
+				// no-op merge.
 				return fmt.Errorf("merging review branch: %w", mergeErr)
 			}
 		}
@@ -1480,7 +1506,7 @@ func (s *Server) performMerge(ctx context.Context, orgID int, id int, review *db
 	}
 
 	// Update document status
-	if err := setDocumentStatusAndVersion(st, review.DocumentID, "approved", "", actorName, actor); err != nil {
+	if _, err := setDocumentStatusAndVersion(st, review.DocumentID, "approved", "", actorName, actor); err != nil {
 		return fmt.Errorf("updating document status: %w", err)
 	}
 
@@ -1539,7 +1565,7 @@ func (s *Server) performMerge(ctx context.Context, orgID int, id int, review *db
 		}
 
 		// Update review status
-		if err := db.UpdateReviewStatusTx(ctx, tx, orgID, id, "merged"); err != nil {
+		if err := db.UpdateReviewStatusFromTx(ctx, tx, orgID, id, "merged", []string{"approved"}); err != nil {
 			return fmt.Errorf("updating review status: %w", err)
 		}
 
@@ -1607,6 +1633,9 @@ func (s *Server) handleMergeReview(c echo.Context) error {
 	}
 
 	if err := s.performMerge(ctx, orgID, id, review, actor); err != nil {
+		if errors.Is(err, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		if strings.Contains(err.Error(), "modified since") || strings.Contains(err.Error(), "conflict") {
 			return echo.NewHTTPError(http.StatusConflict, err.Error())
 		}
@@ -1677,7 +1706,7 @@ func (s *Server) handleAcceptAndMerge(c echo.Context) error {
 			}
 		}
 
-		if err := db.UpdateReviewStatusTx(ctx, tx, orgID, id, "approved"); err != nil {
+		if err := db.UpdateReviewStatusFromTx(ctx, tx, orgID, id, "approved", []string{"changes_requested"}); err != nil {
 			return fmt.Errorf("failed to update review status: %w", err)
 		}
 
@@ -1696,12 +1725,18 @@ func (s *Server) handleAcceptAndMerge(c echo.Context) error {
 		return nil
 	})
 	if txErr != nil {
+		if errors.Is(txErr, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 
 	// Now merge (performMerge has its own transaction)
 	review.Status = "approved" // update in-memory for performMerge
 	if err := s.performMerge(ctx, orgID, id, review, actor); err != nil {
+		if errors.Is(err, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		if strings.Contains(err.Error(), "modified since") || strings.Contains(err.Error(), "conflict") {
 			return echo.NewHTTPError(http.StatusConflict, err.Error())
 		}
@@ -4525,11 +4560,15 @@ func reviewEditState(st *store.Store, docPath string, r *db.Review) (changed, re
 func (s *Server) resubmitReviewRound(c echo.Context, st *store.Store, orgID int, review *db.Review, docID, title, version, actor, message string, reviewers []string) error {
 	ctx := c.Request().Context()
 	// Update document status back to in_review.
-	if err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor); err != nil {
+	// The snapshot is the commit that status change made, not whatever HEAD is
+	// after it: a push in between would leave a later read off the branch.
+	newSentHead, err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("setting document status: %v", err))
 	}
-	// Capture new HEAD as the resubmission snapshot.
-	newSentHead, _ := st.HeadHash()
+	if newSentHead == "" {
+		return echo.NewHTTPError(http.StatusInternalServerError, "setting document status: no commit was made")
+	}
 
 	// Steps 1-3 must be atomic with RLS: update review, reset assignments, add new reviewers.
 	txErr := s.db.WithOrgTx(ctx, orgID, func(ctx context.Context, tx pgx.Tx) error {
@@ -4553,6 +4592,9 @@ func (s *Server) resubmitReviewRound(c echo.Context, st *store.Store, orgID int,
 		return nil
 	})
 	if txErr != nil {
+		if errors.Is(txErr, db.ErrReviewStatusChanged) {
+			return apiError(http.StatusConflict, CodeReviewAlreadyStatus, Status("closed"))
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, txErr.Error())
 	}
 	// Notify all assigned reviewers about the resubmission.
@@ -4643,12 +4685,15 @@ func (s *Server) createReviewWithAssignments(
 	}
 
 	// Set document status to in_review (version unchanged — only user edits change version)
-	if err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor); err != nil {
+	// The snapshot of what was sent is the commit this status change made: not a
+	// later read of HEAD, which a push in between could leave off the branch.
+	sentHead, err := setDocumentStatusAndVersion(st, docID, "in_review", "", actor, actor)
+	if err != nil {
 		return nil, fmt.Errorf("setting document status: %w", err)
 	}
-
-	// Capture HEAD AFTER status change — this is the immutable snapshot of what was sent
-	sentHead, _ := st.HeadHash()
+	if sentHead == "" {
+		return nil, fmt.Errorf("setting document status: no commit was made")
+	}
 
 	// d. Create review record + assignments in a single transaction with RLS
 	review := &db.Review{
@@ -4780,17 +4825,83 @@ func bumpMinorVersion(v string) string {
 
 // setDocumentStatusAndVersion updates frontmatter status and version for a document
 // atomically in a single commit, preventing TOCTOU races.
-func setDocumentStatusAndVersion(st *store.Store, docID, status, version, authorName, authorEmail string) error {
+func setDocumentStatusAndVersion(st *store.Store, docID, status, version, authorName, authorEmail string) (commitHash string, err error) {
 	// Find document path
 	docPath := st.FindDocumentByID(docID)
 	if docPath == "" {
-		return fmt.Errorf("document not found: %s", docID)
+		return "", fmt.Errorf("document not found: %s", docID)
 	}
 
 	fields := map[string]string{"status": status}
 	if version != "" {
 		fields["version"] = version
 	}
-	_, err := st.UpdateDocumentMetadataMulti(docPath, fields, authorName, authorEmail)
-	return err
+	return st.UpdateDocumentMetadataMulti(docPath, fields, authorName, authorEmail)
+}
+
+// mergeTarget is where the review's document was when it was sent and where it
+// is now, both as paths from the repository root.
+type mergeTarget struct{ basePath, curPath string }
+
+// checkReviewIncarnation refuses to merge a review into a document that is not
+// the one the review was for. A review belongs to one incarnation of a document
+// id; the message says "modified since" so the callers answer 409. Both checks
+// must pass:
+//
+//   - the database: no version of the id was archived after the review was
+//     created, that is, the document was not deleted and the id used again
+//     since (archiving also closes the document's reviews, so this is the
+//     backstop for the ones that were still live)
+//   - the content, located BY ID, not by path: the id must exist at the commit
+//     the review was sent from (SentHead, or for a legacy review its baseline
+//     commit), and that file must be exactly the current file. Looking at the
+//     current path alone would read "not found" for a document that was
+//     deleted and created again at a new path in one commit, and take it for
+//     unchanged. A document that a push only moved is the same bytes at another
+//     path and still merges; one that was moved AND edited differs and is
+//     refused, like any edit made after the review was sent.
+//
+// A review with no sent-from commit at all is refused.
+func (s *Server) checkReviewIncarnation(ctx context.Context, orgID int, st *store.Store, review *db.Review) (*mergeTarget, error) {
+	refuse := func(why string) error {
+		return fmt.Errorf("document was modified since review was sent: %s", why)
+	}
+	curRel := resolveDocPathFromStore(st, review.DocumentID)
+	if curRel == "" {
+		return nil, refuse("the document no longer exists")
+	}
+	archived, err := s.db.ArchivedVersionsSince(ctx, orgID, review.DocumentID, review.CreatedAt.Time)
+	if err != nil {
+		return nil, fmt.Errorf("checking the document's history: %w", err)
+	}
+	if archived {
+		return nil, refuse("the document was deleted and created again after the review was sent")
+	}
+	base := review.SentHead
+	if base == "" {
+		base = review.CommitHash
+	}
+	if base == "" {
+		return nil, refuse("the review has no record of the commit it was sent from")
+	}
+	paths, err := st.DocumentPathsAtCommit(base)
+	if err != nil {
+		return nil, refuse("the repository at the review's base cannot be read")
+	}
+	basePath, ok := paths[strings.ToLower(review.DocumentID)]
+	if !ok {
+		return nil, refuse("the document did not exist when the review was sent")
+	}
+	baseRaw, err := st.ReadFileAtRef(base, basePath)
+	if err != nil {
+		return nil, refuse("the document as it was sent cannot be read")
+	}
+	curRaw, err := st.ReadFile(filepath.Join(st.Root(), curRel))
+	if err != nil {
+		return nil, refuse("the document cannot be read")
+	}
+	if !bytes.Equal(baseRaw, curRaw) {
+		return nil, refuse("the document changed after the review was sent")
+	}
+	return &mergeTarget{basePath: basePath, curPath: filepath.ToSlash(curRel)}, nil
 }

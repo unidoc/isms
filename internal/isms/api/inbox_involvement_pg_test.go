@@ -246,7 +246,7 @@ func TestInboxCLIEndpointsMatchTheWebQueries(t *testing.T) {
 			t.Fatalf("CreateReview %s: %v", doc, err)
 		}
 		if status != "open" {
-			if err := s.db.UpdateReviewStatus(ctx, orgID, r.ID, status); err != nil {
+			if err := setReviewStatusForTest(ctx, s.db, orgID, r.ID, status); err != nil {
 				t.Fatalf("setting %s to %s: %v", doc, status, err)
 			}
 		}

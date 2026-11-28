@@ -319,9 +319,10 @@ func TestTrustMgrItemsListStatusesAndOrder(t *testing.T) {
 	if r.HiddenReason != "retired" || r.Document.DocumentStatus != "retired" {
 		t.Errorf("retired row = %+v / %+v", r, r.Document)
 	}
-	// Deleted: the HEAD title is gone, the served title is used.
-	x := check("pol-del", "hidden", "Deleted One")
-	if x.HiddenReason != "deleted" || x.Document.ServedVersion == nil {
+	// Deleted: the HEAD title is gone and so are the document's versions (they are
+	// archived when it is deleted), so the row falls back to the document id.
+	x := check("pol-del", "hidden", "pol-del")
+	if x.HiddenReason != "deleted" || x.Document.ServedVersion != nil {
 		t.Errorf("deleted row = %+v / %+v", x, x.Document)
 	}
 	n := check("pol-nev", "cannot_publish", "Never Approved")

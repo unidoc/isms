@@ -387,7 +387,11 @@ func (d *DB) OverdueDocumentReviews(ctx context.Context, orgID int) ([]OverdueIt
 		FROM document_versions dv
 		LEFT JOIN reviews r ON r.organization_id = dv.organization_id
 			AND r.document_id = dv.document_id AND r.status = 'merged'
-		WHERE dv.organization_id = $1
+			-- only reviews of this incarnation of the document: not older than its
+			-- first active version (a recreated id must not show an old review)
+			AND r.updated_at >= (SELECT min(v2.created_at) FROM document_versions v2
+				WHERE v2.organization_id = dv.organization_id AND v2.document_id = dv.document_id AND v2.archived_at IS NULL)
+		WHERE dv.organization_id = $1 AND dv.archived_at IS NULL
 		ORDER BY dv.document_id, dv.created_at DESC
 	`, orgID)
 	if err != nil {

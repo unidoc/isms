@@ -3,11 +3,13 @@ package api
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/store"
@@ -144,10 +146,20 @@ func (s *Server) handleGitRPC(c echo.Context, service string) error {
 	// Snapshot refs before a push so we can reject + revert server-managed ref
 	// changes (review/*) and history rewrites (non-fast-forward / deletions).
 	var refsBefore map[string]string
+	// The default branch before the push, read strictly (see
+	// store.DefaultBranchHash); baseKnown is false when it could not be read,
+	// which means nothing is archived afterwards.
+	var base pushBase
+	var baseKnown bool
 	if service == "receive-pack" {
 		if orgID, ok := c.Get("org_id").(int); ok {
 			if st, err := s.storeForOrg(c.Request().Context(), orgID); err == nil {
 				refsBefore, _ = st.ListRefHashes()
+				if h, empty, hErr := st.DefaultBranchHash(); hErr != nil {
+					log.Printf("documents: org %d: not archiving versions after this push: %v", orgID, hErr)
+				} else {
+					base, baseKnown = pushBase{hash: h, empty: empty}, true
+				}
 			}
 		}
 	}
@@ -167,8 +179,14 @@ func (s *Server) handleGitRPC(c echo.Context, service string) error {
 	if service == "receive-pack" && refsBefore != nil {
 		if orgID, ok := c.Get("org_id").(int); ok {
 			if st, stErr := s.storeForOrg(c.Request().Context(), orgID); stErr == nil {
-				refsAfter, _ := st.ListRefHashes()
-				if reason := reviewRefViolation(refsBefore, refsAfter, st.IsAncestor); reason != "" {
+				// Read through a store opened now: the long-lived one caches the
+				// pack index and may not see what the push (or a gc) wrote.
+				fresh, freshErr := openFreshStore(st.Root())
+				if freshErr != nil {
+					fresh = st
+				}
+				refsAfter, _ := fresh.ListRefHashes()
+				if reason := reviewRefViolation(refsBefore, refsAfter, fresh.IsAncestor); reason != "" {
 					restoreRefs(st, refsBefore, refsAfter)
 					fmt.Fprintf(os.Stderr, "REJECTED push for org %d: %s\n", orgID, reason)
 					return echo.NewHTTPError(http.StatusForbidden, "push rejected: "+reason)
@@ -178,27 +196,42 @@ func (s *Server) handleGitRPC(c echo.Context, service string) error {
 	}
 
 	// Post-receive validation: comprehensive repo protection
-	// If validation fails, revert the push by resetting HEAD to the previous commit.
+	// If validation fails, revert the push.
 	if service == "receive-pack" {
 		if orgID, ok := c.Get("org_id").(int); ok {
 			if st, stErr := s.storeForOrg(c.Request().Context(), orgID); stErr == nil {
+				// Everything after the push is read through a store opened now: the
+				// long-lived one caches the pack index and may not see a big push.
+				fresh, freshErr := openFreshStore(st.Root())
+				if freshErr != nil {
+					// Do not archive from a store that cannot be refreshed, and
+					// never fall back to st: it is locked for this push and
+					// archiving would take its lock again.
+					log.Printf("documents: org %d: not archiving versions after this push: %v", orgID, freshErr)
+					fresh = st
+				}
 				var rejectReason string
-				if err := validateDocumentIDs(st); err != nil {
+				if err := validateDocumentIDs(fresh); err != nil {
 					rejectReason = err.Error()
 				}
 				if rejectReason == "" {
-					if err := validateRepoContents(st); err != nil {
+					if err := validateRepoContents(fresh); err != nil {
 						rejectReason = err.Error()
 					}
 				}
 				if rejectReason != "" {
-					// Revert: reset HEAD to parent commit
-					if head, headErr := st.HeadCommit(); headErr == nil && head.NumParents() > 0 {
-						parentHash := head.ParentHashes[0]
-						st.ResetToCommit(parentHash.String())
-					}
+					s.revertPush(st, refsBefore, base, baseKnown)
 					fmt.Fprintf(os.Stderr, "REJECTED push for org %d: %s\n", orgID, rejectReason)
 					return echo.NewHTTPError(http.StatusForbidden, "push rejected: "+rejectReason)
+				}
+				// The push passed validation and stays: archive the versions of
+				// documents it removed, and of ids it added. Never for a rejected
+				// push (reverted above). A delete and re-add of one id in a push is
+				// an edit: present before and after.
+				if baseKnown && freshErr == nil {
+					if aerr := s.archiveAfterPush(c.Request().Context(), orgID, fresh, base); aerr != nil {
+						log.Printf("documents: org %d: %v", orgID, aerr)
+					}
 				}
 			}
 		}
@@ -297,4 +330,54 @@ func restoreRefs(st *store.Store, before, after map[string]string) {
 			}
 		}
 	}
+}
+
+// openFreshStore opens the repository again, so what is read after a push is not
+// served from the long-lived store's cached pack index. A variable so a test can
+// make it fail.
+var openFreshStoreFn = store.NewBare
+var openFreshStoreMu sync.RWMutex
+
+func openFreshStore(path string) (*store.Store, error) {
+	openFreshStoreMu.RLock()
+	f := openFreshStoreFn
+	openFreshStoreMu.RUnlock()
+	return f(path)
+}
+
+// setOpenFreshStore replaces the opener and returns a function that restores it
+// (tests).
+func setOpenFreshStore(f func(string) (*store.Store, error)) func() {
+	openFreshStoreMu.Lock()
+	old := openFreshStoreFn
+	openFreshStoreFn = f
+	openFreshStoreMu.Unlock()
+	return func() { openFreshStoreMu.Lock(); openFreshStoreFn = old; openFreshStoreMu.Unlock() }
+}
+
+// revertPush puts every ref back where it was before a rejected push, the
+// default branch included, so a push of several commits leaves nothing behind.
+// Without a snapshot it falls back to resetting the branch one commit.
+func (s *Server) revertPush(st *store.Store, refsBefore map[string]string, base pushBase, baseKnown bool) {
+	if refsBefore == nil {
+		if head, err := st.HeadCommit(); err == nil && head.NumParents() > 0 {
+			st.ResetToCommit(head.ParentHashes[0].String())
+		}
+		return
+	}
+	before := map[string]string{}
+	for k, v := range refsBefore {
+		before[k] = v
+	}
+	if baseKnown {
+		if ref, err := st.DefaultBranchRef(); err == nil {
+			if base.empty {
+				delete(before, ref)
+			} else {
+				before[ref] = base.hash
+			}
+		}
+	}
+	after, _ := st.ListRefHashes()
+	restoreRefs(st, before, after)
 }

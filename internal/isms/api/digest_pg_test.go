@@ -62,7 +62,7 @@ func newDigestFixture(t *testing.T, name string) *digestFixture {
 			t.Fatalf("CreateReview %s: %v", doc, err)
 		}
 		if status != "open" {
-			if err := s.db.UpdateReviewStatus(ctx, f.org, r.ID, status); err != nil {
+			if err := setReviewStatusForTest(ctx, s.db, f.org, r.ID, status); err != nil {
 				t.Fatalf("review %s status: %v", doc, err)
 			}
 		}

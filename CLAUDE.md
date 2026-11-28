@@ -61,7 +61,7 @@ Git stores ONLY documents (markdown + frontmatter). No images, no branding, no b
 ### Document versioning model
 Three layers of history, each with a distinct purpose:
 - **Git commits** = raw edit history. Every save is a commit. This is the working log.
-- **`document_versions`** = official milestones only. Created on merge/publish and confirm. NOT on draft edits. This is what the Version History UI shows.
+- **`document_versions`** = official milestones only. Created on merge/publish and confirm. NOT on draft edits. This is what the Version History UI shows. When a document id leaves the repository (delete, removed template, push) its rows are archived (`archived_at`) and its live reviews are closed, in one transaction: every reader ignores archived rows, so a new document that reuses the id starts with no history. An id is archived only after the repository was read at an explicit commit and the id is absent (any read error archives nothing). Creating a document, adding a template or pushing archives the versions left under an id that was absent. A one-time start-up job archives the versions of documents deleted before this existed (`document_version_backfill`). A review merge is refused when a version of its document was archived after the review was created, or when the document, found by id at the commit the review was sent from, differs from the current file.
 - **`decision_log`** = governance trail. Approvals, rejections, merges, confirmations with content hashes.
 
 Version numbers increment when an approved document is edited into a new draft (status goes from `approved` → `draft`). They do NOT increment on every save. Draft edits are working state, not milestones.
@@ -73,7 +73,8 @@ Review status is a state machine. Only dedicated endpoints may transition betwee
 - `changes_requested` → `open` (via resubmit) — refused when the reviewer edited the review branch and the document file changed since it was sent
 - `approved` → `open` (via resubmit, only when the document file changed since the review was sent and the review has no reviewer edits; send refuses otherwise)
 - `approved` → `merged` (via merge endpoint)
-- Any active status → `closed` (via status endpoint — the ONLY transition it allows)
+- Any active status → `closed` (via status endpoint — the ONLY transition it allows), and also by the system when the review's document is deleted or leaves the repository (archiving; see Document versioning model)
+- `closed` and `merged` are final: approve, forward, resubmit and the status endpoint refuse them (400 `review_wrong_status` / 409), and every status UPDATE is conditional on the status it starts from
 
 The `PUT /reviews/:id/status` endpoint accepts ONLY `closed`. All other transitions go through their dedicated handlers. Never bypass this.
 

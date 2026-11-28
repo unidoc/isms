@@ -635,17 +635,52 @@ func (d *DB) ListPendingAssignmentsForReviewer(ctx context.Context, orgID int, r
 	return reviews, nil
 }
 
-func (d *DB) UpdateReviewStatus(ctx context.Context, orgID int, id int, status string) error {
-	_, err := d.pool.Exec(ctx, `UPDATE reviews SET status = $2, updated_at = now() WHERE id = $1 AND organization_id = $3`, id, status, orgID)
-	return err
+// ErrReviewStatusChanged: the review was not in a status the change may start
+// from (it was closed or merged meanwhile), so nothing was written.
+var ErrReviewStatusChanged = errors.New("the review changed while the request was handled")
+
+// LiveReviewStatuses are the statuses of a review that is not finished. A
+// closed or merged review never leaves its status.
+var LiveReviewStatuses = []string{"open", "changes_requested", "approved"}
+
+// UpdateReviewStatusFrom sets the status only while the review is in one of the
+// from statuses; otherwise it writes nothing and returns ErrReviewStatusChanged,
+// so a close that raced with the change cannot be undone.
+func (d *DB) UpdateReviewStatusFrom(ctx context.Context, orgID int, id int, status string, from []string) error {
+	tag, err := d.pool.Exec(ctx, `UPDATE reviews SET status = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND status = ANY($4)`, id, status, orgID, from)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrReviewStatusChanged
+	}
+	return nil
 }
 
-// UpdateReviewSentHead updates the sent_head snapshot, increments the round, and resets status for a resubmitted review.
-func (d *DB) UpdateReviewSentHead(ctx context.Context, orgID int, id int, sentHead string) error {
-	// Mark all existing open comments on this review as outdated (new round)
-	_, _ = d.pool.Exec(ctx, `UPDATE comments SET is_outdated = true WHERE review_id = $1 AND organization_id = $2 AND is_outdated = false`, id, orgID)
-	_, err := d.pool.Exec(ctx, `UPDATE reviews SET sent_head = $2, status = 'open', round = round + 1, updated_at = now() WHERE id = $1 AND organization_id = $3`, id, sentHead, orgID)
-	return err
+// CloseReviewsForDocument closes the open, changes-requested and approved
+// reviews of a document id (case-insensitive) and returns their ids. A review
+// belongs to one incarnation of a document: when the document is gone, its
+// reviews can no longer be merged into anything.
+func (d *DB) CloseReviewsForDocument(ctx context.Context, orgID int, documentID string) ([]int, error) {
+	rows, err := d.pool.Query(ctx, `
+		UPDATE reviews SET status = 'closed', updated_at = now()
+		WHERE organization_id = $1 AND lower(document_id) = lower($2)
+		  AND status IN ('open', 'changes_requested', 'approved')
+		RETURNING id
+	`, orgID, documentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func (d *DB) SetMergeCommit(ctx context.Context, orgID int, id int, mergeCommit string) error {

@@ -48,6 +48,8 @@ type Server struct {
 	webDir         string
 	webFS          fs.FS    // embedded web assets (optional, used if webDir is empty)
 	stores         sync.Map // orgID -> *store.Store cache
+	// backfillClock replaces the database clock in the version backfill (tests).
+	backfillClock func(context.Context) (time.Time, error)
 
 	// Unified storage for org files (branding, evidence, etc.).
 	// Local filesystem by default, S3 with ISMS_STORAGE_BACKEND=s3.
@@ -477,6 +479,9 @@ func (s *Server) Start(ctx context.Context) error {
 	// Licence UniPDF/UniOffice in the background; never blocks the listener.
 	dataDir, _ := blob.DataDir() // NewWithFS already required it
 	license.Start(ctx, dataDir)
+	// Archive the versions of documents deleted before archiving existed, once
+	// per organization, in the background.
+	s.StartDocumentVersionBackfill(ctx)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -1708,6 +1713,20 @@ func (s *Server) handleCreateDocument(c echo.Context) error {
 		authorName = user.Name
 	}
 
+	// Never overwrite a file: a document already at this path (whatever id it
+	// carries) is not replaced by a create.
+	if exists, herr := st.HasFileAtHead(filepath.ToSlash(gitPath)); herr != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("creating document: %v", herr))
+	} else if exists {
+		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("a document already exists at %s", gitPath))
+	}
+
+	// A new document starts with no history: archive any versions left by a
+	// document that had this id (only when the id is absent from HEAD).
+	if err := s.archiveIfAbsent(c.Request().Context(), orgID, st, []string{req.DocumentID}, "document created"); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("creating document: %v", err))
+	}
+
 	commitHash, err := st.CommitFile(gitPath, []byte(content), authorName, email,
 		fmt.Sprintf("docs(%s): create document", req.DocumentID))
 	if err != nil {
@@ -1762,6 +1781,14 @@ func (s *Server) handleDeleteDocument(c echo.Context) error {
 	}
 
 	s.searchIndex.Invalidate(orgID)
+	// The document's versions are archived, and its reviews closed, once it is
+	// really gone: present in the commit before the delete and absent from the
+	// commit the delete made (the same id in another file keeps them). The ids
+	// are read at those two explicit commits. Any error archives nothing; the
+	// versions are then archived when the id is next created.
+	if aerr := s.archiveDeleted(c.Request().Context(), orgID, st, docID, commitHash); aerr != nil {
+		log.Printf("documents: org %d: not archiving versions of %s: %v", orgID, docID, aerr)
+	}
 	s.hideTrustItemForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenDeleted, email)
 	s.clearTrustOverviewForDocument(c.Request().Context(), orgID, docID, db.TrustHiddenDeleted, email)
 
@@ -3897,4 +3924,29 @@ func extractHostname(rawURL string) string {
 		return "localhost"
 	}
 	return u.Hostname()
+}
+
+// archiveDeleted archives a document id after the commit that deleted its file.
+func (s *Server) archiveDeleted(ctx context.Context, orgID int, st *store.Store, docID, deleteCommit string) error {
+	parent, err := st.ParentHash(deleteCommit)
+	if err != nil {
+		return err
+	}
+	before, err := st.DocumentIDsAtCommit(parent)
+	if err != nil {
+		return err
+	}
+	after, err := st.DocumentIDsAtCommit(deleteCommit)
+	if err != nil {
+		return err
+	}
+	// The delete removed one file. Archive only when the one id that left the
+	// repository is this document's: if the two commits differ by anything else
+	// (or the id is still present elsewhere) something is wrong, and nothing is
+	// archived.
+	id := strings.ToLower(docID)
+	if gone := idsAbsentFrom(before, after); len(gone) == 1 && gone[0] == id {
+		return s.archiveIDs(ctx, orgID, st, []string{id}, "document deleted")
+	}
+	return nil
 }

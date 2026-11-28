@@ -194,7 +194,7 @@ func TestReplyOnMergedOrClosedReviewIsRejected(t *testing.T) {
 	for _, status := range []string{"merged", "closed"} {
 		t.Run(status, func(t *testing.T) {
 			f := newReplyFixture(t, "reply-"+status)
-			if err := f.s.db.UpdateReviewStatus(context.Background(), f.orgID, f.review.ID, status); err != nil {
+			if err := setReviewStatusForTest(context.Background(), f.s.db, f.orgID, f.review.ID, status); err != nil {
 				t.Fatalf("UpdateReviewStatus: %v", err)
 			}
 			err, _, _ := f.postComment(t, "reader", "assigned@reply-"+status+".test", replyBody(f.parent.ID, ""))

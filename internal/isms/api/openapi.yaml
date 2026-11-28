@@ -2281,6 +2281,45 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /documents:
+    post:
+      tags: [Documents]
+      summary: Create a document
+      description: >-
+        Admin or manager only. Writes a new draft document to `folder`. 409 when a
+        document with that `document_id` exists, and 409 when a file already exists
+        at `documents/<folder>/<filename>` at the head of the default branch,
+        whatever document it holds: a create never overwrites a file. A new
+        document starts with no history: versions and reviews left under that id by
+        a document that no longer exists are archived (versions) and closed
+        (reviews) first, only when the id is absent from the repository. 500 when
+        the repository cannot be read well enough to tell, in which case nothing
+        was written.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [folder, filename, document_id, title]
+              properties:
+                folder: { type: string }
+                filename: { type: string }
+                document_id: { type: string }
+                title: { type: string }
+                type: { type: string }
+                content: { type: string }
+                author: { type: string }
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: The document id exists, or a file already exists at the path
+
   /documents/{docId}/content:
     put:
       tags: [Documents]
@@ -2308,6 +2347,11 @@ paths:
     get:
       tags: [Versions & Diff]
       summary: List document versions
+      description: >-
+        The versions of the document as it is now. When a document is deleted its
+        recorded versions are archived: they are kept for audit but never listed,
+        diffed, exported or served again, so a new document with the same id lists
+        only its own.
       parameters:
         - $ref: '#/components/parameters/docId'
       responses:
@@ -2888,7 +2932,9 @@ paths:
         endpoints: approving or requesting changes is `POST /reviews/{id}/approve`,
         merging is `POST /reviews/{id}/merge`, and resubmitting after changes were
         requested is `POST /documents/{docId}/reviews`. Requires the admin or
-        manager role.
+        manager role. A review is also closed, with an activity entry, when its
+        document is deleted or otherwise leaves the repository (a removed template,
+        a git push), and when the id is created again.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -2918,10 +2964,77 @@ paths:
         '409':
           description: The review is already closed or merged
 
+  /reviews/{id}/approve:
+    post:
+      tags: [Reviews & Comments]
+      summary: Approve a review, or request changes
+      description: >-
+        Records the caller's decision (`approved`, `changes_requested` or
+        `proposed_revision`). 400 with code `review_wrong_status` for a closed or
+        merged review: a finished review is never brought back, and its status
+        change is conditional on it still being live (409 `review_already_status`
+        when it was closed meanwhile).
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, changes_requested, proposed_revision] }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Decision recorded
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The review was closed or merged while the decision was recorded
+
+  /reviews/{id}/merge:
+    post:
+      tags: [Reviews & Comments]
+      summary: Merge an approved review and publish the document
+      description: >-
+        Admin or manager only. 400 unless the review is approved. 409 with the
+        message "document was modified since review was sent" when the document is
+        not the one the review was sent for: a version of the id was archived after
+        the review was created (the document was deleted and the id used again), the
+        document did not exist when the review was sent, or the file at the
+        review's base commit, found by document id, differs from the current file
+        (edited, or deleted and created again, or moved and edited since). A
+        document that was only moved still merges. Nothing is written on a refusal.
+        Reviews of a document that is deleted are closed when it goes, so they get
+        400.
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Merged
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The document was modified since the review was sent
+
   /reviews/{id}/forward:
     post:
       tags: [Reviews & Comments]
       summary: Forward a review to additional reviewers
+      description: >-
+        Admin or manager only. 400 with code `review_wrong_status` for a closed or
+        merged review: forwarding never reopens a finished review. 409
+        (`review_already_status`) when it was closed meanwhile.
       parameters:
         - $ref: '#/components/parameters/id'
       requestBody:
@@ -2939,6 +3052,10 @@ paths:
       responses:
         '200':
           description: Review forwarded
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: The review was closed or merged meanwhile
 
   /documents/{docId}/reviews:
     post:
@@ -5407,7 +5524,7 @@ components:
           required: [document_id, title, classification, classification_sensitive, status, document_status, document_version, served_version]
           properties:
             document_id: { type: string }
-            title: { type: string, description: Title at HEAD; the served version's title when HEAD cannot be read or the document is deleted. }
+            title: { type: string, description: Title at HEAD; the served version's title when HEAD cannot be read; the document id when the document is deleted (its versions are archived). }
             classification: { type: string, description: Classification in the document's frontmatter; empty when none. }
             classification_sensitive: { type: boolean, description: "True when the classification at HEAD or in the served version is confidential or restricted (the rule the publish confirmation uses). A public item with this set is readable by anyone; nothing changes by itself." }
             status:

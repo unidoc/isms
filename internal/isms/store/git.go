@@ -373,7 +373,6 @@ func (s *Store) getDocIndex() map[string]string {
 	// Rebuild index
 	idx := make(map[string]string)
 	docsRoot := s.DocsRoot()
-	needle := []byte("document_id:")
 
 	s.walkDir(docsRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
@@ -383,26 +382,7 @@ func (s *Store) getDocIndex() map[string]string {
 		if readErr != nil || len(raw) == 0 {
 			return nil
 		}
-		// Extract document_id from frontmatter without full YAML parse
-		// Find "document_id:" line in first 500 bytes
-		end := len(raw)
-		if end > 500 {
-			end = 500
-		}
-		chunk := raw[:end]
-		pos := bytes.Index(chunk, needle)
-		if pos < 0 {
-			return nil
-		}
-		// Extract value after "document_id: "
-		lineStart := pos + len(needle)
-		lineEnd := bytes.IndexByte(chunk[lineStart:], '\n')
-		if lineEnd < 0 {
-			lineEnd = len(chunk) - lineStart
-		}
-		val := strings.TrimSpace(string(chunk[lineStart : lineStart+lineEnd]))
-		val = strings.Trim(val, "\"' ")
-		if val != "" {
+		if val := extractDocumentID(raw); val != "" {
 			idx[strings.ToLower(val)] = path
 		}
 		return nil
@@ -411,6 +391,320 @@ func (s *Store) getDocIndex() map[string]string {
 	s.docIndex = idx
 	s.docIndexHead = currentHead
 	return idx
+}
+
+// extractDocumentID reads the document_id of a markdown file without a full
+// YAML parse: the first "document_id:" line in the first 500 bytes. The document
+// index uses the same rule, so "has this id" means the same thing everywhere.
+func extractDocumentID(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	needle := []byte("document_id:")
+	end := len(raw)
+	if end > 500 {
+		end = 500
+	}
+	chunk := raw[:end]
+	pos := bytes.Index(chunk, needle)
+	if pos < 0 {
+		return ""
+	}
+	lineStart := pos + len(needle)
+	lineEnd := bytes.IndexByte(chunk[lineStart:], '\n')
+	if lineEnd < 0 {
+		lineEnd = len(chunk) - lineStart
+	}
+	val := strings.TrimSpace(string(chunk[lineStart : lineStart+lineEnd]))
+	return strings.Trim(val, "\"' ")
+}
+
+// DefaultBranchHash returns the commit the default branch (the one HEAD names)
+// points at, read from the repository files themselves, never guessed.
+//
+// go-git rewrites a loose ref by truncating it and then writing the hash, so a
+// reader that runs in between sees an empty ref; the library then falls back to
+// packed-refs, which answers "not found" or an OLD hash. Either would look like a
+// real state, and an id set built from it can make a deleted-looking document
+// out of every live one. This function therefore reads the loose ref file
+// itself: a file that is empty or not a full hash is a write in progress and is
+// read again, and when it never settles the answer is an error. Packed-refs are
+// used only when there is no loose file at all.
+//
+// empty is true only for a repository with no refs at all (a brand-new one). A
+// default branch that cannot be resolved while other refs exist is an error.
+func (s *Store) DefaultBranchHash() (hash string, empty bool, err error) {
+	if s.repo == nil {
+		return "", false, fmt.Errorf("not a bare repo store")
+	}
+	sym, err := os.ReadFile(filepath.Join(s.root, "HEAD"))
+	if err != nil {
+		return "", false, fmt.Errorf("reading HEAD: %w", err)
+	}
+	target := strings.TrimSpace(string(sym))
+	ref, isSym := strings.CutPrefix(target, "ref:")
+	if !isSym {
+		if validHash(target) {
+			return target, false, nil
+		}
+		return "", false, fmt.Errorf("HEAD is neither a ref nor a commit: %q", target)
+	}
+	ref = strings.TrimSpace(ref)
+	loose := filepath.Join(s.root, filepath.FromSlash(ref))
+	for attempt := 0; attempt < 100; attempt++ {
+		raw, rerr := os.ReadFile(loose)
+		if rerr == nil {
+			if h := strings.TrimSpace(string(raw)); validHash(h) {
+				return h, false, nil
+			}
+			time.Sleep(time.Millisecond) // a ref being rewritten
+			continue
+		}
+		if !os.IsNotExist(rerr) {
+			return "", false, fmt.Errorf("reading %s: %w", ref, rerr)
+		}
+		// No loose file: the branch is packed, or it does not exist yet.
+		if r, perr := s.repo.Storer.Reference(plumbing.ReferenceName(ref)); perr == nil && !r.Hash().IsZero() {
+			if afterPackedLookup != nil {
+				afterPackedLookup()
+			}
+			// The lookup is not atomic: a loose ref written meanwhile is newer
+			// than the packed one, so look again.
+			if _, serr := os.Stat(loose); serr == nil {
+				continue
+			} else if !os.IsNotExist(serr) {
+				return "", false, fmt.Errorf("reading %s: %w", ref, serr)
+			}
+			return r.Hash().String(), false, nil
+		}
+		has, herr := s.repoHasRefs()
+		if herr != nil {
+			return "", false, herr
+		}
+		if !has {
+			return "", true, nil
+		}
+		return "", false, fmt.Errorf("the default branch %s cannot be resolved", ref)
+	}
+	return "", false, fmt.Errorf("the default branch %s did not settle", ref)
+}
+
+// DefaultBranchRef returns the full name of the ref HEAD names, for example
+// refs/heads/main.
+func (s *Store) DefaultBranchRef() (string, error) {
+	sym, err := os.ReadFile(filepath.Join(s.root, "HEAD"))
+	if err != nil {
+		return "", fmt.Errorf("reading HEAD: %w", err)
+	}
+	ref, ok := strings.CutPrefix(strings.TrimSpace(string(sym)), "ref:")
+	if !ok {
+		return "", fmt.Errorf("HEAD is detached")
+	}
+	return strings.TrimSpace(ref), nil
+}
+
+// afterPackedLookup is a test hook, called between reading a packed ref and
+// checking that no loose ref has appeared.
+var afterPackedLookup func()
+
+func validHash(h string) bool {
+	if len(h) != 40 {
+		return false
+	}
+	for _, c := range h {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// repoHasRefs reports whether the repository has any ref at all, loose or
+// packed.
+func (s *Store) repoHasRefs() (bool, error) {
+	found := false
+	err := filepath.WalkDir(filepath.Join(s.root, "refs"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if !d.IsDir() {
+			found = true
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	if err != nil || found {
+		return found, err
+	}
+	packed, err := os.ReadFile(filepath.Join(s.root, "packed-refs"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, line := range strings.Split(string(packed), "\n") {
+		if line = strings.TrimSpace(line); line != "" && !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "^") {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// DocumentIDsAtCommit returns every document id (lowercase) carried by a
+// markdown file under documents/ in the given commit. See DocumentPathsAtCommit.
+func (s *Store) DocumentIDsAtCommit(hash string) (map[string]bool, error) {
+	paths, err := s.DocumentPathsAtCommit(hash)
+	if err != nil {
+		return nil, err
+	}
+	ids := make(map[string]bool, len(paths))
+	for id := range paths {
+		ids[id] = true
+	}
+	return ids, nil
+}
+
+// DocumentPathsAtCommit returns document id (lowercase) -> path (from the
+// repository root) for every markdown file under documents/ in the given commit.
+// It counts an id found by the document index rule or by a full frontmatter
+// parse, so it errs on the side of "present".
+//
+// It fails on ANY error, and walks the tree by hand to be able to: go-git's
+// TreeWalker turns an unreadable subtree into the end of the walk, and
+// Tree(path) turns a missing object into "directory not found", and either
+// would read as "these documents are gone". Only a commit with no `documents`
+// entry at all has no documents; a missing OBJECT is an error. A caller about to
+// do something irreversible because an id is ABSENT must be able to tell
+// "absent" from "could not read", and must name the commit explicitly (see
+// DefaultBranchHash).
+func (s *Store) DocumentPathsAtCommit(hash string) (map[string]string, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("not a bare repo store")
+	}
+	if !validHash(hash) {
+		return nil, fmt.Errorf("not a commit hash: %q", hash)
+	}
+	commit, err := s.repo.CommitObject(plumbing.NewHash(hash))
+	if err != nil {
+		return nil, fmt.Errorf("reading commit %s: %w", hash, err)
+	}
+	root, err := commit.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("reading tree of %s: %w", hash, err)
+	}
+	entry, err := root.FindEntry("documents")
+	if err != nil {
+		if errors.Is(err, object.ErrEntryNotFound) {
+			return map[string]string{}, nil
+		}
+		return nil, fmt.Errorf("looking for documents/ in %s: %w", hash, err)
+	}
+	if entry.Mode != filemode.Dir {
+		return nil, fmt.Errorf("documents is not a directory in %s", hash)
+	}
+	docs, err := s.repo.TreeObject(entry.Hash)
+	if err != nil {
+		return nil, fmt.Errorf("reading documents/ in %s: %w", hash, err)
+	}
+	out := map[string]string{}
+	if err := s.collectDocumentIDs(docs, "documents", out, nil); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// blobIDs are the ids a blob carries, by blob hash: a walk over many commits
+// reads each distinct blob once.
+type blobIDs map[plumbing.Hash][]string
+
+func (s *Store) collectDocumentIDs(tree *object.Tree, prefix string, out map[string]string, cache blobIDs) error {
+	for _, e := range tree.Entries {
+		path := prefix + "/" + e.Name
+		switch {
+		case e.Mode == filemode.Dir:
+			sub, err := s.repo.TreeObject(e.Hash)
+			if err != nil {
+				return fmt.Errorf("reading %s: %w", path, err)
+			}
+			if err := s.collectDocumentIDs(sub, path, out, cache); err != nil {
+				return err
+			}
+		case e.Mode.IsFile() && strings.HasSuffix(e.Name, ".md"):
+			ids, ok := cache[e.Hash]
+			if !ok {
+				blob, err := s.repo.BlobObject(e.Hash)
+				if err != nil {
+					return fmt.Errorf("reading %s: %w", path, err)
+				}
+				rc, err := blob.Reader()
+				if err != nil {
+					return fmt.Errorf("reading %s: %w", path, err)
+				}
+				raw, err := io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					return fmt.Errorf("reading %s: %w", path, err)
+				}
+				if id := extractDocumentID(raw); id != "" {
+					ids = append(ids, strings.ToLower(id))
+				}
+				if pf, perr := ParseDocument(path, raw); perr == nil && pf.Frontmatter.DocumentID != "" {
+					ids = append(ids, strings.ToLower(pf.Frontmatter.DocumentID))
+				}
+				if cache != nil {
+					cache[e.Hash] = ids
+				}
+			}
+			for _, id := range ids {
+				out[id] = path
+			}
+		}
+	}
+	return nil
+}
+
+// DocumentIDsAtHead returns the document ids at the default branch: the commit
+// is resolved ONCE by DefaultBranchHash, and the ids are read at that exact hash.
+// A repository with no refs at all has no ids. It fails when the branch cannot
+// be resolved or read.
+func (s *Store) DocumentIDsAtHead() (map[string]bool, error) {
+	hash, empty, err := s.DefaultBranchHash()
+	if err != nil {
+		return nil, err
+	}
+	if empty {
+		return map[string]bool{}, nil
+	}
+	return s.DocumentIDsAtCommit(hash)
+}
+
+// HasFileAtHead reports whether rel, a slash-separated path from the repository
+// root, is a file at the default branch. It resolves the commit like
+// DocumentIDsAtHead and fails when it cannot.
+func (s *Store) HasFileAtHead(rel string) (bool, error) {
+	hash, empty, err := s.DefaultBranchHash()
+	if err != nil || empty {
+		return false, err
+	}
+	commit, err := s.repo.CommitObject(plumbing.NewHash(hash))
+	if err != nil {
+		return false, fmt.Errorf("reading commit %s: %w", hash, err)
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return false, err
+	}
+	if _, err := tree.File(rel); err != nil {
+		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, object.ErrDirectoryNotFound) || errors.Is(err, object.ErrEntryNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // HeadHash returns the HEAD commit hash as a hex string.

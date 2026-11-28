@@ -321,3 +321,33 @@ DO $$ BEGIN
             WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
     END IF;
 END $$;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- Versions of a document that no longer exists
+-- ═══════════════════════════════════════════════════════════════════════
+-- A deleted document keeps its document_versions rows for audit, but they must
+-- never be read again, and a new document that reuses the id must not inherit
+-- or overwrite them. A row is archived (archived_at set) when its document id
+-- leaves the repository; every reader ignores archived rows, and the unique
+-- key on (organization, document, version) applies to active rows only.
+ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+ALTER TABLE document_versions DROP CONSTRAINT IF EXISTS document_versions_organization_id_document_id_version_key;
+CREATE UNIQUE INDEX IF NOT EXISTS document_versions_active_key
+    ON document_versions (organization_id, document_id, version) WHERE archived_at IS NULL;
+
+-- One-time archiving of the versions of documents that were deleted before
+-- versions were archived: the server does it once per organization at start and
+-- records it here.
+CREATE TABLE IF NOT EXISTS document_version_backfill (
+    organization_id INTEGER PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
+    done_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE document_version_backfill ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies
+                    WHERE tablename = 'document_version_backfill' AND policyname = 'tenant_isolation') THEN
+        CREATE POLICY tenant_isolation ON document_version_backfill
+            USING (organization_id = current_setting('app.current_org_id', true)::INTEGER)
+            WITH CHECK (organization_id = current_setting('app.current_org_id', true)::INTEGER);
+    END IF;
+END $$;

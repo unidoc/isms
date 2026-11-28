@@ -274,6 +274,10 @@ Visitors to an organization's public trust center can sign in with their email a
 
 Sign-in link requests are rate limited; see [Rate limiting in development/testing](#rate-limiting-in-developmenttesting).
 
+### Deleted documents and their history
+
+When a document is deleted (in the app, by removing a template, or by a git push), its recorded versions are archived: they are kept for audit but are never listed, exported, served on the trust center or counted for review reminders again, and its open reviews are closed. A new document that later uses the same id starts with an empty history. Documents deleted before this existed are handled once, in the background, the first time the server starts: for each organization it reads the repository and archives the versions of every document that is no longer there, and logs how many. An organization whose repository cannot be read, or has no commits while versions are recorded, is skipped and tried again at the next start; nothing is archived on a doubtful read.
+
 ### Notifications
 
 Slack and Matrix notifications are configured **per-organization** in the web UI under **Admin > Settings**. There are no server-level env vars for notifications — each org manages its own webhook URLs and tokens.

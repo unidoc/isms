@@ -961,10 +961,16 @@ func SetMergeCommitTx(ctx context.Context, tx pgx.Tx, orgID int, id int, mergeCo
 	return err
 }
 
-// UpdateReviewStatusTx updates a review status within an existing transaction.
-func UpdateReviewStatusTx(ctx context.Context, tx pgx.Tx, orgID int, id int, status string) error {
-	_, err := tx.Exec(ctx, `UPDATE reviews SET status = $2, updated_at = now() WHERE id = $1 AND organization_id = $3`, id, status, orgID)
-	return err
+// UpdateReviewStatusFromTx is UpdateReviewStatusFrom inside a transaction.
+func UpdateReviewStatusFromTx(ctx context.Context, tx pgx.Tx, orgID int, id int, status string, from []string) error {
+	tag, err := tx.Exec(ctx, `UPDATE reviews SET status = $2, updated_at = now() WHERE id = $1 AND organization_id = $3 AND status = ANY($4)`, id, status, orgID, from)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrReviewStatusChanged
+	}
+	return nil
 }
 
 // ListAssignmentsForReviewTx lists review assignments within an existing transaction.
@@ -999,8 +1005,14 @@ func MarkCommentsOutdatedTx(ctx context.Context, tx pgx.Tx, orgID int, reviewID 
 
 // ResubmitReviewTx updates a review for resubmission: new sent_head, status back to open, round++.
 func ResubmitReviewTx(ctx context.Context, tx pgx.Tx, orgID int, reviewID int, sentHead string) error {
-	_, err := tx.Exec(ctx, `UPDATE reviews SET sent_head = $2, status = 'open', round = round + 1, updated_at = now() WHERE id = $1 AND organization_id = $3`, reviewID, sentHead, orgID)
-	return err
+	tag, err := tx.Exec(ctx, `UPDATE reviews SET sent_head = $2, status = 'open', round = round + 1, updated_at = now() WHERE id = $1 AND organization_id = $3 AND status IN ('open', 'changes_requested', 'approved')`, reviewID, sentHead, orgID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrReviewStatusChanged
+	}
+	return nil
 }
 
 // ResetAssignmentsTx resets all review assignments back to pending.
@@ -1038,7 +1050,7 @@ func RecordVersionTx(ctx context.Context, tx pgx.Tx, orgID int, v *DocumentVersi
 	return tx.QueryRow(ctx, `
 		INSERT INTO document_versions (organization_id, document_id, version, commit_hash, file_path, content_hash, message, owner, review_cycle_months, created_by, created_by_user_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, (SELECT id FROM users WHERE email = $10))
-		ON CONFLICT (organization_id, document_id, version) DO UPDATE SET
+		ON CONFLICT (organization_id, document_id, version) WHERE archived_at IS NULL DO UPDATE SET
 			commit_hash = EXCLUDED.commit_hash,
 			file_path = EXCLUDED.file_path,
 			content_hash = EXCLUDED.content_hash,

@@ -19,6 +19,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/blob"
+	"isms.sh/internal/isms/i18n"
 )
 
 const trustHostIndex = `<!doctype html><html><head><title>x</title></head><body>app</body></html>`
@@ -392,5 +393,27 @@ func TestTrustHostAllowedDecision(t *testing.T) {
 	}
 	if trustHostAllowed("GET", "/assets/a.js", nil) {
 		t.Error("a static file is allowed without an SPA filesystem")
+	}
+}
+
+// The public overview carries the supported locales, so the page can build its
+// language picker on a host that does not serve /api/v1/config.
+func TestTrustPublicOverviewCarriesSupportedLocales(t *testing.T) {
+	e := trustHostSetup(t)
+	r := trustDo(e.s, e.trust, "GET", "/api/v1/trust/"+e.a.slug, "")
+	var o struct {
+		Locales []i18n.Locale `json:"locales"`
+	}
+	if r.code != http.StatusOK || json.Unmarshal([]byte(r.body), &o) != nil {
+		t.Fatalf("overview = %d %s", r.code, r.body)
+	}
+	want := i18n.Supported()
+	if len(o.Locales) == 0 || len(o.Locales) != len(want) {
+		t.Fatalf("locales = %v, want %v", o.Locales, want)
+	}
+	for i := range want {
+		if o.Locales[i] != want[i] {
+			t.Errorf("locales[%d] = %v, want %v", i, o.Locales[i], want[i])
+		}
 	}
 }

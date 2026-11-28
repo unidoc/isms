@@ -65,7 +65,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
-import { trustHostSlug } from '../composables/useCurrentOrg'
 import { t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
 import { applyBrandColor } from '../utils/brandColor.js'
@@ -144,10 +143,9 @@ async function start() {
   state.value = 'checking'
   let o
   try {
-    const [ovr, cfg] = await Promise.all([api.trustOverview(props.slug), trustHostSlug() ? null : api.publicConfig().catch(() => null)])
-    o = ovr
+    o = await api.trustOverview(props.slug)
     applyBrandColor(o.branding_color)
-    if (cfg && cfg.locales) await applyConfigLocales({ locales: cfg.locales, default_locale: o.default_locale })
+    if (o.locales) await applyConfigLocales({ locales: o.locales, default_locale: o.default_locale })
   } catch (err) {
     state.value = err && err.status === 404 ? 'unavailable' : 'error'
     return

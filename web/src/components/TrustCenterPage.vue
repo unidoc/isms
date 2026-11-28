@@ -258,7 +258,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import DOMPurify from 'dompurify'
 import api, { getApiToken } from '../api.js'
-import { trustHostSlug } from '../composables/useCurrentOrg'
 import { i18n, t } from '../i18n.js'
 import { applyConfigLocales } from '../composables/useLocale.js'
 import { applyBrandColor } from '../utils/brandColor.js'
@@ -556,16 +555,15 @@ async function load() {
   state.value = 'loading'
   hasSession.value = !!getApiToken()
   try {
-    const [o, list, cfg] = await Promise.all([
+    const [o, list] = await Promise.all([
       loaders.value.overview(),
       loaders.value.items(),
-      trustHostSlug() ? null : api.publicConfig().catch(() => null), // not served on a trust domain
     ])
     ov.value = o
     items.value = list
     // Brand first, so nothing flashes unbranded; then the language.
     applyBrandColor(o.branding_color)
-    if (cfg && cfg.locales) await applyConfigLocales({ locales: cfg.locales, default_locale: o.default_locale })
+    if (o.locales) await applyConfigLocales({ locales: o.locales, default_locale: o.default_locale })
     await loadVisitor()
     state.value = 'ready'
     if (typeof location !== 'undefined' && location.hash === '#sign-in' && signInAvailable.value && !visitor.value) openSignIn()

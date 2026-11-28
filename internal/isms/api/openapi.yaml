@@ -5038,7 +5038,7 @@ components:
         expires_at: { type: integer, description: Unix seconds. Present only with invite_url. }
     TrustCenterOverview:
       type: object
-      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url]
+      required: [title, security_contact, branding_name, branding_color, default_locale, show_powered_by, locales, overview, visitor_sign_in, privacy_notice_url]
       properties:
         title: { type: string, description: The page title the organization chose; empty when unset. }
         security_contact: { type: string, description: Where to report a security issue; empty when unset. }
@@ -5046,6 +5046,14 @@ components:
         branding_color: { type: string, description: The organization's brand color; empty when unset. }
         default_locale: { type: string, description: "The organization's default locale (a supported tag, `en` when unset). Never derived from Accept-Language." }
         show_powered_by: { type: boolean, description: "Whether the footer shows the platform credit: the organization's `show_powered_by` setting, else the platform default." }
+        locales:
+          type: [array, 'null']
+          description: The selectable languages (the same list as `locales` in `GET /config`; never null in a response), default first, so the page can offer a language picker without calling `/config`.
+          items:
+            type: object
+            properties:
+              tag: { type: string, description: "BCP 47 tag, e.g. `de-DE`." }
+              name: { type: string, description: The language's own name, for a picker. }
         overview:
           type: [object, 'null']
           description: >-

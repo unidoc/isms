@@ -195,6 +195,38 @@ Caddy handles TLS automatically via Let's Encrypt.
 
 Set `ISMS_BASE_URL=https://isms.company.com` so the server generates correct links for emails, passkeys, and CORS.
 
+### Custom domains
+
+An organization can be reached on a host of its own in two ways. Both are set by the server operator on the server host; there is no self-service setup yet.
+
+**App custom domain.** The organization's whole app (login, documents, registers) is served on a host of its own, for example `isms.mycompany.com`. It can only be set when the organization is created:
+
+```bash
+isms server org create --name "My Company" --slug myco --domain isms.mycompany.com
+```
+
+**Trust domain.** The organization's public trust center is served on its own host, for example `trust.mycompany.com`, in addition to its usual address (`/<slug>/trust`, or `/trust` on its subdomain):
+
+```bash
+isms server org set-trust-domain --org myco --domain trust.mycompany.com
+isms server org set-trust-domain --org myco --clear
+```
+
+The command prints the old and new value. A change applies on the next request; no restart is needed. `isms server org list` shows each organization's trust domain.
+
+The host must be a plain host name such as `trust.mycompany.com`: letters, digits and hyphens in at least two dot-separated labels, written in punycode if it is not ASCII. The command refuses a scheme (`https://`), a port, a path, a wildcard, an IP address, `localhost`, the app's own host (`ISMS_DOMAIN`, or the host of `ISMS_BASE_URL`) or anything under it (`www.` and tenant subdomains included), and a host that another organization already uses as its app domain or trust domain. A deleted organization does not block its hosts.
+
+A trust domain needs `ISMS_BASE_URL` (or `ISMS_DOMAIN`) set on the server, as visitor sign-in links already do: the server recognises custom and trust domains only when it knows its own address, and without it a trust domain is ignored and that host serves the plain app.
+
+To put a trust domain into service:
+
+1. **DNS.** Point the host at the server (or at the reverse proxy in front of it) with an A, AAAA or CNAME record.
+2. **TLS.** Get a certificate for the host and install it on the reverse proxy, as for the app host. The server does not terminate TLS or request certificates. Automatic certificates for customers' trust domains on isms.sh Cloud are not part of this feature.
+3. **Reverse proxy.** Route the host to the server and pass the original `Host` header unchanged (`proxy_set_header Host $host;` in the nginx example above; Caddy does this by default). The server tells the organizations apart by that header.
+4. **`ISMS_BASE_URL`** stays the address of the app. Do not change it.
+
+On the trust host the server answers only the trust center: the page (`/`, `/sign-in` and `/documents/<id>`), the public trust API, the organization's logo and favicon, and the web app's static files. Everything else is a plain 404: there is no login page, no member API, no git access, no `/docs` and no health check (point health probes at the app host). The organization's usual trust center address keeps working. Visitors who sign in on the trust host get a sign-in link that opens on that host, and their session stays on it.
+
 ## Configuration
 
 All configuration is via environment variables. See `contrib/unidoc.env` for the complete template.

@@ -39,7 +39,7 @@ func trustServer(t *testing.T) *Server {
 	s := testServer(t)
 	s.secret = "trust-public-test-secret-0123456789abcdef"
 	s.echo = echo.New()
-	s.echo.Use(OrgResolverMiddleware(s.db, trustTestBase, true))
+	s.useHostResolution(trustTestBase, true)
 	s.echo.Use(AuthMiddleware(AuthConfig{DB: s.db, Secret: s.secret}))
 	s.echo.Use(s.RoleMiddleware())
 	s.routes()
@@ -180,8 +180,8 @@ func TestTrustPublicOverview(t *testing.T) {
 		if got["title"] != "Trust ov" || got["security_contact"] != "ov@sec.test" || got["branding_name"] != "Org ov" {
 			t.Errorf("%s: body = %s", mode, r.body)
 		}
-		if _, ok := got["branding_color"]; !ok || len(got) != 9 {
-			t.Errorf("%s: want exactly title, security_contact, branding_name, branding_color, default_locale, show_powered_by, overview, visitor_sign_in, privacy_notice_url: %s", mode, r.body)
+		if _, ok := got["branding_color"]; !ok || len(got) != 10 {
+			t.Errorf("%s: want exactly title, security_contact, branding_name, branding_color, default_locale, show_powered_by, locales, overview, visitor_sign_in, privacy_notice_url: %s", mode, r.body)
 		}
 		if got["default_locale"] != "en" || got["show_powered_by"] != true {
 			t.Errorf("%s: default_locale/show_powered_by = %v/%v", mode, got["default_locale"], got["show_powered_by"])

@@ -29,6 +29,14 @@ export function publicAddress(origin, slug, subdomainMode) {
   return subdomainMode ? `${origin}/trust` : `${origin}/${slug}/trust`
 }
 
+// The address of the trust center on its own host (#528), or '' when the
+// organization has none. Shown read-only: the server operator sets it.
+export function trustDomainAddress(protocol, domain) {
+  const d = String(domain || '').trim()
+  if (!d) return ''
+  return `${protocol || 'https:'}//${d}/`
+}
+
 // The blocked-domains textarea: one domain per line (commas and spaces also
 // separate). The server normalises and validates; this only splits.
 export function parseDomains(text) {

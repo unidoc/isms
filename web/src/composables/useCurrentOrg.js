@@ -46,11 +46,28 @@ const _subdomainRoutingEnabled = ref(null)
 //
 // A meta tag (not an inline <script>) is used deliberately: the server's CSP is
 // script-src 'self', which blocks inline scripts — a script tag would never run.
+// Set by the server (same meta channel) only when the page is served on an
+// organization's trust domain: the slug of that organization. On such a host
+// only the trust center is served, so no other host classification applies.
+let _trustHostSlug = ''
+
 if (typeof document !== 'undefined') {
   const _apexMeta = document.querySelector('meta[name="isms-apex"]')
   if (_apexMeta && _apexMeta.content) _apexHosts.add(_apexMeta.content.toLowerCase())
   const _routingMeta = document.querySelector('meta[name="isms-subdomain-routing"]')
   if (_routingMeta) _subdomainRoutingEnabled.value = _routingMeta.content === 'true'
+  const _trustHostMeta = document.querySelector('meta[name="isms-trust-host"]')
+  if (_trustHostMeta && _trustHostMeta.content) _trustHostSlug = _trustHostMeta.content
+}
+
+/** The organization slug when this page is served on a trust domain, else ''. */
+export function trustHostSlug() {
+  return _trustHostSlug
+}
+
+/** Test seam: node has no document to read the meta from. */
+export function setTrustHostSlug(slug) {
+  _trustHostSlug = slug || ''
 }
 
 export function setApexHost(host) {
@@ -73,6 +90,9 @@ const LOCAL_HOSTS = new Set([
  * and any single-label / two-label hostnames.
  */
 export function isSubdomainHost(hostname) {
+  // A trust domain (trust.company.com) has the shape of a tenant subdomain but
+  // is not one.
+  if (_trustHostSlug) return false
   const host = (hostname || '').toLowerCase()
   if (!host) return false
   if (LOCAL_HOSTS.has(host)) return false

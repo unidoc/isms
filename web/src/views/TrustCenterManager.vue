@@ -16,6 +16,14 @@
             <a :href="previewHref" target="_blank" rel="noopener" data-trust="preview"
               class="px-2.5 py-1 text-xs rounded-md bg-blue-600 hover:bg-blue-500 text-white">{{ $t('trust_manager.address.preview') }}</a>
           </div>
+          <!-- The trust domain is set by the server operator; read-only here. -->
+          <div v-if="trustDomain" class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" data-trust="trust-domain-row">
+            <span class="text-slate-500">{{ $t('trust_manager.address.trust_domain') }}</span>
+            <code class="text-slate-200 bg-slate-800 rounded px-2 py-1 break-all" data-trust="trust-domain">{{ trustDomain }}</code>
+            <button type="button" data-trust="copy-trust-domain" @click="copyTrustDomain"
+              class="px-2.5 py-1 text-xs rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800">{{ copiedTrustDomain ? $t('trust_manager.address.copied') : $t('common.action.copy') }}</button>
+            <span class="text-xs text-slate-500" data-trust="trust-domain-note">{{ $t('trust_manager.address.trust_domain_note') }}</span>
+          </div>
         </div>
 
         <div v-if="loadError" class="text-sm text-red-400 mb-4" data-trust="load-error">
@@ -61,7 +69,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { renderApiError } from '../composables/useApiError.js'
 import { useCurrentOrg } from '../composables/useCurrentOrg.js'
-import { publicAddress, previewAddress } from '../utils/trustManager.js'
+import { publicAddress, previewAddress, trustDomainAddress } from '../utils/trustManager.js'
 import TrustDocumentsSection from '../components/trust/TrustDocumentsSection.vue'
 import TrustCertificationsSection from '../components/trust/TrustCertificationsSection.vue'
 import TrustSubprocessorsSection from '../components/trust/TrustSubprocessorsSection.vue'
@@ -98,6 +106,16 @@ const copied = ref(false)
 
 const previewHref = computed(() => previewAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
 const address = computed(() => publicAddress(globalThis.location?.origin || '', orgSlug.value, subdomainMode))
+
+const trustDomain = computed(() => trustDomainAddress(globalThis.location?.protocol || 'https:', settings.value?.trust_domain))
+const copiedTrustDomain = ref(false)
+async function copyTrustDomain() {
+  try {
+    await navigator.clipboard.writeText(trustDomain.value)
+    copiedTrustDomain.value = true
+    setTimeout(() => { copiedTrustDomain.value = false }, 1500)
+  } catch { /* clipboard may be unavailable */ }
+}
 
 // Warnings from the settings the server sent; each shows only while it holds.
 const warnings = computed(() => {

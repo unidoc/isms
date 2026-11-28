@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
 import { t } from '../i18n.js'
@@ -73,7 +73,9 @@ const props = defineProps({
   slug: { type: String, default: '' },
   // The trust page to go back to (/acme/trust, or /trust on a tenant host).
   basePath: { type: String, required: true },
+  rootPath: { type: String, default: null }, // the page itself; defaults to basePath
 })
+const root = computed(() => props.rootPath ?? props.basePath)
 const emit = defineEmits(['navigate'])
 const router = useRouter()
 const route = useRoute()
@@ -141,10 +143,9 @@ async function start() {
   state.value = 'checking'
   let o
   try {
-    const [ovr, cfg] = await Promise.all([api.trustOverview(props.slug), api.publicConfig().catch(() => null)])
-    o = ovr
+    o = await api.trustOverview(props.slug)
     applyBrandColor(o.branding_color)
-    if (cfg && cfg.locales) await applyConfigLocales({ locales: cfg.locales, default_locale: o.default_locale })
+    if (o.locales) await applyConfigLocales({ locales: o.locales, default_locale: o.default_locale })
   } catch (err) {
     state.value = err && err.status === 404 ? 'unavailable' : 'error'
     return
@@ -186,7 +187,7 @@ async function submit() {
   submitting.value = true
   try {
     await api.trustSignIn(props.slug, token, needsProfile.value ? n : undefined, needsProfile.value ? c : undefined)
-    emit('navigate', props.basePath)
+    emit('navigate', root.value)
   } catch (err) {
     if (err && err.code === 'trust_visitor_profile_required') {
       needsProfile.value = true
@@ -202,7 +203,7 @@ async function submit() {
 }
 
 function requestNew() {
-  emit('navigate', `${props.basePath}#sign-in`)
+  emit('navigate', `${root.value}#sign-in`)
 }
 
 onMounted(() => {

@@ -70,6 +70,9 @@ type trustPublicOverview struct {
 	// request: the page negotiates the visitor's language itself.
 	DefaultLocale string `json:"default_locale"`
 	ShowPoweredBy bool   `json:"show_powered_by"`
+	// Locales are the selectable languages, the same list /api/v1/config gives,
+	// so the page needs no other call (a trust domain does not serve /config).
+	Locales []i18n.Locale `json:"locales"`
 	// Overview is the served version of the overview document, or null.
 	Overview *trustPublicOverviewDocument `json:"overview"`
 	// VisitorSignIn is true when visitors can sign in by email, which needs
@@ -274,6 +277,7 @@ func (s *Server) trustPublicOverview(c echo.Context, org *db.Organization, setti
 		BrandingColor:          color,
 		DefaultLocale:          i18n.Resolve("", orgLocale),
 		ShowPoweredBy:          showPoweredBy,
+		Locales:                i18n.Supported(),
 		Overview:               s.trustOverviewDocument(ctx, org, settings),
 
 		VisitorSignIn:    s.mailer != nil,

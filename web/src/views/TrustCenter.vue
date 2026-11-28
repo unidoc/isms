@@ -1,6 +1,6 @@
 <template>
-  <TrustSignIn v-if="resolved && route.meta.signIn" :slug="slug" :base-path="basePath" @navigate="go" />
-  <TrustCenterPage v-else-if="resolved" :slug="slug" :base-path="basePath" :doc-id="docId" @navigate="go" />
+  <TrustSignIn v-if="resolved && route.meta.signIn" :slug="slug" :base-path="paths.prefix" :root-path="paths.root" @navigate="go" />
+  <TrustCenterPage v-else-if="resolved" :slug="slug" :base-path="paths.prefix" :root-path="paths.root" :doc-id="docId" @navigate="go" />
   <div v-else class="trust-page min-h-screen bg-slate-50" />
 </template>
 
@@ -11,19 +11,21 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api.js'
-import { isSubdomainMode } from '../composables/useCurrentOrg'
+import { isSubdomainMode, trustHostSlug } from '../composables/useCurrentOrg'
+import { trustPaths } from '../utils/trustPaths.js'
 import TrustCenterPage from '../components/TrustCenterPage.vue'
 import TrustSignIn from '../components/TrustSignIn.vue'
 
 const route = useRoute()
 const router = useRouter()
-const subdomain = isSubdomainMode()
+const hostSlug = trustHostSlug() // set when served on the organization's trust domain
+const subdomain = !hostSlug && isSubdomainMode()
 
 const tenantSlug = ref('')
 const resolved = ref(!subdomain)
 
-const slug = computed(() => (subdomain ? tenantSlug.value : String(route.params.org || '')))
-const basePath = computed(() => (subdomain ? '/trust' : `/${encodeURIComponent(slug.value)}/trust`))
+const slug = computed(() => (hostSlug || (subdomain ? tenantSlug.value : String(route.params.org || ''))))
+const paths = computed(() => trustPaths({ trustHost: !!hostSlug, subdomain, slug: slug.value }))
 const docId = computed(() => String(route.params.id || ''))
 
 onMounted(async () => {

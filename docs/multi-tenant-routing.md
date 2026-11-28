@@ -47,10 +47,22 @@ hosts. It is the only mode on deployments without wildcard DNS / TLS.
 `OrgResolverMiddleware` runs BEFORE auth and sets the org context on the
 request:
 
+0. **Host lookup** — the hostname is lower-cased and its port dropped. Unless it
+   is the apex, `localhost` or under the apex, it is looked up once as an
+   organization's **trust domain** or app domain (`organizations.trust_domain`,
+   `organizations.domain`). A trust domain match sets the org and a
+   `trust_host` flag and skips the steps below; the **trust-host gate** then
+   answers only the trust center (`/`, `/sign-in`, `/documents/<id>`, the public
+   trust API `/api/v1/trust/<slug>/...`, branding, the SPA's static files) and a
+   plain 404 for everything else, including `/git/`, the member API, `/docs`
+   and `/healthz`. A failed lookup answers 500; it never falls through to the
+   app. An app domain match is used at step 3.
 1. **Skip** `/git/...` — git wire protocol resolves by UUID in the handler.
 2. **Subdomain** — `hostname` ends with `.<apex>` and `ISMS_SUBDOMAIN_ROUTING=1`
    → look up the slug as the first label.
-3. **Custom domain** — `hostname` matches an `organizations.domain` column.
+3. **Custom domain** — `hostname` matches an `organizations.domain` column
+   (found by the host lookup above; case, a stored scheme and a trailing
+   slash are ignored).
 4. **Path-based** — for non-API, non-static paths only: the first path
    segment is treated as the slug, the path is rewritten (`/acme/dashboard`
    becomes `/dashboard` with `org_id` set on context).
@@ -128,7 +140,8 @@ handler directly. Test coverage: `tests/test_e2e_routing.py::TestDocsLinkServedN
 |---|---|---|
 | `ISMS_DOMAIN` | subdomain mode | Apex hostname — `acme.<ISMS_DOMAIN>` resolves to org `acme`. |
 | `ISMS_SUBDOMAIN_ROUTING` | subdomain mode | Set to `1` to enable. Default off. |
-| `organizations.domain` | custom domain mode | Per-org column; an exact hostname match resolves to that org. |
+| `organizations.domain` | custom domain mode | Per-org column; a hostname match (case-insensitive) resolves to that org. |
+| `organizations.trust_domain` | trust domain | Per-org column, set with `isms server org set-trust-domain`; that host serves only the org's trust center. Unique across every live org's app and trust domains. |
 
 The `/api/v1/config` endpoint surfaces `subdomain_routing` and `apex_host`
 to the SPA so `orgEntryURL()` can construct the right URL when switching

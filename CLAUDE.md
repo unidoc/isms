@@ -14,7 +14,7 @@ The core provides:
 - **Git-backed documents** — markdown files with YAML frontmatter, versioned
 - **Review workflow** — send for review, inline comments, approve/reject, merge
 - **Registers** — risks, assets, suppliers, systems, legal requirements, incidents (all in PostgreSQL)
-- **Multi-tenant** — organizations with RLS, per-org identifiers, white-label branding
+- **Multi-tenant** — organizations with RLS, per-org identifiers, white-label branding; an org's trust domain (set by the operator) serves only its trust center, everything else on that host is a 404
 - **Authentication** — OIDC, password+TOTP, passkeys, API tokens
 
 The core does NOT know about:
@@ -142,7 +142,7 @@ POST /documents/:docId/confirm-review — annual review confirm (approved docume
 GET  /documents/:docId/trust-center — trust center state: served version, hidden, can publish (manager/admin)
 POST /documents/:docId/trust-center — publish the last approved version to the trust center; `confirm_classification` needed to publish a confidential/restricted document at public (manager/admin)
 DELETE /documents/:docId/trust-center — unpublish from the trust center (manager/admin)
-GET  /trust-center/settings — trust center settings: enabled, title, overview document, security contact, default access level, blocked email domains (effective list + default flag + built-in list), privacy notice URL, `email_configured`, `sign_in_paused_until`, `overview_withheld` (manager/admin)
+GET  /trust-center/settings — trust center settings: enabled, title, overview document, security contact, default access level, blocked email domains (effective list + default flag + built-in list), privacy notice URL, `email_configured`, `sign_in_paused_until`, `overview_withheld`, `trust_domain` (read-only, set by the operator with `isms server org set-trust-domain`) (manager/admin)
 PUT  /trust-center/settings — partial settings update, changelog per changed field; `blocked_email_domains` list/`[]` allow all/`null` built-in list, `privacy_notice_url` http(s) or `""`; 409 `trust_overview_not_public` for a gated/restricted overview document (manager/admin)
 GET  /trust-center/visitors — people who signed in to the trust center, most recently seen first (manager/admin)
 POST /trust-center/visitors/:id/revoke-sessions — end a visitor's sessions, returns `{revoked}` (manager/admin)
@@ -182,6 +182,7 @@ isms init --template iso27001    # scaffold new repo from template
 isms sync                        # push/pull git
 isms review send <id> --to email # send for review
 isms status                      # show overdue reviews
+isms server org set-trust-domain --org <slug> --domain <host>   # serve the trust center on its own host (--clear removes)
 ```
 
 ## Roles

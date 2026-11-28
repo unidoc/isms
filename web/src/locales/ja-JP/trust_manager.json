@@ -11,7 +11,9 @@
   "address": {
     "label": "公開アドレス",
     "copied": "コピーしました",
-    "preview": "訪問者として表示"
+    "preview": "訪問者として表示",
+    "trust_domain": "トラストセンターのドメイン",
+    "trust_domain_note": "サーバー運用者が設定します"
   },
   "documents": {
     "heading": "文書",

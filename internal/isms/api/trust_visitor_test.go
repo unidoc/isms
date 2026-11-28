@@ -14,6 +14,8 @@ func TestTrustSignInLinkIsBuiltFromServerKnownValues(t *testing.T) {
 	withDomain := &db.Organization{Slug: "acme", Domain: &custom}
 	noDomain := &db.Organization{Slug: "acme"}
 	httpDomain := "http://trust.acme.test"
+	trustDom := "trust.a.test"
+	withTrust := &db.Organization{Slug: "acme", TrustDomain: &trustDom}
 	const tok = "abc123"
 
 	cases := []struct {
@@ -35,6 +37,10 @@ func TestTrustSignInLinkIsBuiltFromServerKnownValues(t *testing.T) {
 		{"custom domain does not take the base port", "https://isms.example.com:8443", withDomain, true, "trust.acme.test", "https://trust.acme.test/trust/sign-in#visitor_token=abc123"},
 		{"custom domain stored with a scheme keeps it", "https://isms.example", &db.Organization{Slug: "acme", Domain: &httpDomain}, true, "trust.acme.test", "http://trust.acme.test/trust/sign-in#visitor_token=abc123"},
 		{"custom domain, request on the base host", "https://isms.example", withDomain, false, "isms.example", "https://isms.example/acme/trust/sign-in#visitor_token=abc123"},
+		{"trust domain", "https://isms.example", withTrust, true, "trust.a.test", "https://trust.a.test/sign-in#visitor_token=abc123"},
+		{"trust domain, dotted host with port", "https://isms.example", withTrust, true, "TRUST.a.test.:443", "https://trust.a.test/sign-in#visitor_token=abc123"},
+		{"trust domain, dotted host", "https://isms.example", withTrust, false, "trust.a.test.", "https://trust.a.test/sign-in#visitor_token=abc123"},
+		{"forged host for a trust domain org", "https://isms.example", withTrust, true, "evil.test", "https://isms.example/acme/trust/sign-in#visitor_token=abc123"},
 		{"forged host", "https://isms.example", noDomain, true, "evil.example", "https://isms.example/acme/trust/sign-in#visitor_token=abc123"},
 		{"forged host with port", "https://isms.example", noDomain, false, "evil.example:8080", "https://isms.example/acme/trust/sign-in#visitor_token=abc123"},
 		{"forged subdomain of another apex", "https://isms.example", noDomain, true, "acme.evil.example", "https://isms.example/acme/trust/sign-in#visitor_token=abc123"},

@@ -273,3 +273,93 @@ ALTER TABLE trust_center_items ADD CONSTRAINT trust_center_items_hidden_reason_c
 -- When a visitor-visible change to the subprocessor list last happened and is not
 -- derivable from the items or the suppliers: unpublishing and reordering.
 ALTER TABLE trust_center_settings ADD COLUMN IF NOT EXISTS subprocessors_changed_at TIMESTAMPTZ;
+
+-- #528: an organization's trust center can be served on its own host
+-- (trust.company.com). The server operator sets trust_domain; it is a bare
+-- lowercase hostname, so the CHECK refuses a scheme, port, path or upper case.
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trust_domain TEXT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'organizations_trust_domain_check'
+          AND conrelid = 'organizations'::regclass
+    ) THEN
+        ALTER TABLE organizations ADD CONSTRAINT organizations_trust_domain_check
+            CHECK (trust_domain IS NULL OR trust_domain ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$');
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_organizations_trust_domain
+    ON organizations (lower(trust_domain))
+    WHERE trust_domain IS NOT NULL AND deleted_at IS NULL;
+
+-- The app domain (organizations.domain) may be stored with a scheme and a
+-- trailing slash, so hosts are compared through this normaliser: lower case,
+-- no leading scheme://, no trailing slash or dot; NULL or empty gives NULL.
+CREATE OR REPLACE FUNCTION isms_org_host(h text) RETURNS text AS $$
+    SELECT NULLIF(
+        regexp_replace(regexp_replace(lower(btrim(h)), '^[a-z][a-z0-9+.-]*://', ''), '[/.]+$', ''),
+        '')
+$$ LANGUAGE sql IMMUTABLE;
+
+-- A host belongs to one live organization, as its app domain or its trust
+-- domain: the unique indexes cover each column, this covers the two columns
+-- against each other and against the other organization's scheme-tolerant
+-- values. The advisory lock serialises concurrent writers so two transactions
+-- cannot each pass the check. Soft-deleted organizations never block anyone.
+CREATE OR REPLACE FUNCTION organizations_host_unique() RETURNS trigger AS $$
+DECLARE
+    app_host   text;
+    trust_host text;
+    fresh      boolean;  -- a new row, or a deleted one being restored
+    new_app    boolean;
+    new_trust  boolean;
+BEGIN
+    IF NEW.deleted_at IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+
+    app_host := isms_org_host(NEW.domain);
+    trust_host := isms_org_host(NEW.trust_domain);
+    -- Only a host that is new on this row is checked against the other
+    -- organizations: older data the app-domain index tolerates (two domains that
+    -- differ only by scheme) must not block an unrelated change, and clearing a
+    -- trust domain is never refused.
+    fresh := TG_OP = 'INSERT' OR OLD.deleted_at IS NOT NULL;
+    new_app := app_host IS NOT NULL AND (fresh OR NEW.domain IS DISTINCT FROM OLD.domain);
+    new_trust := trust_host IS NOT NULL AND (fresh OR NEW.trust_domain IS DISTINCT FROM OLD.trust_domain);
+    IF NOT (new_app OR new_trust) THEN
+        RETURN NEW;
+    END IF;
+
+    PERFORM pg_advisory_xact_lock(5280000528);
+
+    IF trust_host IS NOT NULL AND trust_host = app_host THEN
+        RAISE EXCEPTION 'host % is already used by an organization''s app or trust domain', trust_host
+            USING ERRCODE = 'unique_violation', CONSTRAINT = 'organizations_host_unique';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM organizations o
+        WHERE o.id <> NEW.id AND o.deleted_at IS NULL
+          AND ((new_app AND app_host IN (isms_org_host(o.domain), isms_org_host(o.trust_domain)))
+               OR (new_trust AND trust_host IN (isms_org_host(o.domain), isms_org_host(o.trust_domain))))
+    ) THEN
+        RAISE EXCEPTION 'host is already used by an organization''s app or trust domain'
+            USING ERRCODE = 'unique_violation', CONSTRAINT = 'organizations_host_unique';
+    END IF;
+    RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS organizations_host_unique ON organizations;
+CREATE TRIGGER organizations_host_unique
+    BEFORE INSERT OR UPDATE OF domain, trust_domain, deleted_at ON organizations
+    FOR EACH ROW EXECUTE FUNCTION organizations_host_unique();
+
+-- #528: the resolver looks up every request host that is not the apex; back the
+-- app-domain half of that lookup with an index (the trust domain has its own).
+CREATE INDEX IF NOT EXISTS ix_organizations_app_host
+    ON organizations (isms_org_host(domain))
+    WHERE deleted_at IS NULL;

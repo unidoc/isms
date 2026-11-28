@@ -1,14 +1,24 @@
 package api
 
 import (
+	"errors"
+	"log"
+	"net/http"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
 	"isms.sh/internal/isms/db"
 )
 
 // OrgResolverMiddleware resolves the organization from the request host or path.
 // It runs BEFORE auth middleware and sets org_id + org_slug on the context.
+//
+// The host is lower-cased and its port dropped first. A host that is neither the
+// apex, localhost nor under the apex is looked up once, as an organization's
+// trust domain or app domain, before any other step: a trust domain match sets
+// trust_host (the trust-host gate then decides what is served) and skips the
+// rest; a lookup error answers 500 rather than falling through to app routing.
 //
 // Resolution order:
 //  1. Skip /git/ paths (UUID-based, handled by git handler)
@@ -19,14 +29,36 @@ import (
 func OrgResolverMiddleware(database *db.DB, baseDomain string, subdomainRouting bool) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			host := c.Request().Host
+			host := strings.ToLower(c.Request().Host)
 			// Remove port if present
 			hostname := host
 			if i := strings.LastIndex(host, ":"); i > 0 {
 				hostname = host[:i]
 			}
+			// "trust.acme.test." is the same host as "trust.acme.test".
+			hostname = strings.TrimSuffix(hostname, ".")
 
 			path := c.Request().URL.Path
+
+			// Trust domain or app (custom) domain: one lookup, before everything else.
+			var appOrg *db.Organization
+			if hostname != baseDomain && hostname != "localhost" && !strings.HasSuffix(hostname, "."+baseDomain) {
+				org, kind, err := database.GetOrganizationByHost(c.Request().Context(), hostname)
+				switch {
+				case err == nil && kind == db.OrgHostTrust:
+					c.Set("org_id", org.ID)
+					c.Set("org_slug", org.Slug)
+					c.Set(trustHostKey, true)
+					return next(c)
+				case err == nil:
+					appOrg = org
+				case errors.Is(err, pgx.ErrNoRows):
+				default:
+					// Fail closed: never serve app routes on a host that might be a trust host.
+					log.Printf("org resolver: host lookup failed: %v", err)
+					return c.String(http.StatusInternalServerError, "internal error\n")
+				}
+			}
 
 			// 1. Skip git URLs (org resolved by UUID in handler)
 			if strings.HasPrefix(path, "/git/") {
@@ -49,14 +81,11 @@ func OrgResolverMiddleware(database *db.DB, baseDomain string, subdomainRouting 
 				}
 			}
 
-			// 3. Check custom domain
-			if hostname != baseDomain && hostname != "localhost" && !strings.HasSuffix(hostname, "."+baseDomain) {
-				org, err := database.GetOrganizationByDomain(c.Request().Context(), hostname)
-				if err == nil {
-					c.Set("org_id", org.ID)
-					c.Set("org_slug", org.Slug)
-					return next(c)
-				}
+			// 3. Custom domain (looked up above)
+			if appOrg != nil {
+				c.Set("org_id", appOrg.ID)
+				c.Set("org_slug", appOrg.Slug)
+				return next(c)
 			}
 
 			// 4. Check path-based org: /acme/dashboard → org=acme, rewrite to /dashboard

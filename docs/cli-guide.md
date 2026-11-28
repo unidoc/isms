@@ -154,6 +154,7 @@ Run on the server host (`isms server …`, uses the server's env / `DATABASE_URL
 | `isms server user test-auth` | Read-only login credential check (diagnostics) |
 | `isms server user reset-otp` | Clear a user's 2FA so they can re-enroll |
 | `isms server org …` | Manage organizations and members |
+| `isms server org set-trust-domain --org <slug> --domain <host>` | Serve the org's trust center on its own host (e.g. `trust.example.com`); `--clear` removes it. See the operator guide, "Custom domains" |
 | `isms server api-key create` | Mint CLI/automation tokens |
 | `isms server test-email [--org <slug>]` | Verify SMTP; `--org` previews a tenant's branded From |
 
